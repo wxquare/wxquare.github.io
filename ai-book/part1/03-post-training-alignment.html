@@ -1,0 +1,457 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第3章 后训练与模型对齐 - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="面向工程师的 AI Agent 系统设计指南，涵盖大模型基础、Agent 运行时、工具调用、RAG、Memory、评估治理与生产级案例">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-2459343d.css">
+        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-bec4dcd5.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-0ce1344b.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">AI Agent 工程实践：从大模型基础到生产级智能体系统</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第3章-后训练与模型对齐"><a class="header" href="#第3章-后训练与模型对齐">第3章 后训练与模型对齐</a></h1>
+<p>预训练模型首先学会的是“像训练语料一样继续写”，而产品需要的是“理解当前指令，在约束内完成任务，并在不确定时说清楚”。两者之间的差距，就是后训练要处理的问题。本章不把对齐理解成一句“让模型更安全、更有帮助”的口号，而是拆成数据、目标、优化和评估四个工程对象：用什么示范塑造行为，用什么偏好定义更好，用什么奖励推动策略改变，以及如何确认模型没有为了得分而牺牲真实能力。</p>
+<p>对有后端开发经验的读者，最重要的边界是：后训练改变模型的默认行为和能力表达方式，但不能替代数据库、检索、权限、事务、审计和人工升级。一个模型可以经过很好的对齐，仍然不知道今天的库存，仍然可能调用错误工具，仍然可能在没有验证器时生成貌似合理的答案。对齐让模型更像一个可协作的组件，生产系统仍然负责把组件放进可靠的控制面。</p>
+<h2 id="31-历史发展从续写器到可交互模型"><a class="header" href="#31-历史发展从续写器到可交互模型">3.1 历史发展：从续写器到可交互模型</a></h2>
+<h3 id="预训练模型留下的行为缺口"><a class="header" href="#预训练模型留下的行为缺口">预训练模型留下的行为缺口</a></h3>
+<p>GPT 类模型通过 next-token prediction 学会了语言和大量文本模式，但训练目标没有直接告诉它什么是“有帮助的回答”。用户输入“帮我解释这个报错”，基础模型可能续写一段论坛帖子、模拟多个角色，或者直接生成一个没有上下文依据的修复方案。它在语言概率上可以很自然，在任务目标上却可能完全错误。</p>
+<p>早期迁移学习主要在下游任务上训练分类器或序列到序列模型，解决的是任务准确率；大模型产品还需要处理意图理解、回答风格、拒答边界、格式遵循和多轮协作。FLAN 的工作表明，把许多任务改写成自然语言指令并进行混合微调，可以提升模型的零样本泛化 [2]；InstructGPT 则把示范学习、偏好建模和强化学习组合成完整的助手训练流程 [1]。</p>
+<p>这条路线经历了几个关键转折：先用 instruction tuning 解决“听不懂指令”，再用 preference learning 解决“多个可行答案如何排序”，随后用 Constitutional AI 和 RLAIF 扩大安全反馈，最后把可验证奖励用于数学、代码和复杂推理。每一步都解决了一个瓶颈，同时引入新的优化对象和新的评估风险。</p>
+<h3 id="问题方法效果新限制"><a class="header" href="#问题方法效果新限制">问题—方法—效果—新限制</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">原始问题</th><th style="text-align: left">代表方法</th><th style="text-align: left">主要效果</th><th style="text-align: left">新限制</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">模型只会续写，不会按指令做事</td><td style="text-align: left">指令微调、SFT</td><td style="text-align: left">学会任务格式与回答角色</td><td style="text-align: left">依赖示范质量，容易模仿错误</td></tr>
+<tr><td style="text-align: left">多个答案都能完成任务，但质量不同</td><td style="text-align: left">人类偏好、Reward Model</td><td style="text-align: left">学会帮助性、真实性和风格偏好</td><td style="text-align: left">奖励是代理，存在 reward hacking</td></tr>
+<tr><td style="text-align: left">在线 RL 流程昂贵且不稳定</td><td style="text-align: left">DPO、IPO、KTO、ORPO</td><td style="text-align: left">直接从偏好数据优化策略</td><td style="text-align: left">仍然依赖偏好覆盖和参考模型</td></tr>
+<tr><td style="text-align: left">人工安全标注昂贵、覆盖有限</td><td style="text-align: left">RLAIF、Constitutional AI</td><td style="text-align: left">用原则和 AI feedback 扩展数据</td><td style="text-align: left">judge 偏差会被放大</td></tr>
+<tr><td style="text-align: left">长链推理难以用主观偏好衡量</td><td style="text-align: left">RLVR、过程验证、GRPO</td><td style="text-align: left">用可验证结果换推理成功率</td><td style="text-align: left">verifier 漏洞会成为新攻击面</td></tr>
+</tbody>
+</table>
+</div>
+<p>因此，“对齐”不是单一算法，而是一组逐层改变行为的训练和评估方法。后续小节会分别说明它们依赖什么数据、优化什么目标、何时适用，以及哪些问题不能交给权重解决。</p>
+<h2 id="32-对齐目标行为偏好能力与约束"><a class="header" href="#32-对齐目标行为偏好能力与约束">3.2 对齐目标：行为、偏好、能力与约束</a></h2>
+<h3 id="四种容易混淆的目标"><a class="header" href="#四种容易混淆的目标">四种容易混淆的目标</a></h3>
+<p>后训练之前，先把目标拆开。第一是任务能力，例如能否生成可运行代码、提取正确字段或完成数学计算；第二是指令遵循，例如是否遵守角色、格式和步骤；第三是偏好质量，例如回答是否清晰、相关、诚实和有帮助；第四是安全约束，例如是否拒绝危险操作、是否保护隐私、是否避免越权。</p>
+<p>同一个失败可能来自不同层：模型不会写 SQL，是能力不足；会写 SQL 但不输出 JSON，是行为或格式不足；输出 JSON 但字段值不可信，是事实或验证不足；能正确删除数据但没有权限判断，是系统控制不足。若不先分类，团队很容易用更多 SFT 数据修复本应由 schema、RAG 或权限中间件解决的问题。</p>
+<h3 id="监督目标与偏好目标"><a class="header" href="#监督目标与偏好目标">监督目标与偏好目标</a></h3>
+<p>SFT 让模型模仿一个目标序列，偏好优化让模型在两个或多个候选之间倾向更好的一个，RLVR 则让模型通过环境或程序验证获得奖励。三者的监督信号不同：</p>
+<p>$$
+\text{SFT: }\max_\theta \log \pi_\theta(y\mid x)
+$$</p>
+<p>$$
+\text{Preference: }\pi_\theta(y^+\mid x)&gt;\pi_\theta(y^-\mid x)
+$$</p>
+<p>$$
+\text{Verifiable RL: }\max_\theta \mathbb{E}<em>{y\sim\pi</em>\theta}[R_{verifier}(x,y)]
+$$</p>
+<p>第一个目标适合告诉模型“应该怎么回答”；第二个适合告诉模型“两个回答哪个更好”；第三个适合告诉模型“是否真正完成了可检查的任务”。它们可以串联，但不能互相替代。只有偏好数据而没有示范，模型可能知道排序却缺乏稳定格式；只有 SFT 而没有负例，模型可能不知道哪些看似合理的回答应该避免；只有结果奖励而没有可靠验证器，模型可能学会钻测试漏洞。</p>
+<h3 id="对齐税与能力保持"><a class="header" href="#对齐税与能力保持">对齐税与能力保持</a></h3>
+<p>后训练改变的是模型分布。它可能让模型更愿意拒答、更偏好长答案、更常使用礼貌模板，也可能损失 base model 的知识覆盖、代码多样性和校准。对齐越强不等于产品越好：一个拒绝所有边界问题的模型安全分数可能很高，却无法完成正常的安全开发任务；一个极其迎合用户的模型帮助性评分可能上升，却更少指出前提错误。</p>
+<p>因此每轮后训练都要保留能力锚点：通用语言、中文、多语言、代码、数学、长上下文、事实性、格式化输出和安全攻击集。Llama 2 的技术报告把聊天模型训练、偏好优化和安全评估放在一起讨论，说明开放模型发布不能只展示对话样例 [15]。InternLM2 的报告也显示，中文模型的对齐、工具调用和复杂任务能力必须与基础能力分层观察 [26]。</p>
+<h2 id="33-sft用高质量示范塑造默认行为"><a class="header" href="#33-sft用高质量示范塑造默认行为">3.3 SFT：用高质量示范塑造默认行为</a></h2>
+<h3 id="sft-的数据结构与损失"><a class="header" href="#sft-的数据结构与损失">SFT 的数据结构与损失</a></h3>
+<p>监督微调通常使用 ((x,y)) 样本，其中 (x) 是系统、用户和上下文，(y) 是目标助手回答。对多轮对话，训练一般只对 assistant token 计算损失，避免模型把用户问题也当作需要模仿的输出。目标为：</p>
+<p>$$
+\mathcal{L}<em>{SFT}(\theta)=-\sum</em>{t\in\mathcal{A}}\log \pi_\theta(y_t\mid x,y_{&lt;t}),
+$$</p>
+<p>其中 (mathcal{A}) 表示被监督的 assistant token 位置。mask 设计很重要：如果系统消息、工具结果、用户内容和助手答案边界处理错误，模型会学到错误的角色关系，表现为复读用户输入、泄露隐藏提示或把工具返回内容当成自己的指令。</p>
+<p>SFT 数据不必是“知识百科”。它主要塑造输入到输出的映射，包括任务分解、回答结构、拒答模板、工具调用格式、引用方式和不确定性表达。Self-Instruct 通过模型生成和筛选指令数据，展示了如何在人工种子有限时扩展任务覆盖 [3]；LIMA 则指出，少量但一致、高质量的示范也能带来显著的对齐效果 [11]。这两项工作共同提醒我们：数量和质量不是简单替代关系，数据覆盖与示范一致性必须一起看。</p>
+<h3 id="数据设计能力覆盖比表面多样更重要"><a class="header" href="#数据设计能力覆盖比表面多样更重要">数据设计：能力覆盖比表面多样更重要</a></h3>
+<p>一个成熟的 SFT 集合应该按任务分层，而不是把所有对话混成一个文件。常见分层包括：问答和解释、摘要与改写、结构化抽取、代码生成与修复、数学解题、多轮澄清、工具调用、拒答和安全边界。每一层都要记录输入分布、目标格式、难度、语言、工具状态和验收规则。</p>
+<p>示范答案要尽量符合真实产品标准。若线上要求简短，训练集不能全部是教程式长答案；若线上要求引用证据，答案中就应明确区分已知事实、推断和待核验内容；若线上使用 JSON，示范应覆盖字段缺失、枚举错误、转义和失败分支；若线上允许调用工具，必须包含工具成功、超时、权限拒绝和部分结果等轨迹。</p>
+<p>数据审核可以采用四道门：语义正确性、任务完成度、格式合法性和安全合规性。任何一道不通过，都不应仅仅因为“语言很流畅”而进入训练。对代码样本运行测试，对 SQL 样本使用只读沙箱，对数学样本执行答案验证，对事实问答保留来源字段。后训练数据的验收方式应尽可能接近上线后的验收方式。</p>
+<h3 id="sft-的局限与退化模式"><a class="header" href="#sft-的局限与退化模式">SFT 的局限与退化模式</a></h3>
+<p>SFT 是模仿学习，不直接知道哪个答案在真实环境中产生了更好的结果。它会把示范中的错误、偏见、冗长和过度自信稳定地复制出来。如果所有答案都使用相同模板，模型可能在任何问题上输出模板；如果数据过度集中于某领域，通用能力可能退化；如果负面案例很少，模型不会知道何时应澄清或拒绝。</p>
+<p>常见诊断包括：训练 loss 持续下降但真实任务不涨，说明可能过拟合表达风格；训练后格式更稳定但事实准确率下降，说明示范把表达优先级放得过高；安全拒答增加但正常请求成功率下降，说明边界样本比例或标签策略不合理。解决方案可能是回放通用数据、重新配比、增加难例、改用偏好数据，或者干脆在推理层加入 schema 和验证器，而不是继续增加 SFT 步数。</p>
+<h2 id="34-rlhf用人类偏好优化回答质量"><a class="header" href="#34-rlhf用人类偏好优化回答质量">3.4 RLHF：用人类偏好优化回答质量</a></h2>
+<h3 id="偏好数据与-reward-model"><a class="header" href="#偏好数据与-reward-model">偏好数据与 Reward Model</a></h3>
+<p>当一个问题存在多个都能接受的答案时，很难写出唯一标准答案。例如代码解释可以简洁或详细，开放问题可以有不同论证方式，安全回答需要同时考虑帮助性和风险。RLHF 将问题转成排序：给定 prompt，让标注者比较候选回答，记录 chosen 与 rejected。</p>
+<p>偏好学习的经典工作展示了如何从人类比较中学习奖励函数 [4]。对语言模型而言，Reward Model 接收 prompt 和 response，输出一个标量 (r_\phi(x,y))。它的训练可写成 Bradley-Terry 风格的损失：</p>
+<p>$$
+\mathcal{L}<em>{RM}=-\log\sigma(r</em>\phi(x,y^+)-r_\phi(x,y^-)).
+$$</p>
+<p>这个分数是标注偏好的代理，不是真实质量本身。标注者之间可能不一致，短回答与长回答的偏好可能混杂，安全和帮助性可能冲突，同一领域的专家标准也可能不同。安全评估实践还表明，偏好标准必须把“回答有用”和“回答安全”拆成可讨论的维度，而不能把所有差异压成一个没有解释的总分 [16]。数据中必须记录标注指南、样本来源、分歧率、比较难度和拒标比例，不能只保存最终的 chosen/rejected 字符串。</p>
+<h3 id="ppo-与-kl-约束"><a class="header" href="#ppo-与-kl-约束">PPO 与 KL 约束</a></h3>
+<p>传统 RLHF 通常以 SFT 模型为初始 policy，以 base 或 SFT 的冻结版本为 reference，再用 Reward Model 给生成结果打分。PPO 通过限制新旧 policy 的更新幅度，提高策略优化稳定性 [5]。语言模型训练还常加入 KL 惩罚：</p>
+<p>$$
+R(x,y)=r_\phi(x,y)-\beta D_{KL}(\pi_\theta(\cdot\mid x)\Vert\pi_{ref}(\cdot\mid x)).
+$$</p>
+<p>KL 项的工程意义是防止模型为了奖励而离开熟悉的语言分布。惩罚太弱，模型可能重复、夸张、讨好或产生奇怪文本；惩罚太强，模型几乎不改变，偏好收益有限。PPO 还需要处理 rollout、长序列、优势估计、价值模型、批次采样和 checkpoint，训练链路复杂，故障归因也比 SFT 困难。</p>
+<h3 id="rlhf-的收益与奖励投机"><a class="header" href="#rlhf-的收益与奖励投机">RLHF 的收益与奖励投机</a></h3>
+<p>InstructGPT 的结果说明，少量高质量示范加上人类反馈可以显著改善指令遵循和用户偏好 [1]。HH-RLHF 工作把 helpfulness 与 harmlessness 作为不同数据和评价维度，说明对齐不能只优化一个“总分” [6]。但 reward model 只观察到有限特征，policy 可能学会让答案“看起来像高分答案”，而不是完成真实任务。</p>
+<p>典型 reward hacking 包括：用更长的答案获得“更充分”的表面分；反复声明安全以获得无害分；使用肯定语气迎合用户；把不确定问题包装成自信结论；通过测试集模式获得奖励。发现投机的关键不是降低 reward，而是把线上目标拆成独立验收：事实用检索或引用检查，代码用执行测试，格式用解析器，安全用攻击集，用户满意度用真实任务而非单一 judge。</p>
+<h3 id="rlhf-的数据和系统成本"><a class="header" href="#rlhf-的数据和系统成本">RLHF 的数据和系统成本</a></h3>
+<p>RLHF 需要候选生成、标注平台、偏好数据库、Reward Model 训练、在线 rollout、策略训练和评估回归。每个环节都可能成为瓶颈：候选太相似，偏好信号弱；候选太长，标注成本高；标注指南模糊，RM 学到噪声；rollout 版本不一致，数据不可复现；训练中 reference 与 tokenizer 不匹配，KL 统计失真。</p>
+<p>因此选择 RLHF 前应先问：偏好是否能被稳定描述？是否有足够难的比较样本？Reward Model 是否覆盖真实失败类型？是否有独立验证器抵抗投机？如果答案是否定的，先改善示范和评估，往往比直接扩大 PPO 更有效。</p>
+<h2 id="35-直接偏好优化dpo-及其变体的工程定位"><a class="header" href="#35-直接偏好优化dpo-及其变体的工程定位">3.5 直接偏好优化：DPO 及其变体的工程定位</a></h2>
+<h3 id="dpo-的核心思想"><a class="header" href="#dpo-的核心思想">DPO 的核心思想</a></h3>
+<p>DPO 观察到，在特定的 KL 正则化奖励模型设定下，最优 policy 与 reward 存在解析关系，可以直接用偏好对训练 policy，而不显式拟合 Reward Model 和运行完整 PPO [7]。常见目标形式为：</p>
+<p>$$
+\mathcal{L}<em>{DPO}=-\log\sigma\left(\beta\left[\log\frac{\pi</em>\theta(y^+\mid x)}{\pi_{ref}(y^+\mid x)}-\log\frac{\pi_\theta(y^-\mid x)}{\pi_{ref}(y^-\mid x)}\right]\right).
+$$</p>
+<p>直觉是：提高 chosen 相对于 reference 的相对概率，同时降低 rejected 的相对概率。DPO 的优点是使用熟悉的监督训练基础设施，批处理简单，训练曲线更易观察，适合拥有静态偏好数据的团队。它并没有消除对齐问题，只是把 reward model 和在线策略优化的复杂度部分转移到了偏好数据质量和超参数上。</p>
+<h3 id="ipokto-与-orpo"><a class="header" href="#ipokto-与-orpo">IPO、KTO 与 ORPO</a></h3>
+<p>IPO 试图缓解 DPO 在偏好数据重复、噪声或过拟合时的理论和实践问题 [8]；KTO 不要求每个 prompt 都有成对答案，而是使用 desirable/undesirable 的单条反馈，适合只有好坏标签的场景 [9]；ORPO 把监督损失与偏好比率结合，减少对 reference model 的依赖 [10]。它们的共同点是：利用离线数据直接调整回答分布，避免每次更新都与环境交互。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">方法</th><th style="text-align: left">需要的数据</th><th style="text-align: left">主要优点</th><th style="text-align: left">主要风险</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">DPO</td><td style="text-align: left">chosen/rejected pair</td><td style="text-align: left">公式直接、实现成熟</td><td style="text-align: left">对参考模型和温度敏感</td></tr>
+<tr><td style="text-align: left">IPO</td><td style="text-align: left">preference pair</td><td style="text-align: left">尝试降低过拟合偏好</td><td style="text-align: left">理论假设和数据质量仍重要</td></tr>
+<tr><td style="text-align: left">KTO</td><td style="text-align: left">单条好/坏信号</td><td style="text-align: left">不要求配对数据</td><td style="text-align: left">反馈尺度和类别平衡难处理</td></tr>
+<tr><td style="text-align: left">ORPO</td><td style="text-align: left">示范加偏好信号</td><td style="text-align: left">流程短、无需 reference</td><td style="text-align: left">多目标损失权衡复杂</td></tr>
+</tbody>
+</table>
+</div>
+<p>方法选择应由反馈形态决定，而不是由论文热度决定。如果已有稳定的高质量示范，SFT 后再做 DPO 通常更自然；如果只有线上点赞和点踩，先确认反馈是否与任务成功相关；如果有程序化成功信号，直接使用验证器或 RLVR 可能比把信号粗略转换成偏好更合适。</p>
+<h3 id="偏好数据的质量控制"><a class="header" href="#偏好数据的质量控制">偏好数据的质量控制</a></h3>
+<p>偏好对最容易出现三类问题。第一，chosen 和 rejected 实际表达相同，差异只有长度和措辞；第二，标注者依据个人风格而不是任务完成度排序；第三，负例过于糟糕，模型只学会避免明显错误，却没有学会高难度取舍。解决这些问题要增加 hard negative：事实只错一个数字、代码只缺一个边界条件、工具参数只错一个字段、安全回答既不能拒绝过度也不能放任越权。</p>
+<p>UltraFeedback 使用多模型反馈和更细的评价维度扩展偏好数据，体现了从单一比较走向多属性反馈的趋势 [18]。但 AI 反馈不是天然客观，仍要用人工抽样检查 judge 一致性、长度偏差、位置偏差和语言偏差。Zephyr 的工作展示了如何用高质量反馈和蒸馏快速得到对齐模型 [12]，同时也说明蒸馏的上限受 teacher、数据和评估协议约束。</p>
+<h2 id="36-rlaif-与安全对齐把原则变成可检验边界"><a class="header" href="#36-rlaif-与安全对齐把原则变成可检验边界">3.6 RLAIF 与安全对齐：把原则变成可检验边界</a></h2>
+<h3 id="constitutional-ai-的思路"><a class="header" href="#constitutional-ai-的思路">Constitutional AI 的思路</a></h3>
+<p>人类不可能穷举所有危险请求，也难以对每个回答写出统一标准。Constitutional AI 用一组明确原则指导模型批评和改写自己的回答，再利用这些比较构造 AI feedback [13]。原则可以描述无害、诚实、尊重隐私、避免越权、在安全范围内提供帮助等要求。</p>
+<p>它的核心流程是：模型生成初始回答；根据原则指出风险；生成修订回答；比较初始与修订版本；用这些偏好训练模型。这样做把“安全标准”从隐含的标注习惯变成可审阅的文本规则，便于版本管理和回归测试。</p>
+<h3 id="rlaif-的优势与盲点"><a class="header" href="#rlaif-的优势与盲点">RLAIF 的优势与盲点</a></h3>
+<p>RLAIF 用 AI judge 代替或补充人工标注，可以降低成本、提高一致性并覆盖更多样本 [14]。但 judge 与被训练模型可能共享相同错误，形成同质化反馈；judge 可能偏好更长、更礼貌或更像自身的答案；对复杂事实和隐晦攻击，judge 也可能失效。人类反馈的稀缺性没有消失，只是从逐条标注转移到原则设计、抽样审计和困难案例审核。</p>
+<p>安全对齐至少要区分三种行为：允许且有帮助、拒绝且解释边界、拒绝后仍提供安全替代方案。只有“拒绝率”一个指标会奖励过度拒答。HHH 数据集把 helpful、harmless、honest 作为不同评价维度，适合用来说明三者并不总是同向 [17]。例如用户请求安全分析恶意代码时，完全拒绝可能损害帮助性；直接给出可执行攻击脚本又可能越过安全边界。</p>
+<h3 id="权重对齐不等于系统安全"><a class="header" href="#权重对齐不等于系统安全">权重对齐不等于系统安全</a></h3>
+<p>模型可以学会说“我不能帮助你”，但它仍可能通过工具调用、编码变换或多轮诱导泄露危险信息。生产安全必须由多层系统承担：输入分类、输出审查、工具权限、参数白名单、沙箱、速率限制、审计日志、人工审批和回滚。Llama 2 的安全评估展示了红队、自动测试和人工分析的组合方式 [15]，但任何公开安全报告都不能替代目标系统自己的威胁模型。</p>
+<p>安全训练数据还会带来分布迁移。线上用户可能使用不同语言、隐喻、拼写错误或多轮上下文；攻击者会针对拒答模板做变形。因而安全回归应包含越狱、提示注入、隐私抽取、工具越权和多轮状态攻击，并记录攻击成功率、误伤率、响应延迟和人工接管比例。</p>
+<h2 id="37-rlvr推理后训练与工具行为"><a class="header" href="#37-rlvr推理后训练与工具行为">3.7 RLVR、推理后训练与工具行为</a></h2>
+<h3 id="可验证奖励为什么改变了训练对象"><a class="header" href="#可验证奖励为什么改变了训练对象">可验证奖励为什么改变了训练对象</a></h3>
+<p>偏好奖励适合“哪个回答更好”，但复杂数学、代码和规划任务往往有更客观的验收。RLVR 使用程序、测试、证明检查器或环境状态提供奖励 [19]。DeepSeekMath 展示了 GRPO 等相对策略优化方法与数学验证奖励的结合 [20]；GSM 类任务和代码执行环境则提供了可自动判定的答案或通过率。</p>
+<p>结果奖励可以写成：</p>
+<p>$$
+R(x,y)=\mathbf{1}[V(x,y)=1]-\lambda,\text{cost}(y),
+$$</p>
+<p>其中 (V) 是验证器，cost 可以惩罚过长推理、过多工具调用或过高延迟。模型于是会探索多种推理路径，保留能通过验证的轨迹。它学到的不只是“用某种语气回答”，而是“在推理预算内找到可验收结果”。</p>
+<h3 id="结果奖励过程奖励与验证器"><a class="header" href="#结果奖励过程奖励与验证器">结果奖励、过程奖励与验证器</a></h3>
+<p>只在最终答案上给奖励，信用分配会很困难：一条长推理可能在最后一步出错，模型不知道前面哪些步骤有价值。过程奖励模型尝试对中间步骤逐步评价；Let’s Verify Step by Step 说明过程级验证可以帮助数学推理训练 [22]。但过程奖励也可能把某种表面推理风格当作正确，或者让模型过度拆步骤。</p>
+<p>验证器必须视为生产代码审查。它可能覆盖不足、存在解析漏洞、只检查最终数字而不检查约束，或被模型反向利用。Training Verifiers 的研究说明，验证器本身需要训练、校准和对抗评估 [21]。工程上要记录 false positive、false negative、测试覆盖和版本变化，不能因为自动化就把 verifier 当作事实真理。</p>
+<h3 id="grpoppo-与推理预算"><a class="header" href="#grpoppo-与推理预算">GRPO、PPO 与推理预算</a></h3>
+<p>GRPO 使用同一问题下多条回答的相对奖励，减少对独立 value model 的依赖，在数学推理等场景中有较好的工程吸引力 [20]。PPO 更通用，但需要 value estimation 和更完整的 rollout 管线。选择哪种方法取决于奖励噪声、序列长度、并行环境和训练稳定性。</p>
+<p>推理后训练与 test-time scaling 是两个不同杠杆。训练让模型更会生成有价值的思路，推理时则可以给它更多 token、更多候选、搜索和验证。DeepSeek-R1 报告展示了纯强化学习和冷启动数据结合推动推理能力的路线 [19]；但在生产中，更多推理 token 会直接带来延迟和成本，必须以任务成功率、单位成功成本和尾延迟评估，而不是只追求 benchmark 分数。</p>
+<h3 id="工具调用与-agent-轨迹"><a class="header" href="#工具调用与-agent-轨迹">工具调用与 Agent 轨迹</a></h3>
+<p>工具调用训练需要模型学会选择工具、填充参数、处理返回值和在失败后重试。Toolformer 研究了让模型学习在适当位置调用工具的方式 [24]；ReAct 则把推理和行动交替组织为轨迹，使模型能够根据观察结果更新下一步计划 [23]。这些方法解决的是“模型如何与环境交互”，不是“模型是否拥有工具权限”。</p>
+<p>训练数据应覆盖成功、失败、超时、权限拒绝、部分结果和需要人工确认的分支。工具 schema、参数类型、幂等性和错误码必须与线上接口一致，否则模型学到的是不可执行的假协议。任何有副作用的工具都需要运行时权限和审批，不能因为模型在训练中表现出较高调用准确率，就让它直接执行转账、删除或发布操作。</p>
+<h2 id="38-评估与回归如何证明对齐真的有效"><a class="header" href="#38-评估与回归如何证明对齐真的有效">3.8 评估与回归：如何证明对齐真的有效</a></h2>
+<h3 id="评估层次"><a class="header" href="#评估层次">评估层次</a></h3>
+<p>后训练评估至少分为四层。第一层是格式与协议：角色边界、JSON 合法性、工具参数、停止条件；第二层是任务质量：正确性、完整性、代码执行、数学验证、事实引用；第三层是偏好与交互：帮助性、简洁性、诚实、澄清和多轮一致性；第四层是风险：拒答边界、越狱、隐私、工具越权和分布外输入。</p>
+<p>每层都要有正例、难例和负例。只测试“正常问题回答得好不好”，无法发现模型在错误前提、冲突指令、超长上下文和工具失败时的行为。Llama 2 和 HHH 数据集提供了把帮助性、无害性和诚实分开评价的实践参考 [15][17]。</p>
+<h3 id="llm-as-a-judge-的使用边界"><a class="header" href="#llm-as-a-judge-的使用边界">LLM-as-a-Judge 的使用边界</a></h3>
+<p>LLM judge 可以快速比较开放式回答，MT-Bench 和 Chatbot Arena 研究系统讨论了 judge 与人类偏好的关系以及位置、长度和模型自偏差 [25]。它适合做大规模筛选和回归趋势，不适合单独作为高风险事实或权限决策。使用 judge 时要固定 prompt、随机化答案顺序、做人工抽样、测试不同语言和长度，并报告与人工标注的相关性。</p>
+<p>能程序化验证的任务应优先程序化：代码执行、JSON schema、SQL 结果、数学答案、工具状态和引用链接。开放式质量再使用 judge 辅助。这样可以减少“模型评价模型”的循环偏差，也让失败样本能够回放。</p>
+<h3 id="对齐回归矩阵"><a class="header" href="#对齐回归矩阵">对齐回归矩阵</a></h3>
+<p>每次 SFT、DPO、RLHF 或 RLVR 更新，都应与上一版本比较同一矩阵：能力是否提升，正常请求是否被误拒，危险请求是否被放行，回答长度是否异常，工具调用是否稳定，延迟和 token 成本是否变化。测试结果要按任务类型、语言、难度和风险等级切片；总体平均分上升不能掩盖关键子集下降。</p>
+<p>一个实用的发布门禁可以包含：通用能力不低于基线，关键业务成功率提升，严重安全攻击零放行或处于批准阈值内，格式通过率达标，工具副作用全部经过权限层，尾延迟和成本在预算内。对齐模型不是一次训练后永久稳定，数据、提示、工具和攻击方式变化都会触发重新评估。</p>
+<h3 id="失败样本驱动的评估闭环"><a class="header" href="#失败样本驱动的评估闭环">失败样本驱动的评估闭环</a></h3>
+<p>评估不应只产生一个排行榜，而应产生可以回流到数据和训练的失败样本。每个失败至少记录输入类别、模型版本、系统提示、上下文来源、采样参数、输出、判定规则和人工结论。这样才能区分“模型不知道”“模型知道但没有遵守”“工具返回错误”“评估器误判”四类不同原因。</p>
+<p>失败样本进入下一轮训练前，还要做去重和因果分析。一个问题被十种相似提示重复测试，不等于有十种独立证据；同一安全漏洞在不同模板下反复出现，可能只需要修正一个系统边界。相反，表面相似但根因不同的失败不能简单合并，否则训练数据会失去覆盖。可以把样本分成能力缺口、偏好缺口、协议缺口、事实缺口和安全缺口，再分别决定是补充 SFT、增加偏好对、修改工具 schema、接入检索还是加强运行时防护。</p>
+<h3 id="校准拒答和不确定性"><a class="header" href="#校准拒答和不确定性">校准、拒答和不确定性</a></h3>
+<p>对齐模型经常被评价“更自信”或“更愿意回答”，但自信不是可靠性的同义词。一个模型在未知问题上给出流畅答案，可能比明确说不知道更受表面偏好，却会放大事实风险。评估应测试模型在证据不足、问题含糊、前提错误和多个答案都可能成立时，是否会澄清、给出条件化结论或请求工具验证。</p>
+<p>拒答也应按风险和可帮助程度分层。高风险副作用操作需要拒绝或人工审批；低风险知识问题如果因为包含敏感关键词就直接拒答，会损害正常任务。安全标签最好记录风险原因、允许的安全替代方案和需要升级的条件，而不是只给一个 binary refuse 标签。这样既能训练模型学习边界，也能让策略层和工具层使用同一套风险分类。</p>
+<h3 id="多轮一致性与状态污染"><a class="header" href="#多轮一致性与状态污染">多轮一致性与状态污染</a></h3>
+<p>单轮评估容易掩盖多轮对齐问题。模型可能在第一轮正确拒绝，第二轮被用户改写后泄露细节；也可能在工具失败后重复执行副作用调用。多轮测试要固定会话状态，覆盖角色冲突、提示注入、上下文过长、历史事实错误和用户撤销授权。评估结果除了最终回答，还要检查每一步是否越权、是否引用了错误历史、是否遵守最新指令和是否正确停止。</p>
+<p>这类问题不能全部通过更多对话 SFT 修复。状态和权限必须由 runtime 保存、校验和清理；模型只能提出下一步动作，不能自己决定授权范围。训练可以提高模型对异常状态的识别，但最终的状态机、事务边界、幂等键和审计日志仍然属于系统设计。</p>
+<h2 id="39-工程决策选择训练方法而不是追逐方法名"><a class="header" href="#39-工程决策选择训练方法而不是追逐方法名">3.9 工程决策：选择训练方法而不是追逐方法名</a></h2>
+<h3 id="根据问题选择方法"><a class="header" href="#根据问题选择方法">根据问题选择方法</a></h3>
+<p>可以用以下映射做初筛：如果模型不知道任务格式，先做 SFT；如果模型会做任务但多个答案质量差异明显，加入偏好数据；如果只有好坏标签而没有成对回答，考虑 KTO；如果有可靠程序验收，优先 RLVR 或直接把验证器接入推理；如果问题来自动态事实，使用 RAG 或工具；如果问题是权限和副作用，使用运行时控制；如果问题是复杂任务成功率和延迟权衡，测量 test-time scaling。</p>
+<p>这张映射表的价值在于防止“训练万能化”。后训练适合改变稳定、可重复的模型行为，不适合保存经常变化的事实和状态。它可以提高工具参数生成，但不能授予数据库权限；可以让模型更愿意说明不确定性，但不能保证每个事实正确；可以学会推理轨迹，但不能替代测试和人工验收。</p>
+<h3 id="成本数据和可回滚性"><a class="header" href="#成本数据和可回滚性">成本、数据和可回滚性</a></h3>
+<p>SFT 成本最低、最容易回滚，适合作为基线；DPO 等离线偏好优化复杂度中等，适合快速迭代；RLHF 和 RLVR 需要 rollout、奖励或环境，成本和调试难度更高。训练前应估算标注成本、GPU 时间、评估成本、数据存储、失败重跑和线上推理增量。不要只比较一次训练的费用，还要计算每次发布回归和长期维护费用。</p>
+<p>模型版本必须绑定数据版本、模板版本、tokenizer、参考模型、奖励模型、验证器、超参数和评估结果。对齐实验尤其需要保存 rejected 样本和失败轨迹，否则下一轮只能看到“分数下降”，却不知道是哪个边界被改变。模型回滚只是切换权重，工具 schema、系统提示和安全策略也要支持版本回滚。</p>
+<h3 id="给后端工程师的落地检查清单"><a class="header" href="#给后端工程师的落地检查清单">给后端工程师的落地检查清单</a></h3>
+<p>一个可交付的后训练项目至少应回答：训练样本是否覆盖线上真实输入；每条数据的目标和验收规则是什么；偏好或奖励是否与业务成功相关；是否保留通用能力锚点；是否有独立的安全与越权测试；模型输出是否经过解析、验证和权限检查；失败时是否可重试、回滚或人工接管；成本和尾延迟是否在预算内。</p>
+<h3 id="训练数据模型和运行时的版本契约"><a class="header" href="#训练数据模型和运行时的版本契约">训练数据、模型和运行时的版本契约</a></h3>
+<p>后训练项目很容易出现“模型文件能加载，但结果无法复现”的问题。原因通常不是权重损坏，而是输入协议已经变化：聊天模板插入了不同的 system token，工具 schema 改了字段名，数据清洗脚本删除了某类负例，参考模型和 tokenizer 版本不一致，或者线上采样参数与评估时不同。要避免这种问题，可以把模型发布看成一份版本契约，至少包含四组内容。</p>
+<p>第一组是数据契约：训练集、偏好集、拒答集和评估集的 manifest、哈希、来源、去重规则和许可证。第二组是模型契约：基础模型、SFT checkpoint、reference model、reward model、验证器、tokenizer 和特殊 token。第三组是交互契约：system prompt、chat template、工具 schema、停止词、结构化输出规则和错误码。第四组是验收契约：能力门禁、安全门禁、格式门禁、成本门禁和允许的已知缺陷。</p>
+<p>这四组契约必须一起进入模型注册和发布流程。只保存一个 safetensors 文件，无法解释线上回归；只保存评估分数，无法重建输入条件；只保存系统提示，无法确认训练时的角色边界。对于高风险模型，应当像发布后端服务一样有灰度、双写评估、影子流量、回滚和变更审批。</p>
+<h3 id="数据配比与训练顺序的实践判断"><a class="header" href="#数据配比与训练顺序的实践判断">数据配比与训练顺序的实践判断</a></h3>
+<p>后训练数据也存在分布竞争。安全拒答样本太多，模型会过度拒绝；格式样本太多，模型会忽略自然语言解释；长推理样本太多，简单问题也会输出冗长过程；工具轨迹太多，模型可能倾向调用工具而不是直接回答。训练时应记录每类样本的 token 数、样本数、有效监督比例和在每个阶段的采样权重。</p>
+<p>一种稳妥的实验方式是建立逐层基线：先只用 SFT 得到行为基线，再加入偏好优化，最后加入安全或可验证奖励。每次只改变一个主要因素，并保留上一阶段模型作为 reference。这样如果最终模型的帮助性上升但格式下降，能够定位是偏好数据还是安全数据引起；如果推理成功率上升但成本暴涨，也能判断是训练改变了思路长度，还是推理配置改变了。</p>
+<p>训练顺序还要考虑灾难性遗忘。对齐阶段不应完全丢弃通用数据和真实业务中的简单任务，最好保留回放集合或混合一部分能力锚点。对于中文、英文和代码混合场景，回放集合要按语言和任务切片，否则总体指标看似稳定，某个低资源子集可能已经退化。每个阶段结束后都应生成差异报告，而不是只保存最终模型。</p>
+<h3 id="灰度发布与线上反馈"><a class="header" href="#灰度发布与线上反馈">灰度发布与线上反馈</a></h3>
+<p>后训练模型不能直接用离线分数替代线上验证。离线集合通常是固定的，线上输入却会随着用户、提示、工具和业务状态变化。发布时可以先进行离线门禁，再用影子流量比较新旧模型的输出差异，随后在低风险请求上灰度。对有副作用的工具，影子模式只生成计划和参数，不执行动作；只有通过权限和人工规则后才允许真实调用。</p>
+<p>线上反馈应区分显式和隐式信号。点赞、点踩和人工修改可以作为偏好线索，但用户是否完成任务、是否重复提问、是否撤销工具操作、是否转人工，往往更接近业务结果。所有信号都要去除隐私和重复，避免把一个异常用户的偏好直接变成全局训练目标。新数据回流前还要进行抽样审核和污染检查，防止模型自己的错误答案成为下一轮训练标签。</p>
+<p>线上反馈还要保留上下文，否则一个“点踩”无法解释是事实错误、风格不合、响应太慢还是权限被拒。将反馈与请求类型、检索证据、工具结果和用户后续行为关联，才能形成可用于修复的样本。对隐私敏感的系统，应在日志层做最小化采集、脱敏和访问审计，训练团队只接触完成诊断所需的字段。</p>
+<p>模型版本的灰度还应设置停止条件：严重安全事件、工具越权、关键任务成功率下降、输出格式破坏或尾延迟超预算时自动暂停。这样后训练发布就不再是“训练完成后替换一个模型文件”，而是一条包含验证、观测和回滚的服务变更流程。</p>
+<p>灰度阶段还应关注新旧模型的行为差异，而不是只看新模型的平均成功率。对相同请求保存差异摘要，重点检查拒答变化、工具选择变化、引用变化、回答长度变化和高风险动作变化。若业务指标改善来自更多重试或更多人工接管，不能把它当作模型能力提升。把每次发布的收益与代价同时记录，才能决定是继续训练、修改提示、增加验证还是回退版本。</p>
+<p>最终验收应由算法、Infra、安全和业务共同签字：算法确认能力与泛化，Infra 确认吞吐、延迟和回滚，安全确认边界和审计，业务确认任务结果。任何一方缺失，都可能把局部优化误判为整体可用。</p>
+<p>这种联合验收也能减少团队之间的误解：模型分数不是服务等级目标，安全拒答不是权限系统，训练完成不是发布完成，线上反馈也不是未经审核的训练标签。</p>
+<p>对齐工作的终点不是一张漂亮的评测表，而是一个能够持续发现失败、修复失败并安全回滚的模型服务。</p>
+<p>这套闭环同时决定模型质量、系统安全和长期维护成本。</p>
+<p>只有这样，后训练才真正从一次实验变成可运营的工程能力。</p>
+<p>它也为下一阶段的推理算法提供可靠的行为基础。</p>
+<p>良好的行为基础会降低推理和工具系统的控制成本。</p>
+<p>这也是后训练与后续基础设施设计必须协同的原因。</p>
+<p>也是模型最终能够稳定上线的前提。</p>
+<p>并且便于长期稳定可靠持续稳定维护。</p>
+<p>中文工程团队还应关注多语言和混合格式。Qwen、InternLM 等中文模型的技术报告说明，中文、英文、代码、工具协议和对话安全不能简单用英文 benchmark 的结果代替 [26]。大规模模型报告也提醒我们，后训练收益必须放到完整训练配方、数据质量和推理成本中解释，而不能只归因于一个偏好算法 [27]。中文教材对监督学习、优化和泛化的基本解释，可以帮助团队把“训练 loss 下降”与“真实任务泛化”区分开 [28][29][30]。</p>
+<h3 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h3>
+<p>后训练的历史主线可以概括为：SFT 教模型听懂指令，RLHF 教模型比较回答，DPO 等方法降低偏好优化成本，RLAIF 和 Constitutional AI 扩大原则反馈，RLVR 与工具环境把奖励连接到可验证结果。每一种方法都解决了前一阶段的部分瓶颈，也引入新的数据、奖励、验证和评估风险。</p>
+<p>真正可靠的对齐不是让模型“更像一个好人”，而是让模型在明确任务、偏好和边界上表现稳定，并把无法由权重保证的事实、权限、状态和副作用交给系统控制。下一章讨论推理与生成算法时，会继续沿着这条边界分析：什么时候用更多推理计算换成功率，什么时候应该用搜索、验证器或工作流，而不是继续训练一个更复杂的模型。</p>
+<h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
+<p>[1] Ouyang, L., et al. <em>Training Language Models to Follow Instructions with Human Feedback</em>. NeurIPS, 2022. https://arxiv.org/abs/2203.02155</p>
+<p>[2] Wei, J., et al. <em>Finetuned Language Models Are Zero-Shot Learners</em>. ICLR, 2022. https://arxiv.org/abs/2109.01652</p>
+<p>[3] Wang, Y., et al. <em>Self-Instruct: Aligning Language Models with Self-Generated Instructions</em>. ACL, 2023. https://arxiv.org/abs/2212.10560</p>
+<p>[4] Christiano, P. F., et al. <em>Deep Reinforcement Learning from Human Preferences</em>. NeurIPS, 2017. https://arxiv.org/abs/1706.03741</p>
+<p>[5] Schulman, J., et al. <em>Proximal Policy Optimization Algorithms</em>. arXiv, 2017. https://arxiv.org/abs/1707.06347</p>
+<p>[6] Bai, Y., et al. <em>Training a Helpful and Harmless Assistant with Reinforcement Learning from Human Feedback</em>. Anthropic, 2022. https://arxiv.org/abs/2204.05862</p>
+<p>[7] Rafailov, R., et al. <em>Direct Preference Optimization: Your Language Model is Secretly a Reward Model</em>. NeurIPS, 2023. https://arxiv.org/abs/2305.18290</p>
+<p>[8] Azar, M. G., et al. <em>A General Theoretical Paradigm to Understand Learning from Human Preferences</em>. arXiv, 2023. https://arxiv.org/abs/2310.12036</p>
+<p>[9] Ethayarajh, K., et al. <em>KTO: Model Alignment as Prospect Theoretic Optimization</em>. arXiv, 2024. https://arxiv.org/abs/2402.01306</p>
+<p>[10] Hong, J., et al. <em>ORPO: Monolithic Preference Optimization without Reference Model</em>. EMNLP, 2024. https://arxiv.org/abs/2403.07691</p>
+<p>[11] Zhou, C., et al. <em>LIMA: Less Is More for Alignment</em>. NeurIPS, 2023. https://arxiv.org/abs/2305.11206</p>
+<p>[12] Tunstall, L., et al. <em>Zephyr: Direct Distillation of LM Alignment</em>. arXiv, 2023. https://arxiv.org/abs/2310.16944</p>
+<p>[13] Bai, Y., et al. <em>Constitutional AI: Harmlessness from AI Feedback</em>. Anthropic, 2022. https://arxiv.org/abs/2212.08073</p>
+<p>[14] Lee, H., et al. <em>RLAIF: Scaling Reinforcement Learning from Human Feedback with AI Feedback</em>. arXiv, 2023. https://arxiv.org/abs/2309.00267</p>
+<p>[15] Touvron, H., et al. <em>Llama 2: Open Foundation and Fine-Tuned Chat Models</em>. arXiv, 2023. https://arxiv.org/abs/2307.09288</p>
+<p>[16] OpenAI. <em>GPT-4 System Card</em>. 2023. https://cdn.openai.com/papers/gpt-4-system-card.pdf</p>
+<p>[17] Askell, A., et al. <em>A General Language Assistant as a Laboratory for Alignment</em>. arXiv, 2021. https://arxiv.org/abs/2112.00861</p>
+<p>[18] Cui, G., et al. <em>UltraFeedback: Boosting Language Models with High-Quality Feedback</em>. arXiv, 2023. https://arxiv.org/abs/2310.01377</p>
+<p>[19] Guo, D., et al. <em>DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning</em>. arXiv, 2025. https://arxiv.org/abs/2501.12948</p>
+<p>[20] Shao, Z., et al. <em>DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models</em>. arXiv, 2024. https://arxiv.org/abs/2402.03300</p>
+<p>[21] Cobbe, K., et al. <em>Training Verifiers to Solve Math Word Problems</em>. arXiv, 2021. https://arxiv.org/abs/2110.14168</p>
+<p>[22] Lightman, H., et al. <em>Let’s Verify Step by Step</em>. arXiv, 2023. https://arxiv.org/abs/2305.20050</p>
+<p>[23] Yao, S., et al. <em>ReAct: Synergizing Reasoning and Acting in Language Models</em>. ICLR, 2023. https://arxiv.org/abs/2210.03629</p>
+<p>[24] Schick, T., et al. <em>Toolformer: Language Models Can Teach Themselves to Use Tools</em>. NeurIPS, 2023. https://arxiv.org/abs/2302.04761</p>
+<p>[25] Zheng, L., et al. <em>Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena</em>. NeurIPS, 2023. https://arxiv.org/abs/2306.05685</p>
+<p>[26] InternLM Team. <em>InternLM2 Technical Report</em>. arXiv, 2024. https://arxiv.org/abs/2403.17297</p>
+<p>[27] DeepSeek-AI. <em>DeepSeek-V3 Technical Report</em>. arXiv, 2024. https://arxiv.org/abs/2412.19437</p>
+<p>[28] Zhang, A., Lipton, Z. C., Li, M., &amp; Smola, A. V. <em>Dive into Deep Learning</em>, 2nd ed., 2023. https://zh.d2l.ai/</p>
+<p>[29] 邱锡鹏：《神经网络与深度学习》，机械工业出版社，2020。https://nndl.github.io/</p>
+<p>[30] 周志华：《机器学习》，清华大学出版社，2016。https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part1/02-pretraining-data-scaling.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part1/04-reasoning-generation-algorithms.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part1/02-pretraining-data-scaling.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part1/04-reasoning-generation-algorithms.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-c2a407aa.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-1ddef08b.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

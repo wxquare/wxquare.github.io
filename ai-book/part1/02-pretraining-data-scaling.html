@@ -1,0 +1,422 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第2章 预训练：数据、目标与能力形成 - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="面向工程师的 AI Agent 系统设计指南，涵盖大模型基础、Agent 运行时、工具调用、RAG、Memory、评估治理与生产级案例">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-2459343d.css">
+        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-bec4dcd5.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-0ce1344b.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">AI Agent 工程实践：从大模型基础到生产级智能体系统</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第2章-预训练数据目标与能力形成"><a class="header" href="#第2章-预训练数据目标与能力形成">第2章 预训练：数据、目标与能力形成</a></h1>
+<p>第1章回答了 Transformer 为什么成为大模型的基础架构。本章继续追问一个更接近训练现场的问题：一个随机初始化的 Transformer，为什么经过数万亿 token 的训练后，会表现出语言理解、代码生成、数学表达和一定程度的推理能力？答案不只是“模型足够大”，而是目标函数、数据分布、优化过程、训练预算和评估方法共同作用的结果。</p>
+<p>本章面向有后端和传统机器学习经验、准备进入大模型开发的读者。重点放在能帮助工程决策的知识上：哪些问题由预训练解决，哪些问题其实应该交给后训练或推理系统；数据质量为什么会改变能力上限；Scaling Law 如何变成成本估算；以及怎样判断一个模型是真的学会了能力，还是只是在测试集上复现了训练数据。</p>
+<h2 id="21-历史发展从统计语言模型到基础模型"><a class="header" href="#21-历史发展从统计语言模型到基础模型">2.1 历史发展：从统计语言模型到基础模型</a></h2>
+<h3 id="从词概率到分布式表示"><a class="header" href="#从词概率到分布式表示">从词概率到分布式表示</a></h3>
+<p>语言模型最初的任务是估计一段序列的概率。给定 token 序列 (x_1,ldots,x_T)，自回归语言模型把联合概率分解为：</p>
+<p>$$
+P(x_1,ldots,x_T)=\prod_{t=1}^{T}P(x_t\mid x_{&lt;t}).
+$$</p>
+<p>早期系统使用 n-gram 和平滑技术，用有限窗口统计词共现。它们易于解释，却会遇到两个根本问题：词表一大，组合空间迅速爆炸；窗口一长，统计计数变得稀疏。Bengio 等人把词表示为可学习的稠密向量，并用神经网络估计下一个词的概率，证明了“学习表示”和“学习语言概率”可以在同一个目标中完成 [1]。Word2Vec 进一步把大规模词向量训练变成高效的局部预测问题，使分布式表示成为许多 NLP 系统的基础组件 [2]。</p>
+<p>这一步解决的是“如何把离散符号放到可泛化的连续空间”。相似上下文中的词，会被优化到相近区域；模型因此不必把“猫”和“狗”当成完全独立的类别，而能利用它们在语料中的相似分布。局限也很清楚：静态词向量不能根据上下文改变词义，词级表示难以处理未登录词、形态变化和长篇上下文。</p>
+<h3 id="seq2seqattention-与-transformer"><a class="header" href="#seq2seqattention-与-transformer">Seq2Seq、Attention 与 Transformer</a></h3>
+<p>Seq2Seq 模型把输入序列编码成隐状态，再由解码器逐步生成输出，推动了机器翻译和端到端序列任务的发展 [3]。但单一固定长度的编码向量难以承载长输入，编码器和解码器之间需要一种动态选择信息的机制。Bahdanau Attention 让解码器在每一步关注不同的输入位置，缓解了固定向量瓶颈；随后 Transformer 直接以 Self-Attention 为核心，取消了循环结构，并行处理同一序列中的多个位置 [4]。</p>
+<p>Transformer 的改变不是简单地“换了一个网络层”。循环模型的时间依赖限制了训练吞吐；自注意力允许每个位置直接与其他位置建立关系，使长距离依赖路径从多步递归缩短为一步矩阵运算。代价是注意力矩阵的时间和显存复杂度近似为 (O(T^2d))，序列长度增加会迅速放大成本。因此，预训练从一开始就同时是一个算法问题和一个系统问题：模型想看更长上下文，训练和推理系统都必须承担更大的激活、通信和内存压力。</p>
+<h3 id="预训练成为主范式"><a class="header" href="#预训练成为主范式">预训练成为主范式</a></h3>
+<p>GPT 的生成式预训练把 decoder-only Transformer 与无监督文本训练结合起来，再用少量任务数据进行迁移 [5]。BERT 证明了 masked language modeling 可以用双向上下文学习强大的文本表示 [6]；T5 则把分类、问答、翻译等任务统一改写成 text-to-text 形式，减少了不同任务之间的接口差异 [7]。这几条路线并没有“谁完全淘汰谁”，而是在回答不同问题：decoder-only 更适合连续生成和统一接口，encoder-only 擅长理解和表示，encoder-decoder 在输入输出结构差异较大的转换任务中仍然有价值。</p>
+<p>GPT-3 进一步展示了大规模自回归模型的上下文学习能力：在不更新参数的情况下，仅通过提示和少量示例就能完成多种任务 [8]。这改变了模型开发方式。过去是“为每个任务训练一个模型”，之后逐渐变成“先训练一个基础模型，再通过 Prompt、后训练、检索和工具把它适配到任务”。不过，上下文学习并不等于模型真正掌握了任务规则；它可能依赖示例格式、表面相关性或训练语料记忆，必须通过独立评估和分布外测试确认泛化。</p>
+<p>从历史上看，预训练解决了三个连续问题：第一，标注样本不足时如何利用海量无标注数据；第二，不同任务如何共享语言和世界知识；第三，如何用同一基础模型覆盖更多任务。它也留下了三个长期问题：数据偏差进入参数后很难定位，训练语料可能包含隐私和版权风险，模型输出的流畅性不等于事实可靠性。</p>
+<h2 id="22-预训练目标模型究竟在学习什么"><a class="header" href="#22-预训练目标模型究竟在学习什么">2.2 预训练目标：模型究竟在学习什么</a></h2>
+<h3 id="next-token-prediction-与交叉熵"><a class="header" href="#next-token-prediction-与交叉熵">Next-token Prediction 与交叉熵</a></h3>
+<p>给定 token 序列 (x_{1:T})，decoder-only 模型在位置 (t) 预测 (x_t)，使用 causal mask 保证当前位置不能读取未来 token。单个样本的平均训练损失通常写为：</p>
+<p>$$
+\mathcal{L}(\theta)=-\frac{1}{T}\sum_{t=1}^{T}\log p_\theta(x_t\mid x_{&lt;t}).
+$$</p>
+<p>在实现上，模型输出每个位置对词表的 logits，经过 softmax 得到概率，再用交叉熵与真实 token 做比较。优化器只看到“正确 token 的概率是否提高”，并不知道我们以后想让模型会写代码、做数学题或调用工具。后续能力是一个涌现式结果：如果某种结构能够降低大量语料上的平均损失，梯度就会推动模型学习这种结构。</p>
+<p>从机器学习角度看，这相当于用一个参数化分布逼近训练语料分布。模型会同时学习语法约束、词义关系、篇章结构、代码格式、常见事实、问答模式和文档布局。一个代码仓库里的函数调用模式能降低代码 token 的预测损失；一条数学推导中的符号依赖能降低公式 token 的损失；多轮对话中的角色标记能降低特定格式的损失。模型不需要被显式告知“这是一条规则”，只要规则在数据分布中足够稳定，就可能被压缩到参数中。</p>
+<h3 id="语言知识推理与行为的边界"><a class="header" href="#语言知识推理与行为的边界">语言、知识、推理与行为的边界</a></h3>
+<p>“模型学会了知识”容易造成误解。预训练权重不是一个带版本号、权限和更新时间的数据库。更准确的说法是，模型在参数中压缩了训练数据中的统计规律和部分可重复模式。它可能记住某些长字符串，也可能只学到“某类问题通常这样回答”；两者在表面输出上很难区分。</p>
+<p>可以把预训练产生的内容分为四层：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">层次</th><th style="text-align: left">训练中体现的对象</th><th style="text-align: left">适合的工程判断</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">表示</td><td style="text-align: left">token、词法、句法、跨语言映射</td><td style="text-align: left">能否理解输入形式</td></tr>
+<tr><td style="text-align: left">模式</td><td style="text-align: left">文档结构、代码惯用法、解题步骤</td><td style="text-align: left">能否生成符合分布的输出</td></tr>
+<tr><td style="text-align: left">事实</td><td style="text-align: left">训练语料反复出现的实体关系</td><td style="text-align: left">是否需要检索和时效校验</td></tr>
+<tr><td style="text-align: left">行为</td><td style="text-align: left">角色、格式、拒答和服从指令</td><td style="text-align: left">主要由后训练和运行时策略塑造</td></tr>
+</tbody>
+</table>
+</div>
+<p>推理也需要分层看待。预训练可以让模型见过大量“问题—解答—推导”的文本，学习到可复用的组合模式；但在新组合、长链条或高可靠任务中，单次生成可能仍不稳定。训练阶段学到的是能力先验，推理时是否成功还取决于采样、上下文、验证器和额外计算。把预训练损失直接等同于生产正确率，是从训练目标跨越到业务目标的常见错误。</p>
+<h3 id="causal-lmmasked-lm-与-encoder-decoder"><a class="header" href="#causal-lmmasked-lm-与-encoder-decoder">Causal LM、Masked LM 与 Encoder-Decoder</a></h3>
+<p>Causal LM 只利用左侧上下文，训练目标与生成过程一致，部署为聊天模型时接口简单。Masked LM 随机遮挡输入中的部分 token，让模型利用左右文恢复缺失内容，能获得较强的双向理解表示 [6]。Encoder-decoder 结构把输入和输出分开建模，在翻译、摘要等条件生成任务上具有清晰的结构优势 [7]。</p>
+<p>选择目标函数时，应先问产品需要什么：如果核心任务是连续生成、代码补全和对话，Causal LM 的训练—推理一致性更重要；如果核心任务是分类、检索表示或句子级理解，双向 encoder 可能更高效；如果输入与输出是两个不同序列，encoder-decoder 能显式建模条件信息；如果目标是一个统一基础模型，decoder-only 便于把各种任务转成同一种 token 预测接口。</p>
+<p>中文工程实践还要考虑词表和语料比例。Qwen 技术报告展示了多语言、代码和中文数据共同训练时，词表设计、数据混合和评估集合会直接影响模型使用体验 [13]；InternLM 的训练与评估报告也说明，中文基础模型不能只用英文模型的 benchmark 推断能力，需要建立中文、代码、知识和对话的分层评估 [14]。</p>
+<h2 id="23-数据不是原料而是能力设计"><a class="header" href="#23-数据不是原料而是能力设计">2.3 数据不是原料，而是能力设计</a></h2>
+<h3 id="数据管线的基本分层"><a class="header" href="#数据管线的基本分层">数据管线的基本分层</a></h3>
+<p>预训练数据可以按加工阶段分成 raw、filtered、deduplicated、mixed 和 packed 五种状态。raw 是抓取或采购得到的原始文档；filtered 去除明显垃圾、乱码和不合适内容；deduplicated 处理重复和近重复；mixed 根据训练目标配比；packed 才是按序列长度组织成训练样本。每一层都应保留版本、规则和统计信息，否则出现能力退化时无法回答“是模型问题还是数据版本问题”。</p>
+<p>C4 的公开文档化工作提醒我们，网页语料的过滤规则会改变数据集组成，并可能引入语言、主题和站点偏差 [16]。The Pile 通过多源语料组合和来源说明，把“我们收集了一堆网页”推进到更可追溯的数据集治理 [25]。RefinedWeb 则显示，网页清洗、质量过滤和去重可以使相对简单的数据管线得到有竞争力的基础模型结果 [17]。这些工作共同说明：数据工程不是训练前的杂务，而是模型能力的组成部分。</p>
+<h3 id="清洗过滤噪声而不是消灭多样性"><a class="header" href="#清洗过滤噪声而不是消灭多样性">清洗：过滤噪声而不是消灭多样性</a></h3>
+<p>常见清洗规则包括语言识别、文档长度、特殊字符比例、HTML 模板、广告密度、重复行、链接比例和质量分类器。工程上不能把“越干净”当成“越好”。过度过滤可能删除低资源语言、口语、代码注释、表格、论坛问答和专业文档，结果是模型在主流测试集上变好，却在真实用户输入上变窄。</p>
+<p>更稳妥的做法是把过滤分成硬规则和软评分：硬规则负责删除明显违规或无法学习的内容；软评分保留分布，按桶采样并记录阈值。每次改变过滤器，都要比较文档数、token 数、语言比例、领域比例、平均长度、重复率和评估指标，而不是只看最终 loss。</p>
+<p>质量分类器本身也会带来偏差。它可能把方言、短文本或非标准格式误判为低质量；它还可能与目标模型共享训练数据，形成循环偏差。因此数据质量评估应包含人工抽样、规则解释、分层统计和模型结果四个维度。中文、英文、代码、数学和长文档最好分别抽样，不要用一个总体平均分掩盖少数分布被删除的问题。</p>
+<h3 id="去重泛化记忆和计算效率的共同杠杆"><a class="header" href="#去重泛化记忆和计算效率的共同杠杆">去重：泛化、记忆和计算效率的共同杠杆</a></h3>
+<p>重复文档会让模型多次看到同一个训练信号，浪费 token 预算，并增加记忆和 benchmark 泄露风险。精确去重可以通过文档哈希实现；近重复去重通常使用 n-gram、MinHash、局部敏感哈希或 embedding 相似度。Lee 等人的实验显示，去重不仅减少训练数据，还能改善泛化并降低模型对重复文本的记忆 [18]。</p>
+<p>去重的粒度需要根据文档类型选择：网页正文适合段落或文档级去重；代码需要同时考虑文件、函数和仓库级重复；书籍和法规文本可能存在合法的版本差异，简单按相似度删除会误伤；问答数据中相同问题的不同高质量答案不能全部删掉。对工程团队而言，最重要的不是宣称“去重率达到某个数字”，而是记录算法、阈值、抽样误删率和跨数据集重复率。</p>
+<h3 id="数据配比把训练预算投向目标能力"><a class="header" href="#数据配比把训练预算投向目标能力">数据配比：把训练预算投向目标能力</a></h3>
+<p>如果总训练 token 固定，增加一种数据就会减少另一种数据。数据混合因此是一个预算分配问题，而不是越多越好。通用网页提供覆盖面，书籍和长文增强篇章结构，代码改善程序模式，数学和科学文本提供符号推导，多语言数据扩大覆盖，合成数据可以定向补齐稀缺能力。</p>
+<p>一个实用的数据配比表应至少记录：来源、语言、领域、质量分桶、token 数、采样权重、重复率、版权状态和对应评估集。T5 的系统实验说明，预训练数据规模、任务混合和训练步数之间存在耦合，不能只凭直觉选择数据比例 [15]。LLaMA 的报告也把公开数据组成、训练 token 和模型规模放在一起讨论，说明开放模型的效果并非只由参数量决定 [11]。</p>
+<p>数据混合通常有三种策略：固定比例、温度采样和阶段性配比。固定比例容易复现；温度采样可以避免大语种或大数据源完全支配训练；阶段性配比则先用广覆盖数据学习基础，再提高代码、数学、长上下文或领域数据的权重。阶段性训练的风险是分布切换造成遗忘，因此需要在通用评估和目标评估上同时监控。</p>
+<h3 id="合成数据与数据闭环"><a class="header" href="#合成数据与数据闭环">合成数据与数据闭环</a></h3>
+<p>合成数据可以生成题目、解答、代码、偏好对和长上下文样本，特别适合补齐人工数据稀缺的能力。但生成器的错误会被蒸馏到训练集，模板化样本会降低多样性，模型还可能反复学习自身的错误。Shumailov 等人关于递归训练的研究提示，持续使用模型生成内容替代真实分布，可能导致分布尾部消失、错误累积和模式退化 [22]。</p>
+<p>因此合成数据不能只看数量。至少应有四个门槛：生成器与目标模型尽量隔离；使用规则、程序执行器或人工抽样验证答案；保留真实数据作为锚点；用独立测试集检查多样性和分布外能力。对代码数据，要运行单元测试、静态检查和依赖审计；对数学数据，要执行符号或数值验证；对事实数据，要与独立来源交叉核对。合成数据是能力定向工具，不是廉价 token 生产器。</p>
+<h2 id="24-tokenizer样本构造与有效训练信号"><a class="header" href="#24-tokenizer样本构造与有效训练信号">2.4 Tokenizer、样本构造与有效训练信号</a></h2>
+<h3 id="tokenization-的模型影响"><a class="header" href="#tokenization-的模型影响">Tokenization 的模型影响</a></h3>
+<p>模型看到的不是字符、单词或句子，而是 tokenizer 产生的 token。词表大小影响 embedding 和输出层参数，分词粒度影响序列长度、跨语言效率和稀有词处理。英文常见词可能被编码成一个或几个 token；中文字符、英文缩写、数字、代码符号和路径的切分模式可能完全不同。</p>
+<p>这会影响三类成本：同一段内容需要多少 token，决定训练和推理计算；一个概念被切成多少片，影响模型学习稳定性；特殊格式被如何分割，影响代码、JSON、URL 和工具调用格式的可靠性。比较模型成本时不能只比较“每百万 token 价格”，还要看目标语言和业务文本的 token 化膨胀率。</p>
+<p>词表不是越大越好。更大的词表可能减少序列长度，却会增加 embedding、softmax 和通信成本；更小的词表参数压力较低，但长序列会增加注意力和位置编码负担。最终选择应基于目标语料的 token/字符比、词表覆盖率、训练速度、显存占用和下游格式稳定性。中文基础模型尤其要在中文字符、英文单词、代码标识符、数字和混合文本上做分层统计，而不是只报告一个平均压缩率。</p>
+<h3 id="文档边界packing-与样本泄露"><a class="header" href="#文档边界packing-与样本泄露">文档边界、Packing 与样本泄露</a></h3>
+<p>训练样本通常是固定长度的 token block。把多个短文档拼接到一个 block 可以减少 padding，提高 token 利用率，但必须正确处理文档边界，否则模型会学到本来不存在的跨文档关系。对于对话、代码文件、JSON 和书籍章节，边界 token 的设计会影响模型是否知道“一个样本在这里结束”。</p>
+<p>Packing 还可能带来评估污染：如果一个训练 block 把不同文档拼在一起，近邻内容可能通过上下文泄露。更稳妥的管线会在 packing 前完成文档级切分，在评估时按文档或主题隔离训练和验证集合，并检查重复 n-gram。验证集不能只是随机抽取训练网页的另一段，因为随机切分会让近重复内容同时出现在训练和评估中。</p>
+<h3 id="长上下文数据"><a class="header" href="#长上下文数据">长上下文数据</a></h3>
+<p>把最大上下文从 4K 直接扩到 128K，不等于模型自动获得了长文档能力。模型需要在训练中看到足够多的长序列、跨段引用、远距离检索和结构化文档。长序列还会显著增加 attention 计算和激活内存，训练预算不能只按 token 数粗略估计。</p>
+<p>长上下文数据至少分成四类：自然长文档、人工拼接文档、远距离依赖任务和长上下文问答。人工拼接可以测试位置和检索能力，但不能替代真实长文档；长文档问答可以测试使用能力，但如果答案总在开头或结尾，不能说明模型能稳定处理中间信息。评估时要改变答案位置、干扰内容、文档数量和引用距离，避免得到虚假的“长上下文支持”。</p>
+<h2 id="25-scaling-law怎样分配模型数据与算力"><a class="header" href="#25-scaling-law怎样分配模型数据与算力">2.5 Scaling Law：怎样分配模型、数据与算力</a></h2>
+<h3 id="经验规律与工程意义"><a class="header" href="#经验规律与工程意义">经验规律与工程意义</a></h3>
+<p>Scaling Law 的核心观察是，在一定规模范围内，验证损失会随模型参数量、训练 token 数和计算量以相对平滑的幂律下降 [9]。它不是物理定律，也不能保证任何新架构都服从同一曲线，但它提供了一个重要工程工具：在真正投入大规模训练之前，可以用小模型和短训练估算不同预算下的趋势。</p>
+<p>可以用抽象形式表示：</p>
+<p>$$
+L(N,D,C)\approx L_\infty+aN^{-\alpha}+bD^{-\beta}+cC^{-\gamma},
+$$</p>
+<p>其中 (N) 是参数量，(D) 是训练 token 数，(C) 是计算量。实际拟合时必须固定 tokenizer、数据分布、优化器和架构族，否则观察到的差异可能来自实验条件变化。一个小规模实验若只改变参数量、却同时改变数据质量和训练步数，就不能用来判断参数 scaling。</p>
+<h3 id="chinchilla-与-compute-optimal"><a class="header" href="#chinchilla-与-compute-optimal">Chinchilla 与 compute-optimal</a></h3>
+<p>早期行业实践倾向于优先扩大参数量，但 Chinchilla 研究指出，在固定训练计算下，很多大模型实际上训练 token 不足；适当减少参数并增加训练数据，可以得到更低的验证损失 [10]。这不是“模型越小越好”，而是说明容量和训练充分度必须成比例设计。</p>
+<p>对项目规划可以采用如下顺序：先确定目标推理成本和延迟，得到可接受的激活参数量；再依据目标能力和可获得高质量数据估计训练 token；最后反推训练计算、集群时长和 checkpoint 存储。若数据质量不足，继续堆 token 可能只是重复噪声；若模型容量不足，增加同分布数据的收益会变小；若训练没有收敛，盲目做后训练会把基础缺陷包装成行为问题。</p>
+<p>需要区分三种“规模”：总参数、激活参数和训练 token。MoE 模型可以拥有更大的总容量而只激活部分参数，但路由和通信有额外代价；密集模型每个 token 都使用全部参数，算力结构简单但激活成本高。后续 Infra 章节会讨论这些选择如何影响并行和部署，本章只保留一个判断原则：训练规模必须和目标能力、数据质量、推理预算一起设计。</p>
+<h3 id="loss-与能力不是一条直线"><a class="header" href="#loss-与能力不是一条直线">Loss 与能力不是一条直线</a></h3>
+<p>验证 loss 是重要指标，但它不是所有能力的充分统计量。它对高频 token 和常见格式非常敏感；一个模型可以通过更好地预测模板文本降低 loss，却未必提高少数复杂任务的准确率。反过来，针对数学、代码或工具格式的定向数据可能提高业务能力，却让总体 loss 变化很小。</p>
+<p>因此训练曲线应与分层能力曲线一起看：通用 loss、按语言 loss、按领域 loss、长上下文 loss、代码执行成功率、数学答案准确率、结构化输出通过率和安全回归。每一项都要固定评估版本，记录置信区间和样本数量。不能从一次 benchmark 的涨跌推断模型整体进步，尤其当测试集较小、污染未知或评测提示未公开时。</p>
+<h2 id="26-训练优化中的关键技术点"><a class="header" href="#26-训练优化中的关键技术点">2.6 训练优化中的关键技术点</a></h2>
+<h3 id="batch学习率与训练预算"><a class="header" href="#batch学习率与训练预算">Batch、学习率与训练预算</a></h3>
+<p>在 token 级训练中，global batch size 决定一次更新看到多少 token。增大 batch 可以提高硬件利用率并降低梯度噪声，但可能需要调整学习率、warmup 和正则化；batch 太大也可能减少参数更新次数，使模型在固定 token 预算下的优化轨迹改变。中文教材对交叉熵、梯度下降和深度网络训练的系统解释，有助于把这些经验规则还原成优化问题 [26]；更完整的中文数学背景可参考《神经网络与深度学习》[27]。</p>
+<p>学习率通常经历 warmup、稳定训练和衰减阶段。warmup 用于避免随机初始化或大 batch 下的早期更新过大；衰减让模型在后期更稳定地收敛。实际训练还需要监控梯度范数、logit 范围、loss spike、NaN、激活溢出和不同数据桶的 loss。混合精度能节约显存和提高吞吐，但数值稳定性、loss scaling 和归一化实现都可能改变结果。</p>
+<h3 id="adamw正则化与数据顺序"><a class="header" href="#adamw正则化与数据顺序">AdamW、正则化与数据顺序</a></h3>
+<p>Adam 类优化器用一阶和二阶动量调整每个参数的更新尺度，适合 Transformer 这种参数尺度差异明显的网络。AdamW 将权重衰减与梯度更新解耦，成为许多语言模型训练的常见选择。工程上不要把优化器当成可随意更换的实现细节：优化器、学习率、权重衰减、梯度裁剪、batch 和数据顺序共同决定训练轨迹，改变其中任何一个都可能需要重新做小规模校准。</p>
+<p>数据顺序也会影响能力形成。若模型过早大量看到某一领域，可能在该领域快速下降但损害通用分布；若高质量数据只在训练尾部出现，可能改善最终 checkpoint 却减少可用训练步数。数据混合应与学习率和阶段计划联合设计，并在中间 checkpoint 上做评估，确认收益来自稳定学习而不是最后一次偶然波动。</p>
+<h3 id="训练中间评估与故障归因"><a class="header" href="#训练中间评估与故障归因">训练中间评估与故障归因</a></h3>
+<p>成熟训练项目不会等到最终模型才评估。每隔固定 token 或 step 保存 checkpoint，并对固定小集合执行快速评估：通用语言、中文、多语言、代码、数学、长上下文、格式遵循和安全。遇到 loss spike 时，先区分数据异常、数值不稳定、节点故障、恢复错误和学习率问题；遇到某领域退化时，再检查数据配比、过滤和遗忘，而不是立即扩大模型。</p>
+<p>故障归因需要可重放。至少要保存 tokenizer 版本、数据 manifest、采样权重、随机种子、优化器状态、学习率状态、代码版本、配置和评估版本。Checkpoint 只保存模型权重而没有 optimizer state，通常无法严格恢复训练；只保存最后一个 checkpoint，则无法比较退化发生的时间点。训练可观测性属于 Infra 的实现内容，但“哪些状态必须留下”是算法和工程共同决定的。</p>
+<h2 id="27-数据污染记忆与隐私"><a class="header" href="#27-数据污染记忆与隐私">2.7 数据污染、记忆与隐私</a></h2>
+<h3 id="benchmark-contamination"><a class="header" href="#benchmark-contamination">Benchmark contamination</a></h3>
+<p>如果测试集内容或近似内容出现在训练语料里，模型在测试集上的高分就不能代表泛化。污染既可能是完全重复，也可能是题目、选项、解答和网页讨论的近似重复。HellaSwag 等基准的设计展示了如何用对抗性候选和常识完成任务，但任何公开 benchmark 长期存在，都必须面对进入训练语料的可能性 [23]。</p>
+<p>污染检查应在训练前和评估前都做。训练前对数据与 benchmark 做精确和近似匹配；评估前记录 benchmark 版本、发布时间和是否可能被抓取；发布结果时披露污染检测方法。只给出一个分数而不说明训练数据边界，会让读者无法判断结果是推理、记忆还是泄露。</p>
+<h3 id="memorization-与隐私风险"><a class="header" href="#memorization-与隐私风险">Memorization 与隐私风险</a></h3>
+<p>模型可能记忆训练数据中的罕见序列，尤其当内容重复、样本稀有、模型容量较大或训练步数较多时。Carlini 等人展示了从语言模型中抽取训练数据的风险 [19]，后续研究进一步量化了不同模型、数据重复度和序列稀有度下的记忆行为 [20]。这说明“公开网页”不等于“可以无风险地训练和再生成”。</p>
+<p>工程上要把隐私治理前移：在数据进入训练前识别手机号、邮箱、密钥、地址和内部标识；对必须保留的敏感数据做权限和用途审计；对模型做 canary、成员推断、提示抽取和长字符串复现测试；对发布模型设置使用政策和响应过滤。去重、减少罕见敏感样本重复和限制生成温度可以降低风险，但不能把它们当作隐私保证。</p>
+<h3 id="版权与数据治理"><a class="header" href="#版权与数据治理">版权与数据治理</a></h3>
+<p>版权问题不只是法务问题，也影响工程可追溯性。每个数据源最好记录获取方式、许可信息、抓取时间、保留理由、过滤版本和退出机制。若模型出现某类受保护内容复现，团队需要知道哪些来源可能贡献了该模式，才能进行风险评估或数据修订。数据卡、模型卡和评估报告的价值在于让训练决策可解释，而不是为报告增加形式化章节。</p>
+<h2 id="28-评估从-loss-到能力证据"><a class="header" href="#28-评估从-loss-到能力证据">2.8 评估：从 loss 到能力证据</a></h2>
+<h3 id="三层评估框架"><a class="header" href="#三层评估框架">三层评估框架</a></h3>
+<p>可以把预训练评估分成三层。第一层是训练健康度：loss、困惑度、梯度、吞吐和数值稳定性，回答“训练是否正常”。第二层是能力覆盖：语言、知识、代码、数学、多语言、长上下文和结构化输出，回答“模型学到了什么”。第三层是风险与泛化：污染、记忆、偏见、安全、分布外和真实任务，回答“这些能力是否可信、是否可用”。</p>
+<p>HELM 提倡从准确性、校准、鲁棒性、公平性、偏见、毒性和效率等多个维度评估模型 [24]。这个思路对基础模型尤其重要：一个总体平均分会掩盖中文能力、长上下文、拒答行为和推理成本的变化。评估集最好分为开发集、冻结测试集和真实任务集；开发集用于迭代，冻结集用于发布决策，真实任务集连接模型指标和产品成功标准。</p>
+<h3 id="评估设计的常见陷阱"><a class="header" href="#评估设计的常见陷阱">评估设计的常见陷阱</a></h3>
+<p>第一，测试集过小导致偶然波动被误认为进步；第二，提示模板改变导致模型分数变化，却被解释成训练收益；第三，使用模型自己生成的评判结果，形成自评偏差；第四，只看准确率，不看格式、延迟、成本和拒答；第五，训练数据和评估数据分布高度重叠。</p>
+<p>解决方式是固定提示、记录版本、报告样本数和置信区间，并用程序化判定代替主观判断。代码任务尽量执行测试，数学任务尽量验证最终答案，JSON 任务使用 schema 校验，检索任务拆分召回和生成，安全任务同时看攻击成功率与过度拒答率。评估不是发布前的一次考试，而是训练闭环中的反馈信号。</p>
+<h3 id="基础模型后训练与应用评估的分工"><a class="header" href="#基础模型后训练与应用评估的分工">基础模型、后训练与应用评估的分工</a></h3>
+<p>Base model 评估关注语言建模和潜在能力；SFT、偏好优化和推理强化之后，评估才关注指令遵循、风格、安全和推理策略；应用系统还要评估检索、工具、权限、状态、回滚和人工接管。把应用失败全部归因于预训练，会导致错误的解决方案：事实过期通常需要 RAG，格式不稳可能需要 schema 和重试，工具误用需要权限和验证，推理不足才可能需要后训练或更强模型。</p>
+<p>对后端工程师来说，最有价值的模型评估表不是“模型总分排名”，而是能力—成本—风险矩阵。例如：代码生成通过率、每次调用 token、执行延迟、失败类型、敏感操作误调用率、需要人工修复的比例。只有把模型输出放入真实工作流，才能判断预训练能力是否转化成工程价值。</p>
+<h3 id="训练配方能力迁移与复现"><a class="header" href="#训练配方能力迁移与复现">训练配方、能力迁移与复现</a></h3>
+<h3 id="从公开配方看训练重点的变化"><a class="header" href="#从公开配方看训练重点的变化">从公开配方看训练重点的变化</a></h3>
+<p>不同基础模型报告的共同点，不是使用了完全相同的网络配置，而是都把数据、训练阶段和评估作为一个整体说明。LLaMA 代表了用相对克制的架构和公开数据进行高效训练的路线 [11]；Llama 3 则进一步强调更大规模、高质量数据、合成数据、长上下文和严格后训练之间的联动 [12]。这类报告对工程师最有价值的地方，不是记住某个模型的层数，而是看到能力提升通常来自多项配方同时变化，不能把结果简单归因于参数量。</p>
+<p>复现一个训练结果时，应先列出可比条件：同一 tokenizer、相近数据分布、相同 token 预算、相同上下文长度、相近优化器和一致的评估脚本。如果只能复现网络结构，却拿不到数据配比和过滤规则，那么复现的只是一个外形相似的模型，不能复现能力。报告中的“使用了某类数据”也不够，最好知道来源数量、采样权重、去重策略和阶段变化。</p>
+<h3 id="能力迁移与遗忘"><a class="header" href="#能力迁移与遗忘">能力迁移与遗忘</a></h3>
+<p>继续训练某一领域时，目标能力可能增强，通用能力也可能退化。这个现象可以从分布变化理解：梯度更新更频繁地服务新分布，旧分布中的参数结构被改写。传统机器学习中，训练误差、泛化误差、偏差和方差的区分能帮助我们理解这种权衡 [28]。对语言模型而言，还要增加语言、领域、长度和格式四个维度的分层检查。</p>
+<p>一个可操作的实验是保留三组数据：通用锚点、目标领域、分布外挑战。每个 checkpoint 都在三组数据上测试，不只看目标领域是否上升。如果目标领域上升、通用锚点下降，说明需要降低领域采样温度、混入回放数据、调整学习率或缩短继续训练阶段；如果三组都不变，则可能是数据量不足、任务目标不匹配或模型容量已成为瓶颈。</p>
+<h3 id="训练结果的可解释记录"><a class="header" href="#训练结果的可解释记录">训练结果的可解释记录</a></h3>
+<p>训练报告应能回答五个问题：模型看过多少有效 token；每类数据占比是多少；在哪个阶段出现能力变化；哪些评估结果来自冻结测试集；哪些风险仍然未知。建议把每次实验记录为一条不可变 manifest，关联数据版本、代码提交、配置、硬件、随机种子、checkpoint 和评估结果。这样做的收益和后端系统中的事件审计类似：失败之后可以重放，成功之后也知道为什么成功。</p>
+<h2 id="29-从预训练到后训练边界与工程决策"><a class="header" href="#29-从预训练到后训练边界与工程决策">2.9 从预训练到后训练：边界与工程决策</a></h2>
+<h3 id="pretrainingmid-trainingpost-training"><a class="header" href="#pretrainingmid-trainingpost-training">Pretraining、Mid-training、Post-training</a></h3>
+<p>预训练使用大规模、相对广泛的数据，让模型形成语言和领域先验；mid-training 或 continued pretraining 仍然常用 next-token prediction，但把数据分布定向到代码、数学、中文、长上下文或行业语料；post-training 则使用指令、偏好、轨迹和环境反馈，让模型学习“如何按要求行动”。三者的边界不是由文件名决定，而是由目标、数据和损失共同决定。</p>
+<p>当问题是“模型完全不知道某领域术语和文档模式”，继续预训练可能有效；当问题是“知道内容但不会按格式回答”，SFT 或结构化解码更合适；当问题是“多个答案都合理但偏好不同”，偏好优化更合适；当问题是“实时事实变化”，检索和工具比重新训练更合适；当问题是“复杂任务一次生成不稳定”，推理时搜索、验证器或推理强化可能更合适。</p>
+<h3 id="选择训练还是系统方案"><a class="header" href="#选择训练还是系统方案">选择训练还是系统方案</a></h3>
+<p>可以用四个问题做初筛：</p>
+<ol>
+<li>缺的是知识、能力、行为还是外部状态？</li>
+<li>目标是否需要实时更新、权限控制和可审计性？</li>
+<li>失败是否能被检索、工具、验证器或工作流拦截？</li>
+<li>训练成本是否低于长期推理和人工修复成本？</li>
+</ol>
+<p>如果答案涉及动态事实、数据库状态或外部动作，优先在系统层解决；如果是稳定的领域语言、格式或推理模式，再考虑训练。训练改变的是模型的通用分布，系统控制改变的是一次调用的上下文和权限。把两者混为一谈，会得到一个既昂贵又难以回滚的模型。</p>
+<h3 id="预训练方案的评审顺序"><a class="header" href="#预训练方案的评审顺序">预训练方案的评审顺序</a></h3>
+<p>在实际评审中，可以按“数据—目标—规模—过程—证据”的顺序推进，而不是先问模型有多少参数。先看数据：来源是否清楚，是否存在大量近重复，中文、英文、代码和数学是否被某一类数据完全压制。再看目标：是要降低通用 loss，还是要改善某个领域的代码、长上下文或多语言能力。目标不清楚，后面的指标就没有解释空间。</p>
+<p>接着看规模：参数量、训练 token、上下文长度和 batch 是否匹配，是否做过小规模试验，是否有证据说明继续增加数据或参数仍然有收益。然后看过程：数据版本是否可回放，checkpoint 是否包含优化器状态，训练中是否有固定的分层评估，异常发生时能否定位到数据、数值或系统故障。最后看证据：结果是否来自冻结测试集，是否做过污染和记忆检查，是否报告成本、延迟和失败类型。</p>
+<p>这个顺序能避免一种常见的讨论偏差：先被一个漂亮的 benchmark 分数吸引，再倒推训练过程一定正确。模型分数只是证据链中的一个节点；如果不知道数据边界、评估版本和失败样本，就无法判断改进是否能够迁移到真实业务。对于后端工程师，最值得建立的习惯是把模型训练当作一条可审计的数据处理流水线：输入可追踪，状态可恢复，输出可验证，异常可归因。</p>
+<p>还要注意训练效率和能力效率不是同一个指标。吞吐提升可能来自更大的 batch 或更激进的 packing，但如果有效 token 比例下降，硬件利用率变高并不代表模型学得更多。评估训练方案时，应同时报告每秒处理 token、有效样本比例、单位计算带来的 loss 改善，以及关键能力每提升一个百分点所需的额外成本。</p>
+<p>这也是算法团队与 Infra 团队的交界面：算法决定哪些 token 有价值，Infra 决定这些 token 能否稳定、低成本地被处理。两边必须用同一份数据 manifest、训练步定义和评估口径沟通，否则“训练更快”与“能力更好”很容易被错误地当成同一件事。</p>
+<p>只有把这条链路闭合，预训练结果才具备可比较性、可维护性和可复现性。</p>
+<p>这正是基础模型训练区别于一次性实验的地方。</p>
+<p>它决定了后续模型能否持续迭代，也决定了问题能否被定位和修复。</p>
+<h3 id="本章小结面向工程师的检查清单"><a class="header" href="#本章小结面向工程师的检查清单">本章小结：面向工程师的检查清单</a></h3>
+<p>预训练的核心不是“收集最多文本并训练最长时间”，而是建立一个能解释、能复现、能评估的能力形成闭环：目标函数定义模型要压缩什么，数据分布定义模型在哪些领域熟练，Scaling Law 帮助分配参数、token 和计算，训练过程把计划变成权重，评估判断能力是否真实，治理约束决定模型能否安全使用。</p>
+<p>在进入后训练和 Infra 章节前，可以用下面的问题检查一个预训练方案：tokenizer 在目标语言、代码和结构化数据上的 token 化效率是否测过？数据是否有来源、版本、许可、质量、去重和污染记录？数据配比是否对应明确能力，而不是只追求总 token 数？模型、token、计算预算是否做过小规模 scaling 实验？是否保存了可恢复训练所需的模型、优化器、数据和配置状态？loss 之外是否有分层能力、风险和真实任务评估？能力问题、行为问题、事实问题和系统控制问题是否被正确分工？</p>
+<p>如果这些问题无法回答，继续扩大训练通常只会扩大不确定性。一个较小但数据可追溯、评估可信、目标清楚的模型，往往比一个参数更大但训练过程不可解释的模型更适合作为后续工程的基础。</p>
+<h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
+<p>[1] Bengio, Y., Ducharme, R., Vincent, P., &amp; Jauvin, C. <em>A Neural Probabilistic Language Model</em>. Journal of Machine Learning Research, 2003. https://www.jmlr.org/papers/v3/bengio03a.html</p>
+<p>[2] Mikolov, T., Chen, K., Corrado, G., &amp; Dean, J. <em>Efficient Estimation of Word Representations in Vector Space</em>. arXiv:1301.3781, 2013. https://arxiv.org/abs/1301.3781</p>
+<p>[3] Sutskever, I., Vinyals, O., &amp; Le, Q. V. <em>Sequence to Sequence Learning with Neural Networks</em>. NeurIPS, 2014. https://arxiv.org/abs/1409.3215</p>
+<p>[4] Vaswani, A., et al. <em>Attention Is All You Need</em>. NeurIPS, 2017. https://arxiv.org/abs/1706.03762</p>
+<p>[5] Radford, A., et al. <em>Improving Language Understanding by Generative Pre-Training</em>. OpenAI, 2018. https://cdn.openai.com/research-covers/language-unsupervised/language_understanding_paper.pdf</p>
+<p>[6] Devlin, J., Chang, M.-W., Lee, K., &amp; Toutanova, K. <em>BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding</em>. NAACL, 2019. https://arxiv.org/abs/1810.04805</p>
+<p>[7] Raffel, C., et al. <em>Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer</em>. JMLR, 2020. https://www.jmlr.org/papers/v21/20-074.html</p>
+<p>[8] Brown, T. B., et al. <em>Language Models are Few-Shot Learners</em>. NeurIPS, 2020. https://arxiv.org/abs/2005.14165</p>
+<p>[9] Kaplan, J., et al. <em>Scaling Laws for Neural Language Models</em>. arXiv:2001.08361, 2020. https://arxiv.org/abs/2001.08361</p>
+<p>[10] Hoffmann, J., et al. <em>Training Compute-Optimal Large Language Models</em>. NeurIPS, 2022. https://arxiv.org/abs/2203.15556</p>
+<p>[11] Touvron, H., et al. <em>LLaMA: Open and Efficient Foundation Language Models</em>. arXiv:2302.13971, 2023. https://arxiv.org/abs/2302.13971</p>
+<p>[12] Dubey, A., et al. <em>The Llama 3 Herd of Models</em>. arXiv:2407.21783, 2024. https://arxiv.org/abs/2407.21783</p>
+<p>[13] Bai, J., et al. <em>Qwen Technical Report</em>. arXiv:2309.16692, 2023. https://arxiv.org/abs/2309.16692</p>
+<p>[14] InternLM Team. <em>InternLM: A New Language Model with Extended Training and Evaluation</em>. arXiv:2401.05917, 2023. https://arxiv.org/abs/2401.05917</p>
+<p>[15] Raffel, C., et al. <em>Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer</em>, data mixture and ablation experiments. JMLR, 2020. https://www.jmlr.org/papers/v21/20-074.html</p>
+<p>[16] Dodge, J., et al. <em>Documenting Large Webtext Corpora: A Case Study on the Colossal Clean Crawled Corpus</em>. EMNLP, 2021. https://aclanthology.org/2021.emnlp-main.98/</p>
+<p>[17] Penedo, G., et al. <em>The RefinedWeb Dataset for Falcon LLM: Outperforming Curated Corpora with Web Data Only</em>. NeurIPS Datasets and Benchmarks, 2023. https://arxiv.org/abs/2306.01116</p>
+<p>[18] Lee, K., Ippolito, D., Nystrom, A., et al. <em>Deduplicating Training Data Makes Language Models Better</em>. ACL, 2022. https://aclanthology.org/2022.acl-long.577/</p>
+<p>[19] Carlini, N., et al. <em>Extracting Training Data from Large Language Models</em>. USENIX Security, 2021. https://arxiv.org/abs/2012.07805</p>
+<p>[20] Carlini, N., et al. <em>Quantifying Memorization Across Neural Language Models</em>. arXiv:2202.07646, 2023. https://arxiv.org/abs/2202.07646</p>
+<p>[22] Shumailov, I., et al. <em>AI Models Collapse When Trained on Recursively Generated Data</em>. Nature, 2024. https://www.nature.com/articles/s41586-024-07566-y</p>
+<p>[23] Zellers, R., et al. <em>HellaSwag: Can a Machine Really Finish Your Sentence?</em>. ACL, 2019. https://aclanthology.org/P19-1472/</p>
+<p>[24] Liang, P., et al. <em>Holistic Evaluation of Language Models</em>. arXiv:2211.09110, 2023. https://arxiv.org/abs/2211.09110</p>
+<p>[25] Gao, L., et al. <em>The Pile: An 800GB Dataset of Diverse Text for Language Modeling</em>. arXiv:2101.00027, 2020. https://arxiv.org/abs/2101.00027</p>
+<p>[26] Zhang, A., Lipton, Z. C., Li, M., &amp; Smola, A. V. <em>Dive into Deep Learning</em>, 2nd ed., 2023. https://zh.d2l.ai/</p>
+<p>[27] 邱锡鹏：《神经网络与深度学习》，机械工业出版社，2020。https://nndl.github.io/</p>
+<p>[28] 周志华：《机器学习》，清华大学出版社，2016。https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part1/01-llm-foundations-transformer.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part1/03-post-training-alignment.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part1/01-llm-foundations-transformer.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part1/03-post-training-alignment.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-c2a407aa.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-1ddef08b.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

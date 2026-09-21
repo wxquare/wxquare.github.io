@@ -1,0 +1,528 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第12章 可靠性与治理 Infra：观测、成本、安全、发布与灾备 - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="面向工程师的 AI Agent 系统设计指南，涵盖大模型基础、Agent 运行时、工具调用、RAG、Memory、评估治理与生产级案例">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-2459343d.css">
+        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-bec4dcd5.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-0ce1344b.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">AI Agent 工程实践：从大模型基础到生产级智能体系统</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第12章-可靠性与治理-infra观测成本安全发布与灾备"><a class="header" href="#第12章-可靠性与治理-infra观测成本安全发布与灾备">第12章 可靠性与治理 Infra：观测、成本、安全、发布与灾备</a></h1>
+<p>大模型系统的可靠性不只是接口可用。模型可能返回格式正确但事实错误的答案，工具可能重复执行副作用，推理服务可能在长上下文下耗尽 KV，训练任务可能在 checkpoint 损坏后无法恢复，数据和 prompt 可能泄露，模型升级可能让成本、偏差和安全风险同时变化。因此，大模型 Infra 的最后一层需要把系统可靠性、模型质量、数据治理、供应链安全、成本、发布和灾备放进同一套可审计的控制闭环。</p>
+<p>SRE 的 SLO、错误预算和事故方法提供了服务可靠性基础 [1][2]；Dapper、OpenTelemetry 和 Prometheus 提供了跨服务追踪、指标和日志的观测基础 [3][4][5]；NIST AI RMF、ISO/IEC 42001、模型卡片、数据集说明书、SLSA 和 Sigstore 则把风险、责任和制品完整性扩展到 AI 生命周期 [8][10][14][15][16][17]。本章关注如何把这些原则具体化为 LLM 平台的指标、状态、策略、门禁和操作。</p>
+<h2 id="121-可靠性目标从服务可用到任务成功"><a class="header" href="#121-可靠性目标从服务可用到任务成功">12.1 可靠性目标：从服务可用到任务成功</a></h2>
+<h3 id="多层-slo"><a class="header" href="#多层-slo">多层 SLO</a></h3>
+<p>大模型平台至少有平台层、模型层、任务层和治理层四类目标。平台层关注网关可用、调度成功、实例健康、TTFT、TPOT、队列和恢复；模型层关注格式、引用、拒答、工具参数和能力回归；任务层关注用户目标成功、人工接管、重试和外部状态；治理层关注数据权限、审计、供应链和安全事件。</p>
+<p>只看 HTTP 200 会把流式中断、JSON 非法、工具失败和部分输出当作成功。每个请求和 Run 定义 outcome，响应状态与业务状态分离。任务成功率按 workflow、模型、版本、租户和风险分层，不能用所有请求的平均覆盖重要少数场景。</p>
+<h3 id="sli-设计"><a class="header" href="#sli-设计">SLI 设计</a></h3>
+<p>SLI 是可测量的服务行为，例如成功完成的请求/有效请求、满足 TTFT SLO 的请求/请求、工具状态正确的操作/操作、有效 checkpoint/保存尝试、恢复成功的故障/故障。分母定义尤其重要：客户端取消、模型拒答、策略阻断、上游错误和平台错误是否进入分母，按场景明确。</p>
+<p>指标包含时间窗口、版本、region、tenant、model、workflow、length bucket 和 outcome。高维字段不一定全部放 Prometheus label，可在 trace 和离线仓库聚合。SLI 定义版本化，指标语义改变时创建新版本，避免趋势图跨定义比较。</p>
+<h3 id="错误预算"><a class="header" href="#错误预算">错误预算</a></h3>
+<p>错误预算把可靠性要求转换为变化速度。预算消耗包括平台错误、任务失败、工具副作用、质量回退、安全事件、数据泄露和恢复超时。预算耗尽可以暂停灰度、冻结非必要变更、降低实验并发、增加人工或切换稳定版本。SRE Workbook 的错误预算方法适合连接发布与可靠性 [1]。</p>
+<p>模型质量回退不能被平台 99.99% 可用性掩盖；一次数据泄露也不应被平均成功率稀释。治理事件使用独立的硬门禁，服务错误预算用于自动化决策，业务质量预算由 owner 审批。每类预算有发现、确认、修复和关闭流程。</p>
+<h2 id="122-可观测性metricslogstraces-与质量"><a class="header" href="#122-可观测性metricslogstraces-与质量">12.2 可观测性：Metrics、Logs、Traces 与质量</a></h2>
+<h3 id="三类信号"><a class="header" href="#三类信号">三类信号</a></h3>
+<p>Metrics 适合时间序列和聚合，logs 记录具体错误与上下文，traces 连接一次请求或任务的因果链。OpenTelemetry 提供跨组件的语义与传播，Prometheus 提供指标采集、查询和告警，Dapper 展示大规模分布式追踪的价值 [3][4][5]。LLM 平台还要增加 token、模型、模板、cache、工具、质量和成本字段。</p>
+<p>Trace root 可以是 request、task 或 training run；span 包含 gateway、queue、tokenizer、prefill、decode、retrieval、model、tool、approval、database、cost 和 evaluator。字段包含 hash、version、input/output token、TTFT、TPOT、error、retry、tenant、budget、deadline、quality result 和 policy。默认不记录完整敏感内容，使用摘要、hash、脱敏和受控采样。</p>
+<h3 id="质量观测"><a class="header" href="#质量观测">质量观测</a></h3>
+<p>线上质量信号包括任务成功、重试、编辑、用户评分、转人工、引用点击、工具成功、结构化合法、拒答、安全拦截和投诉。质量与延迟、成本、上下文长度、路由、模型版本和数据 snapshot 联合分析。单独看点赞率或 token 长度会受到反馈选择偏差和策略改变影响。</p>
+<p>质量监控按场景分层，设置最小样本与置信区间。高风险任务全量或高比例采样，普通任务分层抽样；失败与不确定结果优先保留。反馈样本脱敏后进入评估平台，生产观测和离线回归通过 request id、model hash 和 dataset id 关联。</p>
+<h3 id="告警与诊断"><a class="header" href="#告警与诊断">告警与诊断</a></h3>
+<p>告警分为症状和原因：症状包括成功率下降、p99 上升、任务失败、成本突增；原因包括 KV 水位、队列、模型加载、对象存储、网络、工具、数据 drift、policy 和供应链。告警必须有 owner、runbook、严重级别、抑制与恢复条件，避免只把所有错误发给值班人员。</p>
+<p>诊断页面按一个请求或 Run 显示状态时间线、资源、版本、路由、错误、重试、工具和质量。事故中先冻结相关发布和保留 trace，再做降级、隔离和回滚。观测数据本身要有留存、权限、脱敏和成本控制，不能为了排查故障无限保存 prompt。</p>
+<h2 id="123-可靠性工程故障模型混沌与恢复"><a class="header" href="#123-可靠性工程故障模型混沌与恢复">12.3 可靠性工程：故障模型、混沌与恢复</a></h2>
+<h3 id="故障域"><a class="header" href="#故障域">故障域</a></h3>
+<p>故障域包括请求、实例、GPU、节点、网络、区域、存储、调度器、模型仓库、数据仓库、工具和人工队列。每个故障定义检测、隔离、重试、降级、回滚、补偿、恢复时间和数据损失。单节点故障不应让所有副本同时失效；单租户的工具风暴不应拖垮全局。</p>
+<p>故障分类区分瞬时、确定性、未知状态和不可逆。网络超时可以退避，schema 错误需要修复输入，工具提交后连接断开需要查询，支付或删除等动作需要人工。AIP-194 的错误分类和重试约束可作为服务 API 的基础 [22]。</p>
+<h3 id="混沌演练"><a class="header" href="#混沌演练">混沌演练</a></h3>
+<p>混沌实验覆盖杀死 worker、GPU reset、节点断电、网络延迟、丢包、DNS 失败、对象存储不可用、模型下载损坏、KV OOM、事件重复、状态库只读、工具超时和区域切换。Chaos Mesh 等工具提供 Kubernetes 环境的故障注入能力 [19]；Jepsen 的一致性测试实践提醒我们，网络分区与时序错误需要单独验证 [20]。</p>
+<p>每次实验有假设、范围、注入、预期、停止条件、指标、影响、恢复和复盘。先在隔离池与影子流量执行，再逐步扩大。实验结果进入发布门禁和 runbook；若系统只能靠人工 SSH 清理，说明自动恢复边界不足。</p>
+<h3 id="恢复点与灾备"><a class="header" href="#恢复点与灾备">恢复点与灾备</a></h3>
+<p>训练恢复依赖 checkpoint、数据游标、optimizer 和并行布局；推理恢复通常重建 KV；Agent 恢复依赖 workflow state、operation status、approval 和 compensation；数据与评估恢复依赖 snapshot、manifest、结果和报告。不同状态拥有不同 RPO/RTO，不能用一套备份策略覆盖。</p>
+<p>灾备方案分为同节点、同区域跨故障域、跨区域和离线冷备。权重和模型制品可多区域复制，敏感数据可能只能保存加密指针和受控副本；trace 可采样保留，审计事件高等级保留。恢复演练验证 hash、权限、schema、版本、依赖和成本，而不只是服务能否启动。</p>
+<h2 id="124-发布变更与回滚治理"><a class="header" href="#124-发布变更与回滚治理">12.4 发布、变更与回滚治理</a></h2>
+<h3 id="artifact-与供应链"><a class="header" href="#artifact-与供应链">Artifact 与供应链</a></h3>
+<p>模型、tokenizer、template、engine、adapter、工具、workflow、policy、数据 snapshot 和评估报告都是制品。每个制品记录来源、构建、依赖、hash、签名、许可证、owner、数据等级和兼容矩阵。SLSA 提供供应链来源与构建完整性的参考，Sigstore 通过签名和透明日志帮助验证制品 [16][17]；OpenSSF Scorecard 可用于检查开源依赖风险 [18]。</p>
+<p>构建在隔离环境执行，依赖锁定并生成 SBOM；运行时只拉取允许的 hash；部署前校验签名、漏洞、模型评估和权限。第三方模型或 MCP server 不能因为公开可下载就自动进入生产。升级依赖、CUDA、driver、kernel 或工具都触发兼容、性能、安全和回滚测试。</p>
+<h3 id="变更分类"><a class="header" href="#变更分类">变更分类</a></h3>
+<p>变更按风险分为配置、prompt/template、模型、推理 engine、数据、workflow、工具、policy、基础设施和安全。配置变更可能影响容量，prompt 变更可能影响工具和隐私，数据变更可能影响质量与授权，工具变更可能产生副作用。变更单说明背景、获得、牺牲、风险、指标、门禁、灰度和回滚。</p>
+<h3 id="灰度与回滚"><a class="header" href="#灰度与回滚">灰度与回滚</a></h3>
+<p>灰度按租户、区域、任务、流量、模型版本或 workflow 分组。影子不执行副作用，canary 受限执行，正式流量满足 SLO、质量、成本和安全。回滚恢复模型、tokenizer、template、engine、adapter、workflow、policy、route 和 cache 兼容版本；新状态无法被旧版本理解时，先 drain 或迁移。</p>
+<p>回滚演练验证正在执行的请求、长 Run、审批、工具 operation、计费、memory 和 trace。发布控制器保存 baseline、candidate、evidence、审批和操作人。自动暂停条件明确，人工 override 需要理由与期限。没有可执行回滚的变更不能进入生产。</p>
+<h2 id="125-安全与-ai-治理"><a class="header" href="#125-安全与-ai-治理">12.5 安全与 AI 治理</a></h2>
+<h3 id="风险登记"><a class="header" href="#风险登记">风险登记</a></h3>
+<p>AI 风险登记表包含系统用途、用户、模型、数据、工具、威胁、失败影响、控制、残余风险、owner 和复审时间。NIST AI RMF 的 govern、map、measure、manage 结构可作为生命周期框架 [8]；生成式 AI profile 进一步关注幻觉、数据、滥用、供应链和内容风险 [9]；ISO/IEC 42001 与 23894 提供管理体系和风险管理参考 [10][11]。</p>
+<p>风险不能只写“模型可能出错”。明确危害场景、触发条件、暴露范围、检测信号、阻断与补偿。例如模型生成错误退款动作、工具越权读取、训练数据泄露、提示注入、输出偏见、服务成本失控和区域合规违规。每个高风险场景至少有预防、检测、响应和复盘。</p>
+<h3 id="权限与审计"><a class="header" href="#权限与审计">权限与审计</a></h3>
+<p>权限分为调用模型、读取数据、执行工具、写外部状态、查看 trace、下载 artifact、审批发布和修改 policy。采用最小权限、短期凭证、租户和区域限制、目标 allowlist。审计记录主体、资源、动作、理由、策略版本、结果、trace、时间和来源；不能由应用日志临时拼接。</p>
+<p>审计本身不可被普通租户修改，保留期、访问者和导出要有策略。数据删除与合规请求沿数据血缘、缓存、trace、评估和 artifact 处理；历史指标保留摘要并标记内容已撤回。中国语境下的 AI 治理资料强调责任、风险、透明和可控，平台需结合组织与地域要求落实 [26]。</p>
+<h3 id="llm-应用安全"><a class="header" href="#llm-应用安全">LLM 应用安全</a></h3>
+<p>提示注入、敏感信息泄露、不安全工具、供应链、过度代理、输出处理、拒绝服务和模型窃取等风险需要进入测试。OWASP LLM Top 10 和 MITRE ATLAS 提供威胁分类与攻击知识库 [12][13]。防御不是只加系统 prompt，而是权限、沙箱、schema、输出过滤、网络、速率、审计、人工和回滚的组合。</p>
+<p>安全策略不能被模型修改。工具结果、检索文档和用户文件标记为不可信；模型输出先做 schema 和 policy，再执行副作用；安全服务不可用时 fail closed 或进入人工。红队样本、失败 trace 和安全回归集受控保存，修复后验证正常任务没有被过度拒答。</p>
+<h2 id="126-成本容量与资源治理"><a class="header" href="#126-成本容量与资源治理">12.6 成本、容量与资源治理</a></h2>
+<h3 id="成本账本"><a class="header" href="#成本账本">成本账本</a></h3>
+<p>成本包括 GPU、CPU、内存、网络、存储、模型下载、token、KV、cache、工具、评估、人工和失败重试。训练按有效 token、GPU 小时和重算归因；推理按输入输出 token、GPU 毫秒、成功任务和 cache；Agent 按 Run、Step、Tool、人工和副作用。每条费用事件带 tenant、project、model、version、task 和 idempotency。</p>
+<p>成本报告区分预约、实际、等待、通信、空闲、失败、重试和有效工作。GPU 利用率高但有效任务少，仍可能成本高；便宜模型输出更长或失败更多，单位成功成本不一定低。成本预算与错误预算、质量门禁并列，超限触发暂停、限流、降级或审批。</p>
+<h3 id="容量计划"><a class="header" href="#容量计划">容量计划</a></h3>
+<p>容量模型按 workload、长度、并发、模型、GPU、区域、故障余量、发布余量和长尾建立。训练关心有效 token/s 和扩展效率，推理关心 goodput、TTFT、TPOT、KV，Agent 关心 active Run、tool QPS、状态、人工与模型调用。容量 dashboard 显示 planned、reserved、active、pending、failed、draining 和 spare。</p>
+<p>容量计划每次模型、模板、数据、流量、硬件或工具改变都重算。SRE 错误预算与容量余量一起保护发布和故障；Borg 的优先级、配额和隔离为多租户资源治理提供经验 [6]。不能把正常峰值填满后再假设可以完成滚动发布和节点故障转移。</p>
+<h3 id="成本优化的取舍"><a class="header" href="#成本优化的取舍">成本优化的取舍</a></h3>
+<p>量化、batch、cache、低优先级资源、模型路由、上下文压缩、预计算和异步化都可能降本，但改变质量、延迟、内存或数据风险。每个优化有基线、假设、获得、牺牲、指标、回滚和重新评估条件。一次只改变少数变量，用固定 workload 比较质量、SLO、成本和错误预算。</p>
+<h2 id="127-事故响应与组织运行"><a class="header" href="#127-事故响应与组织运行">12.7 事故响应与组织运行</a></h2>
+<h3 id="事故分级"><a class="header" href="#事故分级">事故分级</a></h3>
+<p>事故按用户影响、数据风险、业务副作用、区域范围、持续时间和恢复难度分级。数据泄露、重复副作用和模型大面积错误通常高于单区域 p99 回退。事故 commander 负责决策与沟通，technical lead 处理隔离和恢复，scribe 保留时间线，业务与安全 owner 负责影响判断。</p>
+<p>第一步是止损：冻结高风险发布、限流、摘除故障副本、停止工具、关闭跨租户 cache 或切换安全 fallback；第二步保留证据；第三步恢复有限服务；第四步核对数据和业务状态；第五步复盘与修复。不要在事故中随意删除日志、重试未知副作用或修改历史状态。</p>
+<h3 id="runbook-与演练"><a class="header" href="#runbook-与演练">Runbook 与演练</a></h3>
+<p>Runbook 包含症状、查询、指标、权限、判断、动作、风险和回滚。训练故障查 checkpoint 与数据游标，推理故障查 KV 与队列，Agent 故障查 operation 与状态，数据事故查血缘与 snapshot，安全事故查凭证与审计。每条 runbook 由演练验证，不可执行步骤进入 backlog。</p>
+<h3 id="复盘与学习"><a class="header" href="#复盘与学习">复盘与学习</a></h3>
+<p>无责复盘描述时间线、触发、检测、决策、影响、恢复、哪些信号缺失、哪些自动化失败和修复 owner。行动项分为代码、数据、配置、观测、容量、文档、流程和培训，带期限与验证。事故样本进入回归集，故障演练加入发布门禁，重复事件触发架构评审。</p>
+<h2 id="128-业务连续性与灾备"><a class="header" href="#128-业务连续性与灾备">12.8 业务连续性与灾备</a></h2>
+<h3 id="rporto-与降级"><a class="header" href="#rporto-与降级">RPO、RTO 与降级</a></h3>
+<p>训练 RPO 是可丢失的 step/token，RTO 是恢复到可继续训练的时间；推理 RPO 通常是正在执行请求和 KV，RTO 是恢复健康副本；Agent RPO 是事件、审批、operation 和状态，RTO 是重新接管；评估 RPO 是结果与报告，RTO 是重新运行或读取证据。每类系统定义自己的目标。</p>
+<p>降级按能力层级设计：稳定模型、小模型、异步、缓存回答、只读工具、人工队列和安全拒绝。降级不能突破数据区域、权限、安全和副作用边界。用户看到的状态明确是 degraded、partial、queued 或 needs_attention，避免把降级结果误认为正常完成。</p>
+<h3 id="跨区域恢复"><a class="header" href="#跨区域恢复">跨区域恢复</a></h3>
+<p>跨区域恢复需要复制模型制品、配置、注册表、状态、事件、数据 snapshot、评估报告和密钥引用，但不是所有内容都能跨区域。数据驻留和删除策略优先；敏感 payload 可以不复制，Run 恢复时转人工。路由保存 region、policy 和 fallback，区域切换后重新校验模型和工具兼容。</p>
+<h3 id="恢复演练"><a class="header" href="#恢复演练">恢复演练</a></h3>
+<p>季度演练区域不可用、对象存储延迟、模型仓库损坏、状态库恢复、凭证轮换、网络分区和工具供应商故障。测量 RTO、RPO、数据完整、权限、trace、成本、用户影响和人工工作量。演练结束保留证据并更新 runbook；“备份成功”不等于“可以恢复”。</p>
+<h2 id="129-合规供应链与长期治理"><a class="header" href="#129-合规供应链与长期治理">12.9 合规、供应链与长期治理</a></h2>
+<h3 id="模型卡与数据集说明"><a class="header" href="#模型卡与数据集说明">模型卡与数据集说明</a></h3>
+<p>Model Cards 记录模型用途、限制、评估、数据、风险和适用场景 [14]；Datasheets for Datasets 强调数据来源、组成、收集、推荐用途和限制 [15]。平台将这些文档与 model artifact、dataset snapshot 和 release evidence 关联，变更时重新生成或复审。文档不是营销材料，而是让调用方知道不能做什么。</p>
+<h3 id="第三方依赖"><a class="header" href="#第三方依赖">第三方依赖</a></h3>
+<p>模型、tokenizer、评估器、MCP server、容器、Python 包、CUDA、driver 和 cloud service 都是依赖。供应链扫描、SBOM、签名、来源、漏洞、许可证和版本锁定进入发布门禁。开发依赖与生产依赖分离，运行时网络限制；高风险更新先在隔离池和影子运行。</p>
+<h3 id="数据保留与删除"><a class="header" href="#数据保留与删除">数据保留与删除</a></h3>
+<p>定义 prompt、output、trace、memory、tool result、评估样本、模型制品和审计事件的保留期、删除方式、备份影响和法律保留。删除请求沿 lineage 找到缓存、派生 embedding、回放、标注、训练 candidate 和报告；若无法删除摘要，标记不可恢复的风险并由 owner 决定。删除本身产生审计事件但不保留原始敏感内容。</p>
+<h3 id="1210-可靠性与治理验收"><a class="header" href="#1210-可靠性与治理验收">12.10 可靠性与治理验收</a></h3>
+<h3 id="端到端演练"><a class="header" href="#端到端演练">端到端演练</a></h3>
+<p>选取一个训练 run、一个推理请求、一个 Agent Run 和一个评估任务，验证从输入、资源、状态、trace、成本、质量、权限到结果的完整链路。注入节点故障、存储失败、工具超时、状态重复、模型回滚、数据撤回和区域切换，检查状态不覆盖、副作用不重复、敏感数据不泄露、预算可对账。</p>
+<h3 id="变更与发布验收"><a class="header" href="#变更与发布验收">变更与发布验收</a></h3>
+<p>随机选择模型、engine、prompt、workflow、tool、policy、数据和依赖变更，验证来源池、兼容矩阵、质量门禁、灰度、告警、自动暂停和回滚。发布记录包含变更、获得、牺牲、风险、审批、指标和恢复策略。旧版本可启动、可读取需要的状态、可关闭新 cache，并能处理正在执行的任务。</p>
+<h3 id="审计与治理验收"><a class="header" href="#审计与治理验收">审计与治理验收</a></h3>
+<p>验证租户、角色、凭证、区域、数据等级、工具权限、模型 artifact、评估报告和删除请求。检查审计不可篡改、访问可追踪、日志脱敏、证据可回放、模型卡和数据说明存在、供应链 hash 和签名正确。安全红队、混沌、恢复和成本演练至少按周期重复，不能只在首次上线执行。</p>
+<h3 id="最终交付判断"><a class="header" href="#最终交付判断">最终交付判断</a></h3>
+<p>可靠性与治理 Infra 的交付标准是：系统知道自己的目标，能测量行为，能解释质量，能隔离风险，能控制成本，能在故障中恢复，能在变更前验证，能在事故后学习，能在数据与模型生命周期结束时删除或退休。NIST、ISO、OWASP、MITRE、SRE、供应链和中文治理资料提供不同维度的框架，但最终要落成 manifest、策略、状态、指标、runbook、门禁和证据 [8][9][10][11][12][13][26]。</p>
+<p>对于后端工程师，这一章的关键不是再记住一组 AI 名词，而是把模型平台当作一个高成本、强状态、带概率输出和数据责任的分布式系统。可靠性、质量、安全、成本和合规不能由不同团队各自用一张表解决，它们需要用同一个版本、trace、task、artifact 和事件关联。这样，大模型 Infra 六章才形成闭环：训练生成可恢复制品，推理提供可观测服务，数据评估证明质量，运行时控制行动，治理层保证长期可运营。</p>
+<h3 id="可靠性对象的状态机"><a class="header" href="#可靠性对象的状态机">可靠性对象的状态机</a></h3>
+<p>平台、模型实例、训练作业、推理请求、Agent Run、工具操作、评估任务和发布都应有明确状态。状态迁移由事件驱动，事件带版本、owner、trace、原因和时间；终态不能被迟到事件覆盖；重试增加 attempt 而不是重写原事件。状态机让“可用”“成功”“已恢复”“已回滚”和“需要人工”成为可查询事实。</p>
+<p>状态机还定义异常边界。例如模型实例可以从 READY 到 DRAINING 再到 TERMINATED，不能从 FAILED 直接接收流量；工具 operation 从 SUBMITTED 到 UNKNOWN 时不能自动重新提交不可逆动作；灾备恢复从 RESTORING 到 VERIFIED 后才切换路由。Kubernetes 的容器状态提供执行基础，但业务状态必须由平台维护 [7]。</p>
+<h3 id="可靠性与质量的联合门禁"><a class="header" href="#可靠性与质量的联合门禁">可靠性与质量的联合门禁</a></h3>
+<p>发布门禁不是两个独立的清单。质量退化可能导致更多重试、人工和 token；延迟变差可能让用户重复提交；安全拦截升高可能表示攻击增加，也可能表示模型过度拒答。报告把质量、SLO、成本、安全和人工放在同一版本和时间窗口，解释相互影响。</p>
+<p>门禁采用硬约束加软分析。数据泄露、越权、重复副作用、关键任务失败和 artifact 未签名直接阻断；普通任务小幅变化进入人工判断；性能和成本变化结合业务价值审批。门禁规则版本化，旧报告不因规则改变而被重写，新规则可以对历史 evidence 做离线重算。</p>
+<h3 id="可靠性预算与容量预算"><a class="header" href="#可靠性预算与容量预算">可靠性预算与容量预算</a></h3>
+<p>错误预算耗尽时暂停高风险变更，容量预算不足时限制流量和长任务，安全预算被突破时关闭相关工具或区域，质量预算退化时回滚模型。不同预算可能互相冲突，平台指定优先级：安全和数据责任高于成本，关键业务质量高于平均吞吐，可靠性保护优先于实验速度。</p>
+<p>容量预算包括正常峰值、节点故障、发布双份、灾备切换、评估和突发；不可把全部 GPU、状态库连接、对象存储 QPS 和人工容量都分配给常态业务。Borg 的资源配额、优先级和故障域经验说明，预留和抢占需要控制面统一治理 [6]。</p>
+<h3 id="观测数据的生命周期"><a class="header" href="#观测数据的生命周期">观测数据的生命周期</a></h3>
+<p>metrics 可以长期保留聚合，logs 按错误和审计保留，trace 高价值失败与抽样成功保留，prompt/output 按数据等级短期保留，audit 事件按合规保留。不同数据拥有不同访问角色、加密、区域和删除流程。观测系统的成本和隐私必须进入平台预算，不能默认全量记录。</p>
+<p>改变采样比例或字段会影响趋势。每个 dashboard 标记观测版本、采样率、覆盖率和缺失字段；事故发生后临时提升采样有开始与结束时间。OpenTelemetry 的统一字段有利于关联，但不能让所有业务把任意高基数内容塞进 trace [4]。Prometheus label 设计尤其避免 token、prompt、用户自由字符串和完整 URL [5]。</p>
+<h3 id="告警疲劳"><a class="header" href="#告警疲劳">告警疲劳</a></h3>
+<p>告警按用户影响和行动区分：page 需要立即处理，ticket 可以工作时间处理，dashboard 只用于趋势。一个告警必须有 runbook、owner、抑制、恢复和升级；重复告警合并到 incident。质量漂移和成本异常可以由每日评估或预算系统处理，不应把所有分布变化变成夜间 page。</p>
+<p>告警内容不包含敏感 prompt 和秘密。它包含模型、版本、区域、tenant group、错误类别、影响比例、SLO 和 trace link。告警确认、转交和关闭都是审计事件，事故复盘检查告警是否及时、准确、可行动。</p>
+<h3 id="观测与评估的回路"><a class="header" href="#观测与评估的回路">观测与评估的回路</a></h3>
+<p>线上 trace 抽样到数据与评估平台，评估结果回写模型、workflow、tool 和 release evidence；发布门禁读取质量与安全趋势，运行时根据 policy 选择模型、工具和人工。回路中的每个转换都保存 sample hash、版本、权限和采样策略。没有这个回路，平台只能看到服务可用，却无法发现输出质量逐渐变差。</p>
+<p>反馈有偏、缺失和延迟，平台报告 coverage、标签来源和不确定性。人工确认的安全事件进入高优先级回归，普通低评分按分层进入候选。线上与离线版本不一致时，先冻结比较再定位数据、模板、路由或 evaluator 变化。</p>
+<h3 id="灾备状态分类"><a class="header" href="#灾备状态分类">灾备状态分类</a></h3>
+<p>灾备清单将状态分为可重建、可复制、不可复制和需人工。模型 engine 可从权重重建，KV 通常可重建，训练 checkpoint 需要复制，Agent tool operation 需要查询外部状态，人工审批可能不可复制，敏感 prompt 可能禁止跨区复制。RPO/RTO 与状态类别绑定，灾备演练按类别验收。</p>
+<p>灾备切换前验证 artifact 签名、版本、区域、密钥、数据授权、工具 endpoint、路由、容量和观测；切换后验证流量、SLO、成本、审计、任务状态和副作用。区域恢复不能只是 DNS 修改，必须重新做能力与安全检查。故障区域恢复后，防止双活写入造成状态冲突，采用 fencing、单主或明确的合并规则。</p>
+<h3 id="数据备份与删除冲突"><a class="header" href="#数据备份与删除冲突">数据备份与删除冲突</a></h3>
+<p>备份提高恢复能力，但会延长数据保留和删除复杂度。备份记录数据等级、密钥、区域、保留、恢复 owner 和删除实现；敏感内容采用加密、密钥销毁或不可恢复的短期备份。删除请求要检查在线、缓存、快照、备份、评估、训练候选、trace 和人工导出，给出完成范围与例外。</p>
+<p>审计需要证明删除请求被处理，但审计不能再次保存被删除内容。保存主体、时间、对象 hash、策略和结果，不保存原文。历史模型无法简单从训练中“删除记忆”时，风险登记记录限制、补救和重新训练计划，由治理 owner 批准。</p>
+<h3 id="模型风险的持续监控"><a class="header" href="#模型风险的持续监控">模型风险的持续监控</a></h3>
+<p>模型卡中的限制不是上线时检查一次。生产监控关注输入分布、输出事实性、拒答、偏差、敏感内容、工具错误、人工投诉和新攻击。新场景、语言、地区和用户群进入风险评估；模型或数据变化触发重新测量。Model Cards 和 Datasheets 将模型与数据的限制、来源、用途和责任显式化 [14][15]。</p>
+<p>风险监控需要定义红线和响应：达到红线自动停止流量、隔离模型、关闭工具或转人工；接近阈值扩大采样和人工；正常波动只记录。风险指标分层避免平均数掩盖少数群体。中文治理资料可以补充组织、产业和责任语境，但最终控制落在权限、策略、审计和发布流程 [26]。</p>
+<h3 id="供应链的信任链"><a class="header" href="#供应链的信任链">供应链的信任链</a></h3>
+<p>从源代码到模型服务建立 provenance：源代码 commit、依赖、构建器、基础镜像、模型来源、数据 snapshot、转换器、engine、签名和部署。SLSA 定义构建来源和保证等级，Sigstore 提供签名与验证，Scorecard 检查公开依赖的维护和安全信号 [16][17][18]。平台拒绝无来源、hash 不匹配或签名无效的 artifact。</p>
+<p>模型供应链还包括数据和 prompt，不只是软件。训练数据下载、清洗脚本、量化校准、评估器、MCP server 和工具 schema 都可能改变行为。每个版本生成 SBOM、数据表和模型卡，发布报告引用它们。发现漏洞时按依赖图找到运行中的模型、engine、workflow 和租户，快速隔离与替换。</p>
+<h3 id="供应商与外部-api"><a class="header" href="#供应商与外部-api">供应商与外部 API</a></h3>
+<p>外部模型、judge、搜索、支付、短信、邮件和云服务拥有各自的 SLA、数据处理、区域、限流、错误和版本。供应商清单保存用途、数据流、DPA/授权、fallback、成本、联系人和退出方案。敏感数据默认不发送；发送前最小化、脱敏和记录同意。供应商版本变化进入兼容与评估。</p>
+<p>外部服务不可用时，Runtime 依据工具 policy 选择重试、缓存、替代、异步或人工。不可逆副作用的供应商确认未知时，查询 operation 而非重试。合同与技术控制共同决定风险，不能只相信服务方“高可用”描述。</p>
+<h3 id="组织与职责"><a class="header" href="#组织与职责">组织与职责</a></h3>
+<p>模型 owner 对能力、限制和评估负责，数据 owner 对来源、授权和质量负责，平台 owner 对资源、可用性和恢复负责，安全 owner 对威胁、策略和响应负责，业务 owner 对任务成功与残余风险负责，发布 approver 对变更承担审批。RACI 记录在系统和文档中，避免事故时无人决定。</p>
+<p>职责不是把风险切开。模型变更同时影响容量、质量、安全和成本，发布评审需要多方 evidence；事故 commander 可以停止系统但不替代业务判断；人工接管结果反馈给模型和流程 owner。季度治理评审检查风险登记、指标、事故、成本、数据和供应链。</p>
+<h3 id="合规证据的可重复生成"><a class="header" href="#合规证据的可重复生成">合规证据的可重复生成</a></h3>
+<p>合规报告从机器可读的 manifest、policy decision、audit event、model card、datasheet、评估报告和发布记录生成。手工复制截图容易遗漏版本和时间。报告包含系统用途、数据流、用户、模型、限制、风险控制、监控、事件、删除、供应链和审批。任何结论都有 artifact、trace 或事件引用。</p>
+<p>报告生成器版本化，组织规则变化产生新报告，旧报告保留历史语义。外部审计访问受控 view，原始敏感内容不必交付。需要解释一次决策时，可以从 report 反查输入、策略、版本和结果，但不暴露无关租户。</p>
+<h3 id="成本透明与治理"><a class="header" href="#成本透明与治理">成本透明与治理</a></h3>
+<p>治理控制也有成本：全量 trace、judge、人工审核、备份、红队和灾备会消耗资源。平台把控制成本显式归因，不以取消安全和可靠性换取表面低价。低风险任务可以使用较低采样和自动化，高风险任务使用更强证据、人工和保留；分层策略比所有任务一刀切更可持续。</p>
+<p>成本透明让业务能做知情取舍。若减少评估样本可省钱但扩大未检测风险，决策由 owner 接受并设置有效期；若增加 cache 降低 GPU 却延长敏感数据保留，需安全审核；若跨区域备份提升 RTO 却违反驻留，选择受控冷备。每项牺牲写在 ADR 与治理报告中。</p>
+<h3 id="混沌与一致性测试的组合"><a class="header" href="#混沌与一致性测试的组合">混沌与一致性测试的组合</a></h3>
+<p>单纯杀 Pod 只能验证重启，复杂系统还要验证消息重复、网络分区、时钟偏差、状态库延迟、外部操作未知和回滚中断。Chaos Mesh 可做资源和网络注入，Jepsen 风格测试关注并发、分区和一致性 [19][20]。Agent Runtime 的副作用测试还需要沙箱、幂等断言和外部状态检查。</p>
+<p>混沌实验结果按故障、检测、隔离、恢复、数据损失和用户影响保存。实验期间不能让自动回滚掩盖错误，停止条件保护真实业务。重复演练直到恢复时间、资源释放和审计符合目标，再把场景变为长期回归。</p>
+<h3 id="错误语义的统一"><a class="header" href="#错误语义的统一">错误语义的统一</a></h3>
+<p>模型 API、工具、数据、调度、审批和存储应采用统一错误类别：invalid、permission_denied、rate_limited、timeout、unavailable、conflict、unknown_outcome、policy_blocked、resource_exhausted 和 internal。每类错误定义 retryable、用户可见、告警级别、计费、补偿和审计。AIP-194 的错误实践能减少各组件各自定义含义造成的混乱 [22]。</p>
+<p>错误不等于失败文本。响应提供 code、message、details、retry_after、request_id 和 remediation；内部 trace 附带 root cause 与 dependency。unknown outcome 尤其重要：外部写操作超时不能被当作未发生，必须查询或人工。统一错误语义让网关、Runtime、评估和成本保持一致。</p>
+<h3 id="可操作性评审"><a class="header" href="#可操作性评审">可操作性评审</a></h3>
+<p>每个新组件上线前做 operability review：健康检查是否能区分依赖与自身，指标是否能定位，日志是否脱敏，trace 是否关联，配置是否可动态或版本化，备份与恢复是否验证，限流与熔断是否存在，runbook 是否可执行，回滚是否完成演练，成本是否归因。不能回答的问题进入上线阻断清单。</p>
+<p>可操作性不是运维后补。模型仓库、评估器、MCP server、数据 job 和安全策略一开始就纳入平台标准。组件拥有明确 owner、SLO、依赖、升级、退役和事故联系人。这样平台不会因为增加一个看似小的模型能力而增加不可见的运维负担。</p>
+<h3 id="可靠性工程的最小闭环"><a class="header" href="#可靠性工程的最小闭环">可靠性工程的最小闭环</a></h3>
+<p>最小闭环包含目标、测量、预算、告警、runbook、演练、事故、修复、回归和复审。目标定义服务、质量和治理边界；测量生成指标和 trace；预算控制变化；告警发现异常；runbook 执行动作；演练验证假设；事故产生学习；修复进入代码、数据、配置和流程；回归证明修复；复审更新风险。</p>
+<p>如果环路中没有回归，事故会重复；没有预算，实验会无限消耗；没有 trace，无法定位；没有权限和审计，无法证明控制；没有灾备，恢复只是愿望。SRE 与 AI 治理的共同点是把抽象目标转化为持续运行的工程机制 [1][8]。</p>
+<h3 id="可靠性不是单一百分比"><a class="header" href="#可靠性不是单一百分比">可靠性不是单一百分比</a></h3>
+<p>“服务可用率 99.9%”无法回答模型是否正确、工具是否安全、任务是否完成。大模型平台把可用性拆成控制面可用、执行面可用、模型可加载、请求可接受、输出可消费、任务可完成和数据可审计。每一层有不同分母和响应，平台报告同时展示，避免高层成功掩盖下层失败。</p>
+<p>例如网关返回成功但流式只发送了首 token，执行面可用但任务未完成；工具返回 200 但业务状态没有变化，调用可用但副作用失败；评估 job 结束但 coverage 只有一半，任务完成但证据不可信。SLO 定义必须绑定 outcome，而不是只绑定 HTTP 状态。The Twelve-Factor App 关于配置、日志和进程隔离的原则可作为服务边界基础，但 LLM 平台还需增加 token、质量和数据责任 [21]。</p>
+<h3 id="错误预算的分配"><a class="header" href="#错误预算的分配">错误预算的分配</a></h3>
+<p>全局错误预算按产品、模型、租户、区域和 workflow 分配。核心交易、告警处理和高风险自动化拥有更严格预算；实验和低风险摘要可以使用较宽预算。子系统预算不能简单相加，因为一次模型错误可能同时造成任务失败、工具重试和成本上涨。平台以 parent task 归因并定义最大总消耗。</p>
+<p>预算消耗有严重级别和恢复动作。质量轻微下降触发加大评估，延迟增长触发容量或降级，重复副作用触发立即停止，数据泄露触发隔离、撤回凭证和合规响应。预算恢复需要新的证据或时间窗口，不能人工把数字重置成零而不保留原因。</p>
+<h3 id="slo-的统计陷阱"><a class="header" href="#slo-的统计陷阱">SLO 的统计陷阱</a></h3>
+<p>平均延迟、平均成功率和总错误数量会掩盖长尾与少数租户。平台使用分位数、窗口、分层和最小样本；对于流式和 Agent，定义部分完成、取消、用户中断和人工接管的计量。指标改变定义时保留版本，图表显示数据质量和覆盖率。SRE 方法要求 SLO 可测量、可行动，而不是漂亮的目标 [1][2]。</p>
+<p>任务成功也有观察滞后：用户可能数小时后才确认，工具外部状态可能最终一致，投诉可能几天后出现。短窗口服务指标与长窗口业务质量并列，长期问题通过反馈和评估闭环处理。不能因为当前窗口没有投诉就宣布高风险模型可靠。</p>
+<h3 id="事故中的状态保护"><a class="header" href="#事故中的状态保护">事故中的状态保护</a></h3>
+<p>事故处理第一原则是保留事实。冻结相关 Run、snapshot、artifact、trace、配置、状态、凭证和事件；禁止直接编辑生产数据库、覆盖模型制品或删除 cache 现场。对未知外部副作用查询 operation；对可能泄露的数据隔离访问并轮换凭证；对错误模型停止新流量但保留回滚所需的制品。</p>
+<p>状态保护需要只读快照、fencing token 和操作审计。一个旧 worker 恢复后不能覆盖新状态；一个过期 operator command 不能执行；一个故障区域不能与恢复区域同时写同一业务状态。控制面在每个危险动作前检查 generation、lease、policy 和 approval。</p>
+<h3 id="事故沟通"><a class="header" href="#事故沟通">事故沟通</a></h3>
+<p>内部沟通说明影响范围、开始时间、当前状态、临时措施、下一次更新、数据风险和用户动作；对外沟通只披露确认事实和可执行建议，不泄露敏感样本与内部策略。事件时间线统一使用 UTC 或明确时区，所有操作带 operator、trace 和版本。事故 commander 避免多个团队同时执行互相冲突的回滚。</p>
+<p>复盘中区分触发条件与根本原因，记录检测为什么晚、告警为什么无动作、runbook 为什么不可执行、自动恢复为什么失败以及哪些假设不成立。行动项有 owner、期限、验证命令和优先级。重复事故说明修复停留在文档而未进入系统门禁。</p>
+<h3 id="混沌测试的模型特有场景"><a class="header" href="#混沌测试的模型特有场景">混沌测试的模型特有场景</a></h3>
+<p>LLM 混沌除了基础设施，还包括错误 tokenizer、错误模板、低质量量化、错误 cache key、随机采样、judge 失效、工具返回提示注入、评估集污染、模型路由到不兼容能力和输出被截断。每项实验定义质量、SLO、成本、安全和状态预期，不能只看 Pod 是否重启。</p>
+<p>例如故意让 prefix cache 使用旧模板，预期系统拒绝而不是产生错误答案；故意让工具确认超时，预期进入 unknown outcome 而不是重复写；故意让 judge coverage 下降，预期阻断发布；故意杀死 Agent worker，预期从 step checkpoint 恢复。这样的实验才能验证 AI 特有边界。</p>
+<h3 id="一致性测试"><a class="header" href="#一致性测试">一致性测试</a></h3>
+<p>分布式状态测试关注事件重复、乱序、分区、时钟偏差、重试和并发写。Jepsen 风格的测试将操作序列、故障窗口和最终状态记录下来，检查是否出现丢失更新、重复副作用、非法状态或读到未来 [20]。运行时还增加业务不变量，例如一次 operation 最多成功一次、预算不为负、已撤销权限不能执行、终态不可逆。</p>
+<p>测试使用模型、工具、消息和状态的可控 fake，真实外部副作用在 sandbox 中验证。发现不变量破坏时保留最小重现历史、事件、版本和资源，加入回归。仅测试单机和 happy path 无法证明跨节点状态正确。</p>
+<h3 id="版本与配置治理"><a class="header" href="#版本与配置治理">版本与配置治理</a></h3>
+<p>配置分为代码、静态 manifest、动态策略和运行时临时状态。代码通过构建发布，manifest 不可变，动态策略有版本与审批，临时状态通过事件与 TTL。禁止把关键行为藏在环境变量、机器本地文件或人工记忆中。The Twelve-Factor App 的配置与日志原则有助于建立明确边界 [21]。</p>
+<p>配置变更触发 diff、兼容、容量、质量和安全检查。灰度先使用少量租户或影子，失败自动暂停；回滚恢复完整配置集合而非单个值。配置读取写入 trace 的有效版本，事故复盘可以重建真正生效的行为。</p>
+<h3 id="供应链应急"><a class="header" href="#供应链应急">供应链应急</a></h3>
+<p>发现依赖漏洞、恶意镜像、模型后门、泄露 token 或签名问题时，平台执行供应链 incident：定位受影响 artifact 与运行实例，停止下载和发布，隔离实例，轮换凭证，保存证据，生成可信替代品并灰度。SBOM 与 provenance 让影响范围可计算；没有来源的旧制品可能需要完全下线。</p>
+<p>模型供应链风险还包括训练数据投毒、评估器偏置、恶意 tool description 和被篡改的 prompt template。数据 manifest、模型卡、工具注册和评估报告互相引用，发现一个来源问题可以查找所有消费者。供应链响应完成后运行安全、质量、性能和回滚门禁，不因紧急修复跳过验证。</p>
+<h3 id="安全策略的失败模式"><a class="header" href="#安全策略的失败模式">安全策略的失败模式</a></h3>
+<p>安全系统可能误拦截、漏拦截、超时、版本不一致或返回不确定。策略引擎不可用时，对高风险动作 fail closed；对低风险只读动作可以有限降级，但事件标记为 policy_unavailable。输入安全、输出安全、工具权限和数据访问使用一致的 policy version，避免各层使用不同答案。</p>
+<p>策略误拦截需要人工复核和样本回流，漏拦截需要立即隔离、查找影响、撤销凭证和扩大红队。安全指标按语言、任务、租户和模型分层，避免平均数掩盖少数场景。OWASP 与 MITRE 提供风险分类，但组织需要把具体资产、攻击面和响应动作写进 runbook [12][13]。</p>
+<h3 id="数据治理的责任矩阵"><a class="header" href="#数据治理的责任矩阵">数据治理的责任矩阵</a></h3>
+<p>数据 owner 负责来源和用途，steward 负责 schema 与质量，security 负责敏感等级与访问，legal/compliance 负责授权和保留，model owner 负责使用影响，platform 负责执行控制。责任矩阵写入数据 catalog 和 snapshot manifest；没有 owner 的数据不能进入生产训练或评估。</p>
+<p>数据说明书记录收集方式、代表性、缺失、偏差、推荐用途、不适用用途和已知问题。模型卡记录能力、限制、评估和风险。文档变化触发使用者通知和重新门禁，不能把旧卡片继续附在新模型上。中文治理白皮书可补充本地组织与产业要求，但系统仍要用可执行策略落地 [26]。</p>
+<h3 id="成本治理与组织行为"><a class="header" href="#成本治理与组织行为">成本治理与组织行为</a></h3>
+<p>成本面板公开模型、租户、项目、workflow、数据处理、评估和人工成本，提供预算、趋势、异常和单位成功任务成本。公开透明不等于惩罚排名，研究实验和生产任务使用不同解释。平台允许团队设置预算、预警和自动暂停，避免月底才发现资源耗尽。</p>
+<p>成本优化有潜在反模式：为了省 token 让模型少验证，为了提高 GPU 利用率混入长任务，为了省日志关闭 trace，为了省备份降低 RPO。治理评审把这些牺牲写明，业务 owner 接受风险并设重新评估日期。好的成本管理提高单位价值，而不是简单砍掉控制。</p>
+<h3 id="灾备与供应商退出"><a class="header" href="#灾备与供应商退出">灾备与供应商退出</a></h3>
+<p>平台不能只设计“供应商一直可用”。模型供应商、GPU 云、对象存储、检索、支付和标注服务都需要退出或切换计划：保存可迁移 artifact、协议、数据格式、评估、权限、成本和替代服务；定期运行导出与恢复。依赖外部专有格式时，生成可读 manifest 和转换器，避免被单一服务锁定。</p>
+<p>退出演练不等于立刻迁移全部流量。先在离线数据和影子 Run 验证，比较质量、成本、延迟、安全与合规，再迁移低风险租户，最后处理关键任务。旧服务 drain 后保留查询和审计能力，确保历史 Run 能解释。供应商变化进入风险登记和容量预算。</p>
+<h3 id="可靠性评审中的-adr"><a class="header" href="#可靠性评审中的-adr">可靠性评审中的 ADR</a></h3>
+<p>每个重要平台选择写 ADR：背景问题、目标、候选、证据、决策、获得能力、主动牺牲、已接受风险、监控、回滚和重新评估条件。比如选择全量 trace 获得诊断与合规，但牺牲成本和隐私；选择跨区复制获得 RTO，但牺牲数据驻留与成本；选择自动重试获得短暂故障恢复，但增加副作用风险。</p>
+<p>ADR 的维度保持一致：可用性、延迟、吞吐、质量、成本、安全、隐私、恢复、复杂度、团队负担和供应商锁定。表格比较候选，正文解释因果；指标和实验链接到来源与报告。这样治理不是审批形式，而是让系统取舍长期可见。</p>
+<h3 id="可靠性测试的分层"><a class="header" href="#可靠性测试的分层">可靠性测试的分层</a></h3>
+<p>单元测试验证状态迁移、schema、策略、预算、幂等和错误；集成测试验证模型、工具、存储、队列和观测；合同测试验证 API 与事件；回放测试验证历史 Run；压力测试验证容量；混沌测试验证故障；恢复测试验证 RPO/RTO；红队测试验证安全。每层的失败都产生不同门禁，不能用集成测试替代恢复和安全。</p>
+<p>测试数据和生产数据隔离，副作用使用 sandbox 或 mock，敏感数据受控。测试结果保存 commit、artifact、配置、环境、原始输出和报告。Flaky 测试不应被简单重试隐藏，标记不稳定并修复；随机测试保存 seed 与最小重现。</p>
+<h3 id="发布前检查"><a class="header" href="#发布前检查">发布前检查</a></h3>
+<p>发布前自动生成检查表：artifact hash 和签名、SBOM、模型卡、数据说明、兼容矩阵、质量门禁、SLO 基线、容量、故障演练、权限、审计、trace、成本、回滚、灾备和 owner。缺失项阻断或需要显式风险接受。发布后检查灰度窗口、错误预算、质量、成本和用户反馈。</p>
+<p>发布控制器把检查结果写到 release evidence，不依赖聊天或邮件。审批人看到的是差异与风险，不是一个模糊的“测试通过”。回滚路径在发布前使用相同版本和权限演练，防止事故中发现旧制品已删除或不兼容。</p>
+<h3 id="运维人员的最小权限"><a class="header" href="#运维人员的最小权限">运维人员的最小权限</a></h3>
+<p>值班人员需要查看健康、指标、trace 摘要、执行限流、摘除实例和切换安全 fallback，但不应默认读取敏感 prompt、下载模型或执行业务工具。高风险操作双人审批或 break-glass，break-glass 记录原因、时间、范围、自动过期和复盘。平台 API 对 operator 与 tenant 使用不同 audience 和 policy。</p>
+<p>权限轮换和离职回收自动化，服务账户短期化，密钥不进入日志和 artifact。审计系统定期检查异常访问、批量导出、跨区域、非工作时间和失败授权。发现异常时冻结账户、保留证据并走安全 incident。</p>
+<h3 id="可靠性指标的边界"><a class="header" href="#可靠性指标的边界">可靠性指标的边界</a></h3>
+<p>指标不能替代判断。高 GPU 利用率不等于高质量，高完成率不等于安全，低成本不等于高价值，低告警数量不等于稳定。平台把指标与样本、trace、版本和人工结论结合，报告不确定性和盲区。中文机器学习教材关于泛化、偏差和数据分布的讨论可帮助团队避免把一个验证分数当成真实能力 [23]。</p>
+<p>深度模型的数值、优化和表示变化可能在系统层表现为长度、拒答、工具选择和资源变化；邱锡鹏的深度学习教材与动手学深度学习可作为这些基础机制的中文参考 [24][25]。治理报告将模型事实、系统测量、业务判断和残余风险分开，避免用技术指标掩盖责任决定。</p>
+<h3 id="交付证据的长期保留"><a class="header" href="#交付证据的长期保留">交付证据的长期保留</a></h3>
+<p>长期保留的 evidence bundle 包括 model、data、workflow、tool、policy、runtime、hardware、评估、灰度、事故、成本和审批版本。内容按敏感等级和合规期限保存，摘要 hash 与审计保留时间更长。历史报告只读，修订通过新报告引用旧报告，不能覆盖审计事实。</p>
+<p>在季度或重大变更时做 evidence review：链接是否有效，签名是否可验证，snapshot 是否可读，指标定义是否改变，风险是否已关闭，回滚是否仍能启动，owner 是否仍存在。长期治理的难点不是写第一份报告，而是保证几年后仍能解释一个旧模型为何被发布和如何被撤回。</p>
+<h3 id="事故中的发布冻结"><a class="header" href="#事故中的发布冻结">事故中的发布冻结</a></h3>
+<p>当发生高等级事故时，发布系统进入 freeze 状态：禁止新的模型、工具、workflow、数据和基础设施变更，保留必要的安全修复和容量扩容，但每项例外都有审批。冻结范围按 blast radius 定义，可以是单模型、单租户、单区域或全局。发布冻结与流量降级、凭证轮换、回滚和数据保全共同执行。</p>
+<p>冻结期间仍然需要处理正常的配置过期、证书轮换和节点维护。运行手册列出允许动作、风险和兼容验证，避免把安全运维完全停死。事故结束后先恢复观测与回归，再小比例解除冻结；错误预算恢复与根因修复是不同条件，不能只等流量下降。</p>
+<h3 id="变更影响分析"><a class="header" href="#变更影响分析">变更影响分析</a></h3>
+<p>变更影响分析沿 artifact graph 和 runtime graph 做。模型 hash 变化影响 tokenizer、engine、cache、路由、评估、成本和工具；数据 snapshot 变化影响训练、评估、模型卡和发布；工具 schema 变化影响 workflow、prompt、权限、补偿和回放；policy 变化影响所有调用与审计。平台生成受影响消费者和需要重跑的门禁列表。</p>
+<p>影响分析有静态与动态两层。静态层读取 manifest、依赖和血缘，动态层用 shadow/replay、固定回归和容量测试验证。若无法解析依赖，默认按高风险处理而不是假设没有影响。图中节点与边有 owner，边记录兼容版本和失效条件，变更完成后更新。</p>
+<h3 id="生产流量的保护层"><a class="header" href="#生产流量的保护层">生产流量的保护层</a></h3>
+<p>网关、路由、Runtime、模型 engine、工具和数据层各自提供保护：鉴权与 schema、限流与 quota、deadline、熔断、隔离队列、cache 上限、KV admission、工具 allowlist、输出过滤和审计。保护层有优先级，安全和数据权限不能被低延迟优化绕过；多个层重复限流时，错误码和 trace 说明最终阻塞点。</p>
+<p>流量突发使用 token bucket、漏桶、并发 semaphore 和优先级队列；长请求使用单独池或 chunk；批任务使用可抢占资源；高风险动作使用人工。保护层需要压测和混沌，避免限制本身在故障时形成级联。例如鉴权服务不可用时，不能让所有重试打爆鉴权；策略缓存过期时，按风险选择 fail closed 或安全只读。</p>
+<h3 id="部分失败与用户体验"><a class="header" href="#部分失败与用户体验">部分失败与用户体验</a></h3>
+<p>AI 任务经常出现部分完成：检索成功但生成失败，三项工具完成两项，答案生成但引用缺失，流式输出完成一半，评估覆盖不足。API 返回 partial、failed、needs_attention 或 completed_with_warnings，附带已完成、未完成、可重试和人工动作。隐藏部分失败会让用户重复提交和增加副作用。</p>
+<p>部分结果是否可用由 workflow 定义，不能让模型自行宣布成功。业务系统提供 postcondition 和确认接口；Runtime 记录用户是否接受 partial。成本与资源按已执行部分结算，重试只补未完成或明确重算。事故和评估样本保留部分路径，帮助定位是哪个阶段导致失败。</p>
+<h3 id="灾备中的安全降级"><a class="header" href="#灾备中的安全降级">灾备中的安全降级</a></h3>
+<p>灾备区域或冷备环境可能没有同样的模型、工具、数据权限和安全服务。切换前生成 capability matrix，按任务选择可用功能；缺少高风险策略时关闭自动副作用；缺少私有数据时返回明确不可用而不是访问公共替代；缺少 judge 时不执行质量门禁或转人工。灾备成功定义包含安全和合规，不只是流量返回 200。</p>
+<p>冷备恢复时间较长，用户看到 queued 或 degraded；状态系统保存预计恢复与取消入口。恢复后优先处理已批准且有 deadline 的任务，新任务按容量逐步放量。双区域恢复时使用 fencing 和 epoch，防止旧区域恢复写入造成重复。每个切换动作写审计和 incident timeline。</p>
+<h3 id="成本异常检测"><a class="header" href="#成本异常检测">成本异常检测</a></h3>
+<p>成本监控检测模型 token 突增、输出长度变化、重试风暴、cache 命中下降、judge 队列、工具调用爆发、GPU 空闲、对象存储请求和跨区域流量。异常按 tenant、model、workflow、版本和 region 分层。自动动作包括限流、降低优先级、暂停实验、切换模型、关闭可选分支和通知 owner；高风险动作需要人工。</p>
+<p>成本异常可能是攻击、业务流量、模型行为、模板循环或计量 bug。排查使用 trace、事件、配置 diff、数据分布和发布记录，不要立即把配额调高。费用事件与供应商账单定期对账，发现计量重复或漏记时生成修订事件，不覆盖原始记录。</p>
+<h3 id="质量异常检测"><a class="header" href="#质量异常检测">质量异常检测</a></h3>
+<p>质量异常包括输出长度、格式合法、拒答、引用、工具计划、事实性、用户反馈、人工接管和任务 outcome 的分布改变。没有标签时使用代理信号并标记不确定；高风险类别保留人工抽样。检测基线按版本、任务、语言、长度和用户层级建立，避免全局平均稀释异常。</p>
+<p>异常确认后，冻结受影响版本、扩大回归、回放失败、比较 baseline、检查数据和路由，决定修复、回滚或接受。接受变化需要 owner、理由、有效期和新基线。模型卡、评估报告和风险登记同步更新，不能只关闭一个告警。</p>
+<h3 id="安全事件的证据保全"><a class="header" href="#安全事件的证据保全">安全事件的证据保全</a></h3>
+<p>安全事件发生时，保留请求 hash、模型、policy、工具、凭证标识、权限决定、网络、artifact、trace、时间线和影响范围；对敏感正文采取受控快照和加密。隔离受影响租户、撤销 token、停止工具和切断 egress，防止继续扩散。证据访问最小化并记录，避免调查过程二次泄露。</p>
+<p>事件分类包括 prompt injection、敏感数据输出、越权工具、供应链、模型窃取、拒绝服务和数据投毒。每类有检测、遏制、清除、恢复、通知和复盘。攻击样本经过脱敏和审批后进入红队与回归；修复后检查攻击路径、正常任务和跨模型迁移。</p>
+<h3 id="模型与系统的责任分界"><a class="header" href="#模型与系统的责任分界">模型与系统的责任分界</a></h3>
+<p>模型 owner 不能保证所有业务正确，平台 owner 不能通过平台隐藏模型限制，业务 owner 不能把安全交给 prompt，安全 owner 不能只提供禁止清单。责任边界用接口和证据表达：模型提供能力、限制和质量；平台提供资源、状态、版本、观测与恢复；业务提供 outcome、风险承受和人工；安全提供策略、威胁和响应。</p>
+<p>接口契约定义哪些错误由哪一层处理。模型返回格式错误由 Runtime 重试或失败，工具权限由策略拒绝，业务状态冲突由业务查询，平台节点故障由调度恢复，数据授权由数据 owner。责任不清会导致无限重试和事故互相推诿。</p>
+<h3 id="可靠性指标的长期趋势"><a class="header" href="#可靠性指标的长期趋势">可靠性指标的长期趋势</a></h3>
+<p>季度趋势不只看可用率，还看事故数量与严重度、MTTD、MTTR、恢复丢失、回滚时间、质量回退、人工接管、成本/成功任务、安全事件、评估覆盖、供应链风险和灾备演练通过率。指标按组织、模型、workflow 和故障域观察，识别结构性问题。一次短期低错误不能掩盖恢复能力下降。</p>
+<p>趋势报告列出目标、当前、变化、解释、行动和 owner。若改善来自减少观测或缩小分母，报告标记 measurement change；若质量提升来自更多人工，计入人工成本；若成本下降来自关闭备份，计入 RPO 风险。长期治理要求诚实解释，而不是指标漂亮。</p>
+<h3 id="治理控制的自动化"><a class="header" href="#治理控制的自动化">治理控制的自动化</a></h3>
+<p>自动化控制包括制品签名校验、数据授权检查、schema、兼容矩阵、漏洞、质量门禁、权限、限流、成本、备份、漂移、删除和回滚。控制结果是机器可读的 pass、fail、waived 或 unknown；waiver 有 owner、理由、期限和补偿；unknown 默认按风险等级处理。手工审批只处理不可自动判断部分。</p>
+<p>控制器自身也要有版本、权限、观测和回滚。错误的 policy 可能阻断所有服务或放行危险动作，更新前用历史回放和 sandbox 验证。策略发布按区域、租户和风险灰度，紧急禁用高风险工具的路径独立于普通发布。</p>
+<h3 id="灾备与成本取舍"><a class="header" href="#灾备与成本取舍">灾备与成本取舍</a></h3>
+<p>更低 RPO/RTO 通常增加复制、备用 GPU、跨区网络、人工演练和存储成本。ADR 明确哪些状态值得复制，哪些可重建，哪些转人工；业务 owner 接受低概率高影响风险。训练 checkpoint 可能按阶段选择频率，推理 KV 多数重建，Agent operation 需要外部查询，评估报告高价值保留。</p>
+<p>恢复演练测真实时间和资源，而不是理论配置。若跨区复制会违反数据驻留，采用加密受控、分区存储或冷备重算；若备用模型质量不足，限定任务或转人工。所有牺牲都有有效期和重新评估条件，避免临时降级变成永久事实。</p>
+<h3 id="治理与开发体验"><a class="header" href="#治理与开发体验">治理与开发体验</a></h3>
+<p>治理若只表现为审批队列，会被工程师绕过。平台提供 CLI/SDK 生成 manifest、运行 schema、查看差异、发起评估、获取短期凭证、查询 trace 和执行回滚；默认安全、错误信息清楚、失败可修复。开发环境使用合成或脱敏数据，生产访问需要明确上下文和审计。</p>
+<p>文档与示例说明为什么控制存在、如何通过门禁、如何处理 waiver、怎样模拟故障。治理 owner 定期收集误报、等待、重复检查和成本，优化自动化而不是简单放松。可用的治理才会成为工程路径的一部分。</p>
+<h3 id="交付前的全量清单"><a class="header" href="#交付前的全量清单">交付前的全量清单</a></h3>
+<p>可靠性：SLO、SLI、错误预算、容量、故障域、恢复、RPO/RTO、runbook、演练；观测：metrics、logs、traces、质量、成本、采样和隐私；安全：身份、权限、秘密、工具、网络、注入、红队、审计；供应链：来源、SBOM、签名、漏洞、模型卡、数据说明；发布：评估、灰度、停止、回滚、状态迁移；治理：owner、风险、合规、删除、人工、复盘和证据。</p>
+<p>清单每一项绑定命令、报告、trace 或 artifact，不接受“已确认”的口头状态。随机抽查一项，能从结果回到证据、从证据回到系统动作，才算通过。缺失项标记 blocked 或 waived，不能静默跳过。</p>
+<h3 id="第三方审查与内部复核"><a class="header" href="#第三方审查与内部复核">第三方审查与内部复核</a></h3>
+<p>高风险系统可由安全、隐私、业务和平台联合复核，必要时引入外部审查。审查输入为机器可读 evidence bundle，输出为发现、风险等级、修复、接受或期限。内部复核检查控制是否真的执行，而不只是文档存在；通过抽样生产事件、权限和发布记录验证。</p>
+<p>审查发现应进入 issue 与发布门禁，修复后重新生成证据。审查文件包含版本与范围，不能用上一版本结果覆盖当前系统。重大模型、工具、数据或地区变化重新触发审查，而不是等年度周期。</p>
+<h3 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h3>
+<p>可靠性与治理 Infra 把“能运行”提升为“能证明、能控制、能恢复、能负责”。SLO 说明目标，观测说明事实，故障演练说明恢复，供应链说明来源，安全策略说明边界，成本账本说明代价，发布门禁说明变化，灾备说明持续性，责任矩阵说明谁来行动。NIST、ISO、OWASP、MITRE、SRE、SLSA、模型卡、数据集说明书和中文治理资料提供框架，但平台必须把框架变成状态、策略、事件和自动化 [8][9][10][11][12][13][14][15][16][17][26]。</p>
+<p>后端工程师可以用熟悉的分布式系统问题理解 AI 平台：模型输出像不可信的远程结果，工具像带副作用的外部事务，prompt 与数据像版本化配置，Run 像长事务，GPU 和 token 像有限资源，评估像持续集成，安全与治理像跨团队的控制面。不同之处在于输出质量和数据责任必须同时纳入 SLO 与审计。只有在这些边界都成立时，大模型 Infra 六章才真正完成从训练到生产的闭环。</p>
+<p>最终验收应保留全量证据，并由平台、模型、业务、安全和治理负责人共同签署。</p>
+<p>验收结果与复审日期写入发布记录，确保治理不是一次性动作。</p>
+<p>所有例外都必须有 owner、期限和补救措施。</p>
+<p>复审时重新确认这些条件。</p>
+<p>未满足时暂停相关发布。</p>
+<p>并触发风险复盘。</p>
+<p>复盘结果进入下一次演练。</p>
+<p>演练通过后才关闭相关风险项。</p>
+<p>风险项关闭保留复核记录。</p>
+<h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
+<p>[1] Beyer, B., et al. <em>The Site Reliability Workbook</em>. https://sre.google/workbook/table-of-contents/</p>
+<p>[2] Beyer, B., et al. <em>Site Reliability Engineering Book</em>. https://sre.google/sre-book/table-of-contents/</p>
+<p>[3] Sigelman, B. H., et al. <em>Dapper</em>. https://research.google/pubs/dapper-a-large-scale-distributed-systems-tracing-infrastructure/</p>
+<p>[4] OpenTelemetry Authors. <em>OpenTelemetry Documentation</em>. https://opentelemetry.io/docs/</p>
+<p>[5] Prometheus Authors. <em>Prometheus Documentation</em>. https://prometheus.io/docs/introduction/overview/</p>
+<p>[6] Verma, A., et al. <em>Large-scale Cluster Management at Google with Borg</em>. https://research.google/pubs/large-scale-cluster-management-at-google-with-borg/</p>
+<p>[7] Kubernetes. <em>Documentation</em>. https://kubernetes.io/docs/concepts/</p>
+<p>[8] NIST. <em>AI Risk Management Framework</em>. https://www.nist.gov/itl/ai-risk-management-framework</p>
+<p>[9] NIST. <em>Generative AI Profile</em>. https://www.nist.gov/itl/ai-risk-management-framework/ai-rmf-generative-ai-profile</p>
+<p>[10] ISO. <em>ISO/IEC 42001</em>. https://www.iso.org/standard/81230.html</p>
+<p>[11] ISO. <em>ISO/IEC 23894</em>. https://www.iso.org/standard/77304.html</p>
+<p>[12] OWASP. <em>Top 10 for Large Language Model Applications</em>. https://owasp.org/www-project-top-10-for-large-language-model-applications/</p>
+<p>[13] MITRE. <em>ATLAS</em>. https://atlas.mitre.org/</p>
+<p>[14] Google. <em>Model Cards</em>. https://modelcards.withgoogle.com/about</p>
+<p>[15] Gebru, T., et al. <em>Datasheets for Datasets</em>. CACM, 2021. https://dl.acm.org/doi/10.1145/3458723</p>
+<p>[16] SLSA. <em>Specification v1.0</em>. https://slsa.dev/spec/v1.0/</p>
+<p>[17] Sigstore. <em>Documentation</em>. https://www.sigstore.dev/</p>
+<p>[18] OpenSSF. <em>Scorecard</em>. https://github.com/ossf/scorecard</p>
+<p>[19] Chaos Mesh. <em>Documentation</em>. https://chaos-mesh.org/docs/</p>
+<p>[20] Jepsen. <em>Distributed Systems Safety Research</em>. https://jepsen.io/</p>
+<p>[21] Wiggins, A. <em>The Twelve-Factor App</em>. https://12factor.net/</p>
+<p>[22] Google. <em>AIP-194: Errors</em>. https://google.aip.dev/194</p>
+<p>[23] 周志华：《机器学习》。https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm</p>
+<p>[24] 邱锡鹏：《神经网络与深度学习》。https://nndl.github.io/</p>
+<p>[25] 张量网络与深度学习：《动手学深度学习》。https://zh.d2l.ai/</p>
+<p>[26] 中国信息通信研究院：《人工智能治理白皮书》。https://www.caict.ac.cn/</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part2/infra-11-runtime.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part2/01-agent-architecture.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part2/infra-11-runtime.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part2/01-agent-architecture.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-c2a407aa.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-1ddef08b.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
