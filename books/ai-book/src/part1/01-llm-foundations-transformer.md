@@ -1,4 +1,4 @@
-# 第1章 大模型范式演进与工程学习地图
+# 第1章 大模型基础与 Transformer 架构
 
 这一部分不是从数学推导开始重新写一本深度学习教材，而是给工程师一张能够服务 Agent 系统设计、模型选型、推理部署和设计评审表达的基础地图。
 
@@ -18,7 +18,7 @@
 
 理解这条线之后，再去学习 token、embedding、Transformer、KV cache、RLHF、RAG、tool use、world model，就不再是一堆孤立概念，而是能看出每个技术点解决了什么瓶颈，又带来了什么新的工程约束。
 
-## 1.1 为什么要从范式演进理解大模型
+## 1.1 大模型历史发展简史：从语言模型到行动模型
 
 大模型发展很容易被讲成产品发布史：GPT-3、ChatGPT、GPT-4、o1、DeepSeek-R1、Kimi、Gemini、Claude、GPT-5。这样记名词很快会失效，因为模型名字更新很快，真正稳定的是背后的范式变化。
 
@@ -41,7 +41,7 @@ flowchart LR
 
 这也是 Agent 工程师最需要掌握的视角：模型越强，工程问题不是消失，而是移动位置。GPT-3 时代要解决 Prompt 和 few-shot；GPT-4 时代要解决 RAG、对齐和产品化；o1 / R1 时代要解决 reasoning budget 和 verifier；Agentic 时代要解决工具权限、状态、trace 和 eval；多模态与世界模型时代还要解决 grounding、仿真、安全和行动后果。
 
-## 1.2 总览：从语言模型到行动模型
+## 1.2 技术演进总览：问题、方法与代价
 
 如果用一句话概括大模型演进：
 
@@ -65,9 +65,20 @@ flowchart LR
 
 例如，reasoning model 可以提升复杂题成功率，但不能替代验收测试；function calling 可以让模型输出工具参数，但不能替代 Agent Runtime；多模态模型可以看图和读文档，但不能自动保证 grounding 正确；世界模型可以生成或预测环境，但不能天然满足安全评估要求。
 
-## 1.3 阶段一：语言建模范式
+把历史节点压缩成“问题—方法—结果—代价”，可以得到下面这张工程化地图：
 
-代表节点包括 Transformer、GPT、BERT、T5 以及早期大规模预训练模型。这个阶段的核心变化是：NLP 不再主要依赖手工特征和任务专用模型，而是通过大规模自监督学习获得通用表示和生成能力。
+| 原有问题 | 关键方法 | 解决了什么 | 引入的新问题 |
+| --- | --- | --- | --- |
+| RNN 训练串行、长距离依赖困难 | Self-Attention / Transformer | 提高并行度，直接建立远距离关联 | Attention 随序列长度增长而变贵 |
+| 每个任务都需要专门模型 | 大规模预训练 | 获得通用表示和迁移能力 | 训练成本高，能力边界不透明 |
+| 预训练模型不理解用户意图 | SFT、RLHF、DPO | 提升指令遵循和交互质量 | 对齐税、过度拒答、偏好偏差 |
+| 复杂问题一次生成不够 | CoT、RLVR、Test-time Scaling | 用额外计算换取推理成功率 | 延迟、成本和验证复杂度增加 |
+| 模型只能生成文本 | Tool Use、Agent Runtime | 连接外部系统并执行任务 | 权限、状态、回滚和审计成为必要条件 |
+| 模型规模继续扩大成本过高 | MoE、GQA、量化 | 提高参数容量或降低激活成本 | 路由、缓存、通信和质量权衡更复杂 |
+
+## 1.3 关键技术点一：语言建模与 Next-token Prediction
+
+代表节点包括 Transformer、GPT、BERT、T5 以及早期大规模预训练模型。神经概率语言模型首先把词表示和语言概率学习统一到一个神经网络目标中 [1]；Transformer 随后把自注意力变成可扩展的序列建模架构 [2]。这个阶段的核心变化是：NLP 不再主要依赖手工特征和任务专用模型，而是通过大规模自监督学习获得通用表示和生成能力。
 
 ### 关注点
 
@@ -83,7 +94,7 @@ Masked LM:
   predict masked tokens from surrounding context
 ```
 
-GPT 系列偏向 decoder-only autoregressive language modeling；BERT 偏向 encoder-only masked language modeling；T5 则把多种 NLP 任务统一成 text-to-text 形式。
+GPT 系列偏向 decoder-only autoregressive language modeling；BERT 偏向 encoder-only masked language modeling [3]；T5 则把多种 NLP 任务统一成 text-to-text 形式 [4]。
 
 ### 主要做法
 
@@ -91,6 +102,8 @@ GPT 系列偏向 decoder-only autoregressive language modeling；BERT 偏向 enc
 - 用 attention 建模长距离依赖；
 - 用大规模无标注文本做自监督预训练；
 - 通过 fine-tuning 适配分类、抽取、问答、翻译、摘要等下游任务。
+
+从架构实现看，Transformer 并不是只有一个固定版本。LayerNorm 和 RMSNorm 分别代表不同的归一化选择 [12][13]；ALiBi 和 RoPE 代表不同的位置建模路线 [14][15]；稀疏 MoE 通过路由器选择少量专家，试图在总参数容量和每 token 计算量之间取得平衡 [16][17][18]；FlashAttention 则在不改变精确注意力结果的前提下优化中间矩阵的 IO 访问 [19][20]。这些工作共同说明：模型结构的改进通常是在表达能力、训练稳定性、显存、带宽和部署复杂度之间做取舍。
 
 ### 解决的问题
 
@@ -104,9 +117,9 @@ GPT 系列偏向 decoder-only autoregressive language modeling；BERT 偏向 enc
 
 这一阶段给 Agent 打下了底座：模型能理解自然语言、代码和任务描述。但它仍然主要是文本生成器，需要后续的指令对齐、工具调用和运行时约束才能进入生产系统。
 
-## 1.4 阶段二：规模化与上下文学习范式
+## 1.4 关键技术点二：规模化预训练与上下文学习
 
-代表节点包括 scaling law、GPT-3 和 Chinchilla。这个阶段的核心变化是：模型能力开始被系统性地理解为参数量、数据量和训练计算量共同作用的结果。
+代表节点包括 scaling law、GPT-3 和 Chinchilla。Kaplan 等人的研究系统讨论了模型规模、数据量和训练计算量与损失之间的关系 [5]；GPT-3 展示了大模型通过上下文示例完成任务的能力 [6]；Chinchilla 则指出参数规模与训练 token 需要更合理地配比 [7]。这个阶段的核心变化是：模型能力开始被系统性地理解为参数量、数据量和训练计算量共同作用的结果。
 
 ### 关注点
 
@@ -119,6 +132,8 @@ GPT-3 的关键意义不只是参数大，而是它让行业清楚看到：
 - Prompt 开始成为运行时任务协议，而不只是自然语言说明。
 
 Chinchilla 之后，行业进一步意识到：不是参数越大越好，而是在固定训练算力下，参数量和训练 token 数之间存在更优配比。数据质量、去重、配比、代码/数学数据、合成数据过滤，也开始变得和模型规模一样重要。
+
+LLaMA、Qwen 和 InternLM 等开放模型报告把这些规律带入更具体的训练配方：模型架构、训练 token、数据构成、词表和评测设置需要一起阅读，不能只比较参数量 [21][22][23]。中文教材也提供了理解梯度下降、注意力和泛化误差所需的基础框架 [24][25][26]。
 
 ### 主要做法
 
@@ -144,9 +159,9 @@ Chinchilla 之后，行业进一步意识到：不是参数越大越好，而是
 
 GPT-3 时代的工程重心是 Prompt Engineering、few-shot、任务模板和 eval。Agent 的雏形也开始出现：模型可以根据自然语言指令做计划、分类、路由和代码生成，但仍然缺少稳定的工具协议和状态管理。
 
-## 1.5 阶段三：指令遵循与对齐范式
+## 1.5 关键技术点三：指令微调与对齐
 
-代表节点包括 InstructGPT、ChatGPT、GPT-4、Claude 以及大量经过 SFT / RLHF / DPO 后训练的开源模型。这个阶段的核心变化是：模型从“会补全文本”变成“能遵循人类意图的助手”。
+代表节点包括 InstructGPT、ChatGPT、GPT-4、Claude 以及大量经过 SFT / RLHF / DPO 后训练的开源模型。InstructGPT 说明了监督示范、奖励模型和人类反馈如何改变模型行为 [8]；DPO 又提供了不显式训练奖励模型的偏好优化路线 [9]。这个阶段的核心变化是：模型从“会补全文本”变成“能遵循人类意图的助手”。
 
 ### 关注点
 
@@ -189,9 +204,9 @@ GPT-4 则进一步把 frontier model 推到复杂任务、多模态输入和专�
 
 这一阶段让模型可以更稳定地接受角色、工具说明、输出 schema 和任务协议。Prompt Engineering、Context Engineering、RAG、guardrails、LLM-as-Judge 和业务 eval 开始成为生产系统的基础设施。
 
-## 1.6 阶段四：推理强化与 Test-time Scaling 范式
+## 1.6 关键技术点四：推理强化与 Test-time Scaling
 
-代表节点包括 Chain-of-Thought、o1、DeepSeek-R1、Kimi K1.5，以及数学、代码和科学推理模型。这个阶段的核心变化是：能力增长不再只依赖训练期 scale，也开始依赖推理期计算。
+代表节点包括 Chain-of-Thought、o1、DeepSeek-R1、Kimi K1.5，以及数学、代码和科学推理模型。Chain-of-Thought 研究显示，适当引导模型生成中间推理步骤可以改善复杂任务表现 [10]；DeepSeek-R1 等工作进一步探索通过强化学习获得可验证的推理能力 [11]。这个阶段的核心变化是：能力增长不再只依赖训练期 scale，也开始依赖推理期计算。
 
 ### 关注点
 
@@ -257,11 +272,13 @@ flowchart TD
 - 不可验证任务未必适合重推理；
 - 系统需要 verifier、测试、引用校验和人工升级。
 
+这类方法并不是把训练规模简单搬到推理阶段，而是改变了计算预算的分配方式：模型训练得到的是可被搜索和验证的策略，推理阶段再根据任务难度决定投入多少计算。相关工作也提示，额外推理 token 只有在任务存在可利用的中间结构或验证信号时才更可能带来稳定收益 [10][11]。
+
 ### 对 Agent 工程的影响
 
 Agent 任务天然需要分解、计划、观察和恢复错误。Reasoning model 能提高复杂任务成功率，但不能替代 Harness。工程上要把 reasoning budget 做成策略：简单任务用快模型，复杂任务用强推理模型，高风险任务接验证器和人工门禁。
 
-## 1.7 阶段五：Agentic Model 与工具环境范式
+## 1.7 关键技术点五：Agentic Model 与工具环境
 
 代表节点包括 ReAct、Toolformer、function calling、o3 / o4-mini、Kimi K2、GPT-5 thinking、Coding Agent 和各类企业 Agent Runtime。这个阶段的核心变化是：模型从“回答问题”进入“执行任务”。
 
@@ -322,7 +339,7 @@ Agentic 能力越强，系统风险越大：
 
 这一阶段的工程重点从 Prompt 迁移到 Harness：Tool Gateway、Policy Engine、Workflow、State、Trace、Eval、Verifier 和 Human-in-the-loop 成为一等组件。模型只是 Agent Runtime 的一个依赖，不能成为整个系统的唯一控制面。
 
-## 1.8 阶段六：多模态基础模型范式
+## 1.8 关键技术点六：多模态基础模型
 
 代表节点包括 CLIP、Flamingo、GPT-4V、Gemini、Claude 多模态、语音模型、视频理解模型和屏幕理解模型。这个阶段的核心变化是：模型从纯文本进入图像、语音、视频、文档和真实界面。
 
@@ -335,6 +352,8 @@ Agentic 能力越强，系统风险越大：
 - 图片、视频、语音和会议录音；
 - 屏幕状态、浏览器页面和软件界面；
 - 机器人和自动驾驶传感器数据。
+
+CLIP 的对比学习路线说明，图像与文本可以通过共享表示空间建立弱监督对齐 [27]；Flamingo 则展示了视觉编码器、跨注意力和语言模型组合的少样本多模态路线 [28]。中文团队的 Qwen 和 InternLM 技术报告也说明，多模态和中文场景的效果不仅依赖模型结构，还依赖数据配比、评测任务和工程数据处理 [22][23]。
 
 ### 主要做法
 
@@ -366,7 +385,7 @@ Agentic 能力越强，系统风险越大：
 
 多模态让 Agent 的输入空间变大，也让上下文工程更复杂。系统需要把图片、文档、语音和视频转成可追踪的证据对象，而不是简单塞进 prompt。对于高风险任务，要保留原始证据、坐标、页码、时间戳和引用链。
 
-## 1.9 阶段七：世界模型与具身智能范式
+## 1.9 关键技术点七：世界模型与具身智能
 
 代表节点包括 World Models、Dreamer、Genie、Cosmos、VLA、机器人基础模型和自动驾驶仿真模型。这个阶段的核心变化是：模型不只理解语言和感知输入，还要预测环境如何变化，以及行动会带来什么后果。
 
@@ -408,7 +427,7 @@ current observation + history + action
 
 第6章会详细展开世界模型与具身智能。本章只强调它在范式演进中的位置：Agentic Model 让模型在数字环境中行动；多模态模型让模型获得感知入口；世界模型让模型具备预测环境变化和行动后果的能力。三者合在一起，才是从“语言智能”走向“行动智能”的完整路线。
 
-## 1.10 一张表总结大模型技术范式演进
+### 技术范式演进总结
 
 下面这张表可以作为本章的压缩地图。
 
@@ -424,7 +443,7 @@ current observation + history + action
 
 这张表背后的核心结论是：大模型的能力边界越来越依赖系统边界。越到后期，模型越不是单独工作的黑盒，而是和上下文、工具、运行时、反馈、评估、安全层共同组成系统。
 
-## 1.11 工程视角：范式变化如何影响系统设计
+### 工程视角：范式变化如何影响系统设计
 
 不同范式对应不同工程重心。
 
@@ -464,7 +483,7 @@ current observation + history + action
 仿真、机器人、自动驾驶任务 -> world model / policy + safety layer
 ```
 
-## 1.12 大模型系统的全链路
+### 大模型系统的全链路
 
 一次 LLM 调用看似是“输入问题，输出答案”，实际经过了多个层次：
 
@@ -498,7 +517,7 @@ flowchart LR
 
 先理解范式演进，再回来看这条链路，会更容易判断每个基础概念服务于哪一类工程问题。
 
-## 1.13 大模型不是一个单点技术
+### 大模型不是一个单点技术
 
 LLM 通常被称为“模型”，但生产中的 LLM 系统更像一个栈：
 
@@ -541,7 +560,7 @@ Application
 
 所以，学习大模型基础不是为了替代 Agent 工程，而是为了知道每一层的边界。
 
-## 1.14 模型能力拆解：从语言到行动
+### 模型能力拆解：从语言到行动
 
 讨论“大模型能力”时，不能只说“强”或“弱”。更好的拆法是把能力映射到范式阶段。
 
@@ -575,7 +594,7 @@ Application
 
 设计评审和系统设计里，如果能把失败定位到这几类能力之一，回答会比泛泛说“模型不够好”更有说服力。
 
-## 1.15 学习路线：从会用 API 到会设计 AI 系统
+### 学习路线：从会用 API 到会设计 AI 系统
 
 如果你已经会调用模型 API，下一步不是马上读所有论文，而是按下面的能力阶梯走：
 
@@ -602,7 +621,7 @@ Application
 
 外部知识系统、RAG、rerank 和 Agentic RAG 统一放在第13章展开。这样第1部分前六章聚焦模型本身，第2部分聚焦 Agent 如何把模型接入知识、工具和生产系统。
 
-## 1.16 设计评审表达：如何讲清楚大模型的发展过程
+### 设计评审表达：如何讲清楚大模型的发展过程
 
 一句话版：
 
@@ -616,7 +635,7 @@ Application
 
 > 这些范式变化会直接改变系统设计。GPT-3 时代重点是 prompt、few-shot 和 eval；GPT-4 时代重点是 RAG、对齐和产品化；reasoning model 时代重点是 reasoning budget、verifier 和成本延迟权衡；Agentic 时代重点是 tool runtime、workflow、trace 和权限；多模态时代重点是 grounding 和证据追踪；世界模型时代重点是 simulation、safety 和 embodied feedback。所以我不会只看模型榜单，而会同时看模型能力、上下文设计、推理成本、工具边界、验证闭环和可观测性。
 
-## 1.17 常见误区
+### 常见误区
 
 ### 误区 1：把 LLM 当成搜索引擎
 
@@ -658,7 +677,7 @@ Reward 是目标的代理指标，不是目标本身。如果奖励规则设计�
 
 论文证明的是某种方法在某些条件下有效。生产系统还要处理灰度发布、回滚、监控、数据漂移、权限隔离和用户体验。真正可靠的系统来自模型能力和工程闭环的组合。
 
-## 1.18 工程案例：一个错误回答如何分层诊断
+### 工程案例：一个错误回答如何分层诊断
 
 假设企业知识助手回答了一个错误的退款规则。不要直接说“模型幻觉”，可以按下面路径定位。
 
@@ -700,7 +719,7 @@ Reward 是目标的代理指标，不是目标本身。如果奖励规则设计�
 
 这个例子说明：LLM 系统错误通常不是单点错误，而是输入、检索、上下文、生成、推理预算、工具、策略和评估共同作用的结果。
 
-## 1.19 自测问题
+### 自测问题
 
 读完本章后，应该能回答：
 
@@ -720,7 +739,23 @@ Reward 是目标的代理指标，不是目标本身。如果奖励规则设计�
 - 为什么模型越强，系统工程越重要？
 - 如果一个 LLM 系统回答错误，你会如何分层定位问题？
 
-## 1.20 延伸阅读
+### 关键技术点之间的因果关系
+
+本章的几个技术点不是互相独立的名词。Tokenizer 决定序列如何被切分，序列长度又决定 Attention 的计算规模；Embedding 提供初始表示，Attention 让不同位置交换信息，FFN 对交换后的表示进行非线性变换，位置编码让这种交换保留顺序；模型规模和训练数据决定参数能够承载多少模式，后训练决定这些模式以什么行为呈现，推理时的采样和额外计算决定最终输出如何产生。
+
+因此，遇到线上问题时不能只看最后一层输出。例如长文问答质量下降，可能不是“模型不够聪明”，而是 token 化后输入过长、相关信息位于难以利用的位置、RoPE 外推不稳定，或者检索结果把上下文污染了。模型输出变慢，也可能来自 Decode 阶段的 KV Cache，而不是模型参数量本身。把问题放回这条因果链，才能决定应该修改算法、数据、上下文策略，还是推理系统。
+
+这也是本书后续拆分算法与 Infra 的依据：算法决定模型如何表示、学习和生成，Infra 决定这些算法如何被高效、稳定、可观测地运行。
+
+读懂这条边界，才能把研究结论转化为生产设计。
+
+这也是算法工程师进入大模型开发时最重要的基础判断能力。
+
+后续章节会在此基础上继续展开训练、推理和系统实现。
+
+请带着问题阅读本章。
+
+### 延伸阅读
 
 ### Transformer / Scaling
 
@@ -760,3 +795,61 @@ Reward 是目标的代理指标，不是目标本身。如果奖励规则设计�
 - [World Models](https://arxiv.org/abs/1803.10122)
 - [Mastering Diverse Domains through World Models](https://arxiv.org/abs/2301.04104)
 - [Learning Interactive Real-World Simulators](https://arxiv.org/abs/2310.06114)
+
+## 参考资料
+
+[1] Bengio, Y., et al. A Neural Probabilistic Language Model. JMLR, 2003.
+
+[2] Vaswani, A., et al. Attention Is All You Need. NeurIPS, 2017.
+
+[3] Devlin, J., et al. BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding. NAACL, 2019.
+
+[4] Raffel, C., et al. Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer. JMLR, 2020.
+
+[5] Kaplan, J., et al. Scaling Laws for Neural Language Models. arXiv:2001.08361, 2020.
+
+[6] Brown, T. B., et al. Language Models are Few-Shot Learners. NeurIPS, 2020.
+
+[7] Hoffmann, J., et al. Training Compute-Optimal Large Language Models. NeurIPS, 2022.
+
+[8] Ouyang, L., et al. Training Language Models to Follow Instructions with Human Feedback. NeurIPS, 2022.
+
+[9] Rafailov, R., et al. Direct Preference Optimization: Your Language Model is Secretly a Reward Model. NeurIPS, 2023.
+
+[10] Wei, J., et al. Chain-of-Thought Prompting Elicits Reasoning in Large Language Models. NeurIPS, 2022.
+
+[11] Guo, D., et al. DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning. arXiv:2501.12948, 2025.
+
+[12] Ba, J. L., Kiros, J. R., & Hinton, G. E. Layer Normalization. arXiv:1607.06450, 2016.
+
+[13] Zhang, B., & Sennrich, R. Root Mean Square Layer Normalization. NeurIPS, 2019.
+
+[14] Press, O., Smith, N. A., & Lewis, M. Train Short, Test Long: Attention with Linear Biases Enables Input Length Extrapolation. ICLR, 2022.
+
+[15] Su, J., et al. RoFormer: Enhanced Transformer with Rotary Position Embedding. Neurocomputing, 2024.
+
+[16] Shazeer, N., et al. Sparsely-Gated Mixture-of-Experts Layer. ICLR, 2017.
+
+[17] Fedus, W., Zoph, B., & Shazeer, N. Switch Transformers: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity. JMLR, 2022.
+
+[18] Jiang, A. Q., et al. Mixtral of Experts. Mistral AI Technical Report, 2024.
+
+[19] Dao, T., et al. FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness. NeurIPS, 2022.
+
+[20] Dao, T. FlashAttention-2: Faster Attention with Better Parallelism and Work Partitioning. ICLR, 2024.
+
+[21] Touvron, H., et al. LLaMA: Open and Efficient Foundation Language Models. arXiv:2302.13971, 2023.
+
+[22] Bai, J., et al. Qwen Technical Report. arXiv:2309.16692, 2023.
+
+[23] InternLM Team. InternLM: A New Language Model with Extended Training and Evaluation. Shanghai AI Laboratory Technical Report, 2023.
+
+[24] 李沐、Aston Zhang、张岳：《动手学深度学习（第二版）》，人民邮电出版社，2023。
+
+[25] 邱锡鹏：《神经网络与深度学习》，机械工业出版社，2020。
+
+[26] 周志华：《机器学习》，清华大学出版社，2016。
+
+[27] Radford, A., et al. Learning Transferable Visual Models From Natural Language Supervision. ICML, 2021.
+
+[28] Alayrac, J.-B., et al. Flamingo: a Visual Language Model for Few-Shot Learning. NeurIPS, 2022.

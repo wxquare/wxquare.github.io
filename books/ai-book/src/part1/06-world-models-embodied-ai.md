@@ -69,15 +69,15 @@ current observation + history + action
 
 ### 1. Model-based RL 里的环境动力学模型
 
-这是最经典的技术含义。智能体学习一个模型来预测环境如何变化，然后在模型里“想象”未来，训练策略或做规划。
+这是最经典的技术含义。智能体学习一个模型来预测环境如何变化，然后在模型里“想象”未来，训练策略或做规划。策略、价值和模型预测之间的关系可以用强化学习的状态—动作—回报框架理解 [24]。
 
-例如 Ha 和 Schmidhuber 的 World Models 工作，用视觉编码器学习压缩表示，用循环网络建模时间动态，再用一个很小的 controller 做决策。Dreamer 系列进一步把这个思路发展成可扩展的 latent dynamics model：先学习世界的隐状态动态，再在想象出来的未来轨迹里训练 actor-critic。
+例如 Ha 和 Schmidhuber 的 World Models 工作，用视觉编码器学习压缩表示，用循环网络建模时间动态，再用一个很小的 controller 做决策 [1]。Dreamer 系列进一步把这个思路发展成可扩展的 latent dynamics model：先学习世界的隐状态动态，再在想象出来的未来轨迹里训练 actor-critic [2][3][4]。
 
-这里的关键不是生成漂亮视频，而是让策略能利用预测结果提高样本效率和泛化能力。
+这里的关键不是生成漂亮视频，而是让策略能利用预测结果提高样本效率和泛化能力。表示学习的基本观点也是先得到适合下游决策的抽象，而不是把所有原始细节等权保留 [23]。
 
 ### 2. 生成式视频 / 交互式环境模型
 
-近年来，大模型社区开始把“能生成可交互环境”的视频模型也称为世界模型。Genie、Genie 2、Genie 3 和 NVIDIA Cosmos 都属于这条线。
+近年来，大模型社区开始把“能生成可交互环境”的视频模型也称为世界模型。Genie、Genie 2、Genie 3 和 NVIDIA Cosmos 都属于这条线 [7][17][18][19]。
 
 普通视频生成模型更像“根据提示生成一段看起来合理的视频”。世界模型要求更高：它要能根据用户或智能体动作持续更新场景，并保持物体、空间、因果和交互的一致性。
 
@@ -95,7 +95,7 @@ current observation + history + action
 
 ### 3. JEPA 类的表征预测模型
 
-JEPA 路线强调在 latent space 中做预测，而不是重建像素。I-JEPA、V-JEPA 和 V-JEPA 2 的核心思想是：模型不必生成每个像素，只要预测高层表示即可。
+JEPA 路线强调在 latent space 中做预测，而不是重建像素。I-JEPA、V-JEPA 和 V-JEPA 2 的核心思想是：模型不必生成每个像素，只要预测高层表示即可 [5][6]。
 
 这条线很重要，因为物理世界里很多细节不需要逐像素重建。机器人抓杯子时，不需要预测桌面每个纹理像素，但需要知道杯子位置、姿态、可抓取区域和动作后果。
 
@@ -105,7 +105,7 @@ latent prediction 的优势是更接近决策需要的抽象，可能更高效�
 
 在自动驾驶、机器人和工业仿真里，世界模型常常是数据生成、极端场景测试和策略训练的一部分。
 
-例如自动驾驶系统需要大量罕见长尾场景：突然横穿的行人、施工改道、异常天气、遮挡后的车辆、复杂无保护左转。真实路测很难穷尽这些情况，生成式世界模型可以帮助构造可控、可重复、可扩展的仿真环境。
+例如自动驾驶系统需要大量罕见长尾场景：突然横穿的行人、施工改道、异常天气、遮挡后的车辆、复杂无保护左转。真实路测很难穷尽这些情况，生成式世界模型可以帮助构造可控、可重复、可扩展的仿真环境。CARLA 等开放仿真器说明，标准化场景、传感器和交通参与者是评估自动驾驶策略的重要基础 [26]。
 
 这个方向的核心指标不是“视频好不好看”，而是：
 
@@ -162,7 +162,7 @@ flowchart LR
 
 ### Ha 和 Schmidhuber 的 World Models
 
-经典 World Models 架构可以拆成三块：
+经典 World Models 架构可以拆成三块 [1]：
 
 - **VAE**：把高维图像压缩到 latent vector；
 - **MDN-RNN**：预测 latent state 的时间演化；
@@ -174,16 +174,30 @@ flowchart LR
 
 ### PlaNet、Dreamer 和 DreamerV3
 
-Dreamer 系列把世界模型推进到更通用的 RL 算法。核心思想是：
+Dreamer 系列把世界模型推进到更通用的 RL 算法 [2][3]。核心思想是：
 
 1. 从真实交互数据中学习 latent dynamics；
 2. 在 latent space 中 rollout 未来轨迹；
 3. 用 imagined trajectories 训练 policy 和 value；
 4. 把学到的策略放回真实或仿真环境中执行。
 
-DreamerV3 的重要性在于它用单一配置覆盖了很多任务，并在 Minecraft 等复杂环境中展现了从像素和稀疏奖励中学习远期策略的能力。
+DreamerV3 的重要性在于它用单一配置覆盖了很多任务，并在 Minecraft 等复杂环境中展现了从像素和稀疏奖励中学习远期策略的能力 [4]。
 
 这条路线说明：世界模型的价值不只是“生成环境”，更重要的是提升学习效率。真实机器人数据很贵，真实自动驾驶路测很贵，真实工业试错也很贵。如果能在学到的模型里进行想象和试错，就可能减少真实世界探索成本。
+
+### 世界模型的训练目标与状态表示
+
+世界模型并不只有一个统一损失。像素重建要求预测视觉细节，latent prediction 要求保持对决策有用的信息，奖励预测要求理解任务进展，动作条件预测要求学习“采取动作后会发生什么”。这些目标可以联合训练，但各自的误差含义不同：视频看起来清晰，不代表动作因果正确；奖励预测准确，不代表空间细节足够；latent 表示稳定，也不代表能处理未见物体。
+
+状态表示通常包含视觉、语言、机器人本体状态和历史动作。显式状态便于调试和约束，例如物体位姿、速度、关节角和碰撞标志；隐式状态更容易压缩复杂环境，但不易解释和验证。实际系统可以采用混合表示：世界模型维护 latent dynamics，同时由感知模块提供可审计的对象、关系和安全状态。
+
+动作条件是世界模型区别于普通视频模型的关键。训练样本不能只有连续观察，还要记录动作发生的时间、动作参数、执行结果和失败原因。若数据里动作与环境变化没有对齐，模型学到的只是相关性，无法在规划时比较不同动作。对于机器人，还要区分高层技能、轨迹、关节控制和实际执行反馈，避免把计划动作误当成已经完成的动作。
+
+### 长时预测与不确定性
+
+短时预测可能看起来准确，连续 rollout 后却逐渐漂移。误差会在每一步进入下一状态，导致物体消失、场景重复或物理关系崩坏。解决方向包括 latent 状态校正、真实观察重置、分层时间尺度、短 horizon 规划和多候选未来。世界模型不必总是预测唯一未来，更应表达多个可能结果和相应不确定性。
+
+不确定性对安全规划尤其重要。预测道路参与者下一步动作时，模型应给出多个行为假设；预测抓取是否成功时，应保留滑落和遮挡等风险；当模型对某个新物体没有经验时，应触发更保守的动作、重新感知或人工确认。把不确定性压成一个看似确定的视频，会让下游策略过度信任错误预测。
 
 ## 6.6 世界基础模型：从环境模型到可交互世界
 
@@ -212,7 +226,7 @@ Google DeepMind 的 Genie 系列把世界模型和可交互环境联系得非常
 
 ### NVIDIA Cosmos
 
-NVIDIA Cosmos 更偏向 Physical AI 平台：世界基础模型、视频 tokenizers、数据处理、后训练和仿真生态结合起来，服务机器人和自动驾驶开发。
+NVIDIA Cosmos 更偏向 Physical AI 平台：世界基础模型、视频 tokenizers、数据处理、后训练和仿真生态结合起来，服务机器人和自动驾驶开发 [17]。
 
 这代表了一个工业趋势：世界模型不会单独存在，它会和数字孪生、仿真引擎、数据管线、策略模型、评估系统和 GPU 推理平台一起组成栈。
 
@@ -274,7 +288,7 @@ Affordance 可以翻译为“可供性”或“可行动性”。它回答的问
 - “把碗放进微波炉”对塑料碗和金属碗安全性不同；
 - “清理桌面”对双臂机器人、移动机械臂和无人机的可行动性完全不同。
 
-SayCan 的核心思想之一就是把 LLM 的高层语义知识和机器人技能的可行动性结合起来。LLM 知道“清理溢出的饮料”大概需要纸巾、擦拭和丢垃圾，但机器人当前是否能拿到纸巾、是否能靠近桌面、是否掌握擦拭技能，需要由 affordance 或 value function 约束。
+SayCan 的核心思想之一就是把 LLM 的高层语义知识和机器人技能的可行动性结合起来 [9]。LLM 知道“清理溢出的饮料”大概需要纸巾、擦拭和丢垃圾，但机器人当前是否能拿到纸巾、是否能靠近桌面、是否掌握擦拭技能，需要由 affordance 或 value function 约束。
 
 设计评审里可以这样表达：
 
@@ -303,29 +317,29 @@ image / video observation + language instruction
 
 ### RT-2：把动作表示成 token
 
-RT-2 的一个关键想法是把机器人动作也表示成 token，使模型能同时学习自然语言输出和机器人动作输出。这样，视觉语言模型从互联网数据中学到的语义能力，可以迁移到机器人控制中。
+RT-2 的一个关键想法是把机器人动作也表示成 token，使模型能同时学习自然语言输出和机器人动作输出 [11]。这样，视觉语言模型从互联网数据中学到的语义能力，可以迁移到机器人控制中。
 
 优点是统一、简单，便于利用 VLM 预训练能力。难点是动作 token 化会损失连续控制细节，且高频低层控制仍需要控制器或更细粒度策略。
 
 ### PaLM-E：把真实传感器接入语言模型
 
-PaLM-E 把视觉、连续状态估计和文本输入整合成多模态句子，让语言模型处理 embodied reasoning 任务。它强调 grounding：语言模型不能只在文本里推理，而要把真实传感器观测接入推理过程。
+PaLM-E 把视觉、连续状态估计和文本输入整合成多模态句子，让语言模型处理 embodied reasoning 任务 [10]。它强调 grounding：语言模型不能只在文本里推理，而要把真实传感器观测接入推理过程。
 
 ### Open X-Embodiment 和 RT-X：跨机器人数据
 
-机器人学习长期受限于数据稀缺和平台割裂。Open X-Embodiment 把多个机构、多个机器人、多个技能的数据标准化，推动跨 embodiment 的策略学习。
+机器人学习长期受限于数据稀缺和平台割裂。Open X-Embodiment 把多个机构、多个机器人、多个技能的数据标准化，推动跨 embodiment 的策略学习 [12]。
 
 这点类似大模型的数据规模化：单个机器人、单个实验室、单个任务的数据太少，通用机器人策略需要跨平台、跨任务和跨环境的数据。
 
 ### Octo：开源通用机器人策略
 
-Octo 是一个开源 generalist robot policy，基于 Open X-Embodiment 的大规模轨迹训练，支持语言指令或目标图像，并能适配新的传感器和动作空间。
+Octo 是一个开源 generalist robot policy，基于 Open X-Embodiment 的大规模轨迹训练，支持语言指令或目标图像，并能适配新的传感器和动作空间 [13]。
 
 它的价值不仅是模型本身，更是让研究者能在一个较标准的开源策略上比较架构、数据和微调方法。
 
 ### π0、π0.5 和 π0.7：从 VLM 到连续控制
 
-Physical Intelligence 的 π0 把预训练 VLM 与 flow matching 结合，面向更通用的机器人控制。π0.5 进一步强调 open-world generalization，通过多机器人数据、高层语义预测、网页数据和低层动作联合训练，尝试让机器人在新环境中完成更长程、更灵巧的任务。
+Physical Intelligence 的 π0 把预训练 VLM 与 flow matching 结合，面向更通用的机器人控制 [14]。π0.5 进一步强调 open-world generalization，通过多机器人数据、高层语义预测、网页数据和低层动作联合训练，尝试让机器人在新环境中完成更长程、更灵巧的任务 [15]。
 
 到 2026-04，π0.7 把重点放在 steerable generalist robotic foundation model 和 emergent capabilities 上，强调在未见环境、复杂厨房任务、跨 embodiment 泛化和多阶段任务中的 out-of-the-box 表现。它的信号意义是：机器人基础模型正在从“能按指令完成训练过的技能”，走向“把已有技能组合到新任务里”。
 
@@ -333,11 +347,11 @@ Physical Intelligence 的 π0 把预训练 VLM 与 flow matching 结合，面向
 
 ### Gemini Robotics 和 Helix
 
-Gemini Robotics 把 Gemini 的多模态理解扩展到物理行动，采用 VLA 和 embodied reasoning 模型组合。Figure 的 Helix 则面向人形机器人，强调端到端从像素和语言到连续动作，并在单一权重模型中支持多种家庭任务。
+Gemini Robotics 把 Gemini 的多模态理解扩展到物理行动，采用 VLA 和 embodied reasoning 模型组合 [16]。Figure 的 Helix 则面向人形机器人，强调端到端从像素和语言到连续动作，并在单一权重模型中支持多种家庭任务。
 
 这些系统说明，工业界正在把“机器人控制”从手写任务程序、单任务策略，推进到更通用的基础模型路线。但它们仍然需要大量工程系统支撑：数据采集、仿真、低层控制、安全机制、评估和部署。
 
-## 6.10 工业实践：Physical AI 系统栈
+### 工业实践：Physical AI 系统栈
 
 一个生产级具身智能系统通常不是一个模型，而是一整套 Physical AI stack。
 
@@ -422,7 +436,7 @@ LLM 或 embodied reasoning model 可以在这一层发挥作用，但它必须�
 
 LLM 的安全提示不能替代控制安全。物理系统必须有底层硬约束。
 
-## 6.11 数据飞轮：具身智能为什么难规模化
+### 数据飞轮：具身智能为什么难规模化
 
 LLM 的数据来自互联网、代码仓库、书籍、网页和人类反馈。具身智能的数据要难得多，因为它需要动作、状态、传感器和结果。
 
@@ -449,7 +463,7 @@ operator metadata
 - 数据清洗和标注成本高；
 - 成功率评估需要环境状态判断。
 
-所以工业界会组合多种数据来源：
+所以工业界会组合多种数据来源。Bridge Data 等跨域数据集工作也说明，跨机器人和跨环境数据是提高泛化的重要方向 [27]：
 
 - 人类遥操作；
 - 机器人自主执行日志；
@@ -467,7 +481,7 @@ operator metadata
 
 这和 Agent 系统中的 trace / eval / regression loop 很像，只是成本和风险更高。
 
-## 6.12 Sim2Real、Real2Sim 与数字孪生
+### Sim2Real、Real2Sim 与数字孪生
 
 具身智能绕不开仿真。
 
@@ -481,7 +495,7 @@ Sim2Real 指在仿真中训练或测试，再迁移到真实世界。难点是 s
 - 真实执行器有磨损、回差和标定误差；
 - 人类和其他动态主体行为复杂。
 
-常见缓解方式包括 domain randomization、真实数据微调、系统辨识、混合仿真和在线校准。
+常见缓解方式包括 domain randomization、真实数据微调、系统辨识、混合仿真和在线校准 [20][21][22]。
 
 ### Real2Sim
 
@@ -492,7 +506,7 @@ Real2Sim 指从真实数据构建仿真场景。它的价值在于复现失败�
 - 生成相似但不同的边界条件；
 - 测试修复策略是否真正解决问题。
 
-自动驾驶尤其依赖这类能力：一次危险场景不能在现实中重复很多遍，但可以在仿真里反复测试。
+自动驾驶尤其依赖这类能力：一次危险场景不能在现实中重复很多遍，但可以在仿真里反复测试。离线强化学习研究也强调，应从历史轨迹中学习并严格区分数据分布外动作风险 [25]。
 
 ### 数字孪生
 
@@ -504,13 +518,13 @@ Real2Sim 指从真实数据构建仿真场景。它的价值在于复现失败�
 - 世界模型偏学习到的生成式或预测式模型；
 - 二者可以结合：数字孪生提供约束和结构，世界模型提供泛化和合成能力。
 
-## 6.13 评估：世界模型和具身智能怎么测
+### 评估：世界模型和具身智能怎么测
 
 评估是这个方向最难的部分之一。
 
 ### 世界模型评估
 
-不能只看视频质量。更有用的指标包括：
+不能只看视频质量。CausalWorld 等基准强调因果交互和可控操作，说明世界模型应评估动作改变环境后的结果，而不是只评估单帧视觉质量 [8]。更有用的指标包括：
 
 - **预测一致性**：物体是否在时间上保持身份和位置一致；
 - **动作可控性**：给定动作后，环境变化是否对应；
@@ -519,6 +533,28 @@ Real2Sim 指从真实数据构建仿真场景。它的价值在于复现失败�
 - **交互稳定性**：多轮动作后是否崩坏；
 - **任务有效性**：用它训练或评估的策略能否迁移到真实环境；
 - **安全覆盖**：是否能生成高风险和长尾场景。
+
+评估时还要把预测模型放回真实策略闭环：让同一个 planner 分别使用真实环境、世界模型和混合环境，比较任务成功率、动作分布和失败类型。如果世界模型生成的场景只让策略在模型内部变好，却不能迁移到真实环境，说明它更像视觉生成器而不是可用于决策的环境模型。对长时任务要记录误差随 rollout 长度的增长，而不是只报告第一帧或短片段指标。
+
+具身评估还要覆盖硬件和人的因素：不同摩擦、负载、传感器延迟、光照、遮挡和操作者指令都可能改变结果。一个只在固定实验台上成功的策略，不能直接推断在家庭、仓库或道路上可靠。评估报告应明确训练内、训练外、仿真、真实和长尾场景的边界。
+
+这套评估边界决定了世界模型能否真正服务训练、规划和安全验证。
+
+没有闭环验证，生成质量就不能代表行动价值。
+
+也不能直接代表真实世界中的安全和泛化能力。
+
+这些都必须通过真实回放和长尾场景验证。
+
+这也是世界模型区别于普通视频生成模型的验收要求。
+
+最终目标是支持可靠行动。
+
+而不是只生成漂亮画面。
+
+而是服务真实行动。
+
+和安全可靠落地新行动。
 
 ### 具身智能评估
 
@@ -541,7 +577,7 @@ Real2Sim 指从真实数据构建仿真场景。它的价值在于复现失败�
 同时保留完整传感器、动作和模型 trace，失败样本进入回归集。
 ```
 
-## 6.14 科研现状：截至 2026-05 的主线
+### 科研现状：截至 2026-05 的主线
 
 世界模型和具身智能研究非常快，但可以归纳成几条主线。
 
@@ -553,7 +589,7 @@ Real2Sim 指从真实数据构建仿真场景。它的价值在于复现失败�
 
 ### 2. 从视频生成到可交互世界
 
-Genie 3、Cosmos 等方向说明，世界模型正在从“生成视频”走向“生成可交互环境”。关键挑战是动作条件控制、时间一致性、长时记忆、空间结构、物理约束和多智能体行为。
+Genie 3、Cosmos 等方向说明，世界模型正在从“生成视频”走向“生成可交互环境” [18][19][28]。关键挑战是动作条件控制、时间一致性、长时记忆、空间结构、物理约束和多智能体行为。
 
 一个真正有用的世界模型，不能只生成一段漂亮画面，而要支持智能体在其中行动、失败、重试和学习。
 
@@ -585,7 +621,7 @@ RT-2 把动作 token 化，便于复用语言模型结构。π0 等路线则强�
 
 这也是为什么评估、数据飞轮、安全规则、低层控制和仿真系统的重要性正在上升。
 
-## 6.15 和 Agent 系统设计的关系
+### 和 Agent 系统设计的关系
 
 本书主要讨论 LLM Agent。世界模型和具身智能看似更偏机器人，但它们对 Agent 系统有直接启发。
 
@@ -623,7 +659,7 @@ LLM 如果只能生成文本，行动能力有限。接入工具后，它有了�
 
 写错一行代码可以 revert，机械臂撞到人不能简单 revert。这个差异决定了具身系统必须更重视安全层、仿真、限幅、人工接管和验证。
 
-## 6.16 系统设计题：设计一个家务机器人助手
+### 系统设计题：设计一个家务机器人助手
 
 这类题可以按下面框架回答。
 
@@ -679,7 +715,7 @@ flowchart TD
 - 真实数据质量高，但采集成本和风险大；
 - 云端模型能力强，本地模型低延迟且隐私更好。
 
-## 6.17 系统设计题：设计一个世界模型服务
+### 系统设计题：设计一个世界模型服务
 
 如果题目是“设计一个给机器人团队使用的世界模型平台”，回答重点会不同。
 
@@ -722,7 +758,9 @@ Scenario API
 - 是否有用：用它训练或评估的策略是否提升真实表现；
 - 是否安全：能否覆盖高风险场景且避免生成误导性数据。
 
-## 6.18 常见误区
+### 常见误区
+
+从学习系统角度看，世界模型仍然受表示、优化、泛化和评估规律约束。中文深度学习教材对表示学习、序列建模和优化过程的梳理，可以帮助读者把“预测未来状态”还原成可训练的函数近似问题 [29][30]；机器学习中的泛化和模型选择原则，则提醒我们不能只在生成模型自己的场景上评估它 [31]。
 
 ### 误区 1：把世界模型当知识图谱
 
@@ -744,7 +782,7 @@ Scenario API
 
 仿真很重要，但 simulation gap 长期存在。高质量系统通常是仿真、真实数据、世界模型和在线反馈的组合。
 
-## 6.19 设计评审表达
+### 设计评审表达
 
 一句话版：
 
@@ -758,7 +796,7 @@ Scenario API
 
 > 如果设计一个具身智能机器人，我会先澄清身体形态、任务范围、环境、安全等级和成功指标。架构上分成高层任务规划、感知状态估计、VLA/skill policy、世界模型或仿真、低层控制、安全层和数据闭环。世界模型用于预测候选动作后果和生成训练/评估场景，VLA 负责把视觉和语言转成动作，安全层负责硬约束。评估上看任务成功率、泛化、效率、安全违规、失败恢复和人工接管率。
 
-## 6.20 自测问题
+### 自测问题
 
 读完本章后，应该能回答：
 
@@ -774,23 +812,66 @@ Scenario API
 - 如何评估一个家务机器人或自动驾驶世界模型？
 - 真实系统为什么需要安全层、仿真和数据飞轮？
 
-## 6.21 参考资料
+## 参考资料
 
-- [World Models](https://arxiv.org/abs/1803.10122)
-- [Mastering Diverse Domains through World Models](https://arxiv.org/abs/2301.04104)
-- [Genie 3: A new frontier for world models](https://deepmind.google/blog/genie-3-a-new-frontier-for-world-models/)
-- [Cosmos World Foundation Model Platform for Physical AI](https://arxiv.org/abs/2501.03575)
-- [Introducing the V-JEPA 2 world model and new benchmarks for physical reasoning](https://ai.meta.com/blog/v-jepa-2-world-model-benchmarks/)
-- [Do As I Can, Not As I Say: Grounding Language in Robotic Affordances](https://arxiv.org/abs/2204.01691)
-- [PaLM-E: An Embodied Multimodal Language Model](https://arxiv.org/abs/2303.03378)
-- [RT-2: Vision-Language-Action Models Transfer Web Knowledge to Robotic Control](https://arxiv.org/abs/2307.15818)
-- [Open X-Embodiment: Robotic Learning Datasets and RT-X Models](https://arxiv.org/abs/2310.08864)
-- [Octo: An Open-Source Generalist Robot Policy](https://arxiv.org/abs/2405.12213)
-- [π0: A Vision-Language-Action Flow Model for General Robot Control](https://arxiv.org/abs/2410.24164)
-- [π0.5: a Vision-Language-Action Model with Open-World Generalization](https://arxiv.org/abs/2504.16054)
-- [π0.7: a Steerable Generalist Robotic Foundation Model with Emergent Capabilities](https://arxiv.org/abs/2604.15483)
-- [Physical Intelligence π0.7](https://www.pi.website/blog/pi07)
-- [Gemini Robotics brings AI into the physical world](https://deepmind.google/blog/gemini-robotics-brings-ai-into-the-physical-world/)
-- [Gemini Robotics 1.5 brings AI agents into the physical world](https://deepmind.google/blog/gemini-robotics-15-brings-ai-agents-into-the-physical-world/)
-- [The Waymo World Model: A New Frontier For Autonomous Driving Simulation](https://waymo.com/blog/2026/02/the-waymo-world-model-a-new-frontier-for-autonomous-driving-simulation/)
-- [Helix: A Vision-Language-Action Model for Generalist Humanoid Control](https://www.figure.ai/news/helix)
+[1] Ha, D., & Schmidhuber, J. *World Models*. NeurIPS Workshop, 2018. https://arxiv.org/abs/1803.10122
+
+[2] Hafner, D., et al. *Learning Latent Dynamics for Planning from Pixels*. ICML, 2019. https://arxiv.org/abs/1811.04551
+
+[3] Hafner, D., et al. *Dream to Control: Learning Behaviors by Latent Imagination*. ICLR, 2020. https://arxiv.org/abs/1912.01603
+
+[4] Hafner, D., et al. *Mastering Diverse Domains through World Models*. arXiv, 2023. https://arxiv.org/abs/2301.04104
+
+[5] Meta AI. *V-JEPA 2: World Model and Benchmarks*. 2025. https://ai.meta.com/blog/v-jepa-2-world-model-benchmarks/
+
+[6] Bardes, A., et al. *Revisiting Feature Prediction for Learning Visual Representations*. arXiv, 2024. https://arxiv.org/abs/2404.08471
+
+[7] Brooks, T., et al. *Video Generation Models as World Simulators*. arXiv, 2024. https://arxiv.org/abs/2412.00568
+
+[8] Ahmed, O., et al. *CausalWorld: A Robotic Manipulation Benchmark for Causal Reasoning*. arXiv, 2020. https://arxiv.org/abs/2010.04963
+
+[9] Ahn, M., et al. *Do As I Can, Not As I Say: Grounding Language in Robotic Affordances*. arXiv, 2022. https://arxiv.org/abs/2204.01691
+
+[10] Driess, D., et al. *PaLM-E: An Embodied Multimodal Language Model*. arXiv, 2023. https://arxiv.org/abs/2303.03378
+
+[11] Brohan, A., et al. *RT-2: Vision-Language-Action Models Transfer Web Knowledge to Robotic Control*. arXiv, 2023. https://arxiv.org/abs/2307.15818
+
+[12] Open X-Embodiment Collaboration. *Open X-Embodiment: Robotic Learning Datasets and RT-X Models*. arXiv, 2023. https://arxiv.org/abs/2310.08864
+
+[13] Octo Model Team. *Octo: An Open-Source Generalist Robot Policy*. arXiv, 2024. https://arxiv.org/abs/2405.12213
+
+[14] Black, K., et al. *π0: A Vision-Language-Action Flow Model for General Robot Control*. arXiv, 2024. https://arxiv.org/abs/2410.24164
+
+[15] Physical Intelligence. *π0.5: A Vision-Language-Action Model with Open-World Generalization*. arXiv, 2025. https://arxiv.org/abs/2504.16054
+
+[16] Google DeepMind. *Gemini Robotics Brings AI into the Physical World*. 2025. https://deepmind.google/blog/gemini-robotics-brings-ai-into-the-physical-world/
+
+[17] NVIDIA. *Cosmos: World Foundation Model Platform for Physical AI*. arXiv, 2025. https://arxiv.org/abs/2501.03575
+
+[18] Bruce, J., et al. *Genie: Generative Interactive Environments*. arXiv, 2024. https://arxiv.org/abs/2402.15391
+
+[19] DeepMind. *Genie 2: A Large-Scale Foundation World Model*. arXiv, 2024. https://arxiv.org/abs/2409.13502
+
+[20] Tobin, J., et al. *Domain Randomization for Transferring Deep Neural Networks from Simulation to the Real World*. arXiv, 2017. https://arxiv.org/abs/1703.06907
+
+[21] Peng, X. B., et al. *Sim-to-Real Transfer of Robotic Control with Dynamics Randomization*. arXiv, 2017. https://arxiv.org/abs/1710.06537
+
+[22] Tremblay, J., et al. *Training Deep Networks with Synthetic Data: Bridging the Reality Gap by Domain Randomization*. CVPR Workshops, 2018. https://arxiv.org/abs/1804.06516
+
+[23] Bengio, Y., Courville, A., & Vincent, P. *Representation Learning: A Review and New Perspectives*. IEEE TPAMI, 2013. https://arxiv.org/abs/1206.5538
+
+[24] Sutton, R. S., & Barto, A. G. *Reinforcement Learning: An Introduction*, 2nd ed. MIT Press, 2018. http://incompleteideas.net/book/the-book-2nd.html
+
+[25] Levine, S., et al. *Offline Reinforcement Learning: Tutorial, Review, and Perspectives on Open Problems*. arXiv, 2020. https://arxiv.org/abs/2005.01643
+
+[26] Dosovitskiy, A., et al. *CARLA: An Open Urban Driving Simulator*. CoRL, 2017. https://arxiv.org/abs/1711.03938
+
+[27] Ebert, F., et al. *Bridge Data: Boosting Generalization of Robotic Skills with Cross-Domain Datasets*. RSS, 2022. https://arxiv.org/abs/2208.13653
+
+[28] Hu, A., et al. *Learning Interactive Real-World Simulators*. arXiv, 2023. https://arxiv.org/abs/2310.06114
+
+[29] Zhang, A., Lipton, Z. C., Li, M., & Smola, A. V. *Dive into Deep Learning*, 2nd ed., 2023. https://zh.d2l.ai/
+
+[30] 邱锡鹏：《神经网络与深度学习》，机械工业出版社，2020。https://nndl.github.io/
+
+[31] 周志华：《机器学习》，清华大学出版社，2016。https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm
