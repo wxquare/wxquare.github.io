@@ -18,7 +18,7 @@
 - [第 33 章 支付系统](../part03/10-payment-system.md)
 - [第 25 章 商品中心系统](../part03/02-product-center-supply-lifecycle.md)
 - [第 27 章 库存系统](../part03/04-inventory-system.md)
-- [第 29 章 计价系统设计与实现](../part03/06-pricing-system.md)
+- [第 28 章 营销与计价系统](../part03/05-marketing-pricing-system.md)
 
 ---
 

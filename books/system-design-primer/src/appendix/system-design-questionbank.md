@@ -14337,7 +14337,7 @@ public BigDecimal calculate(Order order) {
 
 迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:6748`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[营销系统](../part03/05-marketing-system.md)。
+相关章节：[营销与计价系统](../part03/05-marketing-pricing-system.md)。
 
 #### 复盘清单
 
@@ -14628,7 +14628,7 @@ coupon_code
 
 迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7049`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[营销系统](../part03/05-marketing-system.md)。
+相关章节：[营销与计价系统](../part03/05-marketing-pricing-system.md)。
 
 #### 复盘清单
 
@@ -15421,7 +15421,7 @@ member_subscription
 
 迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7905`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[计价系统](../part03/06-pricing-system.md)。
+相关章节：[营销与计价系统](../part03/05-marketing-pricing-system.md)。
 
 #### 复盘清单
 
@@ -15979,7 +15979,7 @@ public BigDecimal calculateBestPrice(Order order) {
 
 迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:8304`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[营销系统](../part03/05-marketing-system.md)。
+相关章节：[营销与计价系统](../part03/05-marketing-pricing-system.md)。
 
 #### 复盘清单
 
@@ -16506,7 +16506,7 @@ price = getPriceByUser(skuId, userId);
 
 迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:8751`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[计价系统](../part03/06-pricing-system.md)。
+相关章节：[营销与计价系统](../part03/05-marketing-pricing-system.md)。
 
 #### 复盘清单
 
@@ -20873,7 +20873,7 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:594`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[计价系统](../part03/06-pricing-system.md)。
+相关章节：[营销与计价系统](../part03/05-marketing-pricing-system.md)。
 
 #### 复盘清单
 
@@ -33296,7 +33296,7 @@ func (s *SeckillService) CancelUnpaidOrders() {
 
 迁移来源：`books/system-design-primer/src/part03/10-ecommerce-case-studies-interview.md:182`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[营销系统](../part03/05-marketing-system.md)。
+相关章节：[营销与计价系统](../part03/05-marketing-pricing-system.md)。
 
 #### 复盘清单
 
