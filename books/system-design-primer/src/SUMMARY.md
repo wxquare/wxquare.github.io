@@ -25,7 +25,6 @@
 - [第 12 章 库存系统](part02/12-inventory-system.md)
 - [第 13 章 营销与计价系统](part02/13-marketing-pricing-system.md)
 - [第 14 章 电商用户 C 端搜索、交易、履约与售后全生命周期设计](part02/14-ecommerce-customer-lifecycle.md)
-- [第 15 章 B2B2C 平台完整架构](part02/15-b2b2c-platform-architecture.md)
 
 ---
 

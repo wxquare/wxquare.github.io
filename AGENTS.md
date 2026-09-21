@@ -45,6 +45,7 @@ http://localhost:4000
 - `docs/`：调研、迁移、整理文档
 - `.agents/`：统一的 AI 协作资产与工具配置目录
 - `.agents/work/`：所有 Agent 的唯一工作目录；方案草稿、实施计划、分析记录、迁移过程文档和其他临时产物必须放这里，默认不纳入 Git
+- `.agents/worktrees/`：所有 Agent 的唯一 Git worktree 根目录；每个隔离分支使用其下独立子目录，默认不纳入 Git
 
 博客主分类规范在本文件第 4.4 节定义：`AI`、`system-design`、`fundamentals`、`other`。`.agents/config/post-categories.json` 是供工具读取的非规范目录映射；新增或统计文章时复用它，目录 slug 与 Front Matter 展示名可能不同，以本文件和映射中的 `label`、`frontMatterLabels` 为准。
 
@@ -68,6 +69,8 @@ http://localhost:4000
 - 内部整理文档与迁移说明：`docs/`
 
 所有 Agent 的工作目录和临时文档必须位于 `.agents/work/`，不得写入 `docs/`、仓库根目录或其他源码目录。只有已经确认需要长期维护、公开发布或参与构建的内容，才由用户明确确认后迁移到合适的受版本控制目录。
+
+需要隔离分支时，所有 Git worktree 必须创建在 `.agents/worktrees/` 下；不得在仓库根目录 `worktrees/`、系统临时目录或其他位置新建。迁移现有 worktree 时使用 `git worktree move`，不得删除其分支、未提交变更或 Git 元数据。
 
 文档语言约定：方案设计、调研与分析文档尽可能使用中文；执行计划尽可能使用英文。文件路径、命令、代码、产品名和无法准确翻译的技术术语可保留原文。
 
@@ -152,6 +155,8 @@ http://localhost:4000
   - 文章模板
 - `.agents/work/`
   - 所有 Agent 的临时工作文件，包括方案草稿、实施计划、分析记录和迁移过程文档；默认不纳入 Git
+- `.agents/worktrees/`
+  - 所有 Agent 的 Git worktree；每个隔离分支独占一个子目录，默认不纳入 Git
 - `.agents/cursor/rules/`
   - Cursor 专属适配入口，不承载独立规范
 - `.agents/codex/config.toml`

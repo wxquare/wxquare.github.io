@@ -181,8 +181,8 @@
 | `source_repo` | 主要覆盖 | `source_license` | 本地映射 | 处理策略 |
 | --- | --- | --- | --- | --- |
 | [`Hamzaa6296/system-design-interview-question`](https://github.com/Hamzaa6296/system-design-interview-question) | 基础概念、缓存、数据库、分片、一致性、消息队列、微服务、安全、限流、搜索、通知、可观测性、HLD、LLD 和 Staff+ 题目 | 仓库含 `LICENSE`，具体授权范围待逐项核验 | 第 1-9 章、第 10-22 章、规范题库和快问快答 | 作为第一轮覆盖扫描源，重点发现本书尚未覆盖的领域和题型 |
-| [`donnemartin/system-design-primer`](https://github.com/donnemartin/system-design-primer) | 系统设计主题索引、容量估算、经典设计题、样例解法、架构图、面向对象设计和 Anki 练习 | CC BY 4.0；保留署名并标明修改 | 第 1 章、第 7-9 章、第 10-15 章、规范题库和复盘材料 | 用于补经典题、标准术语和可对照的解题结构，不复制完整答案 |
-| [`karanpratapsingh/system-design`](https://github.com/karanpratapsingh/system-design) | 可扩展性、分布式系统、微服务、缓存、数据库、消息和系统设计面试基础 | 仓库声明 CC BY-NC-ND 4.0；不直接改编或复制正文 | 第 1 章、第 3-9 章和第 10-15 章 | 用于补通用架构概念、取舍清单和术语索引 |
+| [`donnemartin/system-design-primer`](https://github.com/donnemartin/system-design-primer) | 系统设计主题索引、容量估算、经典设计题、样例解法、架构图、面向对象设计和 Anki 练习 | CC BY 4.0；保留署名并标明修改 | 第 1 章、第 7-9 章、第 10-14 章、规范题库和复盘材料 | 用于补经典题、标准术语和可对照的解题结构，不复制完整答案 |
+| [`karanpratapsingh/system-design`](https://github.com/karanpratapsingh/system-design) | 可扩展性、分布式系统、微服务、缓存、数据库、消息和系统设计面试基础 | 仓库声明 CC BY-NC-ND 4.0；不直接改编或复制正文 | 第 1 章、第 3-9 章和第 10-14 章 | 用于补通用架构概念、取舍清单和术语索引 |
 | [`ByteByteGoHq/system-design-101`](https://github.com/ByteByteGoHq/system-design-101) | API、HTTP、负载均衡、数据库、缓存、云架构和分布式系统的图解材料 | 许可证待核验；图片和文字分别审查 | 第 1 章、第 8 章和第 10-18 章 | 只记录图解主题和外部链接，除非确认授权，不复制图片或重绘原图 |
 | [`jguamie/system-design`](https://github.com/jguamie/system-design) | Google 风格系统设计答题流程、需求澄清、规模判断、取舍表达、模拟面试和分布式系统阅读路线 | CC BY 4.0；保留署名并标明修改 | 候选人训练、面试官评估、模拟面试和第 1 章 | 用于补面试过程、评估标准和答题节奏，不把其流程当作唯一模板 |
 
