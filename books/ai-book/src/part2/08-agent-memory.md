@@ -1,4 +1,4 @@
-# 第15章 Agent 记忆系统：Memory、会话与长期上下文
+# 第20章 Agent 记忆系统：Memory、会话与长期上下文
 
 > Agent Memory 的目标不是“让模型记住一切”，而是为 Agent 构建一套可治理、可追溯、可遗忘、可评估的外部状态与连续性系统。
 
@@ -47,7 +47,7 @@ flowchart TD
 
 ---
 
-## 15.1 为什么 Memory 是 Agent 的状态层
+## 20.1 为什么 Memory 是 Agent 的状态层
 
 要理解 Memory，先要把它和三个相近概念区分开：
 
@@ -194,7 +194,7 @@ Agent Memory = 外部化、可检索、可治理、可遗忘的连续性系统
 
 ---
 
-## 15.2 Memory 的分层架构
+## 20.2 Memory 的分层架构
 
 Agent Memory 不是一种东西。它是一组生命周期、可信度、权限和用途不同的信息层。
 
@@ -515,7 +515,7 @@ failure_memory:
 
 ---
 
-## 15.3 Memory Control Plane：记忆控制面
+## 20.3 Memory Control Plane：记忆控制面
 
 生产级 Memory 不能只是一个数据库。它需要控制面。
 
@@ -652,7 +652,7 @@ Memory 系统没有 eval，就很难长期保持干净。
 
 ---
 
-## 15.4 Memory Store 设计
+## 20.4 Memory Store 设计
 
 Memory Store 不应该只有一种存储。不同 Memory 类型适合不同存储。
 
@@ -791,7 +791,7 @@ candidate -> active -> stale -> archived -> deleted
 
 ---
 
-## 15.5 写入策略：什么时候该记
+## 20.5 写入策略：什么时候该记
 
 Memory 写入是最危险也最重要的环节。
 
@@ -959,7 +959,7 @@ bad memory used in trace
 
 ---
 
-## 15.6 读取策略：如何让 Agent 想起正确的事
+## 20.6 读取策略：如何让 Agent 想起正确的事
 
 Memory 读取不是简单相似度搜索。
 
@@ -1108,7 +1108,7 @@ Memory 系统不仅要想起该想起的，也要避免想起不该想起的。
 
 ---
 
-## 15.7 Memory 与 Agent State 的关系
+## 20.7 Memory 与 Agent State 的关系
 
 Memory 和 State 经常混用，但它们承担不同责任。
 
@@ -1228,7 +1228,7 @@ Agent 长任务需要恢复能力。
 
 ---
 
-## 15.8 Memory 与 Knowledge System / RAG 的关系
+## 20.8 Memory 与 Knowledge System / RAG 的关系
 
 Memory、Knowledge System 和 RAG 经常被混在一起，因为它们都会把外部信息检索后放进上下文。但它们的目标不同。
 
@@ -1362,7 +1362,7 @@ Current Metrics: 慢查询正常，CPU 高发生在部署后。
 
 ---
 
-## 15.9 记忆压缩、巩固与遗忘
+## 20.9 记忆压缩、巩固与遗忘
 
 Memory 系统必须解决增长问题。会话、工具、事件、偏好、案例都会不断增加。
 
@@ -1493,7 +1493,7 @@ stale_check:
 
 ---
 
-## 15.10 记忆污染、安全与隐私
+## 20.10 记忆污染、安全与隐私
 
 Memory 的最大风险是污染和越权。
 
@@ -1588,7 +1588,7 @@ memory_candidate:
 
 ---
 
-## 15.11 Memory Eval 与可观测性
+## 20.11 Memory Eval 与可观测性
 
 Memory 需要评估。否则你无法知道它是在帮助 Agent，还是在污染 Agent。
 
@@ -1747,7 +1747,7 @@ Memory 的评估目标不是让系统记得更多，而是让系统在正确时�
 
 ---
 
-## 15.12 工业系统逆向：Codex、Claude Code 与 Hermes
+## 20.12 工业系统逆向：Codex、Claude Code 与 Hermes
 
 前面几节讨论的是 Memory 系统的通用设计。到了 Coding Agent 和长期 Agent 产品里，Memory 不再只是一个抽象模块，而会变成一套具体的读写链路、文件布局、后台任务和上下文注入策略。
 
@@ -2230,7 +2230,7 @@ Hermes 这条路线的工程判断是：
 
 ---
 
-## 15.13 三个典型架构案例
+## 20.13 三个典型架构案例
 
 下面用三个 Agent 类型说明 Memory 如何落地。
 
@@ -2346,7 +2346,7 @@ pkm_agent_memory:
 
 ---
 
-## 15.14 设计评审表达与设计清单
+## 20.14 设计评审表达与设计清单
 
 如果评审者问“Agent Memory 怎么设计”，不要只回答“长期记忆怎么存”。更好的回答是从控制面说起。
 

@@ -1,4 +1,4 @@
-# 第20章 OpenClaw 架构解析：个人 AI 助手的 Gateway、Runtime 与工具生态
+# 第26章 OpenClaw 架构解析：个人 AI 助手的 Gateway、Runtime 与工具生态
 
 > OpenClaw 的核心价值不是“又一个聊天机器人”，而是把个人 AI 助手抽象成一个长期运行的本地 Gateway：接入多渠道消息，管理会话和上下文，调度 Agent Runtime，并用工具、技能、插件和沙箱控制行动边界。
 
@@ -31,7 +31,7 @@ OpenClaw = Personal Agent Gateway
 
 ---
 
-## 19.1 系统定位：从 Chatbot 到 Personal Agent Gateway
+## 26.1 系统定位：从 Chatbot 到 Personal Agent Gateway
 
 传统聊天机器人通常是这样的：
 
@@ -83,7 +83,7 @@ OpenClaw 的答案是把这些问题集中到 Gateway 层处理。模型只是�
 
 ---
 
-## 19.2 总体架构
+## 26.2 总体架构
 
 OpenClaw 可以分成九个层次：
 
@@ -159,11 +159,11 @@ flowchart TB
 
 OpenClaw 最值得学习的地方，是它没有把所有东西堆进 Agent Loop。它把消息接入、会话路由、工具策略、上下文构建、沙箱执行拆到不同层，每层只承担一个主要职责。
 
-### 与第8章组件地图的对应关系
+### 与第13章组件地图的对应关系
 
 OpenClaw 的特点是 Gateway 很强。它不是只做一个 Agent Loop，而是先把多渠道入口、身份绑定、队列、会话、上下文、工具、插件和执行边界组织起来。用第 5 章组件地图来看，OpenClaw 对“入口路由、人类交互、上下文、工具扩展、权限边界”覆盖较完整，对“离线 Eval Harness、模型路由、长期学习闭环”的公开实现则相对弱一些。
 
-| 第8章组件 | OpenClaw 中的实现方式 | 实现状态与差异 |
+| 第13章组件 | OpenClaw 中的实现方式 | 实现状态与差异 |
 |:---|:---|:---|
 | Event & Intake Router | Channel Adapter、Gateway Ingress、Queue、WebChat、移动 / 桌面 Nodes | 强实现；这是 OpenClaw 的架构核心 |
 | Intent Normalizer | Inbound Normalization、Routing & Bindings、会话上下文共同决定任务入口 | 部分实现；更偏消息归一化和路由，任务契约需要 Runtime/Skill 进一步形成 |
@@ -183,7 +183,7 @@ OpenClaw 的特点是 Gateway 很强。它不是只做一个 Agent Loop，而是
 
 ---
 
-## 19.3 Gateway：个人助手的控制平面
+## 26.3 Gateway：个人助手的控制平面
 
 OpenClaw 官方文档把 Gateway 描述为会话、路由和渠道连接的单一事实源。它是一个长期运行的 daemon，默认通过本地端口提供 HTTP/WS 服务，并由 launchd、systemd 或用户手动进程保持运行。
 
@@ -238,7 +238,7 @@ OpenClaw 的 Gateway 架构隐含几个重要不变量：
 
 ---
 
-## 19.4 消息进入 Agent Loop 的完整路径
+## 26.4 消息进入 Agent Loop 的完整路径
 
 一条用户消息从 Telegram 或 WhatsApp 进入 OpenClaw，大致经过下面的路径：
 
@@ -312,7 +312,7 @@ OpenClaw 还区分不同输入处理模式：
 
 ---
 
-## 19.5 Agent Runtime：OpenClaw 的执行核心
+## 26.5 Agent Runtime：OpenClaw 的执行核心
 
 OpenClaw 运行一个嵌入式 Agent Runtime。官方文档提到，它在底层依赖 Pi agent core，OpenClaw 自己负责 session 管理、工具接线、发现、路由和渠道投递。
 
@@ -371,7 +371,7 @@ sequenceDiagram
 
 ---
 
-## 19.6 Workspace 与 Bootstrap Context
+## 26.6 Workspace 与 Bootstrap Context
 
 OpenClaw 要求 agent 有一个 workspace。这个 workspace 不是普通目录，而是 agent 的“人格、规则、工具说明和记忆入口”。
 
@@ -414,7 +414,7 @@ Compressed Context -> compaction summary
 
 ---
 
-## 19.7 Context Engine：上下文构建的可插拔化
+## 26.7 Context Engine：上下文构建的可插拔化
 
 OpenClaw 的 Context Engine 是一个很关键的抽象。它决定每次模型运行时看到哪些消息、如何摘要旧历史、如何跨 subagent 边界管理上下文。
 
@@ -463,7 +463,7 @@ How to compact?
 
 ---
 
-## 19.8 Tools、Skills、Plugins：三层扩展模型
+## 26.8 Tools、Skills、Plugins：三层扩展模型
 
 OpenClaw 的扩展模型分为三层：
 
@@ -584,7 +584,7 @@ Plugin 可以注册多种能力：
 
 ---
 
-## 19.9 Tool Policy：工具权限不是 Prompt 问题
+## 26.9 Tool Policy：工具权限不是 Prompt 问题
 
 OpenClaw 支持通过配置控制工具 allow/deny、tool profile 和 provider-specific restrictions。
 
@@ -623,7 +623,7 @@ base profile -> allow list -> deny list -> provider restriction -> sandbox
 
 ---
 
-## 19.10 Session、Memory 与 Compaction
+## 26.10 Session、Memory 与 Compaction
 
 OpenClaw 按消息来源组织 session：
 
@@ -666,7 +666,7 @@ OpenClaw 把 session transcript 存成 JSONL。上下文窗口接近上限时，
 
 ---
 
-## 19.11 Multi-Agent Routing：一个 Gateway，多种助手
+## 26.11 Multi-Agent Routing：一个 Gateway，多种助手
 
 OpenClaw 支持多 Agent 路由。你可以把不同渠道、账号、群组、发送者、Discord role、Slack team 等绑定到不同 agent。
 
@@ -720,7 +720,7 @@ Cron daily digest     -> summary agent
 
 ---
 
-## 19.12 Sandbox 与安全边界
+## 26.12 Sandbox 与安全边界
 
 OpenClaw 的安全文档强调一个基本前提：它主要面向个人助手部署，不是多租户敌对环境的安全隔离边界。如果你要让不可信用户共享一个 agent/gateway，就必须拆分 trust boundary，例如单独 Gateway、凭证、OS 用户或主机。
 
@@ -791,7 +791,7 @@ Plugin 在 Gateway 进程内运行。它不是普通 prompt，不是隔离文本
 
 ---
 
-## 19.13 Control UI、WebChat 与 Nodes
+## 26.13 Control UI、WebChat 与 Nodes
 
 OpenClaw 不只提供聊天渠道，也提供控制面：
 
@@ -841,7 +841,7 @@ Gateway
 
 ---
 
-## 19.14 OpenClaw 的架构亮点
+## 26.14 OpenClaw 的架构亮点
 
 ### 1. Gateway 中心化，而不是 Channel 中心化
 
@@ -881,7 +881,7 @@ OpenClaw 没有把自己包装成万能安全沙箱。它明确说明个人助�
 
 ---
 
-## 19.15 局限与风险
+## 26.15 局限与风险
 
 ### 1. 个人助手模型不等于企业多租户模型
 
@@ -933,7 +933,7 @@ read-only
 
 ---
 
-## 19.16 如果从零复刻一个 OpenClaw-like 系统
+## 26.16 如果从零复刻一个 OpenClaw-like 系统
 
 如果你想从零实现一个简化版 OpenClaw，不要一开始支持 20 个渠道。推荐按下面顺序做。
 
@@ -1065,7 +1065,7 @@ Skill 只影响 prompt，不执行代码。Plugin 才注册工具、渠道、hoo
 
 ---
 
-## 19.17 对个人 Agent OS 的启示
+## 26.17 对个人 Agent OS 的启示
 
 OpenClaw 展示了一个重要方向：未来的个人 AI 助手可能不是一个 App，而是一层本地 Agent OS。
 

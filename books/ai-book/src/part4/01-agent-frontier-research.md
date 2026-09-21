@@ -1,8 +1,8 @@
-# 第27章 AI 智能体研究现状、工程瓶颈与未来理想能力架构报告
+# 第32章 AI 智能体研究现状、工程瓶颈与未来理想能力架构报告
 
 > 本章回答四个问题：AI 智能体从哪里来、现在发展到什么程度、接下来最值得研究什么、以及它距离“理想智能体”还有多远。
 
-## 阅读导航
+## 32.1 阅读导航
 
 - `定义与范畴`：澄清“智能体”在不同研究传统中的含义。
 - `历史演进`：回顾从符号主义到 LLM agent 的关键里程碑。
@@ -13,7 +13,7 @@
 - `结论与建议`：给出面向研究、企业和治理的落地建议。
 - `附录：参考文章链接`：汇总本章涉及的论文、文档、榜单与治理资料，便于延伸阅读。
 
-## 执行摘要
+## 32.2 执行摘要
 
 本报告聚焦“AI智能体”这一概念在不同研究传统中的含义、从二十世纪中后期到二〇二六年六月十八日的历史演进、当下主流技术路线、关键研究方向、主要瓶颈，以及“理想智能体”与现有系统之间的结构性差距。整体结论是：智能体研究并非始于大语言模型，而是长期由三条主线共同推动——符号主义与认知架构、强化学习与行为控制、以及近年的基础模型驱动代理。今天的“智能体热”之所以爆发，本质上是大模型把语言理解、工具调用、跨任务迁移和自然交互统一到了一个可工程化的接口上，但它并没有消除早期研究中关于规划、记忆、信用分配、可解释性和安全控制的根本难题。
 
@@ -23,14 +23,14 @@
 
 理想智能体不应只是“更强的聊天机器人”，而应是一类具备目标澄清、长期记忆、因果建模、跨环境行动、可自我修复、可解释、可控、低成本、社会适应与安全协作能力的持续运行系统。与这一理想相比，当前主流系统的最大差距不在短时推理，而在长程鲁棒性、可靠记忆、真实世界安全边界、跨任务泛化的稳定性，以及“在不牺牲可审计性的前提下”进行高自主行动。
 
-### 核心判断
+### 32.2.1 核心判断
 
 - 智能体研究不是从 LLM 才开始，而是符号主义、强化学习和基础模型代理三条路线长期汇流的结果。
 - 2023 年到 2026 年的进展非常快，但主要集中在“短到中程、可验证、工具边界清晰”的任务上。
 - 当前竞争重点已经从“模型会不会说”转向“系统能不能稳定执行、可审计、可控且成本可接受”。
 - 理想智能体与现实系统之间的最大鸿沟，仍然是长程鲁棒性、记忆治理、安全边界与高自主行动的可审计性。
 
-## 定义与范畴
+## 32.3 定义与范畴
 
 “智能体”在 AI 领域并没有单一、跨范式一致的定义。经典 AI 教材将 agent 定义为“通过传感器感知环境、通过执行器作用于环境的实体”，并进一步强调“理性智能体”应在给定感知历史与先验知识的条件下，选择能最大化期望绩效的行动。这个定义的优点是抽象统一，适用于软件代理、机器人、博弈程序和网络服务，但它对内部实现没有限定。
 
@@ -51,7 +51,7 @@
 | LLM驱动智能体          | 语言为中枢的规划、工具调用与状态管理 | WebGPT、ReAct、Toolformer、Agents SDK  | 通用性强、开发门槛低、可跨任务迁移 | 长程稳定性、安全边界、成本与记忆仍弱 |
 | 具身与多模态智能体     | 语言、视觉、动作统一的闭环           | Gato、SayCan、PaLM-E、RT-2  | 更接近真实世界行动                 | 数据昂贵、泛化与安全验证更难         |
 
-## 历史演进
+## 32.4 历史演进
 
 AI 智能体研究可以看作两次“大融合”的结果。第一次融合发生在二十世纪中后期：符号推理、问题求解、规划、认知架构与软件代理概念逐渐合流，形成了“把智能看作可表征、可推理、可执行的程序过程”的传统。第二次融合则发生在二〇一五年之后：深度学习、强化学习、Transformer、RLHF、多模态模型与工具调用体系逐步汇聚，最终在二〇二三年后形成今天所谓的 LLM agent 范式。
 
@@ -93,7 +93,7 @@ timeline
 | 2023      | ReAct / Toolformer / Voyager / Reflexion / MemGPT / Generative Agents  | 形成“推理—行动—反思—记忆—社会模拟”方法簇     | 工具调用、文本反思、技能库、记忆层级           | 多为脚手架式提升，稳定性与评估不足 | 标志 LLM agent 研究范式成形  |
 | 2024-2026 | WebArena / GAIA / OSWorld / SWE-bench Verified / MCP / A2A / Agents SDK 等  | 从论文原型走向可复现评测、协议与生产化运行时 | 真实网页、桌面、软件工程、协议互联、工作流编排 | 榜单碎片化、设置差异大、安全面扩大 | 进入“系统化智能体工程”阶段   |
 
-## 研究现状
+## 32.5 研究现状
 
 截至二〇二六年六月十八日，主流智能体技术已经形成一个较为稳定的系统栈：以大模型或多模态模型作为中央策略器，外接搜索、代码执行、数据库、浏览器、桌面、API、文件系统等工具；通过 ReAct 式交替推理—行动循环、plan-and-act 分层规划、反思/校验器、记忆层级和多智能体分工来提升成功率；再用日志、轨迹、评估集、审批节点和 guardrails 去控制风险。这一架构的优势是通用、开发快、跨任务复用强；短板则是：高度依赖脚手架设计，推理成本高，长期状态脆弱，性能常常更多反映“系统编排质量”而不只是“底座模型质量”。
 
@@ -119,13 +119,13 @@ timeline
 
 从这个角度看，今天所谓“能力竞争”，越来越像三层耦合竞争：一是底座模型的推理与多模态能力，二是测试时搜索、reviewer / verifier 与反思回路带来的系统增益，三是 harness、skills、memory、protocol 这些运行时部件的工程质量。前沿系统的差异，已经越来越多地体现在这三层如何协同，而不是体现在“谁有一个更会聊天的模型”。
 
-### 现状小结
+### 32.5.1 现状小结
 
 - 主流架构已经稳定为“模型 + 工具 + 工作流 + 记忆 + 评估/审批”的系统栈。
 - 榜单分数提升很快，但不同 benchmark 的环境、预算和权限差异很大，不能简单横向比较。
 - 当下的领先优势，越来越多来自系统编排、验证器和运行时设计，而不只是底座模型本身。
 
-## 研究方向
+## 32.6 研究方向
 
 截至当前，研究方向已经明显分化为“短期可交付的工程增量”和“中长期面向通用智能体的能力问题”两大类。短期内，最有效的方向是提高长程任务成功率、降低成本、减少安全事故并增强可审计性；中期则是把外显脚手架方法沉淀成更可学习的 agent policy；长期才会触及因果世界模型、持续在线学习、具身泛化与 agent society 的治理问题。
 
@@ -153,7 +153,7 @@ timeline
 
 与之并行的另一条主线，是把运行时治理直接视为研究问题而非部署细节。近年的 harness 研究、协议工作和生产框架都在指向同一件事：agent 的关键科学问题已经不只存在于模型内部，也存在于模型外部的执行容器、状态管理、工具权限、日志审计和人机协同边界之中。换言之，未来几年的重要研究方向，将不只是“提升模型能力”，还包括“把系统做得更稳、更可控、更容易验证”。
 
-## 主要难点与瓶颈
+## 32.7 主要难点与瓶颈
 
 当前智能体研究的关键瓶颈，可以概括为六个方面：
 
@@ -187,7 +187,7 @@ timeline
 | 经济性与部署   | 多轮链路带来高延迟和高 token 成本 | 小模型路由、TinyAgent、边缘 MLLM  | 复杂规划、开放推理仍常需大模型兜底   |
 | 治理与责任     | agent 会执行动作而非只输出文本    | 中国信通院治理建议、企业审批机制  | 法规、审计、责任划分仍在早期阶段     |
 
-## 理想智能体与现实差距
+## 32.8 理想智能体与现实差距
 
 理想智能体至少应满足八个条件。它应当能主动澄清目标而不是机械执行模糊命令；能建立和更新世界模型，进行因果与反事实规划；拥有可持续但可修正的长期记忆；能跨文本、网页、桌面、API 和物理环境稳健行动；在出错时能定位、解释并自行修复；对人类可解释、可审计、可中断；在安全上默认最小权限、默认高风险需审批；同时具备足够高的效率、隐私保护和社会协作能力。这样的系统更像“具有制度约束的软件同事”，而不只是“更会说话的模型”。这一理想并不是空想，它恰好对应了当前所有主流研究路线正在分别修补的能力缺口。
 
@@ -226,15 +226,15 @@ xychart-beta
 
 如果只给出一个最现实的研究路径排序，我会建议：**先把“可验证长程任务成功率 + 安全运行时 + 状态管理 + 小模型路由”做到位，再讨论更宏大的通用智能体叙事**。原因很简单：过去三年的经验一再表明，真实世界 agent 的主要收益不是来自“更会聊天”，而是来自“更能稳定完成任务”。而稳定性，来自验证、约束、观测、复盘和最小权限，不只来自模型本体的更强推理。
 
-## 结论与建议
+## 32.9 结论与建议
 
 综合历史与现状，可以得出一个相对稳健的判断：AI 智能体研究已经从“概念期与原型期”进入“系统工程期”，但距离“通用、可靠、低成本、可审计的理想智能体”仍有实质差距。这个差距不是单点模型能力差距，而是多方面的系统性缺口：长程规划、状态管理、真实环境 grounding、工具安全、协议治理、评测统一和部署经济性。过去三年最重要的启示，是 agent 不是 LLM 的一个“插件功能”，而是在模型之上重新建立的一层软件体系。
 
-### 面向研究者
+### 32.9.1 面向研究者
 
 对研究者而言，最值得投入的方向不是继续做“又一种脚手架”，而是围绕**可复现环境、统一评测、验证器、agentic RL、长期记忆更新规则、因果/世界模型与协议安全**建立更加通用的科学问题。特别是长程任务、开放约束与错误恢复，应成为比静态 benchmark 更优先的核心评价对象。
 
-### 面向企业与机构
+### 32.9.2 面向企业与机构
 
 对机构和企业而言，更可操作的建议是把智能体建设分成三个层级：
 
@@ -246,7 +246,7 @@ xychart-beta
 
 如果再把顺序说得更直接一点，一个常见且可执行的落地路线是：**先做受控 runtime，再做记忆治理，再做技能审计与事件驱动，最后才逐步提高自主性**。原因是，缺乏运行时边界和状态治理时，新增的每一点自主能力都会放大系统风险；而在容器、权限、记忆和事件机制都可控后，智能体的能力扩张才更像“可管理的软件升级”，而不是“把更多不确定性推向生产环境”。
 
-### 面向治理与标准制定
+### 32.9.3 面向治理与标准制定
 
 对政策制定者与行业组织而言，优先事项应是**建立 agent 运行时治理标准**，而不是仅按模型名称做静态监管。更重要的标准包括：
 
@@ -262,11 +262,11 @@ xychart-beta
 
 如果用一句话概括本报告的最终判断，那就是：**当前智能体已经在局部任务上接近“可用”，但距离“可信赖的通用行动者”仍相差一个完整的软件与治理层**。未来几年最有价值的研究，不会是单纯追求更像人的输出，而是构建更像“可靠制度”的 agent 系统。
 
-## 附录：参考文章链接
+## 32.10 附录：参考文章链接
 
 本章正文为了保持书稿可读性，没有在段落中密集保留脚注编号；如果你希望继续追溯原始资料，可以从下面这些公开文章、技术文档与榜单开始。
 
-### 基础定义与经典脉络
+### 32.10.1 基础定义与经典脉络
 
 - [AIMA 第 2 章：Intelligent Agents](https://aima.cs.berkeley.edu/4th-ed/pdfs/newchap02.pdf?utm_source=chatgpt.com)
 - [Computing Machinery and Intelligence](https://cbmm.mit.edu/sites/default/files/documents/turing.pdf?utm_source=chatgpt.com)
@@ -278,7 +278,7 @@ xychart-beta
 - [BDI Agents: From Theory to Practice](https://cdn.aaai.org/ICMAS/1995/ICMAS95-042.pdf?utm_source=chatgpt.com)
 - [Is it an Agent, or just a Program?: A Taxonomy for Autonomous Agents](https://cse-robotics.engr.tamu.edu/dshell/cs631/papers/franklingraesser96agents.pdf?utm_source=chatgpt.com)
 
-### 强化学习与基础模型能力
+### 32.10.2 强化学习与基础模型能力
 
 - [Watkins & Dayan (1992)](https://www.gatsby.ucl.ac.uk/~dayan/papers/wd92.html?utm_source=chatgpt.com)
 - [Human-level control through deep reinforcement learning](https://www.nature.com/articles/nature14236?utm_source=chatgpt.com)
@@ -288,7 +288,7 @@ xychart-beta
 - [A Generalist Agent](https://arxiv.org/abs/2205.06175?utm_source=chatgpt.com)
 - [Do As I Can, Not As I Say: Grounding Language in Robotic Affordances](https://arxiv.org/abs/2204.01691?utm_source=chatgpt.com)
 
-### LLM Agent 方法与记忆研究
+### 32.10.3 LLM Agent 方法与记忆研究
 
 - [WebGPT: Browser-assisted question-answering with human feedback](https://arxiv.org/abs/2112.09332?utm_source=chatgpt.com)
 - [ReAct: Synergizing Reasoning and Acting in Language Models](https://arxiv.org/abs/2210.03629?utm_source=chatgpt.com)
@@ -300,14 +300,14 @@ xychart-beta
 - [From LLM Reasoning to Autonomous AI Agents: A Comprehensive Review](https://arxiv.org/abs/2504.19678?utm_source=chatgpt.com)
 - [Large Language Model Agent: A Survey on Methodology, Applications and Challenges](https://arxiv.org/abs/2503.21460?utm_source=chatgpt.com)
 
-### 推理期扩展与 Agentic RL
+### 32.10.4 推理期扩展与 Agentic RL
 
 - [FS-Researcher: Test-Time Scaling for Long-Horizon Research Tasks with File-System-Based Agents](https://arxiv.org/abs/2602.01566)
 - [How Inference Compute Shapes Frontier LLM Evaluation](https://arxiv.org/abs/2606.17930)
 - [TEX: Test-Time Scaling Testing Agents via Execution-based Cross-Validation](https://www.salesforce.com/blog/tex-test-time-scaling/)
 - [Agent Lightning: Train ANY AI Agents with Reinforcement Learning](https://arxiv.org/abs/2508.03680?utm_source=chatgpt.com)
 
-### 评测、榜单与真实任务环境
+### 32.10.5 评测、榜单与真实任务环境
 
 - [WebArena: A Realistic Web Environment for Building Autonomous Agents](https://arxiv.org/abs/2307.13854)
 - [GAIA: a benchmark for General AI Assistants](https://arxiv.org/abs/2311.12983?utm_source=chatgpt.com)
@@ -317,7 +317,7 @@ xychart-beta
 - [WebArena Leaderboard 2026](https://leaderboard.steel.dev/leaderboards/webarena/)
 - [TinyAgent: Function Calling at the Edge](https://arxiv.org/abs/2409.00608?utm_source=chatgpt.com)
 
-### 工程框架、运行时与互操作
+### 32.10.6 工程框架、运行时与互操作
 
 - [Agents SDK | OpenAI API](https://developers.openai.com/api/docs/guides/agents?utm_source=chatgpt.com)
 - [Computer use | OpenAI API](https://developers.openai.com/api/docs/guides/tools-computer-use?utm_source=chatgpt.com)
@@ -332,25 +332,25 @@ xychart-beta
 - [OpenHands](https://github.com/OpenHands/OpenHands?utm_source=chatgpt.com)
 - [Agent observability](https://docs.cloud.google.com/stackdriver/docs/observability/agent-observability?utm_source=chatgpt.com)
 
-### Harness、Runtime 与协议
+### 32.10.7 Harness、Runtime 与协议
 
 - [Agent Harness for Large Language Model Agents: A Survey](https://www.preprints.org/manuscript/202604.0428)
 - [awesome-agent-harness](https://github.com/RUCAIBox/awesome-agent-harness)
 - [Introducing the Model Context Protocol](https://www.anthropic.com/news/model-context-protocol?utm_source=chatgpt.com)
 - [Announcing the Agent2Agent Protocol (A2A)](https://developers.googleblog.com/en/a2a-a-new-era-of-agent-interoperability/?utm_source=chatgpt.com)
 
-### 多智能体记忆与协同
+### 32.10.8 多智能体记忆与协同
 
 - [How to Design Multi-Agent Memory Systems for Production](https://mem0.ai/blog/multi-agent-memory-systems)
 - [TheAgentCompany: Benchmarking LLM Agents on Consequential Real World Tasks](https://proceedings.neurips.cc/paper_files/paper/2025/hash/0d744742f6fac4d1134c019b7cef3c8a-Abstract-Datasets_and_Benchmarks_Track.html?utm_source=chatgpt.com)
 
-### 安全、治理与风险控制
+### 32.10.9 安全、治理与风险控制
 
 - [Mitigating the risk of prompt injections in browser use](https://www.anthropic.com/research/prompt-injection-defenses?utm_source=chatgpt.com)
 - [Developing a computer use model](https://www.anthropic.com/news/developing-computer-use?utm_source=chatgpt.com)
 - [智能体技术和应用研究报告](https://www.lib.szu.edu.cn/sites/szulib/files/2025-07/%E4%B8%AD%E5%9B%BD%E4%BF%A1%E9%80%9A%E9%99%A2%EF%BC%9A%E6%99%BA%E8%83%BD%E4%BD%93%E6%8A%80%E6%9C%AF%E5%92%8C%E5%BA%94%E7%94%A8%E7%A0%94%E7%A9%B6%E6%8A%A5%E5%91%8A.pdf?utm_source=chatgpt.com)
 
-### Skills 与供应链安全
+### 32.10.10 Skills 与供应链安全
 
 - [SoK: Agentic Skills -- Beyond Tool Use in LLM Agents](https://arxiv.org/abs/2602.20867)
 - [Malicious Agent Skills in the Wild: A Large-Scale Security Empirical Study](https://arxiv.org/abs/2602.06547)

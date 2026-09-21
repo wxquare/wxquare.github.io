@@ -1,4 +1,4 @@
-# 第19章 Pi Agent 架构解析：终端原生 Coding Agent Runtime、扩展系统与上下文工程
+# 第25章 Pi Agent 架构解析：终端原生 Coding Agent Runtime、扩展系统与上下文工程
 
 > Pi 的核心价值不是“又一个命令行聊天工具”，而是把 Coding Agent 做成一个小内核、强扩展、可嵌入、可定制的终端原生 Agent Runtime：模型调用、工具执行、上下文构建、会话树、扩展系统、Skills、Prompt Templates 和 SDK 都围绕一个可复用的 harness 展开。
 
@@ -35,7 +35,7 @@ Pi = Terminal-native Coding Agent Runtime
 
 ---
 
-## 18.1 系统定位：从 CLI Assistant 到 Coding Agent Harness
+## 25.1 系统定位：从 CLI Assistant 到 Coding Agent Harness
 
 很多终端 AI 工具的起点是：
 
@@ -111,7 +111,7 @@ Pi 的设计价值在于，它把这些边界都变成了一等公民。
 
 ---
 
-## 18.2 总体架构
+## 25.2 总体架构
 
 Pi 可以抽象成七层：
 
@@ -190,11 +190,11 @@ flowchart TB
 
 Pi 最值得学习的地方，是它把“终端体验”和“Agent Runtime”解耦了。TUI 只是一个入口；真正可复用的是 `AgentSession`、资源加载、工具运行、模型抽象和事件流。
 
-### 与第8章组件地图的对应关系
+### 与第13章组件地图的对应关系
 
 Pi 的价值在于把终端原生 Coding Agent 拆成可嵌入 Runtime。用第 5 章的组件地图来看，Pi 对“入口、上下文、工具、扩展、会话、事件流”实现得比较强，对“企业级审批、长期学习闭环、离线 Eval 平台”则更多留给上层系统或嵌入方补齐。
 
-| 第8章组件 | Pi 中的实现方式 | 实现状态与差异 |
+| 第13章组件 | Pi 中的实现方式 | 实现状态与差异 |
 |:---|:---|:---|
 | Event & Intake Router | Interactive TUI、Print / JSON、RPC、SDK 多入口进入同一个 `AgentSession` | 强实现；入口多样，但核心仍围绕终端和嵌入式运行时 |
 | Intent Normalizer | 通过命令模式、Prompt Template、用户输入和上下文资源形成任务边界 | 部分实现；更多依赖模型和模板，不一定有独立任务契约对象 |
@@ -214,7 +214,7 @@ Pi 的价值在于把终端原生 Coding Agent 拆成可嵌入 Runtime。用第 
 
 ---
 
-## 18.3 运行形态：同一个 Runtime，多种入口
+## 25.3 运行形态：同一个 Runtime，多种入口
 
 Pi 不是只有一种启动方式。它至少支持四类运行形态。
 
@@ -311,7 +311,7 @@ await session.prompt("What files are in the current directory?");
 
 ---
 
-## 18.4 AgentSession：运行时的最小闭环
+## 25.4 AgentSession：运行时的最小闭环
 
 `AgentSession` 可以理解为一次可持续对话和行动过程的运行容器。它不是单次 LLM call，也不是简单消息数组，而是把模型、上下文、工具、事件和持久化连接起来的对象。
 
@@ -391,7 +391,7 @@ sequenceDiagram
 
 ---
 
-## 18.5 从 `~/.pi/agent` 反推终端原生 Runtime
+## 25.5 从 `~/.pi/agent` 反推终端原生 Runtime
 
 第 13 章我们已经从 `~/.codex` 和 `~/.claude` 目录反推过终端原生 Agent Runtime。Pi 的目录约定也能透露出类似架构。
 
@@ -501,7 +501,7 @@ Project scope:
 
 ---
 
-## 18.6 ResourceLoader：上下文不是拼字符串
+## 25.6 ResourceLoader：上下文不是拼字符串
 
 > 来源口径：本节关于 `DefaultResourceLoader`、`cwd`、`agentDir`、context files、system prompt files 和 settings 的描述，主要来自 [Pi SDK](https://pi.dev/docs/latest/sdk) 与 [Pi Usage](https://pi.dev/docs/latest/usage) 文档；“上下文分层”和“工程治理”是基于这些机制的作者抽象。
 
@@ -638,7 +638,7 @@ Focus on:
 
 ---
 
-## 18.7 Tool Runtime：工具是能力边界
+## 25.7 Tool Runtime：工具是能力边界
 
 Pi 默认给模型的核心工具很克制：
 
@@ -754,7 +754,7 @@ Pi 的核心文档强调默认工具很小；真正生产化时，工具策略�
 
 ---
 
-## 18.8 Extension Host：Pi 最关键的扩展边界
+## 25.8 Extension Host：Pi 最关键的扩展边界
 
 如果只支持 Skills 和 Prompt Templates，Pi 仍然只是一个可定制 prompt 的工具。真正让它变成 harness 的，是 TypeScript extensions。
 
@@ -863,7 +863,7 @@ Extension 是代码，代码就有权限。安装一个恶意 extension，本质
 
 ---
 
-## 18.9 Skills、Prompts、Packages：扩展生态的三种颗粒度
+## 25.9 Skills、Prompts、Packages：扩展生态的三种颗粒度
 
 Pi 的扩展生态不是只有 extensions。它至少有四类资源：
 
@@ -944,7 +944,7 @@ my-pi-package/
 
 ---
 
-## 18.10 Context Engineering：Pi 的长期竞争力
+## 25.10 Context Engineering：Pi 的长期竞争力
 
 Coding Agent 的核心竞争力并不只来自模型能力。模型越来越强后，差异会转移到上下文工程：
 
@@ -1030,7 +1030,7 @@ Model Context
 
 ---
 
-## 18.11 Session Tree：从连续对话到可分叉工作区
+## 25.11 Session Tree：从连续对话到可分叉工作区
 
 Pi 支持 session continue、resume、tree、fork、clone 等会话操作。这说明它把 session 看成一棵可管理的工作树，而不是一条线性聊天记录。
 
@@ -1095,7 +1095,7 @@ Coding Agent 的 session 还有另一个价值：它是模型、prompt、tool �
 
 ---
 
-## 18.12 SDK 嵌入：为什么不是启动子进程
+## 25.12 SDK 嵌入：为什么不是启动子进程
 
 > 来源口径：本节关于 `createAgentSession()`、`AgentSession`、`SessionManager`、`AuthStorage`、`ModelRegistry` 和 `DefaultResourceLoader` 的对象边界，来自 [Pi SDK](https://pi.dev/docs/latest/sdk)；对子进程、RPC 与 SDK 嵌入的对比是作者从集成架构角度的归纳。
 
@@ -1189,7 +1189,7 @@ async function runCodingAgent(params: RunCodingAgentParams): Promise<RunResult> 
 
 ---
 
-## 18.13 OpenClaw 如何嵌入 Pi
+## 25.13 OpenClaw 如何嵌入 Pi
 
 > 来源口径：本节关于 OpenClaw 嵌入 Pi 的调用方式、package 分层和 messaging gateway 集成，来自 [OpenClaw Pi Integration Architecture](https://docs.openclaw.ai/pi)；其中“为什么不用子进程”和“Runtime 可复用”的判断是作者基于该集成方式的工程解读。
 
@@ -1283,7 +1283,7 @@ Pi owns:
 
 ---
 
-## 18.14 Pi 与 Claude Code、Codex、Cursor 的取舍
+## 25.14 Pi 与 Claude Code、Codex、Cursor 的取舍
 
 第 13 章已经详细分析了 Claude Code、Cursor 和 Codex。把 Pi 放进这张图里，可以看得更清楚。
 
@@ -1324,7 +1324,7 @@ Pi is a programmable terminal-native coding harness.
 
 ---
 
-## 18.15 安全模型：本地优先不等于天然安全
+## 25.15 安全模型：本地优先不等于天然安全
 
 Pi 运行在本地项目目录中，可以读文件、写文件、执行命令，还可以加载 extensions、skills 和 packages。这种能力非常适合开发者，但也意味着安全边界必须认真设计。
 
@@ -1395,7 +1395,7 @@ Untrusted Extensions:
 
 ---
 
-## 18.16 如果自研一个 Pi-like Runtime，最小可行架构是什么
+## 25.16 如果自研一个 Pi-like Runtime，最小可行架构是什么
 
 不要一开始就做完整 Pi。一个可落地的 Pi-like Coding Agent Runtime，可以分四个阶段。
 
@@ -1520,7 +1520,7 @@ type ExtensionApi = {
 
 ---
 
-## 18.17 Pi-like Runtime 的生产化清单
+## 25.17 Pi-like Runtime 的生产化清单
 
 如果你要把 Pi-like Runtime 用在团队或企业环境，至少检查下面这些项。
 
@@ -1575,7 +1575,7 @@ type ExtensionApi = {
 
 ---
 
-## 18.18 架构亮点
+## 25.18 架构亮点
 
 ### 亮点一：把 TUI 从 Runtime 中解耦
 
@@ -1606,7 +1606,7 @@ Pi 的 SDK 把 `AgentSession` 暴露出来，让上层系统能直接控制会�
 
 ---
 
-## 18.19 局限与风险
+## 25.19 局限与风险
 
 Pi 的架构很适合学习，但也要看到边界。
 
@@ -1655,7 +1655,7 @@ Extension 和 Package 越强，越需要治理。一个恶意 package 可以同�
 
 ---
 
-## 18.20 设计启示
+## 25.20 设计启示
 
 Pi 给 Coding Agent 工程带来几个重要启示。
 
@@ -1723,7 +1723,7 @@ Integration:
 
 ---
 
-## 18.21 小结
+## 25.21 小结
 
 Pi 值得单独作为成熟系统分析，不是因为它功能最多，而是因为它把 Coding Agent Runtime 的关键边界拆得很清楚：
 

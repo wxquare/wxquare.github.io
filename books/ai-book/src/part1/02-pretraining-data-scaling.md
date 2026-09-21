@@ -331,3 +331,19 @@ Base model 评估关注语言建模和潜在能力；SFT、偏好优化和推理
 [27] 邱锡鹏：《神经网络与深度学习》，机械工业出版社，2020。https://nndl.github.io/
 
 [28] 周志华：《机器学习》，清华大学出版社，2016。https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm
+
+## 版本与范围
+
+本章讨论的 next-token prediction、数据清洗、去重和 compute-optimal 训练是相对稳定的基础概念。数据配比、合成数据比例和具体 token 预算会随模型、许可证和评测目标变化；截至 **2026-09-21**，它们应被视为需要用本项目数据重新验证的工程参数，而不是可直接照搬的配方。本章不覆盖某一家模型的私有训练集，也不把公开技术报告当作完整数据披露。
+
+## 工程决策案例
+
+**场景：** 团队要训练面向企业检索问答的 8B 模型，候选数据包括公开网页、已授权产品文档和合成问答。先为每个样本写入来源、许可证、时间、语言、领域和去重簇 ID；训练/验证/评测在去重簇级别隔离。若任一评测题与训练簇命中，样本进入污染队列而非继续训练。
+
+第一轮不要从“更多数据”开始，而要固定 token 预算，比较两种配比：通用网页为能力底座，已授权文档提升领域覆盖，合成问答只补足长尾意图。验收同时报告 held-out loss、领域任务成功率、污染率、重复率和每个有效 token 的成本。若领域质量不升，优先检查数据来源和样本构造，而不是盲目扩大模型或重复训练。
+
+## 参考资料与延伸阅读
+
+- Kaplan et al., 2020, [Scaling Laws for Neural Language Models](https://arxiv.org/abs/2001.08361)。
+- Hoffmann et al., 2022, [Training Compute-Optimal Large Language Models](https://arxiv.org/abs/2203.15556)。
+- Gadre et al., 2023, [DataComp: In Search of Data for Scaling Up Training Sets](https://arxiv.org/abs/2304.14108)。

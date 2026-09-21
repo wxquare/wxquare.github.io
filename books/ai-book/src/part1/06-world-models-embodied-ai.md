@@ -875,3 +875,19 @@ Scenario API
 [30] 邱锡鹏：《神经网络与深度学习》，机械工业出版社，2020。https://nndl.github.io/
 
 [31] 周志华：《机器学习》，清华大学出版社，2016。https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm
+
+## 版本与范围
+
+“世界模型”在强化学习、视频生成、表征学习和机器人仿真中含义不同；本章以预测、规划和行动之间的接口来比较这些路线，而不把它们视为可互换产品。VLA、机器人基础模型和 Physical AI 的公开能力变化迅速，产品性表述以 **2026-09-21** 可访问的论文或官方资料为准。仿真成功、离线 benchmark 分数和真实环境安全不是同一项证据。
+
+## 工程决策案例
+
+**场景：** 仓库机器人需要识别货箱、规划取放并在人员靠近时停止。视觉/语言模型负责候选物体、任务意图和异常说明；运动规划器、碰撞检测、速度限制和急停回路保持确定性并独立于语言模型。世界模型可用于离线模拟罕见遮挡、抓取失败和路径冲突，但不能成为绕过实体安全互锁的依据。
+
+上线采用分阶段门禁：先离线回放和仿真，再在隔离区域以低速度只读观察，最后才在人工监护下执行。每次动作记录传感器快照、规划版本、模型版本、置信度和安全控制器的拒绝原因；成功率之外，还评估碰撞近失、人工接管率、分布外拒绝率和从仿真到真实的性能落差。
+
+## 参考资料与延伸阅读
+
+- Hafner et al., 2023, [Mastering Diverse Domains through World Models](https://arxiv.org/abs/2301.04104)。
+- Brohan et al., 2023, [RT-2: Vision-Language-Action Models Transfer Web Knowledge to Robotic Control](https://arxiv.org/abs/2307.15818)。
+- [Google DeepMind Robotics](https://deepmind.google/models/gemini-robotics/), accessed 2026-09-21.

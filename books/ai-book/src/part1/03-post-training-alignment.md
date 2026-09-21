@@ -378,3 +378,19 @@ SFT 成本最低、最容易回滚，适合作为基线；DPO 等离线偏好优
 [29] 邱锡鹏：《神经网络与深度学习》，机械工业出版社，2020。https://nndl.github.io/
 
 [30] 周志华：《机器学习》，清华大学出版社，2016。https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm
+
+## 版本与范围
+
+SFT、偏好学习和可验证奖励描述的是一组优化范式，不等价于“模型已经安全”或“系统已经合规”。截至 **2026-09-21**，不同模型的训练数据、奖励实现和推理预算仍不断演进；本章用论文中的可公开验证结论说明方法边界，不推断任何闭源模型的内部训练流程。本章也不替代工具权限、审计和人工审批等系统级安全控制。
+
+## 工程决策案例
+
+**场景：** 一个客服 Agent 需要改善“解释清晰度”，但不允许它自行决定退款、改价等有副作用操作。先用 SFT 固化工单结构、证据引用和升级条件；将人工审核过的成对回答用于偏好优化，只比较语气、完整性和证据忠实度；把退款资格、金额和审批结果保留给确定性工具与策略引擎。
+
+若离线偏好分数提高而升级错误率上升，应回看偏好标注是否奖励了“看似有帮助但越权”的回答。对数学校验、字段完整性等可判定任务，可试验结果验证器和 RLVR；对不可稳定验证的客服语气问题，不应伪造一个高置信奖励函数。上线前必须在旧工单留出集上同时评估帮助度、拒答正确率、升级准确率和工具越权率。
+
+## 参考资料与延伸阅读
+
+- Ouyang et al., 2022, [Training Language Models to Follow Instructions with Human Feedback](https://arxiv.org/abs/2203.02155)。
+- Rafailov et al., 2023, [Direct Preference Optimization](https://arxiv.org/abs/2305.18290)。
+- Shao et al., 2024, [DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models](https://arxiv.org/abs/2402.03300)。

@@ -410,3 +410,19 @@ LoRA 可以在运行时作为增量加载，也可以合并到基础权重。合
 [29] 邱锡鹏：《神经网络与深度学习》，机械工业出版社，2020。https://nndl.github.io/
 
 [30] 周志华：《机器学习》，清华大学出版社，2016。https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm
+
+## 版本与范围
+
+微调、检索、量化和蒸馏解决的问题不同：前两者主要改变行为或知识供给，后两者主要改变成本与部署形态。量化精度、硬件支持和多模态模型接口更新很快；截至 **2026-09-21**，任何质量或显存结论都应绑定模型、校准集、dtype、硬件和推理引擎。本章不把“多模态”简化成给文本模型增加图片输入，也不把压缩率等同于业务可用性。
+
+## 工程决策案例
+
+**场景：** 企业要让内部运维助手理解最新 runbook，并在单张 GPU 上服务。先用 RAG 接入频繁变动、需要引用来源的 runbook；只有当固定格式、术语或工具调用习惯在高质量样本中反复失败时，才训练 LoRA。随后对同一基准分别比较 BF16、量化和 QLoRA 制品的任务成功率、JSON 合法率、TTFT、显存峰值和回归失败样本。
+
+决策规则是：知识过期先更新检索；行为不稳定再考虑 LoRA；显存或成本不达标才评估量化；每次压缩都以任务回归集为门禁。若低比特版本让工具参数错误率上升，即使通用困惑度变化很小，也不能直接替换生产制品。
+
+## 参考资料与延伸阅读
+
+- Hu et al., 2021, [LoRA: Low-Rank Adaptation of Large Language Models](https://arxiv.org/abs/2106.09685)。
+- Dettmers et al., 2023, [QLoRA: Efficient Finetuning of Quantized LLMs](https://arxiv.org/abs/2305.14314)。
+- Lin et al., 2024, [AWQ: Activation-aware Weight Quantization for LLM Compression and Acceleration](https://arxiv.org/abs/2306.00978)。

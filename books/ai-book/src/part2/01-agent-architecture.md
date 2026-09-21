@@ -1,4 +1,4 @@
-# 第8章 Agent 的演化与架构总纲：从对话应用到可治理 Runtime
+# 第13章 Agent 的演化与架构总纲：从对话应用到可治理 Runtime
 
 > "The right question isn't whether to use AI, but whether the problem requires reasoning."
 > 关键不是要不要用 AI，而是这个问题是否需要推理、行动、验证和治理。
@@ -30,13 +30,13 @@
 
 ---
 
-## 8.1 Agent 的演化：从回答到受控完成工作
+## 13.1 Agent 的演化：从回答到受控完成工作
 
 今天的 Agent 看起来像一个新名词，但它并不是从“更长的 Prompt”突然跳出来的。它是为了持续解决同一个问题而逐步演化的：如何让模型不只给出一段看似合理的回答，还能在明确的边界内收集证据、采取行动、验证结果，并把过程交付给人和系统。
 
 演化有两条必须同时观察的主线。第一条是**技术形态**：系统的工作方式如何变化；第二条是**工程能力**：为了让每次升级可靠运行，系统必须补齐哪些确定性机制。只看技术形态，容易把 Agent 误解成某个框架功能；只看工程组件，又会失去“为什么现在需要它”的判断依据。
 
-### 8.1.1 技术形态：Agent 如何一步步获得行动能力
+### 13.1.1 技术形态：Agent 如何一步步获得行动能力
 
 ```text
 Chatbot → Prompt Application → Tool-using Agent → Workflow Agent
@@ -55,7 +55,7 @@ Chatbot → Prompt Application → Tool-using Agent → Workflow Agent
 
 阶段之间不是替代关系。大多数生产系统同时包含多个阶段：稳定的步骤仍然应该由工作流或传统后端完成；只有需要动态判断的局部才交给 Agent。演化的正确方向不是“更自主”，而是“在更复杂的任务上仍可约束、可验证、可交接”。
 
-### 8.1.2 工程能力：每次升级都要补上一层确定性
+### 13.1.2 工程能力：每次升级都要补上一层确定性
 
 技术形态的升级，要求工程能力按下面的顺序逐层补齐：
 
@@ -74,7 +74,7 @@ Prompt → Context → Harness → API / Tools → Knowledge / Memory
 
 这正是第二部分后续章节的阅读地图。第 9 至第 11 章处理任务协议、信息架构和运行环境；第 12 至第 16 章扩展模型能力、外部行动、知识、记忆和执行编排；第 17 章把所有能力收敛到生产治理。不要把其中任何一层当成可选装饰：当系统开始影响外部世界时，缺失的一层通常就是下一次事故的来源。
 
-### 8.1.3 贯穿案例：企业告警与知识答疑如何升级
+### 13.1.3 贯穿案例：企业告警与知识答疑如何升级
 
 以“企业告警与知识答疑”为例，同一个需求会经历完全不同的系统形态：
 
@@ -88,7 +88,7 @@ Prompt → Context → Harness → API / Tools → Knowledge / Memory
 
 第 22 章会完整展开这一类企业级系统。本章只建立一个判断：从第 3 步开始，系统不再只是“回答问题”；它开始触发或建议行动，因此必须把权限、证据、验证、审批和审计一起设计。
 
-### 8.1.4 升级边界：何时不应升级为 Agent
+### 13.1.4 升级边界：何时不应升级为 Agent
 
 并不是每个 LLM 功能都要走到 Runtime Agent。以下情况应优先使用普通 LLM 应用、规则引擎或确定性工作流：
 
@@ -102,9 +102,9 @@ Prompt → Context → Harness → API / Tools → Knowledge / Memory
 
 ---
 
-## 8.2 Agent 架构决策：先判断是否需要 Agent
+## 13.2 Agent 架构决策：先判断是否需要 Agent
 
-### 8.2.1 从问题出发：为什么不是传统后端
+### 13.2.1 从问题出发：为什么不是传统后端
 
 在设计 Agent 系统之前，先不要问“能不能接一个大模型”，而要问：为什么传统后端、规则引擎、工作流系统或搜索系统不够用？
 
@@ -123,7 +123,7 @@ Prompt → Context → Harness → API / Tools → Knowledge / Memory
 
 ---
 
-### 8.2.2 Agent 与传统后端的本质区别
+### 13.2.2 Agent 与传统后端的本质区别
 
 传统后端系统基于确定性逻辑：
 
@@ -168,7 +168,7 @@ flowchart LR
 
 ---
 
-### 8.2.3 Agent 是运行时系统，不只是模型调用
+### 13.2.3 Agent 是运行时系统，不只是模型调用
 
 一个最小的 LLM 应用通常长这样：
 
@@ -278,7 +278,7 @@ flowchart TD
 
 ---
 
-### 8.2.4 决策框架：什么时候需要 Agent
+### 13.2.4 决策框架：什么时候需要 Agent
 
 不要因为“可以用 AI”就设计 Agent。先判断问题是否真的需要推理和行动。
 
@@ -335,7 +335,7 @@ Agent 是否可用，必须由你自己的任务、数据和风险边界验证�
 
 ---
 
-### 8.2.5 混合架构：Agent 不应该接管所有东西
+### 13.2.5 混合架构：Agent 不应该接管所有东西
 
 生产系统里，最稳妥的架构通常不是“全 Agent”，而是混合架构：
 
@@ -387,9 +387,9 @@ Agent 的价值不是替代后端系统，而是把后端系统原本无法处�
 
 ---
 
-## 8.3 Agent Runtime：生产级 Agent 的最小骨架
+## 13.3 Agent Runtime：生产级 Agent 的最小骨架
 
-### 8.3.1 最小 Runtime 心智模型
+### 13.3.1 最小 Runtime 心智模型
 
 完整 Runtime 图容易让人觉得 Agent 很复杂。真正落地时，可以先记住一个最小骨架：
 
@@ -411,7 +411,7 @@ Agent 的价值不是替代后端系统，而是把后端系统原本无法处�
 
 ---
 
-### 8.3.2 通用 Agent Runtime 分层架构
+### 13.3.2 通用 Agent Runtime 分层架构
 
 下面是一个更完整的通用架构图：
 
@@ -488,7 +488,7 @@ flowchart TB
 
 ---
 
-### 8.3.3 Runtime 初始化：模型、工具、技能、策略与数据源
+### 13.3.3 Runtime 初始化：模型、工具、技能、策略与数据源
 
 Agent 的完整链路不是从用户请求才开始。请求进入之前，Runtime 已经完成了一次系统初始化：加载配置、注册模型、注册工具、注册技能、编译策略、连接数据源、初始化可观测性。
 
@@ -604,7 +604,7 @@ policies:
 
 ---
 
-### 8.3.4 用户请求完整链路：从入口到最终响应
+### 13.3.4 用户请求完整链路：从入口到最终响应
 
 完成初始化后，一次用户请求才真正进入 Runtime。完整链路可以拆成二十个事件：
 
@@ -756,7 +756,7 @@ response.sent
 
 ---
 
-## 8.4 Agent 核心组件：职责边界与后续章节地图
+## 13.4 Agent 核心组件：职责边界与后续章节地图
 
 11.3 不是要把每个组件都讲透，而是建立一张生产级 Agent Runtime 的组件地图。后续第 12 到第 17 章，会沿着这张地图逐层展开：模型协议、工具系统、知识系统、记忆系统、执行编排、平台化、Evals、Guardrails 和可观测性。
 
@@ -844,7 +844,7 @@ flowchart LR
 
 ---
 
-### 8.4.1 Event & Intake Router：Agent 的入口不只是聊天
+### 13.4.1 Event & Intake Router：Agent 的入口不只是聊天
 
 很多 Agent 原型从聊天框开始，所以会把用户消息当成唯一入口。但生产级 Agent 不只处理自然语言聊天，还要处理各种系统事件：
 
@@ -898,7 +898,7 @@ Event & Intake Router 不应该承担复杂推理。它只负责把“事件从�
 
 ---
 
-### 8.4.2 Intent Normalizer：把用户输入变成任务契约
+### 13.4.2 Intent Normalizer：把用户输入变成任务契约
 
 Agent 的输入不应该直接等于用户原话。用户可能说：
 
@@ -1047,7 +1047,7 @@ get_ticket_status(ticket_id)
 
 ---
 
-### 8.4.3 Task Planner：计划是可验证的假设
+### 13.4.3 Task Planner：计划是可验证的假设
 
 Planner 的职责不是写一段漂亮的推理过程，而是把 Task Contract 转成 Runtime 可以执行、Policy 可以裁决、Verifier 可以验证、Review Surface 可以解释的计划。
 
@@ -1331,7 +1331,7 @@ Task Planner 的价值，不是让模型写一份漂亮计划，而是把任务�
 
 ---
 
-### 8.4.4 Context Builder：上下文是信息架构，不是拼 Prompt
+### 13.4.4 Context Builder：上下文是信息架构，不是拼 Prompt
 
 Context Builder 是 Agent 系统最容易被低估的一层。它决定模型能看到什么，也决定模型看不到什么。
 
@@ -1415,7 +1415,7 @@ Context Builder 的核心原则：
 
 ---
 
-### 8.4.5 Memory Layer：跨会话状态、经验与长期上下文
+### 13.4.5 Memory Layer：跨会话状态、经验与长期上下文
 
 Memory Layer 是现代 Agent Runtime 的关键组件。它解决的不是“把聊天记录存起来”，而是让 Agent 在合适的边界内拥有连续性、经验和可治理的长期上下文。
 
@@ -1487,7 +1487,7 @@ Memory 的核心原则是：**可读、可控、可忘、可审计、可评估**
 
 ---
 
-### 8.4.6 Execution State 与 Checkpoint：让 Agent 可暂停、恢复与回放
+### 13.4.6 Execution State 与 Checkpoint：让 Agent 可暂停、恢复与回放
 
 Execution State 管的是“当前任务执行到哪里”。它和 Memory 不同：Memory 是跨任务经验，Execution State 是一次任务生命周期里的事实状态。
 
@@ -1550,7 +1550,7 @@ Checkpoint 的价值是让 Agent 支持：
 
 ---
 
-### 8.4.7 Capability Registry：Skills、Tools、Connectors 与 MCP
+### 13.4.7 Capability Registry：Skills、Tools、Connectors 与 MCP
 
 很多系统会把 Skill、Tool、Connector、Workflow、MCP Server 混在一起，导致权限边界混乱。现代 Agent Runtime 更适合用 Capability Registry 统一管理“系统能提供哪些能力”，再按任务、身份、环境和风险筛选本轮可见能力。
 
@@ -1674,7 +1674,7 @@ all capabilities
 
 ---
 
-### 8.4.8 Policy Engine 与 Human Control Plane：权限、审批、接管与降级
+### 13.4.8 Policy Engine 与 Human Control Plane：权限、审批、接管与降级
 
 “请不要执行危险操作”不是安全机制，只是提示词愿望。生产 Agent 必须有独立于模型的 Policy Engine。
 
@@ -1769,7 +1769,7 @@ Human Control Plane 不等于“所有事情都弹确认”。真正好的设计
 
 ---
 
-### 8.4.9 Agent Loop：观察、决策、行动、修复
+### 13.4.9 Agent Loop：观察、决策、行动、修复
 
 Agent Loop 是模型、状态、上下文、工具和策略之间的执行闭环。
 
@@ -1839,7 +1839,7 @@ while not done:
 
 ---
 
-### 8.4.10 Model Router 与 Handoff Manager：模型选择、专家委派与多 Agent 协作
+### 13.4.10 Model Router 与 Handoff Manager：模型选择、专家委派与多 Agent 协作
 
 现代 Agent 系统通常不会只依赖一个模型、一个 Prompt、一个通用 Agent。不同任务对模型能力、成本、延迟、上下文长度、工具调用能力和安全要求都不一样。Model Router 与 Handoff Manager 负责把任务交给合适的模型、专家 Agent 或外部 Agent 系统。
 
@@ -1894,7 +1894,7 @@ Handoff 不应该只是自然语言“你来处理一下”。一个可靠的 Ha
 
 ---
 
-### 8.4.11 Verifier 与 Eval Harness：运行时验证与回归评测
+### 13.4.11 Verifier 与 Eval Harness：运行时验证与回归评测
 
 Agent 最危险的句子之一是：“任务已经完成。”
 
@@ -1967,7 +1967,7 @@ Agent 的 Eval 不应该只评估最终答案，还要评估执行轨迹：
 
 ---
 
-### 8.4.12 Review Surface、Trace 与 Audit：可审查的交付界面
+### 13.4.12 Review Surface、Trace 与 Audit：可审查的交付界面
 
 Review Surface 是人类和 Agent 系统之间的交接界面。它决定用户看到什么，也决定系统如何被审计和复盘。
 
@@ -2049,7 +2049,7 @@ Audit 记录则更关注不可抵赖的信息：
 
 ---
 
-### 8.4.13 Learning Loop：从反馈到能力演进
+### 13.4.13 Learning Loop：从反馈到能力演进
 
 有些现代 Agent 会被描述为具备“自学习”能力。这个说法容易误导。生产级 Agent 的学习不应该是模型在后台偷偷改自己，而应该是一个受治理的能力演进闭环。
 
@@ -2100,11 +2100,11 @@ Learning Loop 可以沉淀几类资产：
 
 ---
 
-## 8.5 Agent 架构模式：从组件组合到系统形态
+## 13.5 Agent 架构模式：从组件组合到系统形态
 
 Agent 架构模式不是越复杂越好。应该根据任务复杂度、风险和可验证性选择。
 
-### 8.5.1 架构模式选择矩阵
+### 13.5.1 架构模式选择矩阵
 
 先用一个矩阵做选择，再进入具体模式。
 
@@ -2120,7 +2120,7 @@ Agent 架构模式不是越复杂越好。应该根据任务复杂度、风险�
 
 ---
 
-### 8.5.2 ReAct、Plan-and-Execute 与 Plan mode：三个容易混淆的概念
+### 13.5.2 ReAct、Plan-and-Execute 与 Plan mode：三个容易混淆的概念
 
 这三个词经常被放在一起讨论，但它们位于不同层级：
 
@@ -2134,7 +2134,7 @@ ReAct 关注“每一步如何边想边用工具”。Plan-and-Execute 关注“
 
 因此，架构设计时要把“执行范式”和“协作权限”分开。Plan-and-Execute 是系统如何组织执行，Plan mode 是 Runtime 或产品如何限制当前阶段不能执行写操作。混淆这两者，会导致设计文档看似有计划，实际没有明确谁能执行、何时执行、如何验证和如何回滚。
 
-### 8.5.3 Single-shot Agent
+### 13.5.3 Single-shot Agent
 
 ```mermaid
 flowchart LR
@@ -2145,7 +2145,7 @@ flowchart LR
 
 优点是简单、低延迟、成本低。缺点是无法动态补充证据，遇到复杂任务容易猜测。
 
-### 8.5.4 Router + Specialist
+### 13.5.4 Router + Specialist
 
 ```mermaid
 flowchart TD
@@ -2162,7 +2162,7 @@ flowchart TD
 
 关键是 Router 要能拒绝不确定分类，不要强行把所有问题分到某个 Specialist。
 
-### 8.5.5 Plan-and-Execute
+### 13.5.5 Plan-and-Execute
 
 ```mermaid
 flowchart LR
@@ -2188,7 +2188,7 @@ Plan-and-Execute 不是 Plan mode。前者是架构模式，决定任务如何�
 
 关键风险是计划过早固定。生产系统应允许基于观察结果局部重规划，并把重规划写入 Trace，避免执行器盲目走完一份已经失效的计划。
 
-### 8.5.6 State Machine + Agent
+### 13.5.6 State Machine + Agent
 
 ```mermaid
 flowchart TD
@@ -2208,7 +2208,7 @@ flowchart TD
 
 这是企业生产环境最推荐的形态之一：状态机负责边界，Agent 负责状态内的推理。
 
-### 8.5.7 Multi-Agent
+### 13.5.7 Multi-Agent
 
 ```mermaid
 flowchart TD
@@ -2231,11 +2231,11 @@ flowchart TD
 
 ---
 
-## 8.6 场景映射与落地校验
+## 13.6 场景映射与落地校验
 
 下面用三个通用场景说明这套框架如何落地。
 
-### 8.6.1 企业知识助手
+### 13.6.1 企业知识助手
 
 ```mermaid
 flowchart TD
@@ -2257,7 +2257,7 @@ flowchart TD
 - Review Surface 要鼓励用户反馈“文档过期”“没有回答我的问题”；
 - Learning Loop 可以把失败问题变成知识库更新候选，但不能自动污染正式知识库。
 
-### 8.6.2 告警诊断与处置助手
+### 13.6.2 告警诊断与处置助手
 
 ```mermaid
 flowchart TD
@@ -2280,7 +2280,7 @@ flowchart TD
 - 高风险动作优先提供 dry-run 和人工确认；
 - 处置后要把复盘结果沉淀成 Runbook、Eval Case 和 Skill 候选。
 
-### 8.6.3 业务运营助手
+### 13.6.3 业务运营助手
 
 ```mermaid
 flowchart TD
@@ -2307,7 +2307,7 @@ flowchart TD
 
 ---
 
-### 8.6.4 三类场景横向对比
+### 13.6.4 三类场景横向对比
 
 这三个场景可以放在一起比较：
 
@@ -2321,7 +2321,7 @@ flowchart TD
 
 ---
 
-### 8.6.5 Agent 设计检查清单
+### 13.6.5 Agent 设计检查清单
 
 设计一个 Agent 系统时，可以按下面的清单逐层检查。
 

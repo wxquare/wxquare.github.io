@@ -400,3 +400,19 @@ GQA 让多个 query head 共享 K/V head，减少 KV cache 和读取成本，同
 [29] 邱锡鹏：《神经网络与深度学习》，机械工业出版社，2020。https://nndl.github.io/
 
 [30] 周志华：《机器学习》，清华大学出版社，2016。https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm
+
+## 版本与范围
+
+本章区分模型生成策略、推理时搜索和 serving 优化。温度、Top-p、约束解码和验证器是应用层可控变量；连续 batching、KV Cache 和吞吐容量属于第 9 章的推理 Infra 主题。投机解码的实际收益依赖模型组合、长度分布和批处理方式；截至 **2026-09-21**，必须用目标流量压测，而不能引用其他服务的加速比例。
+
+## 工程决策案例
+
+**场景：** 系统从一段合同文本提取固定 JSON 字段。对字段名、枚举和 JSON 语法使用 schema/约束解码，并把缺失字段显式返回为 `null`；不要把低温采样当作结构化输出的保证。对需要生成“风险说明”的自由文本字段，使用较低温度并允许有限候选，再由规则验证引用位置和禁止词。
+
+该设计把“必须正确的接口形状”与“允许有表达差异的自然语言”分开：前者失败即重试或人工转交，后者才适合比较多个候选。评测记录 JSON 解析率、字段级准确率、无依据断言率、p95 延迟和每份合同成本；若约束解码造成延迟不可接受，先缩小输出 schema 或预填确定字段，而不是取消校验。
+
+## 参考资料与延伸阅读
+
+- Vaswani et al., 2017, [Attention Is All You Need](https://arxiv.org/abs/1706.03762)。
+- Leviathan, Kalman and Matias, 2023, [Fast Inference from Transformers via Speculative Decoding](https://arxiv.org/abs/2211.17192)。
+- [vLLM Documentation](https://docs.vllm.ai/), accessed 2026-09-21.
