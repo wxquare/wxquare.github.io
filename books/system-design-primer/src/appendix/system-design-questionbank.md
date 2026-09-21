@@ -956,7 +956,7 @@
 #### 常见失分点
 所有链路都强一致；所有异步都最终一致；没有时间边界和修复责任。
 #### 关联正文
-[第 4 章 大事务处理](../part01/04-large-transaction-orchestration.md)、[第 7 章 高准确性与强一致性](../part01/07-high-accuracy-strong-consistency-methodology.md)、[第 33 章 支付系统](../part03/10-payment-system.md)
+[第 4 章 大事务处理](../part01/04-large-transaction-orchestration.md)、[第 7 章 高准确性与强一致性](../part01/07-high-accuracy-strong-consistency-methodology.md)、[第 36 章 支付与交易全生命周期](../part03/13-ecommerce-customer-lifecycle.md)
 #### 复盘清单
 - 我是否说明了一致性的对象和可接受时限？
 - 我是否给出了失败后的补偿和对账路径？
@@ -1144,7 +1144,7 @@
 #### 常见失分点
 所有异常都重试；只在客户端做幂等；没有重试上限和观测。
 #### 关联正文
-[第 3 章 生产系统治理](../part01/03-production-resilience-safeguards.md)、[第 4 章 大事务处理](../part01/04-large-transaction-orchestration.md)、[第 33 章 支付系统](../part03/10-payment-system.md)
+[第 3 章 生产系统治理](../part01/03-production-resilience-safeguards.md)、[第 4 章 大事务处理](../part01/04-large-transaction-orchestration.md)、[第 36 章 支付与交易全生命周期](../part03/13-ecommerce-customer-lifecycle.md)
 #### 复盘清单
 - 我是否区分了失败、超时和结果未知？
 - 我是否说明了幂等键与最终状态查询？
@@ -1175,7 +1175,7 @@
 #### 常见失分点
 把熔断等同于服务下线；对支付直接返回成功；没有恢复和补偿策略。
 #### 关联正文
-[第 3 章 生产系统治理](../part01/03-production-resilience-safeguards.md)、[第 33 章 支付系统](../part03/10-payment-system.md)、[第 36 章 电商用户全生命周期](../part03/13-ecommerce-customer-lifecycle.md)
+[第 3 章 生产系统治理](../part01/03-production-resilience-safeguards.md)、[第 36 章 支付与交易全生命周期](../part03/13-ecommerce-customer-lifecycle.md)
 #### 复盘清单
 - 我是否按核心程度定义降级结果？
 - 我是否说明熔断后的恢复探测和补偿？
@@ -28636,7 +28636,7 @@ func (s *RefundService) shouldAutoApprove(refund *Refund) bool {
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:4811`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[支付系统](../part03/10-payment-system.md)。
+相关章节：[第 36 章支付内容](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -29726,7 +29726,7 @@ func (a *AlipayAdapter) VerifyCallback(callback *CallbackData) error {
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:5603`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[支付系统](../part03/10-payment-system.md)。
+相关章节：[第 36 章支付内容](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -29872,7 +29872,7 @@ func (r *PaymentRepository) UpdateStatusWithVersion(ctx context.Context,
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:5824`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[支付系统](../part03/10-payment-system.md)。
+相关章节：[第 36 章支付内容](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -30116,7 +30116,7 @@ type ReconciliationReport struct {
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:5910`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[支付系统](../part03/10-payment-system.md)。
+相关章节：[第 36 章支付内容](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -30305,7 +30305,7 @@ func (h *CallbackHandler) retryCallback(ctx context.Context,
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:6094`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[支付系统](../part03/10-payment-system.md)。
+相关章节：[第 36 章支付内容](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -30483,7 +30483,7 @@ T+30：月结算（新商家）
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:6223`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[支付系统](../part03/10-payment-system.md)。
+相关章节：[第 36 章支付内容](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -30687,7 +30687,7 @@ func (s *PaymentSecurityService) RiskCheck(ctx context.Context,
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:6341`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[支付系统](../part03/10-payment-system.md)。
+相关章节：[第 36 章支付内容](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -30912,7 +30912,7 @@ func (s *RefundService) PartialRefund(ctx context.Context,
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:6599`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[支付系统](../part03/10-payment-system.md)。
+相关章节：[第 36 章支付内容](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -31098,7 +31098,7 @@ func (s *PreAuthService) Cancel(ctx context.Context, preAuthID string) error {
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:6887`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[支付系统](../part03/10-payment-system.md)。
+相关章节：[第 36 章支付内容](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -33974,7 +33974,7 @@ func (s *SettlementService) Settle(ctx context.Context,
 
 迁移来源：`books/system-design-primer/src/part03/10-ecommerce-case-studies-interview.md:706`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[支付系统](../part03/10-payment-system.md)。
+相关章节：[第 36 章支付内容](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
