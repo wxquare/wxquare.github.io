@@ -920,4 +920,4 @@ sequenceDiagram
 
 1. [Elasticsearch 官方文档](https://www.elastic.co/guide/en/elasticsearch/reference/current/index.md) — 查询 DSL、分页、`profile`、聚合。  
 2. 本书相关章节：商品中心（索引与缓存）、库存系统、营销系统、计价系统、商品供给与运营管理。  
-3. 本书相关章节：第 13 章 Elasticsearch、第 25 章商品中心、第 27 章库存系统、第 28 章营销系统、第 29 章计价系统。
+3. 本书相关章节：后端面试基础知识题单中的 Elasticsearch 主题、第 25 章商品中心、第 27 章库存系统、第 28 章营销系统、第 29 章计价系统。
