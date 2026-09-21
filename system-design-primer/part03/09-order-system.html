@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-012fd679.js";
+            window.path_to_searchindex_js = "../searchindex-47942485.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a3a0b0da.js"></script>
+        <script src="../toc-86608dce.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -181,7 +181,7 @@
 <blockquote>
 <p><strong>本章定位</strong>：订单系统是交易链路的<strong>编排中枢</strong>。本章覆盖数据模型、状态机、创单 Saga、分布式事务（TCC / Saga）、幂等、特殊单类型、履约与系统边界；Go 示例为教学裁剪版，落地时请补全观测、鉴权与错误包装。</p>
 </blockquote>
-<p><strong>阅读提示</strong>：若你已读完第 29 章计价与第 31 章结算，可带着三个问题阅读——第一，<strong>订单快照与计价快照如何对齐版本</strong>；第二，<strong>库存预占发生在结算还是创单，失败时谁补偿</strong>；第三，<strong>支付域与订单域的状态机如何解耦又不丢一致性</strong>。搞清边界后，订单服务才不会长成「上帝对象」。</p>
+<p><strong>阅读提示</strong>：若你已读完第 28 章营销与计价、以及第 31 章结算，可带着三个问题阅读——第一，<strong>订单快照与计价快照如何对齐版本</strong>；第二，<strong>库存预占发生在结算还是创单，失败时谁补偿</strong>；第三，<strong>支付域与订单域的状态机如何解耦又不丢一致性</strong>。搞清边界后，订单服务才不会长成「上帝对象」。</p>
 <p><strong>与第 34 章案例的衔接</strong>：在 B2B2C 聚合平台中，订单往往还要承载 <strong>供应商订单号、供应商错误码、重试策略版本</strong> 等跨域信息；本章给出的是「平台自营电商」的主干模型，落地到机票、酒店等品类时，应把供应商差异收敛到 <strong>履约网关与扩展表</strong>，避免主表字段爆炸。第 34 章从全景角度回顾订单在微服务拓扑中的位置，可与本章边界小节交叉阅读。</p>
 <hr>
 <p>第一步：订单系统向商品中心发起“静态合规强校验”（RPC 同步） 这个校验是商品中心做的，还是 订单中心做的</p>
@@ -355,12 +355,12 @@ type Order struct {
 }
 </code></pre>
 <p><strong>拆单</strong>：若业务要求「不同仓 / 不同商家」拆子单，可引入 <code>shipment_group_id</code> 或子订单表；主单与子单的支付关系需在模型层一次性说清，避免支付回调时无法定位行。</p>
-<p><strong>行级扩展字段</strong>：跨境、大宗或企业采购常在行上携带 <strong>税率、HS 编码、采购合同号</strong> 等。建议用 <code>line_extra JSON</code> 或独立扩展表，并在写入时做 schema 版本号，避免无约束 JSON 变成「第二个代码仓库」。部分退款时，需能根据行级快照与分摊规则还原「可退金额」，这与第 29 章的分摊口径强相关。</p>
+<p><strong>行级扩展字段</strong>：跨境、大宗或企业采购常在行上携带 <strong>税率、HS 编码、采购合同号</strong> 等。建议用 <code>line_extra JSON</code> 或独立扩展表，并在写入时做 schema 版本号，避免无约束 JSON 变成「第二个代码仓库」。部分退款时，需能根据行级快照与分摊规则还原「可退金额」，这与第 28 章的分摊口径强相关。</p>
 <p><strong>赠品与换购</strong>：赠品行可标记 <code>line_type=gift</code>，金额为 0 但仍占用库存与履约单元；换购行则绑定主行 <code>parent_line_id</code>。建模时务必让履约与库存识别「最小履约单元」，否则会出现赠品未发但主单已完成的口径争议。</p>
 <h3 id="3223-价格快照"><a class="header" href="#3223-价格快照">32.2.3 价格快照</a></h3>
 <p>价格快照解决<strong>事后解释</strong>问题：用户下单后商品改价，应以快照为准。实践中常并存两层：</p>
 <ol>
-<li><strong>计价中心快照</strong>（第 29 章）：规则解释结果、分层明细、舍入版本；</li>
+<li><strong>计价中心快照</strong>（第 28 章）：规则解释结果、分层明细、舍入版本；</li>
 <li><strong>商品展示快照</strong>：标题、主图、规格文案，用于客服与纠纷处理。</li>
 </ol>
 <pre><code class="language-go">type OrderPricingSnapshot struct {
@@ -370,7 +370,7 @@ type Order struct {
 	CreatedAt    time.Time `json:"created_at"`
 }
 </code></pre>
-<p>创单事务内写入 <code>order.pricing_snapshot</code> 外键或内嵌 JSON，支付校验阶段<strong>只校验不重新全量试算</strong>（与第 29 章口径一致），避免渠道变化导致「可支付金额漂移」。</p>
+<p>创单事务内写入 <code>order.pricing_snapshot</code> 外键或内嵌 JSON，支付校验阶段<strong>只校验不重新全量试算</strong>（与第 28 章口径一致），避免渠道变化导致「可支付金额漂移」。</p>
 <p><strong>快照与客服工单</strong>：客服系统应能按 <code>snapshot_id</code> 拉取<strong>当时的展示文案与分层价格</strong>，而不是实时读商品中心。否则用户截图与后台看到的不一致，纠纷成本极高。若快照体积过大，可采用 <strong>对象存储 + 哈希引用</strong>，MySQL 仅存指针与版本。</p>
 <p><strong>多币种</strong>：<code>Currency</code> 与汇率快照需同事务写入；支付若支持用户切换币种，应生成新的支付上下文而不是覆盖原订单金额字段，除非业务流程明确允许改价。</p>
 <h3 id="3224-状态历史"><a class="header" href="#3224-状态历史">32.2.4 状态历史</a></h3>
@@ -817,7 +817,7 @@ stateDiagram-v2
 <p><strong>支付后确认</strong>：若品类要求支付后才向供应商下单，创单阶段可能是 <strong>软占</strong>，支付成功后再 <code>Commit</code>；订单需记录两阶段 token，关单时只释放对应阶段。</p>
 <h3 id="32103-与计价系统集成价格快照"><a class="header" href="#32103-与计价系统集成价格快照">32.10.3 与计价系统集成（价格快照）</a></h3>
 <p>创单请求携带 <code>pricing_token</code>，计价服务返回 <strong>不可变快照</strong>；订单落库字段与支付校验字段保持一致。</p>
-<p><strong>舍入与分摊</strong>：快照应包含 <strong>行级分摊结果</strong> 与 <strong>尾差处理规则版本</strong>（第 29 章），否则部分退款时营销与财务会对不上。支付校验只验证「渠道应付 == 快照应付」在允许误差内。</p>
+<p><strong>舍入与分摊</strong>：快照应包含 <strong>行级分摊结果</strong> 与 <strong>尾差处理规则版本</strong>（第 28 章），否则部分退款时营销与财务会对不上。支付校验只验证「渠道应付 == 快照应付」在允许误差内。</p>
 <h3 id="32104-与营销系统集成锁定与扣减"><a class="header" href="#32104-与营销系统集成锁定与扣减">32.10.4 与营销系统集成（锁定与扣减）</a></h3>
 <p>先锁后付：创单锁券，支付成功转实扣；关单 / 超时统一走营销回滚接口，携带 <code>order_id</code> 幂等。</p>
 <p><strong>平台与商家券</strong>：若一单混合出资，营销回滚需支持 <strong>按比例撤销</strong>；订单应保存 <code>subsidy_split</code> 片段，避免退款时无法拆分平台补贴与商家让利。</p>

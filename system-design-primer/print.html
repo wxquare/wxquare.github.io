@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-012fd679.js";
+            window.path_to_searchindex_js = "searchindex-47942485.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-a3a0b0da.js"></script>
+        <script src="toc-86608dce.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -229,8 +229,8 @@
 <tr><td><a href="#第-24-章-电商系统全景图">第 24 章</a></td><td>电商系统全景</td><td>从业务架构、应用架构、数据架构和技术架构拆解电商核心域与支撑域，建立交易与支付主线。</td><td>用全景图识别电商系统边界、依赖和核心风险。</td></tr>
 <tr><td><a href="#第-25-章-商品中心商品供给与生命周期治理">第 25 章</a></td><td>商品中心、商品供给与生命周期治理</td><td>合并商品主数据、供给入口、批量任务、审核、库存协同、发布一致性和生命周期治理，建立从来源输入到交易快照的端到端模型。</td><td>设计可恢复、可审计、可演进的商品供给与商品中心平台。</td></tr>
 <tr><td><a href="#第-27-章-库存系统">第 27 章</a></td><td>库存系统</td><td>讨论库存的通用模型、虚拟库存、可售锁定已售、并发扣减、超卖防控、释放和对账补偿。</td><td>区分热路径和权威路径，设计高并发且最终正确的库存系统。</td></tr>
-<tr><td><a href="#第-28-章-营销系统">第 28 章</a></td><td>营销系统</td><td>覆盖优惠券、积分、活动规则、预算控制、资格校验、试算、锁定、核销、释放和大促降级。</td><td>设计可叠加、可核销、可控资损的营销能力。</td></tr>
-<tr><td><a href="#第-29-章-计价系统设计与实现">第 29 章</a></td><td>计价系统</td><td>分析商品价格、营销优惠、会员权益、税费和运费如何合成为可解释、可追溯、可复算的价格结果。</td><td>设计可防篡改、可复算、能跨页面保持一致的计价链路。</td></tr>
+<tr><td><a href="#第-28-章-营销与计价系统">第 28 章</a></td><td>营销系统</td><td>覆盖优惠券、积分、活动规则、预算控制、资格校验、试算、锁定、核销、释放和大促降级。</td><td>设计可叠加、可核销、可控资损的营销能力。</td></tr>
+<tr><td><a href="#第-28-章-营销与计价系统">第 28 章</a></td><td>计价系统</td><td>分析商品价格、营销优惠、会员权益、税费和运费如何合成为可解释、可追溯、可复算的价格结果。</td><td>设计可防篡改、可复算、能跨页面保持一致的计价链路。</td></tr>
 <tr><td><a href="#第-30-章-搜索与导购">第 30 章</a></td><td>搜索与导购</td><td>区分搜索和导购，围绕统一查询服务、场景识别、查询编排、索引同步、筛选排序和降级展开。</td><td>构建商品发现读路径，并治理搜索体验与主数据一致性。</td></tr>
 <tr><td><a href="#第-31-章-购物车与结算">第 31 章</a></td><td>购物车与结算</td><td>说明购物车和结算域的边界，覆盖未登录加购、登录合并、结算校验、价格库存营销重算和重复提交防护。</td><td>把用户意图暂存和交易前强校验拆成清晰职责。</td></tr>
 <tr><td><a href="#第-32-章-订单系统">第 32 章</a></td><td>订单系统</td><td>从业务场景、状态机、订单数据模型、创单幂等、库存营销支付协作和异步补偿展开订单核心设计。</td><td>设计以状态和交易事实为中心的订单系统。</td></tr>
@@ -1222,7 +1222,7 @@ func NewPrice(amount int64, currency string) (Price, error) {
 </code></pre>
 <p>两个设计决策都值得在 Review 中坚持：</p>
 <ul>
-<li><strong>金额用「分」存 int64，不用 float64</strong>。浮点精度问题在计价、退款分摊场景是真金白银的事故源（第 29 章计价系统会再次遇到这个约束）。</li>
+<li><strong>金额用「分」存 int64，不用 float64</strong>。浮点精度问题在计价、退款分摊场景是真金白银的事故源（第 28 章营销与计价系统会再次遇到这个约束）。</li>
 <li><strong>校验收敛在构造函数</strong>。<code>NewPrice</code> 是唯一能造出 <code>Price</code> 的地方，负数价格在系统中根本不可能存在——这比在每个使用处写 <code>if price &lt; 0</code> 高一个量级，也正是 2.4.2「把变化点隔离」的实例。</li>
 </ul>
 <h3 id="264-应用服务编排显式依赖抽象失败语义清楚"><a class="header" href="#264-应用服务编排显式依赖抽象失败语义清楚">2.6.4 应用服务：编排显式、依赖抽象、失败语义清楚</a></h3>
@@ -4833,7 +4833,7 @@ flowchart TB
     ProductSvc["商品中心&lt;br/&gt;第 25 章"]
     InvSvc["库存系统&lt;br/&gt;第 27 章"]
     MktSvc["营销系统&lt;br/&gt;第 28 章"]
-    PriceSvc["计价系统&lt;br/&gt;第 29 章"]
+    PriceSvc["计价系统&lt;br/&gt;第 28 章"]
   end
 
   subgraph L_trade["交易编排与资金"]
@@ -5063,7 +5063,7 @@ flowchart TB
 </tbody>
 </table>
 </div>
-<p>第 25 章至第 29 章分别深入各支撑系统；第 25 章从组织上常合并「上架 + 运营 + 生命周期」，但<strong>限界上下文仍建议在模型层分开</strong>，以避免「一个上帝服务」拖垮发布节奏。</p>
+<p>第 25 章至第 28 章以及第 30 章至第 33 章分别深入各支撑系统；第 25 章从组织上常合并「上架 + 运营 + 生命周期」，但<strong>限界上下文仍建议在模型层分开</strong>，以避免「一个上帝服务」拖垮发布节奏。</p>
 <p><strong>为什么支撑域也值得深度自研</strong>：支撑域虽非「卖点」，却是故障的放大器。例如库存超卖、计价错误、营销叠加漏洞，都会在订单层集中爆发。架构评审中常问：<strong>「若该支撑域宕机 30 分钟，核心域能否优雅降级？」</strong>——答案决定缓存策略、兜底价、降级开关的设计深度。</p>
 <p><strong>与核心域的集成契约（摘要）</strong>：</p>
 <ul>
@@ -5246,7 +5246,7 @@ sequenceDiagram
 
 <p><strong>阶段解读</strong>：结算阶段（打开结算页）与创单阶段（提交订单）必须对<strong>试算结果</strong>有明确版本策略：常见做法是计价返回 <code>quote_version</code> 或签名摘要，订单持久化时校验，防止「页面价与实付不一致」引发纠纷。库存侧若已在结算预占，创单多为<strong>确认</strong>；若仅在结算校验、创单时才预占，则需评估高峰下的<strong>重试风暴</strong>（第 27 章）。营销锁定与扣减宜拆成「锁定 → 确认 / 释放」两阶段，与订单状态机对齐，避免券冻结长期占用。</p>
 <p><strong>异常路径（图中未展开但工程必备）</strong>：创单任一步失败应沿 Saga 反向释放预占与券锁定；若订单已写库但后续异步失败，应依赖订单状态机驱动补偿任务，而不是人工改库。</p>
-<p><strong>伏笔</strong>：第 29 章定义试算与快照边界；第 32 章给出订单状态机与创单流程；第 33 章深入支付状态、回调和补偿；第 4 章把这些步骤抽象为可复用的一致性模式。</p>
+<p><strong>伏笔</strong>：第 28 章定义营销资格、试算与快照边界；第 32 章给出订单状态机与创单流程；第 33 章深入支付状态、回调和补偿；第 4 章把这些步骤抽象为可复用的一致性模式。</p>
 <h3 id="2443-支付数据流"><a class="header" href="#2443-支付数据流">24.4.3 支付数据流</a></h3>
 <p>聚焦支付单生命周期与订单回写、清结算衔接。</p>
 <pre class="mermaid">
@@ -5279,7 +5279,7 @@ sequenceDiagram
 <hr>
 <h2 id="245-系统边界总览"><a class="header" href="#245-系统边界总览">24.5 系统边界总览</a></h2>
 <h3 id="2451-各系统的职责边界十二个核心系统"><a class="header" href="#2451-各系统的职责边界十二个核心系统">24.5.1 各系统的职责边界（十二个核心系统）</a></h3>
-<p>下表给出本书采用的<strong>十二个核心可部署系统</strong>（与 24.1.2 应用架构及第 25 章至第 33 章对应）。「不负责」列用于架构评审时的<strong>负面清单</strong>，防止边界侵蚀。</p>
+<p>下表给出本书采用的<strong>十二个核心可部署系统</strong>（与 24.1.2 应用架构及第 25 章至第 28 章、第 30 章至第 33 章对应）。「不负责」列用于架构评审时的<strong>负面清单</strong>，防止边界侵蚀。</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -5288,8 +5288,8 @@ sequenceDiagram
 <tbody>
 <tr><td>1</td><td>商品中心</td><td>SPU/SKU、类目属性、商品快照与主数据质量</td><td>库存扣减、营销计算、支付</td><td><a href="#第-25-章-商品中心商品供给与生命周期治理">第 25 章</a></td></tr>
 <tr><td>2</td><td>库存系统</td><td>可售量、预占/确认/释放、对账与供应商同步</td><td>价格计算、订单状态机</td><td><a href="#第-27-章-库存系统">第 27 章</a></td></tr>
-<tr><td>3</td><td>营销系统</td><td>券/活动/补贴、圈品、预算与防刷</td><td>订单持久化、支付渠道</td><td><a href="#第-28-章-营销系统">第 28 章</a></td></tr>
-<tr><td>4</td><td>计价系统</td><td>多场景试算、费用、价格快照与降级</td><td>营销资金账、库存数量</td><td><a href="#第-29-章-计价系统设计与实现">第 29 章</a></td></tr>
+<tr><td>3</td><td>营销系统</td><td>券/活动/补贴、圈品、预算与防刷</td><td>订单持久化、支付渠道</td><td><a href="#第-28-章-营销与计价系统">第 28 章</a></td></tr>
+<tr><td>4</td><td>计价系统</td><td>多场景试算、费用、价格快照与降级</td><td>营销资金账、库存数量</td><td><a href="#第-28-章-营销与计价系统">第 28 章</a></td></tr>
 <tr><td>5</td><td>搜索与导购</td><td>Query、召回、排序、Hydrate 编排</td><td>不作为订单或支付事实来源</td><td><a href="#第-30-章-搜索与导购">第 30 章</a></td></tr>
 <tr><td>6</td><td>购物车</td><td>行项目暂存、合并、批量操作</td><td>不持有支付契约</td><td><a href="#第-31-章-购物车与结算">第 31 章</a></td></tr>
 <tr><td>7</td><td>结算编排</td><td>结算页 Saga、预占协调、拆单预览</td><td>不替代订单合同存储</td><td><a href="#第-31-章-购物车与结算">第 31 章</a></td></tr>
@@ -8321,1696 +8321,1092 @@ return codeIds
 <p><strong>阅读建议</strong>：若读者刚完成第 25 章商品中心与第 4 章一致性章节，可按「商品发布 → 库存创建 → 创单预占 → 支付确认 → 对账修复」的顺序对照本章示意图走读一遍；再把自家品类的库存对象、库存范围、事实来源、单元形态和扣减时机填入矩阵，通常能在工作坊中快速对齐产品与工程预期。建议同时准备 1～2 个真实故障案例作为讨论锚点，避免停留在抽象原则层面。</p>
 <p><strong>下一章预告</strong>：第 28 章将深入营销系统，重点讨论优惠计算与营销库存（券、活动、补贴）如何与商品库存协同，避免「算得便宜却卖超了」这类跨域问题。</p>
 <hr><div style="break-before: page; page-break-before: always;"></div>
-<h1 id="第-28-章-营销系统"><a class="header" href="#第-28-章-营销系统">第 28 章 营销系统</a></h1>
+<h1 id="第-28-章-营销与计价系统"><a class="header" href="#第-28-章-营销与计价系统">第 28 章 营销与计价系统</a></h1>
 <blockquote>
-<p><strong>交易链路关键域</strong>：营销系统负责「增长与让利」的可编排表达——优惠券、积分、活动、补贴等工具在成本可控前提下提升转化；同时必须与计价、订单、库存、支付等系统严格分工，避免「算价口径漂移」与「资源扣减双写」。</p>
+<p><strong>本章定位</strong>：营销系统决定用户在什么条件下可以获得什么权益，计价系统把基础价格、营销权益、费用和支付方式编排成一份可解释、可审计、可锁定的价格事实。两者不是两个互相调用的“优惠服务”和“金额服务”，而是交易报价域中的两个限界上下文：营销提供资格与权益，计价负责金额计算，订单负责把计算结果变成交易快照，支付负责验证并完成资金交换。</p>
 </blockquote>
-<hr>
-<h2 id="281-系统概览"><a class="header" href="#281-系统概览">28.1 系统概览</a></h2>
-<h3 id="2811-营销系统的定位"><a class="header" href="#2811-营销系统的定位">28.1.1 营销系统的定位</a></h3>
-<p><strong>一句话定位</strong>：营销系统是电商平台的<strong>增长引擎</strong>与<strong>让利规则中心</strong>，它不替代「商品价格事实来源」（商品中心 / 计价中心），而是对可售商品集合施加<strong>条件化权益</strong>（券、活动价、积分抵扣、平台补贴），并在交易链路中完成<strong>可审计的占用与核销</strong>。</p>
-<p><strong>与相邻系统的关系</strong>（职责视角）：</p>
+<p>电商平台最容易被低估的复杂度，往往不在“商品单价乘数量”，而在于同一件商品会同时受到用户、渠道、店铺、活动、库存、时间、币种、费用和支付方式的影响。一个用户在商品详情页看到的价格，可能只是匿名展示价；进入购物车后，会员身份和券发生变化；在结算页，跨店满减需要先按店铺分组再计算；创单时，供应商报价可能已经过期；支付时，平台还需要确认订单金额、币种、支付渠道费和营销出资方都没有被篡改。任何一个环节只保存一个 <code>total_amount</code>，后续客服、财务、商家和风控都无法回答“为什么是这个数”。</p>
+<p>本章讨论一套适用于 B2C、B2B2C 和多品类虚拟商品平台的统一方法。文中的流量、延迟、预算和库存数字都属于<strong>示例假设</strong>，用于说明如何做容量规划和决策，不代表任何平台的公开事实。正文引用采用 <code>[n]</code> 简注，章末列出每个来源的作者或机构、标题、年份和原始 URL；引用支持相邻的理论、协议语义或工程判断，示例推导会明确标记为本章设计。</p>
+<h2 id="281-问题定义约束与设计目标"><a class="header" href="#281-问题定义约束与设计目标">28.1 问题定义、约束与设计目标</a></h2>
+<h3 id="2811-先定义交易事实再定义服务"><a class="header" href="#2811-先定义交易事实再定义服务">28.1.1 先定义交易事实，再定义服务</a></h3>
+<p>营销和计价的第一项工作不是选 Redis、规则引擎或消息队列，而是回答四个问题：</p>
+<ol>
+<li><strong>什么是商品事实</strong>：商品中心或供应商报价系统提供了什么可售对象、基础价、币种、有效期和销售约束？</li>
+<li><strong>什么是权益事实</strong>：用户是否拥有某张券、是否满足满减门槛、是否仍有积分、平台是否愿意承担补贴？</li>
+<li><strong>什么是价格事实</strong>：在某个场景、某个时间点、使用某个规则版本计算出的每一行金额和订单应付金额是什么？</li>
+<li><strong>什么是交易事实</strong>：订单创建后，哪些输入被锁定，哪些权益已经冻结，哪些变化必须重新确认？</li>
+</ol>
+<p>如果这四类事实没有分开，系统会出现三种典型混乱。第一，营销服务把“优惠 20 元”直接写到订单的最终金额里，计价服务无法解释优惠先后顺序和出资方。第二，页面使用缓存价而创单重新计算，用户看到的是 80 元、提交后却变成 86 元，客服只能依赖日志猜测原因。第三，订单取消时直接把券状态改回“未使用”，但另一笔重试请求已经消费了这张券，最终形成重复使用或资金损失。</p>
+<p>因此，本章采用如下统一定义：</p>
+<blockquote>
+<p>营销系统发布可版本化的权益规则并管理有限权益的生命周期；计价系统读取基础价格事实，选择合法权益，计算价格组件并生成快照；订单系统保存快照引用和交易状态；支付系统只接受与快照一致的应付金额。</p>
+</blockquote>
+<p>这个定义借鉴领域驱动设计中的统一语言、限界上下文和模型边界思想。[1][2] 它也符合企业应用架构中“领域逻辑不能被数据库字段和远程调用隐式取代”的原则：分层不是把代码机械地分成 Controller、Service、DAO，而是让业务规则在能够表达业务概念的位置上保持内聚。[3]</p>
+<h3 id="2812-业务范围与不做什么"><a class="header" href="#2812-业务范围与不做什么">28.1.2 业务范围与不做什么</a></h3>
+<p>本章覆盖以下场景：</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>系统</th><th>营销系统依赖它什么</th><th>营销系统不替它承担什么</th></tr>
+<tr><th>场景</th><th>典型需求</th><th>必须锁定的事实</th></tr>
 </thead>
 <tbody>
-<tr><td>商品中心</td><td>类目、SPU/SKU、可售状态、圈品范围</td><td>商品主数据维护、上下架编排</td></tr>
-<tr><td>计价中心</td><td>统一试算编排、价格分层模型、快照口径</td><td>基础价/渠道价等「标价事实」的唯一来源（按组织边界而定）</td></tr>
-<tr><td>库存系统</td><td>可售库存、预占结果</td><td>实物库存扣减与释放</td></tr>
-<tr><td>订单系统</td><td>创单编排、状态机、补偿入口</td><td>订单主单据生命周期（营销只参与其中资源步骤）</td></tr>
-<tr><td>用户系统</td><td>画像标签、等级、风控信号</td><td>账号体系与鉴权主责</td></tr>
-<tr><td>支付系统</td><td>实付金额、分账、补贴清算</td><td>渠道对接与支付状态机</td></tr>
+<tr><td>商品详情页</td><td>展示会员价、活动价、匿名价和“最高可省”</td><td>商品版本、用户分群、活动版本；允许短暂过期</td></tr>
+<tr><td>购物车</td><td>多行商品、跨店铺券、积分和运费预览</td><td>行快照、数量、店铺归属、候选权益</td></tr>
+<tr><td>结算与创单</td><td>选择地址、配送、券和支付方式</td><td>基础价、规则版本、费用、分摊结果、库存引用</td></tr>
+<tr><td>支付校验</td><td>防止金额被篡改、确认动态报价仍有效</td><td><code>snapshot_id</code>、币种、应付金额、报价有效期</td></tr>
+<tr><td>取消与退款</td><td>释放冻结权益、恢复可退积分、拆分退款</td><td>原快照、组件 ID、退款范围、补偿状态</td></tr>
+<tr><td>大促与秒杀</td><td>高峰抢券、限时折扣、预算和配额</td><td>热点活动版本、营销库存、限流结果和审计事件</td></tr>
 </tbody>
 </table>
 </div>
-<p><strong>价值闭环</strong>：投放 → 领取/参与 → 试算曝光 → 下单锁定 → 支付核销 → 结算对账 → 报表 ROI。缺任何一环都会出现「看得见优惠、对不上账」的工程事故。</p>
-<h3 id="2812-核心业务场景"><a class="header" href="#2812-核心业务场景">28.1.2 核心业务场景</a></h3>
-<p>典型场景可按用户生命周期与平台目标拆分：</p>
-<p><strong>拉新</strong>：新人券、首单立减、渠道专属券批次、注册礼包（券 + 积分组合）。</p>
-<p><strong>促活与留存</strong>：签到积分、任务体系、会员等级权益、生日礼、沉默召回券。</p>
-<p><strong>成交提升（GMV / AOV）</strong>：满减满折、跨店凑单、限时折扣、N 元购、买赠。</p>
-<p><strong>热点营销（高并发）</strong>：秒杀、抢券、限量补贴；对系统提出与普通促销完全不同的容量与一致性要求。</p>
-<p><strong>平台型业务（B2B2C）</strong>：商家自营销 + 平台统一规则 + 审核流；成本承担方可能是商家、平台或按比例共担，必须在支付与清结算链路可解释、可分摊。</p>
-<p><strong>B2C 与 B2B2C 的营销差异</strong>（决定你是否要引入「审核流、分账、跨店叠加」三件套）：</p>
+<p>本章不把广告竞价、复杂推荐排序、税务申报、支付清算网络和仓储履约展开为独立系统；但会定义它们与营销计价之间的接口边界。动态定价模型可以作为基础价格适配器接入，机器学习模型只负责产生候选价格或折扣建议，不直接绕过价格安全检查和快照机制。个性化定价还涉及价格公平、福利和可解释性，不能因为“算法可以提高转化”就忽略用户权益；相关研究将价格负担、群体公平、企业收益和资源可及性作为不同目标讨论。[19]</p>
+<h3 id="2813-约束数量级与验收指标"><a class="header" href="#2813-约束数量级与验收指标">28.1.3 约束、数量级与验收指标</a></h3>
+<p>以下是一组用于设计演练的假设。真实项目应以压测、线上采样和业务峰值测量替换它们。</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>维度</th><th>B2C（自营为主）</th><th>B2B2C（平台 + 商家）</th></tr>
+<tr><th>维度</th><th style="text-align: right">示例假设</th><th>对设计的影响</th></tr>
 </thead>
 <tbody>
-<tr><td>营销主体</td><td>平台单一主体</td><td>平台与多商家并存</td></tr>
-<tr><td>成本承担</td><td>平台预算闭环即可</td><td>需定义商家承担、平台补贴、联合出资比例</td></tr>
-<tr><td>活动审核</td><td>通常内部运营闭环</td><td>商家活动常需平台审核与风控评分</td></tr>
-<tr><td>优惠叠加</td><td>平台统一互斥组即可</td><td>需处理跨店、跨卖家券、店铺券与平台券的优先级</td></tr>
-<tr><td>结算复杂度</td><td>订单金额 ≈ 平台收入口径</td><td>需分账、分润、逆向退款时的营销成本回冲</td></tr>
+<tr><td>日活用户</td><td style="text-align: right">500 万</td><td>用户分群、券查询和活动列表不能每次回源全表</td></tr>
+<tr><td>普通结算峰值</td><td style="text-align: right">2,000 QPS</td><td>计价需要批量读取、并行依赖和稳定尾延迟</td></tr>
+<tr><td>大促展示峰值</td><td style="text-align: right">50,000 QPS</td><td>展示路径和交易路径必须分离，允许缓存和部分降级</td></tr>
+<tr><td>创单峰值</td><td style="text-align: right">5,000 QPS</td><td>快照与权益冻结必须有明确幂等语义</td></tr>
+<tr><td>购物车行数</td><td style="text-align: right">P95 8 行，极端 50 行</td><td>组合优惠搜索要设上限，不能无限枚举</td></tr>
+<tr><td>规则数量</td><td style="text-align: right">单活动数百条，用户可见活动数十个</td><td>规则需预编译、分层过滤和版本化</td></tr>
+<tr><td>价格有效期</td><td style="text-align: right">固定价 30 分钟，供应商报价 1–5 分钟</td><td>支付前必须校验报价过期时间</td></tr>
+<tr><td>资金误差</td><td style="text-align: right">不允许出现负价、超预算、分摊不闭合</td><td>金额整数化、组件审计和对账是硬约束</td></tr>
+<tr><td>用户体验</td><td style="text-align: right">结算页 P99 目标由业务设定，例如 300 ms</td><td>预算必须按依赖拆分，不能只给总超时</td></tr>
 </tbody>
 </table>
 </div>
-<p><strong>非功能需求（NFR）速查</strong>：营销系统既要「算得对」，也要「扛得住、赔得起、查得到」。建议在架构评审材料中显式写出下列指标，并与监控看板一一映射：</p>
+<p>SLO 不应在系统上线后凭感觉制定。Google SRE 将 SLI、SLO 和错误预算作为服务治理的基础，强调指标必须描述用户真正关心的行为，而不是只挑容易采集的机器指标。[14] 对本章而言，至少需要分别定义：展示试算成功率、创单价格校验成功率、快照写入成功率、支付金额不一致率、权益冻结超时率、营销补偿积压、价格解释请求成功率和对账差异率。一个“计价服务 99.99% 可用”的抽象数字，不能替代“99.9% 结算请求在 300 ms 内返回，并且价格组件完整”的业务指标。</p>
+<h3 id="2814-设计目标与-adr-01"><a class="header" href="#2814-设计目标与-adr-01">28.1.4 设计目标与 ADR-01</a></h3>
+<p>本章的设计目标有五个：</p>
 <ul>
-<li><strong>一致性</strong>：券与积分的状态迁移与订单支付状态单调一致；允许的最终一致边界写清楚（例如报表延迟分钟级）。</li>
-<li><strong>幂等性</strong>：领取、冻结、核销、回滚接口全部带业务幂等键；消息消费以 <code>event_id</code> 或 <code>(biz_type,biz_id,action)</code> 去重。</li>
-<li><strong>可用性</strong>：试算路径可降级；写路径失败可补偿；热点活动具备独立熔断域，避免拖垮全站下单。</li>
-<li><strong>可观测性</strong>：每一次试算输出 <code>trace_id</code>；每一次核销写审计流水；预算与库存类 Redis Key 有容量与过期策略。</li>
-<li><strong>安全与合规</strong>：防刷、频控、隐私最小化；补贴与券的发放记录满足审计留存周期。</li>
+<li><strong>正确</strong>：金额非负、分摊闭合、优惠不超过适用范围，平台和商家出资可追溯；</li>
+<li><strong>一致</strong>：展示、结算、创单和支付之间有明确的口径关系，创单后的历史金额不因新规则发布而重算；</li>
+<li><strong>可扩展</strong>：增加一个费用、优惠类型或新品类时，主要新增组件和适配器，不修改所有调用方；</li>
+<li><strong>可恢复</strong>：网络超时、消息重复、服务重启、支付未知和部分退款都能通过重试、补偿或对账收敛；</li>
+<li><strong>可解释</strong>：客服能够从 <code>snapshot_id</code> 还原输入、规则版本、价格层、优惠组件和出资方。</li>
 </ul>
-<h3 id="2813-系统架构"><a class="header" href="#2813-系统架构">28.1.3 系统架构</a></h3>
-<p>工程上通常采用「<strong>接入编排 + 工具域服务自治 + 计算引擎集中</strong>」的形态：网关负责鉴权、路由、限流与实验分桶；券/积分/活动各自拥有独立数据库边界（逻辑或物理分库）；<strong>营销计算引擎</strong>聚合多源输入并调用规则引擎；异步事件通过消息总线广播给通知、风控、数据仓库与对账任务。</p>
+<p><strong>ADR-01：营销和计价分离，但共享报价编排契约。</strong></p>
+<p>背景是优惠规则变化快、商品基础价具有不同事实来源、交易链路又要求金额可审计。如果把所有逻辑放在营销服务，营销服务会变成隐含的订单服务；如果把所有规则放进计价服务，营销运营无法独立发布活动，代码会被配置分支和品类条件淹没。最终决策是：营销域输出候选权益、资格判断、资源冻结和核销结果；计价域负责把基础价、候选权益和费用组装为 <code>PriceComponent</code>；订单保存快照，不把两个服务的数据库表拼成一个“大促表”。</p>
+<p>获得的能力是边界清楚、规则可审计、品类可扩展；主动牺牲的是一次请求中需要跨服务协作，且必须承担版本传递、补偿、对账和最终一致性。这个取舍不是“微服务越多越先进”，而是因为价格事实和权益事实有不同的变化速率、责任人和生命周期。ADR 应记录背景、决定和后果，并在边界条件改变时重新评估。[17]</p>
+<h3 id="2815-四类业务压力与设计取舍"><a class="header" href="#2815-四类业务压力与设计取舍">28.1.5 四类业务压力与设计取舍</a></h3>
+<p>营销和计价的复杂度可以按四类压力观察。第一类是<strong>规则压力</strong>：活动越来越多，券有门槛、范围、互斥和优先级，运营希望不发版就能调整。解决办法是版本化配置、规则编译和仿真，但配置越灵活，越需要 schema、权限和回滚，否则把代码复杂度转移成运营资损。</p>
+<p>第二类是<strong>交易压力</strong>：用户希望页面快速，订单希望金额稳定，支付希望校验严格。不能用一个“实时性”指标覆盖三者。展示可以接受短 TTL；购物车需要提示变化；创单和支付必须引用快照。快照本质上是把一个短暂的计算结果转化为交易承诺，承诺一旦产生，变化必须通过显式确认或售后流程处理。</p>
+<p>第三类是<strong>资源压力</strong>：券、预算、积分、库存和供应商报价都可能在高峰被争抢。资源压力要求状态机、原子预占和释放，但不意味着所有状态都要同步完成。可以把展示和候选计算异步化，把真正影响资金的冻结、确认、释放做成可查询的同步命令，再用事件驱动统计和分析。</p>
+<p>第四类是<strong>组织压力</strong>：商品、营销、订单、支付、财务和客服由不同团队负责，每个团队都可能在本地添加一个价格字段。此时最重要的不是继续建表，而是把价格组件、快照、规则版本和责任矩阵写成跨团队契约。ADR 让团队能够看到某个决策获得了什么、牺牲了什么，也能知道在什么条件下重新评估。[17]</p>
+<p>从这四类压力可以推导出一张取舍表：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>决策</th><th>获得</th><th>牺牲</th><th>适用前提</th><th>重新评估条件</th></tr>
+</thead>
+<tbody>
+<tr><td>规则配置化</td><td>发布快、运营可控</td><td>配置校验和仿真复杂</td><td>规则类型有稳定抽象</td><td>配置分支超过领域模型可理解范围</td></tr>
+<tr><td>统一计价</td><td>口径一致、扩展复用</td><td>依赖编排、快照和迁移成本</td><td>多场景共享价格事实</td><td>只有单一固定价且无跨域资金影响</td></tr>
+<tr><td>营销库存缓存预扣</td><td>高峰吞吐、低延迟</td><td>需要对账和补偿</td><td>资源可按分片分配</td><td>预算必须强一致且无法预分配</td></tr>
+<tr><td>异步事件</td><td>解耦、削峰、可重放</td><td>最终一致、重复消费</td><td>消费者可幂等</td><td>用户必须在一个本地事务内立即看到结果</td></tr>
+<tr><td>个性化权益</td><td>精细运营、可实验</td><td>公平、隐私、解释成本</td><td>有清晰资格和审计策略</td><td>价格差异无法解释或触发合规风险</td></tr>
+</tbody>
+</table>
+</div>
+<p>促销研究从消费者对公平交易的感知讨论门槛和封顶优惠；本章将其转译为工程约束：规则应显式保存触发条件、展示文案和最终价影响，系统应能重放同一条件下的决策，而不是只保存一个折扣数字。[18] 个性化价格研究则提醒工程团队，收入、转化、公平和福利不是同一个目标函数；如果产品选择个性化定价，至少要保存资格版本、价格范围和审计解释。[19]</p>
+<h3 id="2816-典型反模式"><a class="header" href="#2816-典型反模式">28.1.6 典型反模式</a></h3>
+<p><strong>反模式一：一个 <code>discount_amount</code> 字段走遍所有服务。</strong> 它无法表达多张券的来源、顺序、适用行和部分退款，最终所有服务都在猜这个数字的含义。改法是组件化，并在订单中保存组件和分摊。</p>
+<p><strong>反模式二：把活动配置直接放进客户端。</strong> 客户端可以提前展示，但不能决定资格、门槛、库存和金额。改法是客户端传选择，服务端重新评估，返回拒绝原因和新快照。</p>
+<p><strong>反模式三：用分布式锁代替状态机。</strong> 锁只能减少并发冲突，不能表示支付未知、订单取消、补偿失败和人工接管。改法是锁用于保护短临界区，状态机和流水用于表达业务事实。</p>
+<p><strong>反模式四：把消息“恰好一次”当成资金“恰好一次”。</strong> 消息系统的语义只覆盖它的边界，外部数据库、支付渠道和供应商仍可能重复或超时。改法是外部副作用使用幂等键、状态查询和对账。</p>
+<p><strong>反模式五：把降级写成“营销服务失败就原价下单”。</strong> 原价可能缺少供应商费用、用户已选择的承诺或最低价保护。改法是按场景定义降级等级，交易路径在无法形成可信快照时快速失败。</p>
+<h2 id="282-统一模型营销权益价格层快照与状态机"><a class="header" href="#282-统一模型营销权益价格层快照与状态机">28.2 统一模型：营销权益、价格层、快照与状态机</a></h2>
+<h3 id="2821-统一语言与核心对象"><a class="header" href="#2821-统一语言与核心对象">28.2.1 统一语言与核心对象</a></h3>
+<p>新功能进入系统前，产品、运营、客服、财务和研发应先对以下对象达成一致。美团关于互联网业务 DDD 的实践指出，复杂系统的腐化常常不是因为少了一个技术组件，而是模型与代码逐渐脱离业务语言，导致边界低内聚、高耦合。[21] 在交易场景中，最危险的词是“优惠”“价格”“库存”这类看似人人理解、实际上每个团队含义不同的词。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>对象</th><th>业务含义</th><th>关键属性</th><th>所属事实</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Money</code></td><td>带币种的不可变金额</td><td><code>minor_units</code>、<code>currency</code>、<code>scale</code></td><td>计价域</td></tr>
+<tr><td><code>PriceComponent</code></td><td>对某个行或订单总额的增量影响</td><td><code>component_id</code>、<code>type</code>、<code>amount</code>、<code>source</code>、<code>rule_version</code></td><td>计价域</td></tr>
+<tr><td><code>Benefit</code></td><td>用户或订单可获得的权益</td><td>资格条件、使用限制、有效期、出资方</td><td>营销域</td></tr>
+<tr><td><code>PromotionRule</code></td><td>描述如何产生权益的可版本化规则</td><td>优先级、互斥组、门槛、适用范围</td><td>营销域</td></tr>
+<tr><td><code>Reservation</code></td><td>对有限权益或预算的临时占用</td><td>资源、数量、订单、过期时间、状态</td><td>营销域</td></tr>
+<tr><td><code>PriceSnapshot</code></td><td>某次计算的输入和输出快照</td><td>请求指纹、层级结果、组件、规则哈希、有效期</td><td>计价/订单协作</td></tr>
+<tr><td><code>Allocation</code></td><td>把订单级优惠分配到行的结果</td><td>行 ID、组件 ID、分摊金额、尾差标记</td><td>计价域</td></tr>
+<tr><td><code>LedgerEntry</code></td><td>权益或积分的不可变流水</td><td>账户、方向、数量、业务单号、幂等键</td><td>营销域</td></tr>
+</tbody>
+</table>
+</div>
+<p><code>PriceComponent</code> 不能只保存一个数。至少应描述“这是基础价、活动减免、平台券、商家券、积分抵扣、运费、服务费还是税费；金额由谁承担；适用于哪一行；由哪个规则版本产生”。组件的稳定 ID 比数组下标重要，因为订单行可能在合并、拆单和退款时重排。退款、开票和财务分摊都应引用 <code>component_id</code>，而不是假设“第三个数组元素永远是优惠券”。</p>
+<h3 id="2822-四层价格模型与公式"><a class="header" href="#2822-四层价格模型与公式">28.2.2 四层价格模型与公式</a></h3>
+<p>为了避免“先打折还是先减券”的口头争论，先把计算拆成语义层。一个适用于多数实物和虚拟商品的模型如下：</p>
+<pre><code class="language-text">LineBase       = 基础价适配器输出的单行价格 × 数量
+PromotionTotal = 按活动规则对 LineBase 计算的活动价或活动减免
+DeductionTotal = 券、积分、红包等在合法范围内的抵扣
+ChargeTotal    = 运费、服务费、渠道费、税费等附加费用
+Payable        = LineBase - PromotionTotal - DeductionTotal + ChargeTotal
+</code></pre>
+<p>这里的 <code>PromotionTotal</code> 和 <code>DeductionTotal</code> 不是允许负数随便叠加的字段，而是组件集合的聚合结果。对每一个组件，都需要回答四个问题：计算前的基数是什么；组件是否与其他组件互斥；该组件能否覆盖费用；平台、商家和渠道分别承担多少。某些业务要把营销价格写成“活动后的新单价”，另一些业务要把它写成“对基础价的减量”，二者都可以，但必须在统一模型里选择一种语义。本章采用“组件保存增量、层负责计算顺序”的方式，因为增量更适合审计、分摊和逆向退款。</p>
+<p>价格层的顺序是业务契约，不是实现细节。比如“满 300 减 50”应先按适用商品集合求门槛，再判断是否达到 300；平台券可能只能作用于活动后的小计；积分抵扣可能受支付金额上限约束；税费可能不能被折扣覆盖。促销研究也表明，门槛型和封顶型优惠即使最大经济收益相同，消费者对公平性和转化的感知仍可能不同，因此优惠规则既要表达经济约束，也要表达对用户展示的条件。[18]</p>
+<h3 id="2823-权益状态机价格快照与不变量"><a class="header" href="#2823-权益状态机价格快照与不变量">28.2.3 权益状态机、价格快照与不变量</a></h3>
+<p>有限权益必须有明确状态机。以优惠券为例，推荐使用以下状态：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>状态</th><th>可执行操作</th><th>不允许操作</th><th>迁移触发</th></tr>
+</thead>
+<tbody>
+<tr><td><code>AVAILABLE</code></td><td>试算、冻结</td><td>重复冻结同一券</td><td>用户选择并创建预占</td></tr>
+<tr><td><code>FROZEN</code></td><td>查询、确认、释放</td><td>再次被其他订单确认</td><td>订单创建成功或超时</td></tr>
+<tr><td><code>CONSUMED</code></td><td>查询、退款按业务规则补偿</td><td>再次使用</td><td>支付成功/履约确认</td></tr>
+<tr><td><code>RELEASED</code></td><td>审计、重新进入可用池（若策略允许）</td><td>按旧订单消费</td><td>取消、支付失败或超时</td></tr>
+<tr><td><code>EXPIRED</code></td><td>审计</td><td>冻结或消费</td><td>过期任务或规则判断</td></tr>
+</tbody>
+</table>
+</div>
+<p>积分账户更适合“账户余额 + 不可变流水”，而不是只更新 <code>available_points</code>。流水中记录发放、冻结、消费、释放、退还和过期，每个动作带 <code>biz_id</code>、<code>idempotency_key</code> 和前序流水引用。预算也使用类似模型：预算桶有承诺额、已冻结额、已消费额和可用额，消费不应只依赖一个 Redis 计数器。</p>
+<p>价格快照至少包含以下字段：</p>
+<pre><code class="language-json">{
+  "snapshot_id": "ps_20260921_01H...",
+  "request_fingerprint": "sha256(...) ",
+  "scene": "create_order",
+  "currency": "CNY",
+  "items": [{"line_id": "l1", "sku_id": "sku-1", "qty": 2}],
+  "base_price_version": "product-v91",
+  "marketing_rule_version": "campaign-v12",
+  "components": [],
+  "allocations": [],
+  "payable_minor_units": 26800,
+  "expires_at": "2026-09-21T12:00:30Z"
+}
+</code></pre>
+<p>快照的关键不是“把 JSON 存下来”，而是让未来能够重建“当时看到了什么”。因此应保存输入哈希、规则哈希、供应商报价引用、用户资格分群版本、舍入过程、组件出资方和计算引擎版本。订单创建后，新的活动可以影响下一笔订单，但不能悄悄改写已支付订单的历史快照。</p>
+<p>本章采用以下不变量：</p>
+<ol>
+<li>任意行的最终价不得小于零，订单应付金额不得小于零；</li>
+<li>行级应付金额之和等于订单应付金额，分摊尾差必须有唯一归属行；</li>
+<li>任何优惠组件都不能超过其适用基数和剩余预算；</li>
+<li><code>FROZEN</code> 权益只能由创建它的业务单号确认或释放；</li>
+<li>同一个幂等键和相同请求指纹必须返回相同业务结果；同一个幂等键不能接受不同请求体；</li>
+<li>价格快照只追加或生成新版本，不直接覆盖历史快照；</li>
+<li>事件重复、回调重复和补偿重试不能使余额、库存、预算或核销次数重复变化。</li>
+</ol>
+<h3 id="2824-领域边界不是数据库边界"><a class="header" href="#2824-领域边界不是数据库边界">28.2.4 领域边界不是数据库边界</a></h3>
+<p>营销域拥有“用户有没有资格、优惠是否可用、资源能否冻结、支付成功后是否核销”的规则；计价域拥有“这些合法权益如何影响金额、费用如何计算、金额如何分摊和快照如何生成”的规则；订单域拥有“何时创建、何时取消、订单状态如何推进”的规则。三者可以共用数据库集群，也可以独立部署，但不能通过直接读写对方私有表来建立契约。</p>
+<p>一个常见错误是把 <code>coupon_user.status</code> 直接暴露给计价服务。计价服务看到 <code>unused</code> 就认为可以用券，但它不知道冻结时限、并发版本和订单归属，最终形成“计价说可用、冻结说冲突”的竞态。正确方式是营销服务提供 <code>EvaluateBenefits</code> 和 <code>ReserveBenefits</code> 接口，返回带版本和过期时间的权益结果；计价服务只消费接口契约，不猜内部状态。</p>
+<p>DDD 并不要求所有业务对象都使用复杂聚合。简单的展示资格可以使用查询模型；需要维护不变量的券、积分账户、预算桶和快照才需要聚合边界。美团交易系统的实践强调，限界上下文是连接问题空间和解决方案空间的桥梁，模型应随着新认知迭代，而不是一次性画完后永远不变。[23]</p>
+<h3 id="2825-请求报价和快照的版本关系"><a class="header" href="#2825-请求报价和快照的版本关系">28.2.5 请求、报价和快照的版本关系</a></h3>
+<p>版本不是一个字段加在表尾就完成了。一次价格计算至少同时涉及四类版本：商品版本、营销规则版本、计价引擎版本和外部报价版本。它们的职责不同：商品版本回答“这个 SKU 当时是什么”；规则版本回答“当时有哪些权益和顺序”；引擎版本回答“程序用什么算法解释规则”；报价版本回答“供应商在什么时间给了什么可售价格”。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>版本</th><th>变化来源</th><th>是否影响展示缓存</th><th>是否写入快照</th><th>变更后的动作</th></tr>
+</thead>
+<tbody>
+<tr><td>商品版本</td><td>SKU、上下架、基础价、库存策略</td><td>通常失效</td><td>必须</td><td>重新读取商品事实</td></tr>
+<tr><td>营销规则版本</td><td>活动发布、券规则、门槛、互斥</td><td>立即失效或按版本隔离</td><td>必须</td><td>重新评估资格</td></tr>
+<tr><td>引擎版本</td><td>代码发布、舍入或组合算法</td><td>灰度隔离</td><td>必须</td><td>空跑 diff 后逐步切流</td></tr>
+<tr><td>报价版本</td><td>供应商响应、汇率、报价 token</td><td>短 TTL</td><td>必须</td><td>过期时重新询价</td></tr>
+<tr><td>用户资格版本</td><td>会员变更、风控标签、渠道身份</td><td>短 TTL</td><td>视业务</td><td>创单前二次校验</td></tr>
+</tbody>
+</table>
+</div>
+<p>如果只保存一个 <code>rule_version</code>，仍然无法重建一份依赖供应商报价的历史价格。反过来，如果把所有下游响应完整复制到每一份快照，存储和隐私成本又会迅速膨胀。可以采用“快照正文 + 外部引用 + 摘要哈希”的折中：对金额、币种、组件、分摊和规则参数保存完整值；对大体积商品描述、用户画像和供应商原始响应保存版本引用与哈希；在合规允许的范围内保留重放所需的最小输入。</p>
+<p><code>quote_id</code> 和 <code>snapshot_id</code> 也不应混用。报价是一个可失效的计算结果，可以被新的请求替换；快照是交易事实，具有明确的创建者、有效期和状态。订单创建成功后，<code>quote_id</code> 可以归档，<code>snapshot_id</code> 继续被支付、退款、客服和财务引用。支付系统接收快照引用并验证摘要，而不是依赖客户端再次上传完整规则。</p>
+<h3 id="2826-价格字典与领域事件"><a class="header" href="#2826-价格字典与领域事件">28.2.6 价格字典与领域事件</a></h3>
+<p>团队规模变大后，最常见的协作问题是同一个词在不同服务里含义不同。例如营销说“活动价”，商品说“销售价”，计价说“促销层”，订单说“成交价”，财务说“含税结算价”。应建立价格字典，至少定义：原价、基础价、活动后价、商品小计、订单小计、优惠、费用、支付应付、商家收入、平台补贴、退款金额和结算金额。每个术语附带金额层、币种、税费和是否可变的说明。</p>
+<p>领域事件也要表达状态变化，而不是只表达“某某服务调用成功”：</p>
+<pre><code class="language-text">BenefitIssued       用户获得权益
+BenefitReserved     交易意图冻结权益
+BenefitReleased     交易失败释放权益
+BenefitConsumed     支付/履约确认核销权益
+SnapshotCreated     形成价格事实
+SnapshotInvalidated 报价或依赖版本失效
+OrderPriceChanged   订单被允许通过显式流程改价
+</code></pre>
+<p>事件名称应以业务事实的完成为准。<code>ReserveBenefitRequested</code> 是命令或意图，<code>BenefitReserved</code> 才是消费者可以依赖的事实。事件携带 <code>aggregate_id</code>、<code>aggregate_version</code>、<code>event_id</code>、<code>occurred_at</code> 和 <code>trace_id</code>，这样重放、排序和对账时才能判断是旧事件、重复事件还是合法的新状态。数据密集型系统设计强调，日志和事件的价值不只是异步通知，也在于提供可重放、可审计的事实流；但重放仍必须尊重外部副作用的幂等边界。[4]</p>
+<h3 id="2827-什么时候不需要统一计价中心"><a class="header" href="#2827-什么时候不需要统一计价中心">28.2.7 什么时候不需要统一计价中心</a></h3>
+<p>统一计价不是默认答案。以下情况可以暂时保留简单实现：商品只有一个币种和固定价；没有用户差异化；只有一种不叠加的折扣；没有平台/商家分摊；订单生命周期短且不支持部分退款；价格变化不会跨服务产生资金影响。在这种场景中，单体内的领域服务和数据库事务可能比远程计价服务更容易保证正确。</p>
+<p>当出现下列任意两个信号时，再考虑拆分或建设统一引擎：同一价格逻辑在商品、购物车、订单和支付中复制；新增优惠要修改多个服务；客服无法解释价格；退款只能按总额估算；促销预算需要按出资方结算；供应商报价和固定价共存；大促时营销和计价分别扩容却互相放大流量。架构演进的目标是消除真实的变化耦合，而不是把每张表都变成微服务。</p>
+<h2 id="283-参考架构与职责边界"><a class="header" href="#283-参考架构与职责边界">28.3 参考架构与职责边界</a></h2>
+<h3 id="2831-端到端参考架构"><a class="header" href="#2831-端到端参考架构">28.3.1 端到端参考架构</a></h3>
+<p>参考架构按“事实源、决策、编排、交易和治理”分层，而不是按技术组件名称分层。商品中心提供商品、SKU、店铺和基础价引用；供应商价格服务提供有过期时间的外部报价；用户和会员系统提供身份、等级和风控分群；营销系统提供活动、券、积分、补贴和预算；计价中心把这些输入编排为价格快照；订单、库存和支付完成交易状态推进。</p>
 <pre class="mermaid">
 flowchart LR
-  U[用户终端] --&gt; G[营销网关 / BFF]
-  G --&gt; CS[优惠券服务]
-  G --&gt; PS[积分服务]
-  G --&gt; AS[活动服务]
-  G --&gt; CE[营销计算引擎]
-
-  CS --&gt; CDB[(券库 MySQL)]
-  PS --&gt; PDB[(积分库 MySQL)]
-  AS --&gt; ADB[(活动库 MySQL)]
-  AS --&gt; ES[(Elasticsearch)]
-
-  CE --&gt; RE[[规则引擎]]
-  CE --&gt; RC[(规则配置 Redis)]
-
-  subgraph Cache[高性能层]
-    R[(Redis: 库存/频控/锁)]
-  end
-
-  CS --&gt; R
-  PS --&gt; R
-  AS --&gt; R
-
-  subgraph Bus[异步总线]
-    K[Kafka]
-  end
-
-  CS --&gt; K
-  PS --&gt; K
-  AS --&gt; K
-  CE --&gt; K
-
-  G --&gt; PR[商品中心]
-  G --&gt; PC[计价中心]
-  G --&gt; OR[订单服务]
+    C[客户端 / BFF] --&gt; Q[报价编排层]
+    Q --&gt; P[计价中心]
+    Q --&gt; M[营销系统]
+    Q --&gt; U[用户与会员]
+    P --&gt; G[商品/供应商价格适配器]
+    P --&gt; S[价格快照库]
+    M --&gt; R[规则与活动配置]
+    M --&gt; L[营销权益账本]
+    M --&gt; B[预算与营销库存]
+    Q --&gt; O[订单系统]
+    O --&gt; I[商品库存]
+    O --&gt; Pay[支付系统]
+    O --&gt; E[(Outbox / 事件总线)]
+    E --&gt; A[对账、审计、分析]
 </pre>
 
-<p><strong>协作要点</strong>：</p>
-<ol>
-<li><strong>读路径</strong>：试算以「低耦合聚合」为目标，尽量通过计价中心统一编排（见 23.6、28.7），营销服务提供「可用工具集合 + 规则解释」。</li>
-<li><strong>写路径</strong>：领取、冻结、核销、回滚必须可幂等、可补偿；与订单 Saga 步骤一一对应（见 23.7.3）。</li>
-<li><strong>观测路径</strong>：任何金额差异必须能定位到「规则版本 + 输入快照 + 引擎输出」。</li>
-</ol>
-<p><strong>典型技术选型（可按团队资产替换，但角色分工建议保留）</strong>：</p>
+<p>“报价编排层”可以位于结算服务、BFF 或计价应用服务中，关键是不要让客户端自己拼价格。客户端可以提交用户选择的券和积分数量，但服务端必须重新验证资格、基数、版本和上限。展示路径可以读取缓存视图，创单路径必须经过权威接口；同一个 <code>trace_id</code> 贯穿两条路径，使团队能区分“页面展示旧价”和“创单错误价”。</p>
+<h3 id="2832-职责矩阵"><a class="header" href="#2832-职责矩阵">28.3.2 职责矩阵</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>组件类型</th><th>常见选型</th><th>在营销系统中的职责</th></tr>
+<tr><th>能力</th><th>商品中心</th><th>营销系统</th><th>计价中心</th><th>订单系统</th><th>支付系统</th><th>财务/对账</th></tr>
 </thead>
 <tbody>
-<tr><td>关系型数据库</td><td>MySQL / PostgreSQL</td><td>券批次、用户券、积分流水、活动配置、审计表；强一致事实源</td></tr>
-<tr><td>缓存与计数</td><td>Redis</td><td>热点库存、用户领券次数、预算桶、分布式锁、滑动窗口限流</td></tr>
-<tr><td>消息队列</td><td>Kafka / Pulsar</td><td>异步通知、对账、数据仓库同步、延迟核销补偿</td></tr>
-<tr><td>搜索与分析</td><td>Elasticsearch</td><td>活动检索、运营圈人、券批次检索；与交易主路径解耦</td></tr>
-<tr><td>流量治理</td><td>Sentinel / Envoy / 自研网关</td><td>热点接口限流、熔断、排队策略入口</td></tr>
+<tr><td>基础商品与 SKU</td><td>权威</td><td>只读</td><td>只读</td><td>快照引用</td><td>不关心</td><td>查询</td></tr>
+<tr><td>基础价格</td><td>自营/供应商事实</td><td>不拥有</td><td>适配并计算</td><td>保存快照</td><td>校验</td><td>对账</td></tr>
+<tr><td>优惠资格</td><td>提供圈品维度</td><td>权威</td><td>调用</td><td>保存选择</td><td>不决定</td><td>审计</td></tr>
+<tr><td>优惠金额</td><td>不计算</td><td>提供权益规则</td><td>权威计算</td><td>保存组件</td><td>校验</td><td>分摊</td></tr>
+<tr><td>券/积分/预算状态</td><td>不拥有</td><td>权威状态机</td><td>不直接写</td><td>触发冻结/释放</td><td>触发确认</td><td>对账</td></tr>
+<tr><td>订单总额</td><td>不拥有</td><td>不拥有</td><td>生成建议/快照</td><td>交易事实</td><td>验证应付额</td><td>结算事实</td></tr>
+<tr><td>支付金额</td><td>不拥有</td><td>不拥有</td><td>提供快照</td><td>提交支付单</td><td>资金事实</td><td>清算核对</td></tr>
+<tr><td>规则发布</td><td>商品规则</td><td>活动规则</td><td>引擎版本</td><td>不发布</td><td>不发布</td><td>审批审计</td></tr>
 </tbody>
 </table>
 </div>
-<p><strong>容量与体验的经验区间（用于评审对齐，不是 SLA 承诺）</strong>：日常试算 QPS 与购物车刷新强相关；大促峰值往往来自「领券 + 秒杀下单」叠加。实践中常把「试算」与「领券写路径」在网关层拆分集群，避免读放大拖慢写。秒杀接口的目标不是无限吞吐，而是<strong>失败要快、成功要稳</strong>：失败请求在边缘以毫秒级返回，成功请求进入受控队列，尾部延迟可接受。</p>
-<hr>
-<h2 id="282-营销工具体系"><a class="header" href="#282-营销工具体系">28.2 营销工具体系</a></h2>
-<p>营销工具体系的本质是<strong>权益载体</strong>不同：券是「凭证类权益」，积分是「账户类权益」，活动是「时段/集合类权益」，补贴是「清算类权益」。统一抽象有利于计算引擎与对账。</p>
-<p>从领域建模角度，建议抽一层极薄的**营销权益（PromotionEntitlement）**通用语言：任何工具最终都落到「是否可用、可用多少、如何占用、如何确认、如何冲正」五问。这样订单编排层不必理解「满减与折扣的数学差异」，只理解统一的 Try/Confirm/Cancel 契约即可。</p>
-<p><strong>反模式提醒</strong>：</p>
-<ul>
-<li>把「活动价」直接写进商品中心主价格字段，导致历史订单与供应商结算口径被破坏。</li>
-<li>在订单服务内复制一份券规则计算逻辑，短期最快，长期必然与营销引擎漂移。</li>
-<li>补贴只记在营销表、不落订单行快照，导致支付成功后的财务还原无法对齐。</li>
-</ul>
-<pre class="mermaid">
-flowchart TB
-  subgraph Tools[营销工具域]
-    COUP[优惠券子域]
-    PT[积分子域]
-    ACT[活动子域]
-    SUB[补贴子域]
-  end
-
-  subgraph Shared[共享能力]
-    ID[权益实例 ID]
-    SM[状态机与审计日志]
-    POL[互斥/叠加策略引用]
-  end
-
-  COUP --&gt; Shared
-  PT --&gt; Shared
-  ACT --&gt; Shared
-  SUB --&gt; Shared
-
-  CE2[营销计算引擎] --&gt; POL
-  CE2 --&gt; COUP
-  CE2 --&gt; PT
-  CE2 --&gt; ACT
-</pre>
-
-<p><strong>三大工具与数据平面的关系（落地视图）</strong>：优惠券与积分强依赖「用户维度」一致性与账务流水；活动强依赖「商品维度」圈品与时段索引。下图从<strong>读写路径</strong>拆开，便于与容量规划对齐：写路径（领取、冻结、核销）走高一致通道；读路径（列表、试算）可走缓存与只读副本，但创单前必须有一次穿透校验。</p>
-<pre class="mermaid">
-flowchart TB
-  subgraph CouponPlane[优惠券平面]
-    CB[(券批次表)]
-    CU[(用户券实例)]
-    CL[(券审计流水)]
-    CRS[[券库存 Redis]]
-  end
-
-  subgraph PointsPlane[积分平面]
-    PA[(积分账户)]
-    PL[(积分流水)]
-    PE[(过期索引 / 批次桶)]
-  end
-
-  subgraph ActivityPlane[活动平面]
-    AC[(活动主数据)]
-    AP[(圈品映射 / 规则表达式)]
-    ES[(活动检索 ES)]
-    ARS[[活动配额 Redis]]
-  end
-
-  GW2[营销网关] --&gt;|写: 领取 / 冻结| CouponPlane
-  GW2 --&gt;|写: 发放 / 扣减| PointsPlane
-  GW2 --&gt;|读: 命中检索| ActivityPlane
-
-  CE3[营销计算引擎] --&gt;|读模型| CouponPlane
-  CE3 --&gt;|读余额| PointsPlane
-  CE3 --&gt;|读命中| ActivityPlane
-  CE3 --&gt;|不写账务| GW2
-</pre>
-
-<h3 id="2821-优惠券系统"><a class="header" href="#2821-优惠券系统">28.2.1 优惠券系统</a></h3>
-<p><strong>模型拆分</strong>：</p>
-<ul>
-<li><strong>Coupon（券批次）</strong>：描述面额/折扣、门槛、总库存、每用户限领、适用范围（全场/类目/SKU）、承担方（平台/商家）。</li>
-<li><strong>CouponUser（用户券实例）</strong>：领取时间、过期时间、状态（未使用/冻结/已使用/作废）。</li>
-<li><strong>CouponLog（审计流水）</strong>：谁在何时以何因做了何动作；是对账与客服判责依据。</li>
-</ul>
-<p><strong>关键实现约束</strong>：</p>
-<ol>
-<li><strong>超发控制</strong>：热点券批次用 Redis 原子扣减「可领库存」，DB 落库作为最终事实；二者通过异步对账修正（见 23.8.2）。</li>
-<li><strong>核销一致性</strong>：下单冻结、支付成功确认核销、关单回滚；状态迁移必须落在<strong>单用户券粒度锁</strong>或等价乐观锁上，避免并发双花。</li>
-</ol>
-<p><strong>券批次生命周期与运营协同</strong>：除技术状态外，建议为运营提供「紧急下线」与「仅禁止新领取、已领取仍可用」两种模式。前者用于舆情与合规风险，后者用于预算将尽时的平滑收口。两种模式在网关与试算引擎侧都要有显式开关，避免只改数据库导致缓存层继续发券。</p>
-<pre><code class="language-go">import (
-	"context"
-	"strconv"
-	"time"
-)
-
-// CouponUserStatus 描述用户券生命周期（示意）
-type CouponUserStatus string
-
-const (
-	CouponUserUnused  CouponUserStatus = "UNUSED"
-	CouponUserFrozen  CouponUserStatus = "FROZEN"
-	CouponUserUsed    CouponUserStatus = "USED"
-	CouponUserExpired CouponUserStatus = "EXPIRED"
-)
-
-type FreezeCouponCommand struct {
-	UserID       int64
-	CouponUserID int64
-	OrderID      int64
-	Idempotency  string
-}
-
-type CouponAppService struct {
-	repo   CouponRepository
-	locker DistributedLock
-	bus    EventBus
-}
-
-func (s *CouponAppService) Freeze(ctx context.Context, cmd FreezeCouponCommand) error {
-	unlock, err := s.locker.Lock(ctx, "coupon_user:"+strconv.FormatInt(cmd.CouponUserID, 10), 3*time.Second)
-	if err != nil {
-		return err
-	}
-	defer unlock()
-
-	cu, err := s.repo.GetCouponUserForUpdate(ctx, cmd.CouponUserID)
-	if err != nil {
-		return err
-	}
-	if cu.UserID != cmd.UserID {
-		return ErrNotOwner
-	}
-
-	// 幂等：同一订单重复冻结直接成功
-	if cu.Status == CouponUserFrozen &amp;&amp; cu.FrozenOrderID != nil &amp;&amp; *cu.FrozenOrderID == cmd.OrderID {
-		return nil
-	}
-	if cu.Status != CouponUserUnused {
-		return ErrInvalidState
-	}
-
-	return s.repo.Transition(ctx, cmd.CouponUserID, Transition{
-		From: CouponUserUnused,
-		To:   CouponUserFrozen,
-		OrderID: cmd.OrderID,
-		Reason:  "freeze_for_order",
-		IdemKey: cmd.Idempotency,
-	})
-}
+<p>边界的一个实用测试是“如果删除这个系统，哪一条事实会失去权威来源”。如果答案是“没有，另一个系统也有一份”，说明出现了双写事实；如果答案是“订单里有一个优惠金额字段”，还需要追问它是支付快照的冗余字段，还是营销规则的权威来源。订单可以保存结果，但不应成为营销规则的配置中心。</p>
+<h3 id="2833-api-契约评估试算冻结和快照"><a class="header" href="#2833-api-契约评估试算冻结和快照">28.3.3 API 契约：评估、试算、冻结和快照</a></h3>
+<p>营销和计价的接口要区分只读评估与有副作用操作。一个最小契约如下：</p>
+<pre><code class="language-text">EvaluateBenefits(request, scene) -&gt; candidates, rejected_reasons, rule_version
+CalculateQuote(request, candidates, scene) -&gt; price_components, allocations, quote
+ReserveBenefits(order_id, quote_id, selected_benefits, idempotency_key) -&gt; reservations
+CreateSnapshot(quote, reservations, idempotency_key) -&gt; snapshot_id
+ConfirmBenefits(order_id, reservation_ids, idempotency_key) -&gt; consumed
+ReleaseBenefits(order_id, reservation_ids, idempotency_key) -&gt; released
 </code></pre>
-<h3 id="2822-积分系统"><a class="header" href="#2822-积分系统">28.2.2 积分系统</a></h3>
-<p><strong>账户模型</strong>：<code>available</code> / <code>frozen</code> 双桶；<strong>流水</strong>追加不可变；<strong>过期</strong>建议「批次/桶」或「到期索引表」驱动，避免全表扫描。</p>
-<p><strong>并发更新</strong>：高冲突账户使用 <code>version</code> 乐观重试；低冲突可用单行 CAS。对外接口必须支持<strong>业务幂等键</strong>（例如 <code>biz_type + biz_id</code>）防止重复发放。</p>
-<pre><code class="language-go">import (
-	"context"
-	"strconv"
-	"time"
-)
-
-type SpendPointsCommand struct {
-	UserID      int64
-	Points      int64
-	OrderID     int64
-	Idempotency string
-}
-
-func (s *PointsAppService) Spend(ctx context.Context, cmd SpendPointsCommand) error {
-	if ok, err := s.repo.InsertIdempotency(ctx, "points_spend", cmd.Idempotency); err != nil {
-		return err
-	} else if !ok {
-		return nil
-	}
-
-	for i := 0; i &lt; 5; i++ {
-		acct, err := s.repo.GetAccount(ctx, cmd.UserID)
-		if err != nil {
-			return err
-		}
-		if acct.Available &lt; cmd.Points {
-			return ErrInsufficientPoints
-		}
-
-		affected, err := s.repo.UpdateAvailableCAS(ctx, cmd.UserID, acct.Version, acct.Available-cmd.Points, acct.TotalSpent+cmd.Points)
-		if err != nil {
-			return err
-		}
-		if affected == 1 {
-			_ = s.repo.AppendLog(ctx, PointsLog{
-				UserID: cmd.UserID, Type: "SPEND", Delta: -cmd.Points,
-				BizType: "ORDER", BizID: strconv.FormatInt(cmd.OrderID, 10),
-			})
-			return nil
-		}
-		time.Sleep(time.Duration(10*(i+1)) * time.Millisecond)
-	}
-	return ErrWriteConflict
-}
-</code></pre>
-<h3 id="2823-活动系统"><a class="header" href="#2823-活动系统">28.2.3 活动系统</a></h3>
-<p>活动系统负责<strong>规则配置 + 圈品 + 生命周期治理</strong>。活动类型差异很大，但工程上可收敛为：</p>
-<ol>
-<li><strong>活动元数据</strong>：时间窗、状态机（草稿/待审/生效/结束/作废）。</li>
-<li><strong>参与单元</strong>：SKU 级活动价、店铺级满减、平台级跨店活动。</li>
-<li><strong>执行策略</strong>：由计算引擎解释 <code>rule_config</code>（JSON / DSL），活动服务自身避免堆叠 <code>switch</code> 地狱（与 23.3 联动）。</li>
-</ol>
-<p><strong>圈品</strong>（与商品中心集成详见 23.7.1）：活动侧存 <code>activity_product</code> 映射或存规则表达式；运行时以 <code>product_id/sku_id/category_id</code> 多路判定，注意索引与缓存击穿。</p>
-<p><strong>活动运营与工程协作</strong>：活动系统往往是运营配置最高频的子系统。建议把配置错误分为三类分别治理：<strong>语法错误</strong>（JSON Schema 校验拒绝保存）、<strong>语义风险</strong>（例如折扣低于成本阈值触发风控审核）、<strong>容量风险</strong>（圈品过大导致试算超时，需异步预计算 + 结果缓存）。Engineering 侧提供「沙箱试算」与「灰度发布」能力，比单纯堆人审核更有效。</p>
-<p><strong>常见活动形态与工程关注点</strong>（节选）：</p>
+<p><code>EvaluateBenefits</code> 不修改券和预算，适合 PDP、购物车和结算预览；<code>ReserveBenefits</code> 才产生冻结记录，必须拥有订单或结算会话 ID。<code>CalculateQuote</code> 需要把营销返回的拒绝原因结构化，例如 <code>expired</code>、<code>threshold_not_met</code>、<code>scope_mismatch</code>、<code>quota_exhausted</code>、<code>risk_rejected</code>，不能只返回“优惠不可用”。结构化原因可以用于页面提示、运营分析和客服解释。</p>
+<p>计价接口的请求必须显式包含 <code>scene</code>。PDP、列表页、购物车、创单和支付校验不是同一个 API 换一个枚举值，而是不同的正确性契约：PDP 接受短暂过期和部分结果；创单必须有完整组件和可用的基础价；支付校验必须拒绝过期供应商报价和快照金额不一致。一个“万能价格接口”往往把所有场景都降级到最严格的成本，或者把交易路径错误地降级为展示路径。</p>
+<h3 id="2834-adr-02快照传递而不是重复重算"><a class="header" href="#2834-adr-02快照传递而不是重复重算">28.3.4 ADR-02：快照传递而不是重复重算</a></h3>
+<p><strong>背景</strong>：如果结算生成金额后，订单再次从商品、营销、用户和供应商系统重新计算，任何一个规则版本、用户等级、汇率或供应商报价变化都可能改变结果；但如果订单盲信客户端传来的金额，又无法防止篡改。</p>
+<p><strong>候选方案</strong>：</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>活动形态</th><th>业务目标</th><th>工程关注点</th></tr>
+<tr><th>方案</th><th>优点</th><th>牺牲/风险</th></tr>
 </thead>
 <tbody>
-<tr><td>满减满折</td><td>提升客单价</td><td>跨店分摊、尾差、与券叠加顺序</td></tr>
-<tr><td>限时直降</td><td>清库存 / 打爆款</td><td>与基础价、渠道价冲突检测</td></tr>
-<tr><td>秒杀抢购</td><td>引流</td><td>热点库存、风控、异步下单、超卖校准</td></tr>
-<tr><td>买赠</td><td>关联销售</td><td>赠品行生成、赠品库存、履约拆单</td></tr>
+<tr><td>每个阶段都实时重算</td><td>输入最新</td><td>同一操作口径漂移，依赖放大，难以解释历史</td></tr>
+<tr><td>客户端传最终金额</td><td>调用少</td><td>不可信，无法审计，易产生资损</td></tr>
+<tr><td>结算生成快照，创单/支付校验引用并验证</td><td>口径稳定，可审计，可防篡改</td><td>需要快照存储、有效期和失效处理</td></tr>
+<tr><td>只保存组件，不保存输入</td><td>存储小</td><td>规则和报价变化后无法重建当时结果</td></tr>
 </tbody>
 </table>
 </div>
-<h3 id="2824-补贴系统"><a class="header" href="#2824-补贴系统">28.2.4 补贴系统</a></h3>
-<p>补贴与「券/活动」不同之处在于：<strong>它往往不直接以用户可见凭证表达</strong>，而是以<strong>平台/商家承担比例</strong>进入清结算。典型场景：</p>
-<ul>
-<li>平台秒杀补贴：活动价低于供货价差额由平台承担。</li>
-<li>联合营销：商家出资 70%，平台出资 30%。</li>
-<li>支付立减：渠道补贴 + 平台补贴叠加（需风控与预算）。</li>
-</ul>
-<p><strong>数据落点</strong>：订单行级记录「营销成本分摊字段」；支付成功后由营销结算服务生成<strong>结算事实表</strong>，推送给财务/对账系统（与 23.7.5 呼应）。</p>
-<pre><code class="language-go">type SubsidySplit struct {
-	OrderID        int64
-	LineID         int64
-	PlatformCent   int64
-	MerchantCent   int64
-	ThirdPartyCent int64
-	Currency       string
-}
-
-func mulDiv64(a, b, denom int64) int64 {
-	if denom == 0 {
-		return 0
-	}
-	return (a * b) / denom
-}
-
-func BuildSubsidySplit(line LinePriceSnapshot, policy CostSharePolicy) SubsidySplit {
-	discount := line.ListCent - line.PayableCent
-	platform := mulDiv64(discount, policy.PlatformBP, 10_000)
-	third := mulDiv64(discount, policy.ChannelBP, 10_000)
-	merchant := discount - platform - third
-	if merchant &lt; 0 {
-		merchant = 0
-	}
-	return SubsidySplit{OrderID: line.OrderID, LineID: line.LineID, PlatformCent: platform, MerchantCent: merchant, ThirdPartyCent: third, Currency: line.Currency}
+<p><strong>决策</strong>：采用第三种方案。快照由服务端生成并带有请求指纹；订单创建时验证签名、版本、有效期和用户/商品关键字段；支付时比较订单应付金额、快照金额和支付单金额。动态价格过期时生成新快照并要求用户重新确认，而不是偷偷替换订单金额。</p>
+<p>该决策获得了一致口径、审计重放和安全校验，牺牲了部分实时性和存储空间；需要接受的风险是供应商报价在快照有效期内仍可能发生外部变化，因此品类策略必须明确“允许用快照成交”还是“支付前必须二次询价”。这种有背景、有候选、有牺牲、有重新评估条件的 ADR 比一句“采用快照机制”更能帮助后续团队做判断。[17]</p>
+<h3 id="2835-配置发布与规则版本"><a class="header" href="#2835-配置发布与规则版本">28.3.5 配置发布与规则版本</a></h3>
+<p>规则配置不是直接改一行数据库记录。发布流程至少包括草稿、校验、审批、仿真、灰度、生效和下线。校验器应检查：时间窗口是否重叠；互斥组是否形成环；折扣是否超过上限；适用商品集合是否为空；预算是否有承担方；不同币种的金额是否使用正确精度；规则是否引用了已删除的券或店铺；新的活动是否会绕过最低价保护。</p>
+<p>每次发布生成不可变的 <code>rule_version</code>。预览返回这个版本，快照引用这个版本，客服查询按这个版本重放。配置中心可以缓存当前版本，但数据库仍保存版本历史和发布人。回滚不是把配置改回旧值，而是把旧版本重新标记为有效并记录新的发布事件，避免审计时间线被覆盖。</p>
+<p>规则仿真应使用历史请求样本和合成边界样本：单行恰好达到门槛、跨店恰好差一分钱、券过期一秒、预算只剩一单位、两张互斥券同时提交、退款只覆盖一个订单行。规则评估结果除了最终价格，还要输出命中的规则、被拒绝的规则及原因，以支持发布前人工检查。</p>
+<h3 id="2836-读模型写模型和缓存投影"><a class="header" href="#2836-读模型写模型和缓存投影">28.3.6 读模型、写模型和缓存投影</a></h3>
+<p>营销与计价的查询量和写入语义差异很大。活动列表、可用券列表和“预计节省”属于读模型，可以按用户分群、店铺和渠道预计算；券冻结、积分消费、预算扣减和价格快照属于写模型，必须在权威存储中完成状态迁移。不要为了让查询快，把写模型中的 <code>coupon_user.status</code> 直接复制成多个可写缓存；读模型只能通过事件或版本刷新，不能反向修改权威事实。</p>
+<p>一种常见的读模型是 <code>BenefitView</code>：它把用户当前可见的券、活动命中摘要和预计优惠聚合在一起，但不包含“已经保证可用”的承诺。视图带 <code>generated_at</code>、<code>source_version</code> 和 <code>partial</code> 标志，页面可以据此决定是展示、提示刷新还是隐藏。结算预览重新调用权威评估，创单则重新调用冻结接口。这样既能承受高读 QPS，又不会让缓存陈旧状态直接成为交易事实。</p>
+<p>计价读模型可以预热匿名价、会员价和公开活动价；个性化价要把用户分群键、渠道和地区纳入 Key。缓存投影更新采用版本比较：只有事件版本大于当前版本时才覆盖，乱序事件放入延迟队列或重新读取权威数据。数据密集型系统中，复制和异步投影本来就会引入滞后，因此应用必须明确哪些读可以接受滞后、哪些读必须回到权威源。[4]</p>
+<h3 id="2837-api-错误模型与可演进契约"><a class="header" href="#2837-api-错误模型与可演进契约">28.3.7 API 错误模型与可演进契约</a></h3>
+<p>金额系统的错误码要区分用户可修复错误、系统暂态错误和不可自动重试错误。推荐至少包括：<code>INVALID_ARGUMENT</code>、<code>VERSION_CONFLICT</code>、<code>BENEFIT_NOT_ELIGIBLE</code>、<code>QUOTA_EXHAUSTED</code>、<code>QUOTE_EXPIRED</code>、<code>PRICE_CHANGED</code>、<code>IDEMPOTENCY_CONFLICT</code>、<code>DEPENDENCY_TIMEOUT</code>、<code>SAFETY_CHECK_FAILED</code> 和 <code>UNKNOWN_STATE</code>。错误响应包含 <code>retryable</code>、<code>next_action</code>、<code>reason_code</code>、<code>snapshot_id</code> 或 <code>reservation_id</code>，让上游知道应该刷新、重新确认、查询状态还是联系客服。</p>
+<p>接口演进必须向后兼容。新增价格组件类型时，旧客户端可以把它展示为“其他优惠/费用”，但不能忽略影响应付金额；新增字段使用可选语义，删除字段先经历弃用期；枚举未知值不能让反序列化直接崩溃；错误码新增时不改变已有错误的重试含义。创单和支付的核心字段应使用契约测试锁定，不能因为营销服务新增一个展示字段就改变交易金额。</p>
+<p>接口还要区分命令和查询：<code>GetQuote</code>、<code>GetSnapshot</code>、<code>GetBenefitStatus</code> 是查询，重复调用不应产生副作用；<code>Reserve</code>、<code>Confirm</code>、<code>Release</code>、<code>CreateSnapshot</code> 是命令，必须有业务幂等键。Saga 模式通常通过编排器调用多个参与者；参与者应提供正向动作、补偿动作和状态查询三个能力，而不是只提供一个“万能更新状态”接口。[7]</p>
+<h2 id="284-营销规则优惠组合与营销库存"><a class="header" href="#284-营销规则优惠组合与营销库存">28.4 营销规则、优惠组合与营销库存</a></h2>
+<h3 id="2841-优惠券积分活动和补贴不是四套孤立-crud"><a class="header" href="#2841-优惠券积分活动和补贴不是四套孤立-crud">28.4.1 优惠券、积分、活动和补贴不是四套孤立 CRUD</a></h3>
+<p>营销工具虽然在产品上表现为券、积分、活动和补贴，但它们共享三个抽象：<strong>资格</strong>、<strong>有限资源</strong>和<strong>生命周期</strong>。优惠券的有限资源是发行量和用户配额；积分的有限资源是账户余额；活动的有限资源是时间窗口、参与次数和预算；补贴的有限资源是平台或商家的资金承诺。把这些工具分别实现成“发一张券”“加积分”“改活动状态”“减预算”四个接口，会在下单、取消和退款时出现四种不同的幂等语义。</p>
+<p>营销系统应区分配置对象和用户权益对象：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>层次</th><th>例子</th><th>生命周期</th><th>典型存储</th></tr>
+</thead>
+<tbody>
+<tr><td>活动配置</td><td>满减、折扣、买赠、秒杀</td><td>草稿→审核→生效→结束</td><td>关系库 + 版本</td></tr>
+<tr><td>规则对象</td><td>门槛、圈品、会员、渠道、互斥</td><td>随活动版本发布</td><td>配置快照/规则索引</td></tr>
+<tr><td>用户权益</td><td>某用户领取的一张券、一次资格</td><td>可用→冻结→核销/释放</td><td>权益表 + 流水</td></tr>
+<tr><td>营销库存</td><td>券额度、活动名额、预算桶</td><td>可用→冻结→消耗/回补</td><td>账本 + 热点缓存</td></tr>
+<tr><td>事件记录</td><td>发放、冻结、确认、释放、过期</td><td>不可变追加</td><td>Outbox/事件表</td></tr>
+</tbody>
+</table>
+</div>
+<p>活动配置可以被运营修改，用户权益和订单快照不能随之重写。活动命中结果也不应等同于“用户已经获得优惠”：命中只是试算，冻结才是交易承诺，确认才是消费。</p>
+<h3 id="2842-圈品资格与规则匹配"><a class="header" href="#2842-圈品资格与规则匹配">28.4.2 圈品、资格与规则匹配</a></h3>
+<p>圈品规则常见三种表达：全部商品、集合匹配和条件匹配。集合匹配适合 SKU、类目、品牌和店铺 ID；条件匹配适合价格区间、标签、渠道和用户等级。规则引擎不应在每次请求中扫描全量商品。发布时把静态集合编译成可查询索引，运行时先做粗筛，再做用户和订单上下文判断。</p>
+<p>资格判断要分成“稳定资格”和“瞬时资格”。会员等级、注册时间和渠道来源通常可以缓存；库存、预算、券状态和供应商报价是瞬时事实，必须在冻结或创单前重新确认。缓存资格只能减少读取，不能替代权威状态机。</p>
+<p>规则命中结果包含：</p>
+<pre><code class="language-json">{
+  "benefit_id": "coupon-100-20",
+  "eligible": true,
+  "scope": ["line-1", "line-2"],
+  "discount_type": "amount",
+  "discount_minor_units": 2000,
+  "exclusive_group": "merchant-activity",
+  "priority": 80,
+  "funding": [{"source": "merchant", "amount": 1500}, {"source": "platform", "amount": 500}],
+  "rule_version": "campaign-v12",
+  "explain": "商品小计达到 10000 分，且用户为会员"
 }
 </code></pre>
-<hr>
-<h2 id="283-营销计算引擎"><a class="header" href="#283-营销计算引擎">28.3 营销计算引擎</a></h2>
-<p>营销计算引擎是「<strong>把业务上含糊的便宜</strong>」翻译成「<strong>可执行、可分摊、可回滚</strong>」的工程模块。它输入购物车行、用户工具实例、活动集合、规则版本；输出每个 SKU 行的优惠拆分与订单级汇总。</p>
-<p><strong>为什么必须单独建设「引擎」而不是散落在各接口里？</strong> 因为营销规则的变化频率远高于交易主流程：运营每周都可能调整叠加策略、临时插入互斥组、或对某渠道单独放量。若把规则散落在购物车、结算、创单多个服务，最终一定出现「页面能买、结算不能买」或「结算能买、支付少减」的漂移。引擎化的核心价值是把<strong>规则解释</strong>收敛到单一模块，并把输入输出契约化，让其他系统以「黑盒服务」方式依赖它。</p>
-<p><strong>输入输出的工程契约（建议写进接口文档的第一页）</strong>：</p>
-<ul>
-<li><strong>输入必须可序列化快照化</strong>：不仅是商品 ID 列表，还应包含价格快照引用、店铺维度、会员等级、渠道、时区与活动版本。任何无法快照的输入都不应进入创单强一致路径。</li>
-<li><strong>输出必须可分摊</strong>：除了订单级优惠总额，还要给出「行级拆分」与「税/运费处理建议字段」（若业务需要），否则财务与发票域会再次各自实现一套拆分。</li>
-<li><strong>输出必须可回放</strong>：<code>trace</code> 不是日志炫技，而是客服判责与线上排障的最低成本工具；建议以结构化 JSON 存储关键决策点（命中、未命中原因、互斥裁决）。</li>
-</ul>
-<h3 id="2831-规则引擎设计"><a class="header" href="#2831-规则引擎设计">28.3.1 规则引擎设计</a></h3>
-<p>规则引擎的目标不是追求通用 AI，而是追求：<strong>可版本化、可灰度、可解释、可单测</strong>。推荐分层：</p>
+<p>美团外卖营销实践把领域对象、策略模式和领域事件结合起来处理复杂营销逻辑，说明营销代码的可维护性来自业务语义的组织，而不只是把 if-else 换成工厂类。[22] 本章的推导是：资格、组合和资金分摊分别建模，才可以在不改变券生命周期的情况下替换组合算法，也可以在不改变计价层的情况下增加新的券类型。</p>
+<h3 id="2843-优惠叠加互斥与最优组合"><a class="header" href="#2843-优惠叠加互斥与最优组合">28.4.3 优惠叠加、互斥与最优组合</a></h3>
+<p>优惠组合不能简单按“折扣金额最大”求解，因为业务还要约束顺序、互斥、同组最多一个、平台券和商家券的共同使用，以及是否允许覆盖运费。可将候选优惠看作带约束的集合选择问题：</p>
+<pre><code class="language-text">候选集合 C = {c1, c2, ... cn}
+选择集合 S ⊆ C
+约束：
+  互斥组中最多选择一个
+  每个券的适用范围必须非空
+  组合后的折扣不得超过适用基数
+  平台/商家预算都不能为负
+目标：
+  在业务优先级、用户应付金额、商家承担额和体验规则之间选择合法解
+</code></pre>
+<p>求解策略依购物车大小选择：单行和候选很少时可枚举；多行、多店铺时先按互斥组做局部最优，再用分支限界或动态规划搜索；候选过多时保留用户可见的前 K 组，并明确展示“已按当前规则选择最优组合”。不能为了追求理论最优而让结算页在所有活动上做指数级搜索。</p>
+<p>规则顺序要固定并输出：</p>
 <ol>
-<li><strong>事实层（Facts）</strong>：用户、店铺、渠道、会员等级、商品标签、时间窗。</li>
-<li><strong>约束层（Constraints）</strong>：互斥组、优先级、每单上限、每用户上限、黑白名单。</li>
-<li><strong>策略层（Policies）</strong>：叠加顺序（先活动后券 / 先券后活动）、分摊策略（按比例/按剩余价）、取整模式。</li>
-<li><strong>执行层（Actions）</strong>：生成 <code>AppliedPromotion</code> 列表与金额。</li>
+<li>确认行和店铺边界，排除不适用商品；</li>
+<li>应用只能改变单价的活动价或阶梯价；</li>
+<li>计算店铺券、跨店券和平台券的合法组合；</li>
+<li>应用积分、红包等支付抵扣；</li>
+<li>计算可打折费用和不可打折费用；</li>
+<li>进行金额下限、预算、出资方和尾差检查。</li>
 </ol>
-<pre class="mermaid">
-flowchart TB
-  IN[试算请求\n购物车行 + 用户选择] --&gt; NORM[规范化 Facts\n类目/店铺/渠道/等级]
-  NORM --&gt; MATCH[规则匹配\n索引 + 过滤]
-  MATCH --&gt; CONS[约束求解\n互斥/上限/黑名单]
-  CONS --&gt; ORD[策略排序\n优先级 + tie-break]
-  ORD --&gt; APPLY[动作执行器\n生成应用明细]
-  APPLY --&gt; ALLOC[分摊器\n尾差修正]
-  ALLOC --&gt; OUT[试算结果\n明细 + 汇总 + trace]
-
-  CFG[(规则配置版本)] --&gt; MATCH
-  CFG --&gt; CONS
-  CFG --&gt; ORD
-
-  subgraph Exec[执行器插件]
-    A1[满减]
-    A2[折扣封顶]
-    A3[积分抵扣]
-    A4[活动价覆盖]
-  end
-
-  APPLY --&gt; Exec
-</pre>
-
-<p><strong>落地建议</strong>：规则配置存版本号；试算响应携带 <code>rule_version</code> 与 <code>engine_trace_id</code>；创单快照必须引用同一版本，避免「页面价 ≠ 创单价」纠纷。</p>
-<p><strong>规则引擎实现梯度（从简到繁）</strong>：</p>
-<ol>
-<li><strong>配置驱动 + 少量代码</strong>：适合多数电商平台；规则以结构化 JSON 存储，由固定管线解释；上线规则走版本表 + 灰度。</li>
-<li><strong>DSL + 安全沙箱</strong>：适合玩法极多、运营希望「自写表达式」的团队；需限制可调函数集合、CPU 时间、内存与外部 I/O。</li>
-<li><strong>外置规则引擎（Rete 系）</strong>：适合金融级复杂规则或强审计行业；引入成本高，需评估团队运维能力。</li>
-</ol>
-<p>无论哪一梯度，都不要把「外部 I/O」藏在规则匹配的热路径里：事实应在进入引擎前由编排层并行拉齐并做超时兜底，引擎内部尽量纯函数化，便于单测与回放。</p>
-<pre><code class="language-go">type RuleEngine interface {
-	Evaluate(ctx context.Context, in BasketInput, cfg RuleSetVersion) (Evaluation, error)
-}
-
-type Evaluation struct {
-	Applied []AppliedPromotion
-	Trace   []TraceStep
-}
-
-type DefaultRuleEngine struct {
-	matcher   Matcher
-	solver    ConstraintSolver
-	applier   ApplierChain
-	allocator LineAllocator
-}
-
-func (e *DefaultRuleEngine) Evaluate(ctx context.Context, in BasketInput, cfg RuleSetVersion) (Evaluation, error) {
-	candidates, err := e.matcher.Match(ctx, in, cfg)
-	if err != nil {
-		return Evaluation{}, err
-	}
-	filtered, err := e.solver.ApplyConstraints(ctx, in, candidates)
-	if err != nil {
-		return Evaluation{}, err
-	}
-	applied, trace, err := e.applier.Apply(ctx, in, filtered, cfg.StackingPolicy)
-	if err != nil {
-		return Evaluation{}, err
-	}
-	if err := e.allocator.AllocateToLines(ctx, in.Lines, &amp;applied); err != nil {
-		return Evaluation{}, err
-	}
-	return Evaluation{Applied: applied, Trace: trace}, nil
-}
-</code></pre>
-<h3 id="2832-优惠叠加与互斥"><a class="header" href="#2832-优惠叠加与互斥">28.3.2 优惠叠加与互斥</a></h3>
-<p>叠加规则是事故高发区。建议产品口径与实现口径合一：<strong>用「互斥组 ID + 优先级 + 可叠加白名单」三要素表达一切</strong>。</p>
-<pre class="mermaid">
-flowchart TD
-  S([开始叠加编排]) --&gt; P1[步骤1: 活动价 / 秒杀价\n命中后刷新行内基准价]
-  P1 --&gt; P2[步骤2: 店铺级促销\n满减 / 满折 / 店铺券池]
-  P2 --&gt; G{互斥组校验\n同组择优}
-  G --&gt;|存在冲突| R[按优先级 / 用户选择\n保留唯一胜出项]
-  G --&gt;|无冲突| P3[步骤3: 平台级促销\n跨店满减 / 平台券]
-  P3 --&gt; P4[步骤4: 积分抵扣\n上限、比例、最低应付]
-  P4 --&gt; P5[步骤5: 支付渠道优惠\n由支付域承接可选]
-  P5 --&gt; E([输出最终应付\n含 trace 与分摊])
-</pre>
-
-<p><strong>互斥典型</strong>：同一互斥组内多张券二选一；活动价与部分券互斥；渠道支付券与平台券互斥。实现上不要在多个服务各写一段 if，而应由引擎读取<strong>同一份配置</strong>。</p>
-<pre><code class="language-go">type StackingPolicy struct {
-	Steps []StackStep
-}
-
-type StackStep struct {
-	Name        string
-	MutexGroups []string // promotions in same group are mutually exclusive within this step
-}
-
-type MutexGuard struct{}
-
-func (MutexGuard) PickAtMostOne(ps []Candidate) ([]Candidate, error) {
-	seen := map[string]Candidate{}
-	out := make([]Candidate, 0, len(ps))
-	for _, c := range ps {
-		if c.MutexGroup == "" {
-			out = append(out, c)
-			continue
-		}
-		old, ok := seen[c.MutexGroup]
-		if !ok || c.Priority &gt; old.Priority {
-			seen[c.MutexGroup] = c
-		}
-	}
-	for _, v := range seen {
-		out = append(out, v)
-	}
-	return out, nil
-}
-</code></pre>
-<h3 id="2833-最优解求解"><a class="header" href="#2833-最优解求解">28.3.3 最优解求解</a></h3>
-<p>「最优」必须业务定义：常见是<strong>用户应付最小</strong>或<strong>平台补贴最小</strong>或<strong>GMV 最大</strong>。工程上可用：</p>
-<ul>
-<li><strong>小规模</strong>：券张数 ≤ 3 且活动组合有限时，<strong>有界枚举</strong>最可靠。</li>
-<li><strong>中等规模</strong>：动态规划（若可分解为线性结构）；或<strong>贪心 + 校验</strong>（先取门槛最高券，再修正）。</li>
-<li><strong>大规模</strong>：启发式 + 约束剪枝；必须输出<strong>可解释 trace</strong>，避免黑盒。</li>
-</ul>
-<pre><code class="language-go">type Plan struct {
-	ChosenCoupons []int64
-	DiscountCent  int64
-}
-
-func BestCouponBruteForce(cents int64, coupons []CouponView) Plan {
-	best := Plan{DiscountCent: -1}
-	n := len(coupons)
-	for mask := 0; mask &lt; (1 &lt;&lt; n); mask++ {
-		var sum int64
-		var ids []int64
-		for i := 0; i &lt; n; i++ {
-			if mask&amp;(1&lt;&lt;i) == 0 {
-				continue
-			}
-			c := coupons[i]
-			if cents &lt; c.MinSpendCent {
-				sum = -1
-				break
-			}
-			sum += c.DiscountCent
-			ids = append(ids, c.CouponUserID)
-		}
-		if sum &lt; 0 {
-			continue
-		}
-		if sum &gt; best.DiscountCent {
-			best = Plan{ChosenCoupons: append([]int64(nil), ids...), DiscountCent: sum}
-		}
-	}
-	return best
-}
-</code></pre>
-<p><strong>复杂度与工程边界</strong>：有界枚举在「券实例候选数」与「活动组合数」上是指数级，评审时要写清楚上限。实践中常通过产品约束「一单最多使用 N 张券」「同一互斥组仅允许一张」把搜索空间压到可接受范围。若业务坚持「多券最优」，建议把求解器做成<strong>独立服务</strong>并设置硬超时与降级策略（返回用户已选方案或启发式方案），避免阻塞创单主链路。</p>
-<p><strong>从枚举到「可证明正确」的贪心</strong>：当互斥组把候选压成「每张券至多一张、每组至多一张」时，常见目标函数（应付最小）往往可通过「按门槛分层 + 组内按优惠额排序」的贪心得到最优，前提是产品承认规则满足 <strong>拟阵（matroid）</strong> 或近似结构。工程上不必引入过重数学证明，但应在设计文档写清 <strong>贪心成立的前提</strong>（例如：折扣不随剩余金额非单调变化、不存在「用券 A 才解锁券 B」这类交叉依赖）。一旦出现交叉依赖，应显式退回枚举或 MILP 小模型求解，并在超时后降级为「用户已选方案」。</p>
-<p><strong>动态规划适用的一种典型子结构</strong>：若订单可拆为若干「独立店铺子篮」，且店铺间仅存在「平台跨店满减」一条耦合边，可先按店求局部最优，再在平台层做一次低维 DP（阶梯满减档位通常 ≤10）。这与「全购物车暴力 bitmask」相比，复杂度从指数降到近似多项式，是大厂 B2B2C 场景常用的工程折中。</p>
-<p><strong>与「用户主观选择」的冲突处理</strong>：最优解未必等于用户勾选。常见策略是：结算页提供「系统推荐组合」与「用户手动选择」两种模式；手动模式以校验为主（不重新最优），并在 UI 明确提示损失金额或不可用原因，减少客诉。</p>
-<h3 id="2834-试算与预览"><a class="header" href="#2834-试算与预览">28.3.4 试算与预览</a></h3>
-<p>试算接口必须<strong>无副作用</strong>；预览与创单必须使用<strong>同一套输入契约</strong>（行价格快照 ID、券实例 ID、活动版本、用户地址/会员状态）。</p>
-<p><strong>建议字段</strong>：</p>
-<ul>
-<li><code>pricing_snapshot_id</code>：来自计价中心的基准价快照。</li>
-<li><code>marketing_rule_version</code>：规则集版本。</li>
-<li><code>client_scene</code>：<code>PDP</code> / <code>CART</code> / <code>CHECKOUT</code>（不同场景可用不同策略，但要显式）。</li>
-</ul>
-<pre><code class="language-go">type PreviewMarketingRequest struct {
-	UserID              int64
-	PricingSnapshotID   string
-	SelectedCouponIDs   []int64
-	UsePoints           int64
-	Lines               []LineInput
-	Scene               string
-	IdempotencyKey      string
-}
-
-type PreviewMarketingResponse struct {
-	RuleVersion     string
-	PayableCent     int64
-	DiscountCent    int64
-	LineAllocations []LineAllocation
-	Warnings        []string
-}
-</code></pre>
-<p><strong>缓存与一致性策略</strong>：试算读多写少，可对「活动命中结果」做短 TTL 缓存，但务必以 <code>pricing_snapshot_id</code> 作为缓存键的一部分，避免基准价变化后命中脏数据。对于「用户已领券列表」类数据，强一致诉求更高，建议短 TTL + 用户维度本地缓存谨慎使用，或在关键操作（创单）前做一次穿透校验。</p>
-<p><strong>与创单的衔接</strong>：预览返回的 <code>LineAllocations</code> 应可被订单原样持久化为「营销快照」子文档；创单重放时不得再次调用可能变化的试算逻辑去「修正」历史订单，除非走明确的改价流程（通常需要客服授权与审计）。</p>
-<hr>
-<h2 id="284-高并发场景设计"><a class="header" href="#284-高并发场景设计">28.4 高并发场景设计</a></h2>
-<h3 id="2841-秒杀与抢券"><a class="header" href="#2841-秒杀与抢券">28.4.1 秒杀与抢券</a></h3>
-<p>秒杀本质是：<strong>把绝大多数失败请求挡在极便宜的路径上</strong>，把极少数成功请求放进<strong>可串行化</strong>的扣减与下单管道。它与普通促销的差异在于：热点 SKU 的<strong>竞争半径</strong>远大于库存规模。</p>
-<pre class="mermaid">
-flowchart TB
-  U[用户请求] --&gt; CDN[CDN/静态页]
-  U --&gt; WAF[WAF/风控前置]
-  WAF --&gt; GW[API 网关\n鉴权 + 签名]
-  GW --&gt; RL[限流\n用户/设备/IP]
-  RL --&gt; CAP[验证码/挑战]
-  CAP --&gt; SS[秒杀服务\n无状态副本]
-  SS --&gt; HOT[(Redis 集群\n库存 + 令牌)]
-  SS --&gt;|成功令牌| MQ[Kafka 下单队列]
-  MQ --&gt; WK[下单 Worker\n幂等消费]
-  WK --&gt; ORD[(订单库)]
-  WK --&gt; INV[库存服务\n确认扣减]
-  WK --&gt; MKT[营销服务\n营销库存消耗]
-
-  SS -. 异步校准 .-&gt; DB[(活动/券 DB)]
-</pre>
-
-<p><strong>关键设计点</strong>：</p>
-<ol>
-<li><strong>库存拆分</strong>：商品库存与营销库存（见 23.5）分别扣减，避免「营销卖爆但仓库没货」或反向超卖。</li>
-<li><strong>令牌化</strong>：网关层发放有限令牌，后端只验证令牌，避免打穿 DB。</li>
-<li><strong>排队与等待</strong>：返回「排队中」优于同步拖垮线程池（取决于体验要求）。</li>
-</ol>
-<p><strong>抢券与秒杀的共性差异</strong>：抢券失败通常是「库存耗尽」；秒杀失败还可能是「商品库存不足但营销库存仍显示可买」这类双库存不一致。务必在架构层定义<strong>哪一个是用户可见的剩余量</strong>，以及异步校准任务的 SLA（例如 1 秒内把 DB 回灌到 Redis）。</p>
-<h3 id="2842-限流与降级"><a class="header" href="#2842-限流与降级">28.4.2 限流与降级</a></h3>
-<p><strong>限流维度</strong>：用户 ID、设备指纹、IP 段、活动 ID、接口名。<strong>降级策略</strong>（需产品确认）：</p>
-<ul>
-<li>试算失败：按原价或可延迟重试。</li>
-<li>领券失败：明确「已抢光」与「系统繁忙」文案，避免重复猛刷。</li>
-<li>引擎超时：熔断返回保守结果 + 记录补偿任务。</li>
-</ul>
-<p><strong>限流实现分层（从外到内）</strong>：</p>
+<p>门槛优惠的“门槛基数”必须写在规则中：是原价、活动后小计、扣券前小计，还是含运费金额。否则运营说“满 300”，研发可能用不同金额层判断，用户会遇到“明明超过门槛却不可用”。研究显示，用户不仅关心经济收益，也会根据预期和公平感评价门槛或封顶促销。[18] 工程上应把这种产品语义落实为可解释的 <code>threshold_basis</code>，而不是让文案和代码各自猜测。</p>
+<h3 id="2844-营销库存与原子预占"><a class="header" href="#2844-营销库存与原子预占">28.4.4 营销库存与原子预占</a></h3>
+<p>营销库存与商品库存不同。商品库存通常表示可履约数量，营销库存表示平台愿意承诺的权益数量或金额；前者可能在仓库中有物理位置，后者通常由配额、预算和用户限制构成。二者可以在同一个订单编排中协作，但不能共享一张“库存表”而不区分语义。</p>
+<p>营销库存至少包括：</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>层级</th><th>手段</th><th>说明</th></tr>
+<tr><th>资源</th><th>约束</th><th>例子</th></tr>
 </thead>
 <tbody>
-<tr><td>边缘</td><td>CDN、静态化、验证码</td><td>降低无效流量与脚本命中率</td></tr>
-<tr><td>网关</td><td>全局限流、活动级配额</td><td>保护下游不被突发打满</td></tr>
-<tr><td>服务实例</td><td>并发槽、队列长度</td><td>避免 goroutine/线程池堆积导致雪崩</td></tr>
-<tr><td>数据层</td><td>Redis 单 Key 分片、Lua 原子脚本</td><td>热点写入串行化且保持正确性</td></tr>
+<tr><td>活动总量</td><td>全局数量或金额</td><td>发放 100 万张券</td></tr>
+<tr><td>时段配额</td><td>时间片内上限</td><td>每分钟 2 万张</td></tr>
+<tr><td>用户配额</td><td>单用户、设备、账户族群</td><td>每人限 1 张</td></tr>
+<tr><td>预算桶</td><td>平台、商家、渠道或活动预算</td><td>平台补贴 500 万元</td></tr>
+<tr><td>并发占用</td><td>短期冻结</td><td>未支付订单占用 15 分钟</td></tr>
 </tbody>
 </table>
 </div>
-<p><strong>降级与用户体验的契约</strong>：降级不是「悄悄少优惠」，而是「明确告知当前无法应用优惠」。若业务允许静默降级，必须在法务与客服层面评估投诉风险；技术上建议至少记录 <code>degraded=true</code> 与原因码，便于事后补偿。</p>
-<pre><code class="language-go">import "github.com/sony/gobreaker"
+<p>抢券和预占的热路径可以使用 Redis 脚本做条件检查和计数更新，但 Redis 不是营销账本。脚本只负责在一个热点分片内原子判断，成功后必须写入持久化的 <code>reservation</code> 和事件记录；异步消费者、定时任务和对账程序负责把缓存计数与账本收敛。Redis Lua 脚本在服务端串行执行，能把多键条件更新放在一次原子操作中，但长脚本会阻塞其他请求，且脚本缓存本身不是持久数据库。[12]</p>
+<pre><code class="language-lua">-- KEYS[1] = campaign quota
+-- KEYS[2] = user quota
+-- ARGV[1] = requested amount
+-- ARGV[2] = user limit
+-- ARGV[3] = reservation id
+local total = tonumber(redis.call('GET', KEYS[1]) or '0')
+local used = tonumber(redis.call('GET', KEYS[2]) or '0')
+local request = tonumber(ARGV[1])
+local limit = tonumber(ARGV[2])
 
-func NewMarketingBreaker() *gobreaker.CircuitBreaker {
-	return gobreaker.NewCircuitBreaker(gobreaker.Settings{
-		Name:        "marketing_preview",
-		MaxRequests: 5,
-		Interval:    time.Second * 10,
-		Timeout:     time.Second * 30,
-		ReadyToTrip: func(c gobreaker.Counts) bool {
-			if c.Requests &lt; 20 {
-				return false
-			}
-			failRatio := float64(c.TotalFailures) / float64(c.Requests)
-			return failRatio &gt;= 0.4
-		},
-	})
-}
+if total &lt; request then return {0, 'campaign_exhausted'} end
+if used + request &gt; limit then return {0, 'user_limit'} end
+
+redis.call('DECRBY', KEYS[1], request)
+redis.call('INCRBY', KEYS[2], request)
+redis.call('HSET', 'reservation:' .. ARGV[3],
+  'amount', request, 'status', 'FROZEN')
+return {1, 'reserved'}
 </code></pre>
-<h3 id="2843-防刷与风控"><a class="header" href="#2843-防刷与风控">28.4.3 防刷与风控</a></h3>
-<p>防刷是「业务风控 + 工程限流」的组合：<strong>设备指纹、代理 IP 聚类、异常领取节奏、黑名单、券码猜测防护</strong>。工程上务必：</p>
-<ul>
-<li>热点 Key 分片；避免单 Key 成为 Redis 热点。</li>
-<li>异步写审计，主链路只做最小校验。</li>
-<li>与风控系统通过<strong>评分结果</strong>而不是全量明细耦合，降低 RT。</li>
-</ul>
-<p><strong>黑产对抗的分层策略</strong>：第一层是「明显的工程滥用」（高频请求、批量注册、同设备多号），用限流与验证码解决；第二层是「业务规则套利」（拆单、凑单、退款薅券），需要规则与订单域联合治理；第三层是「支付侧套利」（拒付、chargeback），已超出营销系统边界，但必须把营销核销数据完整输出给风控与财务。</p>
-<p><strong>策略落地建议</strong>：不要把所有风控判断都改成同步 RPC。典型做法是：领券接口同步只做硬规则（黑名单、频控），复杂模型异步回扫；一旦发现异常，可下发「冻结券使用资格」事件，让用户在结算页看到需要人脸核验或客服介入。这样可以在不大幅增加主链路 RT 的前提下提升对抗能力。</p>
-<hr>
-<h2 id="285-营销库存系统"><a class="header" href="#285-营销库存系统">28.5 营销库存系统</a></h2>
-<p>营销库存是<strong>活动参与配额</strong>，与商品可售库存解耦。秒杀中「500 件活动库存 + 10000 件商品库存」意味着两路都要成功才能成交。</p>
-<p><strong>营销库存 vs 商品库存</strong>（概念对齐表，避免团队各说各话）：</p>
+<p>脚本的业务约束是：所有涉及的 Key 必须属于同一 Redis Cluster hash slot；脚本参数不能来自客户端未经验证的价格；返回成功后，应用必须把 <code>reservation_id</code> 和订单幂等键持久化。若持久化失败，不能简单把脚本再执行一次，因为第二次可能重复扣减；应通过状态查询和补偿释放解决“缓存成功、账本未知”的情况。</p>
+<h3 id="2845-券积分与补贴的逆向流程"><a class="header" href="#2845-券积分与补贴的逆向流程">28.4.5 券、积分与补贴的逆向流程</a></h3>
+<p>取消和退款不是“把正向接口反过来调用”这么简单。券可能已经过期，积分可能已经被用户继续消费，平台补贴可能已经进入商家结算。逆向流程要按组件和订单状态决定：</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>维度</th><th>商品库存</th><th>营销库存</th></tr>
+<tr><th>逆向场景</th><th>券</th><th>积分</th><th>平台/商家补贴</th><th>处理原则</th></tr>
 </thead>
 <tbody>
-<tr><td>本质</td><td>可售实物或履约能力</td><td>活动参与名额 / 补贴预算的数字化表达</td></tr>
-<tr><td>典型驱动</td><td>采购、仓储、供应商可用量</td><td>营销预算、活动目标、风控阈值</td></tr>
-<tr><td>管理维度</td><td>SKU、仓、批次</td><td>活动、SKU、用户、时段</td></tr>
-<tr><td>扣减含义</td><td>少一件货</td><td>少一次优惠资格或一分预算</td></tr>
-<tr><td>失败体验</td><td>缺货</td><td>活动结束 / 已抢光 / 超出限购</td></tr>
-<tr><td>一致性策略</td><td>强一致预占 + 补偿</td><td>常采用 Redis 原子脚本 + 异步校准</td></tr>
+<tr><td>创单失败</td><td>释放冻结</td><td>释放冻结</td><td>释放预算冻结</td><td>必须幂等，优先恢复可用额度</td></tr>
+<tr><td>支付超时</td><td>释放或过期</td><td>释放冻结</td><td>释放预算</td><td>以支付最终状态查询为前提</td></tr>
+<tr><td>订单取消未履约</td><td>按策略退回</td><td>退回或生成新流水</td><td>冲正待结算金额</td><td>不能直接删除原流水</td></tr>
+<tr><td>部分退款</td><td>按行/组件规则</td><td>按分摊退回</td><td>按出资方冲正</td><td>引用 <code>component_id</code> 和分摊明细</td></tr>
+<tr><td>已结算退款</td><td>生成售后调整</td><td>生成退还流水</td><td>进入财务调整单</td><td>不改写历史快照</td></tr>
 </tbody>
 </table>
 </div>
-<p><strong>工程结论</strong>：下单链路里若同时存在两类库存，编排顺序必须写死（先营销后商品或相反）并配套一致的回滚顺序；任何「只扣一类」的实现都会在极端并发下出现难复现的幽灵订单。</p>
-<h3 id="2851-券库存管理"><a class="header" href="#2851-券库存管理">28.5.1 券库存管理</a></h3>
-<p>券批次 <code>total / used / reserved</code> 三界清晰：<code>reserved</code> 对应创单未支付阶段的冻结量；支付成功由 reserved → used；关单释放 reserved。</p>
-<p><strong>批次库存与 Redis 热计数的一致性策略</strong>：公开领券场景下，常见做法是「Redis 原子扣减可领余量 + 异步刷新 DB 已领量」，主链路避免对券批次行高频 <code>UPDATE</code>。需要接受的前提是：极端情况下 Redis 与 DB 存在短暂偏差，因此必须配套 <strong>日终对账</strong>（按 <code>coupon_id</code> 聚合 <code>coupon_user</code> 与 Redis 计数）与 <strong>紧急熔断</strong>（运营一键停领后，网关与脚本两侧同时生效）。若业务要求「绝不能超发一张」，则要么将扣减下沉到单批次行的强一致事务（牺牲峰值），要么引入分桶库存（把 100 万张券拆成 N 个 sub-batch，各自 Redis 计数，DB 汇总）。</p>
-<p><strong>用户券实例与批次维度的联动</strong>：用户侧 <code>CouponUser</code> 状态迁移（未使用 → 冻结 → 已使用）应与批次维度的 <code>reserved/used</code> 单调一致；实现上可在 Confirm 阶段用 <strong>单笔订单幂等键</strong> 保证「批次已用 +1」只执行一次。冻结阶段是否同步增加批次 <code>reserved</code>，取决于财务口径——若冻结即占用预算，则批次层也应体现 reserved，便于运营实时看到「被锁住的成本」。</p>
-<h3 id="2852-预算控制"><a class="header" href="#2852-预算控制">28.5.2 预算控制</a></h3>
-<p>活动预算与补贴池建议 <strong>Redis 原子扣减 + 日终对账</strong>；预算耗尽应<strong>快速失败</strong>并联动运营告警（短信/IM）。</p>
-<p><strong>预算模型拆分</strong>：至少区分「活动总预算」「单 SKU 子预算」「单用户补贴上限」三层。总预算用于财务控制；子预算用于防止单一 SKU 把活动打穿；用户上限用于防止单用户套利。上线前要与财务确认：<strong>预占是否计入消耗</strong>（通常创单即占用预算，关单释放），否则会出现「未支付订单占用预算导致活动提前结束」的体验问题。</p>
-<p><strong>Redis 与 DB 的职责</strong>：Redis 承担热点路径的原子判断与扣减；DB 承担审计与汇总；二者不一致时以 DB 为准修复 Redis 是常见策略，但要评估修复延迟期间的用户影响（短暂超发或短暂不可领）。若业务零容忍超发，需要把关键扣减下沉到 DB 或使用更强一致方案，代价是峰值容量下降。</p>
-<pre><code class="language-go">const decrBudgetLua = `
-local v = redis.call("GET", KEYS[1])
-if not v then return -1 end
-local n = tonumber(v)
-local d = tonumber(ARGV[1])
-if n &lt; d then return 0 end
-redis.call("DECRBY", KEYS[1], d)
-return 1
-`
-
-// budgetRedis 抽象 go-redis 的 Eval，便于单测注入 mock
-type budgetRedis interface {
-	Eval(ctx context.Context, script string, keys []string, args ...interface{}) interface {
-		Int() (int64, error)
-	}
-}
-
-func DecrBudgetAtomically(ctx context.Context, r budgetRedis, key string, delta int64) (bool, error) {
-	res, err := r.Eval(ctx, decrBudgetLua, []string{key}, delta).Int()
-	if err != nil {
-		return false, err
-	}
-	if res == -1 {
-		return false, ErrBudgetNotInitialized
-	}
-	return res == 1, nil
-}
+<p>平台补贴和商家补贴必须在价格组件中分拆，否则财务只能从最终优惠金额猜出资比例。多店铺订单尤其要保存店铺维度、平台维度和渠道维度的分摊结果；跨店满减的用户优惠可以集中计算，但资金承担必须可拆解。</p>
+<h3 id="2846-优惠券发放与用户权益表"><a class="header" href="#2846-优惠券发放与用户权益表">28.4.6 优惠券发放与用户权益表</a></h3>
+<p>优惠券有两个不同的库存问题：模板发行量，以及用户是否已经拥有一张具体权益。模板库存可以按活动分片预扣，用户权益表则需要唯一约束避免同一用户超过领取上限。推荐的数据模型如下：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>表/对象</th><th>关键字段</th><th>作用</th></tr>
+</thead>
+<tbody>
+<tr><td><code>coupon_template</code></td><td><code>template_id</code>、<code>rule_version</code>、<code>total_quota</code>、<code>validity</code></td><td>描述可发行的券和规则</td></tr>
+<tr><td><code>coupon_user</code></td><td><code>coupon_id</code>、<code>user_id</code>、<code>status</code>、<code>expire_at</code></td><td>用户持有的具体权益</td></tr>
+<tr><td><code>coupon_reservation</code></td><td><code>reservation_id</code>、<code>order_id</code>、<code>coupon_id</code>、<code>expires_at</code></td><td>交易期间的冻结</td></tr>
+<tr><td><code>coupon_ledger</code></td><td><code>event_id</code>、<code>action</code>、<code>before_status</code>、<code>after_status</code></td><td>不可变状态流水</td></tr>
+<tr><td><code>coupon_outbox</code></td><td><code>event_id</code>、<code>event_type</code>、<code>payload</code></td><td>可靠发布领域事件</td></tr>
+</tbody>
+</table>
+</div>
+<p>领取接口的幂等键可以是 <code>receive:{user_id}:{template_id}:{campaign_round}</code>，使用唯一键控制并发；发券成功后才返回券 ID。若库存预扣成功而用户权益写入失败，补偿任务应释放模板配额；若用户权益写入成功而响应超时，重试应根据幂等键返回原券，而不是再发一张。领取成功、冻结成功和核销成功分别产生不同流水，客服可以沿流水看出“券从未领取”“已领取但未使用”“订单已冻结等待支付”还是“支付成功已核销”。</p>
+<p>券的过期不应依赖一个定时任务把所有状态批量改成 <code>EXPIRED</code>。读取时可以依据 <code>expire_at</code> 判定不可用，后台任务负责补写审计状态和释放过期预算；如果过期和冻结并发发生，状态更新必须带版本或条件，例如只允许 <code>AVAILABLE</code> 且 <code>expire_at &gt; now</code> 的记录进入 <code>FROZEN</code>。过期任务重复执行应是幂等的。</p>
+<h3 id="2847-积分账户余额是投影流水是证据"><a class="header" href="#2847-积分账户余额是投影流水是证据">28.4.7 积分账户：余额是投影，流水是证据</a></h3>
+<p>积分经常被实现成“余额加减”，但电商交易里至少有赚取、冻结、消费、释放、退还和过期六种动作。账户表可以保存可用、冻结、累计获得和累计消费等投影；真正的证据保存在流水表。每次变更用 <code>entry_id</code> 和 <code>biz_id</code> 唯一约束，方向、数量、过期批次和关联订单写入同一事务。</p>
+<pre><code class="language-text">可用积分 = 历史入账 + 退还 + 释放 - 已消费 - 已过期 - 已冻结
+账户不变量：available &gt;= 0，frozen &gt;= 0
+消费前提：available &gt;= requested
+释放前提：冻结流水属于同一 order_id 和 reservation_id
 </code></pre>
-<h3 id="2853-实时监控"><a class="header" href="#2853-实时监控">28.5.3 实时监控</a></h3>
-<p>核心指标：</p>
-<ul>
-<li><strong>领取成功率 / 拒绝原因分布</strong>（库存不足 vs 风控 vs 限流）。</li>
-<li><strong>冻结/核销/回滚计数</strong>与订单状态对齐曲线。</li>
-<li><strong>预算消耗速率</strong>（每分钟消耗，预测耗尽时间）。</li>
-<li><strong>引擎 RT 分位</strong>与规则版本维度下钻。</li>
-</ul>
-<p><strong>从指标到告警的落地方法</strong>：不要只对「错误率」告警，要对「结构变化」告警。例如：领取失败率不变，但「风控拒绝占比」突然上升，往往意味着活动被黑产盯上；又如：冻结成功但确认核销失败升高，通常是支付回调或订单状态机异常的前兆。营销监控看板建议固定三类视图：<strong>活动运营视图</strong>（转化、消耗、ROI）、<strong>稳定性视图</strong>（RT、限流、熔断）、<strong>资金风险视图</strong>（预算、异常大额订单、补贴分账失败队列）。</p>
-<hr>
-<h2 id="286-系统边界与职责"><a class="header" href="#286-系统边界与职责">28.6 系统边界与职责</a></h2>
-<h3 id="2861-营销系统的职责边界"><a class="header" href="#2861-营销系统的职责边界">28.6.1 营销系统的职责边界</a></h3>
-<p><strong>营销系统应负责</strong>：工具发放与状态机、活动配置与圈品、营销库存、补贴分摊事实生成、试算解释与审计日志、与订单冻结/回滚对应的资源操作。</p>
-<p><strong>营销系统不应负责</strong>：商品主数据、基础标价、支付渠道、物流、发票税务口径的唯一裁定。</p>
-<p><strong>边界不清的典型症状</strong>（出现任一条都值得开专项治理）：</p>
-<ul>
-<li>订单表出现大量「手写促销字段」，营销服务却不知道这些字段如何产生。</li>
-<li>同一个满减规则在详情页、购物车、结算页算出三种金额。</li>
-<li>支付回调后才发现优惠无法分账，只能人工补单。</li>
-<li>风控拦截发券，但试算仍展示可用，用户完成下单后失败。</li>
-</ul>
-<h3 id="2862-营销-vs-计价谁算什么"><a class="header" href="#2862-营销-vs-计价谁算什么">28.6.2 营销 vs 计价：谁算什么</a></h3>
-<p>这是最容易跨团队扯皮的边界。推荐<strong>清晰分工</strong>：</p>
+<p>积分有有效期时，消费还涉及批次选择，例如优先消费最早过期批次。这个选择必须进入冻结流水，否则退款时无法知道应该退回哪个批次。部分退款可以按订单行和组件分摊积分；如果产品不允许按行退还，要在规则中说明“整单退款后统一退还”，不能让售后服务自行决定。</p>
+<h3 id="2848-活动类型与活动状态"><a class="header" href="#2848-活动类型与活动状态">28.4.8 活动类型与活动状态</a></h3>
+<p>活动类型不应直接决定数据库表结构。满减、折扣、阶梯价、买赠、N 元购、秒杀和拼团都可以建模为“适用范围 + 资格条件 + 计算器 + 资源约束 + 生命周期”。区别在于计算器和状态机：</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>计算内容</th><th>建议负责方</th><th>说明</th></tr>
+<tr><th>活动</th><th>核心输入</th><th>资源约束</th><th>失败/过期处理</th></tr>
 </thead>
 <tbody>
-<tr><td>商品基础价、渠道价、会员价</td><td>计价中心（或商品+计价组合域）</td><td>作为「价格事实」与快照源头</td></tr>
-<tr><td>券/活动/积分是否可用与优惠额</td><td>营销计算引擎</td><td>输出结构化应用明细</td></tr>
-<tr><td>购物车/结算页统一应付</td><td>计价中心编排调用营销</td><td>用户看到单一「应付」</td></tr>
-<tr><td>创单价格快照</td><td>订单域落库 + 引用计价/营销版本</td><td>售后按快照解释</td></tr>
+<tr><td>满减</td><td>适用小计、门槛、减免额</td><td>活动预算、用户次数</td><td>未达门槛返回差额</td></tr>
+<tr><td>折扣</td><td>基础价、折扣率、封顶</td><td>预算、最低价</td><td>超过封顶按上限</td></tr>
+<tr><td>阶梯</td><td>累计金额或数量</td><td>每级配额</td><td>选择可达到的最高级</td></tr>
+<tr><td>买赠</td><td>主商品、赠品、数量</td><td>赠品库存</td><td>赠品缺货拒绝或降级</td></tr>
+<tr><td>秒杀</td><td>时间、库存、用户资格</td><td>高并发配额</td><td>排队、限流或售罄</td></tr>
+<tr><td>拼团</td><td>团状态、人数、截止时间</td><td>团名额、补贴</td><td>团失败按策略退款</td></tr>
 </tbody>
 </table>
 </div>
-<p><strong>反模式</strong>：订单服务里手写一段「满 100 减 20」与营销服务另一套重复逻辑——必然漂移。</p>
-<p><strong>推荐协作模式（一句话）</strong>：计价中心负责「把钱算清楚并快照」，营销系统负责「把规则讲清楚并证明合规」。当两者接口契约稳定后，前端与订单域都应对营销细节保持「无知」，只消费结构化结果。</p>
-<h3 id="2863-平台营销-vs-商家营销"><a class="header" href="#2863-平台营销-vs-商家营销">28.6.3 平台营销 vs 商家营销</a></h3>
-<p>平台券与商家券在<strong>成本承担、审核、叠加策略、结算</strong>上不同；系统上建议「券实例维度绑定承担方」，订单行维度记录分摊，支付后生成清算明细。</p>
-<h3 id="2864-营销规则-vs-营销执行"><a class="header" href="#2864-营销规则-vs-营销执行">28.6.4 营销规则 vs 营销执行</a></h3>
-<p><strong>规则</strong>：可配置、可版本、可读多。<strong>执行</strong>：冻结、扣减、回滚、消息投递，必须可幂等与可补偿。不要在规则脚本里直接写数据库副作用；执行器与规则解释器分离（28.3.1 的分层）。</p>
-<hr>
-<h2 id="287-与其他系统的集成"><a class="header" href="#287-与其他系统的集成">28.7 与其他系统的集成</a></h2>
-<p>集成章节的目标是：把「同步调用边界」与「异步补偿边界」画清楚。营销系统处于交易链路中段，最容易出现<strong>长事务</strong>与<strong>重试风暴</strong>，因此接口设计要比普通 CRUD 更严格：超时、幂等、可观测三者缺一不可。</p>
-<p><strong>跨系统调用的最小契约（建议作为内部 OpenAPI 规范附件）</strong>：下列字段在多团队扯皮时最有用——<code>X-Idempotency-Key</code>（写路径必填）、<code>X-Rule-Version</code> / <code>pricing_snapshot_id</code>（试算与创单对齐）、<code>X-Biz-Scene</code>（<code>CHECKOUT</code> / <code>ORDER_CREATE</code>）、<code>X-Trace-Id</code>（全链路透传）。补偿任务消费侧应至少支持 <code>(biz_type, biz_id, action)</code> 唯一约束，避免 Kafka 重投导致二次核销。</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>调用方 → 被调方</th><th>典型接口</th><th>一致性语义</th><th>失败退避策略</th></tr>
-</thead>
-<tbody>
-<tr><td>计价 → 营销</td><td><code>PreviewPromotions</code></td><td>只读，可缓存</td><td>超时 → 保守不可用券</td></tr>
-<tr><td>订单 → 营销</td><td><code>TryFreeze</code> / <code>Confirm</code> / <code>Cancel</code></td><td>可补偿</td><td>幂等重试 + 逆序 Cancel</td></tr>
-<tr><td>订单 → 营销</td><td><code>ConsumeCampaignQuota</code></td><td>与支付回调对齐</td><td>补偿表重放</td></tr>
-<tr><td>支付 → 营销</td><td><code>OnPaymentSucceeded</code>（事件）</td><td>至少一次</td><td>幂等 + 对账</td></tr>
-<tr><td>营销 → 商品</td><td><code>BatchGetProductTags</code></td><td>只读</td><td>短超时 + 部分失败降级</td></tr>
-</tbody>
-</table>
-</div>
-<h3 id="2871-与商品中心集成圈品规则"><a class="header" href="#2871-与商品中心集成圈品规则">28.7.1 与商品中心集成（圈品规则）</a></h3>
-<p>商品中心提供类目、标签、上下架状态；营销读取时应<strong>缓存 + 兜底超时降级</strong>（降级策略需业务拍板：宁可不可用券，不可错误可用券）。</p>
-<p><strong>失败模式</strong>：商品中心超时 → 试算无法判断圈品 → 建议默认「该活动对此 SKU 不适用」而不是「适用」，避免错误让利。对于已加购用户，可提示稍后重试或刷新。</p>
-<h3 id="2872-与用户系统集成画像与风控"><a class="header" href="#2872-与用户系统集成画像与风控">28.7.2 与用户系统集成（画像与风控）</a></h3>
-<p>画像用于定向投放；注意隐私合规与最小必要原则。风控评分作为硬门槛时，应有明确失败原因码供前端展示（避免「神秘失败」）。</p>
-<p><strong>失败模式</strong>：画像服务延迟 → 定向券领取接口可异步化处理（先返回受理中），但创单路径若依赖画像，必须设置硬超时并走保守策略（按非定向规则校验）。</p>
-<h3 id="2873-与订单系统集成锁定--扣减--回退"><a class="header" href="#2873-与订单系统集成锁定--扣减--回退">28.7.3 与订单系统集成（锁定 / 扣减 / 回退）</a></h3>
-<p>订单创建立即涉及「资源锁定」；营销侧需提供 <strong>Try/Confirm/Cancel</strong> 语义或等价 Saga 接口：<code>freeze_coupon</code>、<code>confirm_coupon</code>、<code>rollback_coupon</code>，积分同理。</p>
-<p><strong>失败模式</strong>：订单 Try 成功但网络超时导致订单重试 → 营销接口必须幂等，重复 Try 不得重复扣减。Confirm 晚到必须先识别「已确认 / 已回滚」状态，避免二次核销。</p>
-<h3 id="2874-与计价系统集成试算接口"><a class="header" href="#2874-与计价系统集成试算接口">28.7.4 与计价系统集成（试算接口）</a></h3>
-<p>计价中心调用营销预览接口时，传入<strong>价格快照</strong>而不是实时价字符串，避免时间差；返回应用明细后由计价做最终取整与应付。</p>
-<p><strong>失败模式</strong>：营销试算成功但创单延迟十分钟 → 必须以快照版本为准；若规则版本在此期间变更，创单应拒绝或提示用户重新结算，而不能静默改价。</p>
-<h3 id="2875-与支付系统集成补贴分账"><a class="header" href="#2875-与支付系统集成补贴分账">28.7.5 与支付系统集成（补贴分账）</a></h3>
-<p>支付成功事件触发：营销确认核销、生成补贴分账数据、推送给清算系统。必须处理<strong>重复回调幂等</strong>。</p>
-<p><strong>失败模式</strong>：支付回调重复 → Confirm 幂等；支付成功但营销 Confirm 失败 → 必须有补偿任务把订单推到一致状态，并阻断发货或数字履约直到营销侧确认完成（视业务风险阈值而定）。</p>
-<h3 id="2876-集成时序图与补偿机制"><a class="header" href="#2876-集成时序图与补偿机制">28.7.6 集成时序图与补偿机制</a></h3>
-<pre class="mermaid">
-sequenceDiagram
-  participant U as 用户
-  participant O as 订单服务
-  participant P as 计价中心
-  participant M as 营销服务
-  participant I as 库存服务
-  participant Pay as 支付
-
-  U-&gt;&gt;O: 创单请求
-  O-&gt;&gt;P: 试算/确认价\n(pricing_snapshot)
-  P-&gt;&gt;M: 预览可用优惠\n(rule_version)
-  M--&gt;&gt;P: 应用明细
-  P--&gt;&gt;O: 应付金额 + 快照
-
-  O-&gt;&gt;M: Try 冻结券/扣减积分
-  M--&gt;&gt;O: OK
-  O-&gt;&gt;I: Try 预占库存
-  I--&gt;&gt;O: OK
-  O-&gt;&gt;O: 持久化订单(PENDING_PAY)
-
-  U-&gt;&gt;Pay: 发起支付
-  Pay--&gt;&gt;O: 支付成功回调(幂等)
-  O-&gt;&gt;M: Confirm 核销券/确认积分
-  O-&gt;&gt;I: Confirm 扣减库存
-  O-&gt;&gt;O: 更新订单(PAID)
-
-  Note over O,M: 任一步失败进入 Saga 逆序补偿\n并写入补偿任务表重试
-</pre>
-
-<p><strong>补偿表</strong>字段建议：<code>biz_id</code>、<code>action</code>、<code>payload</code>、<code>next_retry_at</code>、<code>status</code>；超过阈值人工介入。对账任务按日核对营销核销与订单快照。</p>
-<hr>
-<h2 id="288-工程实践"><a class="header" href="#288-工程实践">28.8 工程实践</a></h2>
-<h3 id="2881-性能优化"><a class="header" href="#2881-性能优化">28.8.1 性能优化</a></h3>
-<ul>
-<li><strong>多级缓存</strong>：券批次元数据本地缓存 + Redis；注意失效传播。</li>
-<li><strong>并行 I/O</strong>：预览时券列表、活动命中、用户等级查询可 <code>errgroup</code> 并行（注意超时串联）。</li>
-<li><strong>热点分片</strong>：秒杀库存键按 <code>activity_id + shard</code> 拆分；避免单 Key QPS 顶满单线程。</li>
-</ul>
-<p><strong>压测与容量规划建议</strong>：至少拆三条压测曲线——「仅试算」「领券写路径」「秒杀下单全链路」。把下游依赖（商品、计价、库存）分别做故障注入，观察营销服务是否会出现重试放大。热点活动前执行 Redis 预热与连接池参数复核，避免冷启动把连接打满。</p>
-<p><strong>连接池与 goroutine 背压</strong>：试算接口最容易在大促被放大为「购物车行数 × 活动命中次数」次下游调用。除缓存外，应在网关或服务入口配置 <strong>最大并发试算协程数</strong> 与 <strong>单请求活动匹配上限</strong>（例如每 SKU 最多评估 K 个活动），超出部分直接标记为「未评估，用户可手动领券」。否则会出现「CPU 不高但延迟爆炸」的典型症状——根因是无限并行导致的协调开销与下游排队。</p>
-<pre><code class="language-go">import (
-	"context"
-	"golang.org/x/sync/errgroup"
-	"time"
-)
-
-// PreviewParallel 演示：试算阶段并行拉取多源事实，统一超时兜底。
-func PreviewParallel(ctx context.Context, userID int64) (coupons int, points int64, err error) {
-	g, ctx := errgroup.WithContext(ctx)
-	ctx, cancel := context.WithTimeout(ctx, 120*time.Millisecond)
-	defer cancel()
-
-	g.Go(func() error {
-		// 伪代码：查询用户可用券数量
-		coupons = 3
-		return nil
-	})
-	g.Go(func() error {
-		points = 1200
-		return nil
-	})
-
-	if err := g.Wait(); err != nil {
-		return 0, 0, err
-	}
-	return coupons, points, nil
-}
-</code></pre>
-<h3 id="2882-数据一致性"><a class="header" href="#2882-数据一致性">28.8.2 数据一致性</a></h3>
-<p>主路径用 Saga；异步用 Outbox 发 Kafka；消费者幂等键用 <code>event_id</code> 或业务联合键；日终对账修数据。</p>
-<p><strong>对账维度清单（营销侧最小集）</strong>：</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>对账项</th><th>对比双方</th><th>发现差异后的处理</th></tr>
-</thead>
-<tbody>
-<tr><td>券核销</td><td>营销核销流水 vs 订单快照</td><td>以订单快照为准回补或冲正</td></tr>
-<tr><td>积分变动</td><td>积分流水 vs 订单支付事件</td><td>重放补偿任务</td></tr>
-<tr><td>活动消耗</td><td>Redis 计数 vs DB 汇总</td><td>以 DB 为准回灌或人工修正</td></tr>
-<tr><td>补贴分账</td><td>订单行分摊 vs 支付清算单</td><td>冻结差异单，财务介入</td></tr>
-</tbody>
-</table>
-</div>
-<h3 id="2883-成本控制"><a class="header" href="#2883-成本控制">28.8.3 成本控制</a></h3>
-<p>预算桶、单用户上限、异常消耗报警、活动 ROI 看板；技术上防止「无限重试放大写压力」。</p>
-<p><strong>成本与体验平衡</strong>：预算耗尽应「快速失败」而不是「排队重试吞吞吐」。对于平台补贴型活动，建议设置<strong>分钟级消耗速率告警</strong>：一旦斜率异常（脚本薅羊毛），可自动触发熔断与黑名单联动。</p>
-<hr>
-<h2 id="289-本章小结"><a class="header" href="#289-本章小结">28.9 本章小结</a></h2>
-<p>本章从<strong>工具体系</strong>（券、积分、活动、补贴）出发，拆解了营销系统的职责边界与架构分层；深入讲解了<strong>营销计算引擎</strong>的规则分层、叠加互斥与最优求解；针对秒杀抢券给出了<strong>高并发架构</strong>与限流降级策略；阐述了<strong>营销库存与预算</strong>独立于商品库存的原因与原子扣减模式；重点厘清了<strong>营销 vs 计价</strong>的算价边界，并通过<strong>集成时序图</strong>说明订单、计价、营销、库存、支付在全链路的 Try/Confirm 与补偿关系。</p>
-<p><strong>落地检查清单</strong>：</p>
-<ol>
-<li>试算与创单是否引用同一 <code>pricing_snapshot_id</code> 与 <code>marketing_rule_version</code>？</li>
-<li>券/积分状态机是否覆盖冻结、过期、回滚全路径？</li>
-<li>秒杀链路是否分离商品库存与营销库存，并有异步校准？</li>
-<li>补贴分账是否能在财务对账中还原到订单行？</li>
-</ol>
-<p><strong>与全书其他章节的阅读顺序建议</strong>：若你正在实现交易链路，建议将本章与第 29 章（计价系统）、第 31 章（购物车与结算）、第 32 章（订单系统）交叉阅读：把「试算 → 锁定 → 支付确认 → 清算」同一条时间轴画在白板上，再把每个系统的接口填进去，你会很快发现团队里哪些职责被重复实现、哪些补偿路径尚未覆盖。</p>
-<hr>
-<p><strong>延伸阅读</strong>：建议结合第 4 章（一致性）、第 3 章（资损防控）、第 29 章（计价系统）、第 32 章（订单系统）和第 33 章（支付系统）一起阅读，重点关注优惠锁定、核销、释放、补贴分账与对账闭环。</p>
-<div style="break-before: page; page-break-before: always;"></div>
-<h1 id="第-29-章-计价系统设计与实现"><a class="header" href="#第-29-章-计价系统设计与实现">第 29 章 计价系统设计与实现</a></h1>
-<blockquote>
-<p>本章聚焦交易链路中的<strong>统一计价能力</strong>：四层价格模型、场景化计算、DDD 战术建模与系统边界。</p>
-</blockquote>
-<p><strong>阅读提示</strong>：若你更熟悉「订单里直接存一个 <code>total_amount</code>」的朴素模型，可以先带着两个问题读完全章——第一，<strong>券与积分为何常常不进创单快照</strong>；第二，<strong>为什么支付阶段坚持校验而不是重算</strong>。搞清这两个问题，就能理解计价中心存在的必然性，而不是把它简单看成「又一个中台服务」。文中 Go 示例为教学裁剪版，省略了错误包装、观测字段与部分依赖注入，落地时请按项目规范补全。</p>
-<hr>
-<h2 id="291-背景与挑战"><a class="header" href="#291-背景与挑战">29.1 背景与挑战</a></h2>
-<h3 id="2911-价格计算的复杂性"><a class="header" href="#2911-价格计算的复杂性">29.1.1 价格计算的复杂性</a></h3>
-<p>在电商系统中，用户看到的「价格」并非单一标量，而是<strong>多因子分层叠加</strong>的结果：基础售价、营销活动、订单级抵扣、运费与增值服务、支付渠道手续费等，共同决定<strong>订单应付</strong>与<strong>最终支付</strong>。若各系统各自实现一套加减逻辑，极易出现「商详 99 元、下单 105 元」的体验问题，甚至引发<strong>重复优惠、二次扣券</strong>等资损。</p>
-<p>典型分解可概括为：</p>
-<ul>
-<li><strong>基础价格</strong>：市场价、日常折扣价、渠道价等；</li>
-<li><strong>营销价格</strong>：秒杀、新人价、满减、Bundle 等；</li>
-<li><strong>抵扣</strong>：优惠券、积分、支付立减等；</li>
-<li><strong>费用与附加</strong>：运费、碎屏险等平台服务费、跨境或信用卡手续费等。</li>
-</ul>
-<p>同一 SKU 在 <strong>PDP（商品详情页）</strong>、<strong>购物车</strong>、<strong>创单</strong>、<strong>收银台</strong>、<strong>支付</strong> 各阶段，对计算深度、一致性与性能的要求并不相同，这要求计价中心以<strong>场景驱动</strong>的方式暴露能力，而不是「一刀切」的全量重算。</p>
-<p>在传统拆分里，商品服务算「标价」、营销服务算「活动价」、订单服务在创单时再算一遍总价、支付服务为渠道优惠再算一遍——表面看各团队各管一段，实际上<strong>同一业务概念被多处隐式定义</strong>，边界一模糊就会出现「券用了两次」「满减门槛按行算还是按单算各执一词」等问题。更隐蔽的是：<strong>浮点金额</strong>、<strong>四舍五入顺序</strong>、<strong>外币汇率取整点</strong>不一致，会在大规模订单下累积成对账差异。计价中心的意义，就是把「一次购物旅程中所有与钱有关的加减」收敛到<strong>同一套编排与同一套舍入规则</strong>，让其他系统变成<strong>数据供给方或执行方</strong>，而不是第二个计算器。</p>
-<h3 id="2912-核心挑战"><a class="header" href="#2912-核心挑战">29.1.2 核心挑战</a></h3>
-<ol>
-<li><strong>一致性</strong>：展示价、订单快照、支付金额必须可追溯、可校验；规则版本与快照版本应对齐。</li>
-<li><strong>准确性</strong>：金额以<strong>分</strong>为单位的整数运算；订单级优惠需<strong>按比例分摊</strong>到行，否则退款无法闭合。</li>
-<li><strong>性能</strong>：PDP / 列表页高 QPS，需多级缓存与轻量路径；创单 / 收银台可接受更高延迟但<strong>不容错算</strong>。</li>
-<li><strong>异构品类</strong>：Topup、酒店、机票等定价因子差异大，需要<strong>策略插件</strong>而非巨石 <code>if-else</code>。</li>
-<li><strong>供应商品类实时价</strong>：报价可能在浏览至支付间变化，需要 <strong>BookingToken</strong>、支付前反查等机制。</li>
-</ol>
-<p>此外有两类「软挑战」往往在事故后才被写入复盘：<strong>组织边界</strong>与<strong>产品口径</strong>。前者表现为多个团队各维护一段计算逻辑，接口文档写「参考订单域」，实际上订单域又在调另一套历史脚本；后者表现为 PRD 写「到手价」，但未定义是否含运费、是否含可叠加券的上限——技术再完美的引擎也无法收敛未定义的业务。计价项目启动时，建议把<strong>统一语言表</strong>（见 25.5 与系列第六篇）作为需求评审门禁，与 <code>SkipLayers</code> 表双签，再进入排期。</p>
-<p>从工程视角，上述挑战可以压成三条硬约束：<strong>算得对</strong>（正确性）、<strong>大家认</strong>（一致性）、<strong>扛得住</strong>（性能与可用性）。其中正确性又依赖两条底座：一是<strong>整数分</strong>与确定的舍入；二是<strong>快照</strong>——把某一刻的规则解释结果固化为事实，后续链路只解释事实，不再在暗处重算。一致性则依赖<strong>版本化</strong>：规则集、活动表、券批次、汇率表都带有业务版本或生效区间，计价请求必须携带「我按哪一版解释」的线索，否则 PDP 与创单永远可能对不齐。</p>
-<h3 id="2913-设计目标"><a class="header" href="#2913-设计目标">29.1.3 设计目标</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>目标</th><th>说明</th></tr>
-</thead>
-<tbody>
-<tr><td>准确性</td><td>计价结果可审计，关键路径可空跑比对</td></tr>
-<tr><td>一致性</td><td>统一入口计算，订单 / 支付以快照为准</td></tr>
-<tr><td>高性能</td><td>前台场景高缓存命中；交易路径少 IO、可并发</td></tr>
-<tr><td>可扩展</td><td>新营销类型、新费用项以策略 / 配置扩展</td></tr>
-<tr><td>可观测</td><td>分层耗时、缓存命中、差异告警</td></tr>
-</tbody>
-</table>
-</div>
-<p>上述目标之间存在天然张力：例如「极致缓存」与「强一致快照」方向相反，需要通过<strong>场景分流</strong>化解，而不是用一套参数打天下。团队 OKR 里若只写 P99 延迟而不写<strong>差异率 / 资损事件数</strong>，很容易把系统优化成「快但不准」。建议在质量看板上同时跟踪：<strong>快照校验失败次数</strong>、<strong>空跑 diff 超标次数</strong>、<strong>客服价格类工单占比</strong>，与延迟指标并列。</p>
-<h3 id="2914-计价系统在交易链路中的位置"><a class="header" href="#2914-计价系统在交易链路中的位置">29.1.4 计价系统在交易链路中的位置</a></h3>
-<p>计价中心位于<strong>商品、营销、库存、订单、支付</strong>之间：向上读取商品基础价与营销规则，向下为购物车、结算、创单、支付提供<strong>试算</strong>与<strong>快照</strong>服务。它是交易链路的<strong>横切基础模块</strong>，不宜承担订单状态机或支付渠道路由等非本域职责。</p>
+<p>活动状态通常包括草稿、待审核、已发布、预热、进行中、暂停、已结束和已取消。运营暂停活动时，新请求不能再命中；已经冻结的订单要根据活动规则确认或释放。若活动支持延迟生效，发布事件要携带生效时间和版本，不能依赖各服务本地时钟恰好一致。</p>
+<h3 id="2849-反作弊与营销公平"><a class="header" href="#2849-反作弊与营销公平">28.4.9 反作弊与营销公平</a></h3>
+<p>营销风控要避免两个极端：只用 IP 限制导致共享网络用户被误伤，或只靠黑名单导致黑产换设备后继续领取。可组合账户、设备、手机号、支付工具、收货地址、行为速度、历史退款率和订单完成率等信号，并把决策分为允许、挑战、排队、拒绝和人工审核。风控结果是资格输入的一部分，但不应把完整风险模型细节写进价格快照；快照只保存决策版本和审计摘要。</p>
+<p>公平还体现在规则文案和最终金额。平台需要避免同一公开条件下出现无法解释的不同优惠，也要允许个性化权益明确说明适用对象。促销的门槛、封顶、概率和有效期应在页面展示，不能依靠用户点击后才发现限制。技术系统能够做到“每次规则一致执行”，但不自动证明规则对所有用户公平；这需要产品、法务、风控和数据团队共同定义评价指标。</p>
+<h2 id="285-计价引擎费用模型与多品类适配"><a class="header" href="#285-计价引擎费用模型与多品类适配">28.5 计价引擎、费用模型与多品类适配</a></h2>
+<h3 id="2851-计价不是一段公式而是一条可追踪的计算管线"><a class="header" href="#2851-计价不是一段公式而是一条可追踪的计算管线">28.5.1 计价不是一段公式，而是一条可追踪的计算管线</a></h3>
+<p>计价引擎需要同时满足三个看似冲突的目标：在读路径足够快，在交易路径足够严格，在事后能够解释。解决方法是把计算拆成稳定的层和可插拔的适配器，每层接受结构化状态并追加组件，不把所有中间结果压缩成一个总数。</p>
 <pre class="mermaid">
 flowchart LR
-  subgraph upstream[上游依赖]
-    Item[商品中心]
-    Promo[营销系统]
-    User[用户 / 画像]
-    Supplier[供应商报价]
-  end
-  Pricing[计价中心]
-  subgraph downstream[下游消费方]
-    PDP[商详 / 导购]
-    Cart[购物车]
-    Checkout[结算收银台]
-    Order[订单系统]
-    Pay[支付系统]
-  end
-  Item --&gt; Pricing
-  Promo --&gt; Pricing
-  User --&gt; Pricing
-  Supplier --&gt; Pricing
-  Pricing --&gt; PDP
-  Pricing --&gt; Cart
-  Pricing --&gt; Checkout
-  Pricing --&gt; Order
-  Pricing --&gt; Pay
+    A[请求指纹] --&gt; B[输入规范化]
+    B --&gt; C[基础价格层]
+    C --&gt; D[营销价格层]
+    D --&gt; E[抵扣层]
+    E --&gt; F[附加费用层]
+    F --&gt; G[分摊与舍入]
+    G --&gt; H[安全校验]
+    H --&gt; I[报价或快照]
 </pre>
 
-<p>把计价中心画在枢纽位置，并不是鼓励它成为「上帝服务」，而是强调其 <strong>I/O 边界</strong>：对外是少量稳定的试算与快照 API，对内通过防腐层消化外部世界的变化。实践中常见反模式有两种：其一是计价服务直接读营销库的宽表，把对方存储模型当自己领域模型；其二是把订单状态推进、支付路由塞进计价——二者都会让团队在排障时无法回答「这一分钱到底是谁改的」。本章后续用 DDD 的聚合与 ACL 约束，正是为了避免这两种腐化。</p>
-<hr>
-<h2 id="292-计价引擎架构"><a class="header" href="#292-计价引擎架构">29.2 计价引擎架构</a></h2>
-<h3 id="2921-分层架构"><a class="header" href="#2921-分层架构">29.2.1 分层架构</a></h3>
-<p>计价中心通常分为：<strong>场景入口层（API / Handler）</strong>、<strong>编排与快照层</strong>、<strong>核心计算引擎</strong>、<strong>品类策略</strong>、<strong>防腐适配层</strong>、<strong>缓存与持久化</strong>。入口按 <code>PricingScene</code> 路由到不同 Handler，核心引擎以<strong>责任链</strong>顺序执行各 <code>Layer</code>，并结合 <code>Calculator</code> 做品类扩展。</p>
-<pre class="mermaid">
-flowchart TB
-  subgraph api[统一入口层]
-    GW[Pricing API / Gateway]
-    Router[SceneRouter]
-    Snap[SnapshotManager]
-    GW --&gt; Router
-    Router --&gt; Snap
-  end
-  subgraph engine[核心计算层]
-    L1[BasePriceLayer]
-    L2[PromotionLayer]
-    L3[DeductionLayer]
-    L4[ChargeLayer]
-    L5[FinalAssemblyLayer]
-    L1 --&gt; L2 --&gt; L3 --&gt; L4 --&gt; L5
-  end
-  subgraph strategy[品类策略]
-    C1[DealCalculator]
-    C2[TopupCalculator]
-    C3[HotelCalculator]
-  end
-  subgraph infra[基础设施]
-    ACL[防腐层适配器]
-    Cache[(L1/L2 缓存)]
-    DB[(快照 / 审计)]
-  end
-  Router --&gt; engine
-  engine --&gt; strategy
-  engine --&gt; ACL
-  engine --&gt; Cache
-  Snap --&gt; DB
-</pre>
+<p>每层输出 <code>PricingState</code>，其中至少包含行级中间金额、组件列表、已选营销权益、供应商报价引用、规则版本、舍入记录、错误/降级标志和剩余超时。层之间传递的是值对象和不可变输入；如果某层需要修改，生成新的状态或追加事件，不要在多个 goroutine 中共享可变的金额对象。</p>
+<h3 id="2852-基础价格层不同品类不同事实来源"><a class="header" href="#2852-基础价格层不同品类不同事实来源">28.5.2 基础价格层：不同品类，不同事实来源</a></h3>
+<p>固定实物价格可以从商品中心读取；酒店和票务价格通常依赖日期、场次、座位或供应商；充值和电子钱包可能存在面额、汇率和通道费；订阅商品需要周期和续费规则。它们的共同接口不是“返回一个 int”，而是：</p>
+<pre><code class="language-go">type BaseQuote struct {
+	LineID       string
+	UnitAmount   Money
+	Quantity     int64
+	Currency     string
+	QuoteID      string
+	Version      string
+	ExpiresAt    time.Time
+	Source       string
+	Attributes   map[string]string
+}
 
-<p><strong>与五层实现的关系</strong>：实现上常把「最终汇总、尾差修正、安全校验」独立为 <code>FinalAssemblyLayer</code>，于是代码里会看到五段责任链。本书在<strong>业务模型</strong>上仍称四层，是因为前四层对应「可被业务方单独讨论的价格语义」，而 Final 层是<strong>技术组装层</strong>（把四层结果折叠成响应 DTO 与快照 schema），不参与对外营销话术。团队在评审架构图时，应对业务讲四层，对研发可展开五层，避免无谓争论。</p>
-<p><strong>SceneRouter</strong> 的职责不仅是转发：它要注入 <code>PricingScene</code>、解析租户 / 地区 / 渠道、挂载灰度与空跑开关，并在入口完成<strong>参数校验</strong>（例如购物车行是否含失效 SKU、供应商品类是否带预订 token）。<strong>SnapshotManager</strong> 则与订单域协作：创单成功后写入订单快照，收银台基于订单行再生成支付快照；二者生命周期不同，<strong>不可混用一张表、一个过期策略</strong>。</p>
-<h3 id="2922-四层价格模型"><a class="header" href="#2922-四层价格模型">29.2.2 四层价格模型</a></h3>
-<p>为与业务语言对齐，本书将<strong>可叠加的价格语义</strong>归纳为四层（<strong>不含</strong>最终的汇总展示层）：<strong>基础层、营销层、抵扣层、费用层</strong>。引擎内部可再拆「最终汇总」为独立步骤，用于生成明细与快照版本。</p>
+type BasePriceProvider interface {
+	Quote(ctx context.Context, req BasePriceRequest) (BaseQuote, error)
+}
+</code></pre>
+<p>适配器要把外部报价的有效期、请求参数摘要和供应商返回 ID 带入内部状态。一个供应商返回 100 元，另一个供应商返回 100 元，不代表它们的可售事实相同；前者可能有 10 分钟有效期，后者可能只保证 30 秒。计价中心可以缓存结果，但不能把无限期缓存价当成交易价。</p>
+<p>价格请求先做规范化：对行项目排序、统一数量和币种、剔除不可售行、补充用户/渠道/地区上下文，然后计算 <code>request_fingerprint</code>。相同业务请求的字段顺序不同，不应导致不同快照；但数量、地址、配送方式、支付渠道、券选择或会员状态变化时，指纹必须变化。</p>
+<h3 id="2853-价格层与费用模型"><a class="header" href="#2853-价格层与费用模型">28.5.3 价格层与费用模型</a></h3>
+<p>本章采用五个逻辑阶段：</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>层级</th><th>名称</th><th>典型内容</th><th>出资方 / 备注</th></tr>
+<tr><th>阶段</th><th>处理内容</th><th>主要输出</th><th>不能做什么</th></tr>
 </thead>
 <tbody>
-<tr><td>Layer 1</td><td>基础价格</td><td>市场价、折扣价、渠道价、供应商报价</td><td>商家 / 平台标价</td></tr>
-<tr><td>Layer 2</td><td>营销价格</td><td>秒杀、新人价、满减、活动价</td><td>商家或平台营销预算</td></tr>
-<tr><td>Layer 3</td><td>抵扣</td><td>优惠券、积分、部分支付立减</td><td>用户权益</td></tr>
-<tr><td>Layer 4</td><td>费用与附加</td><td>运费、增值服务费、平台服务费、支付手续费</td><td>用户或平台规则</td></tr>
+<tr><td>Base</td><td>基础价、数量、币种、报价有效期</td><td>行基础价</td><td>不读取券并自行打折</td></tr>
+<tr><td>Promotion</td><td>活动价、阶梯、买赠、秒杀</td><td>活动组件</td><td>不直接确认券核销</td></tr>
+<tr><td>Deduction</td><td>券、红包、积分、会员抵扣</td><td>抵扣组件</td><td>不绕过资格和预算</td></tr>
+<tr><td>Charge</td><td>运费、服务费、渠道费、税费</td><td>费用组件</td><td>不隐式改变优惠顺序</td></tr>
+<tr><td>Finalize</td><td>下限、分摊、舍入、安全检查</td><td>快照/报价</td><td>不覆盖历史快照</td></tr>
 </tbody>
 </table>
 </div>
-<pre class="mermaid">
-flowchart TB
-  subgraph L1[Layer 1 基础价格]
-    M[市场价]
-    D[折扣价]
-    M --&gt; D
-  end
-  subgraph L2[Layer 2 营销价格]
-    P[活动 / 秒杀 / 新人 / 满减]
-  end
-  subgraph L3[Layer 3 抵扣]
-    V[券 / 积分 / 立减]
-  end
-  subgraph L4[Layer 4 费用与附加]
-    F[运费 / 增值服务费 / 手续费]
-  end
-  L1 --&gt; L2
-  L2 --&gt; L3
-  L3 --&gt; L4
-  L4 --&gt; Out[应付 / 实付口径由场景定义]
-</pre>
-
-<p><strong>端到端走数示例（整数分）</strong>：设某 SKU 日常折扣价 98000 分，限时抢购再减 8000 分（Layer 2），创单时加运费 1000 分、碎屏险 5000 分（Layer 4 中与履约相关部分），则订单应付为 98000 − 8000 + 1000 + 5000 = 96000 分。用户进入收银台选择满 500 减 100 的券（此处为 10000 分）与积分抵 10000 分（Layer 3），再选择会产生 2% 信用卡手续费的渠道，手续费基数若约定为「券与积分后的金额」，则应付变为 96000 − 10000 − 10000 = 76000 分，手续费 1520 分，实付 77520 分——具体基数以公司业务规则为准，关键是 <strong>Layer 顺序与基数必须在规则文档与代码注释中一致</strong>，并在快照里记录「手续费按哪一版基数计算」。</p>
-<p><strong>口径说明</strong>：</p>
-<ul>
-<li><strong>创单（CreateOrder）</strong>：常见做法是 Layer 1 + Layer 2 + <strong>Layer 4 中与订单履约相关的费用</strong>（如运费、增值服务费），<strong>不包含</strong> Layer 3 的券与积分，也不包含<strong>支付渠道手续费</strong>（手续费依赖用户所选渠道，放在收银台）。</li>
-<li><strong>收银台（Checkout）</strong>：完整执行 Layer 1–4，生成<strong>支付快照</strong>。</li>
-<li><strong>支付（Payment）</strong>：以快照为准做<strong>校验</strong>，避免再次「全量重算」引入漂移。</li>
-</ul>
-<p>Layer 的<strong>顺序不可随意调换</strong>：必须先有「可减的基准」，再谈营销减免，再谈用户权益抵扣，最后才叠加履约与支付相关费用。若把券提前到营销之前，会出现「用券改变满减门槛」这类循环依赖，规则引擎与测试用例都会爆炸。Layer 4 内部也建议<strong>再分子阶段</strong>：先算与履约相关的运费与增值服务费，再在收银台根据用户所选支付渠道计算手续费，这样创单快照不会错误地绑定某一渠道费率。</p>
-<h3 id="2923-计算流程"><a class="header" href="#2923-计算流程">29.2.3 计算流程</a></h3>
-<p>计算流程可抽象为：构建 <code>PricingContext</code> → 按场景得到 <code>skipLayers</code> → 责任链逐层改写 <code>PricingState</code> → 品类 <code>Calculator</code> 参与行级计算 → <code>Final</code> 汇总明细 →（交易路径）<strong>持久化快照</strong>。</p>
-<pre class="mermaid">
-flowchart LR
-  A[请求 + Scene] --&gt; B[加载商品 / 规则版本]
-  B --&gt; C[初始化 PricingState]
-  C --&gt; D{遍历 Layer}
-  D --&gt;|未跳过| E[更新行金额 / 明细]
-  D --&gt;|跳过| F[保持上层结果]
-  E --&gt; G{还有 Layer?}
-  F --&gt; G
-  G --&gt;|是| D
-  G --&gt;|否| H[分摊 / 取整 / 保护校验]
-  H --&gt; I[响应 + 可选快照]
-</pre>
-
-<p><strong><code>PricingState</code> 建议携带的内容</strong>包括：行级中间价、已选营销命中列表、已锁定券批次、供应商报价引用 ID、舍入审计数组、以及每层产生的结构化 <code>PriceComponent</code>（类型、金额、出资方、关联业务单号）。Final 之前的各层应尽量避免「只写一个整数总价」——客服与财务追问时，只有明细才能解释<strong>为什么少了一分钱</strong>。供应商品类还要在 state 中携带 <strong>报价过期时刻</strong> 与 <strong>预订 token</strong>，以便支付校验阶段做二次确认或优雅失败。</p>
-<hr>
-<h2 id="293-核心实现"><a class="header" href="#293-核心实现">29.3 核心实现</a></h2>
-<h3 id="2931-价格计算器设计"><a class="header" href="#2931-价格计算器设计">29.3.1 价格计算器设计</a></h3>
-<p>引擎对外暴露稳定接口，对内使用 <strong><code>Layer</code> 责任链 + <code>Calculator</code> 策略</strong>：</p>
-<pre><code class="language-go">package pricing
-
-import "context"
-
-// Engine 计价引擎对外接口。
-type Engine interface {
-	CalculatePrice(ctx context.Context, req *PricingRequest) (*PricingResponse, error)
-	CalculateWithDryRun(ctx context.Context, req *PricingRequest) (*PricingResponse, *DryRunResult, error)
-	BatchCalculate(ctx context.Context, reqs []*PricingRequest) ([]*PricingResponse, error)
-}
-
-// Layer 单层计算：可读写 PricingState。
-type Layer interface {
-	Name() string
-	Order() int
-	Process(ctx context.Context, req *PricingRequest, st *PricingState) error
-}
-
-// Calculator 品类策略：在单层或多层之间参与行级公式。
-type Calculator interface {
-	Support(categoryID int64) bool
-	Priority() int
-	Calculate(ctx context.Context, req *PricingRequest, st *PricingState) error
+<p>费用建模要先回答“费用是什么”，再回答“如何计算”。建议每项费用带有 <code>fee_code</code>、<code>basis</code>、<code>calculation_type</code>、<code>discountable</code>、<code>funding_source</code>、<code>taxable</code> 和 <code>allocation_policy</code>。服务费可以是固定金额，平台费可以按比例，供应商手续费可能与支付方式相关，税费还可能依赖地区。费用是否可被券覆盖必须是显式配置；如果把它写成代码中的一个 if，后续加入新费用时极易出现旧券意外覆盖新费用。</p>
+<pre><code class="language-text">ChargeComponent {
+  fee_code: SERVICE_FEE
+  basis: PROMOTED_SUBTOTAL
+  calculation: fixed(1500) | percentage(3%)
+  discountable: false
+  funding_source: merchant
+  allocation_policy: by_line_weight
 }
 </code></pre>
-<p><strong>责任链与策略的协作方式</strong>可以概括为：Layer 负责「这一类变价因子在何时进入总式」，Calculator 负责「这一品类如何解释基础输入」。例如酒店品类在 Layer 1 需要把「间夜 × 日历价 × 税费」折叠成一行基准 <code>Money</code>；Topup 在 Layer 1 只需要「面额 × 折扣率」。若把品类差异全写进 Layer 1 的 <code>switch</code>，Layer 将迅速膨胀；若把 Layer 2 的营销叠加规则写进 Calculator，又会导致营销变更需要改多个品类文件。<strong>推荐做法</strong>是：Layer 保持<strong>与品类无关的通用语义</strong>，Calculator 只处理「如何得到 Layer 1 接受的基准结构」以及少数「品类特有附加费」钩子。</p>
-<p><strong>错误语义</strong>：引擎对外错误应分层——参数非法（4xx）、依赖不可用（5xx 可重试）、规则冲突（4xx 业务码）、资损风险（4xx 拒绝 + 告警）。不要把「营销返回空列表」与「内部 panic」混用同一码，否则 SLO 统计会被污染。对创单路径，任何<strong>未分类错误</strong>都应默认 fail-close，避免生成半张快照。</p>
-<p><code>initLayers</code> 中按 <code>Order()</code> 排序注册：<code>BasePrice</code> → <code>Promotion</code> → <code>Deduction</code> → <code>Charge</code> → <code>Final</code>，与 25.2.2 的四层语义一致，<strong>Final</strong> 负责尾差、分摊与明细输出。</p>
-<p>场景到层的映射在代码里常表为「跳过列表」，与业务文档交叉对照便于测试覆盖：</p>
-<pre><code class="language-go">func SkipLayersForScene(scene PricingScene) []string {
-	switch scene {
-	case ScenePDP, SceneAddToCart:
-		return []string{"deduction", "charge"}
-	case SceneCart:
-		return []string{"charge"} // 购物车可预估券；运费常缺省或按默认地址估算
-	case SceneCreateOrder:
-		// 创单：基础 + 营销 + 与订单绑定的附加费；不含券积分与支付手续费
-		return []string{"deduction", "payment_handling_fee"}
-	case SceneCheckout:
-		return nil
-	case ScenePayment:
-		return []string{"base_price", "promotion", "deduction", "charge", "final"}
-	default:
-		return nil
+<p>多币种场景必须保留原币金额和结算币金额，汇率版本和有效期也属于快照输入。金额计算使用货币最小单位的整数或经过明确舍入规则的十进制定点数，不能使用二进制浮点数直接累加。MySQL 的事务隔离级别决定了并发读取和更新时的可见性，默认隔离级别和业务所需的锁定语义不能靠“数据库会保证一致”一笔带过。[11]</p>
+<h3 id="2854-分摊尾差与退款"><a class="header" href="#2854-分摊尾差与退款">28.5.4 分摊、尾差与退款</a></h3>
+<p>订单级优惠必须下沉到订单行，否则商品部分退款时无法知道应退多少。设订单行的活动后小计为 <code>b_i</code>，订单级优惠为 <code>D</code>，则一种按权重分摊的初始结果为：</p>
+<pre><code class="language-text">raw_i = D × b_i / Σb_i
+allocated_i = floor(raw_i, currency_scale)
+tail = D - Σallocated_i
+把 tail 加到满足业务规则的最后一行或最大金额行
+</code></pre>
+<p>选择“最后一行”还是“最大金额行”必须固定并写入快照。多币种、零金额赠品、负向组件和跨店铺券都要覆盖测试。分摊结果应满足：所有行分摊之和等于订单优惠；每行分摊不超过适用金额；平台和商家出资分摊之和等于总优惠；退款按原组件和原分摊恢复，而不是重新按当前行金额计算。</p>
+<p>常见错误包括：先四舍五入每一行导致总额多一分；把运费按商品金额分摊却没有记录配送维度；商品数量减少后重新算历史优惠；合并订单行后丢失原 <code>component_id</code>。这些问题看起来是金额细节，实际会扩散到发票、结算、退款、客服和财务对账。</p>
+<h3 id="2855-领域模型与代码边界"><a class="header" href="#2855-领域模型与代码边界">28.5.5 领域模型与代码边界</a></h3>
+<p>计价领域可以使用值对象 <code>Money</code> 和 <code>PriceLayer</code>，聚合根可以是某个行级报价或订单报价。值对象负责金额加减、币种和精度；聚合负责不变量；领域服务负责跨多个组件的优惠组合和分摊；应用服务负责调用商品、营销、用户和供应商端口；基础设施负责缓存、数据库和消息。</p>
+<pre><code class="language-go">type Money struct {
+	MinorUnits int64
+	Currency   string
+}
+
+func (m Money) Add(other Money) (Money, error) {
+	if m.Currency != other.Currency {
+		return Money{}, ErrCurrencyMismatch
 	}
-}
-</code></pre>
-<blockquote>
-<p>注：<code>payment_handling_fee</code> 是否从 Layer 4 拆出，取决于实现里是否将「订单附加费」与「支付渠道费」分为两个子处理器；关键是<strong>创单口径不包含随渠道变化的费率</strong>。</p>
-</blockquote>
-<h3 id="2932-快照生成"><a class="header" href="#2932-快照生成">29.3.2 快照生成</a></h3>
-<p>快照是<strong>防资损</strong>的关键：创单生成<strong>订单价格快照</strong>（含行明细、规则版本、供应商 <code>BookingToken</code> 等），收银台生成<strong>支付快照</strong>（含券积分与手续费）。快照应包含：</p>
-<ul>
-<li><code>snapshot_id</code>、<code>version</code>、<code>calculated_at</code>、<code>expire_at</code>；</li>
-<li>各层贡献的<strong>结构化明细</strong>（便于对账与客服解释）；</li>
-<li>可选：<code>rule_bundle_hash</code> 用于比对「当时用的是什么规则集」。</li>
-</ul>
-<p><strong>快照与订单数据的关系</strong>：订单表应保存 <code>snapshot_id</code> 或内嵌只读 JSON，但<strong>不建议在订单域再实现一套价格公式</strong>去「验算」——验算应回调计价或读快照服务，否则双实现又会分叉。快照表建议支持<strong>只追加</strong>：修正价格走新快照版本（<code>v2</code>），旧版本保留审计；支付失败回滚不应删除历史快照记录。<strong>TTL</strong>：订单快照常对齐库存锁定时间（如 30 分钟）；支付快照对齐收银台支付超时（如 15 分钟），二者解耦。</p>
-<h3 id="2933-试算接口"><a class="header" href="#2933-试算接口">29.3.3 试算接口</a></h3>
-<p>试算与正式计算共用同一套 <code>Layer</code>，通过 <code>Scene</code> 控制深度：PDP 试算只读展示；购物车允许<strong>预估券</strong>（标注 <code>estimated=true</code>）；创单 / 收银台必须<strong>明确用户已选权益</strong>（券码、积分数量、渠道）。</p>
-<p>试算响应里应显式区分三类字段：<strong>事实</strong>（已锁定、写入快照）、<strong>建议</strong>（系统推荐最优券但用户未确认）、<strong>估算</strong>（缺地址导致运费按默认规则猜）。前端展示时必须用不同标签，避免用户把「估算运费」当成承诺。对于 <strong>DryRun（空跑比对）</strong>：上线新引擎时，生产流量旁路调用新旧两套，只在差异超阈值时采样上报，可在 <code>PricingResponse</code> 中附加 <code>diff_summary</code> 而不影响主路径延迟。</p>
-<h3 id="2934-幂等性保证"><a class="header" href="#2934-幂等性保证">29.3.4 幂等性保证</a></h3>
-<p>计价接口常被上游重试。建议：</p>
-<ul>
-<li>请求携带 <strong><code>Idempotency-Key</code></strong> 或业务侧 <code>request_id</code>；</li>
-<li>服务端以「用户 + 场景 + 关键购物车指纹」为维度短 TTL 缓存<strong>响应副本</strong>；</li>
-<li><strong>生成快照</strong>类写操作与订单号 / 结算单号绑定，防止重复生成两套有效快照。</li>
-</ul>
-<pre><code class="language-go">type SnapshotRepository interface {
-	Save(ctx context.Context, s *PriceSnapshot) error
-	GetByOrderID(ctx context.Context, orderID string) (*PriceSnapshot, error)
+	return Money{MinorUnits: m.MinorUnits + other.MinorUnits,
+		Currency: m.Currency}, nil
 }
 
-func (s *PricingAppService) CreateOrderSnapshot(ctx context.Context, cmd CreateOrderSnapshotCmd) (*PriceSnapshot, error) {
-	if snap, err := s.repo.GetByOrderID(ctx, cmd.OrderID); err == nil &amp;&amp; snap != nil {
-		return snap, nil
-	}
-	// ... 首次计算后落库
-	return s.repo.SaveAndReturn(ctx, cmd)
+type PriceComponent struct {
+	ID             string
+	Kind           string
+	Amount         Money // 减免用负数，费用用正数，或统一使用 direction 字段
+	LineID         string
+	RuleVersion    string
+	FundingSource  string
+	Discountable   bool
+}
+
+type PricingCalculator interface {
+	Calculate(ctx context.Context, input PricingInput) (PricingResult, error)
 }
 </code></pre>
-<p><strong>安全校验器（Safety Checker）</strong> 常与幂等一起出现在创单 / 收银台路径：在返回快照前检查「总价不为负」「折扣不超过品类阈值」「优惠不超过商品应付之和」等。校验失败应<strong>拒绝生成快照</strong>而不是静默裁剪，否则会把业务错误伪装成成功交易。对于前端上送金额与后端计算金额的比对，建议以后端为准，前端金额仅作 UX 提示；若必须比对，应使用<strong>宽松阈值</strong>防浮点，或统一为整数分。</p>
-<hr>
-<h2 id="294-多级缓存与降级"><a class="header" href="#294-多级缓存与降级">29.4 多级缓存与降级</a></h2>
-<h3 id="2941-缓存策略"><a class="header" href="#2941-缓存策略">29.4.1 缓存策略</a></h3>
+<p>这里的代码只是边界示意，不是可以直接上线的完整实现。生产代码还需要显式区分“减免金额为正、方向单独表示”和“减免组件用负数”的方案，不能让不同计算器各自选择。DDD 的价值是把选择固化为统一语言和领域不变量，而不是给普通 CRUD 代码增加一层抽象。[1][2]</p>
+<h3 id="2856-场景驱动的计算器"><a class="header" href="#2856-场景驱动的计算器">28.5.6 场景驱动的计算器</a></h3>
+<p>不要让一个 <code>CalculatePrice</code> 接口携带几十个可选字段，然后在实现中根据 <code>scene</code> 走无穷分支。可以保留统一的领域管线，但为场景定义不同的输入和强约束：</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>场景</th><th>是否缓存</th><th>TTL 思路</th></tr>
+<tr><th>场景</th><th>允许缓存</th><th>依赖完整度</th><th>失败策略</th><th>是否生成交易快照</th></tr>
 </thead>
 <tbody>
-<tr><td>PDP / 列表批量</td><td>是</td><td>L1 短 TTL + L2 较长；命中要求高于展示 SLA</td></tr>
-<tr><td>购物车</td><td>部分</td><td>自营可中等 TTL；供应商品类报价短 TTL</td></tr>
-<tr><td>创单 / 收银台 / 支付</td><td>否（结果可落快照表）</td><td>以强一致计算为主</td></tr>
+<tr><td>列表页</td><td>高</td><td>可只读匿名/会员展示价</td><td>返回基础价或隐藏营销标签</td><td>否</td></tr>
+<tr><td>PDP</td><td>中</td><td>基础价 + 可展示权益</td><td>局部降级，标记不完整</td><td>否</td></tr>
+<tr><td>加购</td><td>中</td><td>行价和限购</td><td>提示重新试算</td><td>否</td></tr>
+<tr><td>购物车</td><td>低到中</td><td>多行、多店铺、券预览</td><td>失败行显式标记</td><td>可生成短期 quote</td></tr>
+<tr><td>创单</td><td>低</td><td>所有交易依赖和营销冻结</td><td>fail-fast，不用旧营销价</td><td>是</td></tr>
+<tr><td>支付校验</td><td>低</td><td>快照、币种、报价有效期</td><td>金额不一致即拒绝</td><td>验证已有快照</td></tr>
 </tbody>
 </table>
 </div>
-<p>缓存 key 设计要同时防<strong>击穿</strong>与<strong>脏读</strong>：key 中应包含 <code>item_id</code>、<code>sku_id</code>、<code>region</code>、<code>channel</code>、<code>user_segment</code>（若价随人群变化）、以及<strong>规则版本摘要</strong>。大促时热门商品可采用**单飞（singleflight）**合并回源。对购物车这类高 churn 场景，可缓存「行哈希 → 计价结果」短 TTL，而不是整购物车超长缓存，避免用户改数量后长期读到旧价。</p>
-<h3 id="2942-降级方案"><a class="header" href="#2942-降级方案">29.4.2 降级方案</a></h3>
-<ul>
-<li><strong>依赖超时</strong>：返回上一版本缓存并打标 <code>stale=true</code>（仅允许非交易路径）；</li>
-<li><strong>营销服务不可用</strong>：PDP 可降级为仅 Layer 1；创单路径应<strong>失败快速</strong>而非静默吞错；</li>
-<li><strong>供应商报价失败</strong>：使用 DB 缓存价并限制最大陈旧度，超阈值则拦截创单。</li>
-</ul>
-<p>降级策略要与<strong>法务与用户协议</strong>对齐：若页面上承诺了「展示价即购买价」，则任何返回陈旧价的降级路径都必须附带明确提示或干脆失败；否则可能构成虚假宣传风险。技术团队常忽略这一点，把「能卖出去」置于「合规展示」之上。<strong>开关治理</strong>上，降级与熔断配置应纳入配置中心审计，谁在什么时间打开「允许陈旧价」，需要可追溯。</p>
-<h3 id="2943-性能优化要点"><a class="header" href="#2943-性能优化要点">29.4.3 性能优化要点</a></h3>
-<ul>
-<li>批量场景用 <code>errgroup</code> 并发拉取多 SKU 基础价与活动；</li>
-<li>热点 SKU <strong>预热</strong>；</li>
-<li>对 Layer 内 RPC 设置<strong>独立超时与熔断</strong>，避免一层拖垮整条链。</li>
-</ul>
-<pre><code class="language-go">package pricing
-
-import (
-	"context"
-	"sync"
-	"time"
-)
-
-type CacheManager struct {
-	mu   sync.Mutex
-	l1   map[string]cacheEntry
-	l1TTL time.Duration
-}
-
-type cacheEntry struct {
-	val       *PricingResponse
-	expiresAt time.Time
-}
-
-func NewCacheManager(l1TTL time.Duration) *CacheManager {
-	return &amp;CacheManager{l1: make(map[string]cacheEntry), l1TTL: l1TTL}
-}
-
-func (c *CacheManager) GetOrCompute(ctx context.Context, key string, fn func(context.Context) (*PricingResponse, error)) (*PricingResponse, error) {
-	now := time.Now()
-	c.mu.Lock()
-	if e, ok := c.l1[key]; ok &amp;&amp; now.Before(e.expiresAt) {
-		c.mu.Unlock()
-		return e.val, nil
+<p>供应商类商品还需要 <code>quote_token</code> 和 <code>expires_at</code>。支付校验发现报价过期时，不能默默使用缓存报价；可根据品类策略选择重新询价、重新生成快照、提示用户确认或失败。航空、酒店和票务常常不允许用过期报价成交，固定实物可能允许在很短窗口内使用锁定价，这应是配置化的品类策略。</p>
+<h3 id="2857-个性化价格与安全护栏"><a class="header" href="#2857-个性化价格与安全护栏">28.5.7 个性化价格与安全护栏</a></h3>
+<p>个性化定价的输入可能来自用户等级、渠道、地区、会员权益和行为分群。系统必须区分“对所有符合资格的用户公开的会员权益”和“基于不可解释特征给每个人返回不同的基础价”。前者可以用权益规则建模，后者需要额外的公平、合规、可解释和审计约束。个性化价格研究指出，价格优化涉及消费者福利、企业收益、平等获得和分配结果等不同目标，不能用单一收入指标判断系统成功。[19]</p>
+<p>安全检查器应在快照写入前运行：</p>
+<pre><code class="language-go">func CheckQuote(req PricingRequest, result PricingResult) error {
+	if result.Payable.MinorUnits &lt; 0 {
+		return ErrNegativePayable
 	}
-	c.mu.Unlock()
-
-	val, err := fn(ctx)
-	if err != nil {
-		return nil, err
+	if result.DiscountTotal().GreaterThan(result.EligibleSubtotal()) {
+		return ErrDiscountExceedsBase
 	}
-	c.mu.Lock()
-	c.l1[key] = cacheEntry{val: val, expiresAt: now.Add(c.l1TTL)}
-	c.mu.Unlock()
-	return val, nil
-}
-</code></pre>
-<blockquote>
-<p>生产环境可在 L1 之上再接 Redis、并接入 singleflight；此处展示「先读内存、未命中再计算回写」的最小闭环。</p>
-</blockquote>
-<hr>
-<h2 id="295-ddd-建模实践重点"><a class="header" href="#295-ddd-建模实践重点">29.5 DDD 建模实践（重点）</a></h2>
-<p>DDD 在计价系统中的价值，在于用<strong>统一语言</strong>消除 <code>originalPrice</code> / <code>salePrice</code> / <code>actualPay</code> 混用，并用<strong>聚合边界</strong>保证「基础价 + 选中营销 + 费用 − 抵扣」在同一事务语义内一致。</p>
-<h3 id="2951-领域模型设计"><a class="header" href="#2951-领域模型设计">29.5.1 领域模型设计</a></h3>
-<p><strong>限界上下文</strong>：计价上下文（Pricing Context）与营销、商品、用户、支付等上下文通过 <strong>ACL（防腐层）</strong> 交互。计价上下文中，核心概念包括：<code>Price</code>（一次可报价单元）、<code>PriceLayer</code>（单层结果）、<code>Money</code>（金额值对象）、<code>PriceSnapshot</code>（不可变结果事实）、<code>PricingPolicy</code>（来自外部的规则投影）。</p>
-<pre class="mermaid">
-classDiagram
-  class PriceAggregate {
-    +string LineID
-    +ReconstructFromSnapshot()
-    +ApplyLayers()
-    +ToSnapshot()
-  }
-  class Money {
-    +int64 cents
-    +string currency
-    +Add(Money) Money
-    +Sub(Money) Money
-  }
-  class PriceLayer {
-    +LayerKind kind
-    +Money delta
-    +map meta
-  }
-  class PriceSnapshot {
-    +string SnapshotID
-    +[]LineBreakdown lines
-    +string RuleVersion
-  }
-  class PricingContextVO {
-    +int64 UserID
-    +string Region
-    +PricingScene Scene
-  }
-  PriceAggregate --&gt; Money
-  PriceAggregate --&gt; PriceLayer : layers
-  PriceAggregate --&gt; PricingContextVO
-  PriceSnapshot --&gt; Money
-</pre>
-
-<p><strong>限界上下文关系（战略视图）</strong>：计价上下文处于<strong>下游消费位</strong>，对商品、营销、用户、支付等上下文均通过 <strong>ACL</strong> 取数；这些上下文互不直接依赖计价模型，避免「改一个 proto 全仓库编译失败」的耦合。下图省略防腐层实现类，只保留协作方向，便于与架构评审中的上下文地图对照。</p>
-<pre class="mermaid">
-flowchart LR
-  subgraph peers[相邻上下文]
-    IC[商品 Item Catalog]
-    MC[营销 Marketing]
-    UC[用户 User]
-    PCtx[支付 Payment]
-  end
-  subgraph pricing_ctx[计价 Pricing]
-    AR[Price 聚合 / Layer 编排]
-    SN[PriceSnapshot]
-  end
-  IC --&gt;|基础价 DTO| pricing_ctx
-  MC --&gt;|活动命中 / 券面额| pricing_ctx
-  UC --&gt;|人群 / 新客标记| pricing_ctx
-  PCtx --&gt;|渠道费率投影| pricing_ctx
-  pricing_ctx --&gt;|试算结果 / 快照 ID| PCtx
-</pre>
-
-<p><strong>防腐层（ACL）</strong> 在计价落地中几乎与引擎同等重要：营销侧可能叫 <code>activity_price</code>，商品侧叫 <code>sale_price</code>，支付侧叫 <code>payable_amount</code>——计价域只接受自己的 <code>Money</code> 与 <code>PriceLayer</code>。下面是一个最小对照：应用服务只依赖计价域接口 <code>PromotionPort</code>，基础设施里实现适配器，把 RPC DTO 转成值对象。</p>
-<pre><code class="language-go">// domain/ports.go — 由定价上下文定义，由基础设施实现。
-type PromotionPort interface {
-	ActivePromotions(ctx context.Context, q PromotionQuery) ([]PromotionOffer, error)
-}
-
-// domain/promotion_offer.go — 定价上下文内的只读投影。
-type PromotionOffer struct {
-	ActivityID int64
-	Kind       string
-	Price      Money
-}
-
-// infra/promotion_acl.go
-type promotionACL struct{ /* rpc client */ }
-
-func (a *promotionACL) ActivePromotions(ctx context.Context, q PromotionQuery) ([]PromotionOffer, error) {
-	// resp := a.client.Query(...)
-	// return toOffers(resp)，字段映射、枚举归一、金额转分，全部在此完成
-	return nil, nil
-}
-</code></pre>
-<h3 id="2952-聚合根price行级报价聚合"><a class="header" href="#2952-聚合根price行级报价聚合">29.5.2 聚合根：<code>Price</code>（行级报价聚合）</a></h3>
-<p>以<strong>订单行 / 购物车行</strong>为粒度定义聚合根 <code>Price</code>（本书与实现中可与 <code>PricingAggregate</code> 等价命名），保证：</p>
-<ol>
-<li>同一行上<strong>互斥营销</strong>的选择规则在一个聚合内完成；</li>
-<li><strong>行小计</strong>与<strong>层明细</strong>同步更新；</li>
-<li>对外只暴露<strong>已完成校验</strong>的结果。</li>
-</ol>
-<pre><code class="language-go">package domain
-
-import "errors"
-
-type LayerKind int
-
-const (
-	LayerBase LayerKind = iota
-	LayerPromotion
-	LayerDeduction
-	LayerCharge
-)
-
-// Price 聚合根：表示「一行 SKU 在一次请求下」的可报价过程。
-type Price struct {
-	lineID   string
-	skuID    int64
-	quantity int64
-	layers   []PriceLayer
-	ctx      PricingContext
-	version  int64
-}
-
-func NewPrice(lineID string, skuID, qty int64, ctx PricingContext) (*Price, error) {
-	if qty &lt;= 0 {
-		return nil, errors.New("quantity must be positive")
+	if result.AllocatedDiscount() != result.DiscountTotal() {
+		return ErrAllocationMismatch
 	}
-	return &amp;Price{lineID: lineID, skuID: skuID, quantity: qty, ctx: ctx}, nil
-}
-
-func (p *Price) ReplaceLayer(kind LayerKind, delta Money, meta map[string]string) error {
-	if delta.IsNegative() &amp;&amp; kind == LayerBase {
-		return errors.New("base layer cannot go negative")
+	if result.BudgetDelta().IsOverLimit() {
+		return ErrBudgetExceeded
 	}
-	// 同类层覆盖或追加策略由领域规则决定，此处示意「按 kind 幂等替换」
-	p.layers = upsertLayer(p.layers, kind, delta, meta)
+	if !result.CurrencyMatches(req.Currency) {
+		return ErrCurrencyMismatch
+	}
 	return nil
 }
-
-func upsertLayer(existing []PriceLayer, kind LayerKind, delta Money, meta map[string]string) []PriceLayer {
-	nl := make([]PriceLayer, 0, len(existing)+1)
-	replaced := false
-	for _, l := range existing {
-		if l.Kind == kind {
-			nl = append(nl, PriceLayer{Kind: kind, Delta: delta, Meta: cloneMeta(meta)})
-			replaced = true
-			continue
-		}
-		nl = append(nl, l)
-	}
-	if !replaced {
-		nl = append(nl, PriceLayer{Kind: kind, Delta: delta, Meta: cloneMeta(meta)})
-	}
-	return nl
-}
-
-func cloneMeta(m map[string]string) map[string]string {
-	if m == nil {
-		return nil
-	}
-	out := make(map[string]string, len(m))
-	for k, v := range m {
-		out[k] = v
-	}
-	return out
-}
-
-func (p *Price) Subtotal() (Money, error) {
-	var sum Money
-	for _, l := range p.layers {
-		var err error
-		sum, err = sum.Add(l.Delta)
-		if err != nil {
-			return Money{}, err
-		}
-	}
-	return sum, nil
+</code></pre>
+<p>安全检查不是风控的替代品。风控可以拒绝疑似脚本、设备族群或异常行为；计价安全检查只保证金额、范围、预算和版本的内部不变量。两者都失败时，不能为了转化率只跳过一个检查器。</p>
+<h3 id="2858-供应商报价与动态价格适配"><a class="header" href="#2858-供应商报价与动态价格适配">28.5.8 供应商报价与动态价格适配</a></h3>
+<p>固定价格和动态价格的最大差异不是“一个来自数据库、一个来自接口”，而是承诺方式不同。固定价通常有较长有效期，动态报价可能绑定日期、库存、房型、座位、供应商 token 和取消政策。适配器返回报价时，需要把这些条件统一为内部可校验对象：</p>
+<pre><code class="language-text">SupplierQuote {
+  quote_id             外部报价标识
+  product_ref          供应商商品/资源引用
+  amount, currency     原币金额
+  valid_until          报价过期时间
+  reservation_token    后续预订或出票 token
+  cancellation_policy  取消和退款条件
+  source_version       客户端/供应商协议版本
 }
 </code></pre>
-<p><strong>聚合边界</strong>：<code>Price</code> 内不直接修改「券库存」「活动预算」——这些属于营销聚合，由应用服务先<strong>预留 / 锁定</strong>后再传入 <code>Price</code> 已选结果。</p>
-<p>若团队纠结「一行 SKU 是否太小」：可以从<strong>一致性边界</strong>反推——任何「必须在同一事务里决定且一起成功或失败」的价格要素，应处于同一聚合；若某些营销是平台级自动领取、失败可静默降级，则不必纳入 <code>Price</code> 聚合，而可作为 Layer 2 的只读输入。购物车多行场景下，<strong>行级 <code>Price</code> 聚合 + 订单级领域服务</strong>是常见组合：行内互斥活动放在行聚合，跨行满减分摊放在服务。</p>
-<h3 id="2953-值对象money-与-pricelayer"><a class="header" href="#2953-值对象money-与-pricelayer">29.5.3 值对象：<code>Money</code> 与 <code>PriceLayer</code></a></h3>
-<p><strong>Money</strong>：用 <code>int64</code> 分与 <code>currency</code> 表达，<strong>不可变</strong>，所有运算返回新值，避免浮点误差。跨境时可在值对象内同时保存「展示币种金额」与「清算币种金额」，但<strong>比较与快照持久化</strong>必须指定其中一种为权威口径，另一种仅作参考字段。舍入规则（银行家舍入 vs 向上取整）应配置化，并在快照中记录 <code>rounding_mode</code>，否则三年后审计很难解释「为什么当年这样舍」。</p>
-<p><strong>PriceLayer</strong>：描述单层对金额的<strong>增量贡献</strong>（可为负表示减免），并携带 <code>meta</code>（活动 ID、费用类型、出资方 <code>source=platform|merchant|channel</code>）供对账。一个实用技巧是为每个 <code>PriceLayer</code> 分配<strong>稳定 <code>component_id</code></strong>（UUID 或雪花），在退款回收、部分开票时直接引用，而不是靠数组下标——订单行重排或合并时，下标并不可靠。</p>
-<pre><code class="language-go">// 与上文 Price 同属 domain 包。
-
-type Money struct {
-	cents    int64
-	currency string
-}
-
-func (m Money) Add(o Money) (Money, error) {
-	if m.currency != o.currency {
-		return Money{}, errors.New("currency mismatch")
-	}
-	return Money{cents: m.cents + o.cents, currency: m.currency}, nil
-}
-
-// Multiply 单价 × 数量；若数量非法应由调用方先校验。
-func (m Money) Multiply(qty int64) (Money, error) {
-	if qty &lt;= 0 {
-		return Money{}, errors.New("quantity must be positive")
-	}
-	return Money{cents: m.cents * qty, currency: m.currency}, nil
-}
-
-func (m Money) IsNegative() bool { return m.cents &lt; 0 }
-
-type PriceLayer struct {
-	Kind  LayerKind
-	Delta Money
-	Meta  map[string]string
-}
-</code></pre>
-<h3 id="2954-领域服务"><a class="header" href="#2954-领域服务">29.5.4 领域服务</a></h3>
-<p>当逻辑<strong>跨多行</strong>或<strong>不适合放入单一 <code>Price</code></strong> 时，使用领域服务，例如：</p>
-<ul>
-<li><strong>订单级满减分摊</strong>：余额递减法处理尾差；</li>
-<li><strong>互斥活动择优</strong>：跨多个候选活动比较用户实付；</li>
-<li><strong>Bundle 计价</strong>：买 N 享 M 折等。</li>
-</ul>
-<pre><code class="language-go">package domain
-
-import "errors"
-
-// LineAmount 表示一行在分摊前的可参与金额（通常为 Layer1+2+4 之后的行小计，单位：分）。
-type LineAmount struct {
-	LineID string
-	Cents  int64
-}
-
-// ApportionmentService：订单级优惠按行权重分摊（余额递减 + 尾差落末行）。
-type ApportionmentService struct{}
-
-func (ApportionmentService) Allocate(orderDiscountCents int64, lines []LineAmount) ([]int64, error) {
-	if orderDiscountCents &lt; 0 {
-		return nil, errors.New("discount must be non-negative")
-	}
-	if len(lines) == 0 {
-		return nil, errors.New("no lines")
-	}
-	var total int64
-	for _, l := range lines {
-		if l.Cents &lt; 0 {
-			return nil, errors.New("line amount cannot be negative")
-		}
-		total += l.Cents
-	}
-	if total == 0 {
-		return nil, errors.New("total weight is zero")
-	}
-	out := make([]int64, len(lines))
-	var allocated int64
-	for i := 0; i &lt; len(lines)-1; i++ {
-		// 按比例向下取整到分
-		part := orderDiscountCents * lines[i].Cents / total
-		out[i] = part
-		allocated += part
-	}
-	out[len(lines)-1] = orderDiscountCents - allocated
-	return out, nil
-}
-</code></pre>
-<p>领域服务<strong>无状态</strong>，入参出参均为领域对象或值对象。</p>
-<h3 id="2955-仓储与工厂"><a class="header" href="#2955-仓储与工厂">29.5.5 仓储与工厂</a></h3>
-<ul>
-<li><strong>工厂</strong>：从商品 / 营销 DTO 通过 ACL 组装 <code>Price</code> 初始状态；</li>
-<li><strong>仓储</strong>：<code>PriceSnapshotRepository</code> 持久化快照；<strong>不写</strong>聚合根运行态，避免贫血往返；</li>
-<li><strong>应用服务</strong>：开启事务、调用营销锁定、调用引擎、保存快照、发布「快照已生成」领域事件。</li>
-</ul>
-<p><strong>工厂的职责</strong>是把「外部世界的行项目」翻译成<strong>领域可计算的初始不变式</strong>：数量为正、币种一致、基础层已填入「未乘数量的单价」或「已乘数量的行基准」——二者只能选一种约定，并在团队 wiki 中写死。工厂内不做营销择优，只做<strong>数据完备性</strong>与 ACL 映射；择优属于领域服务或 Layer 2 策略，避免工厂膨胀成第二个引擎。</p>
-<pre><code class="language-go">package domain
-
-// ItemPort 由商品上下文经 ACL 实现。
-type ItemPort interface {
-	BaseUnitPrice(ctx context.Context, skuID int64) (Money, error)
-}
-
-// PriceFactory 从商品行构造聚合根（示意：仅 Layer1 基准）。
-type PriceFactory struct {
-	items ItemPort
-}
-
-type CartLineInput struct {
-	LineID string
-	SkuID  int64
-	Qty    int64
-}
-
-func (f *PriceFactory) NewPriceFromLine(ctx context.Context, in CartLineInput, pc PricingContext) (*Price, error) {
-	unit, err := f.items.BaseUnitPrice(ctx, in.SkuID)
-	if err != nil {
-		return nil, err
-	}
-	p, err := NewPrice(in.LineID, in.SkuID, in.Qty, pc)
-	if err != nil {
-		return nil, err
-	}
-	lineBase, err := unit.Multiply(in.Qty)
-	if err != nil {
-		return nil, err
-	}
-	if err := p.ReplaceLayer(LayerBase, lineBase, map[string]string{"source": "item_catalog"}); err != nil {
-		return nil, err
-	}
-	return p, nil
-}
-</code></pre>
-<p>上例中 <code>Multiply</code> 可作为 <code>Money</code> 上的方法，与「单价 × 数量」语义绑定；若品类要求按「件数阶梯」重算基准，则在工厂之后交给对应 <code>Calculator</code>，而不是在工厂里写 <code>switch category</code>。</p>
-<p><strong>应用服务与领域层的调用顺序</strong>（创单示例）：校验入参 → 通过工厂构建每行 <code>Price</code> 聚合（仅含基础层）→ 调用领域服务选出互斥活动 → 各 <code>Layer</code> 在应用层编排下逐步调用 <code>ReplaceLayer</code> → <code>ApportionmentService</code> 处理订单级减免 → <code>Price</code> 聚合生成行视图 → 组装 <code>PriceSnapshot</code> 持久化。注意：<strong>券锁定</strong>属于应用层编排步骤，领域层只接收「锁定成功后的面额」作为事实输入，这样聚合不变式才不会依赖远程 RPC 的副作用。</p>
-<p><strong>充血 / 贫血混合策略</strong>：行级 <code>Price</code> 与分摊服务采用充血模型承载规则；快照 PO、HTTP DTO 保持贫血，避免把序列化细节泄漏进领域。测试金字塔上，<strong>领域单测</strong>覆盖互斥、尾差、货币错误；<strong>契约测试</strong>覆盖 ACL 与外部服务的字段映射；<strong>端到端</strong>只保留少量黄金用例，防止全链路测试过慢导致无人运行。</p>
-<hr>
-<h2 id="296-不同场景的价格计算"><a class="header" href="#296-不同场景的价格计算">29.6 不同场景的价格计算</a></h2>
-<h3 id="2961-pdp-场景商品详情页--加购试算"><a class="header" href="#2961-pdp-场景商品详情页--加购试算">29.6.1 PDP 场景（商品详情页 / 加购试算）</a></h3>
-<p>PDP 的首要 KPI 是<strong>转化</strong>，技术侧对应的是极低延迟与稳定展示。计算上通常停留在 Layer 1 与 Layer 2：用户需要知道「日常卖多少、活动卖多少、我是否命中新人/秒杀」。券与积分如果在 PDP 就做全量最优解，RPC 扇出会爆炸，因此常见做法是：<strong>主路径同步返回展示价</strong>，券预估走异步任务或边缘计算，并在 UI 上用弱提示展示「领券最高可再减 X 元」。</p>
-<p><strong>加购（AddToCart）</strong> 与 PDP 类似，往往不锁任何资源；若要做「凑满减」提示，可在服务端维护轻量规则缓存，仍以 Layer 1–2 为主。PDP 与创单的价格差异若不可避免，必须在交互上降级为「以结算页为准」，同时在日志里记录 <code>rule_bundle_hash</code>，便于客诉时复盘。</p>
-<h3 id="2962-购物车场景"><a class="header" href="#2962-购物车场景">29.6.2 购物车场景</a></h3>
-<p>购物车是<strong>多品聚合</strong>与<strong>用户频繁编辑</strong>的交集：行增删、数量变化、地址切换都会触发重算。技术上通常批量拉取基础价与活动，再对共享的订单级优惠做编排；Layer 3 在购物车阶段多为<strong>试算而非锁定</strong>，返回体应用 <code>estimated</code> 标记。运费若无默认地址，可返回区间或按城市模板估算，并在进入结算页时用真实地址覆盖。</p>
-<p>供应商品类在购物车仍需注意<strong>外部报价抖动</strong>：可短时缓存供应商返回，但 TTL 要显著短于自营；用户停留过久时，结算页应主动提示「价格已更新」。</p>
-<h3 id="2963-创单场景订单金额与快照"><a class="header" href="#2963-创单场景订单金额与快照">29.6.3 创单场景（订单金额与快照）</a></h3>
-<p>创单是价格从「展示」走向「事实」的分水岭：此时应完成与履约相关的费用（运费、服务费等），并<strong>生成订单快照</strong>。不包含券与积分并非技术偷懒，而是业务上常把「用户尚未进入收银台选择的支付权益」排除在订单应付之外，避免订单应付随用户换券剧烈波动；若业务要求订单应付即含券，应在需求层显式调整 Layer 映射，而不是在代码里硬塞。</p>
-<p>创单路径还要与<strong>库存预占、营销库存锁定</strong>同事务或同 Saga 编排：计价不负责预占，但要在<strong>预占成功之后</strong>再冻结快照，否则会出现「快照有了库存没了」的僵尸数据。供应商品类在创单常同步拉取供应商报价并生成 <strong>BookingToken</strong>，写入快照供支付确认。</p>
-<h3 id="2964-支付场景"><a class="header" href="#2964-支付场景">29.6.4 支付场景</a></h3>
-<p>支付侧理想状态是 <strong>O(1) 查表校验</strong>：读取 <code>snapshot_id</code> 对应金额、币种、过期时间，与支付请求比对；供应商品类增加「预订确认」RPC。任何在支付路径重新跑全量 Layer 的做法，都应视为技术债：渠道回调重复、用户重复点击支付，都会让重算路径产生<strong>非确定性</strong>。若必须重算（极少数风控场景），应产生<strong>新快照版本</strong>并阻断旧支付单。</p>
-<h3 id="2965-场景间的价格一致性保证"><a class="header" href="#2965-场景间的价格一致性保证">29.6.5 场景间的价格一致性保证</a></h3>
+<p>计价中心不能把“查询到了价格”误认为“资源已被锁定”。酒店房间、电影座位、机票和第三方券码可能需要另一个预订动作。若业务要求在创单时锁定供应商资源，价格快照应引用预订 token；支付失败时，取消预订也成为 Saga 的一个补偿步骤。若供应商只提供报价不提供锁定，则快照只能表达“在有效期内按策略尝试成交”，不能对用户承诺绝对可得。</p>
+<p>动态报价缓存必须遵循最短有效期和品类策略。缓存命中后仍校验 <code>valid_until</code>，并在支付或创单前根据风险等级二次询价。对于用户展示，可返回“价格以结算为准”；对于已经支付的订单，后续供应商涨价不能直接转嫁给用户，系统应按照订单快照和履约/退款策略处理。</p>
+<h3 id="2859-计价字典服务与配置治理"><a class="header" href="#2859-计价字典服务与配置治理">28.5.9 计价字典服务与配置治理</a></h3>
+<p>费用和营销组件多起来后，规则配置中的字符串会产生隐形耦合，例如 <code>service_fee</code> 在一个服务表示平台服务费，在另一个服务表示供应商手续费。可以建立轻量的价格字典服务，维护组件编码、中文展示名、会计科目、出资方、可折扣性、可退款性、税务属性和默认分摊策略。字典只负责语义和元数据，不负责执行复杂计算。</p>
+<p>配置治理包括：字段 schema、单位和精度校验；向后兼容；默认值禁止隐式改变金额；审批人和发布单；版本回滚；生产快照；配置变更通知。对 JSON 规则配置应做结构化验证，而不是只检查 JSON 能否解析。规则中的金额以最小货币单位表示，折扣率明确使用百分比还是小数，时间明确使用 UTC 或带时区时间。</p>
+<h3 id="28510-新品类接入四步法"><a class="header" href="#28510-新品类接入四步法">28.5.10 新品类接入四步法</a></h3>
+<p>接入一个新品类时，先不要复制一份价格服务。按四步检查：</p>
 <ol>
-<li><strong>规则版本对齐</strong>：请求携带 <code>rule_version</code> / <code>activity_bundle_id</code>；</li>
-<li><strong>快照链</strong>：创单快照 → 收银台在快照之上仅计算「增量」（券、渠道费）或全量重算后对比差异；</li>
-<li><strong>强提醒</strong>：当收银台结果与创单快照差异超过业务阈值，阻断或用户确认。</li>
+<li><strong>定义基础事实</strong>：价格来自固定表、日历、供应商还是实时算法；是否需要报价 token；库存和价格是否同一来源。</li>
+<li><strong>选择通用层</strong>：该品类能否复用基础价、营销、抵扣、费用和快照层；哪些层要跳过，必须写入场景矩阵。</li>
+<li><strong>实现专用适配器</strong>：只在基础价、供应商预订、费用或退款语义确实不同处增加 Calculator/Adapter，不在调用方写品类 if-else。</li>
+<li><strong>验证完整链路</strong>：详情页、购物车、创单、支付、取消、部分退款、对账和故障演练全部走通。</li>
 </ol>
-<p>下图从<strong>同一用户旅程</strong>抽象各场景「算到哪一层、是否落快照」：箭头表示时间顺序，方框内为与本章 <code>SkipLayersForScene</code> 相呼应的语义（具体跳过列表以实现为准）。把它挂在团队 wiki 上，可减少「购物车为什么和创单差一块运费」的重复解释成本。</p>
-<pre class="mermaid">
-flowchart LR
-  PDP[PDP / 加购] --&gt;|Layer1+2| A[展示价]
-  Cart[购物车] --&gt;|Layer1+2 + 预估3| B[预估小计]
-  CO[创单] --&gt;|Layer1+2+4履约段| C[订单快照]
-  CH[收银台] --&gt;|Layer1-4 全量| D[支付快照]
-  Pay[支付] --&gt;|读快照校验| E[渠道扣款]
-  A -.-&gt;|规则版本对齐| B
-  B -.-&gt;|强一致重算| C
-  C -.-&gt;|增量或 diff 门禁| D
-  D -.-&gt;|禁止全量暗算| E
-</pre>
-
-<p><strong>时间维度的一致性</strong>常被忽略：活动配置可能在用户浏览与创单之间切换生效状态，因此仅有「价格」数值不够，还要记录<strong>解释价格的规则时间戳</strong>。另一个角度是<strong>货币与税费</strong>：跨境场景下 PDP 可能只展示本币参考，创单必须锁定报关与税费口径，避免支付阶段因汇率刷新产生合规争议。</p>
-<p><strong>测试策略</strong>：应为每条主路径维护「黄金 JSON」——给定固定输入（商品、活动版本、用户身份、地址），期望输出快照哈希固定；任何引擎重构先跑黄金用例再灰度。对购物车预估与创单事实的差异，产品需定义<strong>可接受区间</strong>（如绝对值 ≤ 1 元或 ≤0.5%），超出即前端强提示，避免客诉升级。</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>场景</th><th>主要 Layer</th><th>是否生成快照</th><th>典型 SLA 心态</th></tr>
-</thead>
-<tbody>
-<tr><td>PDP</td><td>1 + 2</td><td>否</td><td>极快、可缓存</td></tr>
-<tr><td>购物车</td><td>1 + 2（+3 预估）</td><td>否</td><td>快、可部分预估</td></tr>
-<tr><td>创单</td><td>1 + 2 + 4（部分）</td><td>订单快照</td><td>强一致</td></tr>
-<tr><td>收银台</td><td>1 + 2 + 3 + 4</td><td>支付快照</td><td>强一致</td></tr>
-<tr><td>支付</td><td>—</td><td>校验快照</td><td>强一致、少 IO</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>收银台与创单的时序</strong>：常见用户路径是先创单再进收银台选券，因此支付快照往往<strong>晚于</strong>订单快照生成；若业务允许「未创单先预览收银台」，则要定义预览快照不落库或落短 TTL 缓存，避免用户反复刷新产生大量孤儿快照占满存储。另一个易错点是<strong>部分失败</strong>：创单成功但写快照失败时，必须有补偿任务阻断支付或自动关单，否则会出现「订单存在却无快照」的不可恢复状态。</p>
-<hr>
-<h2 id="297-系统边界与职责"><a class="header" href="#297-系统边界与职责">29.7 系统边界与职责</a></h2>
-<h3 id="2971-计价系统的职责边界"><a class="header" href="#2971-计价系统的职责边界">29.7.1 计价系统的职责边界</a></h3>
-<p><strong>计价中心负责</strong>：</p>
+<p>新品类验收表应包含基础价格来源、币种精度、费用配置、营销兼容性、快照字段、供应商有效期、库存预占、退款规则、SLO 和监控指标。这样“接入新品类”变成一组可验证的能力，而不是新建一套互不兼容的订单和计价逻辑。</p>
+<h3 id="28511-计算引擎的确定性"><a class="header" href="#28511-计算引擎的确定性">28.5.11 计算引擎的确定性</a></h3>
+<p>同样的输入和版本应产生相同的价格组件顺序、金额和分摊结果。确定性要求包括：候选规则排序稳定；集合遍历不依赖哈希表随机顺序；舍入规则固定；时间由请求中的 <code>as_of</code> 或受控时钟提供；随机实验分组写入输入；错误和降级标志进入结果；供应商响应原始数据经过规范化后再计算。</p>
+<p>确定性让空跑 diff、历史重放和客服解释成为可能。它不等于所有环境必须得到同一字节 JSON：字段排序可以由序列化层统一；但金额、组件 ID、规则版本和分摊结果必须语义相同。引擎输出可以同时包含人类可读的解释树和机器校验的哈希，前者服务客服，后者服务支付和对账。</p>
+<h2 id="286-从展示到支付的完整交易链路"><a class="header" href="#286-从展示到支付的完整交易链路">28.6 从展示到支付的完整交易链路</a></h2>
+<h3 id="2861-示例场景与时间轴"><a class="header" href="#2861-示例场景与时间轴">28.6.1 示例场景与时间轴</a></h3>
+<p>下面用一个<strong>示例假设</strong>走通完整链路：用户在两个店铺购买三件商品。店铺 A 的商品基础小计为 220 元，店铺 B 的商品基础小计为 130 元；店铺 A 有“满 200 减 30”的活动，平台发放一张“满 300 减 20”的平台券，用户选择抵扣 50 元积分；订单有 12 元服务费，其中 5 元可被店铺承担、7 元不可折扣。平台券由平台承担，店铺活动由店铺承担。商品库存、券、积分和预算都必须在交易链路中形成对应的承诺。</p>
+<p>这组数字不是行业标准，只用于说明“先定义基数和出资方，再算总价”。假设营销规则规定：店铺活动先于平台券，平台券基于活动后商品小计，积分只能抵扣商品应付金额，服务费不可被积分抵扣。于是：</p>
+<pre><code class="language-text">商品基础小计             350.00
+店铺 A 活动减免          -30.00
+活动后商品小计           320.00
+平台券                   -20.00
+积分抵扣                 -50.00
+可折扣服务费              +5.00
+不可折扣服务费            +7.00
+最终应付                  262.00
+</code></pre>
+<p>真实实现还要将 30 元和 20 元分摊到相应订单行，记录平台/店铺出资，并根据库存、地址、运费、税费和支付渠道重新校验。这个例子最重要的不是算出 262，而是每一行都能回答“它的输入、规则、责任人和回滚方式是什么”。</p>
+<h3 id="2862-pdp-与购物车允许变化但要诚实表达"><a class="header" href="#2862-pdp-与购物车允许变化但要诚实表达">28.6.2 PDP 与购物车：允许变化，但要诚实表达</a></h3>
+<p>商品详情页请求可以使用 <code>GetQuote(scene=pdp)</code>。它读取基础价、活动展示信息和用户可见券，但不冻结券、不扣预算。响应中返回：</p>
 <ul>
-<li>统一编排各层价格；</li>
-<li>输出明细与快照版本；</li>
-<li>金额校验、尾差、分摊与安全阈值（如最大折扣率）。</li>
+<li>当前展示金额和币种；</li>
+<li>已应用的公开活动组件；</li>
+<li>“还差多少达到门槛”这类解释信息；</li>
+<li>价格有效期和是否为缓存/部分结果；</li>
+<li>进入结算后可能变化的条件，例如库存、供应商报价、地址和支付方式。</li>
 </ul>
-<p><strong>不负责</strong>：</p>
-<ul>
-<li>营销活动配置与圈品 CRUD；</li>
-<li>券的发放与库存扣减（由营销执行），计价仅消费「已锁定 / 已选中」结果；</li>
-<li>支付路由与渠道签约。</li>
-</ul>
-<h3 id="2972-计价-vs-营销谁算什么"><a class="header" href="#2972-计价-vs-营销谁算什么">29.7.2 计价 vs 营销：谁算什么</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>维度</th><th>营销系统</th><th>计价系统</th></tr>
-</thead>
-<tbody>
-<tr><td>规则定义</td><td>✅ 活动、券模板、互斥叠加</td><td>❌</td></tr>
-<tr><td>最优券搜索（可选）</td><td>✅ 或协同推荐服务</td><td>可消费候选集</td></tr>
-<tr><td>金额编排</td><td>提供命中规则与减免额</td><td>✅ 汇总为价格事实</td></tr>
-<tr><td>执行扣减</td><td>✅ 锁定 / 核销</td><td>❌</td></tr>
-</tbody>
-</table>
-</div>
-<p>边界口诀：<strong>营销回答「能不能用、用哪条」；计价回答「用了以后多少钱」</strong>。</p>
-<p>进一步细化：**「最优券推荐」**可以放在营销、推荐或独立优惠参谋服务里，但「用户已勾选某张券后的应付」必须由计价统一给出，避免前端本地算法与后端不一致。<strong>支付渠道立减</strong>有时由渠道 SDK 返回，计价需约定是「事前写入快照」还是「支付回调后补记账」——两种模式都能做，但不能混用两种口径于同一报表周期。</p>
-<h3 id="2973-试算-vs-订单价格快照"><a class="header" href="#2973-试算-vs-订单价格快照">29.7.3 试算 vs 订单价格快照</a></h3>
-<ul>
-<li><strong>试算</strong>：可重复、可缓存、允许短暂不一致（需标注）；</li>
-<li><strong>快照</strong>：一次创单事实，<strong>不可变</strong>（修正走补差单、客服单等流程）。</li>
-</ul>
-<h3 id="2974-基础价-vs-促销价-vs-支付价"><a class="header" href="#2974-基础价-vs-促销价-vs-支付价">29.7.4 基础价 vs 促销价 vs 支付价</a></h3>
-<ul>
-<li><strong>基础价</strong>：商品域维护的标价体系经 ACL 投影；</li>
-<li><strong>促销价</strong>：营销规则作用后的价格带；</li>
-<li><strong>支付价</strong>：在订单应付基础上叠加用户支付相关抵扣与手续费后的<strong>渠道实扣</strong>口径。</li>
-</ul>
-<p><strong>争议场景举例</strong>：若平台补贴在营销侧记账，但支付渠道又有「立减」，需要明确<strong>支付价是否含渠道补贴</strong>、财务对账时<strong>GMV 与实收</strong>各扣哪一段——这属于清结算域的规则，但计价必须在 <code>PriceComponent</code> 上打好 <code>source</code> 与 <code>ledger_account</code> 类标签，否则报表会对不齐。再如「部分退款是否回收满减」：这是营销与订单策略，计价提供<strong>按行分摊的实付结构</strong>即可支撑多种回收算法。</p>
-<hr>
-<h2 id="298-与交易链路各系统的集成"><a class="header" href="#298-与交易链路各系统的集成">29.8 与交易链路各系统的集成</a></h2>
-<h3 id="2981-与商品系统集成基础价读取"><a class="header" href="#2981-与商品系统集成基础价读取">29.8.1 与商品系统集成（基础价读取）</a></h3>
-<p>商品中心提供 <strong>SPU/SKU 主数据、规格价、渠道价</strong>；计价通过 ACL 转为 <code>Money</code> 与可选的「划线价」展示字段。约定：<strong>商品系统不实现营销价</strong>，避免双源；若商品侧已有「日常售价」字段，应在数据字典中与计价的 Layer 1 对齐命名。批量接口应支持按 <code>sku_id IN (...)</code> 拉取，减少 N+1。</p>
-<h3 id="2982-与营销系统集成营销规则应用"><a class="header" href="#2982-与营销系统集成营销规则应用">29.8.2 与营销系统集成（营销规则应用）</a></h3>
-<p>营销系统输出「命中了哪些活动、互斥关系、是否可叠加、券批次剩余」等；计价把这些投影为 <code>PromotionOffer</code> 再进入 Layer 2。<strong>锁定 / 核销</strong>仍由营销执行：创单前调用营销「预占」，失败则整单创单失败；计价只消费预占成功后的<strong>面额事实</strong>。若营销 RPC 慢，优先考虑<strong>异步刷新购物车缓存</strong>而非缩短创单超时。</p>
-<h3 id="2983-与-pdp-集成加购试算"><a class="header" href="#2983-与-pdp-集成加购试算">29.8.3 与 PDP 集成（加购试算）</a></h3>
-<p>PDP 网关调用 <code>GetItemPrice</code> 类接口，应带齐 <code>region</code>、<code>platform</code>、用户分群键；CDN 上只能缓存<strong>匿名价</strong>时，登录态价需回源或边缘二次请求。对 SEO 落地页，注意<strong>缓存穿透</strong>：热门失效 SKU 要有布隆过滤或空值短缓存。</p>
-<h3 id="2984-与购物车集成实时试算"><a class="header" href="#2984-与购物车集成实时试算">29.8.4 与购物车集成（实时试算）</a></h3>
-<p>购物车服务维护行表，计价侧接收「行快照 + 指纹」；指纹变化（数量、选中券）即缓存失效。购物车合并（登录前后）要以<strong>服务端合并结果</strong>为准重新试算，避免客户端本地算价。</p>
-<h3 id="2985-与结算系统集成确认价格"><a class="header" href="#2985-与结算系统集成确认价格">29.8.5 与结算系统集成（确认价格）</a></h3>
-<p>结算编排地址、配送方式、可用券列表，调用计价生成<strong>支付快照</strong>；结算页展示的每一项优惠，都应在快照明细中有对应 <code>component_id</code>，方便客服追溯。</p>
-<h3 id="2986-与订单系统集成创单金额计算"><a class="header" href="#2986-与订单系统集成创单金额计算">29.8.6 与订单系统集成（创单金额计算）</a></h3>
-<p>订单系统保存 <code>order_snapshot_id</code> 与行级分摊明细；后续改价（客服改运费）应走<strong>订单变更流程</strong>并生成新快照或差值单，而不是直接 UPDATE 金额字段。订单取消释放营销锁时，计价一般不参与，但要保证<strong>幂等释放</strong>。</p>
-<h3 id="2987-与支付系统集成支付金额校验"><a class="header" href="#2987-与支付系统集成支付金额校验">29.8.7 与支付系统集成（支付金额校验）</a></h3>
-<p>支付创建时上传 <code>snapshot_id</code> 与应付总额；支付核心对比快照与渠道金额（含外币换算规则）。重复支付回调通过支付单号幂等；<strong>部分支付、合并支付</strong>等高级场景要在协议层约定快照粒度（整单 vs 子单）。</p>
-<h3 id="2988-集成调用链路与时序"><a class="header" href="#2988-集成调用链路与时序">29.8.8 集成调用链路与时序</a></h3>
-<p>下图刻意省略了库存、地址、风控等横向调用，只保留<strong>价格相关主干</strong>，便于新人建立心智模型；真实链路可用同一 <code>trace_id</code> 把多次计价调用（结算预览、创单、支付校验）串成一棵树，观察是否出现「同一次用户操作重复计算三次」的浪费——若有，应通过<strong>快照传递</strong>减少重复扇出。</p>
-<p>以下以「用户从结算提交支付」为例展示典型同步调用（简化）：</p>
+<p>购物车请求要以服务端行项目为准。未登录购物车合并到登录账户时，不能沿用客户端缓存的券选择和价格，必须先完成行合并、店铺归属确认和权益重新评估。购物车可以保存用户选择，但选择只是意图，不是核销事实。</p>
+<p>当某个活动服务超时时，列表页可以隐藏活动标签或返回基础价；购物车应把对应行标记为“优惠待重新计算”，而不是展示旧的优惠金额并让用户误以为已经锁定。展示降级的前提是用户能看见不确定性；交易路径不应把“缓存成功”当作“权利成功”。</p>
+<h3 id="2863-结算冻结与创单"><a class="header" href="#2863-结算冻结与创单">28.6.3 结算、冻结与创单</a></h3>
+<p>结算服务收集地址、配送方式、支付渠道、券选择、积分数量和用户确认，然后调用计价中心生成 <code>quote_id</code>。计价中心并行读取商品/供应商报价、用户资格、营销候选和费用配置；营销服务只在用户点击“提交订单”后执行权益冻结。推荐顺序如下：</p>
+<ol>
+<li>校验请求指纹、用户身份、购物车版本和商品可售状态；</li>
+<li>获取各行基础报价并检查报价有效期；</li>
+<li>评估营销候选，过滤资格不满足和预算不足的权益；</li>
+<li>选择合法优惠组合，生成组件和初步分摊；</li>
+<li>冻结券、积分、营销预算和必要的商品库存；</li>
+<li>在冻结结果和价格组件都成功后写入价格快照；</li>
+<li>创建待支付订单，订单保存快照 ID 和所有冻结资源 ID；</li>
+<li>生成支付单，支付单金额来自快照而非客户端参数。</li>
+</ol>
+<p>这里存在一个重要的竞态：如果先冻结营销权益，后写价格快照失败，必须有补偿释放；如果先写快照，后冻结失败，快照只能标记为不可用，不能被订单复用。因此订单编排器需要把每一步的状态写入流程表，使用幂等键重复推进，而不是在超时后盲目从第一步重新执行。</p>
+<h3 id="2864-端到端时序图"><a class="header" href="#2864-端到端时序图">28.6.4 端到端时序图</a></h3>
 <pre class="mermaid">
 sequenceDiagram
   participant U as 用户端
-  participant Ch as 结算系统
+  participant C as 结算编排
   participant P as 计价中心
-  participant I as 商品中心
   participant M as 营销系统
+  participant G as 商品/报价
+  participant I as 商品库存
   participant O as 订单系统
   participant Pay as 支付系统
 
-  U-&gt;&gt;Ch: 确认结算页
-  Ch-&gt;&gt;P: GetCheckoutPrice(行项目, 券, 渠道)
-  P-&gt;&gt;I: 批量基础价
-  P-&gt;&gt;M: 活动命中 + 券试算
-  P--&gt;&gt;Ch: 支付快照 snapshot_id
-  Ch-&gt;&gt;O: 创单(带 snapshot_id)
-  O-&gt;&gt;P: 可选：校验 / 冻结快照
-  O--&gt;&gt;Ch: order_id
-  Ch-&gt;&gt;Pay: 发起支付(order_id, 金额, snapshot_id)
-  Pay-&gt;&gt;P: GetPaymentPrice 校验
-  P--&gt;&gt;Pay: OK / 差额拒绝
-  Pay--&gt;&gt;U: 收银台支付
+  U-&gt;&gt;C: 提交结算(购物车版本、券、积分、幂等键)
+  C-&gt;&gt;P: CalculateQuote(scene=create_order)
+  P-&gt;&gt;G: 批量读取基础价和报价有效期
+  P-&gt;&gt;M: EvaluateBenefits(rule_version)
+  M--&gt;&gt;P: 合法权益、组合候选、拒绝原因
+  P--&gt;&gt;C: quote + components + request_fingerprint
+  C-&gt;&gt;M: ReserveBenefits(order_intent_id, idempotency_key)
+  M--&gt;&gt;C: reservation_ids
+  C-&gt;&gt;I: ReserveStock(order_intent_id)
+  I--&gt;&gt;C: stock_reservation_id
+  C-&gt;&gt;P: CreateSnapshot(quote, reservations)
+  P--&gt;&gt;C: snapshot_id, payable
+  C-&gt;&gt;O: CreateOrder(snapshot_id, payable)
+  O--&gt;&gt;C: order_id(PENDING_PAY)
+  C-&gt;&gt;Pay: CreatePayment(order_id, snapshot_id, payable)
+  Pay--&gt;&gt;U: 收银台
+  Pay--&gt;&gt;O: 支付回调(event_id)
+  O-&gt;&gt;M: ConfirmBenefits(order_id, reservation_ids)
+  O-&gt;&gt;I: ConfirmStock(order_id, stock_reservation_id)
+  O--&gt;&gt;C: PAID
 </pre>
 
-<h3 id="2989-降级与容错策略"><a class="header" href="#2989-降级与容错策略">29.8.9 降级与容错策略</a></h3>
+<p>如果营销冻结成功、库存冻结失败，编排器释放营销冻结；如果库存冻结成功、快照写入失败，释放库存并把营销释放任务写入补偿表；如果支付回调重复，订单和营销确认都以 <code>event_id</code>、订单号和资源 ID 做幂等。支付回调到达时，订单系统不应根据回调金额直接更新订单金额，而应查询订单快照并比较金额和币种。</p>
+<h3 id="2865-关键字段与契约检查"><a class="header" href="#2865-关键字段与契约检查">28.6.5 关键字段与契约检查</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段</th><th>产生方</th><th>消费方</th><th>失败后果</th><th>保留时间</th></tr>
+</thead>
+<tbody>
+<tr><td><code>request_fingerprint</code></td><td>结算/计价</td><td>快照、幂等层</td><td>同一请求可能生成多个报价</td><td>至少覆盖报价有效期</td></tr>
+<tr><td><code>quote_id</code></td><td>计价</td><td>结算、订单</td><td>无法把预览与创单关联</td><td>交易周期</td></tr>
+<tr><td><code>snapshot_id</code></td><td>计价</td><td>订单、支付、客服</td><td>金额口径漂移</td><td>订单生命周期 + 审计周期</td></tr>
+<tr><td><code>rule_version</code></td><td>营销</td><td>计价、快照、审计</td><td>无法重放活动规则</td><td>永久或合规要求</td></tr>
+<tr><td><code>reservation_id</code></td><td>营销/库存</td><td>编排器、订单、补偿</td><td>无法释放或确认资源</td><td>直到终态后归档</td></tr>
+<tr><td><code>idempotency_key</code></td><td>调用方</td><td>每个有副作用服务</td><td>重试造成重复冻结/核销</td><td>覆盖最大重试窗口</td></tr>
+<tr><td><code>event_id</code></td><td>事件发布方</td><td>消费者、对账</td><td>重复消费改变余额</td><td>永久流水/去重窗口</td></tr>
+<tr><td><code>trace_id</code></td><td>网关</td><td>全链路</td><td>客服和研发无法定位一次操作</td><td>采样保留策略</td></tr>
+</tbody>
+</table>
+</div>
+<p>幂等键应该绑定业务动作，而不是只绑定 HTTP 请求。比如 <code>reserve_coupon:{order_intent_id}</code>、<code>confirm_points:{order_id}</code>、<code>payment_callback:{payment_event_id}</code>。Stripe 的 API 文档把幂等键视为客户端安全重试的契约，并且要求同一个键复用时请求参数保持一致；这比在服务端“遇到重复就返回成功”更严格，也更能避免调用方误复用键。[10]</p>
+<h3 id="2866-支付校验与用户确认"><a class="header" href="#2866-支付校验与用户确认">28.6.6 支付校验与用户确认</a></h3>
+<p>支付校验至少比较四项：订单快照应付金额、支付单创建金额、渠道回调金额、币种。对于多支付方式、部分支付和合并支付，要定义快照粒度：是整单快照，还是每个支付子单一份快照。支付成功并不自动代表所有权益都已经消费，订单状态推进和营销确认可以异步，但订单对用户必须有明确的“支付处理中”状态，避免前端重复提交。</p>
+<p>价格变化时，用户体验策略应和品类策略绑定：价格下降可以提示并让用户确认新价；价格上涨通常需要显式二次确认；供应商不可预订可以提供替代日期或退款路径；优惠失效要展示失效原因和可选替代优惠。最终价格研究说明，用户对多商品促销可能更关注展示时的最终可支付金额，而不是单独的折扣标记，因此结算页必须展示行价、优惠、费用和最终价，而不是只展示“省了多少”。[20]</p>
+<h3 id="2867-跨店铺满减与行级分摊"><a class="header" href="#2867-跨店铺满减与行级分摊">28.6.7 跨店铺满减与行级分摊</a></h3>
+<p>跨店铺活动最容易把“用户优惠”和“商家承担”混为一谈。以两个店铺共同参加平台满减为例，用户看到一张 40 元券，但平台可能承担 25 元，店铺 A 承担 10 元，店铺 B 承担 5 元。计价系统先在订单级判断用户是否达到门槛，再依据适用行、出资规则和尾差策略把优惠拆到行；订单系统保存订单级组件和行级分摊；结算系统按出资方取数。</p>
+<p>行级分摊需要处理四种边界：某个店铺只有一行；某行是赠品或零价；用户删除一行后门槛不再满足；退款只覆盖某个店铺。若删除一行导致活动失效，购物车可以重新试算并要求确认；创单后不能因为其他行取消就偷偷重算已支付行的历史价格，售后应根据活动规则生成差额调整。</p>
+<h3 id="2868-秒杀抢券与普通下单的不同链路"><a class="header" href="#2868-秒杀抢券与普通下单的不同链路">28.6.8 秒杀、抢券与普通下单的不同链路</a></h3>
+<p>秒杀不是把普通下单接口加一个 <code>activity_id</code>。秒杀入口需要排队、验证码或风控挑战、热点缓存、活动资格预热和独立限流；真正能够进入交易的请求数量要受营销库存、商品库存和用户配额共同控制。前置排队只解决流量削峰，不代表库存已经锁定；用户从队列拿到资格后仍需在有效时间内完成预占。</p>
+<p>典型秒杀链路是：活动配置预热到边缘和 Redis；入口按用户/设备/活动限流；资格令牌限制进入预占接口；Redis 脚本原子扣减营销和商品配额；成功请求写入消息队列；订单消费者按幂等键创建待支付订单；支付超时由延迟任务释放资源；数据库与缓存按批次对账。消息队列只承担削峰和异步化，不能掩盖资源预占的最终事实。</p>
+<p>秒杀商品和营销券的库存要区分：秒杀商品库存决定能否履约，秒杀券配额决定能否获得让利；商品库存成功、营销预算失败时不能只看一个结果。若业务要求二者必须同时成功，就需要同一个编排状态机和补偿；若允许“商品可买但无优惠”，则应把这种降级写入产品契约，并在页面清楚展示。</p>
+<h3 id="2869-售后部分退款与价格解释"><a class="header" href="#2869-售后部分退款与价格解释">28.6.9 售后、部分退款与价格解释</a></h3>
+<p>售后系统收到退款请求时，应读取原订单快照，而不是调用当前计价接口。系统按订单行、组件和出资方计算退款：商品本金、可退服务费、积分退还、券是否返还、商家承担的活动金额和平台补贴冲正分别形成退款组件。对于已经履约的赠品、已经使用的服务和不可退供应商资源，退款规则可能不是简单比例。</p>
+<p>客服解释接口可以返回一个“价格解释树”：</p>
+<pre><code class="language-text">订单应付 262.00
+├── 商品基础价 350.00
+│   ├── 店铺 A 活动 -30.00（商家承担）
+│   └── 平台券 -20.00（平台承担）
+├── 积分抵扣 -50.00（用户积分）
+├── 可折扣服务费 +5.00
+└── 不可折扣服务费 +7.00
+</code></pre>
+<p>解释树不是把内部规则全部暴露给用户，而是提供客服、财务和用户都能理解的最小充分信息。每个节点引用 <code>component_id</code>、规则版本和适用行，支持进一步查看原始输入。价格发生人工改动时，必须走订单变更流程，生成新快照或差额单，并记录授权人和原因；禁止客服直接修改 <code>order.total_amount</code>。</p>
+<h3 id="28610-价格一致性测试矩阵"><a class="header" href="#28610-价格一致性测试矩阵">28.6.10 价格一致性测试矩阵</a></h3>
+<p>一致性不仅是“同一个 API 返回同一个数”，还要覆盖跨场景。测试矩阵至少包括：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>变更</th><th>PDP</th><th>购物车</th><th>创单</th><th>支付</th><th>预期</th></tr>
+</thead>
+<tbody>
+<tr><td>规则发布</td><td>新展示可见</td><td>重新试算</td><td>新快照使用新版本</td><td>旧订单不变</td><td>历史快照稳定</td></tr>
+<tr><td>用户升级会员</td><td>重新评估</td><td>重新试算</td><td>使用创单时身份</td><td>校验快照</td><td>不影响已创建订单</td></tr>
+<tr><td>供应商报价过期</td><td>显示过期提示</td><td>刷新报价</td><td>拒绝旧 quote</td><td>拒绝过期快照</td><td>不用缓存猜价</td></tr>
+<tr><td>券被其他订单冻结</td><td>隐藏或标记</td><td>移除不可用券</td><td>冻结失败</td><td>已有快照可继续</td><td>状态机胜出</td></tr>
+<tr><td>活动预算耗尽</td><td>隐藏活动</td><td>重新试算</td><td>不再冻结</td><td>已冻结按策略确认</td><td>预算不为负</td></tr>
+<tr><td>订单行减少</td><td>重新报价</td><td>重新计算门槛</td><td>售后按原快照</td><td>退款按组件</td><td>不重算历史</td></tr>
+</tbody>
+</table>
+</div>
+<p>这张表也可以作为前端、结算、计价、订单和支付联合评审的契约。每一行都应该有一个故障测试和一个客服解释示例，避免只测 happy path。</p>
+<h2 id="287-一致性幂等补偿对账与资损防控"><a class="header" href="#287-一致性幂等补偿对账与资损防控">28.7 一致性、幂等、补偿、对账与资损防控</a></h2>
+<h3 id="2871-先划分本地事务再讨论分布式事务"><a class="header" href="#2871-先划分本地事务再讨论分布式事务">28.7.1 先划分本地事务，再讨论分布式事务</a></h3>
+<p>订单、营销、库存、计价和支付之间通常无法共享一个数据库事务。正确的起点是列出每个服务内部必须原子提交的事实：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>本地事务</th><th>必须一起提交</th><th>可以异步发布</th></tr>
+</thead>
+<tbody>
+<tr><td>营销冻结</td><td>权益状态、冻结流水、幂等记录</td><td><code>BenefitReserved</code></td></tr>
+<tr><td>预算冻结</td><td>预算账本、预占记录、版本号</td><td><code>BudgetReserved</code></td></tr>
+<tr><td>价格快照</td><td>快照正文、输入哈希、规则版本</td><td><code>SnapshotCreated</code></td></tr>
+<tr><td>订单创建</td><td>订单状态、快照引用、资源引用</td><td><code>OrderCreated</code></td></tr>
+<tr><td>支付入账</td><td>支付状态、渠道回执、回调幂等记录</td><td><code>PaymentSucceeded</code></td></tr>
+<tr><td>对账修复</td><td>修复单、差异原因、人工审批</td><td><code>ReconciliationClosed</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>本地事务内先写业务事实和 Outbox 记录，提交后由消息中继发布；不要先发消息再写数据库，也不要在数据库事务里同步等待所有下游。Transactional Outbox 的核心是让数据库更新和消息待发记录在同一个本地事务中提交，消息中继可能重复发布，因此消费端仍必须幂等。[8]</p>
+<h3 id="2872-saga正向步骤和补偿步骤都要有业务语义"><a class="header" href="#2872-saga正向步骤和补偿步骤都要有业务语义">28.7.2 Saga：正向步骤和补偿步骤都要有业务语义</a></h3>
+<p>一次下单 Saga 可以表示为：</p>
+<pre><code class="language-text">Evaluate benefits       只读，不补偿
+Reserve benefits        compensation: Release benefits
+Reserve stock           compensation: Release stock
+Create price snapshot   compensation: Invalidate snapshot
+Create order            compensation: Cancel pending order
+Create payment          compensation: Query final payment state
+Confirm payment         forward recovery: Confirm benefits/stock
+</code></pre>
+<p>Saga 不是“失败后把接口按相反顺序调用”。补偿动作的语义可能与正向动作不同：冻结券的补偿是释放券，但已经核销的券不一定能简单恢复；订单取消的补偿可能生成售后单；支付未知不能直接退款，而要先查询渠道最终状态；已经结算的商家补贴需要财务调整单。原始 Sagas 论文把长事务拆成一系列本地事务和补偿步骤，这种思想适合跨多个参与者的长流程，但不提供自动的业务隔离。[5]</p>
+<p>Seata 的中文文档也明确说明 Saga 参与者各自提交本地事务，失败后执行由业务开发定义的补偿；Saga 不保证隔离性，极端情况下前序结果可能已经被其他业务改变，导致原样回滚不可行。[24] 因此营销和计价的补偿设计应允许两种路径：能安全反向的就释放/冲正；不能安全反向的就转为向前恢复、人工接管或财务调整，并把原因记录到状态机。</p>
+<h3 id="2873-幂等重试和未知状态"><a class="header" href="#2873-幂等重试和未知状态">28.7.3 幂等、重试和未知状态</a></h3>
+<p>重试的前提不是“网络错误一般可以重试”，而是操作拥有稳定的幂等语义。AWS Builders’ Library 说明，客户端令牌、语义等价响应和服务端持久化的幂等记录可以把复杂重试变成可控契约，但记录幂等令牌和执行副作用必须具有原子性，否则会出现“记住了请求却没有创建资源”或“创建了资源却忘记令牌”的分裂状态。[6]</p>
+<p>每个有副作用的接口都要明确：</p>
 <ul>
-<li>计价依赖故障时，<strong>交易路径默认 fail-fast</strong>；展示路径可降级；</li>
-<li>重试需配合<strong>幂等键</strong>避免双快照；</li>
-<li>全链路 trace id 贯通，便于按 <code>snapshot_id</code> 定位规则版本与下游返回。</li>
+<li><strong>幂等键来源</strong>：谁生成，是否跨重试复用，作用域是用户、订单还是资源；</li>
+<li><strong>参数绑定</strong>：同一个键的请求体不同是返回冲突还是覆盖；推荐返回参数不一致错误；</li>
+<li><strong>结果保存</strong>：保存成功结果、失败结果还是处理中状态；</li>
+<li><strong>超时查询</strong>：调用方不知道服务是否执行时，使用查询接口确认状态，不直接重放；</li>
+<li><strong>过期策略</strong>：键和去重记录保存到哪个业务终态之后；</li>
+<li><strong>并发竞争</strong>：两个相同键同时到达时，谁创建进行中记录，其他请求等待还是返回处理中。</li>
 </ul>
-<p><strong>超时配置建议</strong>：PDP 调用链应「短超时 + 部分降级」，创单链可「较长超时 + 严格失败」。熔断打开时，要有<strong>人工开关</strong>把流量切到备用集群或旧版本引擎，而不是无限重试。对供应商报价，<strong>超时后是否允许用缓存价创单</strong>属于业务决策：机票酒店类往往不允许，实物自营类可能允许——决策应写在品类策略配置里而不是写死在代码分支。</p>
-<p><strong>审计与合规</strong>：计价日志应能重建「当时为什么是这个价」，包括各层输入输出哈希；日志中避免打印完整用户 PII，但需保留 <code>user_id</code> 与 <code>order_id</code> 关联键。对外部监管或商家对账，常导出<strong>快照明细</strong>而非实时重算结果。</p>
-<hr>
-<h2 id="299-工程实践"><a class="header" href="#299-工程实践">29.9 工程实践</a></h2>
-<h3 id="2991-性能优化"><a class="header" href="#2991-性能优化">29.9.1 性能优化</a></h3>
+<p>事件消费采用至少一次投递时，消费者用 <code>event_id</code> 或业务联合键去重。Kafka 文档区分了至多一次、至少一次和恰好一次语义，并指出“写入 Kafka 的恰好一次”不等于对外部数据库的端到端恰好一次；外部系统仍需要协作或幂等设计。[13] 因此本章不把“Kafka 开启 exactly-once”当作营销账本的最终保证，余额和核销仍以本地事务、唯一约束和对账为准。</p>
+<h3 id="2874-失败矩阵"><a class="header" href="#2874-失败矩阵">28.7.4 失败矩阵</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>故障点</th><th>已完成事实</th><th>首选处理</th><th>不能做什么</th><th>最终校验</th></tr>
+</thead>
+<tbody>
+<tr><td>评估超时</td><td>无副作用</td><td>展示降级；创单失败</td><td>使用未知的旧权益</td><td>记录降级原因</td></tr>
+<tr><td>券冻结成功、库存失败</td><td>券 <code>FROZEN</code></td><td>释放券，重试释放</td><td>再次冻结同一券</td><td>券流水与订单意图对账</td></tr>
+<tr><td>库存成功、快照失败</td><td>库存预占</td><td>释放库存、失效 quote</td><td>把 quote 当快照复用</td><td>预占记录无悬挂</td></tr>
+<tr><td>订单成功、支付创建超时</td><td>订单待支付</td><td>查询支付；未创建则重试</td><td>直接再建支付单</td><td>支付单唯一键</td></tr>
+<tr><td>支付回调重复</td><td>已有支付成功</td><td>返回幂等结果</td><td>重复确认权益</td><td>event_id/订单状态</td></tr>
+<tr><td>支付状态未知</td><td>渠道可能成功</td><td>查询、延迟补偿、人工阈值</td><td>立即释放所有资源</td><td>渠道对账</td></tr>
+<tr><td>消费事件重复</td><td>业务已处理</td><td>去重后确认消费</td><td>再扣积分/预算</td><td>消费者处理流水</td></tr>
+<tr><td>部分退款</td><td>部分组件已生效</td><td>按组件/行分摊冲正</td><td>重新按当前价计算</td><td>售后单与原快照</td></tr>
+<tr><td>规则误发布</td><td>新版本生效</td><td>熔断发布、切旧版本、冻结高风险活动</td><td>修改历史订单快照</td><td>发布审计和价格差异</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="2875-outbox事件和消费者"><a class="header" href="#2875-outbox事件和消费者">28.7.5 Outbox、事件和消费者</a></h3>
+<p>Outbox 表至少包含 <code>event_id</code>、<code>aggregate_type</code>、<code>aggregate_id</code>、<code>event_type</code>、<code>payload</code>、<code>version</code>、<code>created_at</code>、<code>published_at</code> 和重试字段。事件载荷不应只带“订单号”，而应携带消费者判断幂等和更新状态所需的业务版本。消费者处理时在本地事务中完成：检查去重表、校验聚合版本、更新本地事实、写入下一跳 Outbox，再标记事件已处理。</p>
+<pre><code class="language-sql">CREATE TABLE event_consume_log (
+    consumer_name VARCHAR(80) NOT NULL,
+    event_id      VARCHAR(80) NOT NULL,
+    status        VARCHAR(20) NOT NULL,
+    processed_at  TIMESTAMP NULL,
+    PRIMARY KEY (consumer_name, event_id)
+);
+</code></pre>
+<p>如果事件处理和去重记录不在同一个本地事务里，服务在“业务更新成功、去重记录失败”后重启，就会重复执行。唯一键只能防止完全相同的事件重复，但不能阻止两个不同事件错误地修改同一个账户，因此账户更新还需要版本号、余额不变量和顺序约束。</p>
+<p>幂等消费者的实现有三种常见选择。第一，在消费者数据库中建立 <code>processed_event</code> 唯一表，业务更新和插入去重记录放在一个本地事务；适合权益、账户和订单这类关系数据。第二，把事件版本写入聚合，只有更高版本才能更新；适合同一聚合有明确顺序的状态机。第三，让业务更新本身具备幂等性质，例如按业务键覆盖投影；适合可重建读模型。实际系统可以组合使用，但不能把“消息队列不会重复”作为前提。</p>
+<p>microservices.io 对幂等消费者模式的定义强调，消息处理失败后的重新投递是正常情况，消费者需要记录已处理消息或设计可重复执行的更新。[9] 本章的进一步约束是：去重记录的保存期限应覆盖消息保留期、最大补偿期和人工重放期；如果删除过早，旧事件重放可能再次扣减积分。对于永久流水，最好让业务联合键和金额不变量同时防止重复，即使去重表被清理也不会产生第二笔有效消费。</p>
+<p>事件顺序也不能被抽象成“同一 Topic 全局有序”。同一订单或同一权益账户需要按聚合键分区，消费者对版本跳跃进行检测；收到版本 8 而本地只有版本 6 时，不能直接应用，应该等待版本 7、重新读取快照或把事件放入异常队列。跨聚合没有天然的全局顺序，流程状态应由编排器或业务版本表达，而不是依赖消息到达顺序猜测。</p>
+<p>RocketMQ 事务消息提供半事务消息、二次确认和回查机制，可以让本地事务与消息投递之间保持最终一致，但官方文档也明确指出它不保证消息消费结果与上游事务完全同步，消费端仍需重试和幂等。[25] 所以事务消息适合“支付成功后异步发放积分”“订单成功后异步清理购物车”等场景，不适合替代订单、营销和支付之间所有同步的金额校验。</p>
+<h3 id="2876-对账是系统的一部分不是运营补丁"><a class="header" href="#2876-对账是系统的一部分不是运营补丁">28.7.6 对账是系统的一部分，不是运营补丁</a></h3>
+<p>最终一致系统必须有独立对账，否则“理论上会补偿”无法转化为“实际已经收敛”。对账不应只比较总数，而要比较维度：订单、订单行、组件、券、积分账户、预算桶、店铺、出资方、币种、事件和时间窗口。</p>
+<p>推荐的对账任务包括：</p>
+<ol>
+<li><strong>订单—快照对账</strong>：订单金额、币种、组件总额与快照一致；</li>
+<li><strong>快照—营销对账</strong>：快照引用的券/积分/预算是否存在对应冻结和确认流水；</li>
+<li><strong>营销—预算对账</strong>：用户权益流水累计值与平台、商家预算桶相符；</li>
+<li><strong>订单—支付对账</strong>：支付单、渠道回执、订单状态和退款状态一致；</li>
+<li><strong>事件—消费对账</strong>：Outbox 已发布事件是否有消费者处理结果和重试记录；</li>
+<li><strong>分摊—结算对账</strong>：平台、商家、渠道的优惠承担与清算单一致。</li>
+</ol>
+<p>差异处理要分级：可自动修复的悬挂冻结、重复事件和缓存计数走补偿；金额或出资方不一致先冻结结算，再生成差异单；历史订单不直接 UPDATE 金额字段，而是追加冲正、退款或财务调整记录。每次修复都记录“原状态、目标状态、证据、操作者、工具版本和审批人”。</p>
+<h3 id="2877-资损防控的纵深防御"><a class="header" href="#2877-资损防控的纵深防御">28.7.7 资损防控的纵深防御</a></h3>
+<p>资损防控不是一个“最大折扣”判断，而是多道护栏：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>护栏</th><th>检查内容</th><th>失败动作</th></tr>
+</thead>
+<tbody>
+<tr><td>配置校验</td><td>门槛、互斥、折扣上限、时间和预算</td><td>阻止发布</td></tr>
+<tr><td>规则仿真</td><td>历史样本、边界样本、新旧 diff</td><td>阻止灰度</td></tr>
+<tr><td>运行时安全检查</td><td>非负价、范围、分摊、币种和版本</td><td>拒绝快照</td></tr>
+<tr><td>预算与配额</td><td>用户、活动、店铺、平台上限</td><td>失败或降级</td></tr>
+<tr><td>风控</td><td>账户族群、设备、IP、频率、异常行为</td><td>拒绝权益/排队</td></tr>
+<tr><td>灰度空跑</td><td>新旧引擎金额、组件和延迟差异</td><td>自动告警/回滚</td></tr>
+<tr><td>对账</td><td>订单、支付、权益、预算和结算</td><td>补偿/人工接管</td></tr>
+</tbody>
+</table>
+</div>
+<p>发布错误和运行时错误要分开处理。发布错误应尽快停止新版本、保留旧快照并禁止继续扩大损失；运行时错误可能是下游超时或数据漂移，应按影响范围降级或重试。切回旧引擎不等于重算历史订单，历史快照始终是客服和财务解释的基准。</p>
+<h3 id="2878-saga-编排器的状态模型"><a class="header" href="#2878-saga-编排器的状态模型">28.7.8 Saga 编排器的状态模型</a></h3>
+<p>编排器本身也是一个需要持久化状态的业务对象，不能只存在于一次 HTTP 请求的内存里。每个流程实例保存 <code>process_id</code>、业务主键、当前步骤、整体状态、步骤输入摘要、步骤输出引用、重试次数、下一次执行时间和最后错误。步骤状态至少区分 <code>PENDING</code>、<code>RUNNING</code>、<code>SUCCEEDED</code>、<code>FAILED</code>、<code>COMPENSATING</code>、<code>COMPENSATED</code>、<code>UNKNOWN</code> 和 <code>MANUAL</code>。</p>
+<pre><code class="language-text">PENDING -&gt; RUNNING -&gt; SUCCEEDED
+                     └-&gt; FAILED -&gt; RETRYING -&gt; RUNNING
+                     └-&gt; UNKNOWN -&gt; QUERYING -&gt; SUCCEEDED/FAILED/MANUAL
+FAILED -&gt; COMPENSATING -&gt; COMPENSATED
+                         └-&gt; MANUAL
+</code></pre>
+<p><code>UNKNOWN</code> 很重要。网络超时不代表下游没有执行；如果把未知直接当失败并重新冻结券，可能发生重复副作用。编排器遇到未知状态时先调用查询接口或等待回查，只有确认下游未执行后才重试。补偿也可能未知，因此补偿步骤同样需要查询、幂等和人工接管。</p>
+<h3 id="2879-补偿任务与人工接管"><a class="header" href="#2879-补偿任务与人工接管">28.7.9 补偿任务与人工接管</a></h3>
+<p>补偿表可采用以下字段：<code>task_id</code>、<code>process_id</code>、<code>step</code>、<code>action</code>、<code>business_key</code>、<code>payload_hash</code>、<code>attempts</code>、<code>next_retry_at</code>、<code>status</code>、<code>last_error</code>、<code>owner</code> 和 <code>manual_reason</code>。重试采用指数退避加随机抖动，并设置最大次数和最大存活时间；金额相关任务不能因为达到最大次数就静默丢弃，而应进入人工队列。</p>
+<p>人工接管不是“开发直接改数据库”。操作台应展示原订单、快照、权益流水、支付状态、事件时间线、重试历史和可执行动作。人工动作调用与自动补偿相同的应用服务，使用新的人工幂等键，并记录操作者、审批人和证据。高风险动作如冲正平台补贴、退回已过期券和修改订单应要求双人复核。</p>
+<h3 id="28710-对账查询的粒度与性能"><a class="header" href="#28710-对账查询的粒度与性能">28.7.10 对账查询的粒度与性能</a></h3>
+<p>对账任务往往扫描大量历史记录，不能直接把交易主库打满。可以按日、店铺、出资方和币种切分范围，使用只读副本或离线明细表；对账结果保存摘要和差异明细，修复任务只处理差异。总额对账用于发现大方向问题，明细对账用于定位具体订单。</p>
+<pre><code class="language-sql">SELECT merchant_id, currency,
+       SUM(component_amount) AS component_total,
+       SUM(settlement_amount) AS settlement_total,
+       COUNT(*) AS component_count
+FROM settlement_component
+WHERE settled_at &gt;= :from AND settled_at &lt; :to
+GROUP BY merchant_id, currency;
+</code></pre>
+<p>金额对账要注意汇率、税费、舍入和结算时间窗口。支付渠道按自然日清算，订单按业务日统计，不能直接把两个日期字段相减就认定差异。所有汇总都能回溯到订单行和组件，无法回溯的汇总表只能作为监控指标，不能作为修复依据。</p>
+<h3 id="28711-安全隐私与审计保留"><a class="header" href="#28711-安全隐私与审计保留">28.7.11 安全、隐私与审计保留</a></h3>
+<p>价格和营销日志包含用户、店铺、活动和支付关联信息。审计需要能够重建业务，但不代表可以无限保存完整个人信息。日志字段应分类：业务关联键脱敏但可关联；用户画像只记录分群版本而不记录完整特征；支付信息只保存支付单号和金额，不保存敏感卡信息；规则快照保留发布人和审批信息。数据保留期限由合规和财务要求决定，过期后删除或匿名化，同时保留不能反推个人的聚合统计。</p>
+<p>权限也要按动作拆分：运营可以创建草稿但不能直接生效；财务可以查看出资方和结算组件但不能修改营销规则；客服可以查询解释树和触发标准补偿，但不能直接冲正金额；研发可以回放计算但不能绕过应用服务改库。审计日志本身必须防篡改，至少通过追加写、哈希链或受控存储保证“谁在什么时候看过或改变过什么”可追踪。</p>
+<p>中文分布式系统实践常把 Saga、本地消息和最终一致性放在业务流程中共同设计，而不是认为选择了某个框架就自动获得一致性；《凤凰架构》对分布式事务、消息和可靠性边界的讨论也强调了业务补偿与技术机制的结合。[28] 阿里云对 TCC、FMT 和 Saga 参与者接入模式的说明则提醒我们，参与者能力、隔离要求和接入成本不同，不能用单一模式覆盖所有交易步骤。[27]</p>
+<h2 id="288-高并发性能可观测性与演进"><a class="header" href="#288-高并发性能可观测性与演进">28.8 高并发、性能、可观测性与演进</a></h2>
+<h3 id="2881-容量规划要按路径拆分"><a class="header" href="#2881-容量规划要按路径拆分">28.8.1 容量规划要按路径拆分</a></h3>
+<p>计价系统至少有四种负载：展示读、权益评估、资源预占和交易写。把它们全部用一个 QPS 数字描述，会掩盖真正的瓶颈。展示路径可能是创单路径的十倍，但它可以使用缓存和较弱一致性；冻结路径 QPS 较低，却需要关系库唯一约束、Redis 原子操作和补偿；创单路径要等待多个依赖并写快照，尾延迟最重要。</p>
+<p>容量模型可以从业务动作开始：</p>
+<pre><code class="language-text">展示请求数 = DAU × 每用户浏览页数 × 页面并发比例
+计价依赖调用数 = 请求数 × 平均行数 × 每行依赖数
+冻结写入数 = 创单数 × (券/积分/预算/库存资源数)
+事件数 = 成功交易数 × 领域事件类型数 × 消费者数
+</code></pre>
+<p>大促前分别压测“仅展示”“券领取”“多优惠试算”“营销预占”“创单全链路”“支付回调”和“补偿积压”。压测报告要记录请求分布、缓存命中、下游错误、连接池、线程/goroutine、数据库锁等待和消息积压，而不能只记录平均 QPS。一个平均 50 ms、P99 2 s 的结算接口对用户仍然是慢的。</p>
+<h3 id="2882-缓存多级读取与失效"><a class="header" href="#2882-缓存多级读取与失效">28.8.2 缓存、多级读取与失效</a></h3>
+<p>缓存适合保存稳定、可重建、允许短暂过期的事实：活动元数据、规则索引、商品基础价、匿名展示价和用户资格视图。缓存不适合成为支付金额、券核销和预算账本的唯一事实来源。</p>
+<p>可以使用三层读取：</p>
+<ol>
+<li><strong>L1 本地缓存</strong>：小而热的规则元数据，TTL 短，发布版本变化时主动失效；</li>
+<li><strong>L2 Redis</strong>：活动索引、用户资格、热点展示价和营销配额预扣；</li>
+<li><strong>L3 关系库/报价源</strong>：权威配置、流水、快照和供应商报价。</li>
+</ol>
+<p>缓存 Key 应包含租户/店铺、商品或活动、用户分群、渠道、币种和规则版本，避免把个性化价格错误地缓存为公共价。缓存失效不能只依赖 TTL：规则发布写入版本事件，消费者按版本删除或刷新；消费者失败后由定时任务扫描版本差异。空值缓存、布隆过滤器和入口限流用于防止缓存穿透，但不能把不存在的商品当成永久不存在。</p>
+<p>Redis 脚本适合短小的条件更新；长脚本会阻塞单线程执行，跨槽位操作也不适合直接放进集群脚本。Redis 官方文档说明脚本执行期间服务器活动被阻塞，并建议脚本快速完成；因此“把复杂规则引擎搬进 Lua”不是性能优化，而是把 CPU 和可维护性风险转移到缓存节点。[12]</p>
+<h3 id="2883-并发控制热点拆分和背压"><a class="header" href="#2883-并发控制热点拆分和背压">28.8.3 并发控制、热点拆分和背压</a></h3>
+<p>营销热点通常集中在活动 ID、券模板 ID、爆款 SKU 和大用户群。单个 Redis Key 的原子性不能无限扩展吞吐，可把活动配额拆成多个 shard：请求先依据用户或请求哈希选择分片，预扣成功后异步汇总；强一致预算需要按预算桶或账户维度保留单一权威分片，不能为了吞吐把同一预算随意复制。</p>
+<p>计价请求要限制三件事：单次行数、单次活动评估数和单实例并发数。下游调用使用独立超时和并行上限，避免“购物车行数 × 活动数量 × 下游服务数”形成扇出爆炸。对重复的同一请求可以合并请求，但请求合并必须绑定用户、场景和输入指纹，不能让不同用户共享个性化结果。</p>
+<p>限流策略分为入口、用户、活动、资源和下游五层。Sentinel 的设计将流量控制、熔断降级、热点参数保护和系统自适应保护视为流量治理的不同维度，并支持按 QPS、线程数、调用来源和热点参数配置规则。[26] 在本章场景中，入口限流保护服务，活动限流保护热点规则，用户限流防止单账户刷券，下游限流避免报价和用户服务被营销流量拖垮。</p>
+<p>背压需要配合产品语义：展示请求可以丢弃非核心营销标签；发券请求可以排队并返回处理中；创单请求不能无限排队，应在预算耗尽或超过截止时间后快速失败；补偿任务使用独立队列，不能与用户交易共享线程池。Google SRE 对过载的经验是，系统应优先提供成本更低的降级结果，过载严重时还需要主动削减流量；重试必须避免把已经过载的依赖继续推向失败。[15]</p>
+<h3 id="2884-降级边界"><a class="header" href="#2884-降级边界">28.8.4 降级边界</a></h3>
+<p>降级不是“出错就按原价下单”。建议定义以下降级等级：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>等级</th><th>可用能力</th><th>适用场景</th><th>交易是否允许</th></tr>
+</thead>
+<tbody>
+<tr><td>L0</td><td>完整基础价、营销、费用和快照</td><td>正常</td><td>允许</td></tr>
+<tr><td>L1</td><td>使用已验证的基础价缓存，隐藏非核心标签</td><td>PDP/列表</td><td>不直接创单</td></tr>
+<tr><td>L2</td><td>跳过低优先级推荐券，保留已明确选择的可验证权益</td><td>购物车</td><td>提示重新确认</td></tr>
+<tr><td>L3</td><td>营销服务不可用，拒绝新冻结，允许查询已有快照</td><td>订单查询/售后</td><td>仅已有快照支付</td></tr>
+<tr><td>L4</td><td>计价不可用</td><td>创单/支付</td><td>拒绝，避免未知金额</td></tr>
+<tr><td>L5</td><td>预算或价格安全检查失败</td><td>所有场景</td><td>拒绝并告警</td></tr>
+</tbody>
+</table>
+</div>
+<p>基础价、币种、库存和支付金额不能在没有事实依据时默认成零；促销标签可以隐藏，交易优惠不能“猜”。对于已冻结的订单，营销服务短暂不可用时，订单应根据已有快照继续查询和确认；对于尚未冻结的结算请求，宁可提示稍后重试，也不应把页面的估算值当成最终价。</p>
+<h3 id="2885-可观测性与故障定位"><a class="header" href="#2885-可观测性与故障定位">28.8.5 可观测性与故障定位</a></h3>
+<p>可观测性字段要围绕业务动作建立：<code>trace_id</code>、<code>span_id</code>、<code>request_fingerprint</code>、<code>quote_id</code>、<code>snapshot_id</code>、<code>order_id</code>、<code>reservation_id</code>、<code>rule_version</code>、<code>engine_version</code>、<code>event_id</code> 和 <code>idempotency_key</code>。日志中不打印完整用户隐私和支付敏感信息，但需要保留可关联的脱敏键。OpenTelemetry 将 trace、metric 和 log 作为互相补充的遥测信号，强调通过上下文传播理解一次请求跨服务的完整路径。[16]</p>
+<p>核心指标分为四类：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>类型</th><th>指标示例</th><th>作用</th></tr>
+</thead>
+<tbody>
+<tr><td>用户体验</td><td>PDP/P99、结算/P99、价格变化确认率</td><td>判断用户能否完成操作</td></tr>
+<tr><td>正确性</td><td>组件缺失率、金额 diff、分摊不闭合、快照校验失败</td><td>发现潜在资损</td></tr>
+<tr><td>资源</td><td>规则命中、券冻结成功率、预算剩余、热点分片负载</td><td>判断营销供给是否健康</td></tr>
+<tr><td>治理</td><td>补偿积压、Outbox 延迟、对账差异、人工接管量</td><td>判断最终一致性是否收敛</td></tr>
+</tbody>
+</table>
+</div>
+<p>告警要以用户影响和 SLO 为中心。比如“缓存命中率下降”不一定是事故，如果回源仍在预算内；“创单成功但快照缺失”即使数量很少也属于高优先级；“营销补偿积压”要结合冻结金额和最老任务年龄，而不能只看任务条数。</p>
+<h3 id="2886-灰度空跑与迁移"><a class="header" href="#2886-灰度空跑与迁移">28.8.6 灰度、空跑与迁移</a></h3>
+<p>从分散的旧计价逻辑迁移到统一引擎时，采用三阶段：</p>
+<p><strong>空跑阶段</strong>：新旧逻辑并行执行，只使用旧逻辑结果；比较最终金额、每层组件、优惠命中、出资方、分摊和延迟，差异按场景、品类、用户分群和规则版本聚合。不要只比较总金额，因为“总额相同但组件不同”会在退款时暴露。</p>
+<p><strong>灰度阶段</strong>：按品类、店铺、渠道、用户比例逐步切流。每一档观察价格差异、创单失败、支付拒绝、退款差异、P99 和补偿积压；配置开关要能把新流量切回旧引擎，而不删除新快照和审计证据。</p>
+<p><strong>清理阶段</strong>：稳定观察一个完整业务周期后再下线旧逻辑。保留历史快照的重放能力，清理的是代码路径而不是数据。迁移指标应写入 ADR 和发布单，达到阈值才推进下一档。</p>
+<h3 id="2887-测试与发布清单"><a class="header" href="#2887-测试与发布清单">28.8.7 测试与发布清单</a></h3>
+<p>测试分为四层：</p>
 <ul>
-<li>分层埋点：每层耗时、RPC 次数、跳过率；</li>
-<li>批量接口上限（如 100 SKU）与背压；</li>
-<li>大促前预热与限流按 <code>scene + category</code> 维度配置。</li>
+<li><strong>领域单测</strong>：金额运算、互斥组合、门槛边界、币种精度、分摊尾差、状态机非法迁移；</li>
+<li><strong>契约测试</strong>：商品、营销、订单、支付的请求/响应、版本和错误码；</li>
+<li><strong>故障注入</strong>：依赖超时、重复回调、消息重复、Redis 故障、数据库死锁、供应商报价过期；</li>
+<li><strong>生产演练</strong>：预算误配置、规则回滚、补偿积压、对账差异、支付未知和人工接管。</li>
 </ul>
-<p>除指标外，建议在引擎内建<strong>自适应批大小</strong>：当单次购物车行数超过阈值时自动拆批并发，再合并结果，防止单次请求拖垮 GC。对 Go 服务，注意 <strong><code>context</code> 超时传递</strong>：上游取消时应中断未完成的供应商调用。内存方面，<code>PricingState</code> 可能持有大切片，必要时在返回后<strong>显式重置对象池</strong>复用缓冲区，降低大促分配压力。</p>
-<h3 id="2992-监控告警"><a class="header" href="#2992-监控告警">29.9.2 监控告警</a></h3>
+<p>发布前至少逐项确认：</p>
+<ol>
+<li>每个交易场景的价格层是否由产品和财务共同签字；</li>
+<li>快照是否包含输入指纹、组件、分摊、规则和报价有效期；</li>
+<li>所有有副作用接口是否绑定稳定幂等键；</li>
+<li>券、积分、预算和库存的冻结/确认/释放是否可重试；</li>
+<li>新旧引擎空跑是否比较组件而不仅是总额；</li>
+<li>预算、平台/商家出资和结算分摊是否能对账；</li>
+<li>降级是否明确“不允许猜金额”的边界；</li>
+<li><code>snapshot_id</code> 能否被客服、财务和研发共同查询；</li>
+<li>规则发布是否有仿真、审批、灰度、回滚和审计；</li>
+<li>参考资料是否全部被正文引用且正文每个关键判断都有相邻引用。</li>
+</ol>
+<h3 id="2888-部署拓扑与故障域"><a class="header" href="#2888-部署拓扑与故障域">28.8.8 部署拓扑与故障域</a></h3>
+<p>展示计价、交易计价、营销写路径和补偿任务应拥有不同的扩缩容和故障域。展示服务可以部署更多无状态实例并依赖缓存；交易计价需要与快照库保持稳定连接；营销预占需要保护关系库和 Redis 的写入；补偿和对账使用独立消费者组，避免积压时抢占交易线程池。它们可以共享代码库，但不应共享一个无法区分优先级的连接池。</p>
+<p>多可用区部署时，活动配置和规则版本应通过可靠发布传播；热点配额的权威分片要明确所在故障域和故障转移语义。跨地域场景不能简单把同一个预算复制到两个地域再相加，否则网络分区期间可能超预算。可以选择单地域权威写入、按地域预分配预算、或接受最终对账后冲正；选择哪一种取决于预算风险和可用性目标。</p>
+<p>部署检查还包括：数据库连接池上限、Redis 脚本最长执行时间、消息生产/消费延迟、规则缓存版本、下游超时总预算、熔断恢复时间、快照库容量、审计存储成本和备份恢复时间。大促前应做容量预热和故障注入，验证缓存预热失败时是否会把冷启动流量直接打到数据库。</p>
+<h3 id="2889-成本与用户体验的共同优化"><a class="header" href="#2889-成本与用户体验的共同优化">28.8.9 成本与用户体验的共同优化</a></h3>
+<p>让所有请求都执行完整规则并不一定提高转化率。列表页只需要价格范围和公开活动标签；PDP 需要当前用户可见的最优少量权益；购物车需要用户主动选择后的精确试算；创单才需要完整冻结和分摊。按场景裁剪计算深度，可以减少下游调用和缓存空间，也能让用户更快看到可行动的结果。</p>
+<p>营销预算不能只看折扣金额，还要把计算、缓存、消息、人工客服和退款成本纳入活动评估。某个活动的转化提高，但补偿量、支付拒绝和客服解释成本同步上升，未必是成功。活动看板应同时呈现命中率、领取率、冻结率、核销率、订单增量、退款率、平台/商家出资、异常率和每个成功订单的技术成本。</p>
+<h3 id="28810-未来演进路线"><a class="header" href="#28810-未来演进路线">28.8.10 未来演进路线</a></h3>
+<p>演进顺序应由确定性和治理能力驱动，而不是直接引入 AI 定价：</p>
+<ol>
+<li><strong>统一事实</strong>：先把价格组件、权益流水、快照和对账做完整；</li>
+<li><strong>统一计算</strong>：将重复的优惠和费用逻辑收敛到可测试的层；</li>
+<li><strong>安全迁移</strong>：通过空跑、灰度和差异监控替换旧逻辑；</li>
+<li><strong>数据闭环</strong>：沉淀规则命中、价格变化、退款和用户反馈；</li>
+<li><strong>策略实验</strong>：在明确的预算、最低价、公平和审计约束内做 A/B 测试；</li>
+<li><strong>模型辅助</strong>：让预测模型提出价格或优惠建议，由确定性规则、安全检查和人工审批控制落地。</li>
+</ol>
+<p>实时个性化、自动调价和跨境汇率都可以接入基础价或营销决策层，但不能绕过快照、最低价、出资方、用户提示和回滚。越是自动化的决策，越需要保存输入特征版本、模型版本、决策原因和重放能力。</p>
+<h3 id="28811-从指标到容量决策"><a class="header" href="#28811-从指标到容量决策">28.8.11 从指标到容量决策</a></h3>
+<p>监控指标只有和决策绑定才有价值。可以为主要指标建立“现象—判断—动作”表：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>现象</th><th>可能原因</th><th>先看什么</th><th>动作</th></tr>
+</thead>
+<tbody>
+<tr><td>结算 P99 上升</td><td>下游扇出、连接池、规则搜索膨胀</td><td>span 分解、行数、规则数</td><td>限制并发、缩小候选、扩容依赖</td></tr>
+<tr><td>优惠命中率突然下降</td><td>规则版本、缓存失效、圈品同步滞后</td><td>版本、拒绝原因、商品索引</td><td>暂停发布、刷新投影、回滚规则</td></tr>
+<tr><td>冻结成功率下降</td><td>预算耗尽、热点 Key、数据库锁等待</td><td>资源维度、锁等待、剩余预算</td><td>分片、排队、关闭非核心活动</td></tr>
+<tr><td>支付金额校验失败</td><td>快照过期、客户端篡改、重复支付</td><td>snapshot、币种、请求指纹</td><td>拒绝并提示，不自动改金额</td></tr>
+<tr><td>补偿积压</td><td>下游故障、重试风暴、任务锁</td><td>最老任务、金额、错误类型</td><td>隔离队列、限速、人工接管</td></tr>
+<tr><td>对账差异增加</td><td>事件丢失、重复消费、分摊算法变更</td><td>event_id、版本、组件</td><td>停止结算、生成差异单</td></tr>
+</tbody>
+</table>
+</div>
+<p>容量规划也应以业务资源为单位。例如预算服务的容量不是“能处理多少 QPS”，而是“在最坏重试、退款和补偿情况下，能否保持预算不为负”；券服务不是“每秒写多少行”，而是“高峰期冻结、释放和过期任务是否会争用同一个用户或活动锁”。把指标绑定到资源和不变量，比单纯追求机器利用率更能发现风险。</p>
+<h3 id="28812-回放仿真和属性测试"><a class="header" href="#28812-回放仿真和属性测试">28.8.12 回放、仿真和属性测试</a></h3>
+<p>历史快照回放是计价系统的核心测试能力。给定原始输入、规则版本、引擎版本和时间，回放应产生相同的金额、组件和分摊；如果因为规则或引擎升级产生差异，应以 diff 报告呈现，而不是直接覆盖历史结果。回放数据要脱敏，且对外部供应商报价使用保存的响应摘要或稳定测试替身。</p>
+<p>除具体案例外，还应写属性测试：</p>
 <ul>
-<li>空跑 diff 金额 / 比例阈值告警；</li>
-<li>快照校验失败率；</li>
-<li>供应商报价失败与降级占比。</li>
+<li>任何合法优惠组合的总优惠不超过适用基数；</li>
+<li>所有行的分摊总和等于订单级组件；</li>
+<li>追加一个不适用商品不会改变原有行的价格；</li>
+<li>重新执行同一冻结/确认/释放命令不会改变终态之外的余额；</li>
+<li>只改变规则版本，历史快照的结果不变；</li>
+<li>交换请求中行的排列顺序，不改变规范化后的结果；</li>
+<li>所有币种运算都不发生隐式转换；</li>
+<li>任何降级结果都带有可观察的 <code>partial</code> 或错误原因。</li>
 </ul>
-<p>告警应区分<strong>用户可感知失败</strong>（创单失败率）与<strong>后台差异</strong>（空跑 diff）。对后者可采用采样 + 自动建 JIRA/工单。另建议监控 <strong>「创单成功但快照写入失败」</strong> 这类罕见组合——往往来自数据库半成功状态，需要补偿任务修复。</p>
-<h3 id="2993-故障处理"><a class="header" href="#2993-故障处理">29.9.3 故障处理</a></h3>
-<ul>
-<li><strong>回滚</strong>：灰度开关切回旧引擎；快照已落库则<strong>不以新逻辑改写历史</strong>；</li>
-<li><strong>数据修复</strong>：通过补差、退款重算由<strong>财务域流程</strong>驱动，而非直接改库内金额。</li>
-</ul>
-<p>演练层面，每季度做一次**「营销配置误发」桌面推演**：若运营错误配置了叠加券，计价能否通过安全校验器拦截？若不能，规则引擎侧也要有<strong>发布前仿真</strong>。事故后复盘要输出「哪一层本应挡住」的改进行项，而不是只修数据。</p>
-<hr>
-<h2 id="2910-本章小结"><a class="header" href="#2910-本章小结">29.10 本章小结</a></h2>
-<p>本章从交易链路视角定义了<strong>计价中心</strong>的定位：以<strong>四层价格模型</strong>统一基础、营销、抵扣与费用语义，用<strong>场景驱动</strong>的责任链控制计算深度与性能，并以 <strong>DDD</strong> 将 <code>Price</code> 聚合、<code>Money</code> / <code>PriceLayer</code> 值对象与领域服务结合，保障<strong>边界清晰</strong>与<strong>快照一致</strong>。与营销系统的分工上，应坚持「营销定义规则与执行权益，计价产出可审计的价格事实」。落地时务必配套<strong>幂等、分摊、空跑比对与可观测性</strong>，才能在复杂促销与高并发下同时满足体验与资损防控。</p>
-<p><strong>延伸阅读建议</strong>：读完本章可对照第 28 章营销系统边界与第 32 章订单价格快照设计，把「试算 → 创单 → 收银台 → 支付」四个时间点的<strong>口径表</strong>画在团队 wiki 上，作为跨团队评审的检查清单。实现上新加一层价格或一类费用时，先更新该表，再写代码，能显著降低联调返工。</p>
-<p><strong>落地检查清单（摘录）</strong>：① 各场景 <code>skipLayers</code> 与产品 PRD 是否逐条签字；② 快照表是否支持版本与只追加；③ 金额是否全链路整数分；④ 分摊单测是否覆盖「末行尾差」与「单行边界」；⑤ ACL 是否禁止领域层引用外部 proto；⑥ 空跑比对是否在灰度期全量开启；⑦ 支付校验失败是否有客服可查的 <code>snapshot_id</code> 与规则哈希。团队可在发版前用此清单做十分钟走查，把「架构上正确」落实为「发布时可控」。</p>
-<p><strong>术语说明</strong>：文中 PDP 指商品详情与导购详情类页面；创单指订单创建请求在服务端落库的关键步骤；收银台泛指用户确认支付前选择券、积分与支付方式的交互阶段。不同公司团队命名可能为 Checkout、Cashier 或 Payment Preview，本书统一以「收银台」称呼，重在<strong>语义阶段</strong>而非具体页面 URL。</p>
-<p><strong>落地延伸</strong>：读者若在落地中遇到本章未覆盖的品类，可沿用「先补 Calculator、再补 Layer 子处理器」的扩展顺序，避免破坏四层语义的一致性。批量计价接口建议对请求体大小与 SKU 个数双限流，并在响应头返回 <code>X-Pricing-Partial: true</code> 以标记降级后的不完整结果，便于上游决定是否重试或裁剪展示。此做法在搜索 Hydrate 与推荐列表页尤为实用，可作为默认工程约定。</p>
-<hr><div style="break-before: page; page-break-before: always;"></div>
+<p>这些属性能覆盖大量边界组合，比只写几个“100 元减 20 元”的例子更能发现价格引擎的结构性错误。</p>
+<h3 id="28813-安全发布与紧急开关"><a class="header" href="#28813-安全发布与紧急开关">28.8.13 安全发布与紧急开关</a></h3>
+<p>营销系统的紧急开关至少要分为规则级、活动级、品类级和全局级。活动级开关可以下线某个错误活动；品类级开关可以暂时禁用动态报价或某种费用；规则级开关可以撤销单条互斥规则；全局级开关只在确认风险扩大时使用。开关变化写入审计并传播版本，避免一个实例已经关闭活动、另一个实例仍从本地缓存命中。</p>
+<p>紧急回滚不能只改配置中心。先阻止新的规则命中，再处理已经冻结和已经支付的订单：未支付冻结按规则释放或确认；已支付订单保持快照；超预算部分进入差异单；已经发放但未使用的权益由产品决定是否继续有效。回滚动作需要一个明确的操作顺序和验证结果，否则“回滚成功”可能只意味着页面不再展示活动，后台预算仍在消耗。</p>
+<h3 id="28814-团队协作与文档边界"><a class="header" href="#28814-团队协作与文档边界">28.8.14 团队协作与文档边界</a></h3>
+<p>营销产品、计价研发、订单研发、支付研发、财务和客服应共同维护价格口径表，但每个领域只维护自己的事实源。公开书稿描述通用模型和可迁移方法；项目内部规则、真实预算、用户数据和供应商合同不能复制进公开文章。设计文档记录 ADR、版本、失败路径和验证指标，代码记录实现和测试，运行手册记录告警和人工操作，三者互相链接而不重复维护同一份长文。</p>
+<p>当团队争论“优惠由谁计算”时，可以把讨论拆成三个问题：谁判断资格，谁产生金额，谁承担资金；当争论“要不要上消息队列”时，先问这个动作是否需要削峰、异步解耦、可靠发布或可重放；当争论“要不要加缓存”时，先问数据是否可重建、允许多长时间陈旧、失效后谁是权威。这样可以把组件偏好还原成业务约束和可验证的设计决策。</p>
+<h3 id="28815-运行手册中的关键场景"><a class="header" href="#28815-运行手册中的关键场景">28.8.15 运行手册中的关键场景</a></h3>
+<p>运行手册不应只写“服务异常时重启 Pod”。营销和计价事故通常需要先保护资金和用户，再恢复吞吐。建议为以下场景准备可执行步骤：</p>
+<p><strong>规则误发布</strong>：暂停规则继续生效，确认影响的活动、商品、用户和时间窗口；阻断新冻结，保存当前版本和 diff；把旧版本切回灰度入口；扫描已经生成的快照和已支付订单；对超预算和错价订单生成差异单。不能直接删除活动记录，因为删除会让历史快照失去可解释性。</p>
+<p><strong>预算快速消耗</strong>：先确认是正常转化、规则配置错误还是脚本攻击；把预算桶切换为只读或快速失败；保留已冻结订单的确认路径；暂停非核心推荐流量；从平台、商家和渠道维度核对消耗斜率。预算告警应同时包含金额、订单数、用户数和每用户消耗，避免单个大额订单掩盖群体性异常。</p>
+<p><strong>消息积压</strong>：根据事件类型区分支付确认、释放冻结、分析埋点和营销推荐；优先处理会影响用户资金和资源占用的事件；降低自动重试频率，避免失败任务形成重试风暴；把过期活动事件丢入隔离队列并保留证据。扩容消费者前先检查数据库锁等待和下游容量，否则只会把积压压力向后推。</p>
+<p><strong>对账差异</strong>：停止自动修复高风险金额差异，保留原始记录和查询时间；按订单、组件、出资方、币种和事件版本分类；可确定的重复事件由幂等任务处理，无法确定的未知支付交给人工；修复后再次跑同一对账区间，直到差异从“待处理”变为“已解释/已修复/已批准保留”。</p>
+<p>故障复盘要回答“哪一个不变量没有被挡住”：是规则发布没有校验，冻结与快照没有关联，支付未知被误判失败，事件消费者没有幂等，还是对账没有覆盖某个出资方。只写“增加监控”通常不能降低下一次事故概率；应把改进项落到状态机、契约、测试、开关和责任人，并为重新评估设定日期。</p>
+<h3 id="28816-端到端验收案例"><a class="header" href="#28816-端到端验收案例">28.8.16 端到端验收案例</a></h3>
+<p>一个可以交给研发、QA、财务和客服共同执行的验收案例如下：用户选择两个店铺的商品，使用一张平台券和一张店铺券，抵扣积分，订单在创建后支付超时，随后收到支付成功回调；回调重复一次，消费者重启一次，订单部分退款一行商品。</p>
+<p>验收首先检查正常路径：优惠组合符合规则，价格组件和平台/商家出资闭合，快照能重放，冻结资源与订单关联。然后在每个边界注入故障：营销冻结响应超时、库存预占失败、快照写入失败、支付创建响应丢失、支付回调重复、事件重复、积分账户暂时不可用、供应商报价过期。每个故障都要得到明确状态，而不是只验证 HTTP 返回码。</p>
+<p>财务检查订单、组件、退款和结算单的金额闭合；客服使用 <code>snapshot_id</code> 查询解释树；QA 检查重试次数、幂等键冲突和补偿终态；运维检查 trace、指标、告警和人工队列。只有四类角色都能从同一份快照得到一致结论，才说明营销与计价的边界真正落地。</p>
+<h3 id="28817-评审时的提问顺序"><a class="header" href="#28817-评审时的提问顺序">28.8.17 评审时的提问顺序</a></h3>
+<p>面对一个新的促销或费用需求，可以按固定顺序评审，而不是从“需要新增哪张表”开始。第一问是业务事实：用户获得的是价格变化、资格变化、赠品、积分还是服务承诺；第二问是权威来源：商品、营销、计价、订单、支付和财务分别谁负责；第三问是生命周期：何时创建、何时冻结、何时确认、何时释放、何时过期；第四问是金额语义：基数、顺序、币种、舍入、分摊和出资方；第五问是失败处理：超时、重复、未知、取消、退款和人工接管；第六问是指标：用户体验、正确性、资源、成本和对账如何验证。</p>
+<p>如果一项需求无法回答“取消后怎么办”或“部分退款如何解释”，说明它还停留在页面文案层面，不能直接进入交易链路。若只能回答“正常流程很简单”，却没有提供重复回调、配置回滚和预算耗尽路径，说明设计尚未覆盖生产约束。系统设计的成熟度，往往体现为能否清楚描述失败后的状态，而不是能否画出一张漂亮的组件图。</p>
+<h3 id="28818-与相邻章节的协作"><a class="header" href="#28818-与相邻章节的协作">28.8.18 与相邻章节的协作</a></h3>
+<p>营销与计价不是孤立章节。库存章节负责商品供给和物理/虚拟资源的可承诺数量，本章只负责营销权益和价格组件；购物车与结算章节负责用户选择、地址和提交编排，本章提供报价、冻结和快照契约；订单章节负责订单状态和售后，本章提供组件、分摊和释放/确认接口；支付章节负责支付单、渠道回调和清算，本章提供金额校验和快照引用。</p>
+<p>跨章节阅读时，要用同一条时间轴标记四个时刻：用户看到的报价、资源被冻结、订单被创建、资金被确认。每个时刻都写下可变字段、不可变字段、权威服务和失败后的下一步。这样可以发现一些跨章节的隐患：库存只预占没有释放接口，订单保存了总额却没有快照，支付只验证金额却没有币种，营销确认没有关联订单终态，或购物车把过期 quote 当成可支付事实。</p>
+<h3 id="28819-章节级完成定义"><a class="header" href="#28819-章节级完成定义">28.8.19 章节级完成定义</a></h3>
+<p>本章完成并不等于“文件超过指定字数”。完成定义包括：核心概念可由产品、研发、财务和客服共同复述；每个关键组件有状态机和权威来源；至少一个案例走完正常、异常、重试、补偿和退款；每个关键选择有获得、牺牲、风险和重评条件；正文引用直接支持相邻判断；参考条目全部被使用；中文和英文来源都能从原始 URL 核验；构建、链接、格式和目录均通过检查。</p>
+<h3 id="28820-最小可行落地顺序"><a class="header" href="#28820-最小可行落地顺序">28.8.20 最小可行落地顺序</a></h3>
+<p>如果团队不能一次建设全部能力，可以按风险从高到低分阶段落地。第一阶段只支持固定价、单店铺、单券和整单退款，但必须先完成金额整数化、价格组件、快照、幂等和支付校验；第二阶段加入多店铺、平台/商家分摊、积分、预算和 Outbox；第三阶段加入复杂组合、供应商报价、部分退款、Saga 补偿和对账；第四阶段再做热点分片、灰度空跑、个性化权益和策略实验。每一阶段都要保持旧快照可解释，不能为了缩短第一阶段而把总价字段写成唯一事实。</p>
+<p>这种顺序把最难逆转的风险——金额错误、重复扣减和历史不可解释——放在最前面，把性能和智能化放在事实模型稳定之后。对业务方而言，先得到一条可核验的交易链路；对研发方而言，后续增加活动和品类是添加规则、组件或适配器，而不是再次复制一套订单逻辑。</p>
+<p>验收时还要区分“业务可用”和“技术可用”。业务可用要求用户能够看到条件、完成确认、收到正确权益并在售后得到解释；技术可用要求服务能在目标 SLO 内响应、错误可以重试、消息可以重放、快照可以查询。只有技术指标达标而用户被错误扣款，不能称为成功；只有页面看起来正确但后台预算和流水无法对账，也不能称为完成。</p>
+<p>最后，所有数量级、延迟和收益数字都应标注来源或假设；所有规则、金额和状态都应能从快照或流水找到证据；所有跨服务动作都应有明确的超时、重试、补偿和对账路径。这三条是本章从方案走向生产的最低门槛。</p>
+<p>当这些门槛被落实后，营销与计价才不再是“活动期间临时拼接的优惠逻辑”，而成为交易平台中能够演进、解释和恢复的基础能力。</p>
+<p>它最终保护的也不只是一个金额字段，而是用户对价格的预期、商家对结算的信任、平台对预算的控制，以及团队面对故障时可以依靠的证据链。</p>
+<p>因此，评审这类系统时不要只问“能不能算出价格”，还要问“谁能证明这个价格为何成立、谁能在失败后恢复、谁能在退款时按原规则解释、谁能在下一次活动中安全复用”。</p>
+<p>这也是把营销和计价合并到同一章的原因：它们可以由不同团队实现，但必须在同一条交易时间轴上共同承担价格事实。</p>
+<p>最终交付的不是一次性的活动方案，而是一套能够被复盘、重放、补偿和演进的交易基础设施。</p>
+<p>更具体地说，系统的成熟度应体现在它能否把一次价格决策还原成一条完整证据链：请求来自哪个用户和渠道，命中了哪个规则版本，消耗了哪项权益，金额由哪些组件组成，平台与商家分别承担多少，哪个事件推进了状态，以及失败后由谁负责补偿。只有这些问题都能在不依赖个人记忆的情况下回答，营销能力才真正从运营脚本升级为可治理的基础设施。后续无论增加新商品、新渠道还是新的结算方，都应沿用同一组事实、状态和引用关系，通过回放与对账证明变化没有破坏旧交易。</p>
+<h2 id="289-方法论总结与参考资料"><a class="header" href="#289-方法论总结与参考资料">28.9 方法论总结与参考资料</a></h2>
+<h3 id="2891-可迁移的判断句"><a class="header" href="#2891-可迁移的判断句">28.9.1 可迁移的判断句</a></h3>
+<p>本章可以浓缩为以下判断句：</p>
+<ol>
+<li><strong>先定义事实，再划分服务</strong>：商品价、营销权益、价格快照和交易状态不能靠字段名称混为一谈。</li>
+<li><strong>营销决定资格，计价决定金额</strong>：营销输出可使用的权益及其限制，计价输出可审计的价格组件和应付金额。</li>
+<li><strong>展示可以近似，创单必须确定</strong>：页面报价可以短暂过期，订单和支付必须引用同一份受保护的快照。</li>
+<li><strong>有限权益就是库存</strong>：券、积分、预算和活动配额都需要冻结、确认、释放、过期和对账。</li>
+<li><strong>重试必须建立在幂等契约上</strong>：没有稳定幂等键和未知状态查询，重试只是在放大副作用。</li>
+<li><strong>最终一致性必须可观测、可补偿、可对账</strong>：Outbox、Saga 和事件总线不是一致性的终点。</li>
+<li><strong>组件比总额更接近真实业务</strong>：没有组件、分摊和出资方，优惠、退款和财务解释都只能靠猜。</li>
+<li><strong>降级的边界由业务风险决定</strong>：可以隐藏推荐标签，不能凭空生成基础价、支付金额或预算余额。</li>
+<li><strong>每个关键方案都要写获得与牺牲</strong>：统一引擎获得复用和一致性，也引入版本协作、快照存储和补偿复杂度。</li>
+<li><strong>把参考源放到论证旁边</strong>：引用不是文末装饰，而是让读者知道哪些是原理、哪些是官方语义、哪些是本章的场景推导。</li>
+</ol>
+<h3 id="2892-参考资料"><a class="header" href="#2892-参考资料">28.9.2 参考资料</a></h3>
+<p>[1] Eric Evans, “DDD Reference: Definitions and Pattern Summaries”, Domain Language, 2014, https://www.domainlanguage.com/ddd/reference/<br>[2] Vaughn Vernon, <em>Implementing Domain-Driven Design</em>, Addison-Wesley Professional / Pearson, 2013, https://www.pearson.com/en-us/subject-catalog/p/implementing-domain-driven-design/P200000009616/9780321834577<br>[3] Martin Fowler, <em>Patterns of Enterprise Application Architecture</em>, Addison-Wesley, 2002, https://martinfowler.com/books/eaa.html<br>[4] Martin Kleppmann, <em>Designing Data-Intensive Applications</em>, O’Reilly Media, 2017, https://martin.kleppmann.com/2017/03/27/designing-data-intensive-applications.html<br>[5] Hector Garcia-Molina and Kenneth Salem, “Sagas”, <em>Proceedings of the 1987 ACM SIGMOD International Conference on Management of Data</em>, 1987, https://doi.org/10.1145/38713.38742<br>[6] Malcolm Featonby, “Making retries safe with idempotent APIs”, AWS Builders’ Library, 2021, https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/<br>[7] Chris Richardson, “Pattern: Saga”, microservices.io, 2017, https://microservices.io/patterns/data/saga.html<br>[8] Chris Richardson, “Pattern: Transactional outbox”, microservices.io, 2017, https://microservices.io/patterns/data/transactional-outbox<br>[9] Chris Richardson, “Pattern: Idempotent Consumer”, microservices.io, 2017, https://microservices.io/patterns/communication-style/idempotent-consumer.html<br>[10] Stripe, “Idempotent requests”, Stripe API Reference, 2025, https://docs.stripe.com/api/idempotent_requests<br>[11] Oracle, “Transaction Isolation Levels”, <em>MySQL 8.0 Reference Manual</em>, 2024, https://dev.mysql.com/doc/refman/8.0/en/innodb-transaction-isolation-levels.html<br>[12] Redis Ltd., “Scripting with Lua”, Redis Documentation, 2025, https://redis.io/docs/latest/develop/programmability/eval-intro/<br>[13] Apache Software Foundation, “Message Delivery Semantics”, Apache Kafka Documentation, 2026, https://kafka.apache.org/40/design/design/<br>[14] Chris Jones, John Wilkes, Niall Murphy and Cody Smith, “Service Level Objectives”, <em>Google SRE Book</em>, 2016, https://sre.google/sre-book/service-level-objectives/<br>[15] Alejandro Forero Cuervo, “Handling Overload”, <em>Google SRE Book</em>, 2016, https://sre.google/sre-book/handling-overload/<br>[16] OpenTelemetry Authors, “Observability primer”, OpenTelemetry Documentation, 2025, https://opentelemetry.io/docs/concepts/observability-primer/<br>[17] Martin Fowler, “Architecture Decision Record”, martinfowler.com, 2026, https://martinfowler.com/bliki/ArchitectureDecisionRecord.html<br>[18] Shangwen Yi, David J. Hardisty, Dale W. Griffin and Thomas Allard, “Promotion Architecture: A Deal Fairness Model of Restricted Price Promotions”, <em>Journal of Consumer Research</em>, 2026, https://academic.oup.com/jcr/article/53/2/369/8362278<br>[19] Nathan Kallus and Angela Zhou, “Fairness, Welfare, and Equity in Personalized Pricing”, arXiv, 2020, https://arxiv.org/abs/2012.11066<br>[20] Ke Zhang, “Final Price Neglect in Multi-Product Promotions: How Non-Integrated Price Reductions Promote Higher-Priced Products”, <em>Journal of Consumer Research</em>, 2024, https://academic.oup.com/jcr/article/50/6/1097/7220485<br>[21] 文彬、子维，《领域驱动设计在互联网业务开发中的实践》，美团技术团队，2017，https://tech.meituan.com/2017/12/22/ddd-in-practice.html<br>[22] 美团外卖营销技术团队，《设计模式在外卖营销业务中的实践》，美团技术团队，2020，https://tech.meituan.com/2020/03/19/Software-design-pattern-practice-in-marketing.html<br>[23] lvsong，《DDD在大众点评交易系统演进中的应用》，美团技术团队，2024，https://tech.meituan.com/2024/05/09/DDD-Practice-Trading-System.html<br>[24] Apache Seata，《Seata Saga 模式》，Apache Seata 文档，2025，https://seata.apache.org/zh-cn/docs/user/mode/saga/<br>[25] Apache RocketMQ，《事务消息》，Apache RocketMQ 文档，2025，https://rocketmq.apache.org/zh/docs/featureBehavior/04transactionmessage/<br>[26] Alibaba，《Sentinel 介绍》，Sentinel 文档，2023，https://sentinelguard.io/zh-cn/docs/introduction.html<br>[27] 阿里云，《分布式事务参与者接入模式》，阿里云文档，2019，https://help.aliyun.com/zh/document_detail/132909.html<br>[28] 周志明，《凤凰架构：构建可靠的大型分布式系统》，2021，https://icyfenix.cn/pdf/the-fenix-project.pdf</p>
+<h3 id="2893-适用边界"><a class="header" href="#2893-适用边界">28.9.3 适用边界</a></h3>
+<p>这套设计适合优惠规则复杂、交易链路跨多个服务、需要平台与商家分摊、且价格必须可审计的中大型电商或本地生活系统。对于只有一个固定价和一个简单折扣的内部工具，直接使用单体事务脚本可能更合适；不要因为本章出现了 Saga、Outbox、DDD 和多级缓存，就把它们全部套到低复杂度系统上。</p>
+<p>当系统出现以下信号时，说明应重新审视边界：营销规则开始修改订单状态；计价服务开始直接写券表；订单只能保存总价而无法还原组件；财务无法按出资方对账；支付失败后只能人工查日志；大促期间通过无限重试掩盖容量问题。此时应回到“权威事实、职责边界、上下游协作、补偿恢复、观测治理”五个问题，重新写 ADR、补齐状态机和失败路径，而不是继续增加一个新的优惠字段。</p>
+<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="第-30-章-搜索与导购"><a class="header" href="#第-30-章-搜索与导购">第 30 章 搜索与导购</a></h1>
 <blockquote>
 <p><strong>本章定位</strong>：搜索与结构化导购（类目列表、店铺内浏览）是电商平台最主要的 <strong>读流量入口</strong> 之一，直接影响转化与 GMV。本章在「统一导购查询服务」主叙事下，串起 <strong>Query → Recall → Rank → Hydrate</strong> 全链路，并以 <strong>Elasticsearch</strong> 作为召回与粗排主引擎，厘清与商品中心、计价、库存、营销、推荐等系统的 <strong>边界与契约</strong>，面向中大型团队的工程落地。</p>
@@ -10862,14 +10258,14 @@ sequenceDiagram
 <ol>
 <li><a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/index.md">Elasticsearch 官方文档</a> — 查询 DSL、分页、<code>profile</code>、聚合。</li>
 <li>本书相关章节：商品中心（索引与缓存）、库存系统、营销系统、计价系统、商品供给与运营管理。</li>
-<li>本书相关章节：后端面试基础知识题单中的 Elasticsearch 主题、第 25 章商品中心、第 27 章库存系统、第 28 章营销系统、第 29 章计价系统。</li>
+<li>本书相关章节：后端面试基础知识题单中的 Elasticsearch 主题、第 25 章商品中心、第 27 章库存系统、第 28 章营销与计价系统。</li>
 </ol>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="第-31-章-购物车与结算"><a class="header" href="#第-31-章-购物车与结算">第 31 章 购物车与结算</a></h1>
 <blockquote>
 <p>本章聚焦转化漏斗中的<strong>意愿暂存</strong>与<strong>交易前置校验</strong>两段能力：购物车弱一致、不锁资源；结算页强一致、编排计价 / 库存 / 营销 / 地址，并通过 <strong>Saga 补偿</strong> 与 <strong>幂等键</strong> 保证可重入与可回滚。文中 Go 示例为教学裁剪版，落地时请补全超时、观测、注入与错误语义。</p>
 </blockquote>
-<p><strong>阅读提示</strong>：若你习惯把「购物车、结算、创单」写在同一个服务里，可以带着三个问题读完全章——第一，<strong>预占库存为何不应出现在购物车</strong>；第二，<strong>试算与扣券为何必须拆开两个系统时刻</strong>；第三，<strong>拆单预览与真正拆单的边界应落在哪</strong>。把这三件事想清楚，就能把本章与第 27 章（库存）、第 29 章（计价）、第 32 章（订单）自然衔接起来。</p>
+<p><strong>阅读提示</strong>：若你习惯把「购物车、结算、创单」写在同一个服务里，可以带着三个问题读完全章——第一，<strong>预占库存为何不应出现在购物车</strong>；第二，<strong>试算与扣券为何必须拆开两个系统时刻</strong>；第三，<strong>拆单预览与真正拆单的边界应落在哪</strong>。把这三件事想清楚，就能把本章与第 27 章（库存）、第 28 章（营销与计价）、第 32 章（订单）自然衔接起来。</p>
 <p><strong>答辩提示</strong>：购物车与结算域的追问答法已统一收录到<a href="#q-sd-core-06购物车与结算的价格库存和实验边界">附录 D 的相应核心案例</a>。</p>
 <hr>
 <h2 id="311-系统定位"><a class="header" href="#311-系统定位">31.1 系统定位</a></h2>
@@ -11537,24 +10933,24 @@ flowchart TB
 <h2 id="319-本章小结"><a class="header" href="#319-本章小结">31.9 本章小结</a></h2>
 <p>购物车与结算域分别回答 <strong>「想买什么」</strong> 与 <strong>「现在能不能买」</strong> 两个问题：前者弱一致、不锁资源，以 Redis + DB 双写与匿名合并保障体验；后者以 Saga 编排把计价试算、库存预占、营销校验、地址运费组合为可提交凭证，并通过幂等键与补偿释放保证韧性。清晰划分 <strong>拆单预览 vs 真正拆单</strong>、<strong>试算 vs 扣券</strong>、<strong>结算 vs 订单状态机</strong>，是避免边界腐化的关键。</p>
 <p>如果把全章压成三条工程戒律，它们分别是：<strong>购物车 never lock</strong>、<strong>结算 always orchestrate with timeouts</strong>、<strong>submit always idempotent end-to-end</strong>。前两条保证体验与资源利用率，最后一条保证「用户只点一次，系统只落一单」这一最低限度的交易正义。</p>
-<p><strong>与全书其他章节的衔接</strong>：库存预占细节见第 27 章；计价与快照见第 29 章；订单创建、拆单与状态推进见第 32 章；支付见后续支付章节。</p>
+<p><strong>与全书其他章节的衔接</strong>：库存预占细节见第 27 章；营销、计价与快照见第 28 章；订单创建、拆单与状态推进见第 32 章；支付见后续支付章节。</p>
 <p><strong>最后一页检查清单（发布前自问）</strong>：是否在 PRD 里写清了「价格以结算为准」；是否在接口契约里禁止购物车预占；是否在订单创单接口上强制 <code>idempotency_key</code>；是否为 <code>release-reserve</code> 写了幂等测试；是否在监控里拆分 Init 与 Submit 的成功率；是否为大促准备了预占 TTL 与线程池隔离参数。六项都打勾，这一章才算真正「从文章走进了系统」。若还能补充一页 <strong>故障演练剧本</strong>（依赖逐个超时、Redis 丢键、订单重复返回），团队在真实大促里会少很多「第一次见」的慌乱。</p>
 <hr>
 <h2 id="延伸阅读与引用"><a class="header" href="#延伸阅读与引用">延伸阅读与引用</a></h2>
 <ul>
 <li>本书第 4 章：Saga 与幂等通用模式。</li>
 <li>本书第 27 章：库存预占、确认与释放。</li>
-<li>本书第 29 章：试算场景与快照校验。</li>
+<li>本书第 28 章：营销资格、试算场景与快照校验。</li>
 <li>本书第 32 章：订单创建与分布式事务实践。</li>
 <li>外部参考：Microsoft Azure Architecture Center — Saga pattern；Redis Hashes 文档。</li>
 </ul>
-<p><strong>落地阅读顺序建议</strong>：先读第 29 章理解「快照从哪来」，再读第 27 章理解「预占与确认的语言」，最后读第 32 章看「订单如何把券与库存变成事实」。本章处在三者的交汇处：最容易写成「什么都能调一点的脚本服务」，也最考验你是否坚持用 <strong>编排 + 凭证 + 幂等</strong> 把复杂度关在门内。读完若只能记住一句话，建议记住：<strong>购物车是缓存意志，结算是换取凭证，订单是写下事实</strong>——三者顺序不可倒置；任何把「事实」前移到购物车或结算持久层的 shortcut，都会在客诉与对账里连本带息还回来，务必警惕为好。</p>
+<p><strong>落地阅读顺序建议</strong>：先读第 28 章理解「快照从哪来、营销权益如何进入价格」，再读第 27 章理解「预占与确认的语言」，最后读第 32 章看「订单如何把券与库存变成事实」。本章处在三者的交汇处：最容易写成「什么都能调一点的脚本服务」，也最考验你是否坚持用 <strong>编排 + 凭证 + 幂等</strong> 把复杂度关在门内。读完若只能记住一句话，建议记住：<strong>购物车是缓存意志，结算是换取凭证，订单是写下事实</strong>——三者顺序不可倒置；任何把「事实」前移到购物车或结算持久层的 shortcut，都会在客诉与对账里连本带息还回来，务必警惕为好。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="第-32-章-订单系统"><a class="header" href="#第-32-章-订单系统">第 32 章 订单系统</a></h1>
 <blockquote>
 <p><strong>本章定位</strong>：订单系统是交易链路的<strong>编排中枢</strong>。本章覆盖数据模型、状态机、创单 Saga、分布式事务（TCC / Saga）、幂等、特殊单类型、履约与系统边界；Go 示例为教学裁剪版，落地时请补全观测、鉴权与错误包装。</p>
 </blockquote>
-<p><strong>阅读提示</strong>：若你已读完第 29 章计价与第 31 章结算，可带着三个问题阅读——第一，<strong>订单快照与计价快照如何对齐版本</strong>；第二，<strong>库存预占发生在结算还是创单，失败时谁补偿</strong>；第三，<strong>支付域与订单域的状态机如何解耦又不丢一致性</strong>。搞清边界后，订单服务才不会长成「上帝对象」。</p>
+<p><strong>阅读提示</strong>：若你已读完第 28 章营销与计价、以及第 31 章结算，可带着三个问题阅读——第一，<strong>订单快照与计价快照如何对齐版本</strong>；第二，<strong>库存预占发生在结算还是创单，失败时谁补偿</strong>；第三，<strong>支付域与订单域的状态机如何解耦又不丢一致性</strong>。搞清边界后，订单服务才不会长成「上帝对象」。</p>
 <p><strong>与第 34 章案例的衔接</strong>：在 B2B2C 聚合平台中，订单往往还要承载 <strong>供应商订单号、供应商错误码、重试策略版本</strong> 等跨域信息；本章给出的是「平台自营电商」的主干模型，落地到机票、酒店等品类时，应把供应商差异收敛到 <strong>履约网关与扩展表</strong>，避免主表字段爆炸。第 34 章从全景角度回顾订单在微服务拓扑中的位置，可与本章边界小节交叉阅读。</p>
 <hr>
 <p>第一步：订单系统向商品中心发起“静态合规强校验”（RPC 同步） 这个校验是商品中心做的，还是 订单中心做的</p>
@@ -11728,12 +11124,12 @@ type Order struct {
 }
 </code></pre>
 <p><strong>拆单</strong>：若业务要求「不同仓 / 不同商家」拆子单，可引入 <code>shipment_group_id</code> 或子订单表；主单与子单的支付关系需在模型层一次性说清，避免支付回调时无法定位行。</p>
-<p><strong>行级扩展字段</strong>：跨境、大宗或企业采购常在行上携带 <strong>税率、HS 编码、采购合同号</strong> 等。建议用 <code>line_extra JSON</code> 或独立扩展表，并在写入时做 schema 版本号，避免无约束 JSON 变成「第二个代码仓库」。部分退款时，需能根据行级快照与分摊规则还原「可退金额」，这与第 29 章的分摊口径强相关。</p>
+<p><strong>行级扩展字段</strong>：跨境、大宗或企业采购常在行上携带 <strong>税率、HS 编码、采购合同号</strong> 等。建议用 <code>line_extra JSON</code> 或独立扩展表，并在写入时做 schema 版本号，避免无约束 JSON 变成「第二个代码仓库」。部分退款时，需能根据行级快照与分摊规则还原「可退金额」，这与第 28 章的分摊口径强相关。</p>
 <p><strong>赠品与换购</strong>：赠品行可标记 <code>line_type=gift</code>，金额为 0 但仍占用库存与履约单元；换购行则绑定主行 <code>parent_line_id</code>。建模时务必让履约与库存识别「最小履约单元」，否则会出现赠品未发但主单已完成的口径争议。</p>
 <h3 id="3223-价格快照"><a class="header" href="#3223-价格快照">32.2.3 价格快照</a></h3>
 <p>价格快照解决<strong>事后解释</strong>问题：用户下单后商品改价，应以快照为准。实践中常并存两层：</p>
 <ol>
-<li><strong>计价中心快照</strong>（第 29 章）：规则解释结果、分层明细、舍入版本；</li>
+<li><strong>计价中心快照</strong>（第 28 章）：规则解释结果、分层明细、舍入版本；</li>
 <li><strong>商品展示快照</strong>：标题、主图、规格文案，用于客服与纠纷处理。</li>
 </ol>
 <pre><code class="language-go">type OrderPricingSnapshot struct {
@@ -11743,7 +11139,7 @@ type Order struct {
 	CreatedAt    time.Time `json:"created_at"`
 }
 </code></pre>
-<p>创单事务内写入 <code>order.pricing_snapshot</code> 外键或内嵌 JSON，支付校验阶段<strong>只校验不重新全量试算</strong>（与第 29 章口径一致），避免渠道变化导致「可支付金额漂移」。</p>
+<p>创单事务内写入 <code>order.pricing_snapshot</code> 外键或内嵌 JSON，支付校验阶段<strong>只校验不重新全量试算</strong>（与第 28 章口径一致），避免渠道变化导致「可支付金额漂移」。</p>
 <p><strong>快照与客服工单</strong>：客服系统应能按 <code>snapshot_id</code> 拉取<strong>当时的展示文案与分层价格</strong>，而不是实时读商品中心。否则用户截图与后台看到的不一致，纠纷成本极高。若快照体积过大，可采用 <strong>对象存储 + 哈希引用</strong>，MySQL 仅存指针与版本。</p>
 <p><strong>多币种</strong>：<code>Currency</code> 与汇率快照需同事务写入；支付若支持用户切换币种，应生成新的支付上下文而不是覆盖原订单金额字段，除非业务流程明确允许改价。</p>
 <h3 id="3224-状态历史"><a class="header" href="#3224-状态历史">32.2.4 状态历史</a></h3>
@@ -12190,7 +11586,7 @@ stateDiagram-v2
 <p><strong>支付后确认</strong>：若品类要求支付后才向供应商下单，创单阶段可能是 <strong>软占</strong>，支付成功后再 <code>Commit</code>；订单需记录两阶段 token，关单时只释放对应阶段。</p>
 <h3 id="32103-与计价系统集成价格快照"><a class="header" href="#32103-与计价系统集成价格快照">32.10.3 与计价系统集成（价格快照）</a></h3>
 <p>创单请求携带 <code>pricing_token</code>，计价服务返回 <strong>不可变快照</strong>；订单落库字段与支付校验字段保持一致。</p>
-<p><strong>舍入与分摊</strong>：快照应包含 <strong>行级分摊结果</strong> 与 <strong>尾差处理规则版本</strong>（第 29 章），否则部分退款时营销与财务会对不上。支付校验只验证「渠道应付 == 快照应付」在允许误差内。</p>
+<p><strong>舍入与分摊</strong>：快照应包含 <strong>行级分摊结果</strong> 与 <strong>尾差处理规则版本</strong>（第 28 章），否则部分退款时营销与财务会对不上。支付校验只验证「渠道应付 == 快照应付」在允许误差内。</p>
 <h3 id="32104-与营销系统集成锁定与扣减"><a class="header" href="#32104-与营销系统集成锁定与扣减">32.10.4 与营销系统集成（锁定与扣减）</a></h3>
 <p>先锁后付：创单锁券，支付成功转实扣；关单 / 超时统一走营销回滚接口，携带 <code>order_id</code> 幂等。</p>
 <p><strong>平台与商家券</strong>：若一单混合出资，营销回滚需支持 <strong>按比例撤销</strong>；订单应保存 <code>subsidy_split</code> 片段，避免退款时无法拆分平台补贴与商家让利。</p>
@@ -12300,7 +11696,7 @@ func (s *Snowflake) Next() (int64, error) {
 <p><strong>本章定位</strong>：支付系统是交易链路的<strong>资金收口</strong>与<strong>外部渠道适配中心</strong>。本章展开<strong>分层架构、主链路时序、状态机、退款与营销核算、清结算与对账、幂等与一致性、系统边界与集成</strong>。文中 Go 示例为教学裁剪版，落地时请补全观测、鉴权、错误包装与依赖注入。</p>
 </blockquote>
 <p><strong>阅读提示</strong>：读本章时建议始终带着三个问题——<strong>谁拥有支付单的真相状态</strong>、<strong>回调与主动查询以谁为准闭合</strong>、<strong>差错入账如何可审计回滚</strong>。把这三个问题回答清楚，就能把「渠道差异」与「分布式一致性」从口号落到可执行的工程清单。</p>
-<p><strong>与全书脉络的关系</strong>：第 29 章计价给出「应付金额的合理解释」，第 31 章结算完成「资源锁定」，第 32 章订单沉淀「业务承诺」，本章则把承诺兑现为<strong>外部世界的扣款事实</strong>；第 34 章会把支付放回 B2B2C 聚合场景，观察供应商履约与渠道结算如何共同挤压支付边界。</p>
+<p><strong>与全书脉络的关系</strong>：第 28 章营销与计价给出「应付金额的合理解释」，第 31 章结算完成「资源锁定」，第 32 章订单沉淀「业务承诺」，本章则把承诺兑现为<strong>外部世界的扣款事实</strong>；第 34 章会把支付放回 B2B2C 聚合场景，观察供应商履约与渠道结算如何共同挤压支付边界。</p>
 <hr>
 <h2 id="331-业务背景"><a class="header" href="#331-业务背景">33.1 业务背景</a></h2>
 <h3 id="3311-支付系统的定位"><a class="header" href="#3311-支付系统的定位">33.1.1 支付系统的定位</a></h3>
@@ -21884,7 +21280,7 @@ type Order struct {
 <tr><td><strong>第 27 章</strong>（库存系统）</td><td>二维库存模型、预占机制、超时释放（34.5.2）</td></tr>
 <tr><td><strong>第 28 章</strong>（营销系统）</td><td>营销规则引擎、优惠券锁定、最优解求解</td></tr>
 <tr><td><strong>第 25 章</strong>（供给运营）</td><td><strong>商品上架、供应商同步、运营编辑（34.5.6 新增）</strong></td></tr>
-<tr><td><strong>第 29 章</strong>（计价系统）</td><td>四层价格模型、试算接口、快照生成</td></tr>
+<tr><td><strong>第 28 章</strong>（营销与计价系统）</td><td>四层价格模型、试算接口、快照生成</td></tr>
 <tr><td><strong>第 30 章</strong>（搜索导购）</td><td><strong>Query→Recall→Rank→Hydrate链路（34.5.7 新增）</strong></td></tr>
 <tr><td><strong>第 31 章</strong>（购物车结算）</td><td><strong>未登录加购、登录合并、Saga编排（34.5.7 新增）</strong></td></tr>
 <tr><td><strong>第 32 章</strong>（订单系统）</td><td><strong>状态机、Saga模式、幂等性（34.5.7、34.5.8 新增）</strong></td></tr>
@@ -21977,7 +21373,7 @@ type Order struct {
 <li><a href="#第-33-章-支付系统">第 33 章 支付系统</a></li>
 <li><a href="#第-25-章-商品中心商品供给与生命周期治理">第 25 章 商品中心系统</a></li>
 <li><a href="#第-27-章-库存系统">第 27 章 库存系统</a></li>
-<li><a href="#第-29-章-计价系统设计与实现">第 29 章 计价系统设计与实现</a></li>
+<li><a href="#第-28-章-营销与计价系统">第 28 章 营销与计价系统</a></li>
 </ul>
 <hr>
 <h2 id="1-核心使用场景c-端用户到底在完成什么交易动作"><a class="header" href="#1-核心使用场景c-端用户到底在完成什么交易动作">1. 核心使用场景：C 端用户到底在完成什么交易动作</a></h2>
@@ -39004,7 +38400,7 @@ public class FullReduceRule implements PromotionRule {
 </ul>
 <h4 id="关联正文-68"><a class="header" href="#关联正文-68">关联正文</a></h4>
 <p>迁移来源：<code>books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:6748</code>。本章不依赖旧 Part Four 文件链接。</p>
-<p>相关章节：<a href="#第-28-章-营销系统">营销系统</a>。</p>
+<p>相关章节：<a href="#第-28-章-营销与计价系统">营销与计价系统</a>。</p>
 <h4 id="复盘清单-68"><a class="header" href="#复盘清单-68">复盘清单</a></h4>
 <ul>
 <li>我是否定义了数据所有权、状态机和跨域协作边界？</li>
@@ -39286,7 +38682,7 @@ if (affected_rows == 0) {
 </ul>
 <h4 id="关联正文-69"><a class="header" href="#关联正文-69">关联正文</a></h4>
 <p>迁移来源：<code>books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7049</code>。本章不依赖旧 Part Four 文件链接。</p>
-<p>相关章节：<a href="#第-28-章-营销系统">营销系统</a>。</p>
+<p>相关章节：<a href="#第-28-章-营销与计价系统">营销与计价系统</a>。</p>
 <h4 id="复盘清单-69"><a class="header" href="#复盘清单-69">复盘清单</a></h4>
 <ul>
 <li>我是否定义了数据所有权、状态机和跨域协作边界？</li>
@@ -40052,7 +39448,7 @@ competitor_price（竞对价格）
 </ul>
 <h4 id="关联正文-72"><a class="header" href="#关联正文-72">关联正文</a></h4>
 <p>迁移来源：<code>books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7905</code>。本章不依赖旧 Part Four 文件链接。</p>
-<p>相关章节：<a href="#第-29-章-计价系统设计与实现">计价系统</a>。</p>
+<p>相关章节：<a href="#第-28-章-营销与计价系统">营销与计价系统</a>。</p>
 <h4 id="复盘清单-72"><a class="header" href="#复盘清单-72">复盘清单</a></h4>
 <ul>
 <li>我是否定义了数据所有权、状态机和跨域协作边界？</li>
@@ -40588,7 +39984,7 @@ TTL: 5分钟
 </ul>
 <h4 id="关联正文-74"><a class="header" href="#关联正文-74">关联正文</a></h4>
 <p>迁移来源：<code>books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:8304</code>。本章不依赖旧 Part Four 文件链接。</p>
-<p>相关章节：<a href="#第-28-章-营销系统">营销系统</a>。</p>
+<p>相关章节：<a href="#第-28-章-营销与计价系统">营销与计价系统</a>。</p>
 <h4 id="复盘清单-74"><a class="header" href="#复盘清单-74">复盘清单</a></h4>
 <ul>
 <li>我是否定义了数据所有权、状态机和跨域协作边界？</li>
@@ -41095,7 +40491,7 @@ price = getPriceByUser(skuId, userId);
 </ul>
 <h4 id="关联正文-76"><a class="header" href="#关联正文-76">关联正文</a></h4>
 <p>迁移来源：<code>books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:8751</code>。本章不依赖旧 Part Four 文件链接。</p>
-<p>相关章节：<a href="#第-29-章-计价系统设计与实现">计价系统</a>。</p>
+<p>相关章节：<a href="#第-28-章-营销与计价系统">营销与计价系统</a>。</p>
 <h4 id="复盘清单-76"><a class="header" href="#复盘清单-76">复盘清单</a></h4>
 <ul>
 <li>我是否定义了数据所有权、状态机和跨域协作边界？</li>
@@ -44927,7 +44323,7 @@ supplier_sync_dead_letter
 </ul>
 <h4 id="关联正文-143"><a class="header" href="#关联正文-143">关联正文</a></h4>
 <p>迁移来源：<code>books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:594</code>。本章不依赖旧 Part Four 文件链接。</p>
-<p>相关章节：<a href="#第-29-章-计价系统设计与实现">计价系统</a>。</p>
+<p>相关章节：<a href="#第-28-章-营销与计价系统">营销与计价系统</a>。</p>
 <h4 id="复盘清单-143"><a class="header" href="#复盘清单-143">复盘清单</a></h4>
 <ul>
 <li>我是否定义了数据所有权、状态机和跨域协作边界？</li>
@@ -56664,7 +56060,7 @@ func (s *SeckillService) CancelUnpaidOrders() {
 </ul>
 <h4 id="关联正文-211"><a class="header" href="#关联正文-211">关联正文</a></h4>
 <p>迁移来源：<code>books/system-design-primer/src/part03/10-ecommerce-case-studies-interview.md:182</code>。本章不依赖旧 Part Four 文件链接。</p>
-<p>相关章节：<a href="#第-28-章-营销系统">营销系统</a>。</p>
+<p>相关章节：<a href="#第-28-章-营销与计价系统">营销与计价系统</a>。</p>
 <h4 id="复盘清单-211"><a class="header" href="#复盘清单-211">复盘清单</a></h4>
 <ul>
 <li>我是否定义了数据所有权、状态机和跨域协作边界？</li>

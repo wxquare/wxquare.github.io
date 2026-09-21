@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-012fd679.js";
+            window.path_to_searchindex_js = "../searchindex-47942485.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a3a0b0da.js"></script>
+        <script src="../toc-86608dce.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -181,7 +181,7 @@
 <blockquote>
 <p>本章聚焦转化漏斗中的<strong>意愿暂存</strong>与<strong>交易前置校验</strong>两段能力：购物车弱一致、不锁资源；结算页强一致、编排计价 / 库存 / 营销 / 地址，并通过 <strong>Saga 补偿</strong> 与 <strong>幂等键</strong> 保证可重入与可回滚。文中 Go 示例为教学裁剪版，落地时请补全超时、观测、注入与错误语义。</p>
 </blockquote>
-<p><strong>阅读提示</strong>：若你习惯把「购物车、结算、创单」写在同一个服务里，可以带着三个问题读完全章——第一，<strong>预占库存为何不应出现在购物车</strong>；第二，<strong>试算与扣券为何必须拆开两个系统时刻</strong>；第三，<strong>拆单预览与真正拆单的边界应落在哪</strong>。把这三件事想清楚，就能把本章与第 27 章（库存）、第 29 章（计价）、第 32 章（订单）自然衔接起来。</p>
+<p><strong>阅读提示</strong>：若你习惯把「购物车、结算、创单」写在同一个服务里，可以带着三个问题读完全章——第一，<strong>预占库存为何不应出现在购物车</strong>；第二，<strong>试算与扣券为何必须拆开两个系统时刻</strong>；第三，<strong>拆单预览与真正拆单的边界应落在哪</strong>。把这三件事想清楚，就能把本章与第 27 章（库存）、第 28 章（营销与计价）、第 32 章（订单）自然衔接起来。</p>
 <p><strong>答辩提示</strong>：购物车与结算域的追问答法已统一收录到<a href="../appendix/system-design-questionbank.html#q-sd-core-06购物车与结算的价格库存和实验边界">附录 D 的相应核心案例</a>。</p>
 <hr>
 <h2 id="311-系统定位"><a class="header" href="#311-系统定位">31.1 系统定位</a></h2>
@@ -849,18 +849,18 @@ flowchart TB
 <h2 id="319-本章小结"><a class="header" href="#319-本章小结">31.9 本章小结</a></h2>
 <p>购物车与结算域分别回答 <strong>「想买什么」</strong> 与 <strong>「现在能不能买」</strong> 两个问题：前者弱一致、不锁资源，以 Redis + DB 双写与匿名合并保障体验；后者以 Saga 编排把计价试算、库存预占、营销校验、地址运费组合为可提交凭证，并通过幂等键与补偿释放保证韧性。清晰划分 <strong>拆单预览 vs 真正拆单</strong>、<strong>试算 vs 扣券</strong>、<strong>结算 vs 订单状态机</strong>，是避免边界腐化的关键。</p>
 <p>如果把全章压成三条工程戒律，它们分别是：<strong>购物车 never lock</strong>、<strong>结算 always orchestrate with timeouts</strong>、<strong>submit always idempotent end-to-end</strong>。前两条保证体验与资源利用率，最后一条保证「用户只点一次，系统只落一单」这一最低限度的交易正义。</p>
-<p><strong>与全书其他章节的衔接</strong>：库存预占细节见第 27 章；计价与快照见第 29 章；订单创建、拆单与状态推进见第 32 章；支付见后续支付章节。</p>
+<p><strong>与全书其他章节的衔接</strong>：库存预占细节见第 27 章；营销、计价与快照见第 28 章；订单创建、拆单与状态推进见第 32 章；支付见后续支付章节。</p>
 <p><strong>最后一页检查清单（发布前自问）</strong>：是否在 PRD 里写清了「价格以结算为准」；是否在接口契约里禁止购物车预占；是否在订单创单接口上强制 <code>idempotency_key</code>；是否为 <code>release-reserve</code> 写了幂等测试；是否在监控里拆分 Init 与 Submit 的成功率；是否为大促准备了预占 TTL 与线程池隔离参数。六项都打勾，这一章才算真正「从文章走进了系统」。若还能补充一页 <strong>故障演练剧本</strong>（依赖逐个超时、Redis 丢键、订单重复返回），团队在真实大促里会少很多「第一次见」的慌乱。</p>
 <hr>
 <h2 id="延伸阅读与引用"><a class="header" href="#延伸阅读与引用">延伸阅读与引用</a></h2>
 <ul>
 <li>本书第 4 章：Saga 与幂等通用模式。</li>
 <li>本书第 27 章：库存预占、确认与释放。</li>
-<li>本书第 29 章：试算场景与快照校验。</li>
+<li>本书第 28 章：营销资格、试算场景与快照校验。</li>
 <li>本书第 32 章：订单创建与分布式事务实践。</li>
 <li>外部参考：Microsoft Azure Architecture Center — Saga pattern；Redis Hashes 文档。</li>
 </ul>
-<p><strong>落地阅读顺序建议</strong>：先读第 29 章理解「快照从哪来」，再读第 27 章理解「预占与确认的语言」，最后读第 32 章看「订单如何把券与库存变成事实」。本章处在三者的交汇处：最容易写成「什么都能调一点的脚本服务」，也最考验你是否坚持用 <strong>编排 + 凭证 + 幂等</strong> 把复杂度关在门内。读完若只能记住一句话，建议记住：<strong>购物车是缓存意志，结算是换取凭证，订单是写下事实</strong>——三者顺序不可倒置；任何把「事实」前移到购物车或结算持久层的 shortcut，都会在客诉与对账里连本带息还回来，务必警惕为好。</p>
+<p><strong>落地阅读顺序建议</strong>：先读第 28 章理解「快照从哪来、营销权益如何进入价格」，再读第 27 章理解「预占与确认的语言」，最后读第 32 章看「订单如何把券与库存变成事实」。本章处在三者的交汇处：最容易写成「什么都能调一点的脚本服务」，也最考验你是否坚持用 <strong>编排 + 凭证 + 幂等</strong> 把复杂度关在门内。读完若只能记住一句话，建议记住：<strong>购物车是缓存意志，结算是换取凭证，订单是写下事实</strong>——三者顺序不可倒置；任何把「事实」前移到购物车或结算持久层的 shortcut，都会在客诉与对账里连本带息还回来，务必警惕为好。</p>
 
                     </main>
 
