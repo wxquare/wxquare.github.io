@@ -25,8 +25,6 @@
 - [第 27 章 库存系统](part03/04-inventory-system.md)
 - [第 28 章 营销与计价系统](part03/05-marketing-pricing-system.md)
 - [第 30 章 搜索与导购](part03/07-search-discovery.md)
-- [第 31 章 购物车与结算](part03/08-cart-checkout.md)
-- [第 32 章 订单系统](part03/09-order-system.md)
 - [第 33 章 支付系统](part03/10-payment-system.md)
 - [第 34 章 B2B2C 平台完整架构](part03/11-b2b2c-platform-architecture.md)
 - [第 36 章 电商用户 C 端搜索、交易、履约与售后全生命周期设计](part03/13-ecommerce-customer-lifecycle.md)
