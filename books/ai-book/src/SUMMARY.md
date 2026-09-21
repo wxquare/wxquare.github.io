@@ -6,23 +6,23 @@
 
 # 第一部分：大模型算法
 
-- [第1章 大模型基础与 Transformer 架构](part1/01-llm-foundations-transformer.md)
-- [第2章 预训练：数据、目标与能力形成](part1/02-pretraining-data-scaling.md)
-- [第3章 后训练与模型对齐](part1/03-post-training-alignment.md)
-- [第4章 推理能力与生成算法](part1/04-reasoning-generation-algorithms.md)
-- [第5章 微调、压缩与多模态算法](part1/05-finetuning-compression-multimodal.md)
-- [第6章 世界模型与具身智能：从预测世界到行动系统](part1/06-world-models-embodied-ai.md)
+- [第1章 从语言模型到 Agent：为什么 LLM 会演进为 Agent？](part1/01-llm-foundations-transformer.md)
+- [第2章 预训练：能力的来源：模型能力的底层来源是什么？](part1/02-pretraining-data-scaling.md)
+- [第3章 后训练：行为的塑形：如何把原始能力塑造成可用行为？](part1/03-post-training-alignment.md)
+- [第4章 推理期扩展：推理时怎样释放或放大能力？](part1/04-reasoning-generation-algorithms.md)
+- [第5章 模型适配与能力扩展：怎样为具体场景定制、压缩或扩展能力？](part1/05-finetuning-compression-multimodal.md)
+- [第6章 具身智能与 Physical AI：当模型进入物理世界，系统闭环发生了什么变化？](part1/06-world-models-embodied-ai.md)
 
 ---
 
 # 第二部分：大模型 Infra
 
-- [第7章 大模型 Infra 总览：从算法结果到可运行平台](part1/07-llm-boundaries.md)
-- [第8章 训练 Infra：数据管线、分布式训练与 Checkpoint](part2/infra-08-training.md)
-- [第9章 推理 Infra：Serving、KV Cache、Batching 与模型并行](part2/infra-09-inference.md)
-- [第10章 数据与评估 Infra：治理、回归与反馈闭环](part2/infra-10-data-eval.md)
-- [第11章 Agent/模型运行时 Infra：调度、工具、状态与多租户](part2/infra-11-runtime.md)
-- [第12章 可靠性与治理 Infra：观测、成本、安全、发布与灾备](part2/infra-12-reliability-governance.md)
+- [第7章 AI Infra 全景：AI Infra 的全局地图是什么？](part1/07-llm-boundaries.md)
+- [第8章 训练平台与数据管线：如何稳定、经济地生产模型能力？](part2/infra-08-training.md)
+- [第9章 推理服务与资源调度：如何稳定、经济地交付模型能力？](part2/infra-09-inference.md)
+- [第10章 评估与反馈闭环：如何测量、比较并持续改进能力？](part2/infra-10-data-eval.md)
+- [第11章 Agent Runtime：如何让 Agent 行为可执行、可恢复、可回放？](part2/infra-11-runtime.md)
+- [第12章 生产运营与治理控制：如何让整套系统进入生产级控制？](part2/infra-12-reliability-governance.md)
 
 ---
 
