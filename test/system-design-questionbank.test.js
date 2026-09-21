@@ -63,18 +63,16 @@ test('question types have requirements appropriate to their learning objective',
 });
 
 test('book links point to the appendix instead of a removed question-bank chapter', () => {
-  const partThreeFiles = [
-    'part03/01-ecommerce-overview.md',
-    'part03/02-product-center-supply-lifecycle.md',
-    'part03/04-inventory-system.md',
-    '../archive/part03/07-search-discovery.md',
-    '../archive/part03/08-cart-checkout.md',
-    '../archive/part03/09-order-system.md',
-    '../archive/part03/10-payment-system.md',
-    'part03/11-b2b2c-platform-architecture.md',
+  const partTwoFiles = [
+    'part02/10-ecommerce-overview.md',
+    'part02/11-product-center-supply-lifecycle.md',
+    'part02/12-inventory-system.md',
+    'part02/13-marketing-pricing-system.md',
+    'part02/14-ecommerce-customer-lifecycle.md',
+    'part02/15-b2b2c-platform-architecture.md',
   ];
 
-  for (const file of partThreeFiles) {
+  for (const file of partTwoFiles) {
     const content = read(file);
     assert.doesNotMatch(content, /第 38 章的相应核心案例/);
     assert.doesNotMatch(content, /\.\.\/part04\//);

@@ -55,7 +55,7 @@
 
 本章不展开具体搜索分词算法、推荐模型训练细节或某个云厂商的产品配置。搜索引擎、Redis、Kafka、推荐模型和 Elasticsearch 的实现细节，应结合本书后续基础设施章节阅读。
 
-索引和搜索引擎的底层面试题可参见[后端面试基础知识题单中的 Elasticsearch 主题](../appendix/interview-basic-question-bank.md#elasticsearch)，商品发现的完整业务读路径可参见[第 36 章电商用户全生命周期设计](../part03/13-ecommerce-customer-lifecycle.md)。本章重点保留复杂读场景的统一模型、延迟预算和方案取舍。
+索引和搜索引擎的底层面试题可参见[后端面试基础知识题单中的 Elasticsearch 主题](../appendix/interview-basic-question-bank.md#elasticsearch)，商品发现的完整业务读路径可参见[第 14 章电商用户全生命周期设计](../part02/14-ecommerce-customer-lifecycle.md)。本章重点保留复杂读场景的统一模型、延迟预算和方案取舍。
 
 ## 8.2 约束与指标：把“快”拆成预算，把“好”拆成质量
 
