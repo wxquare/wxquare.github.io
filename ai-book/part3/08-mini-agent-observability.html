@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-bec4dcd5.js";
+            window.path_to_searchindex_js = "../searchindex-18c1217e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-0ce1344b.js"></script>
@@ -177,7 +177,7 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="第24章-从零实现一个可观测-coding-agent"><a class="header" href="#第24章-从零实现一个可观测-coding-agent">第24章 从零实现一个可观测 Coding Agent</a></h1>
+                        <h1 id="第29章-从零实现一个可观测-coding-agent"><a class="header" href="#第29章-从零实现一个可观测-coding-agent">第29章 从零实现一个可观测 Coding Agent</a></h1>
 <blockquote>
 <p>一个接近生产级的 Agent 原型，不是把模型接到代码仓库上就结束，而是把上下文、工具、权限、验证、trace 和失败复盘都放进同一个闭环。</p>
 </blockquote>
@@ -187,7 +187,7 @@
 <p>该案例假定 Agent 能读取项目规则和仓库结构，让模型输出结构化 JSON action，通过工具注册表执行读文件、搜索、局部编辑、运行验证和查看 diff，并把每一步保存为 JSONL trace。</p>
 <p>本章的目标不是复刻商业级 Coding Agent 的全部能力，也不是给出一个可直接部署的原型，而是讲清一个可继续演进到生产级系统的工程骨架。</p>
 <hr>
-<h2 id="231-案例目标与边界"><a class="header" href="#231-案例目标与边界">23.1 案例目标与边界</a></h2>
+<h2 id="291-案例目标与边界"><a class="header" href="#291-案例目标与边界">29.1 案例目标与边界</a></h2>
 <p>本章使用一个最小但完整的 Coding Agent 作为讲解性案例，不对应任何已实现或可运行的配套项目。</p>
 <p>它解决一个窄但典型的问题：</p>
 <pre><code class="language-text">给定一个代码仓库和一段自然语言任务，让 Agent 读取上下文、修改文件、运行验证、输出 diff 和 trace。
@@ -219,7 +219,7 @@
 </ul>
 <p>边界清楚是生产化的第一步。一个 Agent 如果从第一天就能做任何事，通常也意味着它从第一天就能把问题做大。</p>
 <hr>
-<h2 id="232-接近生产级-coding-agent-的最小闭环"><a class="header" href="#232-接近生产级-coding-agent-的最小闭环">23.2 接近生产级 Coding Agent 的最小闭环</a></h2>
+<h2 id="292-接近生产级-coding-agent-的最小闭环"><a class="header" href="#292-接近生产级-coding-agent-的最小闭环">29.2 接近生产级 Coding Agent 的最小闭环</a></h2>
 <p>Coding Agent 的核心不是“自动写代码”，而是一个带控制面的执行闭环。</p>
 <pre class="mermaid">
 flowchart TD
@@ -253,7 +253,7 @@ flowchart TD
 </div>
 <p>如果把这些职责混在一个巨大函数里，Demo 可能能跑，但系统很难调试、扩展和审计。</p>
 <hr>
-<h2 id="233-概念模块边界"><a class="header" href="#233-概念模块边界">23.3 概念模块边界</a></h2>
+<h2 id="293-概念模块边界"><a class="header" href="#293-概念模块边界">29.3 概念模块边界</a></h2>
 <p>为方便讨论，下面用一组<strong>假设的模块名称</strong>描述这一类 Runtime 的职责。它们不是本仓库的目录树，也不构成可运行项目：</p>
 <p>每个文件只负责一件事：</p>
 <div class="table-wrapper">
@@ -277,7 +277,7 @@ flowchart TD
 </div>
 <p>这个拆分方式有一个重要好处：后续要把模型换成 OpenAI、Claude、Gemini 或本地模型时，只需要替换 LLM Adapter；要把 shell 权限变严格时，优先调整 Policy Engine 和 Tool Runtime；要接入 LangSmith 或 OpenTelemetry 时，可以从 Trace Writer 扩展。</p>
 <hr>
-<h2 id="234-确定性控制面的验证范围"><a class="header" href="#234-确定性控制面的验证范围">23.4 确定性控制面的验证范围</a></h2>
+<h2 id="294-确定性控制面的验证范围"><a class="header" href="#294-确定性控制面的验证范围">29.4 确定性控制面的验证范围</a></h2>
 <p>若把这一设计落地为自己的项目，首先应为确定性控制面编写测试；这些测试不需要真实模型，也不需要 API key。验证范围包括：</p>
 <ul>
 <li>配置文件是否能正确加载；</li>
@@ -289,7 +289,7 @@ flowchart TD
 </ul>
 <p>生产级 Agent 的第一条原则是：<strong>能不用模型测的部分，都不要依赖模型来测。</strong></p>
 <hr>
-<h2 id="235-配置模型和运行参数"><a class="header" href="#235-配置模型和运行参数">23.5 配置模型和运行参数</a></h2>
+<h2 id="295-配置模型和运行参数"><a class="header" href="#295-配置模型和运行参数">29.5 配置模型和运行参数</a></h2>
 <p>下面是<strong>讲解性配置片段</strong>，用来说明应被外置的运行时策略；不要将其视为本书配套文件或复制到生产环境：</p>
 <pre><code class="language-toml">[llm]
 provider = "deepseek"
@@ -335,7 +335,7 @@ timeout = 60
 </div>
 <p>模型能力会变化，安全策略也会变化。把策略外置，系统才有演进空间。</p>
 <hr>
-<h2 id="236-核心数据模型"><a class="header" href="#236-核心数据模型">23.6 核心数据模型</a></h2>
+<h2 id="296-核心数据模型"><a class="header" href="#296-核心数据模型">29.6 核心数据模型</a></h2>
 <p><code>models.py</code> 定义了四个核心结构。</p>
 <pre><code class="language-python">from dataclasses import dataclass, field
 from typing import Any, Literal
@@ -385,7 +385,7 @@ class AgentState:
 </ul>
 <p>这就是为什么 trace 要从第一版就存在。</p>
 <hr>
-<h2 id="237-context-builder让模型先看边界再看代码"><a class="header" href="#237-context-builder让模型先看边界再看代码">23.7 Context Builder：让模型先看边界，再看代码</a></h2>
+<h2 id="297-context-builder让模型先看边界再看代码"><a class="header" href="#297-context-builder让模型先看边界再看代码">29.7 Context Builder：让模型先看边界，再看代码</a></h2>
 <p>Coding Agent 的上下文不应该是“把整个仓库塞进 prompt”。更稳妥的做法是先给模型三类信息：</p>
 <ol>
 <li>项目规则；</li>
@@ -430,7 +430,7 @@ class AgentState:
 </ul>
 <p>但第一版不要急着做复杂索引。先证明 read/search/edit/test/trace 的主链路可靠，再扩展上下文来源。</p>
 <hr>
-<h2 id="238-模型输出协议每轮只返回一个-json-对象"><a class="header" href="#238-模型输出协议每轮只返回一个-json-对象">23.8 模型输出协议：每轮只返回一个 JSON 对象</a></h2>
+<h2 id="298-模型输出协议每轮只返回一个-json-对象"><a class="header" href="#298-模型输出协议每轮只返回一个-json-对象">29.8 模型输出协议：每轮只返回一个 JSON 对象</a></h2>
 <p>Agent Loop 最怕模型输出自由文本，Runtime 不知道该执行什么。</p>
 <p>本章的 MVP 不使用模型原生 tool calling，而是要求模型返回 JSON：</p>
 <pre><code class="language-json">{
@@ -474,7 +474,7 @@ Prefer replace_in_file over rewriting whole files.
 </ul>
 <p>原生 tool calling 解决的是“模型如何结构化表达工具调用”，不自动解决“工具是否安全”和“任务是否完成”。</p>
 <hr>
-<h2 id="239-tool-runtime工具是能力边界不是普通函数"><a class="header" href="#239-tool-runtime工具是能力边界不是普通函数">23.9 Tool Runtime：工具是能力边界，不是普通函数</a></h2>
+<h2 id="299-tool-runtime工具是能力边界不是普通函数"><a class="header" href="#299-tool-runtime工具是能力边界不是普通函数">29.9 Tool Runtime：工具是能力边界，不是普通函数</a></h2>
 <p><code>tools.py</code> 暴露七个工具：</p>
 <div class="table-wrapper">
 <table>
@@ -568,7 +568,7 @@ Prefer replace_in_file over rewriting whole files.
 </code></pre>
 <p>这不是最终安全模型，但已经足够表达原则：让 Agent 运行测试，不等于让 Agent 拥有一个无限 shell。</p>
 <hr>
-<h2 id="2310-policy-engine把审批从-prompt-里拿出来"><a class="header" href="#2310-policy-engine把审批从-prompt-里拿出来">23.10 Policy Engine：把审批从 Prompt 里拿出来</a></h2>
+<h2 id="2910-policy-engine把审批从-prompt-里拿出来"><a class="header" href="#2910-policy-engine把审批从-prompt-里拿出来">29.10 Policy Engine：把审批从 Prompt 里拿出来</a></h2>
 <p><code>policy.py</code> 把工具分成三类：</p>
 <pre><code class="language-python">READ_ONLY_TOOLS = {"list_files", "read_file", "search_code", "git_diff"}
 WRITE_TOOLS = {"replace_in_file", "create_file"}
@@ -599,7 +599,7 @@ SHELL_TOOLS = {"run_shell"}
 </ul>
 <p>不要让模型自己决定“这个操作安全吗”。模型可以解释风险，但最终裁决必须在确定性系统里完成。</p>
 <hr>
-<h2 id="2311-agent-loop把模型工具和状态串起来"><a class="header" href="#2311-agent-loop把模型工具和状态串起来">23.11 Agent Loop：把模型、工具和状态串起来</a></h2>
+<h2 id="2911-agent-loop把模型工具和状态串起来"><a class="header" href="#2911-agent-loop把模型工具和状态串起来">29.11 Agent Loop：把模型、工具和状态串起来</a></h2>
 <p><code>agent.py</code> 是系统主循环。</p>
 <pre><code class="language-python">def run_agent(
     task: str,
@@ -667,7 +667,7 @@ run verifier
 </code></pre>
 <p>本章保留 <code>verifier.py</code>，是为了明确下一步演进方向：完成状态不能只由模型声明，应该由测试、diff 和风险检查共同决定。</p>
 <hr>
-<h2 id="2312-llm-adapter隔离模型供应商"><a class="header" href="#2312-llm-adapter隔离模型供应商">23.12 LLM Adapter：隔离模型供应商</a></h2>
+<h2 id="2912-llm-adapter隔离模型供应商"><a class="header" href="#2912-llm-adapter隔离模型供应商">29.12 LLM Adapter：隔离模型供应商</a></h2>
 <p><code>llm.py</code> 定义了一个很窄的接口：</p>
 <pre><code class="language-python">class LLMClient(Protocol):
     def complete(self, prompt: str) -&gt; str:
@@ -719,7 +719,7 @@ run verifier
 </ul>
 <p>模型只是 Agent Runtime 的一个依赖，不应该成为整个系统的中心。</p>
 <hr>
-<h2 id="2313-trace让每一步都能复盘"><a class="header" href="#2313-trace让每一步都能复盘">23.13 Trace：让每一步都能复盘</a></h2>
+<h2 id="2913-trace让每一步都能复盘"><a class="header" href="#2913-trace让每一步都能复盘">29.13 Trace：让每一步都能复盘</a></h2>
 <p><code>trace_writer.py</code> 把每个 <code>AgentStep</code> 写成 JSONL：</p>
 <pre><code class="language-python">class TraceWriter:
     def __init__(self, path: str | Path):
@@ -779,7 +779,7 @@ run verifier
 </code></pre>
 <p>这就是第 17 章生产治理控制面在最小 Coding Agent 里的落点：Trace Writer 负责留下事实，Eval Runner 和 Release Gate 负责让旧失败不能静默复发。</p>
 <hr>
-<h2 id="2314-verifier不要让模型自己宣布完成"><a class="header" href="#2314-verifier不要让模型自己宣布完成">23.14 Verifier：不要让模型自己宣布完成</a></h2>
+<h2 id="2914-verifier不要让模型自己宣布完成"><a class="header" href="#2914-verifier不要让模型自己宣布完成">29.14 Verifier：不要让模型自己宣布完成</a></h2>
 <p><code>verifier.py</code> 提供了一个最小验证器：</p>
 <pre><code class="language-python">def verify(
     ws: Workspace,
@@ -834,7 +834,7 @@ run verifier
 </code></pre>
 <p>这里的门禁不需要一开始很复杂，但必须由证据驱动：trace 证明发生过什么，verifier 证明结果是否成立，eval report 决定候选 Agent 能不能进入下一阶段。</p>
 <hr>
-<h2 id="2315-概念执行路径从任务到-diff"><a class="header" href="#2315-概念执行路径从任务到-diff">23.15 概念执行路径：从任务到 diff</a></h2>
+<h2 id="2915-概念执行路径从任务到-diff"><a class="header" href="#2915-概念执行路径从任务到-diff">29.15 概念执行路径：从任务到 diff</a></h2>
 <p>以下是一个隔离的演示性代码仓库中可能发生的执行路径，而非本章提供的运行步骤或本仓库的配套示例。任务可以是：为 <code>calculator.py</code> 的 <code>divide</code> 函数补充除零错误处理，并新增相应测试。</p>
 <p>这类具有编辑和 shell 权限的配置只适合一次性沙箱或可丢弃 worktree，不应该作为团队共享仓库或生产代码库的默认策略。</p>
 <p>理想执行路径大致是：</p>
@@ -877,7 +877,7 @@ trace: traces/20260506-143000.jsonl
 </div>
 <p>Agent 工程的改进方式不是“再劝模型认真一点”，而是把失败映射到 prompt、context、tool、policy、verifier 或 eval 的具体层。</p>
 <hr>
-<h2 id="2316-测试策略先测-runtime再测模型效果"><a class="header" href="#2316-测试策略先测-runtime再测模型效果">23.16 测试策略：先测 Runtime，再测模型效果</a></h2>
+<h2 id="2916-测试策略先测-runtime再测模型效果"><a class="header" href="#2916-测试策略先测-runtime再测模型效果">29.16 测试策略：先测 Runtime，再测模型效果</a></h2>
 <p>一个实际项目的测试套件应故意不依赖真实模型。以工具层测试为例，应覆盖：</p>
 <ul>
 <li>正常读取文件；</li>
@@ -945,7 +945,7 @@ trace: traces/20260506-143000.jsonl
 <li>Agent evals：端到端、带模型、可回归。</li>
 </ul>
 <hr>
-<h2 id="2317-从-mvp-演进到生产级-coding-agent"><a class="header" href="#2317-从-mvp-演进到生产级-coding-agent">23.17 从 MVP 演进到生产级 Coding Agent</a></h2>
+<h2 id="2917-从-mvp-演进到生产级-coding-agent"><a class="header" href="#2917-从-mvp-演进到生产级-coding-agent">29.17 从 MVP 演进到生产级 Coding Agent</a></h2>
 <p>这个概念案例已经有了核心骨架，但离生产级系统还有明显距离。演进时建议按风险顺序，而不是按功能诱惑。</p>
 <h3 id="阶段一read-only-agent"><a class="header" href="#阶段一read-only-agent">阶段一：Read-only Agent</a></h3>
 <p>只开放：</p>
@@ -1043,7 +1043,7 @@ trace: traces/20260506-143000.jsonl
 </ul>
 <p>这个阶段的核心问题不再是“模型会不会写代码”，而是“它如何进入团队责任链”。</p>
 <hr>
-<h2 id="2318-生产级风险清单"><a class="header" href="#2318-生产级风险清单">23.18 生产级风险清单</a></h2>
+<h2 id="2918-生产级风险清单"><a class="header" href="#2918-生产级风险清单">29.18 生产级风险清单</a></h2>
 <p>Coding Agent 一旦能写文件和运行命令，就必须严肃处理风险。</p>
 <h3 id="文件风险"><a class="header" href="#文件风险">文件风险</a></h3>
 <ul>
@@ -1117,7 +1117,7 @@ trace: traces/20260506-143000.jsonl
 <li>rollback plan。</li>
 </ul>
 <hr>
-<h2 id="2319-设计评审和项目实践表达"><a class="header" href="#2319-设计评审和项目实践表达">23.19 设计评审和项目实践表达</a></h2>
+<h2 id="2919-设计评审和项目实践表达"><a class="header" href="#2919-设计评审和项目实践表达">29.19 设计评审和项目实践表达</a></h2>
 <p>如果你把这套设计做成自己的项目实践，不要只说“我做了一个能改代码的 Agent”。更好的表达是：</p>
 <pre><code class="language-text">我设计了一套可观测 Coding Agent Runtime 方案。
 
@@ -1143,7 +1143,7 @@ Runtime 负责做 policy check、路径沙箱、工具执行、trace 写入和 d
 <li>Eval 负责持续改进。</li>
 </ul>
 <hr>
-<h2 id="2320-构建检查清单"><a class="header" href="#2320-构建检查清单">23.20 构建检查清单</a></h2>
+<h2 id="2920-构建检查清单"><a class="header" href="#2920-构建检查清单">29.20 构建检查清单</a></h2>
 <p>如果你要从零实现自己的 Coding Agent，可以按下面清单验收。</p>
 <h3 id="runtime"><a class="header" href="#runtime">Runtime</a></h3>
 <ul>
