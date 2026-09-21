@@ -15,12 +15,6 @@ toc:
 - [System Design Primer](/system-design-primer/)：系统整理互联网系统与系统设计相关的面试题目。
 - [本站源码](https://github.com/wxquare/wxquare.github.io)：博客、书籍与公开资料的维护仓库。
 
-## 私有探索
-
-- **SkillForge**：面向可复用 Agent Skills 的工具与工作流探索。
-- **Investment Assistant**：投资研究、信息整理与辅助决策实验。
-- **wxquare-private**：个人研究、实验与协作资产的私有工作区。
-
 ## 持续更新面试题库
 - [系统设计题库（附录 D）](/system-design-primer/appendix/system-design-questionbank.html)
 - [后端面试基础知识题单（附录 E）](/system-design-primer/appendix/interview-basic-question-bank.html)
@@ -40,3 +34,9 @@ toc:
 ## 探索更多内容
 
 浏览[全部归档](/archives/)，或按[文章分类](/categories/)继续探索。
+
+## 私有探索
+
+- **SkillForge**：面向可复用 Agent Skills 的工具与工作流探索。
+- **Investment Assistant**：投资研究、信息整理与辅助决策实验。
+- **wxquare-private**：个人研究、实验与协作资产的私有工作区。
