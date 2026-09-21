@@ -1049,7 +1049,7 @@
 #### 常见失分点
 先删缓存再写库且不处理失败；读写都强制同步更新缓存；没有过期和补偿。
 #### 关联正文
-[第 3 章 生产系统治理](../part01/03-production-resilience-safeguards.md)、[第 8 章 低延迟复杂读](../part01/08-low-latency-complex-read-methodology.md)、[第 30 章 搜索与导购](../part03/07-search-discovery.md)
+[第 3 章 生产系统治理](../part01/03-production-resilience-safeguards.md)、[第 8 章 低延迟复杂读](../part01/08-low-latency-complex-read-methodology.md)、[第 36 章搜索与交易全生命周期](../part03/13-ecommerce-customer-lifecycle.md)
 #### 复盘清单
 - 我是否先判断陈旧数据的业务后果？
 - 我是否说明了缓存刷新失败后的恢复闭环？
@@ -1239,7 +1239,7 @@
 #### 常见失分点
 把 Elasticsearch 当权威事务库；只谈性能；忽略运维和索引重建成本。
 #### 关联正文
-[第 8 章 低延迟复杂读](../part01/08-low-latency-complex-read-methodology.md)、[第 25 章 商品中心](../part03/02-product-center-supply-lifecycle.md)、[第 30 章 搜索与导购](../part03/07-search-discovery.md)
+[第 8 章 低延迟复杂读](../part01/08-low-latency-complex-read-methodology.md)、[第 25 章 商品中心](../part03/02-product-center-supply-lifecycle.md)、[第 36 章搜索与交易全生命周期](../part03/13-ecommerce-customer-lifecycle.md)
 #### 复盘清单
 - 我是否先按查询模式判断？
 - 我是否说明了搜索索引不是权威数据？
@@ -1332,7 +1332,7 @@
 #### 常见失分点
 所有查询上搜索系统；同步写主库和索引；让订单直接信任索引字段。
 #### 关联正文
-[第 8 章 低延迟复杂读](../part01/08-low-latency-complex-read-methodology.md)、[第 25 章 商品中心](../part03/02-product-center-supply-lifecycle.md)、[第 30 章 搜索与导购](../part03/07-search-discovery.md)
+[第 8 章 低延迟复杂读](../part01/08-low-latency-complex-read-methodology.md)、[第 25 章 商品中心](../part03/02-product-center-supply-lifecycle.md)、[第 36 章搜索与交易全生命周期](../part03/13-ecommerce-customer-lifecycle.md)
 #### 复盘清单
 - 我是否说明了选择搜索系统的具体门槛？
 - 我是否保留了交易对权威状态的校验？
@@ -21933,7 +21933,7 @@ ES负责搜索，MySQL负责详情查询。
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:20`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[搜索与导购](../part03/07-search-discovery.md)。
+相关章节：[第 36 章搜索与交易全生命周期](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -22258,7 +22258,7 @@ ES实现：
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:257`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[搜索与导购](../part03/07-search-discovery.md)。
+相关章节：[第 36 章搜索与交易全生命周期](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -22556,7 +22556,7 @@ public List<String> suggest(String prefix) {
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:522`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[搜索与导购](../part03/07-search-discovery.md)。
+相关章节：[第 36 章搜索与交易全生命周期](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -22868,7 +22868,7 @@ category_id=10, filter_name="价格", filter_value="5000-10000", product_count=3
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:760`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[搜索与导购](../part03/07-search-discovery.md)。
+相关章节：[第 36 章搜索与交易全生命周期](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -23154,7 +23154,7 @@ ES实现：
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1012`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[搜索与导购](../part03/07-search-discovery.md)。
+相关章节：[第 36 章搜索与交易全生命周期](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -23306,7 +23306,7 @@ search_log
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1238`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[搜索与导购](../part03/07-search-discovery.md)。
+相关章节：[第 36 章搜索与交易全生命周期](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -23428,7 +23428,7 @@ search_log
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1330`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[搜索与导购](../part03/07-search-discovery.md)。
+相关章节：[第 36 章搜索与交易全生命周期](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -23548,7 +23548,7 @@ search_log
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1392`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[搜索与导购](../part03/07-search-discovery.md)。
+相关章节：[第 36 章搜索与交易全生命周期](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -23649,7 +23649,7 @@ search_log
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1452`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[搜索与导购](../part03/07-search-discovery.md)。
+相关章节：[第 36 章搜索与交易全生命周期](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -23761,7 +23761,7 @@ search_log
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1493`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[搜索与导购](../part03/07-search-discovery.md)。
+相关章节：[第 36 章搜索与交易全生命周期](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -34214,7 +34214,7 @@ func (ltr *LearningToRank) extractFeatures(ctx context.Context,
 
 迁移来源：`books/system-design-primer/src/part03/10-ecommerce-case-studies-interview.md:885`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[搜索与导购](../part03/07-search-discovery.md)。
+相关章节：[第 36 章搜索与交易全生命周期](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
