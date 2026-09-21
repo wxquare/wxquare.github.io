@@ -18,21 +18,11 @@
 
 ---
 
-# 第二部分：基础设施与计算机基础
+# 第二部分：后端面试基础知识题单
 
-- [第 10 章 MySQL：存储与数据库](part02/01-mysql-storage-database.md)
-- [第 11 章 Redis：缓存原理与实践](part02/02-redis-cache-practice.md)
-- [第 12 章 Kafka：消息队列与异步](part02/03-kafka-message-queue-async.md)
-- [第 13 章 Elasticsearch：搜索与索引](part02/04-elasticsearch-search-index.md)
-- [第 14 章 Kubernetes 与 Docker](part02/05-kubernetes-docker.md)
-- [第 15 章 全局 ID 体系与基础服务设计](part02/06-global-id-and-basic-services.md)
-- [第 16 章 技术栈选型指南](part02/07-tech-stack-selection.md)
-- [第 17 章 操作系统基础](part02/08-operating-system.md)
-- [第 18 章 计算机网络实践](part02/09-computer-networking.md)
-- [第 19 章 Bash 与 Shell 实用](part02/10-bash-shell-practice.md)
-- [第 20 章 Python 实践](part02/11-python-practice.md)
-- [第 21 章 C++ 实践](part02/12-cpp-practice.md)
-- [第 22 章 Go 语言实践](part02/13-go-practice.md)
+- [后端面试基础知识题单](part02/01-interview-basic-questions.md)
+
+
 
 ---
 
