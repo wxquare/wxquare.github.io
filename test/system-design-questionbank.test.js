@@ -26,7 +26,7 @@ test('question bank is a single appendix and retains every legacy question ID', 
     /附录 D 系统设计题库.*appendix\/system-design-questionbank\.md/
   );
   assert.doesNotMatch(summary, /# 第四部分：系统设计题库/);
-  assert.match(summary, /# 第三部分：电商系统设计实战/);
+  assert.match(summary, /# 第二部分：电商系统设计实战/);
 
   const coverageIndex = questionBank
     .split('## 历史详细参考材料', 1)[0]

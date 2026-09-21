@@ -18,15 +18,7 @@
 
 ---
 
-# 第二部分：后端面试基础知识题单
-
-- [后端面试基础知识题单](part02/01-interview-basic-questions.md)
-
-
-
----
-
-# 第三部分：电商系统设计实战
+# 第二部分：电商系统设计实战
 
 - [第 24 章 电商系统全景图](part03/01-ecommerce-overview.md)
 - [第 25 章 商品中心、商品供给与生命周期治理](part03/02-product-center-supply-lifecycle.md)
@@ -48,3 +40,4 @@
 - [附录 B 参考文献与外链](appendix/references.md)
 - [附录 C 工具与构建说明](appendix/tooling.md)
 - [附录 D 系统设计题库与面试追问](appendix/system-design-questionbank.md)
+- [附录 E 后端面试基础知识题单](appendix/interview-basic-question-bank.md)
