@@ -1,6 +1,8 @@
 # 第 15 章 B2B2C 平台完整架构
 
-> **综合案例**：一个中大型B2B2C电商平台的完整架构设计，从品类分析到技术选型，从系统设计到团队协作，覆盖200+人团队、日订单200万级的实战经验与架构决策。
+> **综合案例**：一个中大型 B2B2C 电商平台的完整架构设计，从品类分析到技术选型，从系统设计到团队协作，覆盖多团队协作、百万级日订单量级的案例假设与架构决策。
+
+> **数据口径**：除明确标注为来源事实的内容外，本章涉及团队规模、订单量、QPS、延迟、比例、时限、SLA、容量、成本、项目排期和业务转化的具体数值，均为帮助读者推演约束与取舍的**场景假设**，不是通用目标或行业基准。落地时应以本组织的测量数据、风险等级和合规要求重新设定，并记录依据。[1][2]
 
 ---
 
@@ -4652,7 +4654,7 @@ func (o *Order) TransitionTo(newStatus OrderStatus) error {
 }
 ```
 
-**分库分表**（参考ADR-007）：
+**分库分表**（需在达到本章场景假设的容量边界后单独记录 ADR，不预设固定分片阈值）：
 
 ```text
 • 分库：按 user_id % 8（用户维度查询最频繁）
@@ -6384,7 +6386,7 @@ func (c *CartService) MergeCartOnLogin(ctx context.Context, userID int64, anonym
 ```go
 // 结算页聚合服务
 func (a *CheckoutAggregation) Calculate(ctx context.Context, req *CalculateRequest) (*CalculateResponse, error) {
-    // Step 1: 判断是否使用快照（ADR-008）
+    // Step 1: 判断是否使用快照（ADR-009）
     var products []*Product
     var promos []*Promotion
     
@@ -6787,11 +6789,31 @@ func (w *OutboxWorker) Run() {
 
 ---
 
-## 15.9 架构决策记录（ADR）
+## 15.9 治理、决策、上线与演进
 
-本节记录系统设计过程中的关键架构决策，包括决策背景、备选方案、最终决策及理由。**ADR是架构演进的重要资产，帮助团队理解「为什么这样设计」，避免重复讨论。**
+本节记录系统设计过程中的关键架构决策，包括决策背景、备选方案、最终决策及理由。**ADR 是架构演进的重要资产，帮助团队理解“为什么这样设计”，避免重复讨论。**
 
-#### ADR-001: 计价中心数据输入方式
+每条 ADR 统一按以下模板阅读和维护：**背景与问题、决策驱动因素、候选方案、最终决策、获得的能力、主动牺牲的能力、已接受的风险、Fallback、验证指标、重新评估条件**。本章保留的代码、阈值和时序图是方案的示例性展开；若与下方模板有冲突，以模板中的边界、风险与验证条件为准。ADR 应记录重大权衡及其后果，而不是把“选了某个组件”当作决策本身。[3]
+
+### 15.9.1 ADR 决策矩阵
+
+下表补全每条 ADR 的统一模板；随后各小节保留其问题背景、方案细节与示例。所有阈值均受本章“数据口径”约束。
+
+| ADR | 决策驱动因素与候选方案 | 最终决策、获得与牺牲 | 已接受风险与 Fallback | 验证指标与重新评估条件 |
+| --- | --- | --- | --- | --- |
+| 001 计价输入 | 可测试性、依赖方向、尾延迟；候选为计价服务自行拉取营销信息或由编排层并行取数。 | 编排层提供版本化营销输入，计价保持纯计算；获得可测性与并行度，牺牲输入契约和编排复杂度。 | 输入缺失或版本不一致时不生成可提交报价；降级为“待刷新”或基础价展示，创单仍重新校验。 | 营销输入缺失率、报价重算率、计价 P99；当跨端输入差异成为主要缺陷时，评估受版本控制的报价聚合边界。 |
+| 002 预占时机 | 库存利用率、确认成功率、锁定时长；候选为试算预占或确认下单预占。 | 在确认下单时预占；获得较少无效锁定，牺牲最终提交时失败的可能。 | 热点或供应商库存抖动会导致确认失败；以库存紧张提示、短 TTL、超时释放和对账收敛。 | 预占成功率、过期释放量、超卖/少卖差异；当确认失败显著伤害转化时，按品类评估结算凭证或更短预占。 |
+| 003 编排层 | 多端复用、端差异、发布独立性；候选为按端 BFF 或按场景 Aggregation。 | 采用按场景编排；获得业务复用，牺牲端定制自由度。 | 编排层会成为依赖汇聚点；以依赖预算、舱壁和端适配层降级，必要时拆出端专属 BFF。 | 下游调用扇出、P99、端差异需求占比；当端体验或发布节奏独立时重新拆分。 |
+| 004 库存模型 | 品类表达力、权威性、可恢复性；候选为单一数量模型或管理方式 × 单元类型的二维模型。 | 采用二维模型；获得统一接入与可扩展策略，牺牲模型、查询和对账复杂度。 | 类型映射错误会造成错误承诺；停卖受影响品类并回到供应商确认或本地账本重建。 | 类型映射错误率、库存差异率、恢复时长；当类型组合失控时拆分为独立资源域。 |
+| 005 同步与异步 | 用户承诺、事务边界、恢复成本；候选为全同步或同步命令加可靠事件。 | 核心承诺同步确认，非关键副作用异步收敛；获得可用性，牺牲瞬时全局一致。 | 事件积压、重复与乱序；停止消费、重放 Outbox、按业务键对账，不能把未确认异步结果当作交易成功。 | Outbox 年龄、消费滞后、补偿闭合时间；当同步链路仍可承受且异步恢复成本过高时重新评估。 |
+| 009 创单快照 | 资损防控、性能、历史可解释；候选为信任前端快照、全量实时查询或混合策略。 | 创单以权威域重算并固化订单快照；获得抗篡改与审计性，牺牲部分延迟。 | 权威域不可用会阻断提交；返回可重试的处理中或失败状态，凭幂等键查询与对账，不用旧快照静默创单。 | 价格校验拒绝率、未知结果闭合时间、争议可解释率；当重算成为瓶颈时评估签名凭证和版本核销。 |
+| 010 创单与支付 | 超卖、防重复支付、支付体验；候选为先支付后创单或先创单后支付。 | 先创单并预占资源，再创建支付意图；获得交易事实和资源承诺，牺牲未支付占用。 | 超时、支付未知或回调乱序；订单主状态机配合主动查单、释放和对账闭环。 | 支付超时释放率、重复支付率、库存回补时延；当支付前资源锁定成本不可接受时评估品类级预约策略。 |
+| 011 价格差异 | 用户知情、合规、公平、资损；候选为无条件接受、固定阈值或确认凭证。 | 将差异规则作为可版本化的场景策略；获得可解释性，牺牲简单的单阈值实现。 | 错误策略会造成误拒或资损；关闭策略版本、强制用户确认、回放交易证据。 | 价格变更确认率、投诉率、策略命中率；当地域、品类或监管差异扩大时拆分策略域。 |
+| 012 试算与创单 | 规则一致、性能、变更可回放；候选为两套计算或共享计算内核加不同输入保证级别。 | 共享版本化计价内核，创单使用更强输入校验；获得一致性，牺牲版本治理成本。 | 规则发布错误会同时影响两条链路；灰度、影子回放和按版本回退。 | 试算—创单差异率、规则回放差异、发布回退时间；当不同流程的规则真正分叉时再拆分。 |
+| 013 价格流转 | 可解释性、快照边界、性能预算；候选为每阶段重新计算或分阶段报价与最终核验。 | 分阶段报价并在交易边界固化版本；获得读路径性能，牺牲跨阶段差异处理。 | 陈旧报价或乱序更新；以报价版本、失效时间和最终重算处理，异常进入人工审计。 | 报价过期率、快照完整率、价格争议率；当实时性要求变化时调整投影与 Hydrate 边界。 |
+| 014 拼团服务 | 领域边界、发布隔离、复用成本；候选为订单内实现或独立营销编排服务。 | 独立拼团服务，订单域仍拥有订单事实；获得活动演进空间，牺牲一条跨域协作链路。 | 成团状态与订单状态漂移；以事件幂等、超时补偿、功能开关和对账恢复。 | 成团超时闭合时间、订单一致性差异、活动发布回退时间；当活动逻辑不足以形成独立主权时收敛为订单扩展。 |
+
+#### 15.9.1.1 ADR-001: 计价中心数据输入方式
 
 **决策日期**：2026-04-14  
 **状态**：已采纳 ✓
@@ -6902,7 +6924,7 @@ func (s *PricingService) Calculate(item *PriceItem) *PriceResult {
 
 ---
 
-#### ADR-002: 库存预占时机
+#### 15.9.1.2 ADR-002: 库存预占时机
 
 **决策日期**：2026-04-14  
 **状态**：已采纳 ✓
@@ -6943,7 +6965,7 @@ func (s *PricingService) Calculate(item *PriceItem) *PriceResult {
 
 ---
 
-#### ADR-003: 聚合服务 vs BFF
+#### 15.9.1.3 ADR-003: 聚合服务 vs BFF
 
 **决策日期**：2026-04-14  
 **状态**：已采纳 ✓
@@ -6985,7 +7007,7 @@ func (s *PricingService) Calculate(item *PriceItem) *PriceResult {
 
 ---
 
-#### ADR-004: 虚拟商品库存模型
+#### 15.9.1.4 ADR-004: 虚拟商品库存模型
 
 **决策日期**：2026-04-14  
 **状态**：已采纳 ✓
@@ -7017,7 +7039,7 @@ func (s *PricingService) Calculate(item *PriceItem) *PriceResult {
 
 ---
 
-#### ADR-005: 同步 vs 异步数据流
+#### 15.9.1.5 ADR-005: 同步 vs 异步数据流
 
 **决策日期**：2026-04-14  
 **状态**：已采纳 ✓
@@ -7058,7 +7080,7 @@ func (s *PricingService) Calculate(item *PriceItem) *PriceResult {
 
 ---
 
-#### ADR-009: 创单时是否使用快照数据（核心安全决策）
+#### 15.9.1.6 ADR-009: 创单时是否使用快照数据（核心安全决策）
 
 **决策日期**：2026-04-15  
 **状态**：已采纳 ✓
@@ -7230,7 +7252,7 @@ func (s *OrderService) validatePriceChange(expected, actual int64) error {
 
 ---
 
-#### ADR-010: 创单与支付的时序关系
+#### 15.9.1.7 ADR-010: 创单与支付的时序关系
 
 **决策日期**：2026-04-14  
 **状态**：已采纳 ✓
@@ -7311,7 +7333,7 @@ func (j *OrderTimeoutJob) Run() {
 
 ---
 
-#### ADR-011: 创单时前后端价格校验策略
+#### 15.9.1.8 ADR-011: 创单时前后端价格校验策略
 
 **决策日期**：2026-04-15  
 **状态**：已采纳 ✓
@@ -7393,7 +7415,7 @@ try {
 
 ---
 
-#### ADR-012: 试算价格计算与创单价格计算的统一与差异
+#### 15.9.1.9 ADR-012: 试算价格计算与创单价格计算的统一与差异
 
 **决策日期**：2026-04-15  
 **状态**：已采纳 ✓
@@ -7451,7 +7473,7 @@ graph TB
 
 ---
 
-#### ADR-013: 价格在整个交易链路中的流转与计算策略
+#### 15.9.1.10 ADR-013: 价格在整个交易链路中的流转与计算策略
 
 **决策日期**：2026-04-15  
 **状态**：已采纳 ✓
@@ -7529,7 +7551,7 @@ graph TB
 
 ---
 
-## 15.10 高可用与性能优化（Infrastructure & Operations）
+### 15.9.2 高可用与性能优化（Infrastructure & Operations）
 
 #### 15.10.1 高可用设计
 
@@ -7710,7 +7732,7 @@ func (s *CheckoutService) Calculate(ctx context.Context, req *CalculateRequest) 
 
 ---
 
-## 15.11 团队组织与协作（Organization & Governance）
+### 15.9.3 团队组织与协作（Organization & Governance）
 
 #### 15.11.1 团队结构
 
@@ -7942,11 +7964,7 @@ Response:
 
 **变更管理**：
 
-```go
-// ADR（Architecture Decision Record）
-// 记录重大架构决策
-
-#### ADR-014: 拼团功能是否复用订单服务
+#### 15.9.3.1 ADR-014: 拼团功能是否复用订单服务
 
 **决策日期**：2026-05-01
 **状态**：已采纳 ✓
@@ -7981,7 +7999,6 @@ B. 新建拼团服务
 - ✓ 已完成：GroupBuy Service开发
 - ✓ 已完成：与订单服务集成
 - ✓ 已完成：灰度上线
-```
 
 #### 15.11.3 技术治理
 
@@ -8010,7 +8027,7 @@ B. 新建拼团服务
 
 ---
 
-## 15.12 上线与演进（Deployment & Evolution）
+### 15.9.4 上线与演进（Deployment & Evolution）
 
 #### 15.12.1 上线策略
 
@@ -8397,7 +8414,7 @@ Team Lead无法处理 → 升级到架构师
 
 ---
 
-## 15.13 经验总结（Lessons Learned）
+### 15.9.5 经验总结（Lessons Learned）
 
 #### 15.13.1 成功经验
 
@@ -8702,9 +8719,9 @@ gantt
 
 ---
 
-## 15.14 本章小结（Chapter Summary）
+### 15.9.6 本章小结（Chapter Summary）
 
-本章通过一个中大型B2B2C电商平台的完整案例，展示了从业务分析到技术落地的全过程，**是全书知识点的综合实践验证**。本章不仅覆盖了架构方法论（第 1-9 章），还深入展示了**供给运营系统（第 11 章）**和**C端核心交易流（第 30-33 章）**的完整实现，真正做到了"理论→实践→落地"的闭环。
+本章通过一个中大型 B2B2C 电商平台的完整案例，展示了从业务分析到技术落地的全过程，**是全书知识点的综合实践验证**。本章不仅覆盖了架构方法论（第 1–9 章），还深入展示了**供给运营系统（第 11 章）**、**库存与营销计价边界（第 12–13 章）**和**C 端核心交易流（第 14 章）**如何在 B2B2C 场景中协同，形成“理论 → 实践 → 落地”的闭环。
 
 ---
 
@@ -8747,7 +8764,7 @@ Infrastructure（基础设施层）
 
 **3. 架构决策记录（ADR）是宝贵资产**
 
-本章记录了13个关键ADR决策：
+本章记录了 11 个关键 ADR 决策：
 
 | ADR编号 | 决策主题 | 核心价值 |
 |---------|---------|---------|
@@ -8761,6 +8778,7 @@ Infrastructure（基础设施层）
 | **ADR-011** | 前后端价格校验策略 | 差异容忍 + 提示机制 |
 | **ADR-012** | 试算与创单价格计算 | 统一引擎 + 差异化数据来源 |
 | **ADR-013** | 价格流转全局策略 | 分阶段计算 + 逐步扩展维度 |
+| **ADR-014** | 拼团功能的边界 | 独立营销编排，订单域保留事实主权 |
 
 **ADR的价值**：
 - ✅ 记录决策背景（新人快速了解"为什么这样设计"）
@@ -8998,7 +9016,51 @@ type Order struct {
 | **团队规模** | 200+人 | 前台60、中台80、基础设施30、数据20、测试10 |
 | **日订单量** | 200万（正常）/ 1000万（大促） | 大促5倍流量 |
 | **服务数量** | 12个核心服务 + 3个聚合服务 | 按业务能力拆分，单一职责 |
-| **ADR数量** | 13个 | 记录重大架构决策 |
+| **ADR数量** | 11 个 | 记录重大架构决策 |
 | **响应时间** | P99 < 200ms（正常）/ 500ms（大促） | 多级缓存优化 |
 | **可用性** | 99.95%（核心链路） | 多层防护 |
 | **代码覆盖率** | > 80% | 单元测试 + 集成测试 |
+
+### 15.9.7 参考资料
+
+本章的数字化约束均为场景假设；下列资料用于支撑可迁移的工程原则、协议语义与产品边界，不替代具体业务的容量测量、供应商协议和合规审查。
+
+[1] Chris Jones, John Wilkes, Niall Murphy, Cody Smith, “Service Level Objectives”, *Google SRE Book*, 2016, https://sre.google/sre-book/service-level-objectives/ （访问日期：2026-09-21）。
+
+[2] Amazon Web Services, “Timeouts, retries, and backoff with jitter”, *AWS Builders’ Library*, https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/ （访问日期：2026-09-21）。
+
+[3] Martin Fowler, “Architecture Decision Record”, 2026, https://martinfowler.com/bliki/ArchitectureDecisionRecord.html （访问日期：2026-09-21）。
+
+[4] Hector Garcia-Molina, Kenneth Salem, “Sagas”, *ACM SIGMOD*, 1987, https://doi.org/10.1145/38713.38742.
+
+[5] Pat Helland, “Life Beyond Distributed Transactions: an Apostate’s Opinion”, *CIDR*, 2007, https://www.cidrdb.org/cidr2007/papers/cidr07p15.pdf.
+
+[6] Gregor Hohpe, Bobby Woolf, *Enterprise Integration Patterns*, Addison-Wesley, 2003, https://www.enterpriseintegrationpatterns.com/.
+
+[7] Apache Software Foundation, “Apache Kafka Design”, *Apache Kafka Documentation*, https://kafka.apache.org/documentation/#design （访问日期：2026-09-21）。
+
+[8] Apache Software Foundation, “Exactly Once Semantics”, *Apache Kafka Documentation*, https://kafka.apache.org/documentation/#semantics （访问日期：2026-09-21）。
+
+[9] Debezium Community, “Outbox Event Router”, *Debezium Documentation*, https://debezium.io/documentation/reference/stable/transformations/outbox-event-router.html （访问日期：2026-09-21）。
+
+[10] Oracle, “Transaction Isolation Levels”, *MySQL 8.4 Reference Manual*, https://dev.mysql.com/doc/refman/8.4/en/innodb-transaction-isolation-levels.html （访问日期：2026-09-21）。
+
+[11] Redis Ltd., “Redis programmability”, *Redis Documentation*, https://redis.io/docs/latest/develop/programmability/ （访问日期：2026-09-21）。
+
+[12] Elastic, “Optimistic concurrency control”, *Elasticsearch Reference*, https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-index-2#operation-index-2-api-concurrency （访问日期：2026-09-21）。
+
+[13] Kubernetes Authors, “Horizontal Pod Autoscaling”, *Kubernetes Documentation*, https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/ （访问日期：2026-09-21）。
+
+[14] OpenTelemetry Authors, “Observability primer”, *OpenTelemetry Documentation*, https://opentelemetry.io/docs/concepts/observability-primer/ （访问日期：2026-09-21）。
+
+[15] OpenAPI Initiative, *OpenAPI Specification*, https://spec.openapis.org/oas/latest.html （访问日期：2026-09-21）。
+
+[16] JSON Schema Organization, *JSON Schema Specification*, https://json-schema.org/specification （访问日期：2026-09-21）。
+
+[17] Stripe, “Idempotent requests”, *Stripe API Reference*, https://docs.stripe.com/api/idempotent_requests （访问日期：2026-09-21）。
+
+[18] Malcolm Featonby, “Making retries safe with idempotent APIs”, *AWS Builders’ Library*, 2021, https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/ （访问日期：2026-09-21）。
+
+[19] OWASP Foundation, “OWASP API Security Top 10”, https://owasp.org/www-project-api-security/ （访问日期：2026-09-21）。
+
+[20] Martin Kleppmann, *Designing Data-Intensive Applications*, O’Reilly Media, 2017, https://dataintensive.net/.
