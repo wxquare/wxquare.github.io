@@ -20,12 +20,12 @@
 
 # 第二部分：电商系统设计实战
 
-- [第 24 章 电商系统全景图](part03/01-ecommerce-overview.md)
-- [第 25 章 商品中心、商品供给与生命周期治理](part03/02-product-center-supply-lifecycle.md)
-- [第 27 章 库存系统](part03/04-inventory-system.md)
-- [第 28 章 营销与计价系统](part03/05-marketing-pricing-system.md)
-- [第 34 章 B2B2C 平台完整架构](part03/11-b2b2c-platform-architecture.md)
-- [第 36 章 电商用户 C 端搜索、交易、履约与售后全生命周期设计](part03/13-ecommerce-customer-lifecycle.md)
+- [第 10 章 电商系统全景图](part02/10-ecommerce-overview.md)
+- [第 11 章 商品中心、商品供给与生命周期治理](part02/11-product-center-supply-lifecycle.md)
+- [第 12 章 库存系统](part02/12-inventory-system.md)
+- [第 13 章 营销与计价系统](part02/13-marketing-pricing-system.md)
+- [第 14 章 电商用户 C 端搜索、交易、履约与售后全生命周期设计](part02/14-ecommerce-customer-lifecycle.md)
+- [第 15 章 B2B2C 平台完整架构](part02/15-b2b2c-platform-architecture.md)
 
 ---
 
