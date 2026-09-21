@@ -1451,7 +1451,7 @@ publish_id / operation_id
 **延伸阅读建议**：
 
 - [第 27 章：库存系统](./04-inventory-system.md)
-- [第 28 章：营销系统](./05-marketing-system.md)
+- [第 28 章：营销系统](./05-marketing-pricing-system.md)
 - [第 26 章：商品供给、运营与生命周期治理](./03-product-supply-lifecycle-ops.md)
 - [第 26 章：商品供给、运营与生命周期治理](./03-product-supply-lifecycle-ops.md)
 

@@ -33,7 +33,7 @@ test('homepage distinguishes public projects from private exploration', () => {
   for (const link of [
     'https://github.com/wxquare/leetcode-primer',
     'https://github.com/wxquare/wxquare.github.io',
-    'https://github.com/wxquare/leetcode-primer/blob/master/leetcode/README.md'
+    'https://github.com/wxquare/leetcode-primer/blob/master/README.md'
   ]) assert.ok(homepage.includes(link), `missing public link ${link}`);
 
   for (const [name, repository] of [
