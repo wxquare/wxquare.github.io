@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第8章 训练 Infra：数据管线、分布式训练与 Checkpoint - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
+        <title>第8章 训练平台与数据管线：如何稳定、经济地生产模型能力？ - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-18c1217e.js";
+            window.path_to_searchindex_js = "../searchindex-545ff165.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-0ce1344b.js"></script>
+        <script src="../toc-614e87e1.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,9 +177,26 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="第8章-训练-infra数据管线分布式训练与-checkpoint"><a class="header" href="#第8章-训练-infra数据管线分布式训练与-checkpoint">第8章 训练 Infra：数据管线、分布式训练与 Checkpoint</a></h1>
+                        <h1 id="第8章-训练平台与数据管线"><a class="header" href="#第8章-训练平台与数据管线">第8章 训练平台与数据管线</a></h1>
+<h2 id="如何稳定经济地生产模型能力"><a class="header" href="#如何稳定经济地生产模型能力">如何稳定、经济地生产模型能力？</a></h2>
 <p>上一章建立了大模型 Infra 的全局资源模型。本章聚焦训练阶段：如何把海量数据稳定地送到 GPU，如何选择数据并行、张量并行、流水线并行和专家并行，如何让通信与计算重叠，以及如何在节点故障、版本变化和硬件变化后恢复到一个可解释的训练状态。对于后端工程师，训练平台可以理解为一个持续运行很久、拥有复杂状态、对吞吐极其敏感的分布式任务系统。</p>
 <p>训练 Infra 的目标不是让脚本在一台机器上运行，而是让“有效 token 数/时间”可预测、可扩展、可恢复。一个训练 step 的耗时可以拆成数据读取、host 到 device 拷贝、forward、backward、梯度同步、optimizer update 和 checkpoint。任何阶段成为瓶颈，继续增加 GPU 都只会增加成本。Megatron-LM 的模型并行研究、DeepSpeed 与 ZeRO 的状态分片，以及 PyTorch FSDP 的工程实现，都说明大模型训练本质上是模型状态、通信拓扑和故障恢复共同决定的系统问题 [1][3][5][6]。</p>
+<p>本章按训练作业生命周期组织：先定义作业对象和控制面，再让数据以可复现方式进入 GPU，随后选择并行策略和 kernel/通信优化，接着用 checkpoint 与弹性恢复保护长时间运行，最后用调度、成本、观测和发布门禁把训练结果转换成可交付制品。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">生命周期阶段</th><th style="text-align: left">核心对象</th><th style="text-align: left">主要风险</th><th style="text-align: left">交付证据</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">提交</td><td style="text-align: left">job spec、experiment、run</td><td style="text-align: left">配置可变、身份不清</td><td style="text-align: left">spec hash、owner、预算</td></tr>
+<tr><td style="text-align: left">取数</td><td style="text-align: left">dataset manifest、token shard</td><td style="text-align: left">数据漂移、重复、坏 shard</td><td style="text-align: left">manifest、统计、样本 hash</td></tr>
+<tr><td style="text-align: left">计算</td><td style="text-align: left">rank、parallel group、step</td><td style="text-align: left">通信瓶颈、NaN、OOM</td><td style="text-align: left">step trace、loss、资源曲线</td></tr>
+<tr><td style="text-align: left">保存</td><td style="text-align: left">checkpoint、optimizer state</td><td style="text-align: left">半写入、缺元数据、不可恢复</td><td style="text-align: left">COMMITTED 标记、校验和、恢复 probe</td></tr>
+<tr><td style="text-align: left">调度</td><td style="text-align: left">allocation、quota、priority</td><td style="text-align: left">资源碎片、抢占、成本失控</td><td style="text-align: left">调度事件、配额、成本报告</td></tr>
+<tr><td style="text-align: left">发布</td><td style="text-align: left">model artifact、eval report</td><td style="text-align: left">训练态和推理态混淆</td><td style="text-align: left">制品 manifest、评估门禁、注册记录</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="81-训练平台的对象模型与控制面"><a class="header" href="#81-训练平台的对象模型与控制面">8.1 训练平台的对象模型与控制面</a></h2>
 <h3 id="从训练脚本到训练作业"><a class="header" href="#从训练脚本到训练作业">从训练脚本到训练作业</a></h3>
 <p>训练脚本只描述计算图，而平台还要管理 job、experiment、run、checkpoint、dataset、artifact 和 allocation。experiment 表示一个研究问题，run 是一次具体配置执行，allocation 表示实际申请到的节点与 GPU，checkpoint 是某个逻辑 step 的可恢复状态。若这几个概念都用一个目录名代替，稍后就无法回答“这个模型由哪个数据版本训练、失败重试了几次、最终使用了哪些 GPU”。</p>
@@ -284,7 +301,7 @@
 <h3 id="numapcie-与设备亲和"><a class="header" href="#numapcie-与设备亲和">NUMA、PCIe 与设备亲和</a></h3>
 <p>多 GPU 节点常常有多个 CPU socket、PCIe root complex 和网卡。数据 worker、Pinned Memory、GPU 和网卡绑定不合理，会让 host 到 device 拷贝经过远端 NUMA，吞吐下降且抖动增加。启动器应根据拓扑生成 CPU affinity、GPU affinity 和 NIC affinity，并在运行时记录映射。不能只依赖容器默认的 CPU 集合，因为调度器可能把进程放在与 GPU 不同的 socket。</p>
 <p>故障排查时要把拓扑作为版本化环境的一部分。换一批节点、升级 BIOS、改变网卡固件或调整 MIG，都可能改变通信路径。NCCL 提供了拓扑感知能力，但应用还需要保存 NCCL 环境变量、通信算法和日志摘要 [13]。当扩展曲线突然下降时，拓扑快照往往比训练代码更能解释原因。</p>
-<h3 id="810-checkpoint-转换与模型发布"><a class="header" href="#810-checkpoint-转换与模型发布">8.10 Checkpoint 转换与模型发布</a></h3>
+<h2 id="810-checkpoint-转换与模型发布"><a class="header" href="#810-checkpoint-转换与模型发布">8.10 Checkpoint 转换与模型发布</a></h2>
 <h3 id="训练状态与推理制品分离"><a class="header" href="#训练状态与推理制品分离">训练状态与推理制品分离</a></h3>
 <p>训练 checkpoint 的目标是继续优化，推理制品的目标是快速加载和稳定服务。训练状态包含 optimizer 和分片元数据，推理制品通常只包含参数、tokenizer、模板、量化和运行时配置。两者应使用不同目录、权限和生命周期，但通过一个发布 manifest 关联。直接把训练目录挂载到 serving，容易暴露不必要状态，也容易让线上误读一个未完成版本。</p>
 <p>转换器要处理参数命名、分片布局、dtype、权重共享、词表、位置编码和模型 schema。转换后应做参数总量、shape、均值方差、hash 和小 batch 输出对比。对量化模型，还要比较校准集质量、最大误差、生成稳定性和特殊 token。转换脚本要固定版本并产生日志，不能依赖某个开发者机器上的临时命令。</p>
@@ -294,7 +311,7 @@
 <h3 id="迁移训练与分布式重分片"><a class="header" href="#迁移训练与分布式重分片">迁移训练与分布式重分片</a></h3>
 <p>当训练从 64 张卡迁移到 128 张卡，可能需要改变 DP 或 pipeline stage；当 GPU 型号变化，可能需要调整 batch、dtype 或 checkpoint 读取路径。支持迁移的格式应将逻辑参数与物理 shard 分离，转换器根据目标拓扑重新分片。迁移后还要验证 optimizer state 的分片和数据游标是否仍然一致。</p>
 <p>若系统不支持任意重分片，应在调度时把 checkpoint 的恢复约束传递给资源调度器，例如 world size、TP、PP、显存下限和 GPU 架构。调度器找不到兼容资源时宁可保持 pending，也不能分配一个表面满足 GPU 数量但无法恢复的集群。恢复兼容性是调度约束，而不是作业启动后的异常处理。</p>
-<h3 id="811-训练平台的故障演练与治理"><a class="header" href="#811-训练平台的故障演练与治理">8.11 训练平台的故障演练与治理</a></h3>
+<h2 id="811-训练平台的故障演练与治理"><a class="header" href="#811-训练平台的故障演练与治理">8.11 训练平台的故障演练与治理</a></h2>
 <h3 id="故障注入"><a class="header" href="#故障注入">故障注入</a></h3>
 <p>训练平台至少要演练五类注入：杀死一个 rank、关闭一台节点、阻断集合通信、让对象存储返回超时、损坏一个 checkpoint shard。每次注入要记录检测时间、作业状态、用户可见影响、自动恢复、重算 token、恢复后的 loss 和资源释放。若系统只在单进程退出时能恢复，而一个 rank 卡死会让其他进程永久等待，那么它并不具备生产级弹性。</p>
 <p>故障注入不能只发生在非高峰环境。高峰期的队列、配额和发布动作会改变恢复路径。可以先在隔离资源池做小规模演练，再在生产影子作业验证指标与告警，最后安排可控的真实节点维护。SRE Workbook 强调演练、错误预算和事故复盘之间的闭环，这些方法同样适用于训练平台 [19]。</p>
@@ -304,7 +321,7 @@
 <h3 id="人工接管边界"><a class="header" href="#人工接管边界">人工接管边界</a></h3>
 <p>自动恢复不是越多越好。短暂的对象存储超时可以自动退避；连续 NCCL hang、NaN、checkpoint 校验失败和数据权限错误应暂停并通知负责人。平台要定义最大重试次数、指数退避、预算上限和升级联系人。重试次数超过阈值后，系统保留现场、停止覆盖健康 checkpoint，并生成包含 job spec、拓扑、最后健康 step 和错误 trace 的诊断包。</p>
 <p>人工接管也要有明确操作。允许负责人选择回滚到某个 checkpoint、跳过坏 shard、改变资源池或终止作业，但每个动作都产生审计事件。不能为了“先跑起来”直接修改共享存储或删除现场。事后复盘应区分代码缺陷、数据缺陷、平台缺陷和容量规划缺陷，并把修复加入下一次验收。</p>
-<h3 id="812-一个可执行的训练-infra-交付模板"><a class="header" href="#812-一个可执行的训练-infra-交付模板">8.12 一个可执行的训练 Infra 交付模板</a></h3>
+<h2 id="812-一个可执行的训练-infra-交付模板"><a class="header" href="#812-一个可执行的训练-infra-交付模板">8.12 一个可执行的训练 Infra 交付模板</a></h2>
 <h3 id="交付前配置"><a class="header" href="#交付前配置">交付前配置</a></h3>
 <p>交付前应生成一份配置摘要：模型和代码 hash、tokenizer、数据 manifest、数据配方、global batch、sequence length、dtype、并行度、节点类型、网络拓扑、checkpoint 频率、恢复策略、预算和告警阈值。摘要由控制面生成并随 run 保存，避免用户填写一份配置、启动器再隐式覆盖另一份配置。</p>
 <h3 id="小规模到目标规模的阶梯验证"><a class="header" href="#小规模到目标规模的阶梯验证">小规模到目标规模的阶梯验证</a></h3>

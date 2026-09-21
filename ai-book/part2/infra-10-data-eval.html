@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第10章 数据与评估 Infra：治理、回归与反馈闭环 - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
+        <title>第10章 评估与反馈闭环：如何测量、比较并持续改进能力？ - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-18c1217e.js";
+            window.path_to_searchindex_js = "../searchindex-545ff165.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-0ce1344b.js"></script>
+        <script src="../toc-614e87e1.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,9 +177,25 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="第10章-数据与评估-infra治理回归与反馈闭环"><a class="header" href="#第10章-数据与评估-infra治理回归与反馈闭环">第10章 数据与评估 Infra：治理、回归与反馈闭环</a></h1>
+                        <h1 id="第10章-评估与反馈闭环"><a class="header" href="#第10章-评估与反馈闭环">第10章 评估与反馈闭环</a></h1>
+<h2 id="如何测量比较并持续改进能力"><a class="header" href="#如何测量比较并持续改进能力">如何测量、比较并持续改进能力？</a></h2>
 <p>模型上线之后，最难的问题往往不是“还能不能调用”，而是“这次变化是否真的变好”。数据版本变化、提示模板变化、检索结果变化、模型量化变化、用户分布变化和工具失败，都会让质量指标发生变化。没有数据与评估 Infra，团队只能凭少量示例和主观感受发布模型，问题通常会在生产流量和长期反馈中才暴露。</p>
 <p>本章把数据与评估看成一条生产链路：数据进入时有来源、授权、schema 和质量检查；加工时有版本、血缘、去重、采样和分片；评估时有固定回归集、任务指标、裁判校准和统计不确定性；线上运行时有请求 trace、反馈、失败样本和漂移监控；发布时由质量门禁决定是否灰度、回滚或进入人工审查。RDD、MapReduce、LakeFS、TFDV、HELM、BIG-bench、OpenAI Evals 和 RAGAS 等资料分别提供了数据容错、版本治理、统计校验和多维评估的基础 [1][2][4][7][12][13][17][18]。</p>
+<p>本章的核心判断是：系统运行正常不等于质量正在改善。第9章关心请求是否稳定交付，第12章关心生产治理和责任闭环，第22章会专门展开 Agent Evals、Guardrails 与可观测性；本章位于它们之间，负责把数据、评估协议、judge、线上反馈和发布门禁变成可复核证据。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">质量问题</th><th style="text-align: left">本章负责</th><th style="text-align: left">不在本章展开</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">数据是否可信</td><td style="text-align: left">snapshot、血缘、schema、污染检测</td><td style="text-align: left">训练并行和数据读取吞吐</td></tr>
+<tr><td style="text-align: left">分数是否可比</td><td style="text-align: left">固定评估集、评估器版本、统计不确定性</td><td style="text-align: left">模型服务资源调度</td></tr>
+<tr><td style="text-align: left">Judge 是否可靠</td><td style="text-align: left">校准、人工抽检、偏差记录</td><td style="text-align: left">安全策略执行与审批责任</td></tr>
+<tr><td style="text-align: left">线上反馈能否回流</td><td style="text-align: left">采样、脱敏、去偏、失败分类</td><td style="text-align: left">Agent 工作流状态机</td></tr>
+<tr><td style="text-align: left">是否允许发布</td><td style="text-align: left">evidence bundle、质量门禁、回滚条件</td><td style="text-align: left">组织级风险接受和审计签署</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="101-数据与评估平台的对象模型"><a class="header" href="#101-数据与评估平台的对象模型">10.1 数据与评估平台的对象模型</a></h2>
 <h3 id="从数据文件到数据产品"><a class="header" href="#从数据文件到数据产品">从数据文件到数据产品</a></h3>
 <p>数据平台至少要区分 source、dataset、snapshot、split、sample、manifest、transformation、evaluation set 和 feedback set。source 是外部来源，dataset 是经过处理的逻辑集合，snapshot 是某个不可变时点，split 说明训练、验证、测试或回归用途，sample 是可追踪的样本，manifest 描述内容、统计、权限和 hash。用一个目录同时表示这些对象，会让版本、授权和回滚混在一起。</p>
@@ -272,7 +288,7 @@
 <h3 id="注册审批与回滚"><a class="header" href="#注册审批与回滚">注册、审批与回滚</a></h3>
 <p>模型注册表连接训练、评估、部署和审计。artifact 进入注册表前校验 hash、来源、许可证、质量门禁、兼容矩阵和安全扫描；状态变更记录操作者、时间、原因和证据。回滚选择已验证的旧 artifact、旧模板、旧评估规则和旧路由，而不是只恢复权重。</p>
 <p>回滚后要验证线上请求、cache、工具、计费和 trace。新版本产生的反馈不能直接归到旧版本，旧版本回滚期间的请求单独标记。发布控制器保留最近多个健康版本和恢复演练记录，避免“理论上可以回滚”在事故时失败。</p>
-<h3 id="1010-数据与评估-infra-验收"><a class="header" href="#1010-数据与评估-infra-验收">10.10 数据与评估 Infra 验收</a></h3>
+<h2 id="1010-数据与评估-infra-验收"><a class="header" href="#1010-数据与评估-infra-验收">10.10 数据与评估 Infra 验收</a></h2>
 <h3 id="数据治理验收"><a class="header" href="#数据治理验收">数据治理验收</a></h3>
 <p>随机抽取一个训练或评估 snapshot，验证来源、授权、schema、处理 DAG、分区、统计、去重、敏感等级、manifest hash 和删除流程。修改一个过滤规则，确认血缘能找到受影响的模型和评估；撤回一个数据源，确认新的评估不能继续读取而历史审计仍然可查。质量门禁要覆盖自动断言、人工抽样、失败隔离和重试。</p>
 <h3 id="评估可靠性验收"><a class="header" href="#评估可靠性验收">评估可靠性验收</a></h3>
@@ -297,7 +313,7 @@
 <h3 id="样本级可追踪"><a class="header" href="#样本级可追踪">样本级可追踪</a></h3>
 <p>每个样本生成稳定的 sample_id 和 content_hash，变换后保存 parent_id、transformation_id 和版本。评估结果引用 sample_id，而不是只保存数组下标；模型输出保存 output_hash、模型 hash、采样参数、错误和评分；反馈引用 request_id 和 sample_id。这样某个失败样本可以反查来源、处理规则、评估历史、线上请求和标注。</p>
 <p>样本级追踪要控制存储与隐私。高价值或失败样本保存更完整上下文，普通样本保存摘要和 hash；敏感内容使用短期受控访问。删除请求到来时，平台根据 sample lineage 查找所有衍生快照、反馈、评估和缓存，并更新可见性。历史指标可能仍需保留，但要标注数据已撤回和结果不可重新生成。</p>
-<h3 id="1011-评估统计与不确定性"><a class="header" href="#1011-评估统计与不确定性">10.11 评估统计与不确定性</a></h3>
+<h2 id="1011-评估统计与不确定性"><a class="header" href="#1011-评估统计与不确定性">10.11 评估统计与不确定性</a></h2>
 <h3 id="采样误差"><a class="header" href="#采样误差">采样误差</a></h3>
 <p>评估分数是有限样本的估计。样本量、抽样分布、分层权重和任务相关性会影响置信区间。将一组高度相似的样本当作独立样本，会低估不确定性；从线上失败样本主动采样，会高估失败率但能发现风险。报告包含 sample count、有效样本、分层比例、权重、置信区间和抽样方法。</p>
 <p>两个版本分数差异很小时，不应马上宣布提升。可以使用配对样本比较、bootstrap、分层统计和最小实际效应；对裁判或人工标签，报告标注一致和评分方差。发布门禁明确“统计显著”和“业务重要”的区别，避免因为大样本的微小差异触发无意义回滚，也避免小样本的偶然提升进入生产。</p>
@@ -307,7 +323,7 @@
 <h3 id="指标漂移与指标博弈"><a class="header" href="#指标漂移与指标博弈">指标漂移与指标博弈</a></h3>
 <p>团队可能为了提高某个指标改变 prompt、截断输出、过滤困难样本或增加模板化答案。平台应把指标定义、样本版本和失败样本一起审计，防止只优化可见分数。一个模型输出更短可能降低错误 token，但不一定完成任务；一个 judge 分数更高可能只是更擅长迎合裁判。</p>
 <p>指标体系应包含结果、过程和成本：最终任务成功、关键中间步骤、引用或工具正确、重试与人工接管、延迟、token、GPU 和数据成本。不同指标冲突时由产品目标和安全边界决定，而不是让某个单一 leaderboard 决定。HELM 的多维评估思路说明，能力、效率、偏差和安全需要并列观察 [12]。</p>
-<h3 id="1012-数据与评估任务的调度"><a class="header" href="#1012-数据与评估任务的调度">10.12 数据与评估任务的调度</a></h3>
+<h2 id="1012-数据与评估任务的调度"><a class="header" href="#1012-数据与评估任务的调度">10.12 数据与评估任务的调度</a></h2>
 <h3 id="优先级与资源池"><a class="header" href="#优先级与资源池">优先级与资源池</a></h3>
 <p>评估任务可分为提交前 smoke、发布门禁、夜间 broad、线上回放、主动学习、人工标注和大规模 benchmark。不同任务的 deadline、GPU、数据、裁判和结果保留不同，应使用不同资源池或优先级。发布门禁不能被一个长时间 benchmark 阻塞，人工标注也不能被无限自动任务淹没。</p>
 <p>调度器记录 pending reason、预计完成、使用资源和预算。任务需要 gang 资源时一次性分配，分区评估则可以弹性并行。抢占低优先级任务前保存游标与部分提交结果，恢复时只重做未完成分区。Kubernetes、Ray 和 Spark 各有资源与执行能力，评估平台通过统一 job spec 连接它们 [3][18]。</p>
@@ -317,7 +333,7 @@
 <h3 id="结果存储与聚合"><a class="header" href="#结果存储与聚合">结果存储与聚合</a></h3>
 <p>结果存储采用 sample result、partition result、evaluation run 和 report 四层。sample result 保存单样本输入 hash、输出 hash、指标、错误、耗时和 token；partition result 保存分区统计与完成标记；evaluation run 保存配置、覆盖和状态；report 保存聚合、图表、失败样本和结论。每层都有不可变版本，聚合可以重算但不能覆盖原始样本结果。</p>
 <p>聚合器处理缺失、重复和重试。同一 sample_id 的多个 attempt 需要选择最终有效结果并保留历史；超时不能当负分；评估器返回非法 JSON 要作为 evaluator_failed；样本被跳过要从分母排除并报告 coverage。报告生成失败不应删除已完成的单样本结果，修复后可以重新聚合。</p>
-<h3 id="1013-质量门禁的设计案例"><a class="header" href="#1013-质量门禁的设计案例">10.13 质量门禁的设计案例</a></h3>
+<h2 id="1013-质量门禁的设计案例"><a class="header" href="#1013-质量门禁的设计案例">10.13 质量门禁的设计案例</a></h2>
 <h3 id="新模型候选"><a class="header" href="#新模型候选">新模型候选</a></h3>
 <p>新模型候选先通过 artifact、schema、安全和加载检查，再运行 smoke；通过后执行 critical 回归与目标任务评估。模型质量与旧版本做配对比较，输入输出长度和模板固定；同时测 token、GPU、TTFT、TPOT 和成本。遇到关键任务回退时自动阻断，普通任务小幅变化进入人工评审。</p>
 <h3 id="prompt-或模板变更"><a class="header" href="#prompt-或模板变更">Prompt 或模板变更</a></h3>
@@ -326,14 +342,14 @@
 <p>知识库更新先生成新的 snapshot，运行检索 recall、precision、context relevance、引用和最终任务；然后用线上历史 query 回放。若文档删除、权限变化或 chunk 策略变化，旧 cache 和评估结果按血缘失效。检索器质量提升但上下文变长，需重新评估 serving 成本和 TTFT，不能只看答案分数。</p>
 <h3 id="量化或-engine-变更"><a class="header" href="#量化或-engine-变更">量化或 engine 变更</a></h3>
 <p>量化和 engine 变更固定模型与数据，比较输出差异、结构化合法、工具参数、长上下文、质量、显存和吞吐。失败样本按层、长度和任务分类，定位是精度、kernel、采样还是模板。通过后先影子，再灰度；回滚同时恢复 engine、量化、cache 和路由。评估结果绑定硬件和 driver，跨硬件不能直接复用。</p>
-<h3 id="1014-反馈闭环的安全与治理"><a class="header" href="#1014-反馈闭环的安全与治理">10.14 反馈闭环的安全与治理</a></h3>
+<h2 id="1014-反馈闭环的安全与治理"><a class="header" href="#1014-反馈闭环的安全与治理">10.14 反馈闭环的安全与治理</a></h2>
 <h3 id="反馈进入数据集前"><a class="header" href="#反馈进入数据集前">反馈进入数据集前</a></h3>
 <p>生产反馈先进入隔离区，完成身份去除、敏感信息检测、权限确认、样本去重、来源标记和风险分类。只有满足用途授权与留存策略的样本进入候选集。用户删除请求和数据主体请求要能沿血缘查找所有衍生副本。反馈不能因为“用户公开提交”就自动获得训练授权。</p>
 <h3 id="评估结果的访问控制"><a class="header" href="#评估结果的访问控制">评估结果的访问控制</a></h3>
 <p>评估可能暴露模型弱点、敏感 prompt、客户数据、红队样本和内部工具。权限分为结果摘要、失败样本、原始输入输出、标注和 artifact 下载；每次访问审计。跨租户实验不能共享原始样本，模型供应商或外部 judge 只收到最小必要内容，并记录出站处理和删除确认。</p>
 <h3 id="红队与对抗集"><a class="header" href="#红队与对抗集">红队与对抗集</a></h3>
 <p>安全红队样本要有来源、攻击类型、危害等级、预期处理、评估规则和修复状态。对抗集不能只在发布前运行一次；新模型、模板、工具、检索和路由变化都触发相关子集。修复后的模型要确认没有通过简单拒答提升分数而损失正常任务，报告安全和有用性的联合结果。</p>
-<h3 id="1015-评估平台的观测与事故处理"><a class="header" href="#1015-评估平台的观测与事故处理">10.15 评估平台的观测与事故处理</a></h3>
+<h2 id="1015-评估平台的观测与事故处理"><a class="header" href="#1015-评估平台的观测与事故处理">10.15 评估平台的观测与事故处理</a></h2>
 <h3 id="任务级指标"><a class="header" href="#任务级指标">任务级指标</a></h3>
 <p>评估平台指标包括等待、执行、token、GPU、judge、cache、覆盖、失败、重试、成本和结果写入。按 evaluation run、partition、evaluator、model、dataset 和 priority 聚合，避免只看一个总耗时。Prometheus 负责趋势与告警，OpenTelemetry 连接控制面、worker、模型服务和存储 [21][22]。</p>
 <h3 id="评估事故"><a class="header" href="#评估事故">评估事故</a></h3>

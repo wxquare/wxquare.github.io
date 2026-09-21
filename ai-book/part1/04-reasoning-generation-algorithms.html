@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第4章 推理能力与生成算法 - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
+        <title>第4章 推理期扩展：推理时怎样释放或放大能力？ - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-18c1217e.js";
+            window.path_to_searchindex_js = "../searchindex-545ff165.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-0ce1344b.js"></script>
+        <script src="../toc-614e87e1.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,8 +177,10 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="第4章-推理能力与生成算法"><a class="header" href="#第4章-推理能力与生成算法">第4章 推理能力与生成算法</a></h1>
-<p>大模型的“推理”不是一个单独的神经网络模块，而是模型、提示、搜索、验证器和推理预算共同形成的过程。自回归模型每次只预测下一个 token，但复杂任务需要先拆解问题、保留中间状态、比较候选路径、检查结果，再决定是否继续。于是，推理算法要回答两个问题：如何从概率分布中生成更好的轨迹，如何用额外计算换取更高的任务成功率。</p>
+                        <h1 id="第4章-推理期扩展"><a class="header" href="#第4章-推理期扩展">第4章 推理期扩展</a></h1>
+<h2 id="推理时怎样释放或放大能力"><a class="header" href="#推理时怎样释放或放大能力">推理时怎样释放或放大能力？</a></h2>
+<p>第3章可以把模型塑造成更守指令的协作组件，却不能保证它在复杂问题中一次生成就走对路径。大模型的“推理”不是一个单独的神经网络模块，而是模型、提示、搜索、验证器和推理预算共同形成的过程。自回归模型每次只预测下一个 token，但复杂任务需要先拆解问题、保留中间状态、比较候选路径、检查结果，再决定是否继续。于是，推理算法要回答两个问题：如何从概率分布中生成更好的轨迹，如何用额外计算换取更高的任务成功率。</p>
+<p>本章的判断是：推理期扩展以时间、token 和验证成本交换复杂任务成功率；它提升的是候选答案质量，而不是替代事实来源、权限控制或 Serving 可靠性。后训练改变默认行为，推理期扩展决定当前任务如何使用计算，两者必须在任务可验证性和预算约束下协同选择。</p>
 <p>本章把“推理能力”和“推理服务”分开。采样、解码、CoT、Self-Consistency、Tree of Thoughts、验证器、RLVR、test-time scaling 和 speculative decoding 属于算法层；GPU 显存、KV cache 分页、continuous batching 和分布式 serving 属于后续 Infra 章节。本章会说明两者的接口，但不把系统吞吐优化冒充模型推理能力。</p>
 <h2 id="41-历史发展从一次生成到搜索式推理"><a class="header" href="#41-历史发展从一次生成到搜索式推理">4.1 历史发展：从一次生成到搜索式推理</a></h2>
 <h3 id="自回归生成的基本范式"><a class="header" href="#自回归生成的基本范式">自回归生成的基本范式</a></h3>
@@ -303,16 +305,10 @@ $$</p>
 <h3 id="规划与执行的隔离"><a class="header" href="#规划与执行的隔离">规划与执行的隔离</a></h3>
 <p>规划模型容易产生不可执行计划，执行模型容易在局部步骤上偏离全局目标。实践中可把计划表示成结构化任务图，每个节点包含动作、参数、前置条件、预期结果和失败策略。执行前先检查权限和资源，执行后把真实观察写回状态，再决定继续、重试还是修改计划。</p>
 <p>ReAct 的推理—行动交替给出了一个自然接口 [7]，但生产系统还要加入状态机：模型只能提出候选动作，runtime 负责验证 schema、权限和当前状态。这样既能利用模型的灵活规划，也能避免模型通过自然语言绕过动作边界。对于不可逆动作，必须设置确认点；对于可重试动作，必须定义最大次数和退避策略。</p>
-<h2 id="48-长上下文kv-cache-与算法系统接口"><a class="header" href="#48-长上下文kv-cache-与算法系统接口">4.8 长上下文、KV Cache 与算法—系统接口</a></h2>
-<h3 id="prefilldecode-与推理阶段"><a class="header" href="#prefilldecode-与推理阶段">Prefill、Decode 与推理阶段</a></h3>
-<p>自回归推理通常分为 prefill 和 decode。Prefill 并行处理输入 token，构建各层 attention 的 Key/Value；decode 每次生成一个 token，并复用历史 KV cache。KV cache 让模型不必反复计算历史 token，但显存大致随层数、KV head 数、序列长度、批量和精度线性增长：</p>
-<p>$$
-M_{KV}\approx 2L\times B\times T\times H_{KV}\times d_{head}\times bytes.
-$$</p>
-<p>这不是推理算法正确性的核心，却直接决定 test-time scaling 能否落地。采样十条候选、保留多个搜索分支，会同时增加序列和 KV cache；因此算法设计必须给出候选数、最大长度、终止条件和共享前缀策略，Infra 才能估算资源。</p>
-<h3 id="gqa-与-flashattention-的边界"><a class="header" href="#gqa-与-flashattention-的边界">GQA 与 FlashAttention 的边界</a></h3>
-<p>GQA 让多个 query head 共享 K/V head，减少 KV cache 和读取成本，同时尽量保持 MHA 的表达能力 [25]。FlashAttention 用 IO-aware 的精确 attention kernel 减少显存读写 [24]。它们可以使更长上下文或更多候选变得可行，但不会改变模型是否正确推理。</p>
-<p>算法实验报告应区分两种收益：质量收益来自更好的搜索、验证或训练目标；性能收益来自更少的 forward、更小的 cache 或更高效的 kernel。否则容易把“跑得更快”误解成“想得更好”，也无法比较同一算法在不同硬件上的可迁移性。</p>
+<h2 id="48-算法系统接口把推理预算交给运行系统"><a class="header" href="#48-算法系统接口把推理预算交给运行系统">4.8 算法—系统接口：把推理预算交给运行系统</a></h2>
+<h3 id="推理预算的接口化"><a class="header" href="#推理预算的接口化">推理预算的接口化</a></h3>
+<p>推理期扩展一旦进入产品，就不能只说“多想一会儿”。算法需要向运行系统交付一组明确预算：最大输入长度、最大输出长度、候选数量、搜索深度、验证器调用次数、工具调用次数、超时、停止条件和失败降级。没有这些边界，Serving 层无法估算显存、队列、尾延迟和成本，也无法在预算耗尽时给出可解释结果。</p>
+<p>这里要避免一个常见混淆：Prefill、Decode、KV Cache、GQA、FlashAttention、Continuous Batching 是推理服务实现细节，第9章会系统展开；本章只关心算法给系统提出了什么资源需求，以及这些需求如何影响当前任务的成功率。换句话说，本章讨论“值得花多少推理预算”，第9章讨论“怎样稳定交付这笔预算”。</p>
 <h3 id="长上下文与有效推理"><a class="header" href="#长上下文与有效推理">长上下文与有效推理</a></h3>
 <p>上下文窗口变长不等于推理能力变强。模型可能丢失中间信息、重复引用错误内容，或把更多无关文本当作证据。长上下文推理应测试信息位置、干扰比例、跨文档关系、答案证据和上下文长度增长曲线。若任务只是从文档中检索一个事实，检索和压缩可能比让模型对全部 128K token 做长 CoT 更便宜可靠。</p>
 <h3 id="预算调度与难度路由"><a class="header" href="#预算调度与难度路由">预算调度与难度路由</a></h3>
@@ -334,6 +330,21 @@ $$</p>
 <p>中文、英文、代码和数字混合输入会产生不同的 token 化和概率形状，采样参数不能直接照搬英文自然语言。中文长文可能需要保留段落、标题和引用边界；代码推理需要维护缩进、括号、类型和测试状态；SQL 需要区分表名、字段名和用户输入；数学表达式需要保留符号结构。中文教材对概率建模、优化和泛化的基础解释有助于理解这些差异 [28][29][30]。</p>
 <p>评估时应按语言和格式切片，而不是把所有任务合成一个平均准确率。一个模型可能英文数学推理较强、中文题目较弱；可能自然语言解释很好、代码执行较差；可能单轮输出正确、多轮工具状态错误。推理算法的收益只有在目标语言和目标格式上重复验证，才具有工程意义。</p>
 <h2 id="49-工程决策与验收方法"><a class="header" href="#49-工程决策与验收方法">4.9 工程决策与验收方法</a></h2>
+<h3 id="按任务选择采样搜索与验证"><a class="header" href="#按任务选择采样搜索与验证">按任务选择采样、搜索与验证</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>任务特征</th><th>首选策略</th><th>成功证据</th><th>不应承担的责任</th></tr>
+</thead>
+<tbody>
+<tr><td>格式固定、字段可检查</td><td>约束解码与 schema 验证</td><td>解析率、字段准确率</td><td>事实时效和权限判断</td></tr>
+<tr><td>数学、代码、规划且结果可验证</td><td>多候选搜索加验证器</td><td>测试通过率、结果正确率</td><td>替代独立测试或人工审批</td></tr>
+<tr><td>开放式解释与创作</td><td>低预算采样与引用约束</td><td>忠实度、用户任务完成率</td><td>伪造“唯一正确答案”</td></tr>
+<tr><td>高风险或不可逆行动</td><td>受限推理加人工门禁</td><td>审批、规则和审计证据</td><td>自主决定执行权限</td></tr>
+</tbody>
+</table>
+</div>
+<p>这张表将算法选择与系统责任分开：采样和搜索帮助生成候选，验证器决定候选是否满足可检查约束，权限和副作用仍由 Runtime 与策略层负责。第9章只处理这些推理预算怎样在真实流量和 SLO 下被调度与交付。</p>
 <h3 id="算法选择矩阵"><a class="header" href="#算法选择矩阵">算法选择矩阵</a></h3>
 <div class="table-wrapper">
 <table>
@@ -347,7 +358,7 @@ $$</p>
 <tr><td style="text-align: left">事实不稳定</td><td style="text-align: left">RAG、工具、证据检查</td><td style="text-align: left">继续生成更长 CoT</td></tr>
 <tr><td style="text-align: left">格式非法</td><td style="text-align: left">constrained decoding、schema</td><td style="text-align: left">只做重复 SFT</td></tr>
 <tr><td style="text-align: left">生成太慢</td><td style="text-align: left">speculative decoding、模型路由</td><td style="text-align: left">盲目增加 reasoning budget</td></tr>
-<tr><td style="text-align: left">长上下文成本高</td><td style="text-align: left">压缩、检索、GQA、cache 策略</td><td style="text-align: left">只扩大 context window</td></tr>
+<tr><td style="text-align: left">长上下文成本高</td><td style="text-align: left">压缩、检索、分段推理、预算路由</td><td style="text-align: left">只扩大 context window</td></tr>
 </tbody>
 </table>
 </div>
@@ -360,18 +371,12 @@ $$</p>
 <p>对后端团队而言，最实用的指标不是“平均思考长度”，而是每个成功任务消耗多少 token、多少次验证和多少次工具调用。只有把质量、成本和风险放在同一张表里，才能决定推理预算是否值得。</p>
 <p>还要区分模型内部生成与外部可见结果：内部候选可以失败、重试和被丢弃，外部结果必须经过协议校验、证据检查和权限判断。这个边界能把探索自由度与生产可靠性分开。</p>
 <p>如果没有这个边界，搜索分支、工具返回值和未验证草稿可能混入用户上下文，既增加成本，也可能造成信息泄露。运行时应明确哪些状态可以回放、哪些状态可以展示、哪些状态只能由审计人员访问，并为每类状态设置保留时间和权限。</p>
-<p>这套状态治理同样是推理算法能够长期演进的基础。</p>
-<p>它让算法失败可以重现，让系统风险可以审计，也让成本优化有据可依。</p>
-<p>也是后续迭代不可缺少的实验基础。</p>
-<p>只有在状态、预算、验证和结果都被记录时，推理优化才不是凭感觉调参。</p>
-<p>这也是可靠验收的必要条件。</p>
-<p>它把算法研究和生产质量连接起来。</p>
-<p>推理算法的效果必须在真实任务、真实预算和真实失败路径上反复验证。实验室中的平均分，只能说明方法值得继续研究，不能直接说明服务已经可靠。</p>
+<p>这套状态治理是推理算法能够长期演进的基础：算法失败可以重现，系统风险可以审计，成本优化有据可依。只有状态、预算、验证和结果都被记录，推理优化才不是凭感觉调参。实验室中的平均分只能说明方法值得继续研究；要说明服务可靠，还必须在真实任务、真实预算和真实失败路径上反复验证。</p>
 <h3 id="给后端工程师的落地清单"><a class="header" href="#给后端工程师的落地清单">给后端工程师的落地清单</a></h3>
 <p>实现一个推理型模型服务时，可以按以下顺序评审：先定义任务的成功条件和失败代价；再决定是单次生成、重采样、搜索还是工具循环；为可验证任务实现程序化 verifier；给每种请求设置 token、候选、工具和时间预算；将结构化输出交给 schema 校验；将副作用操作交给权限和人工审批；最后测量单位成功成本和尾延迟。</p>
 <p>推理算法的最终验收不是“模型能输出一段很像思考的文字”，而是：在给定预算内，任务成功率是否提高；验证失败是否被拦截；额外计算是否值得；错误是否可定位；系统是否能停止、重试和回滚。这个标准也为后续 Infra 章节提供接口：算法给出预算、状态和验证需求，Infra 负责以稳定成本执行它们。</p>
 <h3 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h3>
-<p>生成算法从 greedy 和 sampling 发展到 CoT、Self-Consistency、显式搜索、验证器和 test-time scaling，核心变化是从“选择一个最可能的下一个 token”转向“在预算内寻找并验证一条可接受的任务轨迹”。Speculative decoding、GQA、FlashAttention 和 KV cache 策略解决的是执行效率，它们与推理质量相关但不等价。</p>
+<p>生成算法从 greedy 和 sampling 发展到 CoT、Self-Consistency、显式搜索、验证器和 test-time scaling，核心变化是从“选择一个最可能的下一个 token”转向“在预算内寻找并验证一条可接受的任务轨迹”。投机解码、长上下文压缩和预算路由可以改善执行效率或成本，但它们与推理质量相关而不等价。</p>
 <p>面对一个具体任务，先判断错误来自知识、搜索、验证、格式还是系统权限，再选择对应方法。能程序化验证的任务优先使用执行器和 verifier；需要多路径探索的任务使用采样和搜索；需要实时事实的任务使用工具和检索；需要低延迟的任务使用路由、草稿模型和预算控制。这样，推理能力才会从论文中的 benchmark 变成可观察、可控制、可回滚的工程组件。</p>
 <h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
 <p>[1] Brown, T. B., et al. <em>Language Models are Few-Shot Learners</em>. NeurIPS, 2020. https://arxiv.org/abs/2005.14165</p>

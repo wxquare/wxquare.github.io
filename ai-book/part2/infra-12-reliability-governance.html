@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第12章 可靠性与治理 Infra：观测、成本、安全、发布与灾备 - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
+        <title>第12章 生产运营与治理控制：如何让整套系统进入生产级控制？ - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-18c1217e.js";
+            window.path_to_searchindex_js = "../searchindex-545ff165.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-0ce1344b.js"></script>
+        <script src="../toc-614e87e1.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,9 +177,27 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="第12章-可靠性与治理-infra观测成本安全发布与灾备"><a class="header" href="#第12章-可靠性与治理-infra观测成本安全发布与灾备">第12章 可靠性与治理 Infra：观测、成本、安全、发布与灾备</a></h1>
+                        <h1 id="第12章-生产运营与治理控制"><a class="header" href="#第12章-生产运营与治理控制">第12章 生产运营与治理控制</a></h1>
+<h2 id="如何让整套系统进入生产级控制"><a class="header" href="#如何让整套系统进入生产级控制">如何让整套系统进入生产级控制？</a></h2>
 <p>大模型系统的可靠性不只是接口可用。模型可能返回格式正确但事实错误的答案，工具可能重复执行副作用，推理服务可能在长上下文下耗尽 KV，训练任务可能在 checkpoint 损坏后无法恢复，数据和 prompt 可能泄露，模型升级可能让成本、偏差和安全风险同时变化。因此，大模型 Infra 的最后一层需要把系统可靠性、模型质量、数据治理、供应链安全、成本、发布和灾备放进同一套可审计的控制闭环。</p>
 <p>SRE 的 SLO、错误预算和事故方法提供了服务可靠性基础 [1][2]；Dapper、OpenTelemetry 和 Prometheus 提供了跨服务追踪、指标和日志的观测基础 [3][4][5]；NIST AI RMF、ISO/IEC 42001、模型卡片、数据集说明书、SLSA 和 Sigstore 则把风险、责任和制品完整性扩展到 AI 生命周期 [8][10][14][15][16][17]。本章关注如何把这些原则具体化为 LLM 平台的指标、状态、策略、门禁和操作。</p>
+<p>本章的组织方式是“风险—控制—证据—责任人”。可靠性、发布、安全、成本、灾备和审计不应散落在不同文档里，而应能映射到同一张治理矩阵。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">风险</th><th style="text-align: left">控制</th><th style="text-align: left">证据</th><th style="text-align: left">责任人</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">服务不可用或尾延迟失控</td><td style="text-align: left">SLO、错误预算、容量预留、降级</td><td style="text-align: left">指标、trace、压测、事故记录</td><td style="text-align: left">平台 owner / SRE</td></tr>
+<tr><td style="text-align: left">模型质量回退</td><td style="text-align: left">评估门禁、canary、线上反馈、回滚</td><td style="text-align: left">evaluation report、canary 指标、失败样本</td><td style="text-align: left">模型 owner / 业务 owner</td></tr>
+<tr><td style="text-align: left">工具副作用或状态错误</td><td style="text-align: left">幂等、审批、补偿、状态查询</td><td style="text-align: left">operation log、approval event、补偿记录</td><td style="text-align: left">Runtime owner / 工具 owner</td></tr>
+<tr><td style="text-align: left">数据泄露或越权</td><td style="text-align: left">权限、脱敏、数据驻留、审计</td><td style="text-align: left">access log、policy decision、删除记录</td><td style="text-align: left">安全 / 隐私 owner</td></tr>
+<tr><td style="text-align: left">供应链或制品污染</td><td style="text-align: left">SBOM、签名、hash、漏洞扫描</td><td style="text-align: left">artifact manifest、签名、扫描报告</td><td style="text-align: left">平台 owner / 安全 owner</td></tr>
+<tr><td style="text-align: left">成本异常</td><td style="text-align: left">预算、配额、成本归因、停止条件</td><td style="text-align: left">成本账本、租户报表、预算告警</td><td style="text-align: left">平台 owner / 财务或业务 owner</td></tr>
+<tr><td style="text-align: left">灾备失败</td><td style="text-align: left">RPO/RTO、备份、恢复演练、供应商退出</td><td style="text-align: left">恢复报告、演练记录、依赖清单</td><td style="text-align: left">平台 owner / 运维 owner</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="121-可靠性目标从服务可用到任务成功"><a class="header" href="#121-可靠性目标从服务可用到任务成功">12.1 可靠性目标：从服务可用到任务成功</a></h2>
 <h3 id="多层-slo"><a class="header" href="#多层-slo">多层 SLO</a></h3>
 <p>大模型平台至少有平台层、模型层、任务层和治理层四类目标。平台层关注网关可用、调度成功、实例健康、TTFT、TPOT、队列和恢复；模型层关注格式、引用、拒答、工具参数和能力回归；任务层关注用户目标成功、人工接管、重试和外部状态；治理层关注数据权限、审计、供应链和安全事件。</p>
@@ -261,7 +279,7 @@
 <p>模型、tokenizer、评估器、MCP server、容器、Python 包、CUDA、driver 和 cloud service 都是依赖。供应链扫描、SBOM、签名、来源、漏洞、许可证和版本锁定进入发布门禁。开发依赖与生产依赖分离，运行时网络限制；高风险更新先在隔离池和影子运行。</p>
 <h3 id="数据保留与删除"><a class="header" href="#数据保留与删除">数据保留与删除</a></h3>
 <p>定义 prompt、output、trace、memory、tool result、评估样本、模型制品和审计事件的保留期、删除方式、备份影响和法律保留。删除请求沿 lineage 找到缓存、派生 embedding、回放、标注、训练 candidate 和报告；若无法删除摘要，标记不可恢复的风险并由 owner 决定。删除本身产生审计事件但不保留原始敏感内容。</p>
-<h3 id="1210-可靠性与治理验收"><a class="header" href="#1210-可靠性与治理验收">12.10 可靠性与治理验收</a></h3>
+<h2 id="1210-可靠性与治理验收"><a class="header" href="#1210-可靠性与治理验收">12.10 可靠性与治理验收</a></h2>
 <h3 id="端到端演练"><a class="header" href="#端到端演练">端到端演练</a></h3>
 <p>选取一个训练 run、一个推理请求、一个 Agent Run 和一个评估任务，验证从输入、资源、状态、trace、成本、质量、权限到结果的完整链路。注入节点故障、存储失败、工具超时、状态重复、模型回滚、数据撤回和区域切换，检查状态不覆盖、副作用不重复、敏感数据不泄露、预算可对账。</p>
 <h3 id="变更与发布验收"><a class="header" href="#变更与发布验收">变更与发布验收</a></h3>

@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第9章 推理 Infra：Serving、KV Cache、Batching 与模型并行 - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
+        <title>第9章 推理服务与资源调度：如何稳定、经济地交付模型能力？ - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-18c1217e.js";
+            window.path_to_searchindex_js = "../searchindex-545ff165.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-0ce1344b.js"></script>
+        <script src="../toc-614e87e1.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,9 +177,25 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="第9章-推理-infraservingkv-cachebatching-与模型并行"><a class="header" href="#第9章-推理-infraservingkv-cachebatching-与模型并行">第9章 推理 Infra：Serving、KV Cache、Batching 与模型并行</a></h1>
+                        <h1 id="第9章-推理服务与资源调度"><a class="header" href="#第9章-推理服务与资源调度">第9章 推理服务与资源调度</a></h1>
+<h2 id="如何稳定经济地交付模型能力"><a class="header" href="#如何稳定经济地交付模型能力">如何稳定、经济地交付模型能力？</a></h2>
 <p>训练完成并不意味着模型已经可以被用户使用。训练输出是一个需要转换、装载、调度和观测的制品；在线推理则是一个同时面对突发流量、长尾上下文、流式连接、动态 batch、显存限制和版本发布的分布式服务。本章聚焦从一次 <code>forward</code> 到生产级 serving 的完整链路，重点解释 prefill 与 decode 的资源差异、KV cache 的内存管理、连续批处理、模型并行、长上下文、公平调度、量化、投机解码以及服务 SLO。</p>
 <p>推理 Infra 的核心指标不应只有 tokens/s。交互请求关心首 token 延迟 TTFT、每个输出 token 的延迟 TPOT 和端到端尾延迟；离线任务关心 goodput 和单位成本；Agent 任务关心多次调用后的成功率、工具副作用和总等待时间。一个系统可能平均吞吐很高，却让短请求被长上下文阻塞；也可能单请求很快，却在并发增加时因为 KV cache 失控而 OOM。Orca、PagedAttention、Sarathi-Serve 和 DistServe 等工作说明，LLM serving 的关键突破来自把模型执行拆成可调度的资源和状态，而不是简单把模型放进 HTTP 服务 [1][2][3][4]。</p>
+<p>训练制品不能直接交付，是因为用户面对的是请求生命周期而不是 checkpoint。推理平台必须回答五个问题：制品是否完整，容量是否够，状态是否可回收，调度是否公平，质量与成本是否仍在门限内。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">交付问题</th><th style="text-align: left">Serving 对象</th><th style="text-align: left">主要指标</th><th style="text-align: left">失败时优先检查</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">制品能否加载</td><td style="text-align: left">manifest、tokenizer、template、engine</td><td style="text-align: left">加载成功率、兼容矩阵</td><td style="text-align: left">artifact hash、模板、量化配置</td></tr>
+<tr><td style="text-align: left">容量能否满足 SLO</td><td style="text-align: left">request、queue、prefill、decode</td><td style="text-align: left">TTFT、TPOT、goodput、p99</td><td style="text-align: left">长度分布、队列、GPU 水位</td></tr>
+<tr><td style="text-align: left">状态能否回收</td><td style="text-align: left">KV block、stream、operation</td><td style="text-align: left">KV 利用率、取消释放、OOM</td><td style="text-align: left">block owner、租约、引用计数</td></tr>
+<tr><td style="text-align: left">调度是否公平</td><td style="text-align: left">batch、priority、tenant quota</td><td style="text-align: left">饥饿率、配额命中、尾延迟</td><td style="text-align: left">batching 策略、长请求、离线任务</td></tr>
+<tr><td style="text-align: left">成本是否可解释</td><td style="text-align: left">route、cache、retry、fallback</td><td style="text-align: left">单位成功任务成本</td><td style="text-align: left">cache 命中、重试、降级模型</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="91-推理请求与运行时对象模型"><a class="header" href="#91-推理请求与运行时对象模型">9.1 推理请求与运行时对象模型</a></h2>
 <h3 id="模型制品不是一个权重文件"><a class="header" href="#模型制品不是一个权重文件">模型制品不是一个权重文件</a></h3>
 <p>一个可服务模型至少由权重、配置、tokenizer、chat template、特殊 token、量化配置、并行配置、采样默认值、停止条件、结构化输出约束和安全策略组成。视觉或音频模型还要包含预处理器、图像尺寸限制和模态路由。模型注册中心应为这些 artifact 生成不可变版本和 hash，serving engine 只加载经过完整性、兼容性和质量门禁的 manifest。</p>
@@ -281,7 +297,7 @@ goodput = successful_requests_within_SLO / wall_clock
 <h3 id="成本归因"><a class="header" href="#成本归因">成本归因</a></h3>
 <p>在线成本不应只按 GPU 小时计费。一次请求的成本包括权重占用、prefill、decode、draft、KV 保留、cache miss、网络、CPU tokenizer、工具调用和重试。可以按输入 token、输出 token、GPU 时间和成功任务组合归因，并区分模型版本、租户、项目和业务场景。prefix cache 命中需要记录节省的计算，同时也要计入 cache 内存和失效成本。</p>
 <p>成本优化要和质量、SLO 同时看。降低最大输出 token 可以降低成本，却可能降低任务成功；激进 batching 可以提高平均吞吐，却增加长尾；更低精度可以节省显存，却增加重试和人工审核。中文教材对泛化与误差的讨论提醒我们，系统优化不能脱离输出质量和任务目标 [23][24][25]。</p>
-<h3 id="910-推理-infra-验收"><a class="header" href="#910-推理-infra-验收">9.10 推理 Infra 验收</a></h3>
+<h2 id="910-推理-infra-验收"><a class="header" href="#910-推理-infra-验收">9.10 推理 Infra 验收</a></h2>
 <h3 id="功能验收"><a class="header" href="#功能验收">功能验收</a></h3>
 <p>固定验证集需要覆盖普通生成、空输入、超长输入、最大输出、停止词、流式、取消、重复请求、结构化 JSON、工具调用、多模态错误和非法参数。每个场景验证状态迁移、错误码、资源释放和审计字段。对 streaming，要测试客户端中途断开、服务端重启、重连和部分结果；对工具，要测试超时、重试、重复提交和副作用幂等。</p>
 <h3 id="性能与容量验收"><a class="header" href="#性能与容量验收">性能与容量验收</a></h3>
@@ -306,7 +322,7 @@ goodput = successful_requests_within_SLO / wall_clock
 <h3 id="多进程与多模型共存"><a class="header" href="#多进程与多模型共存">多进程与多模型共存</a></h3>
 <p>同一节点部署多个小模型可以提高利用率，但会引入权重竞争、KV 竞争、编译缓存竞争和尾延迟相互影响。多进程隔离较强，却可能重复加载 CUDA context 和权重；单进程多模型共享资源效率高，却需要更复杂的模型选择和内存回收。模型路由必须把可用 cache 和切换成本纳入决策，不能只看当前请求数。</p>
 <p>模型切换包括加载权重、初始化 kernel、分配 KV pool、预热和释放旧模型。如果加载期间占用同一 GPU，会造成在线请求抖动；如果使用双份显存，又需要容量余量。可以把冷门模型放到独立池，或采用异步加载和模型驻留策略。每个模型要有最小驻留时间和最大空闲时间，避免流量抖动导致反复加载。</p>
-<h3 id="911-kv-cache-的高级调度与状态恢复"><a class="header" href="#911-kv-cache-的高级调度与状态恢复">9.11 KV Cache 的高级调度与状态恢复</a></h3>
+<h2 id="911-kv-cache-的高级调度与状态恢复"><a class="header" href="#911-kv-cache-的高级调度与状态恢复">9.11 KV Cache 的高级调度与状态恢复</a></h2>
 <h3 id="block-table-的一致性"><a class="header" href="#block-table-的一致性">Block table 的一致性</a></h3>
 <p>PagedAttention 依赖逻辑 token 到物理 block 的映射。调度器增加 decode token 时，先检查 block capacity，再更新 block table，最后提交 kernel；释放时先阻止新的 kernel 引用，再减少引用计数。这个顺序不是实现细节，而是并发正确性的基础。多个请求共享 prefix 时，copy-on-write 要确保一个请求追加 token 不会修改另一个请求的只读 block。</p>
 <p>block table 更新可以与 GPU stream 异步进行，但需要版本号或事件 fence 防止 kernel 读取旧映射。服务取消、超时和实例 drain 时，仍在执行的 stream 可能持有 block；立即释放会造成内存错误。可靠的 cache manager 应支持 deferred free，并在 trace 中记录 block 从 active 到 reclaimable 再到 free 的时间。</p>
@@ -316,7 +332,7 @@ goodput = successful_requests_within_SLO / wall_clock
 <h3 id="实例重启与-kv-丢失"><a class="header" href="#实例重启与-kv-丢失">实例重启与 KV 丢失</a></h3>
 <p>KV cache 通常是可重建状态，实例重启后不必持久化全部 KV，但必须处理用户体验和容量。正在 streaming 的请求可以失败并返回可重试错误，也可以迁移到新实例并重做 prefill；重做会增加 TTFT 和 GPU 负载。是否迁移取决于输入可重新获得、请求是否包含敏感数据、已输出 token 数和业务 deadline。</p>
 <p>如果服务支持 prefix cache 的持久化或跨实例共享，还要处理版本、拓扑、dtype、权限和损坏。跨节点传输 KV 可能比重新 prefill 更快，也可能因为网络拥塞更慢。DistServe 的 prefill/decode 分离说明，状态传输本身是新的系统边界，必须以 workload、网络和 SLO 证明收益 [4]。任何共享 cache 都要有校验、过期和安全隔离。</p>
-<h3 id="912-prefilldecode-disaggregation-的实现边界"><a class="header" href="#912-prefilldecode-disaggregation-的实现边界">9.12 Prefill/Decode Disaggregation 的实现边界</a></h3>
+<h2 id="912-prefilldecode-disaggregation-的实现边界"><a class="header" href="#912-prefilldecode-disaggregation-的实现边界">9.12 Prefill/Decode Disaggregation 的实现边界</a></h2>
 <h3 id="为什么分离"><a class="header" href="#为什么分离">为什么分离</a></h3>
 <p>prefill 偏计算，decode 偏内存带宽和长期状态；混合部署时，长 prompt 的突发会抢占 decode，decode 的长尾又会占用 prefill 的资源。DistServe 将二者放到不同资源池，允许分别扩容和优化 goodput [4]。分离不是免费的，它增加 KV 传输、请求协调、故障重试、路由和网络容量。</p>
 <p>是否分离取决于负载规模和请求分布。小规模、低并发或短输入 workload 可能无法摊平控制面和网络开销；输入长、输出长、SLO 分层明显的服务更可能受益。平台应通过混合部署基线、分离部署、不同网络带宽和故障注入比较真实 goodput，而不是只比较 GPU 数。</p>
@@ -326,7 +342,7 @@ goodput = successful_requests_within_SLO / wall_clock
 <h3 id="分离后的调度"><a class="header" href="#分离后的调度">分离后的调度</a></h3>
 <p>前端调度器需要同时选择 prefill pool 和 decode pool。选择 prefill 时看计算队列、输入长度、模型版本和网络路径；选择 decode 时看可用 KV、decode slot、输出 deadline 和租户。prefill 完成但 decode 没有空间时，不能无限堆积已产生的 KV；可以延迟 prefill、转回混合池或暂存到受控内存。</p>
 <p>这种调度本质上是一个有状态的流量分配问题。只按 GPU 空闲比例路由会忽略 cache 和传输；只按队列长度路由会把长请求集中到一处。路由决策要记录在 trace，便于分析某类请求的 TTFT 变差是因为 prefill、传输、decode 还是队列。</p>
-<h3 id="913-量化稀疏与低延迟-kernel-的验证"><a class="header" href="#913-量化稀疏与低延迟-kernel-的验证">9.13 量化、稀疏与低延迟 kernel 的验证</a></h3>
+<h2 id="913-量化稀疏与低延迟-kernel-的验证"><a class="header" href="#913-量化稀疏与低延迟-kernel-的验证">9.13 量化、稀疏与低延迟 kernel 的验证</a></h2>
 <h3 id="权重量化与-kv-量化"><a class="header" href="#权重量化与-kv-量化">权重量化与 KV 量化</a></h3>
 <p>权重量化主要减少模型权重占用和读取带宽，KV 量化主要减少长上下文内存。两者误差来源不同：权重量化影响所有层计算，KV 量化影响历史上下文表示。KV 量化可能让更高并发成为可能，却在长对话、检索上下文或代码任务上产生质量变化。评估应按上下文长度、语言、任务和输出长度分层。</p>
 <p>量化 scale、zero point、group size、校准数据和累加精度都需要写入制品 manifest。不同硬件可能使用不同 kernel，不能只在一种 GPU 上校验。若量化路径失败，回退到 FP16 可能导致显存不足；因此要预留清晰的降级资源或直接阻止不兼容模型进入该节点池。</p>
@@ -336,14 +352,14 @@ goodput = successful_requests_within_SLO / wall_clock
 <h3 id="静态图和动态请求"><a class="header" href="#静态图和动态请求">静态图和动态请求</a></h3>
 <p>CUDA Graph 适合重复执行相同 shape 和内存布局，动态请求需要 padding、bucket 或多图缓存。bucket 太少会产生 padding 浪费，太多会增加编译和缓存，图切换还可能带来同步。应根据真实长度分布选择 bucket，并设置图缓存上限。请求在 graph 中执行时，取消和异常需要安全退出点，不能直接释放仍被 graph 引用的 buffer。</p>
 <p>图缓存 key 不仅包括 batch 和 sequence length，还包括 dtype、模型版本、采样路径、量化、adapter 和设备。LoRA adapter 数量多时，为每个 adapter 编译图不可行，可以选择 eager、分组或只对高频 adapter 建图。发布新版本要原子切换图缓存，旧图在 drain 完成后清理。</p>
-<h3 id="914-多租户配额与成本治理"><a class="header" href="#914-多租户配额与成本治理">9.14 多租户、配额与成本治理</a></h3>
+<h2 id="914-多租户配额与成本治理"><a class="header" href="#914-多租户配额与成本治理">9.14 多租户、配额与成本治理</a></h2>
 <h3 id="租户级资源账本"><a class="header" href="#租户级资源账本">租户级资源账本</a></h3>
 <p>租户配额应覆盖请求数、输入 token、输出 token、KV block、并发模型、优先级、工具调用、cache 占用和预算。只限制 QPS 无法防止一个租户发送超长上下文；只限制 token 无法防止大量短请求占用连接和 CPU。计量系统要记录 accepted、rejected、queued、generated、cancelled 和 failed 的资源，明确是否计费。</p>
 <p>共享权重通常可以只读共享，adapter、KV、prefix cache、日志和工具状态则需要隔离。租户 id 不能只作为日志字段，还要进入 cache key、路由、凭证和访问控制。不同数据地域或合规等级的请求不能因为同一模型副本空闲而跨区域路由。权限检查应发生在 admission 和工具执行前两个阶段。</p>
 <h3 id="配额借用与公平"><a class="header" href="#配额借用与公平">配额借用与公平</a></h3>
 <p>固定配额容易产生碎片：某租户空闲时，其他租户却排队。可以允许短期借用空闲 token budget，但设置最大借用、归还优先级和高峰抢回。借用的资源要可追溯，避免月底账单无法解释。高优先级请求可以抢占排队中的低优先级请求，但不应粗暴杀死已经输出大量 token 的 decode，除非产品明确允许。</p>
 <p>公平调度还要避免通过拆分请求绕过配额。平台按 request id、parent task、tenant 和 operation 统计，Agent 的多步调用共享预算。超预算时返回结构化错误，让上层可以结束任务或转人工；不要默默降低安全检查、扩大重试或切换到未经评估的模型。</p>
-<h3 id="915-推理事故与恢复演练"><a class="header" href="#915-推理事故与恢复演练">9.15 推理事故与恢复演练</a></h3>
+<h2 id="915-推理事故与恢复演练"><a class="header" href="#915-推理事故与恢复演练">9.15 推理事故与恢复演练</a></h2>
 <h3 id="典型故障"><a class="header" href="#典型故障">典型故障</a></h3>
 <p>常见事故包括模型加载失败、权重损坏、tokenizer 不匹配、量化 kernel crash、KV OOM、GPU Xid、NCCL hang、节点网络故障、对象存储不可用、流式连接堆积和慢客户端。每种故障应定义检测信号、影响范围、自动动作、人工动作、恢复时间和是否丢失请求。把所有故障都归类为 5xx，会让容量、质量和数据泄露问题无法区分。</p>
 <h3 id="降级与恢复"><a class="header" href="#降级与恢复">降级与恢复</a></h3>
@@ -351,7 +367,7 @@ goodput = successful_requests_within_SLO / wall_clock
 <p>恢复后要检查 cache 是否释放、队列是否回落、p99 是否恢复、GPU 是否降频、工具状态是否一致、重复请求是否产生副作用。仅看到 Pod Running 不代表服务恢复。Dapper/OpenTelemetry trace 能帮助确认故障影响是否从网关传播到 engine 和下游 [20][21]。</p>
 <h3 id="演练设计"><a class="header" href="#演练设计">演练设计</a></h3>
 <p>每月可以执行一次小规模节点故障、一次 KV OOM、一次模型回滚和一次流式断开演练。注入动作应可撤销，先在影子流量或隔离租户验证，再进入生产候选池。演练结束保存请求样本摘要、指标、trace、资源释放、恢复时间和人工操作。失败的演练要转为发布门禁，而不是只写在复盘文档中。</p>
-<h3 id="916-推理-infra-的收束"><a class="header" href="#916-推理-infra-的收束">9.16 推理 Infra 的收束</a></h3>
+<h2 id="916-推理-infra-的收束"><a class="header" href="#916-推理-infra-的收束">9.16 推理 Infra 的收束</a></h2>
 <p>推理服务的工程边界可以归纳为四条：第一，模型制品、tokenizer、模板、engine 和安全策略必须版本化；第二，prefill、decode、KV、batch 和网络必须作为资源被测量和调度；第三，取消、重试、流式和工具调用必须有明确状态与幂等语义；第四，SLO、质量、成本、隔离、灰度和回滚必须形成同一条证据链。只优化某个 kernel 或某个吞吐数字，都不足以证明服务成熟。</p>
 <p>对于后端工程师，最值得迁移的是状态机、租约、背压、幂等、容量模型和故障演练；最需要补齐的是 GPU 内存、KV layout、collective、kernel 与生成质量之间的联系。真正生产级的 serving engine 不只是把模型 forward 封装为 RPC，而是管理一组动态请求、共享中间状态和有限硬件资源，并在任何版本、流量和故障变化下保持可解释。</p>
 <p>下一章将从“请求已经在线运行”转向“如何知道模型是否仍然正确”：数据治理、离线评估、回归集、在线反馈和质量门禁会与本章的 trace、usage、版本和成本数据连接，形成从数据到生产的评估闭环。</p>
