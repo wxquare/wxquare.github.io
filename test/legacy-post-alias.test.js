@@ -46,12 +46,12 @@ const expectedBookAliases = [
 ];
 
 const expectedArchivedTvmAliases = [
-  ['/2020/08/13/AI/tvm/TVM-GEMM-CPU/', '/2026/09/22/AI/tvm/tvm-operator-optimization-practice/'],
-  ['/2020/08/13/AI/tvm/TVM-Graph-optimization/', '/2026/09/22/AI/tvm/tvm-operator-optimization-practice/'],
-  ['/2020/08/13/AI/tvm/TVM-code-generation/', '/2026/09/22/AI/tvm/tvm-operator-optimization-practice/'],
-  ['/2020/08/13/AI/tvm/TVM-hello/', '/2026/09/22/AI/tvm/tvm-operator-optimization-practice/'],
-  ['/2020/08/13/AI/tvm/TVM-quantization/', '/2026/09/22/AI/tvm/tvm-operator-optimization-practice/'],
-  ['/2020/08/13/AI/tvm/TVM-tutorial/', '/2026/09/22/AI/tvm/tvm-operator-optimization-practice/']
+  ['/2020/08/13/AI/tvm/TVM-GEMM-CPU/', '/2026/09/22/AI/tvm-operator-optimization-practice/'],
+  ['/2020/08/13/AI/tvm/TVM-Graph-optimization/', '/2026/09/22/AI/tvm-operator-optimization-practice/'],
+  ['/2020/08/13/AI/tvm/TVM-code-generation/', '/2026/09/22/AI/tvm-operator-optimization-practice/'],
+  ['/2020/08/13/AI/tvm/TVM-hello/', '/2026/09/22/AI/tvm-operator-optimization-practice/'],
+  ['/2020/08/13/AI/tvm/TVM-quantization/', '/2026/09/22/AI/tvm-operator-optimization-practice/'],
+  ['/2020/08/13/AI/tvm/TVM-tutorial/', '/2026/09/22/AI/tvm-operator-optimization-practice/']
 ];
 
 function mockConfig() {

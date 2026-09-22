@@ -36,12 +36,12 @@ const aliases = [
   { path: '/system-design/42-acc-clean-code/', slug: 'system-design/42-acc-clean-code' },
   { path: '/system-design/43-acc-ddd-notes/', slug: 'system-design/43-acc-ddd-notes' },
   { path: '/system-design/44-acc-code-review/', slug: 'system-design/44-acc-code-review' }
-  ,{ path: '/2020/08/13/AI/tvm/TVM-GEMM-CPU/', target: '/2026/09/22/AI/tvm/tvm-operator-optimization-practice/' }
-  ,{ path: '/2020/08/13/AI/tvm/TVM-Graph-optimization/', target: '/2026/09/22/AI/tvm/tvm-operator-optimization-practice/' }
-  ,{ path: '/2020/08/13/AI/tvm/TVM-code-generation/', target: '/2026/09/22/AI/tvm/tvm-operator-optimization-practice/' }
-  ,{ path: '/2020/08/13/AI/tvm/TVM-hello/', target: '/2026/09/22/AI/tvm/tvm-operator-optimization-practice/' }
-  ,{ path: '/2020/08/13/AI/tvm/TVM-quantization/', target: '/2026/09/22/AI/tvm/tvm-operator-optimization-practice/' }
-  ,{ path: '/2020/08/13/AI/tvm/TVM-tutorial/', target: '/2026/09/22/AI/tvm/tvm-operator-optimization-practice/' }
+  ,{ path: '/2020/08/13/AI/tvm/TVM-GEMM-CPU/', target: '/2026/09/22/AI/tvm-operator-optimization-practice/' }
+  ,{ path: '/2020/08/13/AI/tvm/TVM-Graph-optimization/', target: '/2026/09/22/AI/tvm-operator-optimization-practice/' }
+  ,{ path: '/2020/08/13/AI/tvm/TVM-code-generation/', target: '/2026/09/22/AI/tvm-operator-optimization-practice/' }
+  ,{ path: '/2020/08/13/AI/tvm/TVM-hello/', target: '/2026/09/22/AI/tvm-operator-optimization-practice/' }
+  ,{ path: '/2020/08/13/AI/tvm/TVM-quantization/', target: '/2026/09/22/AI/tvm-operator-optimization-practice/' }
+  ,{ path: '/2020/08/13/AI/tvm/TVM-tutorial/', target: '/2026/09/22/AI/tvm-operator-optimization-practice/' }
 ];
 
 function escapeAttribute(value) {
