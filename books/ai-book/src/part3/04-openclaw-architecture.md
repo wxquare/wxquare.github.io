@@ -4,7 +4,7 @@
 
 ## 引言
 
-第 16 章已经分析了 LangGraph、AutoGen、MCP 这类 Agent 平台与编排框架；第 18 章分析了 AI Coding Agent，第 19 章进一步拆解了 Pi 这类终端原生 Coding Agent Runtime。本章继续分析一个更贴近个人生产力场景的成熟系统：OpenClaw。
+第 21 章已经分析了 LangGraph、AutoGen、MCP 这类 Agent 平台与编排框架；第 23 章分析了 AI Coding Agent，第 25 章进一步拆解了 Pi 这类终端原生 Coding Agent Runtime。本章继续分析一个更贴近个人生产力场景的成熟系统：OpenClaw。
 
 OpenClaw 的官方定位是个人 AI 助手。它运行在用户自己的设备或服务器上，通过一个长期运行的 Gateway 接入 WhatsApp、Telegram、Slack、Discord、Signal、iMessage、WebChat 等渠道，并把这些消息路由给 Agent Runtime。它还提供工具、技能、插件、会话、上下文、沙箱、移动节点和控制台等能力。
 
@@ -161,7 +161,7 @@ OpenClaw 最值得学习的地方，是它没有把所有东西堆进 Agent Loop
 
 ### 与第13章组件地图的对应关系
 
-OpenClaw 的特点是 Gateway 很强。它不是只做一个 Agent Loop，而是先把多渠道入口、身份绑定、队列、会话、上下文、工具、插件和执行边界组织起来。用第 5 章组件地图来看，OpenClaw 对“入口路由、人类交互、上下文、工具扩展、权限边界”覆盖较完整，对“离线 Eval Harness、模型路由、长期学习闭环”的公开实现则相对弱一些。
+OpenClaw 的特点是 Gateway 很强。它不是只做一个 Agent Loop，而是先把多渠道入口、身份绑定、队列、会话、上下文、工具、插件和执行边界组织起来。用第 13 章组件地图来看，OpenClaw 对“入口路由、人类交互、上下文、工具扩展、权限边界”覆盖较完整，对“离线 Eval Harness、模型路由、长期学习闭环”的公开实现则相对弱一些。
 
 | 第13章组件 | OpenClaw 中的实现方式 | 实现状态与差异 |
 |:---|:---|:---|
@@ -179,7 +179,7 @@ OpenClaw 的特点是 Gateway 很强。它不是只做一个 Agent Loop，而是
 | Review Surface、Trace & Audit | WebChat、Control UI、事件流、消息回执、会话 transcript | 强实现；用户交互和接管体验是 OpenClaw 的核心优势 |
 | Learning Loop | Skill、Plugin、Memory、用户反馈可沉淀经验 | 部分实现；更像手工/半自动沉淀，不应自动污染长期记忆和插件生态 |
 
-所以 OpenClaw 与 Pi 的差异很清楚：Pi 先把可嵌入 Runtime 做薄，OpenClaw 则把 Runtime 放进一个多入口个人 Agent Gateway 里。它更接近第 5 章里的“Entry Plane + Human Control Plane + Capability Plane”组合样板。
+所以 OpenClaw 与 Pi 的差异很清楚：Pi 先把可嵌入 Runtime 做薄，OpenClaw 则把 Runtime 放进一个多入口个人 Agent Gateway 里。它更接近第 13 章里的“Entry Plane + Human Control Plane + Capability Plane”组合样板。
 
 ---
 
@@ -359,7 +359,7 @@ sequenceDiagram
     Gateway->>Channel: chunked outbound reply
 ```
 
-这个流程可以和第 13 章的 Coding Agent Loop 对照：
+这个流程可以和第 23 章的 Coding Agent Loop 对照：
 
 | Coding Agent | OpenClaw |
 |:---|:---|
@@ -410,7 +410,7 @@ Retrieved Context  -> context engine / memory / search results
 Compressed Context -> compaction summary
 ```
 
-这和第 3 章 Context Engineering 的原则一致：上下文不是“把所有信息塞进去”，而是按稳定性、时效性、权限和预算分层组织。
+这和第 15 章 Context Engineering 的原则一致：上下文不是“把所有信息塞进去”，而是按稳定性、时效性、权限和预算分层组织。
 
 ---
 
@@ -514,7 +514,7 @@ OpenClaw 支持多个 skill 来源，并有明确优先级：
 
 这个优先级很有工程味道：workspace 规则最具体，所以优先；用户个人技能次之；系统内置技能最后兜底。
 
-从第 6 章的抽象看，OpenClaw 的 Skill 实现抓住了三个关键点。
+从第 18 章的抽象看，OpenClaw 的 Skill 实现抓住了三个关键点。
 
 第一，**Skill 是上下文，不是执行权限**。`SKILL.md` 可以教 Agent 如何做事，但它本身不应该绕过 tools allow/deny、sandbox、approval gate。这样即使某个 Skill 写了高风险步骤，真正执行时仍然会被 Tool Policy 拦住。
 
@@ -759,7 +759,7 @@ OpenClaw 的 sandbox 可以控制 agent 工具看到的 workspace：
 | ro | 只读挂载 agent workspace | 分析、问答、review |
 | rw | 读写挂载 workspace | 编码、自动修复 |
 
-这和第 13 章 Coding Agent 的权限模型一致：先从 read-only 开始，再逐步开放 write 和 exec。
+这和第 23 章 Coding Agent 的权限模型一致：先从 read-only 开始，再逐步开放 write 和 exec。
 
 ### 高风险工具
 
@@ -1110,7 +1110,7 @@ OpenClaw 值得分析，不是因为它支持很多聊天渠道，而是因为�
 
 > 不要把 Agent 做成一个会调用工具的聊天函数，而要把它做成一个有控制平面、会话状态、上下文预算、工具权限、事件流和安全边界的运行系统。
 
-如果第 13 章的 Coding Agent 代表“AI 如何参与软件工程”，OpenClaw 代表的则是另一个方向：**AI 如何成为长期在线、跨渠道、可扩展、可治理的个人助手基础设施。**
+如果第 23 章的 Coding Agent 代表“AI 如何参与软件工程”，OpenClaw 代表的则是另一个方向：**AI 如何成为长期在线、跨渠道、可扩展、可治理的个人助手基础设施。**
 
 ---
 

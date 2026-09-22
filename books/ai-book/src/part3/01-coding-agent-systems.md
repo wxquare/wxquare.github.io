@@ -327,7 +327,7 @@ Agent 执行
 
 ### 与第13章组件地图的对应关系
 
-第 5 章把生产级 Agent Runtime 拆成 13 个核心组件。放到 Coding Agent 场景里，这些组件会更具体：入口不再只是聊天，而是 issue、diff、终端、IDE、PR、CI；上下文不再只是文档，而是代码仓库、Git 状态、测试输出、项目规则和历史变更。
+第 13 章把生产级 Agent Runtime 拆成 13 个核心组件。放到 Coding Agent 场景里，这些组件会更具体：入口不再只是聊天，而是 issue、diff、终端、IDE、PR、CI；上下文不再只是文档，而是代码仓库、Git 状态、测试输出、项目规则和历史变更。
 
 | 第13章组件 | Coding Agent 中的典型实现 | Claude Code / Cursor / Codex 的差异 |
 |:---|:---|:---|
@@ -345,7 +345,7 @@ Agent 执行
 | Review Surface、Trace & Audit | diff、patch、PR、commit message、summary、tool trace、失败原因 | IDE review 最直观，终端 review 依赖 diff/summary，云端 review 依赖 PR、CI 和任务 trace |
 | Learning Loop | 从失败任务、review comment、测试失败和用户反馈沉淀规则、Skill、Eval case | 大多数产品都有部分闭环，但“自动学习”通常要受 owner review 和 release gate 约束 |
 
-这张表说明一个关键点：Coding Agent 的成熟度不取决于它会不会写代码，而取决于它能否把代码修改放进**任务契约、上下文治理、权限裁决、验证门禁和审查表面**里。第 19 章会把这些组件落成一个最小可运行版本。
+这张表说明一个关键点：Coding Agent 的成熟度不取决于它会不会写代码，而取决于它能否把代码修改放进**任务契约、上下文治理、权限裁决、验证门禁和审查表面**里。第 29 章会把这些组件落成一个最小可运行版本。
 
 ### 23.2.3 Coding Agent 的实现分层
 

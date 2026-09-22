@@ -508,54 +508,54 @@ temperature 大于零时生成具有随机性，服务端可能使用不同 kern
 
 ## 参考资料
 
-[1] Zaharia, M., et al. *Resilient Distributed Datasets*. NSDI, 2012. https://www.usenix.org/legacy/events/nsdi12/tech/full_papers/Zaharia_new.pdf
+[1] Zaharia, M., et al. *Resilient Distributed Datasets*. NSDI, 2012. https://www.usenix.org/legacy/events/nsdi12/tech/full_papers/Zaharia_new.pdf 访问日期：2026-09-22
 
-[2] Dean, J., & Ghemawat, S. *MapReduce: Simplified Data Processing on Large Clusters*. OSDI, 2004. https://research.google/pubs/mapreduce-simplified-data-processing-on-large-clusters/
+[2] Dean, J., & Ghemawat, S. *MapReduce: Simplified Data Processing on Large Clusters*. OSDI, 2004. https://research.google/pubs/mapreduce-simplified-data-processing-on-large-clusters/ 访问日期：2026-09-22
 
-[3] Apache Spark. *Spark Documentation*. https://spark.apache.org/docs/latest/
+[3] Apache Spark. *Spark Documentation*. https://spark.apache.org/docs/latest/ 访问日期：2026-09-22
 
-[4] lakeFS. *lakeFS Documentation*. https://docs.lakefs.io/
+[4] lakeFS. *lakeFS Documentation*. https://docs.lakefs.io/ 访问日期：2026-09-22
 
-[5] Delta Lake. *Delta Lake Documentation*. https://delta.io/
+[5] Delta Lake. *Delta Lake Documentation*. https://delta.io/ 访问日期：2026-09-22
 
-[6] DVC. *DVC Documentation*. https://dvc.org/doc
+[6] DVC. *DVC Documentation*. https://dvc.org/doc 访问日期：2026-09-22
 
-[7] TensorFlow. *TensorFlow Data Validation*. https://www.tensorflow.org/tfx/guide/tfdv
+[7] TensorFlow. *TensorFlow Data Validation*. https://www.tensorflow.org/tfx/guide/tfdv 访问日期：2026-09-22
 
-[8] Great Expectations. *Documentation*. https://docs.greatexpectations.io/
+[8] Great Expectations. *Documentation*. https://docs.greatexpectations.io/ 访问日期：2026-09-22
 
-[9] Hugging Face. *Datasets Documentation*. https://huggingface.co/docs/datasets/
+[9] Hugging Face. *Datasets Documentation*. https://huggingface.co/docs/datasets/ 访问日期：2026-09-22
 
-[10] Gao, L., et al. *The Pile*. 2020. https://arxiv.org/abs/2101.00027
+[10] Gao, L., et al. *The Pile*. 2020. https://arxiv.org/abs/2101.00027 访问日期：2026-09-22
 
-[11] Dubey, A., et al. *The Llama 3 Herd of Models*. 2024. https://arxiv.org/abs/2407.21783
+[11] Dubey, A., et al. *The Llama 3 Herd of Models*. 2024. https://arxiv.org/abs/2407.21783 访问日期：2026-09-22
 
-[12] Liang, P., et al. *Holistic Evaluation of Language Models (HELM)*. 2022. https://arxiv.org/abs/2211.09110
+[12] Liang, P., et al. *Holistic Evaluation of Language Models (HELM)*. 2022. https://arxiv.org/abs/2211.09110 访问日期：2026-09-22
 
-[13] Srivastava, A., et al. *BIG-bench*. 2022. https://arxiv.org/abs/2206.04615
+[13] Srivastava, A., et al. *BIG-bench*. 2022. https://arxiv.org/abs/2206.04615 访问日期：2026-09-22
 
-[14] Hendrycks, D., et al. *Measuring Massive Multitask Language Understanding*. 2020. https://arxiv.org/abs/2009.03300
+[14] Hendrycks, D., et al. *Measuring Massive Multitask Language Understanding*. 2020. https://arxiv.org/abs/2009.03300 访问日期：2026-09-22
 
-[15] Liu, Y., et al. *G-Eval*. 2023. https://arxiv.org/abs/2303.16634
+[15] Liu, Y., et al. *G-Eval*. 2023. https://arxiv.org/abs/2303.16634 访问日期：2026-09-22
 
-[16] Zheng, L., et al. *Judging LLM-as-a-Judge with MT-Bench*. 2023. https://arxiv.org/abs/2306.05685
+[16] Zheng, L., et al. *Judging LLM-as-a-Judge with MT-Bench*. 2023. https://arxiv.org/abs/2306.05685 访问日期：2026-09-22
 
-[17] RAGAS. *Documentation*. https://docs.ragas.io/
+[17] RAGAS. *Documentation*. https://docs.ragas.io/ 访问日期：2026-09-22
 
-[18] OpenAI. *OpenAI Evals*. https://github.com/openai/evals
+[18] OpenAI. *OpenAI Evals*. https://github.com/openai/evals 访问日期：2026-09-22
 
-[19] MLflow. *ML Tracking Documentation*. https://mlflow.org/docs/latest/ml/tracking/
+[19] MLflow. *ML Tracking Documentation*. https://mlflow.org/docs/latest/ml/tracking/ 访问日期：2026-09-22
 
-[20] Weights & Biases. *Documentation*. https://docs.wandb.ai/
+[20] Weights & Biases. *Documentation*. https://docs.wandb.ai/ 访问日期：2026-09-22
 
-[21] Prometheus Authors. *Prometheus Documentation*. https://prometheus.io/docs/introduction/overview/
+[21] Prometheus Authors. *Prometheus Documentation*. https://prometheus.io/docs/introduction/overview/ 访问日期：2026-09-22
 
-[22] OpenTelemetry Authors. *OpenTelemetry Documentation*. https://opentelemetry.io/docs/
+[22] OpenTelemetry Authors. *OpenTelemetry Documentation*. https://opentelemetry.io/docs/ 访问日期：2026-09-22
 
-[23] Sigelman, B. H., et al. *Dapper*. 2010. https://research.google/pubs/dapper-a-large-scale-distributed-systems-tracing-infrastructure/
+[23] Sigelman, B. H., et al. *Dapper*. 2010. https://research.google/pubs/dapper-a-large-scale-distributed-systems-tracing-infrastructure/ 访问日期：2026-09-22
 
-[24] 周志华：《机器学习》。清华大学出版社，2016。https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm
+[24] 周志华：《机器学习》。清华大学出版社，2016。https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm 访问日期：2026-09-22
 
-[25] 邱锡鹏：《神经网络与深度学习》。https://nndl.github.io/
+[25] 邱锡鹏：《神经网络与深度学习》。https://nndl.github.io/ 访问日期：2026-09-22
 
-[26] 张量网络与深度学习：《动手学深度学习》。https://zh.d2l.ai/
+[26] 张量网络与深度学习：《动手学深度学习》。https://zh.d2l.ai/ 访问日期：2026-09-22

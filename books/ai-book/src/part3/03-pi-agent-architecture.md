@@ -4,7 +4,7 @@
 
 ## 引言
 
-第 13 章已经从 Claude Code、Cursor、Codex 这类成熟产品出发，拆解了 AI Coding Agent 的系统设计模式。本章继续往下挖一层：如果不从“产品界面”看，而是从“Agent Runtime”看，一个终端原生 Coding Agent 应该怎样组织？
+第 23 章已经从 Claude Code、Cursor、Codex 这类成熟产品出发，拆解了 AI Coding Agent 的系统设计模式。本章继续往下挖一层：如果不从“产品界面”看，而是从“Agent Runtime”看，一个终端原生 Coding Agent 应该怎样组织？
 
 Pi 是一个很好的观察对象。它的官方定位是 minimal terminal coding harness：核心保持很小，通过 TypeScript extensions、skills、prompt templates、themes、packages 和 SDK 扩展能力。它可以直接作为 CLI 使用，也可以通过 JSON / RPC / SDK 被其他系统集成。OpenClaw 的 Agent Runtime 就是一个典型例子：OpenClaw 没有把 Pi 当作子进程启动，而是通过 SDK 直接创建 `AgentSession`，再把自己的消息渠道、工具、沙箱和会话管理接进去。
 
@@ -192,7 +192,7 @@ Pi 最值得学习的地方，是它把“终端体验”和“Agent Runtime”�
 
 ### 与第13章组件地图的对应关系
 
-Pi 的价值在于把终端原生 Coding Agent 拆成可嵌入 Runtime。用第 5 章的组件地图来看，Pi 对“入口、上下文、工具、扩展、会话、事件流”实现得比较强，对“企业级审批、长期学习闭环、离线 Eval 平台”则更多留给上层系统或嵌入方补齐。
+Pi 的价值在于把终端原生 Coding Agent 拆成可嵌入 Runtime。用第 13 章的组件地图来看，Pi 对“入口、上下文、工具、扩展、会话、事件流”实现得比较强，对“企业级审批、长期学习闭环、离线 Eval 平台”则更多留给上层系统或嵌入方补齐。
 
 | 第13章组件 | Pi 中的实现方式 | 实现状态与差异 |
 |:---|:---|:---|
@@ -210,7 +210,7 @@ Pi 的价值在于把终端原生 Coding Agent 拆成可嵌入 Runtime。用第 
 | Review Surface、Trace & Audit | TUI、JSON event stream、RPC 输出、session 文件 | 强在 trace 事件，弱在企业审计；适合开发者可观测，不等于合规审计 |
 | Learning Loop | Skills、Prompt Templates、Packages 可沉淀经验 | 部分实现；强调可扩展资产，自动学习和 owner review 流程不是内核职责 |
 
-因此，Pi 更像一个“终端原生 Agent Runtime 内核”，而不是完整企业 Agent 平台。它把第 5 章中的 Runtime 关键边界做薄、做清楚，让 OpenClaw 这类上层系统可以复用它，再补 Gateway、权限、长期记忆、审批和产品化交互。
+因此，Pi 更像一个“终端原生 Agent Runtime 内核”，而不是完整企业 Agent 平台。它把第 13 章中的 Runtime 关键边界做薄、做清楚，让 OpenClaw 这类上层系统可以复用它，再补 Gateway、权限、长期记忆、审批和产品化交互。
 
 ---
 
@@ -387,13 +387,13 @@ sequenceDiagram
 2. **外部集成**：SDK、RPC、JSON mode 可以把事件交给上层系统。
 3. **生产诊断**：失败后能看到模型什么时候决定调用什么工具、工具返回了什么、压缩发生在哪里。
 
-第 19 章实现可观测 Coding Agent lab 时，也会复用这个思想：不要只存最终回答，要记录每一轮决策和工具执行。
+第 29 章实现可观测 Coding Agent lab 时，也会复用这个思想：不要只存最终回答，要记录每一轮决策和工具执行。
 
 ---
 
 ## 25.5 从 `~/.pi/agent` 反推终端原生 Runtime
 
-第 13 章我们已经从 `~/.codex` 和 `~/.claude` 目录反推过终端原生 Agent Runtime。Pi 的目录约定也能透露出类似架构。
+第 23 章我们已经从 `~/.codex` 和 `~/.claude` 目录反推过终端原生 Agent Runtime。Pi 的目录约定也能透露出类似架构。
 
 Pi 的全局配置目录默认是：
 
@@ -687,7 +687,7 @@ Execution Plane:
   shell, test, package manager, external tools
 ```
 
-第 19 章的 lab 里会把 `auto_edit` 和 `auto_shell` 分开，也是同一个思想：文件编辑和命令执行的风险不同，审批策略也应该不同。
+第 29 章的 lab 里会把 `auto_edit` 和 `auto_shell` 分开，也是同一个思想：文件编辑和命令执行的风险不同，审批策略也应该不同。
 
 ### Tool Result 也是上下文
 
@@ -895,7 +895,7 @@ skill-name/
 - 输出格式是什么；
 - 常见错误如何处理。
 
-这和第 6 章的 Skills 设计完全一致：Skill 是可复用程序性记忆，不是长 prompt。
+这和第 18 章的 Skills 设计完全一致：Skill 是可复用程序性记忆，不是长 prompt。
 
 ### Prompt Templates：命令化入口
 
@@ -1285,7 +1285,7 @@ Pi owns:
 
 ## 25.14 Pi 与 Claude Code、Codex、Cursor 的取舍
 
-第 13 章已经详细分析了 Claude Code、Cursor 和 Codex。把 Pi 放进这张图里，可以看得更清楚。
+第 23 章已经详细分析了 Claude Code、Cursor 和 Codex。把 Pi 放进这张图里，可以看得更清楚。
 
 | 系统 | 核心入口 | 主要优势 | 典型边界 |
 |:---|:---|:---|:---|
@@ -1571,7 +1571,7 @@ type ExtensionApi = {
 - 是否评估上下文压缩后的性能？
 - 是否能重放失败 session？
 
-这张清单也是第 19 章 lab 走向生产级的路线图。第 19 章会实现的是最小闭环；Pi 展示的是这个闭环如何扩展成一个可定制的 Runtime。
+这张清单也是第 29 章 lab 走向生产级的路线图。第 29 章会实现的是最小闭环；Pi 展示的是这个闭环如何扩展成一个可定制的 Runtime。
 
 ---
 
@@ -1737,7 +1737,7 @@ Pi 值得单独作为成熟系统分析，不是因为它功能最多，而是�
 - 它用 Session Tree 承载真实开发中的试错路径；
 - 它用 SDK 让其他系统可以嵌入 Agent 能力。
 
-如果第 13 章回答的是“成熟 Coding Agent 产品如何组织工程工作流”，本章回答的就是“一个可嵌入、可扩展、可定制的 Coding Agent Runtime 应该长什么样”。下一章的 OpenClaw 会进一步展示：当一个 Personal Agent Gateway 需要 Agent Core 时，为什么可以把 Pi 嵌入进去，而不是重新实现一套 Coding Agent。
+如果第 23 章回答的是“成熟 Coding Agent 产品如何组织工程工作流”，本章回答的就是“一个可嵌入、可扩展、可定制的 Coding Agent Runtime 应该长什么样”。下一章的 OpenClaw 会进一步展示：当一个 Personal Agent Gateway 需要 Agent Core 时，为什么可以把 Pi 嵌入进去，而不是重新实现一套 Coding Agent。
 
 ---
 

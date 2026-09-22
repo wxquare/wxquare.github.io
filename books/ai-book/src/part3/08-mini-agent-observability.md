@@ -4,7 +4,7 @@
 
 ## 引言
 
-前面的章节已经讨论了 Prompt、Context、Harness、Tool Runtime、Workflow、RAG、Memory、Evals、Guardrails 和可观测性。第 13 章从成熟产品角度拆解了 Claude Code、Cursor、Codex 这类 AI Coding Agent 的系统设计，第 14 章又从 Pi 出发分析了终端原生 Coding Agent Runtime 的上下文、工具、扩展和 SDK 边界。
+前面的章节已经讨论了 Prompt、Context、Harness、Tool Runtime、Workflow、RAG、Memory、Evals、Guardrails 和可观测性。第 23 章从成熟产品角度拆解了 Claude Code、Cursor、Codex 这类 AI Coding Agent 的系统设计，第 25 章又从 Pi 出发分析了终端原生 Coding Agent Runtime 的上下文、工具、扩展和 SDK 边界。
 
 本章把这些概念压缩进一个**讲解性案例**：一个最小但完整的 Coding Agent。本文不附带配套源码、可执行项目或配置模板；其中的模块名、目录名、配置和代码片段都用于说明设计边界，而不是运行说明。
 
@@ -718,7 +718,7 @@ eval_case:
     - final_answer_has_evidence
 ```
 
-这就是第 17 章生产治理控制面在最小 Coding Agent 里的落点：Trace Writer 负责留下事实，Eval Runner 和 Release Gate 负责让旧失败不能静默复发。
+这就是第 22 章生产治理控制面在最小 Coding Agent 里的落点：Trace Writer 负责留下事实，Eval Runner 和 Release Gate 负责让旧失败不能静默复发。
 
 ---
 
@@ -1218,7 +1218,7 @@ Runtime 负责做 policy check、路径沙箱、工具执行、trace 写入和 d
 
 > 生产级 Coding Agent 不是“一个会写代码的模型”，而是一个围绕模型建立的可控执行系统。
 
-如果第 13 章回答的是“成熟 Coding Agent 产品为什么这样设计”，第 14 章回答的是“可嵌入 Coding Agent Runtime 应该长什么样”，本章回答的就是“如何理解并设计这个 Runtime 的最小闭环”。
+如果第 23 章回答的是“成熟 Coding Agent 产品为什么这样设计”，第 25 章回答的是“可嵌入 Coding Agent Runtime 应该长什么样”，本章回答的就是“如何理解并设计这个 Runtime 的最小闭环”。
 
 ---
 

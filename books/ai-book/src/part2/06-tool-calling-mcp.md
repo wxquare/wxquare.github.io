@@ -18,7 +18,7 @@
 
 Tool Calling 解决的是“Agent 如何行动”。Skills 解决的是“Agent 如何复用做事方法”。MCP（Model Context Protocol）解决的是“外部能力如何以标准协议暴露给 Agent”。三者不是替代关系，而是同一个工具系统里的不同层级。
 
-本章按照第 5 章建立的 Agent Runtime 总图继续展开。6.1 先定义 Tool Calling 的工程边界，6.2 讲工具契约，6.3 讲 Tool Runtime，6.4 讲 Skills，6.5 集中讲 MCP，6.6 讲 Sandbox 与权限边界，6.7 讲工具编排，6.8 用告警诊断案例串起来，6.9 给出设计检查清单。
+本章按照第 13 章建立的 Agent Runtime 总图继续展开。18.1 先定义 Tool Calling 的工程边界，18.2 讲工具契约，18.3 讲 Tool Runtime，18.4 讲 Skills，18.5 集中讲 MCP，18.6 讲 Sandbox 与权限边界，18.7 讲工具编排，18.8 用告警诊断案例串起来，18.9 给出设计检查清单。
 
 ---
 

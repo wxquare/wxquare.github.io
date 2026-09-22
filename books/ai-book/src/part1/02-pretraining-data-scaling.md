@@ -284,60 +284,59 @@ Base model 评估关注语言建模和潜在能力；SFT、偏好优化和推理
 
 ## 参考资料
 
-[1] Bengio, Y., Ducharme, R., Vincent, P., & Jauvin, C. *A Neural Probabilistic Language Model*. Journal of Machine Learning Research, 2003. https://www.jmlr.org/papers/v3/bengio03a.html
+[1] Bengio, Y., Ducharme, R., Vincent, P., & Jauvin, C. *A Neural Probabilistic Language Model*. Journal of Machine Learning Research, 2003. https://www.jmlr.org/papers/v3/bengio03a.html 访问日期：2026-09-22
 
-[2] Mikolov, T., Chen, K., Corrado, G., & Dean, J. *Efficient Estimation of Word Representations in Vector Space*. arXiv:1301.3781, 2013. https://arxiv.org/abs/1301.3781
+[2] Mikolov, T., Chen, K., Corrado, G., & Dean, J. *Efficient Estimation of Word Representations in Vector Space*. arXiv:1301.3781, 2013. https://arxiv.org/abs/1301.3781 访问日期：2026-09-22
 
-[3] Sutskever, I., Vinyals, O., & Le, Q. V. *Sequence to Sequence Learning with Neural Networks*. NeurIPS, 2014. https://arxiv.org/abs/1409.3215
+[3] Sutskever, I., Vinyals, O., & Le, Q. V. *Sequence to Sequence Learning with Neural Networks*. NeurIPS, 2014. https://arxiv.org/abs/1409.3215 访问日期：2026-09-22
 
-[4] Vaswani, A., et al. *Attention Is All You Need*. NeurIPS, 2017. https://arxiv.org/abs/1706.03762
+[4] Vaswani, A., et al. *Attention Is All You Need*. NeurIPS, 2017. https://arxiv.org/abs/1706.03762 访问日期：2026-09-22
 
-[5] Radford, A., et al. *Improving Language Understanding by Generative Pre-Training*. OpenAI, 2018. https://cdn.openai.com/research-covers/language-unsupervised/language_understanding_paper.pdf
+[5] Radford, A., et al. *Improving Language Understanding by Generative Pre-Training*. OpenAI, 2018. https://cdn.openai.com/research-covers/language-unsupervised/language_understanding_paper.pdf 访问日期：2026-09-22
 
-[6] Devlin, J., Chang, M.-W., Lee, K., & Toutanova, K. *BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding*. NAACL, 2019. https://arxiv.org/abs/1810.04805
+[6] Devlin, J., Chang, M.-W., Lee, K., & Toutanova, K. *BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding*. NAACL, 2019. https://arxiv.org/abs/1810.04805 访问日期：2026-09-22
 
-[7] Raffel, C., et al. *Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer*. JMLR, 2020. https://www.jmlr.org/papers/v21/20-074.html
+[7] Raffel, C., et al. *Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer*. JMLR, 2020. https://www.jmlr.org/papers/v21/20-074.html 访问日期：2026-09-22
 
-[8] Brown, T. B., et al. *Language Models are Few-Shot Learners*. NeurIPS, 2020. https://arxiv.org/abs/2005.14165
+[8] Brown, T. B., et al. *Language Models are Few-Shot Learners*. NeurIPS, 2020. https://arxiv.org/abs/2005.14165 访问日期：2026-09-22
 
-[9] Kaplan, J., et al. *Scaling Laws for Neural Language Models*. arXiv:2001.08361, 2020. https://arxiv.org/abs/2001.08361
+[9] Kaplan, J., et al. *Scaling Laws for Neural Language Models*. arXiv:2001.08361, 2020. https://arxiv.org/abs/2001.08361 访问日期：2026-09-22
 
-[10] Hoffmann, J., et al. *Training Compute-Optimal Large Language Models*. NeurIPS, 2022. https://arxiv.org/abs/2203.15556
+[10] Hoffmann, J., et al. *Training Compute-Optimal Large Language Models*. NeurIPS, 2022. https://arxiv.org/abs/2203.15556 访问日期：2026-09-22
 
-[11] Touvron, H., et al. *LLaMA: Open and Efficient Foundation Language Models*. arXiv:2302.13971, 2023. https://arxiv.org/abs/2302.13971
+[11] Touvron, H., et al. *LLaMA: Open and Efficient Foundation Language Models*. arXiv:2302.13971, 2023. https://arxiv.org/abs/2302.13971 访问日期：2026-09-22
 
-[12] Dubey, A., et al. *The Llama 3 Herd of Models*. arXiv:2407.21783, 2024. https://arxiv.org/abs/2407.21783
+[12] Dubey, A., et al. *The Llama 3 Herd of Models*. arXiv:2407.21783, 2024. https://arxiv.org/abs/2407.21783 访问日期：2026-09-22
 
-[13] Bai, J., et al. *Qwen Technical Report*. arXiv:2309.16692, 2023. https://arxiv.org/abs/2309.16692
+[13] Bai, J., et al. *Qwen Technical Report*. arXiv:2309.16692, 2023. https://arxiv.org/abs/2309.16692 访问日期：2026-09-22
 
-[14] InternLM Team. *InternLM: A New Language Model with Extended Training and Evaluation*. arXiv:2401.05917, 2023. https://arxiv.org/abs/2401.05917
+[14] InternLM Team. *InternLM: A New Language Model with Extended Training and Evaluation*. arXiv:2401.05917, 2023. https://arxiv.org/abs/2401.05917 访问日期：2026-09-22
 
-[15] Raffel, C., et al. *Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer*, data mixture and ablation experiments. JMLR, 2020. https://www.jmlr.org/papers/v21/20-074.html
+[15] Raffel, C., et al. *Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer*, data mixture and ablation experiments. JMLR, 2020. https://www.jmlr.org/papers/v21/20-074.html 访问日期：2026-09-22
 
-[16] Dodge, J., et al. *Documenting Large Webtext Corpora: A Case Study on the Colossal Clean Crawled Corpus*. EMNLP, 2021. https://aclanthology.org/2021.emnlp-main.98/
+[16] Dodge, J., et al. *Documenting Large Webtext Corpora: A Case Study on the Colossal Clean Crawled Corpus*. EMNLP, 2021. https://aclanthology.org/2021.emnlp-main.98/ 访问日期：2026-09-22
 
-[17] Penedo, G., et al. *The RefinedWeb Dataset for Falcon LLM: Outperforming Curated Corpora with Web Data Only*. NeurIPS Datasets and Benchmarks, 2023. https://arxiv.org/abs/2306.01116
+[17] Penedo, G., et al. *The RefinedWeb Dataset for Falcon LLM: Outperforming Curated Corpora with Web Data Only*. NeurIPS Datasets and Benchmarks, 2023. https://arxiv.org/abs/2306.01116 访问日期：2026-09-22
 
-[18] Lee, K., Ippolito, D., Nystrom, A., et al. *Deduplicating Training Data Makes Language Models Better*. ACL, 2022. https://aclanthology.org/2022.acl-long.577/
+[18] Lee, K., Ippolito, D., Nystrom, A., et al. *Deduplicating Training Data Makes Language Models Better*. ACL, 2022. https://aclanthology.org/2022.acl-long.577/ 访问日期：2026-09-22
 
-[19] Carlini, N., et al. *Extracting Training Data from Large Language Models*. USENIX Security, 2021. https://arxiv.org/abs/2012.07805
+[19] Carlini, N., et al. *Extracting Training Data from Large Language Models*. USENIX Security, 2021. https://arxiv.org/abs/2012.07805 访问日期：2026-09-22
 
-[20] Carlini, N., et al. *Quantifying Memorization Across Neural Language Models*. arXiv:2202.07646, 2023. https://arxiv.org/abs/2202.07646
+[20] Carlini, N., et al. *Quantifying Memorization Across Neural Language Models*. arXiv:2202.07646, 2023. https://arxiv.org/abs/2202.07646 访问日期：2026-09-22
 
-[22] Shumailov, I., et al. *AI Models Collapse When Trained on Recursively Generated Data*. Nature, 2024. https://www.nature.com/articles/s41586-024-07566-y
+[22] Shumailov, I., et al. *AI Models Collapse When Trained on Recursively Generated Data*. Nature, 2024. https://www.nature.com/articles/s41586-024-07566-y 访问日期：2026-09-22
 
-[23] Zellers, R., et al. *HellaSwag: Can a Machine Really Finish Your Sentence?*. ACL, 2019. https://aclanthology.org/P19-1472/
+[23] Zellers, R., et al. *HellaSwag: Can a Machine Really Finish Your Sentence?*. ACL, 2019. https://aclanthology.org/P19-1472/ 访问日期：2026-09-22
 
-[24] Liang, P., et al. *Holistic Evaluation of Language Models*. arXiv:2211.09110, 2023. https://arxiv.org/abs/2211.09110
+[24] Liang, P., et al. *Holistic Evaluation of Language Models*. arXiv:2211.09110, 2023. https://arxiv.org/abs/2211.09110 访问日期：2026-09-22
 
-[25] Gao, L., et al. *The Pile: An 800GB Dataset of Diverse Text for Language Modeling*. arXiv:2101.00027, 2020. https://arxiv.org/abs/2101.00027
+[25] Gao, L., et al. *The Pile: An 800GB Dataset of Diverse Text for Language Modeling*. arXiv:2101.00027, 2020. https://arxiv.org/abs/2101.00027 访问日期：2026-09-22
 
-[26] Zhang, A., Lipton, Z. C., Li, M., & Smola, A. V. *Dive into Deep Learning*, 2nd ed., 2023. https://zh.d2l.ai/
+[26] Zhang, A., Lipton, Z. C., Li, M., & Smola, A. V. *Dive into Deep Learning*, 2nd ed., 2023. https://zh.d2l.ai/ 访问日期：2026-09-22
 
-[27] 邱锡鹏：《神经网络与深度学习》，机械工业出版社，2020。https://nndl.github.io/
+[27] 邱锡鹏：《神经网络与深度学习》，机械工业出版社，2020。https://nndl.github.io/ 访问日期：2026-09-22
 
-[28] 周志华：《机器学习》，清华大学出版社，2016。https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm
-
+[28] 周志华：《机器学习》，清华大学出版社，2016。https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm 访问日期：2026-09-22
 ## 版本与范围
 
 本章讨论的 next-token prediction、数据清洗、去重和 compute-optimal 训练是相对稳定的基础概念。数据配比、合成数据比例和具体 token 预算会随模型、许可证和评测目标变化；截至 **2026-09-21**，它们应被视为需要用本项目数据重新验证的工程参数，而不是可直接照搬的配方。本章不覆盖某一家模型的私有训练集，也不把公开技术报告当作完整数据披露。
