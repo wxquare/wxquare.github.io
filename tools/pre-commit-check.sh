@@ -12,6 +12,10 @@ cd "$REPO_ROOT"
 ERRORS=0
 WARNINGS=0
 STAGED_MD_FILES="$(git diff --cached --name-only --diff-filter=ACM -- '*.md')"
+BLOG_MD_FILES=""
+BOOK_MD_FILES=""
+SYSTEM_DESIGN_BOOK_MD_FILES=""
+SKIPPED_MD_FILES=""
 
 echo "🔍 开始提交前检查..."
 
@@ -21,49 +25,97 @@ if [[ -n "$STAGED_MD_FILES" ]]; then
   while IFS= read -r file; do
     [[ -z "$file" ]] && continue
     [[ -f "$file" ]] || continue
-    echo "  - $file"
+    case "$file" in
+      source/_posts/*)
+        BLOG_MD_FILES+="$file"$'\n'
+        ;;
+      books/*/src/*)
+        BOOK_MD_FILES+="$file"$'\n'
+        if [[ "$file" == books/system-design-primer/src/* ]]; then
+          SYSTEM_DESIGN_BOOK_MD_FILES+="$file"$'\n'
+        fi
+        ;;
+      docs/*|.agents/work/*)
+        SKIPPED_MD_FILES+="$file"$'\n'
+        ;;
+      *)
+        SKIPPED_MD_FILES+="$file"$'\n'
+        ;;
+    esac
+  done <<< "$STAGED_MD_FILES"
 
-    if [[ "$(sed -n '1p' "$file")" != "---" ]]; then
-      echo "❌ 错误: $file 缺少 Front Matter"
-      ERRORS=$((ERRORS + 1))
-      continue
-    fi
+  if [[ -n "$BLOG_MD_FILES" ]]; then
+    echo "  📰 按博客文章规则检查："
+    while IFS= read -r file; do
+      [[ -z "$file" ]] && continue
+      [[ -f "$file" ]] || continue
+      echo "    - $file"
 
-    front_matter="$(awk 'NR == 1 { inside = 1; next } inside && /^---$/ { exit } inside { print }' "$file")"
+      if [[ "$(sed -n '1p' "$file")" != "---" ]]; then
+        echo "❌ 错误: $file 缺少 Front Matter"
+        ERRORS=$((ERRORS + 1))
+        continue
+      fi
 
-    for field in title date; do
-      if ! grep -q "^${field}:" <<< "$front_matter"; then
-        echo "❌ 错误: $file 缺少 ${field} 字段"
+      front_matter="$(awk 'NR == 1 { inside = 1; next } inside && /^---$/ { exit } inside { print }' "$file")"
+
+      for field in title date; do
+        if ! grep -q "^${field}:" <<< "$front_matter"; then
+          echo "❌ 错误: $file 缺少 ${field} 字段"
+          ERRORS=$((ERRORS + 1))
+        fi
+      done
+
+      for field in categories tags; do
+        if ! grep -q "^${field}:" <<< "$front_matter"; then
+          echo "⚠️  警告: $file 缺少 ${field} 字段"
+          WARNINGS=$((WARNINGS + 1))
+        fi
+      done
+
+      date_value="$(sed -n 's/^date:[[:space:]]*//p' <<< "$front_matter" | head -n 1)"
+      date_value="${date_value#\"}"
+      date_value="${date_value%\"}"
+      date_value="${date_value#'}"
+      date_value="${date_value%'}"
+      if [[ ! "$date_value" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2} ]]; then
+        echo "❌ 错误: $file 的 date 字段必须使用 YYYY-MM-DD 格式"
         ERRORS=$((ERRORS + 1))
       fi
-    done
 
-    for field in categories tags; do
-      if ! grep -q "^${field}:" <<< "$front_matter"; then
-        echo "⚠️  警告: $file 缺少 ${field} 字段"
+      untagged_blocks="$(grep -n '^```$' "$file" | head -n 3 || true)"
+      if [[ -n "$untagged_blocks" ]]; then
+        echo "⚠️  警告: $file 存在未标注语言的代码块"
+        echo "$untagged_blocks"
         WARNINGS=$((WARNINGS + 1))
       fi
-    done
+    done <<< "$BLOG_MD_FILES"
+  fi
 
-    date_value="$(sed -n 's/^date:[[:space:]]*//p' <<< "$front_matter" | head -n 1)"
-    date_value="${date_value#\"}"
-    date_value="${date_value%\"}"
-    date_value="${date_value#'}"
-    date_value="${date_value%'}"
-    if [[ ! "$date_value" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2} ]]; then
-      echo "❌ 错误: $file 的 date 字段必须使用 YYYY-MM-DD 格式"
-      ERRORS=$((ERRORS + 1))
-    fi
+  if [[ -n "$BOOK_MD_FILES" ]]; then
+    echo "  📚 跳过博客 Front Matter 检查（mdBook 源文件）："
+    while IFS= read -r file; do
+      [[ -z "$file" ]] && continue
+      echo "    - $file"
+    done <<< "$BOOK_MD_FILES"
+  fi
 
-    untagged_blocks="$(grep -n '^```$' "$file" | head -n 3 || true)"
-    if [[ -n "$untagged_blocks" ]]; then
-      echo "⚠️  警告: $file 存在未标注语言的代码块"
-      echo "$untagged_blocks"
-      WARNINGS=$((WARNINGS + 1))
-    fi
-  done <<< "$STAGED_MD_FILES"
+  if [[ -n "$SKIPPED_MD_FILES" ]]; then
+    echo "  📄 按非博客文档规则跳过 Front Matter 检查："
+    while IFS= read -r file; do
+      [[ -z "$file" ]] && continue
+      echo "    - $file"
+    done <<< "$SKIPPED_MD_FILES"
+  fi
 else
   echo "✓ 没有暂存的 Markdown 文件，跳过文章规范检查"
+fi
+
+if [[ -n "$SYSTEM_DESIGN_BOOK_MD_FILES" ]]; then
+  echo "📘 检查 System Design Primer 书稿结构与篇幅..."
+  if ! python3 tools/check-system-design-primer.py; then
+    ERRORS=$((ERRORS + 1))
+  fi
 fi
 
 if (( ERRORS > 0 )); then

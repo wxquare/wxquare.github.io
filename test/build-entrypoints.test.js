@@ -24,6 +24,10 @@ test('package exposes canonical Hexo and mdBook build entrypoints', () => {
   );
   assert.equal(packageJson.scripts['stage:books'], 'node tools/stage-books.js');
   assert.equal(
+    packageJson.scripts['check:system-design-primer'],
+    'python3 tools/check-system-design-primer.py'
+  );
+  assert.equal(
     packageJson.scripts['server:site'],
     'npm run clean && npm run build && npm run build:books && npm run stage:books && hexo server -p 3000'
   );
