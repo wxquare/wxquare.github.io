@@ -305,7 +305,7 @@ flowchart TB
 
 其他区域如 `plugins/`、`skills/`、`providers/` 与 `tests/` / `docs/`，可以继续被理解为这四条主干之外的扩展层、记忆层、模型接入层和验证层，但它们不改变前面的主判断。接下来的重点因此不再是逐个目录介绍，而是沿着这套边界继续往下追踪运行时主线。
 
-### 27.2.6 与第11章 Agent 组件地图的对应关系
+### 27.2.6 与第13章 Agent 组件地图的对应关系
 
 这一节只做一个交叉校验：如果放回本书通用 Agent 组件地图，Hermes 最强的覆盖仍然是长期运行最关键的几条主线，也就是多入口事件接入、稳定上下文构建、工具与执行边界、长期记忆与学习回流。它因此更适合作为 Learning Loop、Memory Layer 和长期 Agent 的系统案例；至于企业生产所需的审批、合规审计、发布门禁和严格 Eval Harness，则仍然需要在这条 Runtime 主线之外额外补强。这里的目的只是确认前面的判断成立，而不改变后文继续沿着“输入、上下文、执行、回流”展开的叙事顺序。
 
@@ -443,7 +443,7 @@ def run_turn(user_message, profile, entry_point):
             done = True
 ```
 
-这个循环和第 13 章 Coding Agent 的循环很像，但 Hermes 多了三个面向长期运行的能力：
+这个循环和第 23 章 Coding Agent 的循环很像，但 Hermes 多了三个面向长期运行的能力：
 
 - **Prompt Assembly**：每次会话开始时把人格、记忆、技能、项目上下文和工具指南组装成稳定系统提示；
 - **Session Persistence**：会话写入 SQLite，并用 FTS5 支持跨会话搜索；
@@ -1395,7 +1395,7 @@ Skills 也会占上下文预算，所以不能每次全部塞进 prompt。更合
 
 如果说 OpenClaw 更强调 Skill 的加载优先级和插件生态，那么 Hermes 更值得关注的是：**Skill 如何从长期使用轨迹中演化出来**。
 
-结合第 6 章对 Skills 的定义，Hermes 的成熟实现可以抽象成一条管道：
+结合第 18 章对 Skills 的定义，Hermes 的成熟实现可以抽象成一条管道：
 
 ```text
 Session Trace

@@ -29,7 +29,7 @@
 3. **可见与可删除**：用户能看到 Agent 保存了什么经验、为什么保存，以及如何更正或删除。
 4. **不把沉默当同意**：没有点击建议、没有修改草稿，均不是可推广的偏好信号。
 
-这些边界是 [第11章 Harness 工程](../part2/04-harness-engineering.md) 中权限、状态和恢复控制在个人场景的具体化。它们先于“让 Agent 更聪明”的目标。
+这些边界是 [第16章 Harness Engineering：从模型调用到 Agent 运行环境](../part2/04-harness-engineering.md) 中权限、状态和恢复控制在个人场景的具体化。它们先于“让 Agent 更聪明”的目标。
 
 ### 记忆、日志与学习的区别
 
@@ -45,7 +45,7 @@
 
 ### 原始轨迹：让一次结果可以重放
 
-一条最小轨迹至少包含：任务触发条件、被允许使用的上下文快照、模型与 Prompt/Skill 版本、工具调用与返回、用户确认点、最终结果和反馈。它与 [第10章 Context 工程](../part2/03-context-engineering.md) 的证据和状态边界相呼应：复盘时不能只看最终回答，还要能解释 Agent 当时看到了什么。
+一条最小轨迹至少包含：任务触发条件、被允许使用的上下文快照、模型与 Prompt/Skill 版本、工具调用与返回、用户确认点、最终结果和反馈。它与 [第15章 Context Engineering：从上下文注入到信息架构](../part2/03-context-engineering.md) 的证据和状态边界相呼应：复盘时不能只看最终回答，还要能解释 Agent 当时看到了什么。
 
 ```json
 {
@@ -106,7 +106,7 @@
 1. **触发集**：确实暴露问题的历史轨迹，用来验证提案解决了原始失败；
 2. **留出集**：未参与规则设计的历史任务，覆盖已成功的日程整理、草稿生成和权限确认场景，用来发现回归。
 
-这把 [第17章 Agent 生产治理](../part2/10-agent-evals-guardrails-observability.md) 的 Evals 从“上线前测一次”延伸为每次能力更新的门禁。只有触发集改善、留出集不退化、权限检查仍完整的提案，才进入审阅。
+这把 [第22章 Agent 生产治理：Evals、Guardrails 与可观测性](../part2/10-agent-evals-guardrails-observability.md) 的 Evals 从“上线前测一次”延伸为每次能力更新的门禁。只有触发集改善、留出集不退化、权限检查仍完整的提案，才进入审阅。
 
 ## 31.4 更新路由：知识、Prompt/Skill、工作流与 Harness
 
@@ -121,17 +121,17 @@
 
 ### 知识与记忆：有来源、可失效、可撤回
 
-[第14章知识系统](../part2/07-agent-knowledge-systems.md) 适合承载带来源的事实，[第15章记忆](../part2/08-agent-memory.md) 适合承载经确认的个体化信息。两者都需要版本、来源、敏感等级和失效策略。对于“本周临时改为晚间购物”这类信息，应设置短保留期；对于“不要把工作会议安排在家长会时间”这类长期偏好，也应能被用户一键撤回。
+[第19章 Agent 知识系统：从知识源、RAG 到 Agentic RAG](../part2/07-agent-knowledge-systems.md) 适合承载带来源的事实，[第20章 Agent 记忆系统：Memory、会话与长期上下文](../part2/08-agent-memory.md) 适合承载经确认的个体化信息。两者都需要版本、来源、敏感等级和失效策略。对于“本周临时改为晚间购物”这类信息，应设置短保留期；对于“不要把工作会议安排在家长会时间”这类长期偏好，也应能被用户一键撤回。
 
 ### Prompt 与 Skill：最小差异，而不是不断追加
 
 Skill 更新应像代码改动一样小、可定位：说明失败边界、只修改必要步骤、以触发集和留出集验证。比如把“检查日历”改为“读取可用时段和已有的不可移动事件”，比追加一段笼统的“请更仔细检查”更可测。
 
-工具使用和 Skill 契约应保持与 [第13章工具、Skills 与 MCP](../part2/06-tool-calling-mcp.md) 一致：输入、权限、超时、失败语义和输出格式必须明确。经验卡不能绕过这些契约去产生隐式工具调用。
+工具使用和 Skill 契约应保持与 [第18章 Agent 工具系统工程：Tool Calling、Skills 与 MCP](../part2/06-tool-calling-mcp.md) 一致：输入、权限、超时、失败语义和输出格式必须明确。经验卡不能绕过这些契约去产生隐式工具调用。
 
 ### 工作流与 Harness：把重复步骤和硬约束放在模型外
 
-若失败表现为固定的多步遗漏，应将其编译为工作流，并为每一步定义前置条件、动作和后置验证。例如，只有在日历与待办快照均完整时，才允许生成周计划；生成后必须检查建议是否占用已有不可移动事件。编排细节可回看 [第16章工作流编排](../part2/09-workflow-orchestration.md)。
+若失败表现为固定的多步遗漏，应将其编译为工作流，并为每一步定义前置条件、动作和后置验证。例如，只有在日历与待办快照均完整时，才允许生成周计划；生成后必须检查建议是否占用已有不可移动事件。编排细节可回看 [第21章 Agent 执行编排与平台架构：工作流、状态机、多 Agent 与框架生态](../part2/09-workflow-orchestration.md)。
 
 若失败涉及权限、重试、并发、取消、审计或回滚，则应由 Harness 修复。模型可以提出建议，但不能移除确认门、扩大 token 或工具权限预算，或绕过事件日志。
 
@@ -213,7 +213,7 @@ Skill 更新应像代码改动一样小、可定位：说明失败边界、只�
 4. 由用户或指定审阅者批准后，以只读建议模式试运行；
 5. 若人工接管率或越权拦截率超过阈值，立即回滚至上一个已批准版本。
 
-这个案例与 [第25章个人知识管理 Agent](07-pkm-agent-case-study.md) 的关系是递进的：第 25 章解决“如何组织个人知识”，本章解决“如何让围绕这些知识运行的 Agent 在长期反馈中保持可信”。
+这个案例与 [第30章 个人知识管理 Agent 实践](07-pkm-agent-case-study.md) 的关系是递进的：第 30 章解决“如何组织个人知识”，本章解决“如何让围绕这些知识运行的 Agent 在长期反馈中保持可信”。
 
 ## 31.7 上线检查清单与度量
 
@@ -241,12 +241,12 @@ Skill 更新应像代码改动一样小、可定位：说明失败边界、只�
 
 ## 参考与延伸阅读
 
-- [第10章 Context 工程](../part2/03-context-engineering.md)
-- [第11章 Harness 工程](../part2/04-harness-engineering.md)
-- [第13章 工具、Skills 与 MCP](../part2/06-tool-calling-mcp.md)
-- [第14章 Agent 知识系统](../part2/07-agent-knowledge-systems.md)
-- [第15章 Agent Memory](../part2/08-agent-memory.md)
-- [第16章 工作流编排](../part2/09-workflow-orchestration.md)
-- [第17章 Agent 生产治理](../part2/10-agent-evals-guardrails-observability.md)
-- [第25章 个人知识管理 Agent 实践](07-pkm-agent-case-study.md)
+- [第15章 Context Engineering：从上下文注入到信息架构](../part2/03-context-engineering.md)
+- [第16章 Harness Engineering：从模型调用到 Agent 运行环境](../part2/04-harness-engineering.md)
+- [第18章 Agent 工具系统工程：Tool Calling、Skills 与 MCP](../part2/06-tool-calling-mcp.md)
+- [第19章 Agent 知识系统：从知识源、RAG 到 Agentic RAG](../part2/07-agent-knowledge-systems.md)
+- [第20章 Agent 记忆系统：Memory、会话与长期上下文](../part2/08-agent-memory.md)
+- [第21章 Agent 执行编排与平台架构：工作流、状态机、多 Agent 与框架生态](../part2/09-workflow-orchestration.md)
+- [第22章 Agent 生产治理：Evals、Guardrails 与可观测性](../part2/10-agent-evals-guardrails-observability.md)
+- [第30章 个人知识管理 Agent 实践](07-pkm-agent-case-study.md)
 - [AI Agent Book，第 9 章：持续进化](https://github.com/bojieli/ai-agent-book/blob/main/book/chapter9.md)
