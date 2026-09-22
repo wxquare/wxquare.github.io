@@ -876,7 +876,7 @@ memory_audit_event:
   approved_by: "user"
 ```
 
-如果 Memory 写入不进审计，错误记忆就很难回滚，也很难进入第 10 章讨论的 Failure Registry。
+如果 Memory 写入不进审计，错误记忆就很难回滚，也很难进入第 22 章讨论的 Failure Registry。
 
 ### 什么适合写入
 
