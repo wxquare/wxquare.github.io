@@ -68,3 +68,4 @@
 - [附录C 常用工具与框架](appendix/tools.md)
 - [附录D 系统设计思考题与项目实践模板](appendix/system-design-thinking-and-practice.md)
 - [附录E LLM / Agent 思考题与参考来源](appendix/llm-agent-thinking-questions.md)
+- [附录F AI 与 AI Agent 开发高频面试 50 题](appendix/ai-agent-development-interview-50.md)
