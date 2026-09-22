@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-140976dd.js";
+            window.path_to_searchindex_js = "../searchindex-b48cef4c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-63b96eba.js"></script>
@@ -271,7 +271,7 @@ flowchart LR
 </div>
 <p><strong>从单体到分布式的认知迁移</strong>：在单体时代，模块边界靠包名与 Code Review 维持；在分布式时代，<strong>网络边界会放大设计缺陷</strong>——原本一次函数调用的地方，变成了超时、重试与部分失败。因此全景章的价值，不在于「数有多少个微服务」，而在于为每个跨边界调用预先分配 <strong>一致性语义、超时预算与观测标签</strong>。当你在第 14 章阅读订单状态机时，应能指出：某次迁移对应 10.4.2 中的哪一步、失败时由谁补偿。</p>
 <h3 id="1011-业务架构ddd-视角"><a class="header" href="#1011-业务架构ddd-视角">10.1.1 业务架构（DDD 视角）</a></h3>
-<p>从 DDD 战略设计看，电商平台的业务能力应被组织为一组<strong>限界上下文（Bounded Context）</strong>：每个上下文内部有独立的通用语言与生命周期；上下文之间通过显式关系（客户方 / 供应方、防腐层、发布语言等）协作。下图用「限界上下文 + 域分类」表达业务架构，颜色区分<strong>核心域、支撑域、通用域</strong>；此处沿用全书系统设计方法论中的分类，并侧重<strong>系统级</strong>映射。</p>
+<p>从 DDD 战略设计看，电商平台的业务能力应被组织为一组<strong>限界上下文（Bounded Context）</strong>：每个上下文内部有独立的通用语言与生命周期；上下文之间通过显式关系（客户方 / 供应方、防腐层、发布语言等）协作。[1] 下图用「限界上下文 + 域分类」表达业务架构，颜色区分<strong>核心域、支撑域、通用域</strong>；此处沿用全书系统设计方法论中的分类，并侧重<strong>系统级</strong>映射。</p>
 <pre class="mermaid">
 flowchart TB
   subgraph Core["核心域（Core Domain）"]
@@ -331,7 +331,7 @@ flowchart TB
 <li><strong>支撑域</strong>提供可售性、可算价、可营销、可供给四类「规则与主数据」能力；它们高度影响交易，但行业模式相对可参照。</li>
 <li><strong>通用域</strong>中的搜索本书会在第 14 章深入，因其在工程上与商品、计价、库存的 <strong>Hydrate 编排</strong>强耦合；用户与消息等更常采购标准方案，在全景中保留接口位即可。</li>
 </ol>
-<p><strong>上下文映射（与第 1 章 DDD 部分衔接）</strong>：上图中实线箭头多表示「客户方依赖供应方」的下游调用关系；虚线表示「通过发布语言（Published Language）或 ACL 防腐」的弱耦合。落地时建议显式标出：</p>
+<p><strong>上下文映射（与第 1 章 DDD 部分衔接）</strong>：上图中实线箭头多表示「客户方依赖供应方」的下游调用关系；虚线表示「通过发布语言（Published Language）或 ACL 防腐」的弱耦合。[1][2] 落地时建议显式标出：</p>
 <ul>
 <li><strong>供应方（Upstream）</strong>：商品中心对「商品快照 ID」、计价系统对「价格快照版本」、库存对「预占凭证」拥有定义权。</li>
 <li><strong>客户方（Downstream）</strong>：订单与结算消费上述契约，但不应要求供应方暴露内部表结构。</li>
@@ -339,7 +339,7 @@ flowchart TB
 </ul>
 <p><strong>答辩提示</strong>：业务架构图的表述模板已统一收录到<a href="../appendix/system-design-questionbank.html#q-sd-core-10单体到服务化的演进决策">附录 D 的相应核心案例</a>。</p>
 <h3 id="1012-应用架构微服务视角"><a class="header" href="#1012-应用架构微服务视角">10.1.2 应用架构（微服务视角）</a></h3>
-<p>应用架构关注<strong>可部署单元</strong>之间的依赖。原则是：<strong>依赖方向自上而下、由稳定侧指向易变侧</strong>，避免出现「基础数据服务回调订单服务」这类环。下图在典型分层架构上，补全 C 端读路径（搜索、购物车）与结算编排，并标注后续章节编号，便于索引。</p>
+<p>应用架构关注<strong>可部署单元</strong>之间的依赖。原则是：<strong>依赖方向自上而下、由稳定侧指向易变侧</strong>，避免出现「基础数据服务回调订单服务」这类环。[3][4] 下图在典型分层架构上，补全 C 端读路径（搜索、购物车）与结算编排，并标注后续章节编号，便于索引。</p>
 <pre class="mermaid">
 flowchart TB
   subgraph L0["接入与 BFF"]
@@ -613,7 +613,7 @@ flowchart TB
 <p><strong>用户与消息</strong>：用户域提供主体标识与会员等级，消息域消费订单与支付事件做触达。二者与交易链的耦合主要是<strong>读侧鉴权</strong>与<strong>异步通知</strong>，应避免在下单同步路径强依赖外部推送可用性。</p>
 <hr>
 <h2 id="103-系统间的交互模式"><a class="header" href="#103-系统间的交互模式">10.3 系统间的交互模式</a></h2>
-<p>跨系统协作可归纳为三类：<strong>同步 RPC</strong>、<strong>异步事件</strong>、<strong>数据同步（批式或流式）</strong>。它们不是互斥的，同一链路常组合使用；选型取决于一致性语义、延迟上限与故障隔离需求。</p>
+<p>跨系统协作可归纳为三类：<strong>同步 RPC</strong>、<strong>异步事件</strong>、<strong>数据同步（批式或流式）</strong>。它们不是互斥的，同一链路常组合使用；选型取决于一致性语义、延迟上限与故障隔离需求。[5][6]</p>
 <h3 id="1031-同步调用"><a class="header" href="#1031-同步调用">10.3.1 同步调用</a></h3>
 <p><strong>典型场景</strong>：结算页试算、创单前库存确认、支付创建。特征是调用方<strong>阻塞等待</strong>结果，语义接近「读己之写」或强校验。</p>
 <p><strong>优点</strong>：实现直观、调试路径短。<br><strong>风险</strong>：级联故障、线程占用、超时风暴；需配合<strong>超时、重试、熔断、舱壁</strong>与清晰的<strong>错误契约</strong>（第 4 章相关小节）。</p>
@@ -628,7 +628,7 @@ flowchart TB
 <p><strong>典型场景</strong>：搜索索引重建、报表 T+1、跨机房冗余。实现路径包括定时批处理、CDC、双写（谨慎）。</p>
 <p><strong>优点</strong>：对在线路径侵入小。<br><strong>风险</strong>：延迟与对账；CDC 需处理 schema 演进与回放。</p>
 <p><strong>工程要点</strong>：优先 <strong>CDC + 消息</strong> 或 <strong>Outbox</strong> 形成可回放管道，避免业务代码里手写双写。若必须双写，应配置<strong>对账任务</strong>比较主从差异并自动修复。搜索全量重建应走<strong>蓝绿索引别名切换</strong>，避免重建期间查询抖动。</p>
-<p><strong>同步 / 异步 / 数据同步对比总览</strong>：三者回答的是不同维度的问题——同步保障「此刻的正确」，异步保障「吞吐与解耦」，数据同步保障「派生视图的规模构建」。架构评审可用下图作开场白板，再落到具体接口与 SLA。</p>
+<p><strong>同步 / 异步 / 数据同步对比总览</strong>：三者回答的是不同维度的问题——同步保障「此刻的正确」，异步保障「吞吐与解耦」，数据同步保障「派生视图的规模构建」。架构评审可用下图作开场白板，再落到具体接口与 SLA。[3][5]</p>
 <pre class="mermaid">
 flowchart TB
   subgraph Sync["同步 RPC（Request/Response）"]
@@ -878,7 +878,7 @@ sequenceDiagram
 </ol>
 <hr>
 <h2 id="106-本章小结"><a class="header" href="#106-本章小结">10.6 本章小结</a></h2>
-<p>本章是全书的<strong>总领章</strong>，目标不是替代后续各章的深度，而是建立三样东西：<strong>同一套词汇</strong>（限界上下文与十二个系统）、<strong>同一张依赖图</strong>（应用与数据架构）、<strong>同一套交互纪律</strong>（同步 / 异步 / 数据同步的组合拳）。</p>
+<p>本章是全书的<strong>总领章</strong>，目标不是替代后续各章的深度，而是建立三样东西：<strong>同一套词汇</strong>（限界上下文与十二个系统）、<strong>同一张依赖图</strong>（应用与数据架构）、<strong>同一套交互纪律</strong>（同步 / 异步 / 数据同步的组合拳）。[2][7]</p>
 <p><strong>你可以带走的关键结论</strong>：</p>
 <ol>
 <li><strong>四视角对齐</strong>：BA 决定投资与语义边界，AA 决定可部署单元与依赖方向，DA 决定权威数据与投影路径，TA 决定规模化运行时能力。缺任一视角，评审容易出现「各说各话」。</li>
@@ -891,6 +891,14 @@ sequenceDiagram
 <p><strong>与第 11 章至第 14 章的衔接</strong>：进入任一系统章时，建议先回答四个问题——<strong>谁是上游、谁是下游、我的 SSOT 是什么、我发布哪些事件</strong>。答不上来则回到 10.5.1 边界表补齐。</p>
 <p><strong>面向架构师的自检清单（离开本章前）</strong>：能否在 10 分钟内手绘 10.1.2 依赖图并标出三条可能形成环的依赖？能否用业务语言向非技术干系人解释「为什么搜索不是订单的一部分」？能否列举支付回调失败时的三个系统状态组合及各自补偿动作？若尚不能，建议在笔记中重画一遍 10.4 时序图，再进入后续系统实战章节。</p>
 <p><strong>建议阅读顺序</strong>：若你更熟悉业务，可按 10.4 节三条链路走读，再回看 10.1.1 的限界上下文；若你更熟悉工程，可从 10.1.2 与 10.3 节开始，把依赖与交互模式对齐后再进入各系统章节。若你正在准备架构评审，可携带 10.1.3、10.3.3 与 10.5.3 作为一页纸附录。</p>
+<h2 id="107-参考资料"><a class="header" href="#107-参考资料">10.7 参考资料</a></h2>
+<p>[1] Eric Evans, <em>Domain-Driven Design: Tackling Complexity in the Heart of Software</em>, Addison-Wesley, 2003, https://www.domainlanguage.com/ddd/。</p>
+<p>[2] Martin Fowler, “BoundedContext”, martinfowler.com, https://martinfowler.com/bliki/BoundedContext.html。</p>
+<p>[3] Robert C. Martin, <em>Clean Architecture</em>, Pearson, 2017, https://www.pearson.com/en-us/subject-catalog/p/clean-architecture/P200000009830。</p>
+<p>[4] AWS, “Build services focused on specific business domains and functionality”, AWS Well-Architected Framework, https://docs.aws.amazon.com/wellarchitected/latest/framework/rel_service_architecture_business_domains.html。</p>
+<p>[5] Gregor Hohpe, Bobby Woolf, <em>Enterprise Integration Patterns</em>, Addison-Wesley, 2003, https://www.enterpriseintegrationpatterns.com/。</p>
+<p>[6] Martin Kleppmann, <em>Designing Data-Intensive Applications</em>, O’Reilly Media, 2017, https://dataintensive.net/。</p>
+<p>[7] Simon Brown, <em>The C4 Model for Visualising Software Architecture</em>, https://c4model.com/。</p>
 <hr>
                     </main>
 
