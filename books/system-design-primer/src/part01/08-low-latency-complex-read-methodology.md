@@ -460,22 +460,41 @@ Feed 场景的核心不是单条内容查询，而是把用户关系、时间顺
 ## 8.9 参考资料
 
 [1] Jeffrey Dean, Luiz André Barroso, [“The Tail at Scale”](https://research.google/pubs/the-tail-at-scale/), *Communications of the ACM*, 2013。
+
 [2] Martin Kleppmann, Chris Riccomini, [*Designing Data-Intensive Applications, 2nd Edition*](https://www.oreilly.com/library/view/designing-data-intensive-applications/9781098119058/), O’Reilly, 2026。
+
 [3] Jeffrey Dean, Sanjay Ghemawat, [“MapReduce: Simplified Data Processing on Large Clusters”](https://research.google/pubs/mapreduce-simplified-data-processing-on-large-clusters/), OSDI, 2004。
+
 [4] Rajesh Nishtala et al., [“Scaling Memcache at Facebook”](https://www.usenix.org/conference/nsdi13/technical-sessions/presentation/nishtala), *10th USENIX Symposium on Networked Systems Design and Implementation*, 2013。
+
 [5] Nathan Bronson et al., [“TAO: Facebook’s Distributed Data Store for the Social Graph”](https://www.usenix.org/conference/atc13/technical-sessions/presentation/bronson), *2013 USENIX Annual Technical Conference*, 2013。
+
 [6] Paul Covington, Jay Adams, Emre Sargin, [“Deep Neural Networks for YouTube Recommendations”](https://research.google/pubs/deep-neural-networks-for-youtube-recommendations/), *ACM Conference on Recommender Systems*, 2016。
+
 [7] Martin Fowler, [“CQRS”](https://martinfowler.com/bliki/CQRS.html), *Martin Fowler’s Bliki*。
+
 [8] Google SRE, [“Handling Overload”](https://sre.google/sre-book/handling-overload/), *Site Reliability Engineering*。
+
 [9] Google SRE, [“Addressing Cascading Failures”](https://sre.google/sre-book/addressing-cascading-failures/), *Site Reliability Engineering*。
+
 [10] AWS, [“REL05-BP01 Implement graceful degradation to transform applicable hard dependencies into soft dependencies”](https://docs.aws.amazon.com/wellarchitected/2022-03-31/framework/rel_mitigate_interaction_failure_graceful_degradation.html), *AWS Well-Architected Framework*。
+
 [11] Elastic, [“Paginate search results”](https://www.elastic.co/guide/en/elasticsearch/reference/current/paginate-search-results.html), *Elasticsearch Reference*。
+
 [12] Redis, [“Redis cache-aside”](https://redis.io/docs/latest/develop/use-cases/cache-aside/), Redis Documentation。
+
 [13] OpenTelemetry, [“Documentation”](https://opentelemetry.io/docs/), OpenTelemetry Project。
+
 [14] 美团技术团队，[《多业务建模在美团搜索排序中的实践》](https://tech.meituan.com/2021/07/08/Multi-Business-Modeling.html)，2021。
+
 [15] 美团技术团队，[《深入浅出排序学习：写给程序员的算法系统开发实践》](https://tech.meituan.com/2018/12/20/head-in-l2r.html)，2018。
+
 [16] 美团技术团队，[《美团点评旅游搜索召回策略的演进》](https://tech.meituan.com/2017/06/16/travel-search-strategy.html)，2017。
+
 [17] 腾讯云开发者社区，[《业内推荐系统架构介绍》](https://cloud.tencent.com/developer/article/1475481)，2019。
+
 [18] 腾讯云开发者社区，[《推荐系统的召回》](https://developer.cloud.tencent.com/article/1346948?policyId=1003)，2018。
+
 [19] 美团技术团队，[《美团综合业务推荐系统的质量模型及实践》](https://tech.meituan.com/2022/06/16/Recommendation-System-Quality-Model.html)，2022。
+
 [20] 阿里云开发者社区，[《深入解析 Redis 缓存击穿穿透雪崩的解决方案》](https://developer.aliyun.com/article/1552945)，2024。

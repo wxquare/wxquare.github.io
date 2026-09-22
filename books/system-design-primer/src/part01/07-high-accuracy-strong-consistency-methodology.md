@@ -579,22 +579,41 @@ Seata 官方文档把 AT、TCC、Saga 和 XA 分成不同模式，并分别说�
 ## 7.9 参考资料
 
 [1] Eric Brewer, [“CAP Twelve Years Later: How the Rules Have Changed”](https://sites.cs.ucsb.edu/~rich/class/cs293b-cloud/papers/brewer-cap.pdf), *Computer*, 2012。
+
 [2] Maurice Herlihy, Jeannette M. Wing, [“Linearizability: A Correctness Condition for Concurrent Objects”](https://www.cs.cmu.edu/~wing/publications/HerlihyWing90.pdf), *ACM Transactions on Programming Languages and Systems*, 1990。
+
 [3] Hal Berenson, Phil Bernstein, Jim Gray, Jim Melton, Elizabeth O’Neil, Patrick O’Neil, [“A Critique of ANSI SQL Isolation Levels”](https://arxiv.org/abs/cs/0701157), *SIGMOD Record*, 1995。
+
 [4] James C. Corbett et al., [“Spanner: Google’s Globally-Distributed Database”](https://research.google/pubs/spanner-googles-globally-distributed-database-2/), *OSDI*, 2012。
+
 [5] Martin Kleppmann, Chris Riccomini, [*Designing Data-Intensive Applications, 2nd Edition*](https://www.oreilly.com/library/view/designing-data-intensive-applications/9781098119058/), O’Reilly, 2026。
+
 [6] Gregor Hohpe, Bobby Woolf, [*Enterprise Integration Patterns*](https://www.enterpriseintegrationpatterns.com/), Addison-Wesley, 2003。
+
 [7] Hector Garcia-Molina, Kenneth Salem, [“Sagas”](https://doi.org/10.1145/38713.38742), *Proceedings of ACM SIGMOD*, 1987。
+
 [8] Pat Helland, [“Life beyond Distributed Transactions: an Apostate’s Opinion”](https://www.cidrdb.org/cidr2007/papers/cidr07p15.pdf), *CIDR*, 2007。
+
 [9] Chris Richardson, [“Saga Pattern”](https://microservices.io/patterns/data/saga.html), Microservices Patterns。
+
 [10] Chris Richardson, [“Transactional Outbox”](https://microservices.io/patterns/data/transactional-outbox), Microservices Patterns。
+
 [11] Chris Richardson, [“Idempotent Consumer”](https://microservices.io/patterns/communication-style/idempotent-consumer.html), Microservices Patterns。
+
 [12] Stripe, [“Idempotent requests”](https://docs.stripe.com/api/idempotent_requests), Stripe API Reference。
+
 [13] Martin Fowler, [“Event Sourcing”](https://www.martinfowler.com/eaaDev/EventSourcing.html), 2005。
+
 [14] Google SRE, [“Handling Overload”](https://sre.google/sre-book/handling-overload/), *Site Reliability Engineering*。
+
 [15] OpenTelemetry, [“Documentation”](https://opentelemetry.io/docs/), OpenTelemetry Project。
+
 [16] Apache Seata, [“Seata 是什么？”](https://seata.apache.org/zh-cn/docs/overview/what-is-seata/), Apache Seata 官方文档，2025。
+
 [17] Apache Seata, [“Seata TCC 模式”](https://seata.apache.org/zh-cn/docs/next/user/mode/tcc/), Apache Seata 官方文档。
+
 [18] Apache RocketMQ, [“事务消息”](https://rocketmq.apache.org/zh/docs/featureBehavior/04transactionmessage/), Apache RocketMQ 官方文档。
+
 [19] PingCAP, [“TiDB 事务隔离级别”](https://docs.pingcap.com/zh/tidbcloud/transaction-isolation-levels/), TiDB 文档中心。
+
 [20] Oracle, [“InnoDB Transaction Isolation Levels”](https://dev.mysql.com/doc/refman/8.4/en/innodb-transaction-isolation-levels.html), *MySQL 8.4 Reference Manual*。

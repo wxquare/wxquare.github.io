@@ -1290,33 +1290,60 @@ Redis 脚本适合短小的条件更新；长脚本会阻塞单线程执行，�
 
 ### 13.9.2 参考资料
 
-[1] Eric Evans, “DDD Reference: Definitions and Pattern Summaries”, Domain Language, 2014, https://www.domainlanguage.com/ddd/reference/  
-[2] Vaughn Vernon, *Implementing Domain-Driven Design*, Addison-Wesley Professional / Pearson, 2013, https://www.pearson.com/en-us/subject-catalog/p/implementing-domain-driven-design/P200000009616/9780321834577  
-[3] Martin Fowler, *Patterns of Enterprise Application Architecture*, Addison-Wesley, 2002, https://martinfowler.com/books/eaa.html  
-[4] Martin Kleppmann, *Designing Data-Intensive Applications*, O’Reilly Media, 2017, https://martin.kleppmann.com/2017/03/27/designing-data-intensive-applications.html  
-[5] Hector Garcia-Molina and Kenneth Salem, “Sagas”, *Proceedings of the 1987 ACM SIGMOD International Conference on Management of Data*, 1987, https://doi.org/10.1145/38713.38742  
-[6] Malcolm Featonby, “Making retries safe with idempotent APIs”, AWS Builders’ Library, 2021, https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/  
-[7] Chris Richardson, “Pattern: Saga”, microservices.io, 2017, https://microservices.io/patterns/data/saga.html  
-[8] Chris Richardson, “Pattern: Transactional outbox”, microservices.io, 2017, https://microservices.io/patterns/data/transactional-outbox  
-[9] Chris Richardson, “Pattern: Idempotent Consumer”, microservices.io, 2017, https://microservices.io/patterns/communication-style/idempotent-consumer.html  
-[10] Stripe, “Idempotent requests”, Stripe API Reference, 2025, https://docs.stripe.com/api/idempotent_requests  
-[11] Oracle, “Transaction Isolation Levels”, *MySQL 8.0 Reference Manual*, 2024, https://dev.mysql.com/doc/refman/8.0/en/innodb-transaction-isolation-levels.html  
-[12] Redis Ltd., “Scripting with Lua”, Redis Documentation, 2025, https://redis.io/docs/latest/develop/programmability/eval-intro/  
-[13] Apache Software Foundation, “Message Delivery Semantics”, Apache Kafka Documentation, 2026, https://kafka.apache.org/40/design/design/  
-[14] Chris Jones, John Wilkes, Niall Murphy and Cody Smith, “Service Level Objectives”, *Google SRE Book*, 2016, https://sre.google/sre-book/service-level-objectives/  
-[15] Alejandro Forero Cuervo, “Handling Overload”, *Google SRE Book*, 2016, https://sre.google/sre-book/handling-overload/  
-[16] OpenTelemetry Authors, “Observability primer”, OpenTelemetry Documentation, 2025, https://opentelemetry.io/docs/concepts/observability-primer/  
-[17] Martin Fowler, “Architecture Decision Record”, martinfowler.com, 2026, https://martinfowler.com/bliki/ArchitectureDecisionRecord.html  
-[18] Shangwen Yi, David J. Hardisty, Dale W. Griffin and Thomas Allard, “Promotion Architecture: A Deal Fairness Model of Restricted Price Promotions”, *Journal of Consumer Research*, 2026, https://academic.oup.com/jcr/article/53/2/369/8362278  
-[19] Nathan Kallus and Angela Zhou, “Fairness, Welfare, and Equity in Personalized Pricing”, arXiv, 2020, https://arxiv.org/abs/2012.11066  
-[20] Ke Zhang, “Final Price Neglect in Multi-Product Promotions: How Non-Integrated Price Reductions Promote Higher-Priced Products”, *Journal of Consumer Research*, 2024, https://academic.oup.com/jcr/article/50/6/1097/7220485  
-[21] 文彬、子维，《领域驱动设计在互联网业务开发中的实践》，美团技术团队，2017，https://tech.meituan.com/2017/12/22/ddd-in-practice.html  
-[22] 美团外卖营销技术团队，《设计模式在外卖营销业务中的实践》，美团技术团队，2020，https://tech.meituan.com/2020/03/19/Software-design-pattern-practice-in-marketing.html  
-[23] lvsong，《DDD在大众点评交易系统演进中的应用》，美团技术团队，2024，https://tech.meituan.com/2024/05/09/DDD-Practice-Trading-System.html  
-[24] Apache Seata，《Seata Saga 模式》，Apache Seata 文档，2025，https://seata.apache.org/zh-cn/docs/user/mode/saga/  
-[25] Apache RocketMQ，《事务消息》，Apache RocketMQ 文档，2025，https://rocketmq.apache.org/zh/docs/featureBehavior/04transactionmessage/  
-[26] Alibaba，《Sentinel 介绍》，Sentinel 文档，2023，https://sentinelguard.io/zh-cn/docs/introduction.html  
-[27] 阿里云，《分布式事务参与者接入模式》，阿里云文档，2019，https://help.aliyun.com/zh/document_detail/132909.html  
+[1] Eric Evans, “DDD Reference: Definitions and Pattern Summaries”, Domain Language, 2014, https://www.domainlanguage.com/ddd/reference/
+
+[2] Vaughn Vernon, *Implementing Domain-Driven Design*, Addison-Wesley Professional / Pearson, 2013, https://www.pearson.com/en-us/subject-catalog/p/implementing-domain-driven-design/P200000009616/9780321834577
+
+[3] Martin Fowler, *Patterns of Enterprise Application Architecture*, Addison-Wesley, 2002, https://martinfowler.com/books/eaa.html
+
+[4] Martin Kleppmann, *Designing Data-Intensive Applications*, O’Reilly Media, 2017, https://martin.kleppmann.com/2017/03/27/designing-data-intensive-applications.html
+
+[5] Hector Garcia-Molina and Kenneth Salem, “Sagas”, *Proceedings of the 1987 ACM SIGMOD International Conference on Management of Data*, 1987, https://doi.org/10.1145/38713.38742
+
+[6] Malcolm Featonby, “Making retries safe with idempotent APIs”, AWS Builders’ Library, 2021, https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/
+
+[7] Chris Richardson, “Pattern: Saga”, microservices.io, 2017, https://microservices.io/patterns/data/saga.html
+
+[8] Chris Richardson, “Pattern: Transactional outbox”, microservices.io, 2017, https://microservices.io/patterns/data/transactional-outbox
+
+[9] Chris Richardson, “Pattern: Idempotent Consumer”, microservices.io, 2017, https://microservices.io/patterns/communication-style/idempotent-consumer.html
+
+[10] Stripe, “Idempotent requests”, Stripe API Reference, 2025, https://docs.stripe.com/api/idempotent_requests
+
+[11] Oracle, “Transaction Isolation Levels”, *MySQL 8.0 Reference Manual*, 2024, https://dev.mysql.com/doc/refman/8.0/en/innodb-transaction-isolation-levels.html
+
+[12] Redis Ltd., “Scripting with Lua”, Redis Documentation, 2025, https://redis.io/docs/latest/develop/programmability/eval-intro/
+
+[13] Apache Software Foundation, “Message Delivery Semantics”, Apache Kafka Documentation, 2026, https://kafka.apache.org/40/design/design/
+
+[14] Chris Jones, John Wilkes, Niall Murphy and Cody Smith, “Service Level Objectives”, *Google SRE Book*, 2016, https://sre.google/sre-book/service-level-objectives/
+
+[15] Alejandro Forero Cuervo, “Handling Overload”, *Google SRE Book*, 2016, https://sre.google/sre-book/handling-overload/
+
+[16] OpenTelemetry Authors, “Observability primer”, OpenTelemetry Documentation, 2025, https://opentelemetry.io/docs/concepts/observability-primer/
+
+[17] Martin Fowler, “Architecture Decision Record”, martinfowler.com, 2026, https://martinfowler.com/bliki/ArchitectureDecisionRecord.html
+
+[18] Shangwen Yi, David J. Hardisty, Dale W. Griffin and Thomas Allard, “Promotion Architecture: A Deal Fairness Model of Restricted Price Promotions”, *Journal of Consumer Research*, 2026, https://academic.oup.com/jcr/article/53/2/369/8362278
+
+[19] Nathan Kallus and Angela Zhou, “Fairness, Welfare, and Equity in Personalized Pricing”, arXiv, 2020, https://arxiv.org/abs/2012.11066
+
+[20] Ke Zhang, “Final Price Neglect in Multi-Product Promotions: How Non-Integrated Price Reductions Promote Higher-Priced Products”, *Journal of Consumer Research*, 2024, https://academic.oup.com/jcr/article/50/6/1097/7220485
+
+[21] 文彬、子维，《领域驱动设计在互联网业务开发中的实践》，美团技术团队，2017，https://tech.meituan.com/2017/12/22/ddd-in-practice.html
+
+[22] 美团外卖营销技术团队，《设计模式在外卖营销业务中的实践》，美团技术团队，2020，https://tech.meituan.com/2020/03/19/Software-design-pattern-practice-in-marketing.html
+
+[23] lvsong，《DDD在大众点评交易系统演进中的应用》，美团技术团队，2024，https://tech.meituan.com/2024/05/09/DDD-Practice-Trading-System.html
+
+[24] Apache Seata，《Seata Saga 模式》，Apache Seata 文档，2025，https://seata.apache.org/zh-cn/docs/user/mode/saga/
+
+[25] Apache RocketMQ，《事务消息》，Apache RocketMQ 文档，2025，https://rocketmq.apache.org/zh/docs/featureBehavior/04transactionmessage/
+
+[26] Alibaba，《Sentinel 介绍》，Sentinel 文档，2023，https://sentinelguard.io/zh-cn/docs/introduction.html
+
+[27] 阿里云，《分布式事务参与者接入模式》，阿里云文档，2019，https://help.aliyun.com/zh/document_detail/132909.html
+
 [28] 周志明，《凤凰架构：构建可靠的大型分布式系统》，2021，https://icyfenix.cn/pdf/the-fenix-project.pdf
 
 ### 13.9.3 适用边界
