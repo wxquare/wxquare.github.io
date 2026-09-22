@@ -109,6 +109,67 @@ class VerifyEditorialIntegrityTest < Minitest::Test
     end
   end
 
+  def test_reports_an_unresolved_numeric_citation_when_the_chapter_has_no_bibliography
+    with_fixture do |root|
+      write(root, "src/part1/01.md", <<~MARKDOWN)
+        # 第1章 标题1
+
+        ## 1. 起点
+
+        这里引用了没有列入参考资料的来源 [2]。
+      MARKDOWN
+
+      _stdout, stderr, status = run_verifier(root)
+
+      refute status.success?
+      assert_includes stderr, "Chapter 1: unresolved in-text citation [2]"
+    end
+  end
+
+  def test_reports_a_duplicate_bibliography_number_as_not_resolving_exactly_once
+    with_fixture do |root|
+      write(root, "src/part1/01.md", <<~MARKDOWN)
+        # 第1章 标题1
+
+        ## 1. 起点
+
+        这里引用来源 [1]。
+
+        ## 参考资料
+
+        [1] Example Institute. *A Primary Source*. https://example.com/source Accessed 2026-09-22.
+        [1] Example Institute. *A Duplicate Source*. https://example.com/duplicate Accessed 2026-09-22.
+      MARKDOWN
+
+      _stdout, stderr, status = run_verifier(root)
+
+      refute status.success?
+      assert_includes stderr, "Chapter 1: in-text citation [1] does not resolve exactly once"
+    end
+  end
+
+  def test_recognizes_extending_reading_as_a_bibliography_heading
+    with_fixture do |root|
+      write(root, "src/part1/01.md", <<~MARKDOWN)
+        # 第1章 标题1
+
+        ## 1. 起点
+
+        这里引用来源 [2]。
+
+        ## 延伸阅读
+
+        [1] Example Institute. *A Primary Source*. https://example.com/source Accessed 2026-09-22.
+      MARKDOWN
+
+      _stdout, stderr, status = run_verifier(root)
+
+      refute status.success?
+      assert_includes stderr, "Chapter 1: unresolved in-text citation [2]"
+      assert_includes stderr, "Chapter 1: uncited bibliography item [1]"
+    end
+  end
+
   def test_reports_a_bibliography_item_that_is_never_cited
     with_fixture do |root|
       write_numeric_bibliography(root, "正文没有数字引用。")
@@ -140,6 +201,27 @@ class VerifyEditorialIntegrityTest < Minitest::Test
       assert_includes stderr, "Chapter 1: bibliography item [1] is missing author or institution"
       assert_includes stderr, "Chapter 1: bibliography item [1] is missing original URL"
       assert_includes stderr, "Chapter 1: bibliography item [1] is missing access date"
+    end
+  end
+
+  def test_reports_missing_author_or_institution_when_a_source_has_normal_title_punctuation
+    with_fixture do |root|
+      write(root, "src/part1/01.md", <<~MARKDOWN)
+        # 第1章 标题1
+
+        ## 1. 起点
+
+        这里引用来源 [1]。
+
+        ## 参考资料
+
+        [1] A Normally Punctuated Source Title. https://example.com/source Accessed 2026-09-22.
+      MARKDOWN
+
+      _stdout, stderr, status = run_verifier(root)
+
+      refute status.success?
+      assert_includes stderr, "Chapter 1: bibliography item [1] is missing author or institution"
     end
   end
 

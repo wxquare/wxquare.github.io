@@ -63,7 +63,7 @@ paths.each do |relative_path|
   end
 end
 
-REFERENCE_HEADING = /^\s{0,3}(\#{2,6})\s+.*(?:参考资料|参考文献|references?|bibliography).*$/i
+REFERENCE_HEADING = /^\s{0,3}(\#{2,6})\s+.*(?:参考资料|参考文献|延伸阅读|references?|bibliography).*$/i
 NUMBERED_BIBLIOGRAPHY_ITEM = /^\[(\d+)\]\s+(.+\S)\s*$/
 ACCESS_DATE = /(?:访问(?:日期|时间|于)?[：:\s]*\d{4}[-\/.]\d{1,2}[-\/.]\d{1,2}|accessed\s*(?:on\s*)?\d{4}[-\/.]\d{1,2}[-\/.]\d{1,2})/i
 
@@ -91,7 +91,9 @@ end
 def metadata_errors(chapter_number, item)
   errors = []
   # A citation entry must name its author or responsible institution before its title.
-  unless item[:text].match?(/\A\s*[^\s].*?(?:,|，|\.|：)/)
+  before_url = item[:text].split(%r{https?://}i, 2).first.to_s.strip
+  author, title = before_url.split(/(?:,|，|\.|。|：|:)/, 2).map { |part| part&.strip }
+  unless author && title && !title.empty?
     errors << "Chapter #{chapter_number}: bibliography item [#{item[:number]}] is missing author or institution."
   end
   unless item[:text].match?(%r{https?://\S+}i)
@@ -107,18 +109,22 @@ paths.each_with_index do |relative_path, index|
   chapter_number = index + 1
   content = src.join(relative_path).read
   sections = bibliography_sections(content)
-  next if sections.empty?
-
   items = sections.flat_map { |section| section[:items] }
-  bibliography_numbers = items.map { |item| item[:number] }.uniq
-  first_bibliography_line = sections.map { |section| section[:start] }.min
-  prose = content.lines.take(first_bibliography_line).join
+  bibliography_numbers = items.map { |item| item[:number] }
+  prose = content.lines.each_with_index.reject do |_line, line_number|
+    sections.any? { |section| (section[:start]...section[:finish]).cover?(line_number) }
+  end.map(&:first).join
   citations = prose.scan(/\[(\d+)\](?!\()/).flatten.map(&:to_i).uniq
 
-  (citations - bibliography_numbers).sort.each do |number|
-    errors << "Chapter #{chapter_number}: unresolved in-text citation [#{number}] (#{relative_path})."
+  citations.sort.each do |number|
+    resolution_count = bibliography_numbers.count(number)
+    if resolution_count.zero?
+      errors << "Chapter #{chapter_number}: unresolved in-text citation [#{number}] (#{relative_path})."
+    elsif resolution_count != 1
+      errors << "Chapter #{chapter_number}: in-text citation [#{number}] does not resolve exactly once (found #{resolution_count} bibliography items) (#{relative_path})."
+    end
   end
-  (bibliography_numbers - citations).sort.each do |number|
+  (bibliography_numbers.uniq - citations).sort.each do |number|
     errors << "Chapter #{chapter_number}: uncited bibliography item [#{number}] (#{relative_path})."
   end
   items.each { |item| errors.concat(metadata_errors(chapter_number, item)) }
