@@ -46,7 +46,7 @@ toc:
 - `2026-05` · [从内容到短视频：用开源工具生成 3 分钟 AI 教程视频](/2026/05/08/other/ai-content-to-video-open-source-workflow/)
 - `2026-04` · [Karpathy 的自我进化知识库：LLM 时代的知识管理范式](/2026/04/05/AI/04-karpathy-evolving-knowledge-base/)
 - `2026-04` · [从 Vibe Coding 到 Spec Coding：AI 编程范式的演进与实践](/2026/04/03/AI/00-vibe-coding-vs-spec-coding/)
-- `2026-04` · [AI Agent 系统设计完整指南：从思考到实践](/2026/04/03/AI/02-agent-system-design-guid/)
+- `2026-04` · [AI Agent 系统设计内容已整合至书稿](/ai-book/part2/01-agent-architecture.html)
 
 👉 浏览[全部文章归档](/archives/)，或按[文章分类](/categories/)探索更多。
 

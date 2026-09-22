@@ -942,6 +942,45 @@ Gradual Rollout
 
 这也是 Harness 与生产治理的分工：Harness 负责把每一步行为记录成可复盘事实，治理控制面负责把失败归档到 Failure Registry、生成回归样本，并在下一次发布前用 Release Gate 阻断旧问题复发。
 
+### 行业实证：同一模型，不同 Harness
+
+博客中的几个行业案例共同说明：提升 Agent 质量的杠杆不只在模型本身，还在模型周围的工作环境。这里的数字属于特定项目和测试条件，不应直接当作所有团队的通用基准。
+
+| 案例 | Harness 改造 | 观察到的结果 | 工程含义 |
+|:---|:---|:---|:---|
+| OpenAI 的 agent-first 工程实践 | 入口文档只做导航；用 linter 和结构化测试执行架构约束；让 Agent 访问日志、指标和 trace；定期清理架构熵 | 在特定项目中，以少量工程师和 Agent 协作交付大规模代码 | 规模化的关键不是把更多规则塞进 Prompt，而是把约束和反馈机械化 |
+| LangChain Deep Agents | 自验证回路、循环检测中间件、按需上下文注入、完成前检查表 | 博客记录的 Terminal Bench 2.0 对比中，保持模型不变，准确率由 52.8% 提升到 66.5% | 失败检测和完成判定是 Harness 的一等能力，不是任务结束后的人工补救 |
+| Anthropic 的多代理协作 | Planner 产出规格，Generator 实现，Evaluator 按标准打分并反馈 | 在高质量任务中换取更高的功能完整度和代码质量，但调用成本显著增加 | 评估代理可以提高质量上限，但必须显式管理额外成本、延迟和协调复杂度 |
+
+这些案例不能被简化成“多代理一定更好”或“加测试就能解决一切”。它们真正提供的是一套实验方法：固定模型和任务分布，只改变上下文、约束、工具、验证和反馈回路，再用可复现的 Eval 比较结果。只有这样，团队才能判断收益来自哪个 Harness 层，而不是凭感觉继续调 Prompt。
+
+### 工程师角色的转变
+
+Harness Engineering 并不意味着工程师不再写代码，而是把工程师的交付对象从单个实现扩展为“让 Agent 能可靠工作的环境”：
+
+| 传统工程活动 | Harness 时代的对应能力 |
+|:---|:---|
+| 编写业务逻辑 | 设计边界、接口、约束和可供 Agent 修改的工作面 |
+| 手动调试 Bug | 从 Trace 和失败分类中定位 Context、Tool、Workflow 或 Guardrail 的缺陷 |
+| 阅读文档调用 API | 编写有 owner、版本、适用范围和示例的 Agent 可读知识 |
+| 代码评审 | 把架构规则、Schema、测试和发布门禁自动化 |
+| 性能优化 | 管理上下文预算、工具并行度、模型路由、缓存和每任务成本 |
+| 维护线上服务 | 设计回滚、降级、kill switch、人工接管和持续评估 |
+
+这会改变团队的工作闭环：工程师不只评审 Agent 生成了什么，还要追问 Agent 为什么会走这条路径、看到了哪些证据、在哪个约束层被允许继续，以及这次失败如何变成下一次发布前的回归用例。人的判断仍然重要，但应尽可能把可重复的判断沉淀成系统规则和验证回路。
+
+### 最小 Harness 的七项起步能力
+
+如果资源有限，可以先实现下面七项，再逐步补齐本章前面描述的六层能力：
+
+1. **精简入口文档**：用 `CLAUDE.md`、`AGENTS.md` 或同类文件说明项目地图和规则入口，不把所有知识堆在一份 Prompt 里。
+2. **可复现工作环境**：让人和 Agent 使用相同的依赖、测试、构建和隔离环境。
+3. **机械化架构约束**：用 linter、schema、pre-commit 或 CI 执行关键规则，而不是只写在文档中。
+4. **自验证回路**：在宣布完成前运行测试、构建、静态检查或领域验证，并把失败结果重新交给执行流程。
+5. **上下文防火墙**：按任务和阶段隔离上下文，限制不可信外部内容、过期记忆和无关历史进入工作区。
+6. **最小权限与回滚**：按工具和风险授予最小权限，高风险动作必须审批，并保留可回滚路径。
+7. **熵治理**：定期清理废弃规则、重复实现、过期文档和架构偏移，把清理结果纳入评估和发布门禁。
+
 ### 最小可行 Harness 检查清单
 
 如果你要把一个 Agent 从 demo 推向生产，至少需要：
@@ -995,3 +1034,6 @@ LLM 的工程特性决定了 Harness 的必要性：
 2. **OpenAI Evals** - https://github.com/openai/evals
 3. **LangChain Documentation** - https://python.langchain.com/
 4. **Anthropic Claude Code Documentation** - https://docs.anthropic.com/
+5. **OpenAI：Harness engineering: leveraging Codex in an agent-first world** - https://www.engineering.fyi/article/harness-engineering-leveraging-codex-in-an-agent-first-world
+6. **LangChain：Improving Deep Agents with harness engineering** - https://blog.langchain.dev/improving-deep-agents-with-harness-engineering/
+7. **LangChain：The Anatomy of an Agent Harness** - https://blog.langchain.com/the-anatomy-of-an-agent-harness/

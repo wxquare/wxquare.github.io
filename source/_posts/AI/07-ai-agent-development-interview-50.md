@@ -725,5 +725,5 @@ toc: true
 ## 参考
 
 - {% post_link system-design/08-system-design-interview 1-10年互联网后端工程师高频系统设计面试 50 题 %}
-- {% post_link AI/02-agent-system-design-guid Agent 系统设计指南 %}
-- {% post_link AI/06-harness-engineering Harness Engineering %}
+- [书稿第 13 章 Agent 的演化与架构总纲](/ai-book/part2/01-agent-architecture.html)
+- [书稿第 16 章 Harness Engineering](/ai-book/part2/04-harness-engineering.html)
