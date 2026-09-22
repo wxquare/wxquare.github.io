@@ -51,9 +51,7 @@ paths.each do |relative_path|
     chapter = chapters_by_path[resolved_path]
     next unless chapter
 
-    number, title = label.match(/\A第(\d+)章\s+(.+)\z/)&.captures
-    next unless number && title
-    next if number == chapter[:number] && title == chapter[:title]
+    next if label == chapter[:label]
 
     errors << "#{relative_path}: chapter-link label mismatch for #{resolved_path}: expected #{chapter[:label].inspect}, found #{label.inspect}."
   end
