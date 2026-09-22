@@ -515,23 +515,23 @@ process_definition_version
 
 正文中的编号用于就近说明来源支撑的事实或方法；带有“本章推导”的内容，是结合订单、商品和退款场景作出的工程判断。
 
-1. Hector Garcia-Molina, Kenneth Salem, “Sagas”, *Proceedings of the 1987 ACM SIGMOD International Conference on Management of Data*, 1987. [ACM Digital Library](https://doi.org/10.1145/38713.38742).
-2. Pat Helland, “Life beyond Distributed Transactions: an Apostate’s Opinion”, *CIDR 2007*, 2007. [CIDR paper](https://www.cidrdb.org/cidr2007/papers/cidr07p15.pdf).
-3. Object Management Group, *Business Process Model and Notation (BPMN), Version 2.0.2*, 2014. [OMG specification](https://www.omg.org/spec/BPMN/2.0.2/PDF/).
-4. Temporal, “Temporal Platform Documentation”, [Temporal Documentation](https://docs.temporal.io/)，访问日期：2026-09-21。
-5. AWS Prescriptive Guidance, “Saga patterns”, [AWS Prescriptive Guidance](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/saga-patterns.html)，访问日期：2026-09-21。
-6. AWS Prescriptive Guidance, “Transactional outbox pattern”, [AWS Prescriptive Guidance](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html)，访问日期：2026-09-21。
-7. Malcolm Featonby, “Making retries safe with idempotent APIs”, *Amazon Builders’ Library*, 2021. [Amazon Builders’ Library](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/)。
-8. Chris Richardson, “Pattern: Transactional outbox”, *Microservices Patterns*, [microservices.io](https://microservices.io/patterns/data/transactional-outbox)，访问日期：2026-09-21。
-9. Chris Richardson, “Pattern: Idempotent Consumer”, *Microservices Patterns*, [microservices.io](https://microservices.io/patterns/communication-style/idempotent-consumer.html)，访问日期：2026-09-21。
-10. Martin Fowler, “Event Sourcing”, 2005. [martinfowler.com](https://martinfowler.com/eaaDev/EventSourcing.html).
-11. Microsoft, “Compensating Transaction Pattern”, *Azure Architecture Center*, [Microsoft Learn](https://learn.microsoft.com/en-us/azure/architecture/patterns/compensating-transaction)，访问日期：2026-09-21。
-12. Microsoft，〈补偿事务模式〉，《Azure Architecture Center》，[Microsoft Learn 中文](https://learn.microsoft.com/zh-cn/azure/architecture/patterns/compensating-transaction)，访问日期：2026-09-21。
-13. Microsoft，〈Saga 模式〉，《Azure Architecture Center》，[Microsoft Learn 中文](https://learn.microsoft.com/zh-cn/azure/architecture/patterns/saga)，访问日期：2026-09-21。
-14. Apache Seata，〈Seata 是什么？〉，Apache Seata v2.6，[Apache Seata 中文文档](https://seata.apache.org/zh-cn/docs/overview/what-is-seata/)，访问日期：2026-09-21。
-15. Apache Seata，〈Seata TCC 模式〉，[Apache Seata 中文文档](https://seata.apache.org/zh-cn/docs/next/user/mode/tcc/)，访问日期：2026-09-21。
-16. Apache Seata，〈Seata Saga 模式〉，[Apache Seata 中文文档](https://seata.apache.org/zh-cn/docs/user/mode/saga/)，访问日期：2026-09-21。
-17. Apache RocketMQ，〈事务消息〉，[Apache RocketMQ 中文文档](https://rocketmq.apache.org/zh/docs/featureBehavior/04transactionmessage/)，访问日期：2026-09-21。
-18. Apache RocketMQ，〈基本最佳实践〉，[Apache RocketMQ 中文文档](https://rocketmq.apache.org/zh/docs/4.x/bestPractice/01bestpractice/)，访问日期：2026-09-21。
-19. 周志明，〈分布式事务〉，《凤凰架构：构建可靠的大型分布式系统》，2021。[凤凰架构在线章节](https://icyfenix.cn/architect-perspective/general-architecture/transaction/distributed.html)。
-20. 中国信息通信研究院云计算与大数据研究所，《分布式系统稳定性建设指南（2022年）》，2022。[中国信通院官方 PDF](https://www.caict.ac.cn/kxyj/qwfb/ztbg/202206/P020220621683623705917.pdf)。
+[1] Hector Garcia-Molina, Kenneth Salem, “Sagas”, *Proceedings of the 1987 ACM SIGMOD International Conference on Management of Data*, 1987. [ACM Digital Library](https://doi.org/10.1145/38713.38742).
+[2] Pat Helland, “Life beyond Distributed Transactions: an Apostate’s Opinion”, *CIDR 2007*, 2007. [CIDR paper](https://www.cidrdb.org/cidr2007/papers/cidr07p15.pdf).
+[3] Object Management Group, *Business Process Model and Notation (BPMN), Version 2.0.2*, 2014. [OMG specification](https://www.omg.org/spec/BPMN/2.0.2/PDF/).
+[4] Temporal, “Temporal Platform Documentation”, [Temporal Documentation](https://docs.temporal.io/)，访问日期：2026-09-21。
+[5] AWS Prescriptive Guidance, “Saga patterns”, [AWS Prescriptive Guidance](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/saga-patterns.html)，访问日期：2026-09-21。
+[6] AWS Prescriptive Guidance, “Transactional outbox pattern”, [AWS Prescriptive Guidance](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html)，访问日期：2026-09-21。
+[7] Malcolm Featonby, “Making retries safe with idempotent APIs”, *Amazon Builders’ Library*, 2021. [Amazon Builders’ Library](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/)。
+[8] Chris Richardson, “Pattern: Transactional outbox”, *Microservices Patterns*, [microservices.io](https://microservices.io/patterns/data/transactional-outbox)，访问日期：2026-09-21。
+[9] Chris Richardson, “Pattern: Idempotent Consumer”, *Microservices Patterns*, [microservices.io](https://microservices.io/patterns/communication-style/idempotent-consumer.html)，访问日期：2026-09-21。
+[10] Martin Fowler, “Event Sourcing”, 2005. [martinfowler.com](https://martinfowler.com/eaaDev/EventSourcing.html).
+[11] Microsoft, “Compensating Transaction Pattern”, *Azure Architecture Center*, [Microsoft Learn](https://learn.microsoft.com/en-us/azure/architecture/patterns/compensating-transaction)，访问日期：2026-09-21。
+[12] Microsoft，〈补偿事务模式〉，《Azure Architecture Center》，[Microsoft Learn 中文](https://learn.microsoft.com/zh-cn/azure/architecture/patterns/compensating-transaction)，访问日期：2026-09-21。
+[13] Microsoft，〈Saga 模式〉，《Azure Architecture Center》，[Microsoft Learn 中文](https://learn.microsoft.com/zh-cn/azure/architecture/patterns/saga)，访问日期：2026-09-21。
+[14] Apache Seata，〈Seata 是什么？〉，Apache Seata v2.6，[Apache Seata 中文文档](https://seata.apache.org/zh-cn/docs/overview/what-is-seata/)，访问日期：2026-09-21。
+[15] Apache Seata，〈Seata TCC 模式〉，[Apache Seata 中文文档](https://seata.apache.org/zh-cn/docs/next/user/mode/tcc/)，访问日期：2026-09-21。
+[16] Apache Seata，〈Seata Saga 模式〉，[Apache Seata 中文文档](https://seata.apache.org/zh-cn/docs/user/mode/saga/)，访问日期：2026-09-21。
+[17] Apache RocketMQ，〈事务消息〉，[Apache RocketMQ 中文文档](https://rocketmq.apache.org/zh/docs/featureBehavior/04transactionmessage/)，访问日期：2026-09-21。
+[18] Apache RocketMQ，〈基本最佳实践〉，[Apache RocketMQ 中文文档](https://rocketmq.apache.org/zh/docs/4.x/bestPractice/01bestpractice/)，访问日期：2026-09-21。
+[19] 周志明，〈分布式事务〉，《凤凰架构：构建可靠的大型分布式系统》，2021。[凤凰架构在线章节](https://icyfenix.cn/architect-perspective/general-architecture/transaction/distributed.html)。
+[20] 中国信息通信研究院云计算与大数据研究所，《分布式系统稳定性建设指南（2022年）》，2022。[中国信通院官方 PDF](https://www.caict.ac.cn/kxyj/qwfb/ztbg/202206/P020220621683623705917.pdf)。

@@ -473,7 +473,7 @@ Code Review 的核心目标有四个：
 
 如果 Review 长期只盯代码风格，这些风险就会直接穿透到线上。
 
-### 2.5.3 Author 应该怎样配合 Review
+### 2.5.4 Author 应该怎样配合 Review
 
 Review 质量不只是 Reviewer 的责任，Author 同样负有很大责任。作者在发起 PR 时，至少应该主动提供这些信息：
 
@@ -487,7 +487,7 @@ Review 质量不只是 Reviewer 的责任，Author 同样负有很大责任。�
 
 ---
 
-### 2.5.4 一份可执行的 Code Review 清单
+### 2.5.5 一份可执行的 Code Review 清单
 
 下面给出一份更适合业务系统的 Review Checklist。它不是要求每次逐条机械打勾，而是帮助团队形成稳定视角。
 
@@ -529,7 +529,7 @@ Review 质量不只是 Reviewer 的责任，Author 同样负有很大责任。�
 
 如果团队能长期围绕这五个维度讨论，Review 很快就会从“凭感觉”升级为“有共同标准”。
 
-### 2.5.4.1 让 Review 意见具备可执行性
+#### 2.5.5.1 让 Review 意见具备可执行性
 
 高质量意见应该描述风险，而不是表达个人偏好。一个有效的 Review 意见至少包含四部分：观察到的事实、可能造成的后果、建议的处理方向，以及是否必须在当前 PR 解决。例如：
 
@@ -1056,3 +1056,23 @@ PR 模板也不应只要求 Author 勾选“已测试”。对涉及核心链路
 5. 用 Fitness Functions、Lint、依赖检查和测试把已经达成的共识固定下来。
 
 这套顺序的目的不是增加流程，而是避免把所有问题都推给最后一次 PR Review：设计问题应尽量在设计阶段暴露，结构问题应在重构阶段收口，确定性的规则应由 CI 执行，剩下的业务取舍才值得消耗专家的人工注意力。
+
+### 2.10.5 参考资料
+
+[1] Martin Fowler, *Refactoring*, 2nd ed., Addison-Wesley, 2018, https://www.martinfowler.com/books/refactoring.html。
+
+[2] Martin Fowler, “Strangler Fig Application”, https://martinfowler.com/bliki/StranglerFigApplication.html。
+
+[3] Neal Ford, Rebecca Parsons, Patrick Kua, *Building Evolutionary Architectures*, O’Reilly Media, 2017, https://www.oreilly.com/library/view/building-evolutionary-architectures/9781491986356/。
+
+[4] Uber, “Uber Go Style Guide”, https://github.com/uber-go/guide/blob/master/style.md。
+
+[5] Michael Feathers, *Working Effectively with Legacy Code*, Prentice Hall, 2004, https://www.pearson.com/en-us/subject-catalog/p/working-effectively-with-legacy-code/P200000000297。
+
+[6] Google, “The Standard of Code Review”, https://google.github.io/eng-practices/review/reviewer/standard.html。
+
+[7] John Ousterhout, *A Philosophy of Software Design*, 2nd ed., Yaknyam Press, 2021, https://web.stanford.edu/~ouster/cgi-bin/book.php。
+
+[8] Eric Evans, *Domain-Driven Design: Tackling Complexity in the Heart of Software*, Addison-Wesley, 2003, https://www.domainlanguage.com/ddd/。
+
+[9] Vaughn Vernon, *Implementing Domain-Driven Design*, Addison-Wesley, 2013, https://www.pearson.com/en-us/subject-catalog/p/implementing-domain-driven-design/P200000009616。

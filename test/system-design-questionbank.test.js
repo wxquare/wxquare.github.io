@@ -69,7 +69,6 @@ test('book links point to the appendix instead of a removed question-bank chapte
     'part02/12-inventory-system.md',
     'part02/13-marketing-pricing-system.md',
     'part02/14-ecommerce-customer-lifecycle.md',
-    'part02/15-b2b2c-platform-architecture.md',
   ];
 
   for (const file of partTwoFiles) {

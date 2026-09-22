@@ -408,23 +408,23 @@ Google SRE 建议使用真实负载测试验证系统的过载点，因为服务
 
 ## 9.9 参考资料
 
-1. Martin Kleppmann、Chris Riccomini，《[Designing Data-Intensive Applications, 2nd Edition](https://www.oreilly.com/library/view/designing-data-intensive-applications/9781098119058/)》，O’Reilly，2026。
-2. Google SRE，[“Handling Overload”](https://sre.google/sre-book/handling-overload/)，*Site Reliability Engineering*，Google，2017。
-3. Google SRE，[“Addressing Cascading Failures”](https://sre.google/sre-book/addressing-cascading-failures/)，*Site Reliability Engineering*，Google，2017。
-4. Google SRE，[“Reliable Product Launches at Scale”](https://sre.google/sre-book/reliable-product-launches/)，*Site Reliability Engineering*，Google，2017。
-5. Gregor Hohpe、Bobby Woolf，[*Enterprise Integration Patterns*](https://www.enterpriseintegrationpatterns.com/)，Addison-Wesley，2003。
-6. Chris Richardson，[“Transactional Outbox”](https://microservices.io/patterns/data/transactional-outbox)，Microservices.io，访问：2026-09-21。
-7. Chris Richardson，[“Idempotent Consumer”](https://microservices.io/patterns/communication-style/idempotent-consumer.html)，Microservices.io，访问：2026-09-21。
-8. Mark Nottingham、Robert Fielding，[RFC 6585: Additional HTTP Status Codes](https://www.rfc-editor.org/rfc/rfc6585.html)，RFC Editor，2012。
-9. Malcolm Featonby，[“Making Retries Safe with Idempotent APIs”](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/)，Amazon Builders’ Library，访问：2026-09-21。
-10. Amazon Web Services，[“Control and limit retry calls”](https://docs.aws.amazon.com/wellarchitected/2022-03-31/framework/rel_mitigate_interaction_failure_limit_retries.html)，*AWS Well-Architected Framework*，2022。
-11. Redis，[“Scripting with Lua”](https://redis.io/docs/latest/develop/programmability/eval-intro/)，Redis Documentation，访问：2026-09-21。
-12. Redis，[“Redis Streams”](https://redis.io/docs/latest/develop/data-types/streams/)，Redis Documentation，访问：2026-09-21。
-13. Apache Kafka，[“Message Delivery Semantics”](https://kafka.apache.org/documentation/#semantics)，Apache Kafka Documentation，访问：2026-09-21。
-14. Alibaba，[“Sentinel 介绍”](https://sentinelguard.io/zh-cn/docs/introduction.html)，Sentinel 中文文档，访问：2026-09-21。
-15. Alibaba，[“热点参数限流”](https://sentinelguard.io/zh-cn/docs/parameter-flow-control.html)，Sentinel 中文文档，访问：2026-09-21。
-16. Apache RocketMQ，[“顺序消息”](https://rocketmq.apache.org/zh/docs/featureBehavior/03fifomessage/)，Apache RocketMQ 中文文档，访问：2026-09-21。
-17. Apache RocketMQ，[“消费重试”](https://rocketmq.apache.org/zh/docs/featureBehavior/10consumerretrypolicy/)，Apache RocketMQ 中文文档，访问：2026-09-21。
-18. Apache RocketMQ，[“消息发送重试和流控机制”](https://rocketmq.apache.org/zh/docs/featureBehavior/05sendretrypolicy/)，Apache RocketMQ 中文文档，访问：2026-09-21。
-19. 周志明，《[凤凰架构：构建可靠的大型分布式系统](https://icyfenix.cn/)》，访问：2026-09-21。
-20. Unmesh Joshi，[“Idempotent Receiver”](https://martinfowler.com/articles/patterns-of-distributed-systems/idempotent-receiver.html)，*Patterns of Distributed Systems*，Martin Fowler，2023。
+[1] Martin Kleppmann、Chris Riccomini，《[Designing Data-Intensive Applications, 2nd Edition](https://www.oreilly.com/library/view/designing-data-intensive-applications/9781098119058/)》，O’Reilly，2026。
+[2] Google SRE，[“Handling Overload”](https://sre.google/sre-book/handling-overload/)，*Site Reliability Engineering*，Google，2017。
+[3] Google SRE，[“Addressing Cascading Failures”](https://sre.google/sre-book/addressing-cascading-failures/)，*Site Reliability Engineering*，Google，2017。
+[4] Google SRE，[“Reliable Product Launches at Scale”](https://sre.google/sre-book/reliable-product-launches/)，*Site Reliability Engineering*，Google，2017。
+[5] Gregor Hohpe、Bobby Woolf，[*Enterprise Integration Patterns*](https://www.enterpriseintegrationpatterns.com/)，Addison-Wesley，2003。
+[6] Chris Richardson，[“Transactional Outbox”](https://microservices.io/patterns/data/transactional-outbox)，Microservices.io，访问：2026-09-21。
+[7] Chris Richardson，[“Idempotent Consumer”](https://microservices.io/patterns/communication-style/idempotent-consumer.html)，Microservices.io，访问：2026-09-21。
+[8] Mark Nottingham、Robert Fielding，[RFC 6585: Additional HTTP Status Codes](https://www.rfc-editor.org/rfc/rfc6585.html)，RFC Editor，2012。
+[9] Malcolm Featonby，[“Making Retries Safe with Idempotent APIs”](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/)，Amazon Builders’ Library，访问：2026-09-21。
+[10] Amazon Web Services，[“Control and limit retry calls”](https://docs.aws.amazon.com/wellarchitected/2022-03-31/framework/rel_mitigate_interaction_failure_limit_retries.html)，*AWS Well-Architected Framework*，2022。
+[11] Redis，[“Scripting with Lua”](https://redis.io/docs/latest/develop/programmability/eval-intro/)，Redis Documentation，访问：2026-09-21。
+[12] Redis，[“Redis Streams”](https://redis.io/docs/latest/develop/data-types/streams/)，Redis Documentation，访问：2026-09-21。
+[13] Apache Kafka，[“Message Delivery Semantics”](https://kafka.apache.org/documentation/#semantics)，Apache Kafka Documentation，访问：2026-09-21。
+[14] Alibaba，[“Sentinel 介绍”](https://sentinelguard.io/zh-cn/docs/introduction.html)，Sentinel 中文文档，访问：2026-09-21。
+[15] Alibaba，[“热点参数限流”](https://sentinelguard.io/zh-cn/docs/parameter-flow-control.html)，Sentinel 中文文档，访问：2026-09-21。
+[16] Apache RocketMQ，[“顺序消息”](https://rocketmq.apache.org/zh/docs/featureBehavior/03fifomessage/)，Apache RocketMQ 中文文档，访问：2026-09-21。
+[17] Apache RocketMQ，[“消费重试”](https://rocketmq.apache.org/zh/docs/featureBehavior/10consumerretrypolicy/)，Apache RocketMQ 中文文档，访问：2026-09-21。
+[18] Apache RocketMQ，[“消息发送重试和流控机制”](https://rocketmq.apache.org/zh/docs/featureBehavior/05sendretrypolicy/)，Apache RocketMQ 中文文档，访问：2026-09-21。
+[19] 周志明，《[凤凰架构：构建可靠的大型分布式系统](https://icyfenix.cn/)》，访问：2026-09-21。
+[20] Unmesh Joshi，[“Idempotent Receiver”](https://martinfowler.com/articles/patterns-of-distributed-systems/idempotent-receiver.html)，*Patterns of Distributed Systems*，Martin Fowler，2023。
