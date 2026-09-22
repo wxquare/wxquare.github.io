@@ -350,52 +350,52 @@ Runtime 的成熟度不体现在“Agent 能完成一次 demo”，而体现在�
 
 ## 参考资料
 
-[1] Yao, S., et al. *ReAct: Synergizing Reasoning and Acting in Language Models*. ICLR, 2023. https://arxiv.org/abs/2210.03629
+[1] Yao, S., et al. *ReAct: Synergizing Reasoning and Acting in Language Models*. ICLR, 2023. https://arxiv.org/abs/2210.03629 访问日期：2026-09-22
 
-[2] Schick, T., et al. *Toolformer*. NeurIPS, 2023. https://arxiv.org/abs/2302.04761
+[2] Schick, T., et al. *Toolformer*. NeurIPS, 2023. https://arxiv.org/abs/2302.04761 访问日期：2026-09-22
 
-[3] Karpas, E., et al. *MRKL Systems*. 2022. https://arxiv.org/abs/2205.00445
+[3] Karpas, E., et al. *MRKL Systems*. 2022. https://arxiv.org/abs/2205.00445 访问日期：2026-09-22
 
-[4] Park, J. S., et al. *Generative Agents*. UIST, 2023. https://arxiv.org/abs/2304.03442
+[4] Park, J. S., et al. *Generative Agents*. UIST, 2023. https://arxiv.org/abs/2304.03442 访问日期：2026-09-22
 
-[5] Wu, Q., et al. *AutoGen*. 2023. https://arxiv.org/abs/2308.08155
+[5] Wu, Q., et al. *AutoGen*. 2023. https://arxiv.org/abs/2308.08155 访问日期：2026-09-22
 
-[6] LangChain. *LangGraph Documentation*. https://langchain-ai.github.io/langgraph/
+[6] LangChain. *LangGraph Documentation*. https://langchain-ai.github.io/langgraph/ 访问日期：2026-09-22
 
-[7] Temporal. *Documentation*. https://docs.temporal.io/
+[7] Temporal. *Documentation*. https://docs.temporal.io/ 访问日期：2026-09-22
 
-[8] Moritz, P., et al. *Ray*. OSDI, 2018. https://www.usenix.org/conference/osdi18/presentation/moritz
+[8] Moritz, P., et al. *Ray*. OSDI, 2018. https://www.usenix.org/conference/osdi18/presentation/moritz 访问日期：2026-09-22
 
-[9] Kubernetes. *Documentation*. https://kubernetes.io/docs/concepts/
+[9] Kubernetes. *Documentation*. https://kubernetes.io/docs/concepts/ 访问日期：2026-09-22
 
-[10] Verma, A., et al. *Large-scale Cluster Management at Google with Borg*. EuroSys, 2015. https://research.google/pubs/large-scale-cluster-management-at-google-with-borg/
+[10] Verma, A., et al. *Large-scale Cluster Management at Google with Borg*. EuroSys, 2015. https://research.google/pubs/large-scale-cluster-management-at-google-with-borg/ 访问日期：2026-09-22
 
-[11] OpenAI. *Function Calling Guide*. https://platform.openai.com/docs/guides/function-calling
+[11] OpenAI. *Function Calling Guide*. https://platform.openai.com/docs/guides/function-calling 访问日期：2026-09-22
 
-[12] Model Context Protocol. *Specification*. https://modelcontextprotocol.io/specification
+[12] Model Context Protocol. *Specification*. https://modelcontextprotocol.io/specification 访问日期：2026-09-22
 
-[13] JSON Schema. *Specification*. https://json-schema.org/specification
+[13] JSON Schema. *Specification*. https://json-schema.org/specification 访问日期：2026-09-22
 
-[14] OpenTelemetry Authors. *Documentation*. https://opentelemetry.io/docs/
+[14] OpenTelemetry Authors. *Documentation*. https://opentelemetry.io/docs/ 访问日期：2026-09-22
 
-[15] Prometheus Authors. *Documentation*. https://prometheus.io/docs/introduction/overview/
+[15] Prometheus Authors. *Documentation*. https://prometheus.io/docs/introduction/overview/ 访问日期：2026-09-22
 
-[16] Sigelman, B. H., et al. *Dapper*. 2010. https://research.google/pubs/dapper-a-large-scale-distributed-systems-tracing-infrastructure/
+[16] Sigelman, B. H., et al. *Dapper*. 2010. https://research.google/pubs/dapper-a-large-scale-distributed-systems-tracing-infrastructure/ 访问日期：2026-09-22
 
-[17] Beyer, B., et al. *The Site Reliability Workbook*. 2018. https://sre.google/workbook/table-of-contents/
+[17] Beyer, B., et al. *The Site Reliability Workbook*. 2018. https://sre.google/workbook/table-of-contents/ 访问日期：2026-09-22
 
-[18] Garcia-Molina, H., & Salem, K. *Sagas*. ACM SIGMOD, 1987. https://www.cs.cornell.edu/andru/cs711/2002fa/reading/sagas.pdf
+[18] Garcia-Molina, H., & Salem, K. *Sagas*. ACM SIGMOD, 1987. https://www.cs.cornell.edu/andru/cs711/2002fa/reading/sagas.pdf 访问日期：2026-09-22
 
-[19] Hohpe, G., & Woolf, B. *Idempotent Receiver*. Enterprise Integration Patterns. https://www.enterpriseintegrationpatterns.com/patterns/messaging/IdempotentReceiver.html
+[19] Hohpe, G., & Woolf, B. *Idempotent Receiver*. Enterprise Integration Patterns. https://www.enterpriseintegrationpatterns.com/patterns/messaging/IdempotentReceiver.html 访问日期：2026-09-22
 
-[20] AWS. *AWS Step Functions Documentation*. https://docs.aws.amazon.com/step-functions/
+[20] AWS. *AWS Step Functions Documentation*. https://docs.aws.amazon.com/step-functions/ 访问日期：2026-09-22
 
-[21] Google. *AIP-194: Errors*. https://google.aip.dev/194
+[21] Google. *AIP-194: Errors*. https://google.aip.dev/194 访问日期：2026-09-22
 
-[22] 周志华：《机器学习》。https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm
+[22] 周志华：《机器学习》。https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm 访问日期：2026-09-22
 
-[23] 邱锡鹏：《神经网络与深度学习》。https://nndl.github.io/
+[23] 邱锡鹏：《神经网络与深度学习》。https://nndl.github.io/ 访问日期：2026-09-22
 
-[24] 张量网络与深度学习：《动手学深度学习》。https://zh.d2l.ai/
+[24] 张量网络与深度学习：《动手学深度学习》。https://zh.d2l.ai/ 访问日期：2026-09-22
 
-[25] OWASP. *Top 10 for Large Language Model Applications*. https://owasp.org/www-project-top-10-for-large-language-model-applications/
+[25] OWASP. *Top 10 for Large Language Model Applications*. https://owasp.org/www-project-top-10-for-large-language-model-applications/ 访问日期：2026-09-22

@@ -538,54 +538,54 @@ AI 任务经常出现部分完成：检索成功但生成失败，三项工具�
 
 ## 参考资料
 
-[1] Beyer, B., et al. *The Site Reliability Workbook*. https://sre.google/workbook/table-of-contents/
+[1] Beyer, B., et al. *The Site Reliability Workbook*. https://sre.google/workbook/table-of-contents/ 访问日期：2026-09-22
 
-[2] Beyer, B., et al. *Site Reliability Engineering Book*. https://sre.google/sre-book/table-of-contents/
+[2] Beyer, B., et al. *Site Reliability Engineering Book*. https://sre.google/sre-book/table-of-contents/ 访问日期：2026-09-22
 
-[3] Sigelman, B. H., et al. *Dapper*. https://research.google/pubs/dapper-a-large-scale-distributed-systems-tracing-infrastructure/
+[3] Sigelman, B. H., et al. *Dapper*. https://research.google/pubs/dapper-a-large-scale-distributed-systems-tracing-infrastructure/ 访问日期：2026-09-22
 
-[4] OpenTelemetry Authors. *OpenTelemetry Documentation*. https://opentelemetry.io/docs/
+[4] OpenTelemetry Authors. *OpenTelemetry Documentation*. https://opentelemetry.io/docs/ 访问日期：2026-09-22
 
-[5] Prometheus Authors. *Prometheus Documentation*. https://prometheus.io/docs/introduction/overview/
+[5] Prometheus Authors. *Prometheus Documentation*. https://prometheus.io/docs/introduction/overview/ 访问日期：2026-09-22
 
-[6] Verma, A., et al. *Large-scale Cluster Management at Google with Borg*. https://research.google/pubs/large-scale-cluster-management-at-google-with-borg/
+[6] Verma, A., et al. *Large-scale Cluster Management at Google with Borg*. https://research.google/pubs/large-scale-cluster-management-at-google-with-borg/ 访问日期：2026-09-22
 
-[7] Kubernetes. *Documentation*. https://kubernetes.io/docs/concepts/
+[7] Kubernetes. *Documentation*. https://kubernetes.io/docs/concepts/ 访问日期：2026-09-22
 
-[8] NIST. *AI Risk Management Framework*. https://www.nist.gov/itl/ai-risk-management-framework
+[8] NIST. *AI Risk Management Framework*. https://www.nist.gov/itl/ai-risk-management-framework 访问日期：2026-09-22
 
-[9] NIST. *Generative AI Profile*. https://www.nist.gov/itl/ai-risk-management-framework/ai-rmf-generative-ai-profile
+[9] NIST. *Generative AI Profile*. https://www.nist.gov/itl/ai-risk-management-framework/ai-rmf-generative-ai-profile 访问日期：2026-09-22
 
-[10] ISO. *ISO/IEC 42001*. https://www.iso.org/standard/81230.html
+[10] ISO. *ISO/IEC 42001*. https://www.iso.org/standard/81230.html 访问日期：2026-09-22
 
-[11] ISO. *ISO/IEC 23894*. https://www.iso.org/standard/77304.html
+[11] ISO. *ISO/IEC 23894*. https://www.iso.org/standard/77304.html 访问日期：2026-09-22
 
-[12] OWASP. *Top 10 for Large Language Model Applications*. https://owasp.org/www-project-top-10-for-large-language-model-applications/
+[12] OWASP. *Top 10 for Large Language Model Applications*. https://owasp.org/www-project-top-10-for-large-language-model-applications/ 访问日期：2026-09-22
 
-[13] MITRE. *ATLAS*. https://atlas.mitre.org/
+[13] MITRE. *ATLAS*. https://atlas.mitre.org/ 访问日期：2026-09-22
 
-[14] Google. *Model Cards*. https://modelcards.withgoogle.com/about
+[14] Google. *Model Cards*. https://modelcards.withgoogle.com/about 访问日期：2026-09-22
 
-[15] Gebru, T., et al. *Datasheets for Datasets*. CACM, 2021. https://dl.acm.org/doi/10.1145/3458723
+[15] Gebru, T., et al. *Datasheets for Datasets*. CACM, 2021. https://dl.acm.org/doi/10.1145/3458723 访问日期：2026-09-22
 
-[16] SLSA. *Specification v1.0*. https://slsa.dev/spec/v1.0/
+[16] SLSA. *Specification v1.0*. https://slsa.dev/spec/v1.0/ 访问日期：2026-09-22
 
-[17] Sigstore. *Documentation*. https://www.sigstore.dev/
+[17] Sigstore. *Documentation*. https://www.sigstore.dev/ 访问日期：2026-09-22
 
-[18] OpenSSF. *Scorecard*. https://github.com/ossf/scorecard
+[18] OpenSSF. *Scorecard*. https://github.com/ossf/scorecard 访问日期：2026-09-22
 
-[19] Chaos Mesh. *Documentation*. https://chaos-mesh.org/docs/
+[19] Chaos Mesh. *Documentation*. https://chaos-mesh.org/docs/ 访问日期：2026-09-22
 
-[20] Jepsen. *Distributed Systems Safety Research*. https://jepsen.io/
+[20] Jepsen. *Distributed Systems Safety Research*. https://jepsen.io/ 访问日期：2026-09-22
 
-[21] Wiggins, A. *The Twelve-Factor App*. https://12factor.net/
+[21] Wiggins, A. *The Twelve-Factor App*. https://12factor.net/ 访问日期：2026-09-22
 
-[22] Google. *AIP-194: Errors*. https://google.aip.dev/194
+[22] Google. *AIP-194: Errors*. https://google.aip.dev/194 访问日期：2026-09-22
 
-[23] 周志华：《机器学习》。https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm
+[23] 周志华：《机器学习》。https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm 访问日期：2026-09-22
 
-[24] 邱锡鹏：《神经网络与深度学习》。https://nndl.github.io/
+[24] 邱锡鹏：《神经网络与深度学习》。https://nndl.github.io/ 访问日期：2026-09-22
 
-[25] 张量网络与深度学习：《动手学深度学习》。https://zh.d2l.ai/
+[25] 张量网络与深度学习：《动手学深度学习》。https://zh.d2l.ai/ 访问日期：2026-09-22
 
-[26] 中国信息通信研究院：《人工智能治理白皮书》。https://www.caict.ac.cn/
+[26] 中国信息通信研究院：《人工智能治理白皮书》。https://www.caict.ac.cn/ 访问日期：2026-09-22

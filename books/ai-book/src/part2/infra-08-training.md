@@ -454,52 +454,52 @@ GPU busy 只是设备上有 kernel 执行，不代表 kernel 高效。大量小 
 
 ## 参考资料
 
-[1] Shoeybi, M., et al. *Megatron-LM: Training Multi-Billion Parameter Language Models Using Model Parallelism*. 2019. https://arxiv.org/abs/1909.08053
+[1] Shoeybi, M., et al. *Megatron-LM: Training Multi-Billion Parameter Language Models Using Model Parallelism*. 2019. https://arxiv.org/abs/1909.08053 访问日期：2026-09-22
 
-[2] Narayanan, D., et al. *Efficient Large-Scale Language Model Training on GPU Clusters Using Megatron-LM*. 2021. https://arxiv.org/abs/2104.04473
+[2] Narayanan, D., et al. *Efficient Large-Scale Language Model Training on GPU Clusters Using Megatron-LM*. 2021. https://arxiv.org/abs/2104.04473 访问日期：2026-09-22
 
-[3] Rajbhandari, S., et al. *ZeRO: Memory Optimizations Toward Training Trillion Parameter Models*. SC, 2020. https://arxiv.org/abs/1910.02054
+[3] Rajbhandari, S., et al. *ZeRO: Memory Optimizations Toward Training Trillion Parameter Models*. SC, 2020. https://arxiv.org/abs/1910.02054 访问日期：2026-09-22
 
-[4] Rajbhandari, S., et al. *ZeRO-Infinity*. SC, 2021. https://arxiv.org/abs/2104.07857
+[4] Rajbhandari, S., et al. *ZeRO-Infinity*. SC, 2021. https://arxiv.org/abs/2104.07857 访问日期：2026-09-22
 
-[5] Rasley, J., et al. *DeepSpeed*. KDD, 2020. https://arxiv.org/abs/2007.04262
+[5] Rasley, J., et al. *DeepSpeed*. KDD, 2020. https://arxiv.org/abs/2007.04262 访问日期：2026-09-22
 
-[6] PyTorch. *Fully Sharded Data Parallel Documentation*. https://pytorch.org/docs/stable/fsdp.html
+[6] PyTorch. *Fully Sharded Data Parallel Documentation*. https://pytorch.org/docs/stable/fsdp.html 访问日期：2026-09-22
 
-[7] Lepikhin, D., et al. *GShard*. 2020. https://arxiv.org/abs/2006.16668
+[7] Lepikhin, D., et al. *GShard*. 2020. https://arxiv.org/abs/2006.16668 访问日期：2026-09-22
 
-[8] Fedus, W., et al. *Switch Transformers*. 2021. https://arxiv.org/abs/2101.03961
+[8] Fedus, W., et al. *Switch Transformers*. 2021. https://arxiv.org/abs/2101.03961 访问日期：2026-09-22
 
-[9] Chowdhery, A., et al. *PaLM*. 2022. https://arxiv.org/abs/2204.02311
+[9] Chowdhery, A., et al. *PaLM*. 2022. https://arxiv.org/abs/2204.02311 访问日期：2026-09-22
 
-[10] Dubey, A., et al. *The Llama 3 Herd of Models*. 2024. https://arxiv.org/abs/2407.21783
+[10] Dubey, A., et al. *The Llama 3 Herd of Models*. 2024. https://arxiv.org/abs/2407.21783 访问日期：2026-09-22
 
-[11] Dao, T., et al. *FlashAttention*. NeurIPS, 2022. https://arxiv.org/abs/2205.14135
+[11] Dao, T., et al. *FlashAttention*. NeurIPS, 2022. https://arxiv.org/abs/2205.14135 访问日期：2026-09-22
 
-[12] Dao, T. *FlashAttention-2*. ICLR, 2024. https://arxiv.org/abs/2307.08691
+[12] Dao, T. *FlashAttention-2*. ICLR, 2024. https://arxiv.org/abs/2307.08691 访问日期：2026-09-22
 
-[13] NVIDIA. *NCCL Documentation*. https://docs.nvidia.com/deeplearning/nccl/
+[13] NVIDIA. *NCCL Documentation*. https://docs.nvidia.com/deeplearning/nccl/ 访问日期：2026-09-22
 
-[14] PyTorch. *Distributed Communication Package*. https://pytorch.org/docs/stable/distributed.html
+[14] PyTorch. *Distributed Communication Package*. https://pytorch.org/docs/stable/distributed.html 访问日期：2026-09-22
 
-[15] Zaharia, M., et al. *Resilient Distributed Datasets*. NSDI, 2012. https://www.usenix.org/legacy/events/nsdi12/tech/full_papers/Zaharia_new.pdf
+[15] Zaharia, M., et al. *Resilient Distributed Datasets*. NSDI, 2012. https://www.usenix.org/legacy/events/nsdi12/tech/full_papers/Zaharia_new.pdf 访问日期：2026-09-22
 
-[16] Moritz, P., et al. *Ray*. OSDI, 2018. https://www.usenix.org/conference/osdi18/presentation/moritz
+[16] Moritz, P., et al. *Ray*. OSDI, 2018. https://www.usenix.org/conference/osdi18/presentation/moritz 访问日期：2026-09-22
 
-[17] Verma, A., et al. *Large-scale Cluster Management at Google with Borg*. EuroSys, 2015. https://research.google/pubs/large-scale-cluster-management-at-google-with-borg/
+[17] Verma, A., et al. *Large-scale Cluster Management at Google with Borg*. EuroSys, 2015. https://research.google/pubs/large-scale-cluster-management-at-google-with-borg/ 访问日期：2026-09-22
 
-[18] Kubernetes. *Schedule GPUs*. https://kubernetes.io/docs/tasks/manage-gpus/scheduling-gpus/
+[18] Kubernetes. *Schedule GPUs*. https://kubernetes.io/docs/tasks/manage-gpus/scheduling-gpus/ 访问日期：2026-09-22
 
-[19] Beyer, B., et al. *The Site Reliability Workbook*. 2018. https://sre.google/workbook/table-of-contents/
+[19] Beyer, B., et al. *The Site Reliability Workbook*. 2018. https://sre.google/workbook/table-of-contents/ 访问日期：2026-09-22
 
-[20] OpenTelemetry Authors. *OpenTelemetry Documentation*. https://opentelemetry.io/docs/
+[20] OpenTelemetry Authors. *OpenTelemetry Documentation*. https://opentelemetry.io/docs/ 访问日期：2026-09-22
 
-[21] Prometheus Authors. *Prometheus Documentation*. https://prometheus.io/docs/introduction/overview/
+[21] Prometheus Authors. *Prometheus Documentation*. https://prometheus.io/docs/introduction/overview/ 访问日期：2026-09-22
 
-[22] Sigelman, B. H., et al. *Dapper*. 2010. https://research.google/pubs/dapper-a-large-scale-distributed-systems-tracing-infrastructure/
+[22] Sigelman, B. H., et al. *Dapper*. 2010. https://research.google/pubs/dapper-a-large-scale-distributed-systems-tracing-infrastructure/ 访问日期：2026-09-22
 
-[23] Zhang, A., et al. *Dive into Deep Learning*. https://zh.d2l.ai/
+[23] Zhang, A., et al. *Dive into Deep Learning*. https://zh.d2l.ai/ 访问日期：2026-09-22
 
-[24] 邱锡鹏：《神经网络与深度学习》。https://nndl.github.io/
+[24] 邱锡鹏：《神经网络与深度学习》。https://nndl.github.io/ 访问日期：2026-09-22
 
-[25] 周志华：《机器学习》。https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm
+[25] 周志华：《机器学习》。https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm 访问日期：2026-09-22

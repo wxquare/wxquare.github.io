@@ -515,52 +515,52 @@ runbook 要通过演练更新。每次事故或压测发现新的边界，就增
 
 ## 参考资料
 
-[1] Kwon, W., et al. *Efficient Memory Management for Large Language Model Serving with PagedAttention*. SOSP, 2023. https://arxiv.org/abs/2309.06180
+[1] Kwon, W., et al. *Efficient Memory Management for Large Language Model Serving with PagedAttention*. SOSP, 2023. https://arxiv.org/abs/2309.06180 访问日期：2026-09-22
 
-[2] Yu, G.-I., et al. *Orca: A Distributed Serving System for Transformer-Based Generative Models*. OSDI, 2022. https://www.usenix.org/conference/osdi22/presentation/yu
+[2] Yu, G.-I., et al. *Orca: A Distributed Serving System for Transformer-Based Generative Models*. OSDI, 2022. https://www.usenix.org/conference/osdi22/presentation/yu 访问日期：2026-09-22
 
-[3] Agrawal, A., et al. *Taming Throughput-Latency Tradeoff in LLM Inference with Sarathi-Serve*. OSDI, 2024. https://www.usenix.org/conference/osdi24/presentation/agrawal
+[3] Agrawal, A., et al. *Taming Throughput-Latency Tradeoff in LLM Inference with Sarathi-Serve*. OSDI, 2024. https://www.usenix.org/conference/osdi24/presentation/agrawal 访问日期：2026-09-22
 
-[4] Zhong, Y., et al. *DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving*. OSDI, 2024. https://www.usenix.org/conference/osdi24/presentation/zhong
+[4] Zhong, Y., et al. *DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving*. OSDI, 2024. https://www.usenix.org/conference/osdi24/presentation/zhong 访问日期：2026-09-22
 
-[5] Dao, T., et al. *FlashAttention*. NeurIPS, 2022. https://arxiv.org/abs/2205.14135
+[5] Dao, T., et al. *FlashAttention*. NeurIPS, 2022. https://arxiv.org/abs/2205.14135 访问日期：2026-09-22
 
-[6] Dao, T. *FlashAttention-2*. ICLR, 2024. https://arxiv.org/abs/2307.08691
+[6] Dao, T. *FlashAttention-2*. ICLR, 2024. https://arxiv.org/abs/2307.08691 访问日期：2026-09-22
 
-[7] NVIDIA. *TensorRT-LLM Documentation*. https://nvidia.github.io/TensorRT-LLM/
+[7] NVIDIA. *TensorRT-LLM Documentation*. https://nvidia.github.io/TensorRT-LLM/ 访问日期：2026-09-22
 
-[8] NVIDIA. *Triton Inference Server Documentation*. https://docs.nvidia.com/deeplearning/triton-inference-server/
+[8] NVIDIA. *Triton Inference Server Documentation*. https://docs.nvidia.com/deeplearning/triton-inference-server/ 访问日期：2026-09-22
 
-[9] vLLM Team. *vLLM: A High-Throughput and Memory-Efficient Inference Engine*. https://github.com/vllm-project/vllm
+[9] vLLM Team. *vLLM: A High-Throughput and Memory-Efficient Inference Engine*. https://github.com/vllm-project/vllm 访问日期：2026-09-22
 
-[10] Hugging Face. *Text Generation Inference*. https://github.com/huggingface/text-generation-inference
+[10] Hugging Face. *Text Generation Inference*. https://github.com/huggingface/text-generation-inference 访问日期：2026-09-22
 
-[11] NVIDIA. *FasterTransformer*. https://github.com/NVIDIA/FasterTransformer
+[11] NVIDIA. *FasterTransformer*. https://github.com/NVIDIA/FasterTransformer 访问日期：2026-09-22
 
-[12] Yu, G.-I., et al. *Orca: Iteration-level Scheduling*. OSDI, 2022. https://www.usenix.org/conference/osdi22/presentation/yu
+[12] Yu, G.-I., et al. *Orca: Iteration-level Scheduling*. OSDI, 2022. https://www.usenix.org/conference/osdi22/presentation/yu 访问日期：2026-09-22
 
-[13] Leviathan, Y., Kalman, M., & Matias, Y. *Fast Inference from Transformers via Speculative Decoding*. ICML, 2023. https://arxiv.org/abs/2211.17192
+[13] Leviathan, Y., Kalman, M., & Matias, Y. *Fast Inference from Transformers via Speculative Decoding*. ICML, 2023. https://arxiv.org/abs/2211.17192 访问日期：2026-09-22
 
-[14] Chen, C., et al. *Accelerating Large Language Model Decoding with Speculative Sampling*. 2023. https://arxiv.org/abs/2302.01318
+[14] Chen, C., et al. *Accelerating Large Language Model Decoding with Speculative Sampling*. 2023. https://arxiv.org/abs/2302.01318 访问日期：2026-09-22
 
-[15] NVIDIA. *NCCL Documentation*. https://docs.nvidia.com/deeplearning/nccl/
+[15] NVIDIA. *NCCL Documentation*. https://docs.nvidia.com/deeplearning/nccl/ 访问日期：2026-09-22
 
-[16] PyTorch. *CUDA Semantics and Graphs*. https://pytorch.org/docs/stable/notes/cuda.html
+[16] PyTorch. *CUDA Semantics and Graphs*. https://pytorch.org/docs/stable/notes/cuda.html 访问日期：2026-09-22
 
-[17] Kubernetes. *Schedule GPUs*. https://kubernetes.io/docs/tasks/manage-gpus/scheduling-gpus/
+[17] Kubernetes. *Schedule GPUs*. https://kubernetes.io/docs/tasks/manage-gpus/scheduling-gpus/ 访问日期：2026-09-22
 
-[18] Verma, A., et al. *Large-scale Cluster Management at Google with Borg*. EuroSys, 2015. https://research.google/pubs/large-scale-cluster-management-at-google-with-borg/
+[18] Verma, A., et al. *Large-scale Cluster Management at Google with Borg*. EuroSys, 2015. https://research.google/pubs/large-scale-cluster-management-at-google-with-borg/ 访问日期：2026-09-22
 
-[19] Beyer, B., et al. *The Site Reliability Workbook*. O'Reilly, 2018. https://sre.google/workbook/table-of-contents/
+[19] Beyer, B., et al. *The Site Reliability Workbook*. O'Reilly, 2018. https://sre.google/workbook/table-of-contents/ 访问日期：2026-09-22
 
-[20] Sigelman, B. H., et al. *Dapper*. 2010. https://research.google/pubs/dapper-a-large-scale-distributed-systems-tracing-infrastructure/
+[20] Sigelman, B. H., et al. *Dapper*. 2010. https://research.google/pubs/dapper-a-large-scale-distributed-systems-tracing-infrastructure/ 访问日期：2026-09-22
 
-[21] OpenTelemetry Authors. *OpenTelemetry Documentation*. https://opentelemetry.io/docs/
+[21] OpenTelemetry Authors. *OpenTelemetry Documentation*. https://opentelemetry.io/docs/ 访问日期：2026-09-22
 
-[22] Prometheus Authors. *Prometheus Documentation*. https://prometheus.io/docs/introduction/overview/
+[22] Prometheus Authors. *Prometheus Documentation*. https://prometheus.io/docs/introduction/overview/ 访问日期：2026-09-22
 
-[23] 周志华：《机器学习》。清华大学出版社，2016。https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm
+[23] 周志华：《机器学习》。清华大学出版社，2016。https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm 访问日期：2026-09-22
 
-[24] 邱锡鹏：《神经网络与深度学习》。https://nndl.github.io/
+[24] 邱锡鹏：《神经网络与深度学习》。https://nndl.github.io/ 访问日期：2026-09-22
 
-[25] 张量网络与深度学习：《动手学深度学习》。https://zh.d2l.ai/
+[25] 张量网络与深度学习：《动手学深度学习》。https://zh.d2l.ai/ 访问日期：2026-09-22

@@ -414,62 +414,48 @@ AI Infra 的核心能力不是堆叠组件，而是把算法复杂度转化为�
 
 ## 参考资料
 
-[1] Shoeybi, M., et al. *Megatron-LM: Training Multi-Billion Parameter Language Models Using Model Parallelism*. arXiv, 2019. https://arxiv.org/abs/1909.08053
+[1] Shoeybi, M., et al. *Megatron-LM: Training Multi-Billion Parameter Language Models Using Model Parallelism*. arXiv, 2019. https://arxiv.org/abs/1909.08053 访问日期：2026-09-22
 
-[2] Rajbhandari, S., et al. *ZeRO: Memory Optimizations Toward Training Trillion Parameter Models*. SC, 2020. https://arxiv.org/abs/1910.02054
+[2] Rajbhandari, S., et al. *ZeRO: Memory Optimizations Toward Training Trillion Parameter Models*. SC, 2020. https://arxiv.org/abs/1910.02054 访问日期：2026-09-22
 
-[3] Rajbhandari, S., et al. *ZeRO-Infinity: Breaking the GPU Memory Wall for Extreme Scale Deep Learning*. SC, 2021. https://arxiv.org/abs/2104.07857
+[3] Rajbhandari, S., et al. *ZeRO-Infinity: Breaking the GPU Memory Wall for Extreme Scale Deep Learning*. SC, 2021. https://arxiv.org/abs/2104.07857 访问日期：2026-09-22
 
-[4] Rasley, J., et al. *DeepSpeed: System Optimizations Enable Training Deep Learning Models with Over 100 Billion Parameters*. KDD, 2020. https://arxiv.org/abs/2007.04262
+[5] Narayanan, D., et al. *Efficient Large-Scale Language Model Training on GPU Clusters Using Megatron-LM*. arXiv, 2021. https://arxiv.org/abs/2104.04473 访问日期：2026-09-22
 
-[5] Narayanan, D., et al. *Efficient Large-Scale Language Model Training on GPU Clusters Using Megatron-LM*. arXiv, 2021. https://arxiv.org/abs/2104.04473
+[7] Chowdhery, A., et al. *PaLM: Scaling Language Modeling with Pathways*. arXiv, 2022. https://arxiv.org/abs/2204.02311 访问日期：2026-09-22
 
-[6] Brown, T. B., et al. *Language Models are Few-Shot Learners*. NeurIPS, 2020. https://arxiv.org/abs/2005.14165
+[9] Dao, T., et al. *FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness*. NeurIPS, 2022. https://arxiv.org/abs/2205.14135 访问日期：2026-09-22
 
-[7] Chowdhery, A., et al. *PaLM: Scaling Language Modeling with Pathways*. arXiv, 2022. https://arxiv.org/abs/2204.02311
+[10] Dao, T. *FlashAttention-2: Faster Attention with Better Parallelism and Work Partitioning*. ICLR, 2024. https://arxiv.org/abs/2307.08691 访问日期：2026-09-22
 
-[8] Dubey, A., et al. *The Llama 3 Herd of Models*. arXiv, 2024. https://arxiv.org/abs/2407.21783
+[11] Kwon, W., et al. *Efficient Memory Management for Large Language Model Serving with PagedAttention*. SOSP, 2023. https://arxiv.org/abs/2309.06180 访问日期：2026-09-22
 
-[9] Dao, T., et al. *FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness*. NeurIPS, 2022. https://arxiv.org/abs/2205.14135
+[12] vLLM Team. *vLLM Documentation and Source Repository*. https://github.com/vllm-project/vllm 访问日期：2026-09-22
 
-[10] Dao, T. *FlashAttention-2: Faster Attention with Better Parallelism and Work Partitioning*. ICLR, 2024. https://arxiv.org/abs/2307.08691
+[13] Yu, G.-I., et al. *Orca: A Distributed Serving System for Transformer-Based Generative Models*. OSDI, 2022. https://www.usenix.org/conference/osdi22/presentation/yu 访问日期：2026-09-22
 
-[11] Kwon, W., et al. *Efficient Memory Management for Large Language Model Serving with PagedAttention*. SOSP, 2023. https://arxiv.org/abs/2309.06180
+[14] Agrawal, A., et al. *Taming Throughput-Latency Tradeoff in LLM Inference with Sarathi-Serve*. OSDI, 2024. https://www.usenix.org/conference/osdi24/presentation/agrawal 访问日期：2026-09-22
 
-[12] vLLM Team. *vLLM Documentation and Source Repository*. https://github.com/vllm-project/vllm
+[15] Zhong, Y., et al. *DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving*. OSDI, 2024. https://www.usenix.org/conference/osdi24/presentation/zhong 访问日期：2026-09-22
 
-[13] Yu, G.-I., et al. *Orca: A Distributed Serving System for Transformer-Based Generative Models*. OSDI, 2022. https://www.usenix.org/conference/osdi22/presentation/yu
+[16] NVIDIA. *TensorRT-LLM Documentation*. https://nvidia.github.io/TensorRT-LLM/ 访问日期：2026-09-22
 
-[14] Agrawal, A., et al. *Taming Throughput-Latency Tradeoff in LLM Inference with Sarathi-Serve*. OSDI, 2024. https://www.usenix.org/conference/osdi24/presentation/agrawal
+[17] NVIDIA. *Triton Inference Server Documentation*. https://docs.nvidia.com/deeplearning/triton-inference-server/ 访问日期：2026-09-22
 
-[15] Zhong, Y., et al. *DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving*. OSDI, 2024. https://www.usenix.org/conference/osdi24/presentation/zhong
+[18] PyTorch. *Fully Sharded Data Parallel Documentation*. https://pytorch.org/docs/stable/fsdp.html 访问日期：2026-09-22
 
-[16] NVIDIA. *TensorRT-LLM Documentation*. https://nvidia.github.io/TensorRT-LLM/
+[19] NVIDIA. *NCCL Documentation*. https://docs.nvidia.com/deeplearning/nccl/ 访问日期：2026-09-22
 
-[17] NVIDIA. *Triton Inference Server Documentation*. https://docs.nvidia.com/deeplearning/triton-inference-server/
+[20] Kubernetes. *Schedule GPUs*. https://kubernetes.io/docs/tasks/manage-gpus/scheduling-gpus/ 访问日期：2026-09-22
 
-[18] PyTorch. *Fully Sharded Data Parallel Documentation*. https://pytorch.org/docs/stable/fsdp.html
+[21] Verma, A., et al. *Large-scale Cluster Management at Google with Borg*. EuroSys, 2015. https://research.google/pubs/large-scale-cluster-management-at-google-with-borg/ 访问日期：2026-09-22
 
-[19] NVIDIA. *NCCL Documentation*. https://docs.nvidia.com/deeplearning/nccl/
+[22] Beyer, B., et al. *The Site Reliability Workbook*. O'Reilly, 2018. https://sre.google/workbook/table-of-contents/ 访问日期：2026-09-22
 
-[20] Kubernetes. *Schedule GPUs*. https://kubernetes.io/docs/tasks/manage-gpus/scheduling-gpus/
+[23] Sigelman, B. H., et al. *Dapper, a Large-Scale Distributed Systems Tracing Infrastructure*. Google Research, 2010. https://research.google/pubs/dapper-a-large-scale-distributed-systems-tracing-infrastructure/ 访问日期：2026-09-22
 
-[21] Verma, A., et al. *Large-scale Cluster Management at Google with Borg*. EuroSys, 2015. https://research.google/pubs/large-scale-cluster-management-at-google-with-borg/
+[24] OpenTelemetry Authors. *OpenTelemetry Documentation*. https://opentelemetry.io/docs/ 访问日期：2026-09-22
 
-[22] Beyer, B., et al. *The Site Reliability Workbook*. O'Reilly, 2018. https://sre.google/workbook/table-of-contents/
+[25] Prometheus Authors. *Prometheus Documentation*. https://prometheus.io/docs/introduction/overview/ 访问日期：2026-09-22
 
-[23] Sigelman, B. H., et al. *Dapper, a Large-Scale Distributed Systems Tracing Infrastructure*. Google Research, 2010. https://research.google/pubs/dapper-a-large-scale-distributed-systems-tracing-infrastructure/
-
-[24] OpenTelemetry Authors. *OpenTelemetry Documentation*. https://opentelemetry.io/docs/
-
-[25] Prometheus Authors. *Prometheus Documentation*. https://prometheus.io/docs/introduction/overview/
-
-[26] Moritz, P., et al. *Ray: A Distributed Framework for Emerging AI Applications*. OSDI, 2018. https://www.usenix.org/conference/osdi18/presentation/moritz
-
-[27] Zaharia, M., et al. *Resilient Distributed Datasets: A Fault-Tolerant Abstraction for In-Memory Cluster Computing*. NSDI, 2012. https://www.usenix.org/legacy/events/nsdi12/tech/full_papers/Zaharia_new.pdf
-
-[28] Zhang, A., Lipton, Z. C., Li, M., & Smola, A. V. *Dive into Deep Learning*, 2nd ed., 2023. https://zh.d2l.ai/
-
-[29] 邱锡鹏：《神经网络与深度学习》，机械工业出版社，2020。https://nndl.github.io/
-
-[30] 周志华：《机器学习》，清华大学出版社，2016。https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm
+[27] Zaharia, M., et al. *Resilient Distributed Datasets: A Fault-Tolerant Abstraction for In-Memory Cluster Computing*. NSDI, 2012. https://www.usenix.org/legacy/events/nsdi12/tech/full_papers/Zaharia_new.pdf 访问日期：2026-09-22

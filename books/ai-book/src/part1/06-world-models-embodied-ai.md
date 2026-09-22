@@ -608,68 +608,65 @@ Scenario API
 
 ## 参考资料
 
-[1] Ha, D., & Schmidhuber, J. *World Models*. NeurIPS Workshop, 2018. https://arxiv.org/abs/1803.10122
+[1] Ha, D., & Schmidhuber, J. *World Models*. NeurIPS Workshop, 2018. https://arxiv.org/abs/1803.10122 访问日期：2026-09-22
 
-[2] Hafner, D., et al. *Learning Latent Dynamics for Planning from Pixels*. ICML, 2019. https://arxiv.org/abs/1811.04551
+[2] Hafner, D., et al. *Learning Latent Dynamics for Planning from Pixels*. ICML, 2019. https://arxiv.org/abs/1811.04551 访问日期：2026-09-22
 
-[3] Hafner, D., et al. *Dream to Control: Learning Behaviors by Latent Imagination*. ICLR, 2020. https://arxiv.org/abs/1912.01603
+[3] Hafner, D., et al. *Dream to Control: Learning Behaviors by Latent Imagination*. ICLR, 2020. https://arxiv.org/abs/1912.01603 访问日期：2026-09-22
 
-[4] Hafner, D., et al. *Mastering Diverse Domains through World Models*. arXiv, 2023. https://arxiv.org/abs/2301.04104
+[4] Hafner, D., et al. *Mastering Diverse Domains through World Models*. arXiv, 2023. https://arxiv.org/abs/2301.04104 访问日期：2026-09-22
 
-[5] Meta AI. *V-JEPA 2: World Model and Benchmarks*. 2025. https://ai.meta.com/blog/v-jepa-2-world-model-benchmarks/
+[5] Meta AI. *V-JEPA 2: World Model and Benchmarks*. 2025. https://ai.meta.com/blog/v-jepa-2-world-model-benchmarks/ 访问日期：2026-09-22
 
-[6] Bardes, A., et al. *Revisiting Feature Prediction for Learning Visual Representations*. arXiv, 2024. https://arxiv.org/abs/2404.08471
+[6] Bardes, A., et al. *Revisiting Feature Prediction for Learning Visual Representations*. arXiv, 2024. https://arxiv.org/abs/2404.08471 访问日期：2026-09-22
 
-[7] Brooks, T., et al. *Video Generation Models as World Simulators*. arXiv, 2024. https://arxiv.org/abs/2412.00568
+[7] Brooks, T., et al. *Video Generation Models as World Simulators*. arXiv, 2024. https://arxiv.org/abs/2412.00568 访问日期：2026-09-22
 
-[8] Ahmed, O., et al. *CausalWorld: A Robotic Manipulation Benchmark for Causal Reasoning*. arXiv, 2020. https://arxiv.org/abs/2010.04963
+[8] Ahmed, O., et al. *CausalWorld: A Robotic Manipulation Benchmark for Causal Reasoning*. arXiv, 2020. https://arxiv.org/abs/2010.04963 访问日期：2026-09-22
 
-[9] Ahn, M., et al. *Do As I Can, Not As I Say: Grounding Language in Robotic Affordances*. arXiv, 2022. https://arxiv.org/abs/2204.01691
+[9] Ahn, M., et al. *Do As I Can, Not As I Say: Grounding Language in Robotic Affordances*. arXiv, 2022. https://arxiv.org/abs/2204.01691 访问日期：2026-09-22
 
-[10] Driess, D., et al. *PaLM-E: An Embodied Multimodal Language Model*. arXiv, 2023. https://arxiv.org/abs/2303.03378
+[10] Driess, D., et al. *PaLM-E: An Embodied Multimodal Language Model*. arXiv, 2023. https://arxiv.org/abs/2303.03378 访问日期：2026-09-22
 
-[11] Brohan, A., et al. *RT-2: Vision-Language-Action Models Transfer Web Knowledge to Robotic Control*. arXiv, 2023. https://arxiv.org/abs/2307.15818
+[11] Brohan, A., et al. *RT-2: Vision-Language-Action Models Transfer Web Knowledge to Robotic Control*. arXiv, 2023. https://arxiv.org/abs/2307.15818 访问日期：2026-09-22
 
-[12] Open X-Embodiment Collaboration. *Open X-Embodiment: Robotic Learning Datasets and RT-X Models*. arXiv, 2023. https://arxiv.org/abs/2310.08864
+[12] Open X-Embodiment Collaboration. *Open X-Embodiment: Robotic Learning Datasets and RT-X Models*. arXiv, 2023. https://arxiv.org/abs/2310.08864 访问日期：2026-09-22
 
-[13] Octo Model Team. *Octo: An Open-Source Generalist Robot Policy*. arXiv, 2024. https://arxiv.org/abs/2405.12213
+[13] Octo Model Team. *Octo: An Open-Source Generalist Robot Policy*. arXiv, 2024. https://arxiv.org/abs/2405.12213 访问日期：2026-09-22
 
-[14] Black, K., et al. *π0: A Vision-Language-Action Flow Model for General Robot Control*. arXiv, 2024. https://arxiv.org/abs/2410.24164
+[14] Black, K., et al. *π0: A Vision-Language-Action Flow Model for General Robot Control*. arXiv, 2024. https://arxiv.org/abs/2410.24164 访问日期：2026-09-22
 
-[15] Physical Intelligence. *π0.5: A Vision-Language-Action Model with Open-World Generalization*. arXiv, 2025. https://arxiv.org/abs/2504.16054
+[15] Physical Intelligence. *π0.5: A Vision-Language-Action Model with Open-World Generalization*. arXiv, 2025. https://arxiv.org/abs/2504.16054 访问日期：2026-09-22
 
-[16] Google DeepMind. *Gemini Robotics Brings AI into the Physical World*. 2025. https://deepmind.google/blog/gemini-robotics-brings-ai-into-the-physical-world/
+[16] Google DeepMind. *Gemini Robotics Brings AI into the Physical World*. 2025. https://deepmind.google/blog/gemini-robotics-brings-ai-into-the-physical-world/ 访问日期：2026-09-22
 
-[17] NVIDIA. *Cosmos: World Foundation Model Platform for Physical AI*. arXiv, 2025. https://arxiv.org/abs/2501.03575
+[17] NVIDIA. *Cosmos: World Foundation Model Platform for Physical AI*. arXiv, 2025. https://arxiv.org/abs/2501.03575 访问日期：2026-09-22
 
-[18] Bruce, J., et al. *Genie: Generative Interactive Environments*. arXiv, 2024. https://arxiv.org/abs/2402.15391
+[18] Bruce, J., et al. *Genie: Generative Interactive Environments*. arXiv, 2024. https://arxiv.org/abs/2402.15391 访问日期：2026-09-22
 
-[19] DeepMind. *Genie 2: A Large-Scale Foundation World Model*. arXiv, 2024. https://arxiv.org/abs/2409.13502
+[19] DeepMind. *Genie 2: A Large-Scale Foundation World Model*. arXiv, 2024. https://arxiv.org/abs/2409.13502 访问日期：2026-09-22
 
-[20] Tobin, J., et al. *Domain Randomization for Transferring Deep Neural Networks from Simulation to the Real World*. arXiv, 2017. https://arxiv.org/abs/1703.06907
+[20] Tobin, J., et al. *Domain Randomization for Transferring Deep Neural Networks from Simulation to the Real World*. arXiv, 2017. https://arxiv.org/abs/1703.06907 访问日期：2026-09-22
 
-[21] Peng, X. B., et al. *Sim-to-Real Transfer of Robotic Control with Dynamics Randomization*. arXiv, 2017. https://arxiv.org/abs/1710.06537
+[21] Peng, X. B., et al. *Sim-to-Real Transfer of Robotic Control with Dynamics Randomization*. arXiv, 2017. https://arxiv.org/abs/1710.06537 访问日期：2026-09-22
 
-[22] Tremblay, J., et al. *Training Deep Networks with Synthetic Data: Bridging the Reality Gap by Domain Randomization*. CVPR Workshops, 2018. https://arxiv.org/abs/1804.06516
+[22] Tremblay, J., et al. *Training Deep Networks with Synthetic Data: Bridging the Reality Gap by Domain Randomization*. CVPR Workshops, 2018. https://arxiv.org/abs/1804.06516 访问日期：2026-09-22
 
-[23] Bengio, Y., Courville, A., & Vincent, P. *Representation Learning: A Review and New Perspectives*. IEEE TPAMI, 2013. https://arxiv.org/abs/1206.5538
+[23] Bengio, Y., Courville, A., & Vincent, P. *Representation Learning: A Review and New Perspectives*. IEEE TPAMI, 2013. https://arxiv.org/abs/1206.5538 访问日期：2026-09-22
 
-[24] Sutton, R. S., & Barto, A. G. *Reinforcement Learning: An Introduction*, 2nd ed. MIT Press, 2018. http://incompleteideas.net/book/the-book-2nd.html
+[24] Sutton, R. S., & Barto, A. G. *Reinforcement Learning: An Introduction*, 2nd ed. MIT Press, 2018. http://incompleteideas.net/book/the-book-2nd.html 访问日期：2026-09-22
 
-[25] Levine, S., et al. *Offline Reinforcement Learning: Tutorial, Review, and Perspectives on Open Problems*. arXiv, 2020. https://arxiv.org/abs/2005.01643
+[26] Dosovitskiy, A., et al. *CARLA: An Open Urban Driving Simulator*. CoRL, 2017. https://arxiv.org/abs/1711.03938 访问日期：2026-09-22
 
-[26] Dosovitskiy, A., et al. *CARLA: An Open Urban Driving Simulator*. CoRL, 2017. https://arxiv.org/abs/1711.03938
+[27] Ebert, F., et al. *Bridge Data: Boosting Generalization of Robotic Skills with Cross-Domain Datasets*. RSS, 2022. https://arxiv.org/abs/2208.13653 访问日期：2026-09-22
 
-[27] Ebert, F., et al. *Bridge Data: Boosting Generalization of Robotic Skills with Cross-Domain Datasets*. RSS, 2022. https://arxiv.org/abs/2208.13653
+[28] Hu, A., et al. *Learning Interactive Real-World Simulators*. arXiv, 2023. https://arxiv.org/abs/2310.06114 访问日期：2026-09-22
 
-[28] Hu, A., et al. *Learning Interactive Real-World Simulators*. arXiv, 2023. https://arxiv.org/abs/2310.06114
+[29] Zhang, A., Lipton, Z. C., Li, M., & Smola, A. V. *Dive into Deep Learning*, 2nd ed., 2023. https://zh.d2l.ai/ 访问日期：2026-09-22
 
-[29] Zhang, A., Lipton, Z. C., Li, M., & Smola, A. V. *Dive into Deep Learning*, 2nd ed., 2023. https://zh.d2l.ai/
+[30] 邱锡鹏：《神经网络与深度学习》，机械工业出版社，2020。https://nndl.github.io/ 访问日期：2026-09-22
 
-[30] 邱锡鹏：《神经网络与深度学习》，机械工业出版社，2020。https://nndl.github.io/
-
-[31] 周志华：《机器学习》，清华大学出版社，2016。https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm
-
+[31] 周志华：《机器学习》，清华大学出版社，2016。https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm 访问日期：2026-09-22
 ## 版本与范围
 
 “世界模型”在强化学习、视频生成、表征学习和机器人仿真中含义不同；本章以预测、规划和行动之间的接口来比较这些路线，而不把它们视为可互换产品。VLA、机器人基础模型和 Physical AI 的公开能力变化迅速，产品性表述以 **2026-09-21** 可访问的论文或官方资料为准。仿真成功、离线 benchmark 分数和真实环境安全不是同一项证据。

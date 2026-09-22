@@ -334,66 +334,61 @@ ReAct 的推理—行动交替给出了一个自然接口 [7]，但生产系统�
 
 ## 参考资料
 
-[1] Brown, T. B., et al. *Language Models are Few-Shot Learners*. NeurIPS, 2020. https://arxiv.org/abs/2005.14165
+[1] Brown, T. B., et al. *Language Models are Few-Shot Learners*. NeurIPS, 2020. https://arxiv.org/abs/2005.14165 访问日期：2026-09-22
 
-[2] Wei, J., et al. *Chain-of-Thought Prompting Elicits Reasoning in Large Language Models*. NeurIPS, 2022. https://arxiv.org/abs/2201.11903
+[2] Wei, J., et al. *Chain-of-Thought Prompting Elicits Reasoning in Large Language Models*. NeurIPS, 2022. https://arxiv.org/abs/2201.11903 访问日期：2026-09-22
 
-[3] Kojima, T., et al. *Large Language Models are Zero-Shot Reasoners*. NeurIPS, 2022. https://arxiv.org/abs/2205.11916
+[3] Kojima, T., et al. *Large Language Models are Zero-Shot Reasoners*. NeurIPS, 2022. https://arxiv.org/abs/2205.11916 访问日期：2026-09-22
 
-[4] Wang, X., et al. *Self-Consistency Improves Chain of Thought Reasoning in Language Models*. ICLR, 2023. https://arxiv.org/abs/2203.11171
+[4] Wang, X., et al. *Self-Consistency Improves Chain of Thought Reasoning in Language Models*. ICLR, 2023. https://arxiv.org/abs/2203.11171 访问日期：2026-09-22
 
-[5] Yao, S., et al. *Tree of Thoughts: Deliberate Problem Solving with Large Language Models*. NeurIPS, 2023. https://arxiv.org/abs/2305.10601
+[5] Yao, S., et al. *Tree of Thoughts: Deliberate Problem Solving with Large Language Models*. NeurIPS, 2023. https://arxiv.org/abs/2305.10601 访问日期：2026-09-22
 
-[6] Besta, M., et al. *Graph of Thoughts: Solving Elaborate Problems with Large Language Models*. AAAI, 2024. https://arxiv.org/abs/2308.09687
+[6] Besta, M., et al. *Graph of Thoughts: Solving Elaborate Problems with Large Language Models*. AAAI, 2024. https://arxiv.org/abs/2308.09687 访问日期：2026-09-22
 
-[7] Yao, S., et al. *ReAct: Synergizing Reasoning and Acting in Language Models*. ICLR, 2023. https://arxiv.org/abs/2210.03629
+[7] Yao, S., et al. *ReAct: Synergizing Reasoning and Acting in Language Models*. ICLR, 2023. https://arxiv.org/abs/2210.03629 访问日期：2026-09-22
 
-[8] Press, O., et al. *Measuring and Narrowing the Compositionality Gap in Language Models*. arXiv, 2022. https://arxiv.org/abs/2210.03350
+[8] Press, O., et al. *Measuring and Narrowing the Compositionality Gap in Language Models*. arXiv, 2022. https://arxiv.org/abs/2210.03350 访问日期：2026-09-22
 
-[9] Cobbe, K., et al. *Training Verifiers to Solve Math Word Problems*. arXiv, 2021. https://arxiv.org/abs/2110.14168
+[9] Cobbe, K., et al. *Training Verifiers to Solve Math Word Problems*. arXiv, 2021. https://arxiv.org/abs/2110.14168 访问日期：2026-09-22
 
-[10] Lightman, H., et al. *Let's Verify Step by Step*. arXiv, 2023. https://arxiv.org/abs/2305.20050
+[10] Lightman, H., et al. *Let's Verify Step by Step*. arXiv, 2023. https://arxiv.org/abs/2305.20050 访问日期：2026-09-22
 
-[11] Snell, C., et al. *Scaling LLM Test-Time Compute Optimally can be More Effective than Scaling Model Parameters*. arXiv, 2024. https://arxiv.org/abs/2408.03314
+[11] Snell, C., et al. *Scaling LLM Test-Time Compute Optimally can be More Effective than Scaling Model Parameters*. arXiv, 2024. https://arxiv.org/abs/2408.03314 访问日期：2026-09-22
 
-[12] OpenAI. *Learning to Reason with LLMs*. 2024. https://openai.com/index/learning-to-reason-with-llms/
+[12] OpenAI. *Learning to Reason with LLMs*. 2024. https://openai.com/index/learning-to-reason-with-llms/ 访问日期：2026-09-22
 
-[13] Guo, D., et al. *DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning*. arXiv, 2025. https://arxiv.org/abs/2501.12948
+[13] Guo, D., et al. *DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning*. arXiv, 2025. https://arxiv.org/abs/2501.12948 访问日期：2026-09-22
 
-[14] Shao, Z., et al. *DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models*. arXiv, 2024. https://arxiv.org/abs/2402.03300
+[14] Shao, Z., et al. *DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models*. arXiv, 2024. https://arxiv.org/abs/2402.03300 访问日期：2026-09-22
 
-[15] Schulman, J., et al. *Proximal Policy Optimization Algorithms*. arXiv, 2017. https://arxiv.org/abs/1707.06347
+[15] Schulman, J., et al. *Proximal Policy Optimization Algorithms*. arXiv, 2017. https://arxiv.org/abs/1707.06347 访问日期：2026-09-22
 
-[16] Huang, J., et al. *Let's Think Step by Step: An Interpretable Reasoning Process in Large Language Models*. arXiv, 2022. https://arxiv.org/abs/2205.10625
+[16] Huang, J., et al. *Let's Think Step by Step: An Interpretable Reasoning Process in Large Language Models*. arXiv, 2022. https://arxiv.org/abs/2205.10625 访问日期：2026-09-22
 
-[17] Manakul, P., Liusie, A., & Gales, M. *SelfCheckGPT: Zero-Resource Black-Box Hallucination Detection for Generative Large Language Models*. EMNLP, 2023. https://arxiv.org/abs/2303.08896
+[17] Manakul, P., Liusie, A., & Gales, M. *SelfCheckGPT: Zero-Resource Black-Box Hallucination Detection for Generative Large Language Models*. EMNLP, 2023. https://arxiv.org/abs/2303.08896 访问日期：2026-09-22
 
-[18] Ji, Z., et al. *Survey of Hallucination in Natural Language Generation*. ACM Computing Surveys, 2023. https://arxiv.org/abs/2202.03629
+[18] Ji, Z., et al. *Survey of Hallucination in Natural Language Generation*. ACM Computing Surveys, 2023. https://arxiv.org/abs/2202.03629 访问日期：2026-09-22
 
-[19] Holtzman, A., et al. *The Curious Case of Neural Text Degeneration*. ICLR, 2020. https://arxiv.org/abs/1904.09751
+[19] Holtzman, A., et al. *The Curious Case of Neural Text Degeneration*. ICLR, 2020. https://arxiv.org/abs/1904.09751 访问日期：2026-09-22
 
-[20] Fan, A., et al. *Hierarchical Neural Story Generation*. ACL, 2018. https://arxiv.org/abs/1805.04833
+[20] Fan, A., et al. *Hierarchical Neural Story Generation*. ACL, 2018. https://arxiv.org/abs/1805.04833 访问日期：2026-09-22
 
-[21] Leviathan, Y., Kalman, M., & Matias, Y. *Fast Inference from Transformers via Speculative Decoding*. ICML, 2023. https://arxiv.org/abs/2211.17192
+[21] Leviathan, Y., Kalman, M., & Matias, Y. *Fast Inference from Transformers via Speculative Decoding*. ICML, 2023. https://arxiv.org/abs/2211.17192 访问日期：2026-09-22
 
-[22] Chen, C., et al. *Accelerating Large Language Model Decoding with Speculative Sampling*. arXiv, 2023. https://arxiv.org/abs/2302.01318
+[22] Chen, C., et al. *Accelerating Large Language Model Decoding with Speculative Sampling*. arXiv, 2023. https://arxiv.org/abs/2302.01318 访问日期：2026-09-22
 
-[23] Stern, M., et al. *Blockwise Parallel Decoding for Deep Autoregressive Models*. NeurIPS, 2018. https://arxiv.org/abs/1811.03115
+[23] Stern, M., et al. *Blockwise Parallel Decoding for Deep Autoregressive Models*. NeurIPS, 2018. https://arxiv.org/abs/1811.03115 访问日期：2026-09-22
 
-[24] Dao, T., et al. *FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness*. NeurIPS, 2022. https://arxiv.org/abs/2205.14135
+[26] Madaan, A., et al. *Self-Refine: Iterative Refinement with Self-Feedback*. NeurIPS, 2023. https://arxiv.org/abs/2303.17651 访问日期：2026-09-22
 
-[25] Ainslie, J., et al. *GQA: Training Generalized Multi-Query Transformer Models from Multi-Head Checkpoints*. EMNLP, 2023. https://arxiv.org/abs/2305.13245
+[27] Welleck, S., et al. *Neural Text Generation with Unlikelihood Training*. ICLR, 2020. https://arxiv.org/abs/1908.04319 访问日期：2026-09-22
 
-[26] Madaan, A., et al. *Self-Refine: Iterative Refinement with Self-Feedback*. NeurIPS, 2023. https://arxiv.org/abs/2303.17651
+[28] Zhang, A., Lipton, Z. C., Li, M., & Smola, A. V. *Dive into Deep Learning*, 2nd ed., 2023. https://zh.d2l.ai/ 访问日期：2026-09-22
 
-[27] Welleck, S., et al. *Neural Text Generation with Unlikelihood Training*. ICLR, 2020. https://arxiv.org/abs/1908.04319
+[29] 邱锡鹏：《神经网络与深度学习》，机械工业出版社，2020。https://nndl.github.io/ 访问日期：2026-09-22
 
-[28] Zhang, A., Lipton, Z. C., Li, M., & Smola, A. V. *Dive into Deep Learning*, 2nd ed., 2023. https://zh.d2l.ai/
-
-[29] 邱锡鹏：《神经网络与深度学习》，机械工业出版社，2020。https://nndl.github.io/
-
-[30] 周志华：《机器学习》，清华大学出版社，2016。https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm
-
+[30] 周志华：《机器学习》，清华大学出版社，2016。https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm 访问日期：2026-09-22
 ## 版本与范围
 
 本章区分模型生成策略、推理时搜索和 serving 优化。温度、Top-p、约束解码和验证器是应用层可控变量；连续 batching、KV Cache 和吞吐容量属于第 9 章的推理 Infra 主题。投机解码的实际收益依赖模型组合、长度分布和批处理方式；截至 **2026-09-21**，必须用目标流量压测，而不能引用其他服务的加速比例。

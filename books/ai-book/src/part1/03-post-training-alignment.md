@@ -321,66 +321,65 @@ SFT 成本最低、最容易回滚，适合作为基线；DPO 等离线偏好优
 
 ## 参考资料
 
-[1] Ouyang, L., et al. *Training Language Models to Follow Instructions with Human Feedback*. NeurIPS, 2022. https://arxiv.org/abs/2203.02155
+[1] Ouyang, L., et al. *Training Language Models to Follow Instructions with Human Feedback*. NeurIPS, 2022. https://arxiv.org/abs/2203.02155 访问日期：2026-09-22
 
-[2] Wei, J., et al. *Finetuned Language Models Are Zero-Shot Learners*. ICLR, 2022. https://arxiv.org/abs/2109.01652
+[2] Wei, J., et al. *Finetuned Language Models Are Zero-Shot Learners*. ICLR, 2022. https://arxiv.org/abs/2109.01652 访问日期：2026-09-22
 
-[3] Wang, Y., et al. *Self-Instruct: Aligning Language Models with Self-Generated Instructions*. ACL, 2023. https://arxiv.org/abs/2212.10560
+[3] Wang, Y., et al. *Self-Instruct: Aligning Language Models with Self-Generated Instructions*. ACL, 2023. https://arxiv.org/abs/2212.10560 访问日期：2026-09-22
 
-[4] Christiano, P. F., et al. *Deep Reinforcement Learning from Human Preferences*. NeurIPS, 2017. https://arxiv.org/abs/1706.03741
+[4] Christiano, P. F., et al. *Deep Reinforcement Learning from Human Preferences*. NeurIPS, 2017. https://arxiv.org/abs/1706.03741 访问日期：2026-09-22
 
-[5] Schulman, J., et al. *Proximal Policy Optimization Algorithms*. arXiv, 2017. https://arxiv.org/abs/1707.06347
+[5] Schulman, J., et al. *Proximal Policy Optimization Algorithms*. arXiv, 2017. https://arxiv.org/abs/1707.06347 访问日期：2026-09-22
 
-[6] Bai, Y., et al. *Training a Helpful and Harmless Assistant with Reinforcement Learning from Human Feedback*. Anthropic, 2022. https://arxiv.org/abs/2204.05862
+[6] Bai, Y., et al. *Training a Helpful and Harmless Assistant with Reinforcement Learning from Human Feedback*. Anthropic, 2022. https://arxiv.org/abs/2204.05862 访问日期：2026-09-22
 
-[7] Rafailov, R., et al. *Direct Preference Optimization: Your Language Model is Secretly a Reward Model*. NeurIPS, 2023. https://arxiv.org/abs/2305.18290
+[7] Rafailov, R., et al. *Direct Preference Optimization: Your Language Model is Secretly a Reward Model*. NeurIPS, 2023. https://arxiv.org/abs/2305.18290 访问日期：2026-09-22
 
-[8] Azar, M. G., et al. *A General Theoretical Paradigm to Understand Learning from Human Preferences*. arXiv, 2023. https://arxiv.org/abs/2310.12036
+[8] Azar, M. G., et al. *A General Theoretical Paradigm to Understand Learning from Human Preferences*. arXiv, 2023. https://arxiv.org/abs/2310.12036 访问日期：2026-09-22
 
-[9] Ethayarajh, K., et al. *KTO: Model Alignment as Prospect Theoretic Optimization*. arXiv, 2024. https://arxiv.org/abs/2402.01306
+[9] Ethayarajh, K., et al. *KTO: Model Alignment as Prospect Theoretic Optimization*. arXiv, 2024. https://arxiv.org/abs/2402.01306 访问日期：2026-09-22
 
-[10] Hong, J., et al. *ORPO: Monolithic Preference Optimization without Reference Model*. EMNLP, 2024. https://arxiv.org/abs/2403.07691
+[10] Hong, J., et al. *ORPO: Monolithic Preference Optimization without Reference Model*. EMNLP, 2024. https://arxiv.org/abs/2403.07691 访问日期：2026-09-22
 
-[11] Zhou, C., et al. *LIMA: Less Is More for Alignment*. NeurIPS, 2023. https://arxiv.org/abs/2305.11206
+[11] Zhou, C., et al. *LIMA: Less Is More for Alignment*. NeurIPS, 2023. https://arxiv.org/abs/2305.11206 访问日期：2026-09-22
 
-[12] Tunstall, L., et al. *Zephyr: Direct Distillation of LM Alignment*. arXiv, 2023. https://arxiv.org/abs/2310.16944
+[12] Tunstall, L., et al. *Zephyr: Direct Distillation of LM Alignment*. arXiv, 2023. https://arxiv.org/abs/2310.16944 访问日期：2026-09-22
 
-[13] Bai, Y., et al. *Constitutional AI: Harmlessness from AI Feedback*. Anthropic, 2022. https://arxiv.org/abs/2212.08073
+[13] Bai, Y., et al. *Constitutional AI: Harmlessness from AI Feedback*. Anthropic, 2022. https://arxiv.org/abs/2212.08073 访问日期：2026-09-22
 
-[14] Lee, H., et al. *RLAIF: Scaling Reinforcement Learning from Human Feedback with AI Feedback*. arXiv, 2023. https://arxiv.org/abs/2309.00267
+[14] Lee, H., et al. *RLAIF: Scaling Reinforcement Learning from Human Feedback with AI Feedback*. arXiv, 2023. https://arxiv.org/abs/2309.00267 访问日期：2026-09-22
 
-[15] Touvron, H., et al. *Llama 2: Open Foundation and Fine-Tuned Chat Models*. arXiv, 2023. https://arxiv.org/abs/2307.09288
+[15] Touvron, H., et al. *Llama 2: Open Foundation and Fine-Tuned Chat Models*. arXiv, 2023. https://arxiv.org/abs/2307.09288 访问日期：2026-09-22
 
-[16] OpenAI. *GPT-4 System Card*. 2023. https://cdn.openai.com/papers/gpt-4-system-card.pdf
+[16] OpenAI. *GPT-4 System Card*. 2023. https://cdn.openai.com/papers/gpt-4-system-card.pdf 访问日期：2026-09-22
 
-[17] Askell, A., et al. *A General Language Assistant as a Laboratory for Alignment*. arXiv, 2021. https://arxiv.org/abs/2112.00861
+[17] Askell, A., et al. *A General Language Assistant as a Laboratory for Alignment*. arXiv, 2021. https://arxiv.org/abs/2112.00861 访问日期：2026-09-22
 
-[18] Cui, G., et al. *UltraFeedback: Boosting Language Models with High-Quality Feedback*. arXiv, 2023. https://arxiv.org/abs/2310.01377
+[18] Cui, G., et al. *UltraFeedback: Boosting Language Models with High-Quality Feedback*. arXiv, 2023. https://arxiv.org/abs/2310.01377 访问日期：2026-09-22
 
-[19] Guo, D., et al. *DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning*. arXiv, 2025. https://arxiv.org/abs/2501.12948
+[19] Guo, D., et al. *DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning*. arXiv, 2025. https://arxiv.org/abs/2501.12948 访问日期：2026-09-22
 
-[20] Shao, Z., et al. *DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models*. arXiv, 2024. https://arxiv.org/abs/2402.03300
+[20] Shao, Z., et al. *DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models*. arXiv, 2024. https://arxiv.org/abs/2402.03300 访问日期：2026-09-22
 
-[21] Cobbe, K., et al. *Training Verifiers to Solve Math Word Problems*. arXiv, 2021. https://arxiv.org/abs/2110.14168
+[21] Cobbe, K., et al. *Training Verifiers to Solve Math Word Problems*. arXiv, 2021. https://arxiv.org/abs/2110.14168 访问日期：2026-09-22
 
-[22] Lightman, H., et al. *Let’s Verify Step by Step*. arXiv, 2023. https://arxiv.org/abs/2305.20050
+[22] Lightman, H., et al. *Let’s Verify Step by Step*. arXiv, 2023. https://arxiv.org/abs/2305.20050 访问日期：2026-09-22
 
-[23] Yao, S., et al. *ReAct: Synergizing Reasoning and Acting in Language Models*. ICLR, 2023. https://arxiv.org/abs/2210.03629
+[23] Yao, S., et al. *ReAct: Synergizing Reasoning and Acting in Language Models*. ICLR, 2023. https://arxiv.org/abs/2210.03629 访问日期：2026-09-22
 
-[24] Schick, T., et al. *Toolformer: Language Models Can Teach Themselves to Use Tools*. NeurIPS, 2023. https://arxiv.org/abs/2302.04761
+[24] Schick, T., et al. *Toolformer: Language Models Can Teach Themselves to Use Tools*. NeurIPS, 2023. https://arxiv.org/abs/2302.04761 访问日期：2026-09-22
 
-[25] Zheng, L., et al. *Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena*. NeurIPS, 2023. https://arxiv.org/abs/2306.05685
+[25] Zheng, L., et al. *Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena*. NeurIPS, 2023. https://arxiv.org/abs/2306.05685 访问日期：2026-09-22
 
-[26] InternLM Team. *InternLM2 Technical Report*. arXiv, 2024. https://arxiv.org/abs/2403.17297
+[26] InternLM Team. *InternLM2 Technical Report*. arXiv, 2024. https://arxiv.org/abs/2403.17297 访问日期：2026-09-22
 
-[27] DeepSeek-AI. *DeepSeek-V3 Technical Report*. arXiv, 2024. https://arxiv.org/abs/2412.19437
+[27] DeepSeek-AI. *DeepSeek-V3 Technical Report*. arXiv, 2024. https://arxiv.org/abs/2412.19437 访问日期：2026-09-22
 
-[28] Zhang, A., Lipton, Z. C., Li, M., & Smola, A. V. *Dive into Deep Learning*, 2nd ed., 2023. https://zh.d2l.ai/
+[28] Zhang, A., Lipton, Z. C., Li, M., & Smola, A. V. *Dive into Deep Learning*, 2nd ed., 2023. https://zh.d2l.ai/ 访问日期：2026-09-22
 
-[29] 邱锡鹏：《神经网络与深度学习》，机械工业出版社，2020。https://nndl.github.io/
+[29] 邱锡鹏：《神经网络与深度学习》，机械工业出版社，2020。https://nndl.github.io/ 访问日期：2026-09-22
 
-[30] 周志华：《机器学习》，清华大学出版社，2016。https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm
-
+[30] 周志华：《机器学习》，清华大学出版社，2016。https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm 访问日期：2026-09-22
 ## 版本与范围
 
 SFT、偏好学习和可验证奖励描述的是一组优化范式，不等价于“模型已经安全”或“系统已经合规”。截至 **2026-09-21**，不同模型的训练数据、奖励实现和推理预算仍不断演进；本章用论文中的可公开验证结论说明方法边界，不推断任何闭源模型的内部训练流程。本章也不替代工具权限、审计和人工审批等系统级安全控制。
