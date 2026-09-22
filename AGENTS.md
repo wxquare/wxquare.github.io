@@ -32,6 +32,8 @@ http://localhost:4000
 
 只修改源码，不直接修改生成产物。
 
+书稿的 Markdown、配置、图片和 Mermaid 运行资源都是受版本控制的构建输入；`book/`、`public/` 和 `.deploy_git/` 只属于生成或发布输出。
+
 ### 3.1 可编辑目录
 
 - `source/_posts/AI/`：AI 与 Agent 相关文章
@@ -42,6 +44,11 @@ http://localhost:4000
 - `source/diagrams/`：图表源文件
 - `source/library/`：公开且适合公开保存的参考资料与来源目录；其中 `slides/` 为第三方演示，`presentations/` 为第一方演示
 - `books/ai-book/src/`：AI Agent 书稿源码
+- `books/system-design-primer/src/`：系统设计方法论、生产治理、电商实战和附录面试题库书稿源码；`README.md` 与 `SUMMARY.md` 是读者入口和活动章节导航
+- `books/system-design-primer/book.toml`：mdBook 配置和历史 URL 重定向
+- `books/system-design-primer/images/`：书稿图表与配套图片源
+- `books/system-design-primer/mermaid-init.js`、`books/system-design-primer/mermaid.min.js`：书稿 Mermaid 构建资源
+- `books/system-design-primer/archive/`：历史书稿材料；不进入活动导航，只有迁移或归档维护时编辑
 - `docs/`：调研、迁移、整理文档
 - `.agents/`：统一的 AI 协作资产与工具配置目录
 - `.agents/work/`：所有 Agent 的唯一工作目录；方案草稿、实施计划、分析记录、迁移过程文档和其他临时产物必须放这里，默认不纳入 Git
@@ -53,7 +60,8 @@ http://localhost:4000
 
 - `public/`
 - `.deploy_git/`
-- `books/ai-book/book/`
+- `books/*/book/`：所有 mdBook 生成目录，包括 `books/ai-book/book/` 和 `books/system-design-primer/book/`
+- `books/system-design-architecture-book/`：旧书稿标识，不是当前活动书稿来源；若只剩 `book/` 生成目录可以清理，不得据此推断存在第二本活动书稿
 - `source/booklist/`：已阻塞的只读遗留目录；逐条书目来源与元数据完成前保持原位，不得新增文件
 - `source/ecommerce-book/`：不再作为源目录维护；旧 `/ecommerce-book/` URL 由构建期 `legacy-book-alias` 跳转到 `/booklist/`
 - `source/pdf/`：不含活动源文件的遗留目录；`k8s-network.pdf` 已位于 `source/library/presentations/`，旧 URL 仅由构建期别名输出兼容，不得新增文件
@@ -63,10 +71,13 @@ http://localhost:4000
 每类内容只保留一个主事实源：
 
 - 系统化 Agent 知识：`books/ai-book/src/`
+- 系统设计方法论、生产治理和电商系统实战：`books/system-design-primer/src/`
 - 面向读者的博客文章：`source/_posts/AI/`、`source/_posts/system-design/`、`source/_posts/fundamentals/`、`source/_posts/other/`
 - 公开参考资料与演示资料：`source/library/`（第三方演示在 `slides/`，第一方演示在 `presentations/`）
 - AI 协作规则、共享技能与工具配置：`AGENTS.md`、`.agents/`
 - 内部整理文档与迁移说明：`docs/`
+
+系统设计书稿章节以 `books/system-design-primer/src/` 为规范源；`book.toml`、`images/` 和 Mermaid 资源是参与构建的输入，不承载另一份正文事实。`source/_posts/system-design/` 中的文章只有在明确说明为独立文章、导航或历史镜像时才继续维护；旧博客 URL、旧 `/part03` 和 `/part04` URL 只由构建期 alias 或 mdBook redirect 兼容，不作为内容源。
 
 所有 Agent 的工作目录和临时文档必须位于 `.agents/work/`，不得写入 `docs/`、仓库根目录或其他源码目录。只有已经确认需要长期维护、公开发布或参与构建的内容，才由用户明确确认后迁移到合适的受版本控制目录。
 
@@ -395,6 +406,8 @@ tags:
 
 以下是系统设计方法论书稿的章节级强制约束，优先级高于具体章节模板和段落安排，适用于新章节以及后续重构：
 
+当前活动书稿固定为两部分和五个附录：第一部分为第 1–9 章“系统设计方法论”，第二部分为第 10–14 章“电商系统设计实战”，附录 A–E 承载术语、参考资料、构建说明、系统设计题库和后端基础知识题单。第 13 章固定为一个“营销与计价系统”合章；当前结构不存在第三部分或第 15 章。书稿的统一定位是“系统设计方法论 + 生产治理 + 电商系统实战 + 附录面试题库”，其中编码、Code Review、Agent 任务和后端基础题单属于支撑内容。
+
 - **理论锚点**：每章必须围绕核心概念和关键判断引入经典书籍、原始论文或权威官方资料作为理论锚点。理论锚点文献建议控制在约 20 篇，必须同时包含中文和英文来源；排序时将经典权威著作、原始论文和正式标准放在前面，再列官方工程资料和高质量行业文章。引用不能只堆在文末；正文应在相邻位置说明来源支撑了什么结论，以及哪些内容是本书结合场景做出的推导。
 - **结构降维与扁平化**：每章只能有一个一级标题；二级标题必须统一使用章节编号，且全章二级标题总数不得超过 10 个（包括小结和参考资料）。相近主题应合并为较少的二级标题，细分内容优先下沉到三级标题、表格或图表中；不得通过增加标题层级或重复拆节凑篇幅。
 - **高冗余内容表格化 / 图表化**：重复出现的维度比较、方案差异、角色职责、状态迁移、步骤关系、正常 / 异常分支和指标映射，优先使用表格、流程图、时序图或状态图表达。表格和图表用于压缩结构化信息，正文仍需解释取舍、前提、边界和失败后的处理，不得用图表替代关键论证。
@@ -423,7 +436,7 @@ tags:
 - 方案选型表应服务于 ADR，而不是替代 ADR；表格负责横向比较，正文负责解释为什么在当前约束下做出该选择。
 - 以“权威事实、职责边界、上下游协作、补偿恢复、观测治理”为共同检查框架，保持第一部分各章的术语和深度一致。
 - 章节中文汉字数量默认按上款执行：第一部分为 `10,000–20,000` 个，第二部分第 11–14 章核心正文上限为 `50,000` 个；如果用户明确指定其他范围，以用户指定范围为准，并按内容完整性控制，不以扩展重复观点作为达标手段。
-- 系统设计方法论章节应优先复用领域通用概念；与第 4、7、8、9、11、12、13 章或第三部分实战章节重复时，保留判断框架，具体实现通过交叉引用展开。
+- 系统设计方法论章节应优先复用领域通用概念；与第 4、7、8、9、11、12、13、14 章重复时，保留判断框架，具体实现通过交叉引用展开。
 
 ### 10.8 技术内容引用规则
 
