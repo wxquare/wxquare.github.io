@@ -42,6 +42,10 @@ const aliases = [
   ,{ path: '/2020/08/13/AI/tvm/TVM-hello/', target: '/2026/09/22/AI/tvm-operator-optimization-practice/' }
   ,{ path: '/2020/08/13/AI/tvm/TVM-quantization/', target: '/2026/09/22/AI/tvm-operator-optimization-practice/' }
   ,{ path: '/2020/08/13/AI/tvm/TVM-tutorial/', target: '/2026/09/22/AI/tvm-operator-optimization-practice/' }
+  ,{ path: '/2020/08/13/AI/computer-vision/video-object-tracking/', slug: 'AI/video-object-tracking' }
+  ,{ path: '/2020/08/13/AI/computer-vision/初始OpenCL及在的移动端的一些测试数据/', slug: 'AI/初始OpenCL及在的移动端的一些测试数据' }
+  ,{ path: '/2020/08/13/AI/computer-vision/DaSiamRPN/', slug: 'AI/video-object-tracking' }
+  ,{ path: '/2020/08/13/AI/computer-vision/visp-template-tracker/', slug: 'AI/video-object-tracking' }
 ];
 
 function escapeAttribute(value) {

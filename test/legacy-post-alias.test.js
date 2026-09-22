@@ -54,6 +54,13 @@ const expectedArchivedTvmAliases = [
   ['/2020/08/13/AI/tvm/TVM-tutorial/', '/2026/09/22/AI/tvm-operator-optimization-practice/']
 ];
 
+const expectedArchivedTrackingAliases = [
+  ['/2020/08/13/AI/computer-vision/video-object-tracking/', '/2020/08/13/AI/video-object-tracking/'],
+  ['/2020/08/13/AI/computer-vision/初始OpenCL及在的移动端的一些测试数据/', '/2020/08/13/AI/初始OpenCL及在的移动端的一些测试数据/'],
+  ['/2020/08/13/AI/computer-vision/DaSiamRPN/', '/2020/08/13/AI/video-object-tracking/'],
+  ['/2020/08/13/AI/computer-vision/visp-template-tracker/', '/2020/08/13/AI/video-object-tracking/']
+];
+
 function mockConfig() {
   return {
     url: 'https://example.test',
@@ -84,20 +91,35 @@ test('legacy post alias generator emits all compatibility redirects', () => {
     assert.equal(registrations.length, 1);
     assert.equal(registrations[0].name, 'legacy-post-alias');
 
-    const posts = expectedAliases.map(([, slug]) => ({
-      slug,
-      path: `2026/04/01/${slug}/`
-    }));
+    const posts = [
+      ...expectedAliases.map(([, slug]) => ({
+        slug,
+        path: `2026/04/01/${slug}/`
+      })),
+      {
+        slug: 'AI/video-object-tracking',
+        path: '2020/08/13/AI/video-object-tracking/'
+      },
+      {
+        slug: 'AI/初始OpenCL及在的移动端的一些测试数据',
+        path: '2020/08/13/AI/初始OpenCL及在的移动端的一些测试数据/'
+      }
+    ];
     const context = {
       config: mockConfig(),
       locals: { get: (name) => name === 'posts' ? posts : undefined }
     };
     const generated = registrations[0].fn.call(context);
 
-    assert.equal(generated.length, expectedAliases.length + expectedBookAliases.length + expectedArchivedTvmAliases.length);
+    assert.equal(
+      generated.length,
+      expectedAliases.length + expectedBookAliases.length + expectedArchivedTvmAliases.length + expectedArchivedTrackingAliases.length
+    );
     assert.deepEqual(
       generated.map((item) => item.path).sort(),
-      [...expectedAliases, ...expectedBookAliases, ...expectedArchivedTvmAliases].map(([route]) => `${route.slice(1)}index.html`).sort()
+      [...expectedAliases, ...expectedBookAliases, ...expectedArchivedTvmAliases, ...expectedArchivedTrackingAliases]
+        .map(([route]) => `${route.slice(1)}index.html`)
+        .sort()
     );
 
     const redirect = generated.find((item) => item.path === 'system-design/13-e-commerce/index.html');

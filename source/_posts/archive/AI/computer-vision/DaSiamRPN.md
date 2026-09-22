@@ -3,6 +3,7 @@ title: 了解DaSiamRPN追踪算法的运行过程
 date: 2020-08-13
 categories:
   - AI 与 Agent
+published: false
 mathjax: true
 ---
 
@@ -74,4 +75,3 @@ $$A_{w×h×4k}^{res} = [ψ(x)]_{res} \* [ψ(z)]_{res}$$
 1. https://zhuanlan.zhihu.com/p/37856765
 2. https://github.com/foolwood/DaSiamRPN
 3. http://openaccess.thecvf.com/content_cvpr_2018/papers/Li_High_Performance_Visual_CVPR_2018_paper.pdf
-
