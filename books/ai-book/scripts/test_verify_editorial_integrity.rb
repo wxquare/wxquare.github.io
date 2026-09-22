@@ -79,6 +79,24 @@ class VerifyEditorialIntegrityTest < Minitest::Test
     end
   end
 
+  def test_reports_noncanonical_label_for_an_angle_bracketed_chapter_link_with_fragment_and_title
+    with_fixture do |root|
+      write(root, "src/part1/01.md", <<~MARKDOWN)
+        # 第1章 标题1
+
+        ## 1. 起点
+
+        错误链接：[相关章节](<02.md#section> "章节标题")。
+      MARKDOWN
+
+      _stdout, stderr, status = run_verifier(root)
+
+      refute status.success?
+      assert_includes stderr, "chapter-link label mismatch"
+      assert_includes stderr, "part1/02.md"
+    end
+  end
+
   private
 
   def with_fixture

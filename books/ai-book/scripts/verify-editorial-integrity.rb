@@ -44,7 +44,13 @@ end
 paths.each do |relative_path|
   content = src.join(relative_path).read
   content.scan(/\[([^\]]+)\]\(([^)]+)\)/).each do |label, destination|
-    target = destination.split("#", 2).first
+    normalized_destination = destination.strip
+    target = if normalized_destination.start_with?("<") && normalized_destination.include?(">")
+               normalized_destination[1...normalized_destination.index(">")]
+             else
+               normalized_destination.split(/\s+/, 2).first
+             end
+    target = target.split("#", 2).first
     next if target.empty? || target.match?(%r{\A[a-z][a-z0-9+.-]*:}i)
 
     resolved_path = Pathname.new(relative_path).dirname.join(target).cleanpath.to_s
