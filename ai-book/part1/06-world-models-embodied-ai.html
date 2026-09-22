@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-545ff165.js";
+            window.path_to_searchindex_js = "../searchindex-be158db8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-614e87e1.js"></script>
@@ -395,6 +395,13 @@ flowchart TD
 <p>但生产系统很少只依赖一个端到端模型。更常见的结构是高层模型负责泛化和任务理解，中层 VLA 或 skill policy 负责抓取、放置、导航、操作等技能，低层控制器和运动规划器负责轨迹可行性、频率、稳定性和安全限制。端到端模型可以提供更强泛化，但解释和验证困难；模块化系统更可控，却需要清晰接口和大量技能维护。实际系统通常在二者之间取折中。</p>
 <h2 id="612-安全反馈与数据飞轮"><a class="header" href="#612-安全反馈与数据飞轮">6.12 安全反馈与数据飞轮</a></h2>
 <p>具身系统的安全不是输出过滤，而是控制闭环的一部分。常见机制包括速度、力、扭矩和加速度限幅，碰撞检测，安全区域，硬件和软件急停，远程或本地人工接管，任务级危险动作拒绝，以及对用户指令的语义安全判断。LLM 的安全提示不能替代控制安全；物理系统必须有底层硬约束。</p>
+<p>安全边界应被写成一份可计算的 <strong>physical-action envelope</strong>，而不是一段“请小心”的提示。它至少约束工作空间、末端速度、关节速度、接触力、载荷、人与设备的最小距离、可见性、定位质量、允许工具和允许姿态。每一项约束都需要说明数据来源、测量频率、失效默认值和执行 owner：视觉模型可以建议“桌面上没有人”，但距离传感器失效时，安全控制器应按保守规则降速或停止；语言模型可以选择“拿起杯子”，但不得修改安全区、急停逻辑或力矩上限。机器人控制中的这一层相当于给概率性策略划出确定性的可行动集合；它也解释了为何 VLA 的高层泛化不能替代传统的运动学、碰撞检测和互锁。</p>
+<p>安全 envelope 还应区分三种动作。第一类是只读或虚拟动作，例如在世界模型中 roll out、在数字孪生中规划、在相机画面上标注候选抓取点；它们可由较宽松的模型策略产生。第二类是可逆、低能量的受控动作，例如在隔离区域低速移动到观察位、张开夹爪、请求更多传感器视角；它们需要运行时检查但通常允许自动执行。第三类是不可逆或高危动作，例如接近人、切换重载工具、快速运动、开门、搬运液体或跨越安全区；它们必须经过额外门禁，必要时要求双通道传感器和人工批准。把动作按后果而非按“模型是否自信”分级，能避免置信度被误用为安全证明。</p>
+<p>上线前的评估门禁应沿着这三类动作建立证据链。离线阶段先检查数据覆盖、标注质量、策略在已知回归集上的成功与拒绝；仿真阶段再对遮挡、摩擦变化、动作延迟、传感器丢帧和危险接近做对抗性扰动。CausalWorld 这类可控基准的价值正在于能把“动作改变了什么”明确化 [8]，而 domain randomization 的经验提醒我们，仿真覆盖不是现实保证 [20][21][22]。进入真实环境时，系统先以 shadow mode 记录候选而不执行，然后在围栏区域、低速度、有限物体集合中进行受监护执行；每推进一级都要证明上一阶段的失败模式已被观测、分类和处理，而不能只凭总体成功率放行。</p>
+<p>一个可审计的门禁记录至少包含场景版本、机器人和工具版本、策略版本、世界模型版本、传感器健康、候选动作、envelope 判定、拒绝原因、人工决定与结果。对于每个高风险失败，应能回答：模型是否提出了错误候选，状态估计是否遗漏了关键物体，安全层是否正确拒绝，还是执行器在已获许可后偏离了轨迹。把这几个层次混为“机器人失败”，会让后续训练把安全控制器的正确拒绝误标成坏样本，或把执行器故障错误归因于世界模型。</p>
+<p>运行中的干预也必须有状态语义。人工接管不是简单抢走遥控器，而是一次有版本的状态迁移：冻结新的高危动作、保留当前传感器与控制快照、标记被中断的技能、给出恢复条件，并把控制权转给预先授权的操作者。恢复时，系统不能从旧的语言计划直接继续；它要重新感知、重新建立环境状态、重新检查 envelope，并确认人、物体和工具仍处于允许位置。若动作已造成不可逆外部变化，例如物体已被放入容器或门已被打开，恢复策略应从事实状态重新规划，而非“回放”模型的旧动作序列。</p>
+<p>回滚在 Physical AI 中也有边界。软件配置、模型路由、技能版本和策略阈值通常可以回滚；机器人在空间中的位置、物体形态、人与环境的反应不能回滚。因此发布方案要同时准备软件回滚和物理收敛方案：停止、退回到安全姿态、释放或稳定载荷、隔离故障设备、通知现场人员、保存证据。对可能损坏物体或伤害人的步骤，补偿动作本身也要放入 envelope，不能让“为了恢复”成为绕过安全限制的理由。这个原则与 Agent Runtime 的补偿语义一致，但物理系统的补偿必须先保证人和设备安全，才谈业务目标。</p>
+<p>安全评价不应只汇总一次部署的平均数字。建议按动作风险等级分别报告：任务成功率、拒绝的正确率、危险近失率、超限触发率、人工接管率、恢复成功率、传感器失效下的安全停机率，以及从仿真到真实的性能差。每个指标还应给出场景覆盖和置信区间；例如“未发生碰撞”在少量固定场景中不足以支持扩大开放范围。Open X-Embodiment 与 Bridge Data 所展示的跨形态数据价值 [12][27]，同样适用于安全评估：系统必须证明其约束在新相机、新夹具、新物体和新布局下仍然保守有效。</p>
 <p>数据飞轮决定具身智能能否规模化。一个机器人样本通常包含时间戳、摄像头/深度/触觉/本体状态、语言指令、动作轨迹、成功失败标签、环境元数据和操作者元数据。真实机器人昂贵，任务失败可能损坏硬件，不同机器人动作空间不同，人类遥操作质量不稳定，成功率评估还需要环境状态判断。因此数据来源通常是组合的：遥操作、机器人自主执行日志、仿真数据、视频和网页数据、失败恢复样本、人工示范、偏好反馈和跨机器人共享数据集。Bridge Data 等工作也说明，跨机器人和跨环境数据是提高泛化的重要方向 [27]。</p>
 <pre><code class="language-text">部署 -&gt; 采集轨迹 -&gt; 标注成功失败 -&gt; 挖掘长尾
   -&gt; 仿真扩增 -&gt; 训练 -&gt; 回归评估 -&gt; 再部署
@@ -415,6 +422,7 @@ flowchart TD
 </ul>
 <p>评估时还要把预测模型放回真实策略闭环：让同一个 planner 分别使用真实环境、世界模型和混合环境，比较任务成功率、动作分布和失败类型。如果世界模型生成的场景只让策略在模型内部变好，却不能迁移到真实环境，说明它更像视觉生成器而不是可用于决策的环境模型。对长时任务要记录误差随 rollout 长度的增长，而不是只报告第一帧或短片段指标。</p>
 <p>具身评估还要覆盖硬件和人的因素：不同摩擦、负载、传感器延迟、光照、遮挡和操作者指令都可能改变结果。一个只在固定实验台上成功的策略，不能直接推断在家庭、仓库或道路上可靠。评估报告应明确训练内、训练外、仿真、真实和长尾场景的边界。</p>
+<p>为了避免“模型分数好但上线不可用”，评估还应把安全层本身当作被测对象。为每个动作准备允许、拒绝、降级和人工接管四类 oracle：当障碍物进入缓冲区时，系统是否在规定控制周期内停止；当相机置信度下降但触觉仍正常时，是否按策略降低速度；当两个传感器对物体位置冲突时，是否选择保守路径；当模型建议的抓取点在工作空间外时，是否拒绝并留下可解释证据。世界模型可帮助生成这些反事实场景，但评估结论必须来自独立的控制日志和真实或高保真仿真观测，而不是由同一个生成模型自评。</p>
 <p>这套评估边界决定了世界模型能否真正服务训练、规划和安全验证。没有闭环验证，生成质量不能代表行动价值，也不能代表真实世界中的安全和泛化能力。世界模型区别于普通视频生成模型的地方，正在于它最终要支持可靠行动，而不是只生成漂亮画面。</p>
 <h3 id="具身智能评估"><a class="header" href="#具身智能评估">具身智能评估</a></h3>
 <p>机器人任务不能只看单次 demo。需要：</p>
@@ -617,37 +625,36 @@ flowchart TD
 <li>真实系统为什么需要安全层、仿真和数据飞轮？</li>
 </ul>
 <h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
-<p>[1] Ha, D., &amp; Schmidhuber, J. <em>World Models</em>. NeurIPS Workshop, 2018. https://arxiv.org/abs/1803.10122</p>
-<p>[2] Hafner, D., et al. <em>Learning Latent Dynamics for Planning from Pixels</em>. ICML, 2019. https://arxiv.org/abs/1811.04551</p>
-<p>[3] Hafner, D., et al. <em>Dream to Control: Learning Behaviors by Latent Imagination</em>. ICLR, 2020. https://arxiv.org/abs/1912.01603</p>
-<p>[4] Hafner, D., et al. <em>Mastering Diverse Domains through World Models</em>. arXiv, 2023. https://arxiv.org/abs/2301.04104</p>
-<p>[5] Meta AI. <em>V-JEPA 2: World Model and Benchmarks</em>. 2025. https://ai.meta.com/blog/v-jepa-2-world-model-benchmarks/</p>
-<p>[6] Bardes, A., et al. <em>Revisiting Feature Prediction for Learning Visual Representations</em>. arXiv, 2024. https://arxiv.org/abs/2404.08471</p>
-<p>[7] Brooks, T., et al. <em>Video Generation Models as World Simulators</em>. arXiv, 2024. https://arxiv.org/abs/2412.00568</p>
-<p>[8] Ahmed, O., et al. <em>CausalWorld: A Robotic Manipulation Benchmark for Causal Reasoning</em>. arXiv, 2020. https://arxiv.org/abs/2010.04963</p>
-<p>[9] Ahn, M., et al. <em>Do As I Can, Not As I Say: Grounding Language in Robotic Affordances</em>. arXiv, 2022. https://arxiv.org/abs/2204.01691</p>
-<p>[10] Driess, D., et al. <em>PaLM-E: An Embodied Multimodal Language Model</em>. arXiv, 2023. https://arxiv.org/abs/2303.03378</p>
-<p>[11] Brohan, A., et al. <em>RT-2: Vision-Language-Action Models Transfer Web Knowledge to Robotic Control</em>. arXiv, 2023. https://arxiv.org/abs/2307.15818</p>
-<p>[12] Open X-Embodiment Collaboration. <em>Open X-Embodiment: Robotic Learning Datasets and RT-X Models</em>. arXiv, 2023. https://arxiv.org/abs/2310.08864</p>
-<p>[13] Octo Model Team. <em>Octo: An Open-Source Generalist Robot Policy</em>. arXiv, 2024. https://arxiv.org/abs/2405.12213</p>
-<p>[14] Black, K., et al. <em>π0: A Vision-Language-Action Flow Model for General Robot Control</em>. arXiv, 2024. https://arxiv.org/abs/2410.24164</p>
-<p>[15] Physical Intelligence. <em>π0.5: A Vision-Language-Action Model with Open-World Generalization</em>. arXiv, 2025. https://arxiv.org/abs/2504.16054</p>
-<p>[16] Google DeepMind. <em>Gemini Robotics Brings AI into the Physical World</em>. 2025. https://deepmind.google/blog/gemini-robotics-brings-ai-into-the-physical-world/</p>
-<p>[17] NVIDIA. <em>Cosmos: World Foundation Model Platform for Physical AI</em>. arXiv, 2025. https://arxiv.org/abs/2501.03575</p>
-<p>[18] Bruce, J., et al. <em>Genie: Generative Interactive Environments</em>. arXiv, 2024. https://arxiv.org/abs/2402.15391</p>
-<p>[19] DeepMind. <em>Genie 2: A Large-Scale Foundation World Model</em>. arXiv, 2024. https://arxiv.org/abs/2409.13502</p>
-<p>[20] Tobin, J., et al. <em>Domain Randomization for Transferring Deep Neural Networks from Simulation to the Real World</em>. arXiv, 2017. https://arxiv.org/abs/1703.06907</p>
-<p>[21] Peng, X. B., et al. <em>Sim-to-Real Transfer of Robotic Control with Dynamics Randomization</em>. arXiv, 2017. https://arxiv.org/abs/1710.06537</p>
-<p>[22] Tremblay, J., et al. <em>Training Deep Networks with Synthetic Data: Bridging the Reality Gap by Domain Randomization</em>. CVPR Workshops, 2018. https://arxiv.org/abs/1804.06516</p>
-<p>[23] Bengio, Y., Courville, A., &amp; Vincent, P. <em>Representation Learning: A Review and New Perspectives</em>. IEEE TPAMI, 2013. https://arxiv.org/abs/1206.5538</p>
-<p>[24] Sutton, R. S., &amp; Barto, A. G. <em>Reinforcement Learning: An Introduction</em>, 2nd ed. MIT Press, 2018. http://incompleteideas.net/book/the-book-2nd.html</p>
-<p>[25] Levine, S., et al. <em>Offline Reinforcement Learning: Tutorial, Review, and Perspectives on Open Problems</em>. arXiv, 2020. https://arxiv.org/abs/2005.01643</p>
-<p>[26] Dosovitskiy, A., et al. <em>CARLA: An Open Urban Driving Simulator</em>. CoRL, 2017. https://arxiv.org/abs/1711.03938</p>
-<p>[27] Ebert, F., et al. <em>Bridge Data: Boosting Generalization of Robotic Skills with Cross-Domain Datasets</em>. RSS, 2022. https://arxiv.org/abs/2208.13653</p>
-<p>[28] Hu, A., et al. <em>Learning Interactive Real-World Simulators</em>. arXiv, 2023. https://arxiv.org/abs/2310.06114</p>
-<p>[29] Zhang, A., Lipton, Z. C., Li, M., &amp; Smola, A. V. <em>Dive into Deep Learning</em>, 2nd ed., 2023. https://zh.d2l.ai/</p>
-<p>[30] 邱锡鹏：《神经网络与深度学习》，机械工业出版社，2020。https://nndl.github.io/</p>
-<p>[31] 周志华：《机器学习》，清华大学出版社，2016。https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm</p>
+<p>[1] Ha, D., &amp; Schmidhuber, J. <em>World Models</em>. NeurIPS Workshop, 2018. https://arxiv.org/abs/1803.10122 访问日期：2026-09-22</p>
+<p>[2] Hafner, D., et al. <em>Learning Latent Dynamics for Planning from Pixels</em>. ICML, 2019. https://arxiv.org/abs/1811.04551 访问日期：2026-09-22</p>
+<p>[3] Hafner, D., et al. <em>Dream to Control: Learning Behaviors by Latent Imagination</em>. ICLR, 2020. https://arxiv.org/abs/1912.01603 访问日期：2026-09-22</p>
+<p>[4] Hafner, D., et al. <em>Mastering Diverse Domains through World Models</em>. arXiv, 2023. https://arxiv.org/abs/2301.04104 访问日期：2026-09-22</p>
+<p>[5] Meta AI. <em>V-JEPA 2: World Model and Benchmarks</em>. 2025. https://ai.meta.com/blog/v-jepa-2-world-model-benchmarks/ 访问日期：2026-09-22</p>
+<p>[6] Bardes, A., et al. <em>Revisiting Feature Prediction for Learning Visual Representations</em>. arXiv, 2024. https://arxiv.org/abs/2404.08471 访问日期：2026-09-22</p>
+<p>[7] Brooks, T., et al. <em>Video Generation Models as World Simulators</em>. arXiv, 2024. https://arxiv.org/abs/2412.00568 访问日期：2026-09-22</p>
+<p>[8] Ahmed, O., et al. <em>CausalWorld: A Robotic Manipulation Benchmark for Causal Structure and Transfer Learning</em>. arXiv:2010.04296, 2020. https://arxiv.org/abs/2010.04296 访问日期：2026-09-22</p>
+<p>[9] Ahn, M., et al. <em>Do As I Can, Not As I Say: Grounding Language in Robotic Affordances</em>. arXiv, 2022. https://arxiv.org/abs/2204.01691 访问日期：2026-09-22</p>
+<p>[10] Driess, D., et al. <em>PaLM-E: An Embodied Multimodal Language Model</em>. arXiv, 2023. https://arxiv.org/abs/2303.03378 访问日期：2026-09-22</p>
+<p>[11] Brohan, A., et al. <em>RT-2: Vision-Language-Action Models Transfer Web Knowledge to Robotic Control</em>. arXiv, 2023. https://arxiv.org/abs/2307.15818 访问日期：2026-09-22</p>
+<p>[12] Open X-Embodiment Collaboration. <em>Open X-Embodiment: Robotic Learning Datasets and RT-X Models</em>. arXiv, 2023. https://arxiv.org/abs/2310.08864 访问日期：2026-09-22</p>
+<p>[13] Octo Model Team. <em>Octo: An Open-Source Generalist Robot Policy</em>. arXiv, 2024. https://arxiv.org/abs/2405.12213 访问日期：2026-09-22</p>
+<p>[14] Black, K., et al. <em>π0: A Vision-Language-Action Flow Model for General Robot Control</em>. arXiv, 2024. https://arxiv.org/abs/2410.24164 访问日期：2026-09-22</p>
+<p>[15] Physical Intelligence. <em>π0.5: A Vision-Language-Action Model with Open-World Generalization</em>. arXiv, 2025. https://arxiv.org/abs/2504.16054 访问日期：2026-09-22</p>
+<p>[16] Google DeepMind. <em>Gemini Robotics Brings AI into the Physical World</em>. 2025. https://deepmind.google/blog/gemini-robotics-brings-ai-into-the-physical-world/ 访问日期：2026-09-22</p>
+<p>[17] NVIDIA. <em>Cosmos: World Foundation Model Platform for Physical AI</em>. arXiv, 2025. https://arxiv.org/abs/2501.03575 访问日期：2026-09-22</p>
+<p>[18] Bruce, J., et al. <em>Genie: Generative Interactive Environments</em>. arXiv, 2024. https://arxiv.org/abs/2402.15391 访问日期：2026-09-22</p>
+<p>[19] DeepMind. <em>Genie 2: A Large-Scale Foundation World Model</em>. arXiv, 2024. https://arxiv.org/abs/2409.13502 访问日期：2026-09-22</p>
+<p>[20] Tobin, J., et al. <em>Domain Randomization for Transferring Deep Neural Networks from Simulation to the Real World</em>. arXiv, 2017. https://arxiv.org/abs/1703.06907 访问日期：2026-09-22</p>
+<p>[21] Peng, X. B., et al. <em>Sim-to-Real Transfer of Robotic Control with Dynamics Randomization</em>. arXiv, 2017. https://arxiv.org/abs/1710.06537 访问日期：2026-09-22</p>
+<p>[22] Tremblay, J., et al. <em>Training Deep Networks with Synthetic Data: Bridging the Reality Gap by Domain Randomization</em>. CVPR Workshops, 2018. https://arxiv.org/abs/1804.06516 访问日期：2026-09-22</p>
+<p>[23] Bengio, Y., Courville, A., &amp; Vincent, P. <em>Representation Learning: A Review and New Perspectives</em>. IEEE TPAMI, 2013. https://arxiv.org/abs/1206.5538 访问日期：2026-09-22</p>
+<p>[24] Sutton, R. S., &amp; Barto, A. G. <em>Reinforcement Learning: An Introduction</em>, 2nd ed. MIT Press, 2018. http://incompleteideas.net/book/the-book-2nd.html 访问日期：2026-09-22</p>
+<p>[26] Dosovitskiy, A., et al. <em>CARLA: An Open Urban Driving Simulator</em>. CoRL, 2017. https://arxiv.org/abs/1711.03938 访问日期：2026-09-22</p>
+<p>[27] Ebert, F., et al. <em>Bridge Data: Boosting Generalization of Robotic Skills with Cross-Domain Datasets</em>. RSS, 2022. https://arxiv.org/abs/2208.13653 访问日期：2026-09-22</p>
+<p>[28] Hu, A., et al. <em>Learning Interactive Real-World Simulators</em>. arXiv, 2023. https://arxiv.org/abs/2310.06114 访问日期：2026-09-22</p>
+<p>[29] Zhang, A., Lipton, Z. C., Li, M., &amp; Smola, A. V. <em>Dive into Deep Learning</em>, 2nd ed., 2023. https://zh.d2l.ai/ 访问日期：2026-09-22</p>
+<p>[30] 邱锡鹏：《神经网络与深度学习》，机械工业出版社，2020。https://nndl.github.io/ 访问日期：2026-09-22</p>
+<p>[31] 周志华：《机器学习》，清华大学出版社，2016。https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm 访问日期：2026-09-22</p>
 <h2 id="版本与范围"><a class="header" href="#版本与范围">版本与范围</a></h2>
 <p>“世界模型”在强化学习、视频生成、表征学习和机器人仿真中含义不同；本章以预测、规划和行动之间的接口来比较这些路线，而不把它们视为可互换产品。VLA、机器人基础模型和 Physical AI 的公开能力变化迅速，产品性表述以 <strong>2026-09-21</strong> 可访问的论文或官方资料为准。仿真成功、离线 benchmark 分数和真实环境安全不是同一项证据。</p>
 <h2 id="工程决策案例"><a class="header" href="#工程决策案例">工程决策案例</a></h2>

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-545ff165.js";
+            window.path_to_searchindex_js = "../searchindex-be158db8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-614e87e1.js"></script>
@@ -182,7 +182,7 @@
 <p>OpenClaw 的核心价值不是“又一个聊天机器人”，而是把个人 AI 助手抽象成一个长期运行的本地 Gateway：接入多渠道消息，管理会话和上下文，调度 Agent Runtime，并用工具、技能、插件和沙箱控制行动边界。</p>
 </blockquote>
 <h2 id="引言"><a class="header" href="#引言">引言</a></h2>
-<p>第 16 章已经分析了 LangGraph、AutoGen、MCP 这类 Agent 平台与编排框架；第 18 章分析了 AI Coding Agent，第 19 章进一步拆解了 Pi 这类终端原生 Coding Agent Runtime。本章继续分析一个更贴近个人生产力场景的成熟系统：OpenClaw。</p>
+<p>第 21 章已经分析了 LangGraph、AutoGen、MCP 这类 Agent 平台与编排框架；第 23 章分析了 AI Coding Agent，第 25 章进一步拆解了 Pi 这类终端原生 Coding Agent Runtime。本章继续分析一个更贴近个人生产力场景的成熟系统：OpenClaw。</p>
 <p>OpenClaw 的官方定位是个人 AI 助手。它运行在用户自己的设备或服务器上，通过一个长期运行的 Gateway 接入 WhatsApp、Telegram、Slack、Discord、Signal、iMessage、WebChat 等渠道，并把这些消息路由给 Agent Runtime。它还提供工具、技能、插件、会话、上下文、沙箱、移动节点和控制台等能力。</p>
 <p>如果只把 OpenClaw 看成“可以在 WhatsApp 上聊天的 AI bot”，会低估它的架构价值。更准确的理解是：</p>
 <pre><code class="language-text">OpenClaw = Personal Agent Gateway
@@ -322,7 +322,7 @@ flowchart TB
 </div>
 <p>OpenClaw 最值得学习的地方，是它没有把所有东西堆进 Agent Loop。它把消息接入、会话路由、工具策略、上下文构建、沙箱执行拆到不同层，每层只承担一个主要职责。</p>
 <h3 id="与第13章组件地图的对应关系"><a class="header" href="#与第13章组件地图的对应关系">与第13章组件地图的对应关系</a></h3>
-<p>OpenClaw 的特点是 Gateway 很强。它不是只做一个 Agent Loop，而是先把多渠道入口、身份绑定、队列、会话、上下文、工具、插件和执行边界组织起来。用第 5 章组件地图来看，OpenClaw 对“入口路由、人类交互、上下文、工具扩展、权限边界”覆盖较完整，对“离线 Eval Harness、模型路由、长期学习闭环”的公开实现则相对弱一些。</p>
+<p>OpenClaw 的特点是 Gateway 很强。它不是只做一个 Agent Loop，而是先把多渠道入口、身份绑定、队列、会话、上下文、工具、插件和执行边界组织起来。用第 13 章组件地图来看，OpenClaw 对“入口路由、人类交互、上下文、工具扩展、权限边界”覆盖较完整，对“离线 Eval Harness、模型路由、长期学习闭环”的公开实现则相对弱一些。</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -345,7 +345,7 @@ flowchart TB
 </tbody>
 </table>
 </div>
-<p>所以 OpenClaw 与 Pi 的差异很清楚：Pi 先把可嵌入 Runtime 做薄，OpenClaw 则把 Runtime 放进一个多入口个人 Agent Gateway 里。它更接近第 5 章里的“Entry Plane + Human Control Plane + Capability Plane”组合样板。</p>
+<p>所以 OpenClaw 与 Pi 的差异很清楚：Pi 先把可嵌入 Runtime 做薄，OpenClaw 则把 Runtime 放进一个多入口个人 Agent Gateway 里。它更接近第 13 章里的“Entry Plane + Human Control Plane + Capability Plane”组合样板。</p>
 <hr>
 <h2 id="263-gateway个人助手的控制平面"><a class="header" href="#263-gateway个人助手的控制平面">26.3 Gateway：个人助手的控制平面</a></h2>
 <p>OpenClaw 官方文档把 Gateway 描述为会话、路由和渠道连接的单一事实源。它是一个长期运行的 daemon，默认通过本地端口提供 HTTP/WS 服务，并由 launchd、systemd 或用户手动进程保持运行。</p>
@@ -504,7 +504,7 @@ sequenceDiagram
     Gateway-&gt;&gt;Channel: chunked outbound reply
 </pre>
 
-<p>这个流程可以和第 13 章的 Coding Agent Loop 对照：</p>
+<p>这个流程可以和第 23 章的 Coding Agent Loop 对照：</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -557,7 +557,7 @@ Session Context    -&gt; transcript, recent messages, tool results
 Retrieved Context  -&gt; context engine / memory / search results
 Compressed Context -&gt; compaction summary
 </code></pre>
-<p>这和第 3 章 Context Engineering 的原则一致：上下文不是“把所有信息塞进去”，而是按稳定性、时效性、权限和预算分层组织。</p>
+<p>这和第 15 章 Context Engineering 的原则一致：上下文不是“把所有信息塞进去”，而是按稳定性、时效性、权限和预算分层组织。</p>
 <hr>
 <h2 id="267-context-engine上下文构建的可插拔化"><a class="header" href="#267-context-engine上下文构建的可插拔化">26.7 Context Engine：上下文构建的可插拔化</a></h2>
 <p>OpenClaw 的 Context Engine 是一个很关键的抽象。它决定每次模型运行时看到哪些消息、如何摘要旧历史、如何跨 subagent 边界管理上下文。</p>
@@ -636,7 +636,7 @@ Plugin -&gt; 打包 channel、tool、skill、model provider、hook 等能力
   &gt; skills.load.extraDirs
 </code></pre>
 <p>这个优先级很有工程味道：workspace 规则最具体，所以优先；用户个人技能次之；系统内置技能最后兜底。</p>
-<p>从第 6 章的抽象看，OpenClaw 的 Skill 实现抓住了三个关键点。</p>
+<p>从第 18 章的抽象看，OpenClaw 的 Skill 实现抓住了三个关键点。</p>
 <p>第一，<strong>Skill 是上下文，不是执行权限</strong>。<code>SKILL.md</code> 可以教 Agent 如何做事，但它本身不应该绕过 tools allow/deny、sandbox、approval gate。这样即使某个 Skill 写了高风险步骤，真正执行时仍然会被 Tool Policy 拦住。</p>
 <p>第二，<strong>Skill 有明确的 scope 和优先级</strong>。workspace skill 优先于用户 skill，用户 skill 优先于 bundled skill，这等价于把“上下文规则”做成分层覆盖模型。越靠近当前 workspace 的 Skill 越具体，越应该优先生效。</p>
 <p>第三，<strong>Skill 和 Plugin 解耦</strong>。Skill 只是方法说明，Plugin 才能注册 tool、channel、hook、model provider。这个边界能降低供应链风险：安装一个 Skill 主要改变 Agent 的行为指导，安装一个 Plugin 才扩大系统能力面。</p>
@@ -849,7 +849,7 @@ Model last      -&gt; 假设模型会被诱导，限制爆炸半径。
 </tbody>
 </table>
 </div>
-<p>这和第 13 章 Coding Agent 的权限模型一致：先从 read-only 开始，再逐步开放 write 和 exec。</p>
+<p>这和第 23 章 Coding Agent 的权限模型一致：先从 read-only 开始，再逐步开放 write 和 exec。</p>
 <h3 id="高风险工具"><a class="header" href="#高风险工具">高风险工具</a></h3>
 <p>OpenClaw 文档特别提醒 gateway、cron 等控制面工具有持久化影响：</p>
 <ul>
@@ -1127,7 +1127,7 @@ session:slack:channel:C123
 <blockquote>
 <p>不要把 Agent 做成一个会调用工具的聊天函数，而要把它做成一个有控制平面、会话状态、上下文预算、工具权限、事件流和安全边界的运行系统。</p>
 </blockquote>
-<p>如果第 13 章的 Coding Agent 代表“AI 如何参与软件工程”，OpenClaw 代表的则是另一个方向：<strong>AI 如何成为长期在线、跨渠道、可扩展、可治理的个人助手基础设施。</strong></p>
+<p>如果第 23 章的 Coding Agent 代表“AI 如何参与软件工程”，OpenClaw 代表的则是另一个方向：<strong>AI 如何成为长期在线、跨渠道、可扩展、可治理的个人助手基础设施。</strong></p>
 <hr>
 <h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
 <ol>
