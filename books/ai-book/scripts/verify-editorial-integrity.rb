@@ -2,11 +2,23 @@
 # frozen_string_literal: true
 
 require "pathname"
+require "optparse"
 
-root = Pathname.new(__dir__).join("..").realpath
+options = {}
+OptionParser.new do |parser|
+  parser.banner = "Usage: #{File.basename($PROGRAM_NAME)} [--root PATH]"
+  parser.on("--root PATH", "Book root containing src/SUMMARY.md") { |path| options[:root] = path }
+end.parse!
+
+root = Pathname.new(options.fetch(:root, Pathname.new(__dir__).join(".."))).realpath
 src = root.join("src")
 summary = src.join("SUMMARY.md").read
-paths = summary.scan(/\]\((part\d+\/[^)]+\.md)\)/).flatten
+chapters = summary.scan(/\[([^\]]+)\]\((part\d+\/[^)]+\.md)\)/).map do |label, path|
+  number, title = label.match(/\A第(\d+)章\s+(.+)\z/)&.captures
+  { label: label, number: number, path: path, title: title }
+end
+paths = chapters.map { |chapter| chapter[:path] }
+chapters_by_path = chapters.to_h { |chapter| [chapter[:path], chapter] }
 errors = []
 
 if paths.length != 32
@@ -26,6 +38,24 @@ paths.each_with_index do |relative_path, index|
   first_numbered_heading = content.lines.find { |line| line.match?(/^\#{2,3}\s+#{chapter_number}\./) }
   unless first_numbered_heading
     errors << "Chapter #{chapter_number}: no H2/H3 heading starts with #{chapter_number}. (#{relative_path})."
+  end
+end
+
+paths.each do |relative_path|
+  content = src.join(relative_path).read
+  content.scan(/\[([^\]]+)\]\(([^)]+)\)/).each do |label, destination|
+    target = destination.split("#", 2).first
+    next if target.empty? || target.match?(%r{\A[a-z][a-z0-9+.-]*:}i)
+
+    resolved_path = Pathname.new(relative_path).dirname.join(target).cleanpath.to_s
+    chapter = chapters_by_path[resolved_path]
+    next unless chapter
+
+    number, title = label.match(/\A第(\d+)章\s+(.+)\z/)&.captures
+    next unless number && title
+    next if number == chapter[:number] && title == chapter[:title]
+
+    errors << "#{relative_path}: chapter-link label mismatch for #{resolved_path}: expected #{chapter[:label].inspect}, found #{label.inspect}."
   end
 end
 
