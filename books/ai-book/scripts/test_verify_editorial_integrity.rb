@@ -109,6 +109,49 @@ class VerifyEditorialIntegrityTest < Minitest::Test
     end
   end
 
+  def test_ignores_citation_markers_in_fenced_code_inline_code_and_reference_definitions
+    with_fixture do |root|
+      write_numeric_bibliography(root, <<~MARKDOWN)
+        正文引用存在的来源 [1]。
+
+        `inline marker [2]` 不属于正文引用。
+
+        ```text
+        fenced marker [3]
+        ```
+
+        [4]: https://example.com/reference-definition
+      MARKDOWN
+
+      stdout, stderr, status = run_verifier(root)
+
+      assert status.success?, stderr
+      assert_includes stdout, "Editorial integrity checks passed: 32 published chapters"
+    end
+  end
+
+  def test_accepts_indented_bulleted_and_wrapped_bibliography_items
+    with_fixture do |root|
+      write(root, "src/part1/01.md", <<~MARKDOWN)
+        # 第1章 标题1
+
+        ## 1. 起点
+
+        这里引用来源 [1]。
+
+        ## 参考资料
+
+          - [1] Example Institute. *A Primary Source*.
+            https://example.com/source Accessed 2026-09-22.
+      MARKDOWN
+
+      stdout, stderr, status = run_verifier(root)
+
+      assert status.success?, stderr
+      assert_includes stdout, "Editorial integrity checks passed: 32 published chapters"
+    end
+  end
+
   def test_reports_an_unresolved_numeric_citation_when_the_chapter_has_no_bibliography
     with_fixture do |root|
       write(root, "src/part1/01.md", <<~MARKDOWN)

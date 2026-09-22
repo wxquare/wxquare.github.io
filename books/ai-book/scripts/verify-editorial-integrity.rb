@@ -64,7 +64,7 @@ paths.each do |relative_path|
 end
 
 REFERENCE_HEADING = /^\s{0,3}(\#{2,6})\s+.*(?:参考资料|参考文献|延伸阅读|references?|bibliography).*$/i
-NUMBERED_BIBLIOGRAPHY_ITEM = /^\[(\d+)\]\s+(.+\S)\s*$/
+NUMBERED_BIBLIOGRAPHY_ITEM = /^\s*(?:[-+*]\s+)?\[(\d+)\]\s+(.+\S)\s*$/
 ACCESS_DATE = /(?:访问(?:日期|时间|于)?[：:\s]*\d{4}[-\/.]\d{1,2}[-\/.]\d{1,2}|accessed\s*(?:on\s*)?\d{4}[-\/.]\d{1,2}[-\/.]\d{1,2})/i
 
 def bibliography_sections(content)
@@ -78,14 +78,46 @@ def bibliography_sections(content)
     boundary = lines.each_index.find do |index|
       index > heading[:index] && (match = lines[index].match(/^\s{0,3}(\#{1,6})\s+/)) && match[1].length <= heading[:level]
     end || lines.length
-    items = lines[(heading[:index] + 1)...boundary].map do |line|
+    items = []
+    item = nil
+    lines[(heading[:index] + 1)...boundary].each do |line|
       match = line.match(NUMBERED_BIBLIOGRAPHY_ITEM)
-      match && { number: match[1].to_i, text: match[2] }
-    end.compact
+      if match
+        items << item if item
+        item = { number: match[1].to_i, text: match[2] }
+      elsif item && !line.strip.empty?
+        item[:text] = "#{item[:text]} #{line.strip}"
+      end
+    end
+    items << item if item
     next if items.empty?
 
     { start: heading[:index], finish: boundary, items: items }
   end.compact
+end
+
+def in_text_citations(content, bibliography_sections)
+  prose_lines = content.lines.each_with_index.reject do |_line, line_number|
+    bibliography_sections.any? { |section| (section[:start]...section[:finish]).cover?(line_number) }
+  end.map(&:first)
+
+  fence = nil
+  prose = prose_lines.each_with_object(String.new) do |line, text|
+    fence_marker = line[/^\s*(`{3,}|~{3,})/, 1]
+    if fence
+      fence = nil if fence_marker && fence_marker[0] == fence[0] && fence_marker.length >= fence.length
+      next
+    end
+    if fence_marker
+      fence = fence_marker
+      next
+    end
+    next if line.match?(/^\s{0,3}\[[^\]]+\]:\s*/)
+
+    text << line.gsub(/(`+).*?\1/, "")
+  end
+
+  prose.scan(/\[(\d+)\](?!\()/).flatten.map(&:to_i).uniq
 end
 
 def metadata_errors(chapter_number, item)
@@ -111,10 +143,7 @@ paths.each_with_index do |relative_path, index|
   sections = bibliography_sections(content)
   items = sections.flat_map { |section| section[:items] }
   bibliography_numbers = items.map { |item| item[:number] }
-  prose = content.lines.each_with_index.reject do |_line, line_number|
-    sections.any? { |section| (section[:start]...section[:finish]).cover?(line_number) }
-  end.map(&:first).join
-  citations = prose.scan(/\[(\d+)\](?!\()/).flatten.map(&:to_i).uniq
+  citations = in_text_citations(content, sections)
 
   citations.sort.each do |number|
     resolution_count = bibliography_numbers.count(number)
