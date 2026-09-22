@@ -97,6 +97,52 @@ class VerifyEditorialIntegrityTest < Minitest::Test
     end
   end
 
+  def test_reports_an_unresolved_numeric_citation_without_treating_numeric_link_labels_as_citations
+    with_fixture do |root|
+      write_numeric_bibliography(root, "正文引用了存在的来源 [1] 和不存在的来源 [2]。正常链接 [2](https://example.com) 不应被当作引用。")
+
+      _stdout, stderr, status = run_verifier(root)
+
+      refute status.success?
+      assert_includes stderr, "Chapter 1: unresolved in-text citation [2]"
+      refute_includes stderr, "uncited bibliography item [1]"
+    end
+  end
+
+  def test_reports_a_bibliography_item_that_is_never_cited
+    with_fixture do |root|
+      write_numeric_bibliography(root, "正文没有数字引用。")
+
+      _stdout, stderr, status = run_verifier(root)
+
+      refute status.success?
+      assert_includes stderr, "Chapter 1: uncited bibliography item [1]"
+    end
+  end
+
+  def test_reports_missing_required_bibliographic_metadata
+    with_fixture do |root|
+      write(root, "src/part1/01.md", <<~MARKDOWN)
+        # 第1章 标题1
+
+        ## 1. 起点
+
+        这里引用来源 [1]。
+
+        ## 参考文献
+
+        [1] 缺少元数据的来源。
+      MARKDOWN
+
+      _stdout, stderr, status = run_verifier(root)
+
+      refute status.success?
+      assert_includes stderr, "Chapter 1: bibliography item [1] is missing author or institution"
+      assert_includes stderr, "Chapter 1: bibliography item [1] is missing original URL"
+      assert_includes stderr, "Chapter 1: bibliography item [1] is missing access date"
+    end
+  end
+
   private
 
   def with_fixture
@@ -126,6 +172,20 @@ class VerifyEditorialIntegrityTest < Minitest::Test
     path = File.join(root, relative_path)
     FileUtils.mkdir_p(File.dirname(path))
     File.write(path, content)
+  end
+
+  def write_numeric_bibliography(root, body)
+    write(root, "src/part1/01.md", <<~MARKDOWN)
+      # 第1章 标题1
+
+      ## 1. 起点
+
+      #{body}
+
+      ## 参考资料
+
+      [1] Example Institute. *A Primary Source*. https://example.com/source Accessed 2026-09-22.
+    MARKDOWN
   end
 
   def run_verifier(root)

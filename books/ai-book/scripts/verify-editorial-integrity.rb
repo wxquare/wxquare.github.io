@@ -63,6 +63,67 @@ paths.each do |relative_path|
   end
 end
 
+REFERENCE_HEADING = /^\s{0,3}(\#{2,6})\s+.*(?:参考资料|参考文献|references?|bibliography).*$/i
+NUMBERED_BIBLIOGRAPHY_ITEM = /^\[(\d+)\]\s+(.+\S)\s*$/
+ACCESS_DATE = /(?:访问(?:日期|时间|于)?[：:\s]*\d{4}[-\/.]\d{1,2}[-\/.]\d{1,2}|accessed\s*(?:on\s*)?\d{4}[-\/.]\d{1,2}[-\/.]\d{1,2})/i
+
+def bibliography_sections(content)
+  lines = content.lines
+  headings = lines.each_index.map do |index|
+    match = lines[index].match(REFERENCE_HEADING)
+    match && { index: index, level: match[1].length }
+  end.compact
+
+  headings.map do |heading|
+    boundary = lines.each_index.find do |index|
+      index > heading[:index] && (match = lines[index].match(/^\s{0,3}(\#{1,6})\s+/)) && match[1].length <= heading[:level]
+    end || lines.length
+    items = lines[(heading[:index] + 1)...boundary].map do |line|
+      match = line.match(NUMBERED_BIBLIOGRAPHY_ITEM)
+      match && { number: match[1].to_i, text: match[2] }
+    end.compact
+    next if items.empty?
+
+    { start: heading[:index], finish: boundary, items: items }
+  end.compact
+end
+
+def metadata_errors(chapter_number, item)
+  errors = []
+  # A citation entry must name its author or responsible institution before its title.
+  unless item[:text].match?(/\A\s*[^\s].*?(?:,|，|\.|：)/)
+    errors << "Chapter #{chapter_number}: bibliography item [#{item[:number]}] is missing author or institution."
+  end
+  unless item[:text].match?(%r{https?://\S+}i)
+    errors << "Chapter #{chapter_number}: bibliography item [#{item[:number]}] is missing original URL."
+  end
+  unless item[:text].match?(ACCESS_DATE)
+    errors << "Chapter #{chapter_number}: bibliography item [#{item[:number]}] is missing access date."
+  end
+  errors
+end
+
+paths.each_with_index do |relative_path, index|
+  chapter_number = index + 1
+  content = src.join(relative_path).read
+  sections = bibliography_sections(content)
+  next if sections.empty?
+
+  items = sections.flat_map { |section| section[:items] }
+  bibliography_numbers = items.map { |item| item[:number] }.uniq
+  first_bibliography_line = sections.map { |section| section[:start] }.min
+  prose = content.lines.take(first_bibliography_line).join
+  citations = prose.scan(/\[(\d+)\](?!\()/).flatten.map(&:to_i).uniq
+
+  (citations - bibliography_numbers).sort.each do |number|
+    errors << "Chapter #{chapter_number}: unresolved in-text citation [#{number}] (#{relative_path})."
+  end
+  (bibliography_numbers - citations).sort.each do |number|
+    errors << "Chapter #{chapter_number}: uncited bibliography item [#{number}] (#{relative_path})."
+  end
+  items.each { |item| errors.concat(metadata_errors(chapter_number, item)) }
+end
+
 (2..6).each do |chapter_number|
   file = src.join(paths.fetch(chapter_number - 1))
   content = file.read
