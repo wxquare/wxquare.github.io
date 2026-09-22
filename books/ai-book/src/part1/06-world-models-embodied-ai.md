@@ -638,7 +638,7 @@ Scenario API
 
 [7] Brooks, T., et al. *Video Generation Models as World Simulators*. arXiv, 2024. https://arxiv.org/abs/2412.00568 访问日期：2026-09-22
 
-[8] Ahmed, O., et al. *CausalWorld: A Robotic Manipulation Benchmark for Causal Reasoning*. arXiv, 2020. https://arxiv.org/abs/2010.04963 访问日期：2026-09-22
+[8] Ahmed, O., et al. *CausalWorld: A Robotic Manipulation Benchmark for Causal Structure and Transfer Learning*. arXiv:2010.04296, 2020. https://arxiv.org/abs/2010.04296 访问日期：2026-09-22
 
 [9] Ahn, M., et al. *Do As I Can, Not As I Say: Grounding Language in Robotic Affordances*. arXiv, 2022. https://arxiv.org/abs/2204.01691 访问日期：2026-09-22
 
