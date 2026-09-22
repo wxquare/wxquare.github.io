@@ -45,6 +45,15 @@ const expectedBookAliases = [
   ['/system-design/32-ecommerce-cart-checkout/', '/books/system-design-primer/part03/08-cart-checkout.html']
 ];
 
+const expectedArchivedTvmAliases = [
+  ['/2020/08/13/AI/tvm/TVM-GEMM-CPU/', '/2026/09/22/AI/tvm/tvm-operator-optimization-practice/'],
+  ['/2020/08/13/AI/tvm/TVM-Graph-optimization/', '/2026/09/22/AI/tvm/tvm-operator-optimization-practice/'],
+  ['/2020/08/13/AI/tvm/TVM-code-generation/', '/2026/09/22/AI/tvm/tvm-operator-optimization-practice/'],
+  ['/2020/08/13/AI/tvm/TVM-hello/', '/2026/09/22/AI/tvm/tvm-operator-optimization-practice/'],
+  ['/2020/08/13/AI/tvm/TVM-quantization/', '/2026/09/22/AI/tvm/tvm-operator-optimization-practice/'],
+  ['/2020/08/13/AI/tvm/TVM-tutorial/', '/2026/09/22/AI/tvm/tvm-operator-optimization-practice/']
+];
+
 function mockConfig() {
   return {
     url: 'https://example.test',
@@ -85,10 +94,10 @@ test('legacy post alias generator emits all compatibility redirects', () => {
     };
     const generated = registrations[0].fn.call(context);
 
-    assert.equal(generated.length, expectedAliases.length + expectedBookAliases.length);
+    assert.equal(generated.length, expectedAliases.length + expectedBookAliases.length + expectedArchivedTvmAliases.length);
     assert.deepEqual(
       generated.map((item) => item.path).sort(),
-      [...expectedAliases, ...expectedBookAliases].map(([route]) => `${route.slice(1)}index.html`).sort()
+      [...expectedAliases, ...expectedBookAliases, ...expectedArchivedTvmAliases].map(([route]) => `${route.slice(1)}index.html`).sort()
     );
 
     const redirect = generated.find((item) => item.path === 'system-design/13-e-commerce/index.html');
