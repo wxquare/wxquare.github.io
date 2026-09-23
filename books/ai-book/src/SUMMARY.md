@@ -1,4 +1,4 @@
-# AI Agent 工程实践：从大模型基础到生产级智能体系统
+# AI Engineering：大模型与智能体系统工程
 
 [书籍介绍](README.md)
 

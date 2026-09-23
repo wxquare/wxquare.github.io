@@ -1,6 +1,6 @@
 # wxquare.github.io
 
-> 一个长期维护的技术博客与知识库，重点关注系统设计与后端架构，以及 AI 与 Agent 工程实践。
+> 一个长期维护的技术博客与知识库，重点关注系统设计与后端架构，以及 AI Engineering 与 Agent 系统工程。
 
 ## 核心入口
 
@@ -8,7 +8,7 @@
 |------|------|
 | [在线博客](https://wxquare.github.io) | 浏览完整博客内容与专题导航 |
 | [公开参考资料库](./source/library/index.md) | 浏览公开且适合公开保存的第三方技术资料及原始来源 |
-| [AI Agent 工程实践](./books/ai-book/src/README.md) | 从大模型基础到生产级智能体系统的系统化专题 |
+| [AI Engineering：大模型与智能体系统工程](./books/ai-book/src/README.md) | 从模型原理、基础设施到 Agent 应用与生产治理的系统化专题 |
 | [AGENTS.md](./AGENTS.md) | 仓库内 Agent 内容开发、维护边界与人机协作规范 |
 | [CONTRIBUTING.md](./CONTRIBUTING.md) | 开源贡献流程与改动边界 |
 | [System Design Primer](./books/system-design-primer/src/README.md) | 面向中高级工程师的系统设计、电商架构与可靠性实战 |
@@ -143,7 +143,7 @@ public/
 │   │   ├── other/
 │   │   └── index.md
 ├── books/
-│   ├── ai-book/                 # AI Agent 工程实践专题
+│   ├── ai-book/                 # AI Engineering：大模型与智能体系统工程
 │   └── system-design-primer/  # 系统设计与架构专题
 ├── scripts/                     # 共用构建、校验与预处理脚本
 ├── docs/                        # 规划、设计与过程文档

@@ -11,6 +11,9 @@ test('native homepage contains the curated reader entry points', () => {
   assert.match(homepage, /^layout: page$/m);
   assert.match(homepage, /^permalink: \/$/m);
   assert.match(homepage, /^toc:\n  enable: false$/m);
+  assert.match(homepage, /AI Engineering：大模型与智能体系统工程/);
+  assert.match(homepage, /AI Engineering 阅读入口/);
+  assert.doesNotMatch(homepage, /AI Agent 系统设计内容已整合至书稿/);
   assert.equal(packageJson.dependencies['hexo-generator-index'], undefined);
   assert.doesNotMatch(config, /^index_generator:/m);
   const links = [

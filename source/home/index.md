@@ -8,12 +8,12 @@ toc:
 
 # AI、系统设计与工程实践
 
-这里是 wxquare 的技术知识库，长期整理 AI Agent、系统设计、复杂业务和工程实践。
+这里是 wxquare 的技术知识库，长期整理 AI Engineering、系统设计、复杂业务和工程实践。
 
 目前主要维护两本开放阅读的技术书稿：
 
 - 《System Design Primer：系统设计与电商架构》
-- 《AI Agent 工程实践：从大模型基础到生产级智能体系统》
+- 《AI Engineering：大模型与智能体系统工程》
 
 博客文章主要用于记录书稿之外的实践、研究、工具变化和阶段性思考。
 
@@ -38,22 +38,22 @@ toc:
 
 [开始阅读 System Design Primer →](/system-design-primer/)
 
-### [AI Agent 工程实践](/ai-book/)
+### [AI Engineering：大模型与智能体系统工程](/ai-book/)
 
-从大模型基础、AI Infra 到生产级 Agent 系统，讨论 AI 能力如何被工程化、治理和落地。
+从模型原理、训练与推理基础设施，到 Agent 架构、评估和生产治理，理解如何把 AI 能力构建为可靠系统。
 
 主要内容：
 
-- Transformer、预训练、后训练与推理
-- 训练平台、推理服务与评估系统
+- 模型原理、预训练、后训练与推理
+- 训练平台、推理服务、数据与评估系统
 - Context、Memory、Tool Calling 与 MCP
 - Agent Runtime、工作流、多 Agent 与治理
 - Coding Agent、企业知识助手和个人 Agent
-- Agent 案例、前沿研究与工程实践
+- 应用案例、前沿研究与工程展望
 
-适合希望理解 AI Agent 原理，并构建可靠 AI 应用和工程系统的读者。
+适合希望理解 AI 工程全链路，并构建可靠 AI 应用和 Agent 系统的工程师与架构师。
 
-[开始阅读 AI Agent 工程实践 →](/ai-book/)
+[开始阅读 AI Engineering →](/ai-book/)
 
 ---
 
@@ -70,17 +70,13 @@ toc:
 5. [电商系统全景图](/system-design-primer/part02/10-ecommerce-overview.html)
 6. [系统设计题库](/system-design-primer/appendix/system-design-questionbank.html)
 
-### AI Agent 学习路线
+### AI Engineering 阅读入口
 
-适合希望从大模型基础进入 Agent 工程实践的读者。
+按你的目标选择入口：
 
-1. [从语言模型到 Agent](/ai-book/part1/01-llm-foundations-transformer.html)
-2. [Agent 架构总纲](/ai-book/part2/01-agent-architecture.html)
-3. [Context Engineering](/ai-book/part2/03-context-engineering.html)
-4. [工具系统、Tool Calling 与 MCP](/ai-book/part2/06-tool-calling-mcp.html)
-5. [Agent 执行编排与平台架构](/ai-book/part2/09-workflow-orchestration.html)
-6. [Evals、Guardrails 与可观测性](/ai-book/part2/10-agent-evals-guardrails-observability.html)
-7. [AI Agent 应用案例](/ai-book/part3/01-coding-agent-systems.html)
+1. **全景理解**：从[大模型基础](/ai-book/part1/01-llm-foundations-transformer.html)到[基础设施总览](/ai-book/part1/07-llm-boundaries.html)，再进入 [Agent 架构总纲](/ai-book/part2/01-agent-architecture.html) 和应用案例。
+2. **构建 AI 应用**：从[结构化输出与任务协议](/ai-book/part2/02-prompt-engineering.html)开始，继续阅读 [Context Engineering](/ai-book/part2/03-context-engineering.html)、[工具系统](/ai-book/part2/06-tool-calling-mcp.html)和[生产治理](/ai-book/part2/10-agent-evals-guardrails-observability.html)。
+3. **建设 AI 平台**：优先阅读[训练 Infra](/ai-book/part2/infra-08-training.html)、[推理 Infra](/ai-book/part2/infra-09-inference.html)、[数据与评估 Infra](/ai-book/part2/infra-10-data-eval.html)和[可靠性与治理 Infra](/ai-book/part2/infra-12-reliability-governance.html)。
 
 ---
 
@@ -95,7 +91,6 @@ toc:
 - [从 Vibe Coding 到 Spec Coding](/2026/04/03/AI/00-vibe-coding-vs-spec-coding/)
 - [Karpathy 的自我进化知识库](/2026/04/05/AI/02-karpathy-evolving-knowledge-base/)
 - [从内容到短视频：用开源工具生成 AI 教程视频](/2026/05/08/other/ai-content-to-video-open-source-workflow/)
-- [AI Agent 系统设计内容已整合至书稿](/ai-book/part2/01-agent-architecture.html)
 
 ### 系统设计与工程实践
 
