@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="引言：为什么要在移动端尝试 OpenCL当时正在做 KCF（Kernelized Correlation Filters）目标跟踪算法的移动端优化。KCF 的计算量较大，而移动端设备的 CPU 计算资源和功耗预算有限，因此尝试把其中一部分适合并行化的操作迁移到 GPU 上执行。KCF 的算法背景可参考原始论文和预印本 [18][19]。 本文不是一份完整的 OpenCL 教程，也不是一组可以代表所">
+<meta property="og:type" content="article">
+<meta property="og:title" content="边缘端视觉算法异构加速实战：OpenCL、OpenCV UMat 与 KCF 性能测试">
+<meta property="og:url" content="http://yoursite.com/2020/08/13/AI/03-opencl-mobile-performance-testing/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="引言：为什么要在移动端尝试 OpenCL当时正在做 KCF（Kernelized Correlation Filters）目标跟踪算法的移动端优化。KCF 的计算量较大，而移动端设备的 CPU 计算资源和功耗预算有限，因此尝试把其中一部分适合并行化的操作迁移到 GPU 上执行。KCF 的算法背景可参考原始论文和预印本 [18][19]。 本文不是一份完整的 OpenCL 教程，也不是一组可以代表所">
+<meta property="og:locale">
+<meta property="article:published_time" content="2020-08-13T00:00:00.000Z">
+<meta property="article:modified_time" content="2026-09-23T09:34:08.201Z">
+<meta property="article:author" content="wxquare">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://yoursite.com/2020/08/13/AI/03-opencl-mobile-performance-testing/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2020/08/13/AI/03-opencl-mobile-performance-testing/","path":"2020/08/13/AI/03-opencl-mobile-performance-testing/","title":"边缘端视觉算法异构加速实战：OpenCL、OpenCV UMat 与 KCF 性能测试"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>边缘端视觉算法异构加速实战：OpenCL、OpenCV UMat 与 KCF 性能测试 | wxquare's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-book"><a href="/booklist/" rel="section"><i class="fa fa-book fa-fw"></i>Books</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BC%95%E8%A8%80%EF%BC%9A%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A6%81%E5%9C%A8%E7%A7%BB%E5%8A%A8%E7%AB%AF%E5%B0%9D%E8%AF%95-OpenCL"><span class="nav-number">1.</span> <span class="nav-text">引言：为什么要在移动端尝试 OpenCL</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E6%B5%8B%E8%AF%95%E7%8E%AF%E5%A2%83%E4%B8%8E%E6%96%B9%E6%B3%95"><span class="nav-number">2.</span> <span class="nav-text">一、测试环境与方法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81OpenCL-%E5%9F%BA%E6%9C%AC%E6%89%A7%E8%A1%8C%E6%A8%A1%E5%9E%8B"><span class="nav-number">3.</span> <span class="nav-text">二、OpenCL 基本执行模型</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E5%86%85%E5%AD%98%E5%9C%B0%E5%9D%80%E7%A9%BA%E9%97%B4%E4%B8%8E%E6%95%B0%E6%8D%AE%E9%A9%BB%E7%95%99"><span class="nav-number">3.1.</span> <span class="nav-text">2.1 内存地址空间与数据驻留</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E7%BC%96%E8%AF%91%E5%B8%A6-OpenCL-%E7%9A%84-OpenCV-SDK"><span class="nav-number">4.</span> <span class="nav-text">三、编译带 OpenCL 的 OpenCV SDK</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9B%9B%E3%80%81OpenCV-UMat-%E4%B8%8E%E6%95%B0%E6%8D%AE%E4%BC%A0%E8%BE%93%E6%B5%8B%E8%AF%95"><span class="nav-number">5.</span> <span class="nav-text">四、OpenCV UMat 与数据传输测试</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E8%BF%90%E8%A1%8C%E6%97%B6%E7%A1%AE%E8%AE%A4%E6%98%AF%E5%90%A6%E4%BD%BF%E7%94%A8-OpenCL"><span class="nav-number">5.1.</span> <span class="nav-text">4.1 运行时确认是否使用 OpenCL</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-Mat-%E4%B8%8E-UMat-%E7%9A%84%E6%8B%B7%E8%B4%9D"><span class="nav-number">5.2.</span> <span class="nav-text">4.2 Mat 与 UMat 的拷贝</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-cvtColor-%E6%B5%8B%E8%AF%95"><span class="nav-number">5.3.</span> <span class="nav-text">4.3 cvtColor 测试</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-4-%E8%AE%A9%E7%A7%BB%E5%8A%A8%E7%AB%AF%E5%9F%BA%E5%87%86%E6%B5%8B%E8%AF%95%E5%8F%AF%E5%A4%8D%E7%8E%B0"><span class="nav-number">5.4.</span> <span class="nav-text">4.4 让移动端基准测试可复现</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%94%E3%80%81OpenCL-%E6%A0%B8%E5%BF%83-API-%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95"><span class="nav-number">6.</span> <span class="nav-text">五、OpenCL 核心 API 性能测试</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%AD%E3%80%81global-work-size-%E4%B8%8E%E5%86%85%E5%AD%98%E6%8B%B7%E8%B4%9D%E6%95%88%E7%8E%87"><span class="nav-number">7.</span> <span class="nav-text">六、global work size 与内存拷贝效率</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#6-1-CPU-%E5%BE%AA%E7%8E%AF%E6%8B%B7%E8%B4%9D%E4%B8%8E-memcpy"><span class="nav-number">7.1.</span> <span class="nav-text">6.1 CPU 循环拷贝与 memcpy</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-2-%E4%BF%AE%E6%AD%A3%E5%90%8E%E7%9A%84-OpenCL-%E6%8B%B7%E8%B4%9D-Kernel"><span class="nav-number">7.2.</span> <span class="nav-text">6.2 修正后的 OpenCL 拷贝 Kernel</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-3-%E5%8E%9F%E5%A7%8B-work-item-%E6%B5%8B%E8%AF%95%E7%BB%93%E6%9E%9C"><span class="nav-number">7.3.</span> <span class="nav-text">6.3 原始 work-item 测试结果</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%83%E3%80%81Command-Queue-%E4%B8%8E%E5%B9%B6%E5%8F%91%E6%B5%8B%E8%AF%95"><span class="nav-number">8.</span> <span class="nav-text">七、Command Queue 与并发测试</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#7-1-%E6%AD%A3%E7%A1%AE%E7%9A%84%E6%AF%94%E8%BE%83%E6%96%B9%E5%BC%8F"><span class="nav-number">8.1.</span> <span class="nav-text">7.1 正确的比较方式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-2-%E5%AF%B9%E5%8E%9F%E5%A7%8B%E7%BB%93%E8%AE%BA%E7%9A%84%E9%87%8D%E6%96%B0%E8%A1%A8%E8%BF%B0"><span class="nav-number">8.2.</span> <span class="nav-text">7.2 对原始结论的重新表述</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-3-%E4%BB%8E%E5%8D%95-Kernel-%E8%B0%83%E4%BC%98%E5%88%B0%E8%AE%BE%E5%A4%87%E4%BE%A7%E6%B5%81%E6%B0%B4%E7%BA%BF"><span class="nav-number">8.3.</span> <span class="nav-text">7.3 从单 Kernel 调优到设备侧流水线</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%AB%E3%80%81%E5%AF%B9-KCF-%E7%A7%BB%E5%8A%A8%E7%AB%AF%E4%BC%98%E5%8C%96%E7%9A%84%E5%90%AF%E7%A4%BA"><span class="nav-number">9.</span> <span class="nav-text">八、对 KCF 移动端优化的启示</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#8-1-KCF-%E7%AE%97%E5%AD%90%E8%BF%81%E7%A7%BB%E7%9A%84%E5%86%B3%E7%AD%96%E6%B5%81%E7%A8%8B"><span class="nav-number">9.1.</span> <span class="nav-text">8.1 KCF 算子迁移的决策流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#8-2-%E4%B8%8A%E7%BA%BF%E5%89%8D%E6%A3%80%E6%9F%A5%E6%B8%85%E5%8D%95"><span class="nav-number">9.2.</span> <span class="nav-text">8.2 上线前检查清单</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B9%9D%E3%80%81%E7%BB%93%E8%AE%BA"><span class="nav-number">10.</span> <span class="nav-text">九、结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="nav-number">11.</span> <span class="nav-text">参考资料</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#OpenCL"><span class="nav-number">11.1.</span> <span class="nav-text">OpenCL</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#OpenCV"><span class="nav-number">11.2.</span> <span class="nav-text">OpenCV</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Android-%E6%80%A7%E8%83%BD%E4%B8%8E%E6%9E%84%E5%BB%BA"><span class="nav-number">11.3.</span> <span class="nav-text">Android 性能与构建</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#KCF-%E4%B8%8E%E7%9B%AE%E6%A0%87%E8%B7%9F%E8%B8%AA"><span class="nav-number">11.4.</span> <span class="nav-text">KCF 与目标跟踪</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">39</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">6</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">143</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+<section class="site-series">
+  <div class="site-series-title">
+    <i class="fa fa-book"></i> 系列专题
+  </div>
+  <ul class="series-list">
+    <li class="series-item ecommerce">
+      <a href="/categories/电商系统设计/">
+        <i class="fa fa-shopping-cart"></i>
+        <span class="series-name">电商系统设计</span>
+        <span class="series-count">13篇</span>
+      </a>
+    </li>
+    <li class="series-item architecture-clean-code">
+      <a href="/tags/architecture-and-clean-code/">
+        <i class="fa fa-sitemap"></i>
+        <span class="series-name">架构与整洁代码</span>
+        <span class="series-count">4篇</span>
+      </a>
+    </li>
+    <li class="series-item ai">
+      <a href="/categories/AI-与-Agent/">
+        <i class="fa fa-robot"></i>
+        <span class="series-name">AI 与 Agent</span>
+        <span class="series-count">7篇</span>
+      </a>
+    </li>
+    <li class="series-item system-design">
+      <a href="/categories/系统设计基础/">
+        <i class="fa fa-cogs"></i>
+        <span class="series-name">系统设计基础</span>
+        <span class="series-count">15篇</span>
+      </a>
+    </li>
+    <li class="series-item fundamentals">
+      <a href="/categories/计算机基础/">
+        <i class="fa fa-laptop"></i>
+        <span class="series-name">计算机基础</span>
+        <span class="series-count">6篇</span>
+      </a>
+    </li>
+  </ul>
+</section>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/13/AI/03-opencl-mobile-performance-testing/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="边缘端视觉算法异构加速实战：OpenCL、OpenCV UMat 与 KCF 性能测试 | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          边缘端视觉算法异构加速实战：OpenCL、OpenCV UMat 与 KCF 性能测试
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2020-08-13 00:00:00" itemprop="dateCreated datePublished" datetime="2020-08-13T00:00:00+00:00">2020-08-13</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-09-23 09:34:08" itemprop="dateModified" datetime="2026-09-23T09:34:08+00:00">2026-09-23</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/AI-%E4%B8%8E-Agent/" itemprop="url" rel="index"><span itemprop="name">AI 与 Agent</span></a>
+        </span>
+          , 
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/AI-%E4%B8%8E-Agent/AI/" itemprop="url" rel="index"><span itemprop="name">AI</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="引言：为什么要在移动端尝试-OpenCL"><a href="#引言：为什么要在移动端尝试-OpenCL" class="headerlink" title="引言：为什么要在移动端尝试 OpenCL"></a>引言：为什么要在移动端尝试 OpenCL</h2><p>当时正在做 KCF（Kernelized Correlation Filters）目标跟踪算法的移动端优化。KCF 的计算量较大，而移动端设备的 CPU 计算资源和功耗预算有限，因此尝试把其中一部分适合并行化的操作迁移到 GPU 上执行。KCF 的算法背景可参考原始论文和预印本 [18][19]。</p>
+<p>本文不是一份完整的 OpenCL 教程，也不是一组可以代表所有移动设备的通用 benchmark，而是基于 Android、OpenCV 和 OpenCL 的一次探索性测试。原始测试主要回答以下问题：</p>
+<ol>
+<li>OpenCV 的 <code>UMat</code> 是否能把算子迁移到 GPU，以及 CPU&#x2F;GPU 数据传输的成本是多少？</li>
+<li>OpenCL 常用 API 的初始化、内存分配、数据传输和 Kernel 调度分别需要多长时间？</li>
+<li>global work size 对简单内存拷贝 Kernel 的性能有什么影响？</li>
+<li>多个 Command Queue 是否一定能够带来并行收益？</li>
+</ol>
+<p>需要特别说明的是，OpenCV 的 <code>UMat</code> 是 Transparent API 的抽象，并不保证每个算子都在 GPU 上执行；OpenCL 运行时可能根据算子、数据类型和设备能力回退到 CPU [7][8]。同样，编译 OpenCV 时打开 <code>WITH_OpenCL=ON</code>，也不等于设备上一定存在可用的 OpenCL 驱动。</p>
+<h2 id="一、测试环境与方法"><a href="#一、测试环境与方法" class="headerlink" title="一、测试环境与方法"></a>一、测试环境与方法</h2><p>原始实验使用的主要环境如下：</p>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>原始配置或说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>OpenCV</td>
+<td>3.4.6 [11]</td>
+</tr>
+<tr>
+<td>Android NDK</td>
+<td>android-ndk-r16b</td>
+</tr>
+<tr>
+<td>ABI</td>
+<td>arm64-v8a</td>
+</tr>
+<tr>
+<td>C++ 标准库</td>
+<td><code>gnustl_static</code></td>
+</tr>
+<tr>
+<td>OpenCL</td>
+<td>设备厂商提供的移动端实现</td>
+</tr>
+<tr>
+<td>测试设备</td>
+<td>三星 GALAXY On7、小米 6、小米 MIX 2S</td>
+</tr>
+<tr>
+<td>主要算子</td>
+<td><code>Mat ↔ UMat</code>、<code>cvtColor</code>、Buffer 拷贝、NDRange Kernel、Command Queue</td>
+</tr>
+</tbody></table>
+<p>这是一套历史环境。NDK r18 已移除 GNU libstdc++，因此 <code>gnustl_static</code> 不能作为当前 Android 工程的默认配置 [13]。如果要复现实验，应额外记录 Android 版本、OpenCL 驱动版本、OpenCL C 版本、设备频率、编译器版本、图像通道数和温度状态；仅记录手机型号不足以保证结果可复现。</p>
+<p>对于移动端性能测试，应区分以下几类时间：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">初始化时间 = Context、Program、Kernel、Buffer 等对象的创建和编译</span><br><span class="line">Kernel 时间 = 设备真正执行 Kernel 的时间</span><br><span class="line">端到端时间 = 上传 + Kernel + 下载 + 同步</span><br></pre></td></tr></table></figure>
+
+<p>GPU 端到端耗时可以近似写成：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">T_gpu = T_init + T_upload + T_kernel + T_download + T_sync</span><br></pre></td></tr></table></figure>
+
+<p>如果只测 <code>T_kernel</code>，就不能直接把结果解释为完整算法的加速比。建议使用单调时钟测量主机端总耗时，并在开启 <code>CL_QUEUE_PROFILING_ENABLE</code> 后通过 Event profiling 获取设备端时间 [5]。Android 级别的调度、频率和热状态，则应结合 Perfetto 或 Simpleperf 观察 [14][15]。</p>
+<h2 id="二、OpenCL-基本执行模型"><a href="#二、OpenCL-基本执行模型" class="headerlink" title="二、OpenCL 基本执行模型"></a>二、OpenCL 基本执行模型</h2><p>OpenCL 的基本执行路径可以概括为：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Platform → Device → Context → Command Queue</span><br><span class="line">                              ↓</span><br><span class="line">                    Program → Kernel</span><br><span class="line">                              ↓</span><br><span class="line">                 Buffer / Image / Event</span><br></pre></td></tr></table></figure>
+
+<p>几个容易混淆的概念如下：</p>
+<ul>
+<li><strong>work-item</strong>：执行 Kernel 的最小逻辑实例，可以通过 <code>get_global_id()</code> 获取自己的全局索引。</li>
+<li><strong>work-group</strong>：一组可以协作执行的 work-item，大小受到设备和 Kernel 资源限制。</li>
+<li><strong>global work size</strong>：本次 NDRange 中 work-item 的总数量。</li>
+<li><strong>local work size</strong>：每个 work-group 中的 work-item 数量。</li>
+<li><strong>Command Queue</strong>：主机向设备提交内存操作和 Kernel 的队列，默认通常是 in-order queue。</li>
+<li><strong>Event</strong>：描述异步命令的完成状态，也可以用于建立命令之间的依赖关系。</li>
+</ul>
+<p><code>clEnqueueNDRangeKernel</code> 的 global work size 和 local work size 需要结合设备上限、Kernel 资源使用和内存访问模式选择，不能简单认为 work-item 越多越快 [1][3][4]。如果要研究 work-group 调优，应固定数据规模，同时独立比较不同的 global work size、local work size 和向量化方式。</p>
+<h3 id="2-1-内存地址空间与数据驻留"><a href="#2-1-内存地址空间与数据驻留" class="headerlink" title="2.1 内存地址空间与数据驻留"></a>2.1 内存地址空间与数据驻留</h3><p>OpenCL Kernel 中常见的地址空间包括 global、constant、local 和 private。它们首先是编程模型中的访问范围，不应简单等同于某一种固定的物理存储：具体映射由设备和驱动决定，但不同地址空间的可见范围、生命周期和同步规则不同 [1][2]。</p>
+<ul>
+<li><strong>global memory</strong>：所有 work-item 和多个 Kernel 实例都可以访问，容量通常较大，但访问延迟也更高。图像输入、输出和中间 Buffer 通常位于这一地址空间。</li>
+<li><strong>constant memory</strong>：Kernel 只读的数据区域，适合存放不会随 work-item 改变的小型参数表或卷积系数。</li>
+<li><strong>local memory</strong>：同一个 work-group 内共享的区域，适合把会被重复访问的数据暂存起来。它只在 work-group 内可见，不能用来跨 work-group 通信。</li>
+<li><strong>private memory</strong>：每个 work-item 独有的变量。局部变量过多时，设备可能将其溢出到较慢的存储区域，因此寄存器和局部变量数量也会影响 occupancy。</li>
+</ul>
+<p>对移动端图像算法而言，如果每次调用都在 <code>Mat</code> 与设备 Buffer 间往返，GPU 可能被传输和同步成本抵消；让预处理、特征计算和模型更新连续使用同一批 <code>UMat</code> 或 Buffer，才有机会摊薄这些成本。</p>
+<p>同步也有层次差异。<code>barrier()</code> 只能协调同一个 work-group 中的 work-item，不能让不同 work-group 在 Kernel 内安全地交换数据；主机侧的 Event wait list 则用于安排不同命令之间的依赖。<code>clFlush</code> 负责推动已提交命令进入设备，<code>clFinish</code> 则等待队列中所有命令完成，二者都不应被随意混作性能计时点 [1][3][5]。因此，性能代码应尽量使用精确的 Event 依赖，避免用过多全局同步把本可重叠的阶段串行化。</p>
+<h2 id="三、编译带-OpenCL-的-OpenCV-SDK"><a href="#三、编译带-OpenCL-的-OpenCV-SDK" class="headerlink" title="三、编译带 OpenCL 的 OpenCV SDK"></a>三、编译带 OpenCL 的 OpenCV SDK</h2><p>KCF 使用了不少 OpenCV 函数，因此最初的方案是编译一个启用 OpenCL 的 OpenCV SDK。原始构建命令如下，路径参数需要根据本地环境调整：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">cmake \</span><br><span class="line">  -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \</span><br><span class="line">  -DCMAKE_TOOLCHAIN_FILE=<span class="string">&quot;/home/xxx/code/mobile/third_party/opencv-3.4.6/platforms/android/android.toolchain.cmake&quot;</span> \</span><br><span class="line">  -DANDROID_NDK=<span class="string">&quot;/home/xxx/code/mobile/tools/android-ndk-r16b&quot;</span> \</span><br><span class="line">  -DANDROID_SDK=<span class="string">&quot;/home/xxx/code/mobile/tools/android_sdk/tools&quot;</span> \</span><br><span class="line">  -DANDROID_NATIVE_API_LEVEL=19 \</span><br><span class="line">  -DANDROID_ABI=<span class="string">&quot;arm64-v8a&quot;</span> \</span><br><span class="line">  -DANDROID_ARM_NEON=TRUE \</span><br><span class="line">  -DANDROID_STL=gnustl_static \</span><br><span class="line">  -DCMAKE_BUILD_TYPE=Release \</span><br><span class="line">  -DOPENCV_EXTRA_MODULES_PATH=<span class="string">&quot;/home/xxx/code/mobile/third_party/opencv_contrib-3.4.6/modules&quot;</span> \</span><br><span class="line">  -DCMAKE_INSTALL_PREFIX=<span class="string">&quot;/home/xxx/code/mobile/third_party/opencv-3.4.6/install_20190623_OpenCL&quot;</span> \</span><br><span class="line">  -DBUILD_opencv_java=ON \</span><br><span class="line">  -DBUILD_ANDROID_PROJECTS=OFF \</span><br><span class="line">  -DBUILD_ANDROID_EXAMPLES=OFF \</span><br><span class="line">  -DBUILD_DOCS=OFF \</span><br><span class="line">  -DBUILD_PERF_TESTS=OFF \</span><br><span class="line">  -DBUILD_TESTS=OFF \</span><br><span class="line">  -DBUILD_FAT_JAVA_LIB=OFF \</span><br><span class="line">  -DWITH_OpenCL=ON \</span><br><span class="line">  -DWITH_CUDA=OFF \</span><br><span class="line">  -DWITH_MATLAB=OFF \</span><br><span class="line">  -DBUILD_opencv_aruco=OFF \</span><br><span class="line">  -DBUILD_opencv_calib3d=OFF \</span><br><span class="line">  -DBUILD_opencv_features2d=OFF \</span><br><span class="line">  ..</span><br></pre></td></tr></table></figure>
+
+<p>当前 Android 项目更建议参考 NDK 的 CMake 集成文档 [12]，并使用仍受支持的 C++ 运行时配置。上面的命令保留在本文中，是为了说明原始实验环境，而不是推荐当前项目直接复制使用。</p>
+<h2 id="四、OpenCV-UMat-与数据传输测试"><a href="#四、OpenCV-UMat-与数据传输测试" class="headerlink" title="四、OpenCV UMat 与数据传输测试"></a>四、OpenCV UMat 与数据传输测试</h2><h3 id="4-1-运行时确认是否使用-OpenCL"><a href="#4-1-运行时确认是否使用-OpenCL" class="headerlink" title="4.1 运行时确认是否使用 OpenCL"></a>4.1 运行时确认是否使用 OpenCL</h3><p>在测试 <code>UMat</code> 之前，应先确认 OpenCL 运行时和设备状态：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;opencv2/core/ocl.hpp&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">bool</span> <span class="title">prepareOpenCL</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!cv::ocl::<span class="built_in">haveOpenCL</span>()) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    cv::ocl::<span class="built_in">setUseOpenCL</span>(<span class="literal">true</span>);</span><br><span class="line">    <span class="keyword">if</span> (!cv::ocl::<span class="built_in">useOpenCL</span>()) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    cv::ocl::Device device = cv::ocl::Device::<span class="built_in">getDefault</span>();</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;OpenCL device: &quot;</span> &lt;&lt; device.<span class="built_in">name</span>() &lt;&lt; std::endl;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;OpenCL version: &quot;</span> &lt;&lt; device.<span class="built_in">version</span>() &lt;&lt; std::endl;</span><br><span class="line">    <span class="keyword">return</span> device.<span class="built_in">available</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>UMat</code> 和 <code>cv::ocl</code> 的具体 API 见 OpenCV 文档 [7][8][9]。实际工程还应记录设备名称、驱动版本和算子是否发生 CPU fallback。否则，即使代码使用了 <code>UMat</code>，也不能仅凭 API 名称判断 GPU 一定参与了计算。</p>
+<h3 id="4-2-Mat-与-UMat-的拷贝"><a href="#4-2-Mat-与-UMat-的拷贝" class="headerlink" title="4.2 Mat 与 UMat 的拷贝"></a>4.2 Mat 与 UMat 的拷贝</h3><p>原始测试使用 <code>image.copyTo(u_img)</code> 和 <code>u_img.copyTo(out)</code> 测量 CPU 与设备内存之间的拷贝耗时。这个测试有参考价值，但需要区分以下情况：</p>
+<ol>
+<li>第一次调用可能包含运行时初始化、内存分配或 Kernel 准备成本。</li>
+<li>后续调用可能复用了已经分配的内存。</li>
+<li>移动端常见统一内存架构，所谓“CPU 到 GPU 拷贝”可能主要体现为映射、缓存同步或设备运行时管理，不应简单类比独立显卡的 PCIe 拷贝。</li>
+<li>需要记录图像的数据类型、通道数、步长和内存是否连续。</li>
+</ol>
+<p>原始测试数据如下。表中的“首次”与“平均”必须分别理解为冷启动和稳态测量，不能直接混为同一个加速比。</p>
+<table>
+<thead>
+<tr>
+<th>手机型号</th>
+<th>CPU 型号</th>
+<th>GPU 型号</th>
+<th>OpenCL 版本</th>
+<th>首次 Mat→UMat</th>
+<th>平均 Mat→UMat</th>
+<th>首次 UMat→Mat</th>
+<th>平均 UMat→Mat</th>
+<th>图像尺寸&#x2F;文件大小</th>
+<th>Host→Device</th>
+<th>Device→Host</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>三星 GALAXY On7</td>
+<td>骁龙 410 MSM8916</td>
+<td>Adreno 306</td>
+<td>2</td>
+<td>25.2 ms</td>
+<td>0.8 ms</td>
+<td>1.5 ms</td>
+<td>0.8 ms</td>
+<td>720×480，159 KB</td>
+<td>221 MB&#x2F;s</td>
+<td>258 MB&#x2F;s</td>
+</tr>
+<tr>
+<td>三星 GALAXY On7</td>
+<td>骁龙 410 MSM8916</td>
+<td>Adreno 306</td>
+<td>2</td>
+<td>30.18 ms</td>
+<td>2.88 ms</td>
+<td>5.5 ms</td>
+<td>2.9 ms</td>
+<td>1920×1080，约 6 MB</td>
+<td>2.14 GB&#x2F;s</td>
+<td>2.14 GB&#x2F;s</td>
+</tr>
+<tr>
+<td>小米 6</td>
+<td>骁龙 835</td>
+<td>Adreno 540</td>
+<td>2</td>
+<td>16.602 ms</td>
+<td>0.754 ms</td>
+<td>2.85 ms</td>
+<td>0.795 ms</td>
+<td>1920×1080，约 6 MB</td>
+<td>7.9 GB&#x2F;s</td>
+<td>8.06 GB&#x2F;s</td>
+</tr>
+<tr>
+<td>小米 6</td>
+<td>骁龙 835</td>
+<td>Adreno 540</td>
+<td>2</td>
+<td>17.010 ms</td>
+<td>0.332 ms</td>
+<td>1 ms</td>
+<td>0.265 ms</td>
+<td>720×480，159 KB</td>
+<td>632 MB&#x2F;s</td>
+<td>898.2 MB&#x2F;s</td>
+</tr>
+<tr>
+<td>小米 MIX 2S</td>
+<td>骁龙 845</td>
+<td>Adreno 630</td>
+<td>2</td>
+<td>8.7 ms</td>
+<td>2.1 ms</td>
+<td>6.1 ms</td>
+<td>0.9 ms</td>
+<td>1920×1080，约 6 MB</td>
+<td>6.6 GB&#x2F;s</td>
+<td>6.62 GB&#x2F;s</td>
+</tr>
+<tr>
+<td>小米 MIX 2S</td>
+<td>骁龙 845</td>
+<td>Adreno 630</td>
+<td>2</td>
+<td>3.3 ms</td>
+<td>0.5 ms</td>
+<td>2.2 ms</td>
+<td>0.4 ms</td>
+<td>720×480，约 1.6 MB</td>
+<td>654 MB&#x2F;s</td>
+<td>682 MB&#x2F;s</td>
+</tr>
+</tbody></table>
+<p>这些数据缺少采样次数、统计分布、温度和内存复用策略，因此适合用于观察趋势，不宜作为设备之间的严格排名。</p>
+<h3 id="4-3-cvtColor-测试"><a href="#4-3-cvtColor-测试" class="headerlink" title="4.3 cvtColor 测试"></a>4.3 <code>cvtColor</code> 测试</h3><p>原始代码的 CPU 版本在计时前完成了图像读取，OpenCL 版本则在进入计时循环前完成了 <code>Mat → UMat</code> 拷贝，计时循环主要覆盖 <code>cvtColor</code>。因此，下面的 OpenCL 平均值更接近“已经完成数据准备后的算子稳态时间”，不是完整的端到端时间。</p>
+<table>
+<thead>
+<tr>
+<th>手机型号</th>
+<th>执行路径</th>
+<th>图像尺寸</th>
+<th align="right">首次运行</th>
+<th align="right">平均运行</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>三星 GALAXY On7</td>
+<td>CPU</td>
+<td>1920×1080</td>
+<td align="right">3.2 ms</td>
+<td align="right">1.8 ms</td>
+</tr>
+<tr>
+<td>三星 GALAXY On7</td>
+<td>OpenCL</td>
+<td>1920×1080</td>
+<td align="right">273 ms</td>
+<td align="right">0.6 ms</td>
+</tr>
+<tr>
+<td>三星 GALAXY On7</td>
+<td>CPU</td>
+<td>720×480</td>
+<td align="right">1.2 ms</td>
+<td align="right">0.62 ms</td>
+</tr>
+<tr>
+<td>三星 GALAXY On7</td>
+<td>OpenCL</td>
+<td>720×480</td>
+<td align="right">274 ms</td>
+<td align="right">0.25 ms</td>
+</tr>
+<tr>
+<td>小米 MIX 2S</td>
+<td>CPU</td>
+<td>1920×1080</td>
+<td align="right">3 ms</td>
+<td align="right">1.3 ms</td>
+</tr>
+<tr>
+<td>小米 MIX 2S</td>
+<td>OpenCL</td>
+<td>1920×1080</td>
+<td align="right">154 ms</td>
+<td align="right">0.36 ms</td>
+</tr>
+<tr>
+<td>小米 MIX 2S</td>
+<td>CPU</td>
+<td>720×480</td>
+<td align="right">0.5 ms</td>
+<td align="right">0.21 ms</td>
+</tr>
+<tr>
+<td>小米 MIX 2S</td>
+<td>OpenCL</td>
+<td>720×480</td>
+<td align="right">80.5 ms</td>
+<td align="right">0.09 ms</td>
+</tr>
+</tbody></table>
+<p>从原始记录看，OpenCL 首次运行有明显的初始化或 Kernel 准备开销，稳态算子时间较低。但如果每一帧都需要上传和下载，最终是否有收益必须使用同一条端到端流水线重新测量。OpenCV 的 OpenCL 优化说明也强调，数据驻留和算子支持情况会影响实际收益 [10]。</p>
+<h3 id="4-4-让移动端基准测试可复现"><a href="#4-4-让移动端基准测试可复现" class="headerlink" title="4.4 让移动端基准测试可复现"></a>4.4 让移动端基准测试可复现</h3><p>移动端性能测试最容易出现的问题，不是不会调用计时函数，而是测试协议没有把影响因素固定下来。一次更可靠的测试至少应包含以下步骤：</p>
+<ol>
+<li><strong>固定输入</strong>：记录图像尺寸、通道数、数据类型、步长和是否连续；不要让不同测试隐含使用不同的图片压缩格式或不同的解码时间。</li>
+<li><strong>区分冷启动和稳态</strong>：第一次运行单独记录，用于观察 Context、Program、Kernel 和内存分配成本；随后执行若干次预热，再统计稳态运行时间。</li>
+<li><strong>重复采样</strong>：不要只报告一次或简单平均值。建议保存最小值、中位数、P95 和最大值，必要时同时保存每次样本，便于发现偶发的调度抖动。</li>
+<li><strong>统一计时边界</strong>：CPU 和 GPU 测试必须覆盖同样的工作范围。若 GPU 测试排除了上传和下载，就应明确称为“Kernel 稳态时间”，不能与 CPU 端到端时间直接比较。</li>
+<li><strong>验证输出</strong>：每次性能测试都应抽样比较 CPU 和 GPU 的输出，例如使用 <code>memcmp</code>、最大绝对误差或像素级误差统计。性能变快但结果错误，不是优化成功。</li>
+<li><strong>控制设备状态</strong>：记录电量、温度、前台应用、屏幕状态和测试持续时间。Android 设备在连续运行后可能降频，短时间的峰值结果不一定代表长期运行能力 [16][17]。</li>
+</ol>
+<p>统计结果还应该带上测试协议，例如：<code>warmup=20</code>、<code>samples=100</code>、<code>metric=P50/P95</code>、<code>include_transfer=true</code>、<code>output_verified=true</code>，以免把 Kernel 时间和完整流水线时间混为一谈。</p>
+<p>在工具选择上，主机端可以用单调时钟测量完整流程，OpenCL 设备端使用 Event profiling 拆分命令区间，Android 系统层则用 Perfetto 观察线程、频率和调度轨迹 [5][14]。Simpleperf 更适合回答 CPU 热点在哪里、线程是否被调度，以及 CPU 版本是否已经受到缓存或频率影响 [15]。三层数据结合起来，才能把“感觉 GPU 更快”转化为可解释的性能证据。</p>
+<h2 id="五、OpenCL-核心-API-性能测试"><a href="#五、OpenCL-核心-API-性能测试" class="headerlink" title="五、OpenCL 核心 API 性能测试"></a>五、OpenCL 核心 API 性能测试</h2><p>原始 API 测试结果如下。这里的数值是单次测试记录，文章没有保存完整的重复次数、平均值、P95 和热状态，因此不应把它们当作稳定基线。</p>
+<table>
+<thead>
+<tr>
+<th>手机型号</th>
+<th>CPU 型号</th>
+<th>GPU 型号</th>
+<th>OpenCL 版本</th>
+<th>API</th>
+<th>原始测试数据</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>小米 6</td>
+<td>骁龙 835</td>
+<td>Adreno 540</td>
+<td>2</td>
+<td>GPU 内存分配 <code>clCreateBuffer</code></td>
+<td>1 MB：430 μs；5 MB：1000 μs；10 MB：2000 μs</td>
+</tr>
+<tr>
+<td>小米 6</td>
+<td>骁龙 835</td>
+<td>Adreno 540</td>
+<td>2</td>
+<td>CPU→GPU <code>clEnqueueWriteBuffer</code></td>
+<td>1 MB：105 μs；5 MB：400 μs；10 MB：700 μs</td>
+</tr>
+<tr>
+<td>小米 6</td>
+<td>骁龙 835</td>
+<td>Adreno 540</td>
+<td>2</td>
+<td>GPU→CPU <code>clEnqueueReadBuffer</code></td>
+<td>1 MB：60 μs；5 MB：400 μs；10 MB：600 μs</td>
+</tr>
+<tr>
+<td>小米 6</td>
+<td>骁龙 835</td>
+<td>Adreno 540</td>
+<td>2</td>
+<td>Kernel 编译 <code>clBuildProgram</code></td>
+<td>69682 μs</td>
+</tr>
+<tr>
+<td>小米 6</td>
+<td>骁龙 835</td>
+<td>Adreno 540</td>
+<td>2</td>
+<td>创建 Kernel <code>clCreateKernel</code></td>
+<td>50 μs</td>
+</tr>
+<tr>
+<td>小米 6</td>
+<td>骁龙 835</td>
+<td>Adreno 540</td>
+<td>2</td>
+<td>提交 <code>clEnqueueNDRangeKernel</code></td>
+<td>首次约 5000 μs，之后约 800 μs</td>
+</tr>
+</tbody></table>
+<p>需要区分“提交命令的主机开销”和“设备执行 Kernel 的时间”。<code>clEnqueueNDRangeKernel</code> 返回得快，不代表 Kernel 已经执行完成；只有等待 Event 或使用设备端 profiling，才能获得更可靠的执行时间 [3][5]。</p>
+<h2 id="六、global-work-size-与内存拷贝效率"><a href="#六、global-work-size-与内存拷贝效率" class="headerlink" title="六、global work size 与内存拷贝效率"></a>六、global work size 与内存拷贝效率</h2><h3 id="6-1-CPU-循环拷贝与-memcpy"><a href="#6-1-CPU-循环拷贝与-memcpy" class="headerlink" title="6.1 CPU 循环拷贝与 memcpy"></a>6.1 CPU 循环拷贝与 <code>memcpy</code></h3><p>测试图像大小为：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">3840 × 2160 × 3 = 24883200 bytes</span><br></pre></td></tr></table></figure>
+
+<p>原始记录如下：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">char</span>* out = <span class="keyword">new</span> <span class="type">char</span>[bmp_size];</span><br><span class="line"><span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; bmp_size; ++i) &#123;</span><br><span class="line">    out[i] = bmp_data[i];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>运行时间约为 13 ms。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">memcpy</span>(out, bmp_data, bmp_size);</span><br></pre></td></tr></table></figure>
+
+<p>运行时间约为 3 ms。</p>
+<p>CPU 循环与 <code>memcpy</code> 的比较还需要说明缓存状态、编译优化级别和输出是否被后续使用；重复读取同一块数据可能得到明显不同于冷缓存的结果。</p>
+<h3 id="6-2-修正后的-OpenCL-拷贝-Kernel"><a href="#6-2-修正后的-OpenCL-拷贝-Kernel" class="headerlink" title="6.2 修正后的 OpenCL 拷贝 Kernel"></a>6.2 修正后的 OpenCL 拷贝 Kernel</h3><p>原始 Kernel 存在全角逗号、参数数量不一致、可能遗漏尾部数据和重复写入等问题。下面给出一个只表达“每个 work-item 处理一个字节”的简化示例；它用于说明边界和访问语义，不能直接替代针对具体 GPU 的最优实现。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">__kernel <span class="type">void</span> <span class="title function_">copy_bytes</span><span class="params">(__global <span class="type">const</span> uchar* input,</span></span><br><span class="line"><span class="params">                         __global uchar* output,</span></span><br><span class="line"><span class="params">                         <span class="type">const</span> ulong size)</span> &#123;</span><br><span class="line">    <span class="type">size_t</span> gid = get_global_id(<span class="number">0</span>);</span><br><span class="line">    <span class="keyword">if</span> (gid &lt; size) &#123;</span><br><span class="line">        output[gid] = input[gid];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>对应的 Buffer 访问方向应与 Kernel 一致：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">cl::Buffer <span class="title">input_buffer</span><span class="params">(context, CL_MEM_READ_ONLY, bmp_size)</span></span>;</span><br><span class="line"><span class="function">cl::Buffer <span class="title">output_buffer</span><span class="params">(context, CL_MEM_WRITE_ONLY, bmp_size)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>主机端的 <code>global work size</code> 可以向上取整，Kernel 通过边界判断忽略多出的 work-item：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">size_t</span> local_size = <span class="number">256</span>;  <span class="comment">// 需要根据设备能力复测</span></span><br><span class="line"><span class="type">size_t</span> global_size = ((bmp_size + local_size - <span class="number">1</span>) / local_size) * local_size;</span><br><span class="line"></span><br><span class="line">queue.<span class="built_in">enqueueNDRangeKernel</span>(</span><br><span class="line">    kernel,</span><br><span class="line">    cl::NullRange,</span><br><span class="line">    cl::<span class="built_in">NDRange</span>(global_size),</span><br><span class="line">    cl::<span class="built_in">NDRange</span>(local_size),</span><br><span class="line">    <span class="literal">nullptr</span>,</span><br><span class="line">    &amp;event);</span><br><span class="line">event.<span class="built_in">wait</span>();</span><br></pre></td></tr></table></figure>
+
+<p><code>local_size</code> 不是一个对所有 GPU 都适用的固定常数，应结合 <code>CL_DEVICE_MAX_WORK_GROUP_SIZE</code>、Kernel 资源占用、内存对齐和设备厂商建议值测试。OpenCL 的 NDRange 和 work-group 约束见 [1][2][4]。</p>
+<h3 id="6-3-原始-work-item-测试结果"><a href="#6-3-原始-work-item-测试结果" class="headerlink" title="6.3 原始 work-item 测试结果"></a>6.3 原始 work-item 测试结果</h3><p>原始测试使用一张 3840×2160 的图像，在小米 MIX 2S 上观察不同 global work size 的结果：</p>
+<table>
+<thead>
+<tr>
+<th align="right">global work size</th>
+<th align="right">运行时间</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="right">1</td>
+<td align="right">2972 ms</td>
+</tr>
+<tr>
+<td align="right">2</td>
+<td align="right">1526 ms</td>
+</tr>
+<tr>
+<td align="right">4</td>
+<td align="right">792 ms</td>
+</tr>
+<tr>
+<td align="right">8</td>
+<td align="right">418 ms</td>
+</tr>
+<tr>
+<td align="right">16</td>
+<td align="right">252 ms</td>
+</tr>
+<tr>
+<td align="right">32</td>
+<td align="right">166 ms</td>
+</tr>
+<tr>
+<td align="right">64</td>
+<td align="right">122 ms</td>
+</tr>
+<tr>
+<td align="right">128</td>
+<td align="right">104 ms</td>
+</tr>
+<tr>
+<td align="right">256</td>
+<td align="right">64 ms</td>
+</tr>
+<tr>
+<td align="right">512</td>
+<td align="right">60 ms</td>
+</tr>
+<tr>
+<td align="right">1024</td>
+<td align="right">92 ms</td>
+</tr>
+<tr>
+<td align="right">2048</td>
+<td align="right">662 ms</td>
+</tr>
+<tr>
+<td align="right">4096</td>
+<td align="right">237 ms</td>
+</tr>
+<tr>
+<td align="right">10240</td>
+<td align="right">180 ms</td>
+</tr>
+<tr>
+<td align="right">102400</td>
+<td align="right">171 ms</td>
+</tr>
+<tr>
+<td align="right">248832</td>
+<td align="right">167 ms</td>
+</tr>
+<tr>
+<td align="right">2488320</td>
+<td align="right">16 ms</td>
+</tr>
+<tr>
+<td align="right">24883200</td>
+<td align="right">15 ms</td>
+</tr>
+</tbody></table>
+<p>原始结果显示，在该设备和该实现上，不同 global work size 之间存在明显差异。但 <code>2488320</code> 和 <code>24883200</code> 的异常低耗时需要重新复测，不能仅凭一次主机端计时解释为“work-item 越多越好”。可能影响结果的因素包括：</p>
+<ul>
+<li>local work size 由驱动自动选择；</li>
+<li>Kernel 是否真正完成并被正确计时；</li>
+<li>主机端毫秒级输出造成的精度损失；</li>
+<li>内存缓存、设备频率和热状态变化；</li>
+<li>Kernel 是否存在未覆盖的数据范围或错误的边界处理。</li>
+</ul>
+<p>因此，本文只能得出“global work size 需要实测调优”的结论，不能得出某个固定值适用于其他设备。建议使用 Event profiling、多次运行、中位数&#x2F;P95 和正确性校验重新确认。</p>
+<h2 id="七、Command-Queue-与并发测试"><a href="#七、Command-Queue-与并发测试" class="headerlink" title="七、Command Queue 与并发测试"></a>七、Command Queue 与并发测试</h2><p>原始问题是：如果有 <code>n</code> 个任务，每个任务包括 CPU→GPU 拷贝、Kernel 执行和 GPU→CPU 拷贝，使用一个 Queue 和多个 Queue 是否存在差异？</p>
+<p>答案取决于 Queue 的顺序属性、设备是否支持重叠执行、内存传输路径和驱动调度策略。多个 Queue 并不自动意味着多个任务会并行；如果设备或驱动最终把操作串行化，Queue 数量增加只会带来额外管理开销。Queue 属性和异步命令模型见 [1][6]。</p>
+<h3 id="7-1-正确的比较方式"><a href="#7-1-正确的比较方式" class="headerlink" title="7.1 正确的比较方式"></a>7.1 正确的比较方式</h3><p>单 Queue 和多 Queue 必须满足相同的条件：</p>
+<ol>
+<li>相同的任务数量、输入数据和 Buffer 大小。</li>
+<li>不把 Queue、Program、Kernel 和 Buffer 的创建时间混入稳态执行时间。</li>
+<li>两种方案都统计完整的 Upload、Kernel、Download 和最终等待时间。</li>
+<li>使用 Event profiling 查看不同 Queue 的时间区间是否真正重叠。</li>
+<li>分别比较 in-order Queue 和设备支持时的 out-of-order Queue。</li>
+</ol>
+<p>一个更清晰的任务级测量结构如下：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">auto</span> start = <span class="built_in">monotonic_time_ns</span>();</span><br><span class="line"></span><br><span class="line">queue.<span class="built_in">enqueueWriteBuffer</span>(input_buffer, <span class="literal">false</span>, <span class="number">0</span>, bmp_size,</span><br><span class="line">                         bmp_data, <span class="literal">nullptr</span>, &amp;write_event);</span><br><span class="line">queue.<span class="built_in">enqueueNDRangeKernel</span>(kernel, cl::NullRange,</span><br><span class="line">                           cl::<span class="built_in">NDRange</span>(global_size),</span><br><span class="line">                           cl::<span class="built_in">NDRange</span>(local_size),</span><br><span class="line">                           &#123;write_event&#125;, &amp;kernel_event);</span><br><span class="line">queue.<span class="built_in">enqueueReadBuffer</span>(output_buffer, <span class="literal">false</span>, <span class="number">0</span>, bmp_size,</span><br><span class="line">                        host_output, &#123;kernel_event&#125;, &amp;read_event);</span><br><span class="line"></span><br><span class="line">read_event.<span class="built_in">wait</span>();</span><br><span class="line"><span class="keyword">auto</span> end = <span class="built_in">monotonic_time_ns</span>();</span><br></pre></td></tr></table></figure>
+
+<p>多 Queue 测试则为每个任务建立自己的 Queue、Buffer 和 Event，但仍然以所有任务完成后的总时间作为端到端指标。不能只测 Queue 创建时间，也不能只测其中一个 Kernel 的等待时间。</p>
+<h3 id="7-2-对原始结论的重新表述"><a href="#7-2-对原始结论的重新表述" class="headerlink" title="7.2 对原始结论的重新表述"></a>7.2 对原始结论的重新表述</h3><p>原始实验观察到多个 Queue 的总耗时略低于单 Queue，部分 work-item 设置下可能有约 15% 的差异，并观察到 GPU 利用率曲线形态不同。这可以作为“该设备驱动在特定任务布局下可能存在调度差异”的线索，但还不足以证明多个 Queue 普遍更快。</p>
+<p>要把这个观察变成可靠结论，还需要补充 Queue 属性、任务总耗时、Event 时间线、重复次数、温度和 GPU 利用率采集方式。Android 设备长时间运行时还可能发生热降频，热状态会显著影响结果 [16][17]。</p>
+<h3 id="7-3-从单-Kernel-调优到设备侧流水线"><a href="#7-3-从单-Kernel-调优到设备侧流水线" class="headerlink" title="7.3 从单 Kernel 调优到设备侧流水线"></a>7.3 从单 Kernel 调优到设备侧流水线</h3><p>简单的字节拷贝 Kernel 主要受内存带宽和调度开销影响，不一定能代表 KCF 中包含 FFT、逐元素运算或相关计算的 Kernel。优化时应先确认热点属于计算受限、内存受限还是同步受限，再选择方向。</p>
+<p>如果相邻 work-item 访问连续地址，通常更容易形成高效的内存访问；但改成 <code>uchar4</code>、<code>float4</code> 等向量类型，还要满足数据对齐、通道布局和设备支持，并用输出校验和设备端时间验证。图像数据还要关注行步长，不能把 <code>width × height × channel</code> 机械地当成唯一布局。</p>
+<p>local memory 也不是默认的性能加速器。只有当数据会被同一 work-group 重复使用，并且搬入 local memory 的成本能够被多次访问摊薄时，显式缓存才可能有收益。如果每个元素只读取一次，额外的搬运和 barrier 反而会增加成本。调优时应分别测量 global-only、local-cache 和不同 local work size，而不是依据经验直接加入 local memory。</p>
+<p>对于多个连续阶段，更有价值的方向通常是双缓冲或多缓冲流水线：缓冲区 A 在执行 Kernel 时，缓冲区 B 可以准备下一批输入；当设备支持并且依赖关系正确时，上传、计算和下载才可能出现重叠。每一个阶段都应通过 Event wait list 表达依赖，不要用无差别的 <code>clFinish</code> 把所有队列重新串起来 [1][5][6]。最终比较的也不是“创建了几个 Queue”，而是固定吞吐目标下的总耗时、峰值内存、错误率和功耗。</p>
+<h2 id="八、对-KCF-移动端优化的启示"><a href="#八、对-KCF-移动端优化的启示" class="headerlink" title="八、对 KCF 移动端优化的启示"></a>八、对 KCF 移动端优化的启示</h2><p>本文的 UMat、内存拷贝和简单 Kernel 测试，最终都应该服务于 KCF 的端到端优化。OpenCV 也提供了 KCF 跟踪器接口，可作为算法实现和 API 行为的补充参考 [20]。建议对 KCF 的每个阶段单独测量：</p>
+<table>
+<thead>
+<tr>
+<th>KCF 阶段</th>
+<th align="right">CPU 耗时</th>
+<th align="right">OpenCL Kernel</th>
+<th align="right">上传&#x2F;下载</th>
+<th align="right">调用次数</th>
+<th>是否值得迁移</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>图像预处理</td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td></td>
+</tr>
+<tr>
+<td>特征提取</td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td></td>
+</tr>
+<tr>
+<td>FFT&#x2F;相关计算</td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td></td>
+</tr>
+<tr>
+<td>模型更新</td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td></td>
+</tr>
+<tr>
+<td>单帧总耗时</td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td></td>
+</tr>
+</tbody></table>
+<p>一个算子适合迁移到 GPU，通常需要同时满足以下条件：</p>
+<ul>
+<li>计算量或并行度足够大；</li>
+<li>数据在 GPU 上可以连续驻留，减少来回拷贝；</li>
+<li>Kernel 启动和同步成本可以被摊薄；</li>
+<li>算子的 OpenCL 实现经过正确性和性能验证；</li>
+<li>长时间运行时不会因为温度或功耗导致收益消失。</li>
+</ul>
+<p>如果 KCF 只把一个很小的算子单独搬到 GPU，<code>T_upload + T_download + T_sync</code> 很可能超过 Kernel 本身的收益。更合理的优化方向通常是把一组连续算子放在同一设备侧流水线中，再以单帧端到端延迟、吞吐量、功耗和稳定性共同评价。</p>
+<h3 id="8-1-KCF-算子迁移的决策流程"><a href="#8-1-KCF-算子迁移的决策流程" class="headerlink" title="8.1 KCF 算子迁移的决策流程"></a>8.1 KCF 算子迁移的决策流程</h3><p>KCF 优化不应从“把所有 OpenCV 调用都改成 UMat”开始，而应从 CPU baseline 的热点分析开始。可以采用以下流程：</p>
+<ol>
+<li>先在 CPU 版本上记录一帧跟踪过程的阶段耗时和调用次数，确认真正占用时间的函数，而不是只优化最容易改写的函数。</li>
+<li>对候选算子检查 OpenCV T-API 是否有对应实现；如果没有，就评估手写 OpenCL Kernel 的维护成本和正确性风险。某些算子可能静默回退到 CPU，必须通过运行时状态和 profile 结果确认 [7][8][10]。</li>
+<li>估算数据边界。若候选算子前后都需要在 <code>Mat</code> 和 <code>UMat</code> 之间转换，先计算转换成本；若多个候选算子可以连续处理同一批设备数据，则优先迁移成一个阶段。</li>
+<li>为每个阶段建立 CPU、GPU Kernel 和端到端三个指标，同时加入输出误差、内存占用和温度变化。只有当端到端时间稳定下降，才把优化合并到主流程。</li>
+<li>保留运行时开关和 CPU fallback。设备没有 OpenCL、驱动异常、温度过高或输入尺寸过小时，应能够回到 CPU 路径，而不是让跟踪流程因为 GPU 初始化失败而不可用。</li>
+</ol>
+<p>对于 KCF，频域计算和大规模逐元素运算通常比很小的控制逻辑更值得分析，但这只是候选方向，不是对某个实现的性能承诺。实际选择还取决于 ROI 尺寸、特征通道数、FFT 实现、调用频率和数据是否能长期驻留设备端 [18][19]。</p>
+<h3 id="8-2-上线前检查清单"><a href="#8-2-上线前检查清单" class="headerlink" title="8.2 上线前检查清单"></a>8.2 上线前检查清单</h3><p>在将 OpenCL 优化合入移动端算法前，可以用下面的清单做一次复核：</p>
+<ul>
+<li>是否记录了 CPU、Kernel 和端到端三种时间？</li>
+<li>是否分别报告了冷启动和稳态结果？</li>
+<li>是否使用中位数和 P95，而不是只给一次平均值？</li>
+<li>是否验证了所有输出数据的正确性？</li>
+<li>是否确认了 <code>UMat</code> 没有意外 fallback 到 CPU？</li>
+<li>是否减少了 <code>Mat ↔ UMat</code> 的往返转换？</li>
+<li>是否在长时间运行和高温状态下复测？</li>
+<li>是否保留了 CPU fallback、超时和错误码处理？</li>
+<li>是否在多个 Android 设备上检查了结果方向，而不是只优化一台手机？</li>
+</ul>
+<p>这份清单的核心是确保性能收益能在真实输入、温度和生命周期中稳定复现。</p>
+<h2 id="九、结论"><a href="#九、结论" class="headerlink" title="九、结论"></a>九、结论</h2><p>这次实验得到的主要经验可以总结为：</p>
+<ol>
+<li>OpenCL 的初始化、Program 编译、内存分配和 Kernel 首次执行可能有明显的一次性成本。</li>
+<li><code>UMat</code> 能够简化 OpenCV 的异构计算接入，但不保证每个操作都由 GPU 执行，需要检查运行时设备和 fallback 情况。</li>
+<li>CPU&#x2F;GPU 数据传输可能抵消单个 Kernel 的性能收益，必须同时报告 Kernel 时间和端到端时间。</li>
+<li>global work size、local work size、内存访问方式和设备驱动共同决定 Kernel 性能，不存在跨设备通用的最优 work-item 数量。</li>
+<li>多 Command Queue 是否有效取决于设备、驱动、Queue 属性和任务依赖，必须通过 Event 时间线验证，而不能只观察 Queue 数量。</li>
+<li>对 KCF 这类移动端算法，最终指标应是完整算法的单帧延迟、吞吐、功耗、温度和长期稳定性，而不是某个孤立算子的最佳耗时。</li>
+</ol>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><h3 id="OpenCL"><a href="#OpenCL" class="headerlink" title="OpenCL"></a>OpenCL</h3><ol>
+<li>Khronos Group，<a href="https://registry.khronos.org/OpenCL/specs/3.0-unified/html/">The OpenCL 3.0 Unified Specification</a>。</li>
+<li>Khronos Group，<a href="https://registry.khronos.org/OpenCL/specs/3.0-unified/html/OpenCL_C.html">The OpenCL C 3.0 Language Specification</a>。</li>
+<li>Khronos Group，<a href="https://registry.khronos.org/OpenCL/sdk/3.0/docs/man/html/">OpenCL SDK Reference Pages</a>。</li>
+<li>Khronos Group，<a href="https://registry.khronos.org/OpenCL/sdk/3.0/docs/man/html/clEnqueueNDRangeKernel.html">clEnqueueNDRangeKernel Reference</a>。</li>
+<li>Khronos Group，<a href="https://registry.khronos.org/OpenCL/sdk/3.0/docs/man/html/clGetEventProfilingInfo.html">clGetEventProfilingInfo Reference</a>。</li>
+<li>Khronos Group，<a href="https://registry.khronos.org/OpenCL/sdk/3.0/docs/man/html/clCreateCommandQueueWithProperties.html">clCreateCommandQueueWithProperties Reference</a>。</li>
+</ol>
+<h3 id="OpenCV"><a href="#OpenCV" class="headerlink" title="OpenCV"></a>OpenCV</h3><ol start="7">
+<li>OpenCV，<a href="https://docs.opencv.org/4.x/d7/d1e/classcv_1_1UMat.html">cv::UMat Class Reference</a>。</li>
+<li>OpenCV，<a href="https://docs.opencv.org/4.x/dc/d83/group__core__opencl.html">OpenCL Support in OpenCV Core</a>。</li>
+<li>OpenCV，<a href="https://docs.opencv.org/4.x/d8/d45/classcv_1_1ocl_1_1Device.html">cv::ocl::Device Class Reference</a>。</li>
+<li>OpenCV，<a href="https://github.com/opencv/opencv/wiki/OpenCL-optimizations">OpenCL Optimizations</a>。</li>
+<li>OpenCV，<a href="https://github.com/opencv/opencv/tree/3.4.6">OpenCV 3.4.6 Source Tree</a>。</li>
+</ol>
+<h3 id="Android-性能与构建"><a href="#Android-性能与构建" class="headerlink" title="Android 性能与构建"></a>Android 性能与构建</h3><ol start="12">
+<li>Android Developers，<a href="https://developer.android.com/ndk/guides/cmake">Use CMake with the NDK</a>。</li>
+<li>Android NDK，<a href="https://github.com/android/ndk/wiki/Changelog-r18">Changelog r18</a>。</li>
+<li>Perfetto，<a href="https://perfetto.dev/docs/">Documentation</a>。</li>
+<li>Android Developers，<a href="https://developer.android.com/ndk/guides/simpleperf">Simpleperf</a>。</li>
+<li>Android Developers，<a href="https://developer.android.com/games/optimize/adpf/thermal">Thermal Management</a>。</li>
+<li>Android Developers，<a href="https://developer.android.com/topic/performance">Performance</a>。</li>
+</ol>
+<h3 id="KCF-与目标跟踪"><a href="#KCF-与目标跟踪" class="headerlink" title="KCF 与目标跟踪"></a>KCF 与目标跟踪</h3><ol start="18">
+<li>João F. Henriques, Rui Caseiro, Pedro Martins, Jorge Batista, <a href="https://ieeexplore.ieee.org/document/6870486">High-Speed Tracking with Kernelized Correlation Filters</a>, IEEE Transactions on Pattern Analysis and Machine Intelligence, 2015。</li>
+<li>João F. Henriques et al., <a href="https://arxiv.org/abs/1404.7584">High-Speed Tracking with Kernelized Correlation Filters</a>, arXiv:1404.7584。</li>
+<li>OpenCV，<a href="https://docs.opencv.org/4.x/dc/d6b/group__tracking.html">Tracking API Reference</a>。</li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2020/08/13/AI/06-video-object-tracking/" rel="prev" title="视频目标追踪流程：模板追踪、SiameseRPN 与高斯–牛顿法">
+                  <i class="fa fa-angle-left"></i> 视频目标追踪流程：模板追踪、SiameseRPN 与高斯–牛顿法
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2023/08/13/other/%E5%9F%BA%E4%BA%8EGithub%E5%8F%8C%E5%88%86%E6%94%AF%E5%92%8CHexo%E6%90%AD%E5%BB%BA%E5%8D%9A%E5%AE%A2/" rel="next" title="基于Github双分支和Hexo搭建博客">
+                  基于Github双分支和Hexo搭建博客 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":{"light":"default","dark":"dark"},"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js","integrity":"sha256-stuqcu2FrjYCXDOytWFA5SoUE/r3nkp6gTglzNSlavU="}}</script>
+  <script src="/js/third-party/tags/mermaid.js"></script>
+
+
+
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+
+</body>
+</html>

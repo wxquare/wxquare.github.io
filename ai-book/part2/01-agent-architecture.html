@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-be158db8.js";
+            window.path_to_searchindex_js = "../searchindex-56a4f0de.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-614e87e1.js"></script>
+        <script src="../toc-d544877c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -2439,6 +2439,73 @@ flowchart TD
 <li><input disabled="" type="checkbox"> Learning Loop 是否区分 Memory、Skill、Policy、Eval、Knowledge Update 和 Tool Improvement？</li>
 </ul>
 <hr>
+<h2 id="137-从后端系统设计迁移到-agent-系统设计"><a class="header" href="#137-从后端系统设计迁移到-agent-系统设计">13.7 从后端系统设计迁移到 Agent 系统设计</a></h2>
+<p>后端工程师转向 Agent 开发时，最有价值的能力不是立刻掌握某个框架，而是把原有的系统设计问题重新翻译一遍：哪些部分仍然应该由确定性代码负责，哪些部分确实需要模型处理不完整信息、生成假设或动态选择路径。</p>
+<h3 id="1371-先判断任务属于哪一种系统"><a class="header" href="#1371-先判断任务属于哪一种系统">13.7.1 先判断任务属于哪一种系统</a></h3>
+<p>不要从“要不要接入大模型”开始。可以先用五个维度判断任务的开放程度和风险：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">判断维度</th><th style="text-align: left">更适合传统系统</th><th style="text-align: left">更值得引入 Agent</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">输入稳定性</td><td style="text-align: left">字段固定、边界清晰</td><td style="text-align: left">自然语言、文档、半结构化事件混合输入</td></tr>
+<tr><td style="text-align: left">信息分散度</td><td style="text-align: left">单一数据库或单个 API</td><td style="text-align: left">需要跨文档、日志、指标、工单和业务系统取证</td></tr>
+<tr><td style="text-align: left">路径开放性</td><td style="text-align: left">流程可以在设计时穷举</td><td style="text-align: left">下一步取决于当前观察结果，需要局部重规划</td></tr>
+<tr><td style="text-align: left">动作风险</td><td style="text-align: left">事务和权限可由固定代码判断</td><td style="text-align: left">需要模型提出建议，但仍须 Policy、审批和验证裁决</td></tr>
+<tr><td style="text-align: left">结果可验证性</td><td style="text-align: left">返回码、状态机和断言即可判定</td><td style="text-align: left">需要证据、引用、质量评估或人工审查共同判定</td></tr>
+</tbody>
+</table>
+</div>
+<p>这五个维度不是“满足越多就越应该使用 Agent”的打分表，而是帮助发现边界。如果任务输入稳定、流程固定、结果可由代码精确验证，传统后端或工作流通常更简单。如果任务需要理解模糊意图、从多个来源收集证据、根据观察结果决定下一步，并且结果仍然可以被验证和治理，才值得引入 Agent Runtime。</p>
+<h3 id="1372-把后端能力迁移成-agent-能力"><a class="header" href="#1372-把后端能力迁移成-agent-能力">13.7.2 把后端能力迁移成 Agent 能力</a></h3>
+<p>Agent 不会替代后端的状态、事务和权限边界。更可靠的分工是：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">传统后端能力</th><th style="text-align: left">Agent 系统中的对应责任</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">API、Webhook、消息入口</td><td style="text-align: left">Intake Router 与 Intent Normalizer，把输入变成任务契约</td></tr>
+<tr><td style="text-align: left">数据库、缓存、配置中心</td><td style="text-align: left">Context Builder、Evidence Store 和受控 Memory</td></tr>
+<tr><td style="text-align: left">状态机、任务队列、重试</td><td style="text-align: left">Workflow Engine、Checkpoint 和恢复机制</td></tr>
+<tr><td style="text-align: left">权限、审计、风控</td><td style="text-align: left">Policy Engine、Human Control Plane 和 Audit</td></tr>
+<tr><td style="text-align: left">规则引擎、确定性校验</td><td style="text-align: left">Guardrail、Verifier 和执行前后的业务规则</td></tr>
+<tr><td style="text-align: left">领域服务与外部 API</td><td style="text-align: left">Tool Runtime、Connector、MCP 和 Action Executor</td></tr>
+<tr><td style="text-align: left">监控、日志、链路追踪</td><td style="text-align: left">Trace、Eval Harness 和 Failure Registry</td></tr>
+</tbody>
+</table>
+</div>
+<p>模型新增的价值主要集中在另一侧：理解自然语言和半结构化输入、生成候选假设、决定需要哪些证据、综合多源观察、解释不确定性，以及在受控范围内提出下一步动作。模型可以提出意图，系统必须决定是否接受意图；模型可以提出工具调用，Runtime 必须决定是否执行工具。</p>
+<h3 id="1373-框架选择应服从运行时边界"><a class="header" href="#1373-框架选择应服从运行时边界">13.7.3 框架选择应服从运行时边界</a></h3>
+<p>框架不是架构本身。选型时先确定任务的生命周期、状态、权限和验证方式，再选择能表达这些边界的抽象：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">任务形态</th><th style="text-align: left">合适的执行抽象</th><th style="text-align: left">主要取舍</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">单次生成、分类、摘要</td><td style="text-align: left">普通 LLM 调用或 Single-shot</td><td style="text-align: left">成本低、易验证，但不适合长链路行动</td></tr>
+<tr><td style="text-align: left">有固定阶段和审批的生产流程</td><td style="text-align: left">State Machine + Agent</td><td style="text-align: left">可恢复、可审计，设计和状态维护成本更高</td></tr>
+<tr><td style="text-align: left">需要先拆解再执行的开放任务</td><td style="text-align: left">Plan-and-Execute</td><td style="text-align: left">路径更清晰，但规划错误会放大后续成本</td></tr>
+<tr><td style="text-align: left">需要并行研究或互审的任务</td><td style="text-align: left">Multi-Agent 或并行 Workflow</td><td style="text-align: left">角色边界清晰，但调用、协调和评估成本上升</td></tr>
+<tr><td style="text-align: left">多入口、多租户、强治理平台</td><td style="text-align: left">自定义 Agent Runtime 或平台层</td><td style="text-align: left">控制力最强，但需要承担更多基础设施维护</td></tr>
+</tbody>
+</table>
+</div>
+<p>因此，框架对比应该回答“它能否表达我们的状态、工具、权限、恢复和评估边界”，而不是只比较 API 是否简短。对于告警诊断、审批辅助、知识问答这类场景，通常先从单 Agent 加确定性 Workflow 开始；只有当角色确实需要并行或互审时，才引入 Multi-Agent。</p>
+<h3 id="1374-agent-设计决策清单"><a class="header" href="#1374-agent-设计决策清单">13.7.4 Agent 设计决策清单</a></h3>
+<p>在开始实现前，至少回答以下问题：</p>
+<ul>
+<li><strong>任务</strong>：用户目标、输入入口、成功标准和停止条件是什么？哪些请求明确不应交给 Agent？</li>
+<li><strong>分工</strong>：哪些逻辑必须由代码、状态机、数据库、Policy 或 Verifier 负责？模型只负责哪些判断？</li>
+<li><strong>证据</strong>：模型需要哪些上下文、工具和知识源？来源的权限、时效、可信度和引用如何保留？</li>
+<li><strong>执行</strong>：工具有无风险等级、超时、重试、幂等键、dry-run、审批和回滚？</li>
+<li><strong>治理</strong>：谁能看到什么、调用什么、批准什么？每次模型调用、工具调用和策略裁决是否可审计？</li>
+<li><strong>成本</strong>：单任务的模型调用、工具调用、上下文预算和延迟预算是多少？是否需要缓存、模型路由或降级？</li>
+<li><strong>验证</strong>：如何证明任务完成、答案有依据、状态变化正确、失败可以恢复？</li>
+</ul>
+<p>这个清单的作用不是增加前期文档，而是防止把“模型能生成一段看起来合理的文本”误认为“系统已经具备完成任务的能力”。后续第 14 章到第 22 章，分别展开任务协议、上下文、Harness、工具、知识、记忆、编排和生产治理这些边界。</p>
 <h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
 <p>本章重新建立了一个从决策到落地的 Agent 架构框架。</p>
 <p>第一，Agent 架构设计不能从模型开始，而要从问题开始。只有当任务包含模糊输入、多源上下文、多步骤推理、跨系统行动、结果验证和风险治理时，才值得进入 Agent 设计。</p>

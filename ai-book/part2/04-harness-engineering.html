@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-be158db8.js";
+            window.path_to_searchindex_js = "../searchindex-56a4f0de.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-614e87e1.js"></script>
+        <script src="../toc-d544877c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -962,6 +962,50 @@ Gradual Rollout
 </code></pre>
 <p>关键不是“这次修好了”，而是“这个错误类型以后不会静默发生”。</p>
 <p>这也是 Harness 与生产治理的分工：Harness 负责把每一步行为记录成可复盘事实，治理控制面负责把失败归档到 Failure Registry、生成回归样本，并在下一次发布前用 Release Gate 阻断旧问题复发。</p>
+<h3 id="行业实证同一模型不同-harness"><a class="header" href="#行业实证同一模型不同-harness">行业实证：同一模型，不同 Harness</a></h3>
+<p>博客中的几个行业案例共同说明：提升 Agent 质量的杠杆不只在模型本身，还在模型周围的工作环境。这里的数字属于特定项目和测试条件，不应直接当作所有团队的通用基准。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">案例</th><th style="text-align: left">Harness 改造</th><th style="text-align: left">观察到的结果</th><th style="text-align: left">工程含义</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">OpenAI 的 agent-first 工程实践</td><td style="text-align: left">入口文档只做导航；用 linter 和结构化测试执行架构约束；让 Agent 访问日志、指标和 trace；定期清理架构熵</td><td style="text-align: left">在特定项目中，以少量工程师和 Agent 协作交付大规模代码</td><td style="text-align: left">规模化的关键不是把更多规则塞进 Prompt，而是把约束和反馈机械化</td></tr>
+<tr><td style="text-align: left">LangChain Deep Agents</td><td style="text-align: left">自验证回路、循环检测中间件、按需上下文注入、完成前检查表</td><td style="text-align: left">博客记录的 Terminal Bench 2.0 对比中，保持模型不变，准确率由 52.8% 提升到 66.5%</td><td style="text-align: left">失败检测和完成判定是 Harness 的一等能力，不是任务结束后的人工补救</td></tr>
+<tr><td style="text-align: left">Anthropic 的多代理协作</td><td style="text-align: left">Planner 产出规格，Generator 实现，Evaluator 按标准打分并反馈</td><td style="text-align: left">在高质量任务中换取更高的功能完整度和代码质量，但调用成本显著增加</td><td style="text-align: left">评估代理可以提高质量上限，但必须显式管理额外成本、延迟和协调复杂度</td></tr>
+</tbody>
+</table>
+</div>
+<p>这些案例不能被简化成“多代理一定更好”或“加测试就能解决一切”。它们真正提供的是一套实验方法：固定模型和任务分布，只改变上下文、约束、工具、验证和反馈回路，再用可复现的 Eval 比较结果。只有这样，团队才能判断收益来自哪个 Harness 层，而不是凭感觉继续调 Prompt。</p>
+<h3 id="工程师角色的转变"><a class="header" href="#工程师角色的转变">工程师角色的转变</a></h3>
+<p>Harness Engineering 并不意味着工程师不再写代码，而是把工程师的交付对象从单个实现扩展为“让 Agent 能可靠工作的环境”：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">传统工程活动</th><th style="text-align: left">Harness 时代的对应能力</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">编写业务逻辑</td><td style="text-align: left">设计边界、接口、约束和可供 Agent 修改的工作面</td></tr>
+<tr><td style="text-align: left">手动调试 Bug</td><td style="text-align: left">从 Trace 和失败分类中定位 Context、Tool、Workflow 或 Guardrail 的缺陷</td></tr>
+<tr><td style="text-align: left">阅读文档调用 API</td><td style="text-align: left">编写有 owner、版本、适用范围和示例的 Agent 可读知识</td></tr>
+<tr><td style="text-align: left">代码评审</td><td style="text-align: left">把架构规则、Schema、测试和发布门禁自动化</td></tr>
+<tr><td style="text-align: left">性能优化</td><td style="text-align: left">管理上下文预算、工具并行度、模型路由、缓存和每任务成本</td></tr>
+<tr><td style="text-align: left">维护线上服务</td><td style="text-align: left">设计回滚、降级、kill switch、人工接管和持续评估</td></tr>
+</tbody>
+</table>
+</div>
+<p>这会改变团队的工作闭环：工程师不只评审 Agent 生成了什么，还要追问 Agent 为什么会走这条路径、看到了哪些证据、在哪个约束层被允许继续，以及这次失败如何变成下一次发布前的回归用例。人的判断仍然重要，但应尽可能把可重复的判断沉淀成系统规则和验证回路。</p>
+<h3 id="最小-harness-的七项起步能力"><a class="header" href="#最小-harness-的七项起步能力">最小 Harness 的七项起步能力</a></h3>
+<p>如果资源有限，可以先实现下面七项，再逐步补齐本章前面描述的六层能力：</p>
+<ol>
+<li><strong>精简入口文档</strong>：用 <code>CLAUDE.md</code>、<code>AGENTS.md</code> 或同类文件说明项目地图和规则入口，不把所有知识堆在一份 Prompt 里。</li>
+<li><strong>可复现工作环境</strong>：让人和 Agent 使用相同的依赖、测试、构建和隔离环境。</li>
+<li><strong>机械化架构约束</strong>：用 linter、schema、pre-commit 或 CI 执行关键规则，而不是只写在文档中。</li>
+<li><strong>自验证回路</strong>：在宣布完成前运行测试、构建、静态检查或领域验证，并把失败结果重新交给执行流程。</li>
+<li><strong>上下文防火墙</strong>：按任务和阶段隔离上下文，限制不可信外部内容、过期记忆和无关历史进入工作区。</li>
+<li><strong>最小权限与回滚</strong>：按工具和风险授予最小权限，高风险动作必须审批，并保留可回滚路径。</li>
+<li><strong>熵治理</strong>：定期清理废弃规则、重复实现、过期文档和架构偏移，把清理结果纳入评估和发布门禁。</li>
+</ol>
 <h3 id="最小可行-harness-检查清单"><a class="header" href="#最小可行-harness-检查清单">最小可行 Harness 检查清单</a></h3>
 <p>如果你要把一个 Agent 从 demo 推向生产，至少需要：</p>
 <ul>
@@ -1007,6 +1051,9 @@ Gradual Rollout
 <li><strong>OpenAI Evals</strong> - https://github.com/openai/evals</li>
 <li><strong>LangChain Documentation</strong> - https://python.langchain.com/</li>
 <li><strong>Anthropic Claude Code Documentation</strong> - https://docs.anthropic.com/</li>
+<li><strong>OpenAI：Harness engineering: leveraging Codex in an agent-first world</strong> - https://www.engineering.fyi/article/harness-engineering-leveraging-codex-in-an-agent-first-world</li>
+<li><strong>LangChain：Improving Deep Agents with harness engineering</strong> - https://blog.langchain.dev/improving-deep-agents-with-harness-engineering/</li>
+<li><strong>LangChain：The Anatomy of an Agent Harness</strong> - https://blog.langchain.com/the-anatomy-of-an-agent-harness/</li>
 </ol>
 
                     </main>
