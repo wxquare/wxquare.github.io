@@ -28,7 +28,7 @@ const aliases = [
   { path: '/system-design/22-ecommerce-inventory/', target: '/books/system-design-primer/part03/04-inventory-system.html' },
   { path: '/system-design/23-ecommerce-marketing-system/', target: '/books/system-design-primer/part03/05-marketing-system.html' },
   { path: '/system-design/24-ecommerce-pricing-engine/', target: '/books/system-design-primer/part03/06-pricing-system.html' },
-  { path: '/system-design/25-ecommerce-pricing-ddd/', slug: 'system-design/25-ecommerce-pricing-ddd' },
+  { path: '/system-design/25-ecommerce-pricing-ddd/', target: '/2026/09/23/system-design/45-ddd-principles-and-pricing-practice/' },
   { path: '/system-design/26-ecommerce-order-system/', target: '/books/system-design-primer/part03/09-order-system.html' },
   { path: '/system-design/27-ecommerce-payment-system/', target: '/books/system-design-primer/part03/10-payment-system.html' },
   { path: '/system-design/28-ecommerce-listing/', target: '/books/system-design-primer/part02/11-product-center-supply-lifecycle.html' },
@@ -43,7 +43,7 @@ const aliases = [
   { path: '/2026/06/09/system-design/34-ecommerce-long-transactions/', target: '/books/system-design-primer/part01/04-large-transaction-orchestration.html' },
   { path: '/system-design/41-acc-clean-arch-ddd-cqrs/', slug: 'system-design/41-acc-clean-arch-ddd-cqrs' },
   { path: '/system-design/42-acc-clean-code/', slug: 'system-design/42-acc-clean-code' },
-  { path: '/system-design/43-acc-ddd-notes/', slug: 'system-design/43-acc-ddd-notes' },
+  { path: '/system-design/43-acc-ddd-notes/', target: '/2026/09/23/system-design/45-ddd-principles-and-pricing-practice/' },
   { path: '/system-design/44-acc-code-review/', slug: 'system-design/44-acc-code-review' }
   ,{ path: '/2020/08/13/AI/tvm/TVM-GEMM-CPU/', target: '/2026/09/22/AI/05-tvm-operator-optimization-practice/' }
   ,{ path: '/2020/08/13/AI/tvm/TVM-Graph-optimization/', target: '/2026/09/22/AI/05-tvm-operator-optimization-practice/' }

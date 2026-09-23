@@ -10,7 +10,10 @@ tags:
 - hexagonal-architecture
 - aggregate-root
 toc: true
+published: false
 ---
+
+> **归档说明：** 本文内容已整合至 {% post_link system-design/45-ddd-principles-and-pricing-practice 领域驱动设计：从方法论到电商计价实践 %}，此文件仅保留原始版本供源码追溯，不再单独发布。
 
 <!-- toc -->
 
