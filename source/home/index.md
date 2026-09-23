@@ -12,17 +12,26 @@ wxquare 的技术知识库，聚焦 AI Engineering、系统设计、复杂业务
 
 ## 正在维护和编撰的书籍
 
-### [System Design Primer：系统设计与电商架构](/system-design-primer/)
-
-从系统设计方法论到电商系统实战，覆盖架构、可靠性、长事务、商品、库存、计价与交易。
-
-[开始阅读 →](/system-design-primer/)
-
-### [AI Engineering：大模型与智能体系统工程](/ai-book/)
-
-从模型原理、训练与推理基础设施，到 Agent 架构、应用、评估和生产治理。
-
-[开始阅读 →](/ai-book/)
+<div class="home-books">
+  <article class="home-book-card home-book-card--system">
+    <div class="home-book-card__eyebrow">BOOK 01 · SYSTEM DESIGN</div>
+    <h3><a href="/system-design-primer/">System Design Primer：系统设计与电商架构</a></h3>
+    <p>从系统设计方法论到电商系统实战，覆盖架构、可靠性、长事务、商品、库存、计价与交易。</p>
+    <div class="home-book-card__tags">
+      <span>系统设计</span><span>生产治理</span><span>电商架构</span>
+    </div>
+    <a class="home-book-card__link" href="/system-design-primer/">开始阅读 <span aria-hidden="true">→</span></a>
+  </article>
+  <article class="home-book-card home-book-card--ai">
+    <div class="home-book-card__eyebrow">BOOK 02 · AI ENGINEERING</div>
+    <h3><a href="/ai-book/">AI Engineering：大模型与智能体系统工程</a></h3>
+    <p>从模型原理、训练与推理基础设施，到 Agent 架构、应用、评估和生产治理。</p>
+    <div class="home-book-card__tags">
+      <span>大模型</span><span>Agent</span><span>AI Infra</span>
+    </div>
+    <a class="home-book-card__link" href="/ai-book/">开始阅读 <span aria-hidden="true">→</span></a>
+  </article>
+</div>
 
 ## 精选文章
 
