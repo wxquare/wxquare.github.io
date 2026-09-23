@@ -20,9 +20,9 @@ test('native homepage contains the curated reader entry points', () => {
     '/system-design-primer/',
     '/archives/',
     '/categories/',
-    '/2026/04/07/system-design/08-system-design-interview/',
+    '/books/system-design-primer/appendix/system-design-interview-50.html',
     '/2026/04/03/AI/00-vibe-coding-vs-spec-coding/',
-    '/2026/04/03/system-design/43-acc-ddd-notes/',
+    '/2026/09/23/system-design/45-ddd-principles-and-pricing-practice/',
     '/ai-book/part2/01-agent-architecture.html',
     '/2026/05/08/other/ai-content-to-video-open-source-workflow/',
     '/2026/04/05/AI/02-karpathy-evolving-knowledge-base/'

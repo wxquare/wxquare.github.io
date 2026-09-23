@@ -1,13 +1,14 @@
 ---
 title: 中间件 - 异步和消息队列
 date: 2024-03-10
+updated: 2026-09-23
 categories:
   - 系统设计基础
 tags:
-- Kafka
-- 消息队列
-- 异步
-- 分布式
+  - Kafka
+  - 消息队列
+  - 异步
+  - 分布式
 toc: true
 ---
 
@@ -112,7 +113,7 @@ func OrderPartitioner(key []byte, numPartitions int) int {
     orderID := string(key)
     return int(crc32.ChecksumIEEE([]byte(orderID))) % numPartitions
 }
-```
+```text
 
 ### 2.4 ZooKeeper vs KRaft
 
@@ -132,7 +133,7 @@ func OrderPartitioner(key []byte, numPartitions int) int {
 
 ### 3.1 Producer → Broker → Consumer 完整流程
 
-```
+```text
 ┌─────────────┐                ┌─────────────┐                ┌─────────────┐
 │  Producer   │──①发送消息───→│   Broker    │──③消费拉取───→│  Consumer   │
 │             │                │  (Leader)   │                │             │
@@ -143,7 +144,7 @@ func OrderPartitioner(key []byte, numPartitions int) int {
                               │  Follower   │
                               │   副本集    │
                               └─────────────┘
-```
+```text
 
 **详细步骤：**
 
@@ -218,15 +219,15 @@ Kafka 虽然是基于磁盘的消息队列，但吞吐量可达**百万 TPS**，
 
 **传统方式（4 次拷贝）**：
 
-```
+```text
 磁盘 → 内核缓冲区 → 用户空间 → Socket 缓冲区 → 网卡
-```
+```text
 
 **零拷贝方式（sendfile 系统调用）**：
 
-```
+```text
 磁盘 → Page Cache → 网卡（DMA 直接传输）
-```
+```go
 
 **优势**：
 - 减少 2 次 CPU 拷贝（内核 → 用户空间，用户空间 → Socket 缓冲区）
@@ -253,7 +254,7 @@ func SendFileWithZeroCopy(conn net.Conn, filePath string) error {
     _, err = io.Copy(conn, file)
     return err
 }
-```
+```text
 
 **面试话术**：
 > "Kafka 使用 sendfile 系统调用，数据从磁盘通过 DMA 直接传输到网卡，减少 CPU 拷贝和上下文切换。"
@@ -334,7 +335,7 @@ writer := &kafka.Writer{
     Idempotent:   true,               // 开启幂等性
     MaxAttempts:  3,                  // 重试 3 次
 }
-```
+```text
 
 **事务性写入**：
 
@@ -355,7 +356,7 @@ producer.BeginTxn()
 producer.Input() <- &sarama.ProducerMessage{Topic: "orders", Value: sarama.StringEncoder("msg1")}
 producer.Input() <- &sarama.ProducerMessage{Topic: "orders", Value: sarama.StringEncoder("msg2")}
 producer.CommitTxn()  // 提交事务
-```
+```bash
 
 ### 5.6 检查清单（落地排查）
 
@@ -405,7 +406,7 @@ Rebalance 是 Kafka 消费者组内 Partition 重新分配的过程。
 
 ```bash
 kafka-consumer-groups.sh --describe --group <group-name> --bootstrap-server <broker>
-```
+```text
 
 **关键指标**：
 - `CURRENT-OFFSET`：当前消费位点
@@ -425,7 +426,7 @@ kafka-consumer-groups.sh --describe --group <group-name> --bootstrap-server <bro
 **逻辑上**：Topic 分为多个 Partition
 **物理上**：每个 Partition 是一个目录，包含多个 Segment 文件
 
-```
+```text
 /kafka-logs/orders-0/
 ├── 00000000000000000000.index  # 索引文件
 ├── 00000000000000000000.log    # 数据文件
@@ -433,7 +434,7 @@ kafka-consumer-groups.sh --describe --group <group-name> --bootstrap-server <bro
 ├── 00000000000000368769.index
 ├── 00000000000000368769.log
 └── 00000000000000368769.timeindex
-```
+```bash
 
 ### 7.2 Segment 滚动策略
 
@@ -474,7 +475,7 @@ kafka-consumer-groups.sh --describe --group <group-name> --bootstrap-server <bro
 
 ```bash
 kafka-consumer-groups.sh --describe --group <group-name> --bootstrap-server <broker>
-```
+```text
 
 **2. 定位原因**
 - 消费逻辑慢：查看消费端 DB/网络/外部服务耗时
@@ -497,7 +498,7 @@ writer := &kafka.Writer{
     BatchSize:    100,              // 批量大小 100 条
     BatchTimeout: 10 * time.Millisecond,  // 最多等待 10ms
 }
-```
+```text
 
 **压缩**：
 
@@ -505,7 +506,7 @@ writer := &kafka.Writer{
 writer := &kafka.Writer{
     Compression: kafka.Lz4,  // 使用 lz4 压缩
 }
-```
+```text
 
 **分区策略**：
 
@@ -519,7 +520,7 @@ writer := &kafka.Writer{
 writer := &kafka.Writer{
     Balancer: &kafka.Hash{},
 }
-```
+```go
 
 ### 8.3 Broker 与系统层优化
 
@@ -595,7 +596,7 @@ func main() {
         }
     }
 }
-```
+```go
 
 ### 8.5 Go 生产级别 Consumer 示例
 
@@ -669,7 +670,7 @@ func main() {
     log.Println("Start consuming...")
     ConsumeLoop(consumer)
 }
-```
+```text
 
 ### 8.6 常用配置参数总结
 
@@ -684,7 +685,7 @@ c.Producer.Retry.Max = 3
 c.Producer.Retry.Backoff = 100 * time.Millisecond
 c.Producer.Return.Errors = true
 c.Producer.CompressionLevel = CompressionLevelDefault
-```
+```text
 
 **Consumer 配置**：
 
@@ -699,7 +700,7 @@ c.Consumer.Offsets.AutoCommit.Enable = true  // 自动提交
 c.Consumer.Offsets.AutoCommit.Interval = 1 * time.Second
 c.Consumer.Offsets.Initial = OffsetNewest  // 从最新位置开始
 c.Consumer.Offsets.Retry.Max = 3
-```
+```bash
 
 ---
 
@@ -972,19 +973,19 @@ Kafka 事务基于 **事务协调器（Transaction Coordinator）** 实现，支
 
 ```bash
 kafka-topics.sh --create --topic orders --replication-factor 3 --partitions 10 --bootstrap-server localhost:9092
-```
+```bash
 
 ### 查看 Topic 详情
 
 ```bash
 kafka-topics.sh --describe --topic orders --bootstrap-server localhost:9092
-```
+```bash
 
 ### 查看消费组情况
 
 ```bash
 kafka-consumer-groups.sh --describe --group order-group --bootstrap-server localhost:9092
-```
+```bash
 
 ### 重置消费 offset
 
@@ -994,19 +995,19 @@ kafka-consumer-groups.sh --group order-group --bootstrap-server localhost:9092 -
 
 # 重置到指定时间
 kafka-consumer-groups.sh --group order-group --bootstrap-server localhost:9092 --reset-offsets --all-topics --to-datetime 2024-03-10T00:00:00.000 --execute
-```
+```bash
 
 ### 生产消息（测试）
 
 ```bash
 kafka-console-producer.sh --topic orders --bootstrap-server localhost:9092
-```
+```bash
 
 ### 消费消息（测试）
 
 ```bash
 kafka-console-consumer.sh --topic orders --from-beginning --bootstrap-server localhost:9092
-```
+```text
 
 ---
 

@@ -931,11 +931,11 @@ HTTP/1.1 400
 
 ### 各中间件详细专题
 
-- {% post_link fundamentals/01-middleware-mysql 存储与 MySQL 数据库 %} - 建表规范、索引优化、分库分表
-- {% post_link fundamentals/02-middleware-redis Redis 原理与实践 %} - 数据结构、缓存策略、分布式锁
-- {% post_link fundamentals/03-middleware-kafka 异步和消息队列 %} - Kafka 架构、消息语义、性能调优
-- {% post_link fundamentals/04-middleware-elasticsearch 搜索和 Elasticsearch %} - 索引设计、DSL 查询、性能优化
-- {% post_link fundamentals/05-infrastructure-k8s-docker Kubernetes 与 Docker %} - 容器网络、Pod/Service、运维实践
+- {% post_link fundamentals/07-mysql-database 存储与 MySQL 数据库 %} - 建表规范、索引优化、分库分表
+- {% post_link fundamentals/08-redis Redis 原理与实践 %} - 数据结构、缓存策略、分布式锁
+- {% post_link fundamentals/09-kafka 异步和消息队列 %} - Kafka 架构、消息语义、性能调优
+- {% post_link fundamentals/10-elasticsearch 搜索和 Elasticsearch %} - 索引设计、DSL 查询、性能优化
+- {% post_link fundamentals/11-docker-kubernetes Kubernetes 与 Docker %} - 容器网络、Pod/Service、运维实践
 
 ## 框架和引擎
 ### 工作流引擎与任务编排

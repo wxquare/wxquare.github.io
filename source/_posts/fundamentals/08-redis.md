@@ -5,10 +5,10 @@ updated: 2026-01-08
 categories:
   - 系统设计基础
 tags:
-- Redis
-- 缓存
-- 数据结构
-- 分布式系统
+  - Redis
+  - 缓存
+  - 数据结构
+  - 分布式系统
 toc: true
 ---
 
@@ -115,7 +115,7 @@ rdb.Set(ctx, "user:123", `{"name":"alice","age":25}`, 0)
 // 存储计数器
 rdb.Set(ctx, "visit:count", 0, 0)
 
-```
+```text
 
 **性能提升**：DB 查询 100ms → Redis 查询 1ms（提升 100 倍）
 
@@ -151,7 +151,7 @@ end
 
 return normal_stock - book_num
 `
-```
+```text
 
 ### ZSet 使用场景
 
@@ -162,7 +162,7 @@ return normal_stock - book_num
   - 优势： 削峰填谷，保护后端核心系统
 
 2. 浏览最近查看的商品（Top 10） 如果你在商城详情页下方展示“最近查看”，你可能需要先读取前 10 个显示给用户
-```
+```text
   // 1. 先读取前 10 个给前端展示，不删除
   products, _ := rdb.LRange(ctx, "user:history:123", 0, 9).Result()
 
@@ -171,7 +171,7 @@ return normal_stock - book_num
   pipe.LPush(ctx, "user:history:123", "new_product_id")
   pipe.LTrim(ctx, "user:history:123", 0, 9) // 只保留最新的10个
   pipe.Exec(ctx)
-```
+```text
 
 1. 缓存数据（db，service) 的数据，提高访问效率
      - 缓存容量评估
@@ -204,12 +204,12 @@ return normal_stock - book_num
       $m = -\frac{nln(p)}{(ln2)^2}$
 
       $k=\frac{m}{n}ln(2)$
-   ```
+   ```text
    n 是预期插入的元素数量（数据规模），例如 20,000,000。
    p 是预期的误判率，例如 0.001。
    m 是位数组的大小。
    k 是哈希函数的数量。
-   ```
+   ```text
 
 
 ---
@@ -239,13 +239,13 @@ graph LR
     
     style C fill:#e8f5e9
     style D fill:#e1f5fe
-```
+```text
 
 **配置参数（redis.conf）：**
 ```conf
 hash-max-ziplist-entries 512   # 最大元素个数
 hash-max-ziplist-value 64       # 单个value最大长度（字节）
-```
+```text
 
 #### 2. ziplist（压缩列表）- 内存优化
 
@@ -255,12 +255,12 @@ ziplist 是 Redis 为节省内存设计的**紧凑型数据结构**，所有数�
 
 ##### 2.1 整体结构
 
-```
+```text
 +----------+----------+--------+---------+---------+-----+---------+--------+
 | zlbytes  | zltail   | zllen  | entry1  | entry2  | ... | entryN  | zlend  |
 +----------+----------+--------+---------+---------+-----+---------+--------+
   4字节      4字节      2字节    变长      变长            变长      1字节
-```
+```text
 
 | 字段 | 长度 | 说明 |
 |------|------|------|
@@ -274,12 +274,12 @@ ziplist 是 Redis 为节省内存设计的**紧凑型数据结构**，所有数�
 
 每个 entry 由三部分组成：
 
-```
+```text
 +----------+----------+----------+
 | prevlen  | encoding | content  |
 +----------+----------+----------+
   1或5字节   1-5字节    变长
-```
+```text
 
 ###### **Part 1: prevlen（前一节点长度）**
 
@@ -292,7 +292,7 @@ if (前一节点长度 < 254 字节) {
 } else {
     prevlen = 5 字节      // 第1字节=0xFE，后4字节存实际长度
 }
-```
+```text
 
 **示例**：
 - 前一节点 10 字节 → `prevlen = 0x0A`（1字节）
@@ -331,7 +331,7 @@ if (前一节点长度 < 254 字节) {
 
 存储 Hash：`{name: "iPhone", price: 5999}`
 
-```
+```text
 偏移 | 字段        | 值                  | 说明
 -----|------------|---------------------|------------------
 0-3  | zlbytes    | 0x0000003F (63)     | 总大小 63 字节
@@ -359,7 +359,7 @@ if (前一节点长度 < 254 字节) {
      | (共 4 字节)
 
 35   | zlend      | 0xFF                | 结束标记
-```
+```text
 
 **内存计算**：10（头）+ 6 + 8 + 7 + 4 + 1（尾）= **36 字节**
 
@@ -373,7 +373,7 @@ while (*ptr != 0xFF) {
     node_len = prevlen_size + encoding_size + content_size;
     ptr += node_len;  // 跳到下一个节点
 }
-```
+```text
 
 **反向遍历（从尾到头）**：
 ```c
@@ -382,14 +382,14 @@ while (ptr > ziplist + 10) {
     prevlen = parse_prevlen(ptr);  // 读取 prevlen
     ptr -= prevlen;  // 跳到前一个节点
 }
-```
+```text
 
 ##### 2.5 连锁更新问题（Cascade Update）
 
 **问题**：插入/删除节点可能导致后续节点的 `prevlen` 字段长度变化。
 
 **场景示例**：
-```
+```text
 初始状态：[253B] [253B] [253B]
           每个节点的 prevlen 占 1 字节
 
@@ -399,7 +399,7 @@ while (ptr > ziplist + 10) {
           当前节点的 prevlen 需从 1 字节扩展为 5 字节
           当前节点长度从 253 → 257 字节
           下一个节点的 prevlen 也需扩展...
-```
+```text
 
 **影响**：
 - **最坏时间复杂度**：O(n²)（所有节点连锁更新）
@@ -426,7 +426,7 @@ content := []byte{0x64, 0x00}  // 小端序 100
 // 0-12 直接编码在 encoding 中
 encoding := 0b11111100  // 0xFC，后4位 1100 = 12
 // 无需 content 字段！
-```
+```text
 
 ##### 2.7 优势与限制
 
@@ -467,7 +467,7 @@ redis> MEMORY USAGE mykey
 # 查看 ziplist 详细信息（DEBUG 命令）
 redis> DEBUG OBJECT mykey
 Value at:0x7f8a9c0a0a00 refcount:1 encoding:ziplist serializedlength:48
-```
+```text
 
 #### 3. hashtable（哈希表）- 性能优化
 
@@ -495,10 +495,10 @@ typedef struct dictEntry {
     void *value;         // 值
     struct dictEntry *next;  // 链表指针（解决冲突）
 } dictEntry;
-```
+```text
 
 
-```
+```text
 dict
 ├── ht[0] (主哈希表)
 │   ├── table[0] → NULL
@@ -507,7 +507,7 @@ dict
 │   └── ...
 └── ht[1] (rehash用)
     └── NULL (未使用)
-```
+```text
 
 #### 4. 渐进式 Rehash 机制（核心）
 
@@ -519,7 +519,7 @@ dict
 
 // 缩容
 负载因子 < 0.1
-```
+```text
 
 **渐进式 Rehash 流程**：
 1. 为 `ht[1]` 分配空间（扩容为 `used * 2` 的最小 2^n）
@@ -533,7 +533,7 @@ dict
 查找：先查 ht[0]，未找到再查 ht[1]
 新增：直接写入 ht[1]（新数据不进旧表）
 删除/更新：在 ht[0] 或 ht[1] 中找到后操作
-```
+```text
 
 **为什么用渐进式？**
 - 避免一次性 rehash 大量数据导致 Redis 阻塞（毫秒级→微秒级）
@@ -545,7 +545,7 @@ dict
 // Redis 使用 MurmurHash2（速度快、分布均匀）
 hash = MurmurHash2(key, len);
 index = hash & dict->ht[x].sizemask;  // 位运算代替取模，性能优
-```
+```text
 
 #### 6. 性能对比
 
@@ -581,7 +581,7 @@ rdb.Expire(ctx, "session:abc123", 30*time.Minute)
 // ❌ 避免：大 Hash（> 10000 字段）
 // 问题：HGETALL 阻塞、集群数据倾斜、持久化慢
 // 解决：拆分为多个小 Hash，如 product:1001:base、product:1001:detail
-```
+```bash
 
 #### 8. Hash vs String(JSON)
 
@@ -614,7 +614,7 @@ redis-cli> MEMORY USAGE product:1001
 # 4. 调整编码阈值（根据业务调整）
 CONFIG SET hash-max-ziplist-entries 1024
 CONFIG SET hash-max-ziplist-value 128
-```
+```text
 
 ---
 
@@ -632,7 +632,7 @@ struct sdshdr {
     int free;       // 剩余可用空间
     char buf[];     // 实际数据
 };
-```
+```text
 
 #### 优势对比
 
@@ -659,7 +659,7 @@ OBJECT ENCODING short  # "embstr"
 # 3. raw 编码（长字符串 > 44 字节）
 SET long "very long string..."
 OBJECT ENCODING long  # "raw"
-```
+```text
 
 **embstr vs raw**：
 - **embstr**：SDS 和 redisObject 在连续内存（一次分配）
@@ -685,7 +685,7 @@ if count > 100 {
 
 // 4. Session 存储
 rdb.Set(ctx, "session:token_abc", userJSON, 30*time.Minute)
-```
+```text
 
 ---
 
@@ -695,13 +695,13 @@ List 在 Redis 3.2 之前使用 **ziplist** 或 **linkedlist**，3.2+ 统一使�
 
 #### quicklist 结构
 
-```
+```text
 quicklist = ziplist 链表
 
 [ziplist1] ⇄ [ziplist2] ⇄ [ziplist3] ⇄ [ziplist4]
     ↓             ↓             ↓             ↓
   [a,b,c]      [d,e,f]      [g,h,i]      [j,k,l]
-```
+```text
 
 **设计思想**：
 - **ziplist**：内存紧凑，但大量数据时性能差
@@ -716,7 +716,7 @@ list-max-ziplist-size -2  # -2 表示 8KB
 
 # 两端不压缩的节点数（LZF 压缩）
 list-compress-depth 0  # 0 表示不压缩
-```
+```text
 
 #### 应用场景
 
@@ -735,7 +735,7 @@ posts := rdb.LRange(ctx, "timeline:user:123", 0, 19)  // 最新 20 条
 
 // 4. 阻塞队列（BRPOP）
 task := rdb.BRPop(ctx, 5*time.Second, "queue:tasks")  // 阻塞等待
-```
+```text
 
 #### 性能对比
 
@@ -766,7 +766,7 @@ typedef struct intset {
     uint32_t length;    // 元素数量
     int8_t contents[];  // 有序数组
 };
-```
+```text
 
 **特点**：
 - ✅ 有序存储，二分查找 O(log n)
@@ -793,7 +793,7 @@ winner := rdb.SPop(ctx, "lottery:pool")  // 随机抽取
 rdb.SAdd(ctx, "post:1001:likes", "user:123")
 isLiked := rdb.SIsMember(ctx, "post:1001:likes", "user:123")
 likeCount := rdb.SCard(ctx, "post:1001:likes")
-```
+```text
 
 ---
 
@@ -808,10 +808,10 @@ ZSet 使用 **ziplist** 或 **skiplist + hashtable** 编码。
 - 单个元素 ≤ 64 字节（`zset-max-ziplist-value`）
 
 **存储格式**：
-```
+```text
 [member1, score1, member2, score2, ...]
 按 score 有序存储
-```
+```text
 
 #### skiplist + hashtable 编码
 
@@ -820,12 +820,12 @@ ZSet 使用 **ziplist** 或 **skiplist + hashtable** 编码。
 - **hashtable**：按 member 查找，O(1) 获取 score
 
 **skiplist 结构**：
-```
+```text
 Level 3:  1 --------------------------------> 100
 Level 2:  1 -------> 50 -------------------> 100
 Level 1:  1 --> 25 > 50 --> 75 ------------> 100
 Level 0:  1 > 10 > 25 > 50 > 75 > 90 > 100
-```
+```text
 
 平均查找复杂度：O(log n)
 
@@ -858,7 +858,7 @@ recommended := rdb.ZRevRangeByScore(ctx, "recommend:user:123", &redis.ZRangeBy{
 // 4. 微信步数排行榜
 rdb.ZAdd(ctx, "steps:2026-01-08", &redis.Z{Score: 10000, Member: "user:123"})
 myRank := rdb.ZRevRank(ctx, "steps:2026-01-08", "user:123")  // 我的排名
-```
+```text
 
 ---
 
@@ -871,7 +871,7 @@ myRank := rdb.ZRevRank(ctx, "steps:2026-01-08", "user:123")  // 我的排名
 ### 缓存容量规划与内存管理
 
 #### 内存淘汰策略
-```
+```text
 - noeviction(默认策略)：对于写请求不再提供服务，直接返回错误（DEL请求和部分特殊请求除外）
 - allkeys-lru：从所有key中使用LRU算法进行淘汰
 - volatile-lru：从设置了过期时间的key中使用LRU算法进行淘汰
@@ -880,7 +880,7 @@ myRank := rdb.ZRevRank(ctx, "steps:2026-01-08", "user:123")  // 我的排名
 - volatile-ttl：在设置了过期时间的key中，根据key的过期时间进行淘汰，越早过期的越优先被淘汰
 LFU算法是Redis4.0里面新加的一种淘汰策略。它的全称是Least Frequently Used
 
-```
+```text
 [redis 内存淘汰策略解析](https://juejin.cn/post/6844903927037558792)
 
 ### 过期键删除策略
@@ -1038,7 +1038,7 @@ Redis 提供两种持久化方案：
 # 什么是大 Key？
 - String: value > 10KB
 - Hash/List/Set/ZSet: 元素数量 > 10000
-```
+```sql
 
 ---
 
@@ -1143,7 +1143,7 @@ SELECT 0
 
 # 测试连接
 PING  # 返回 PONG
-```
+```text
 
 ### 基础命令
 
@@ -1182,7 +1182,7 @@ PING  # 返回 PONG
 3. 主从同步慢，导致从库延迟
 4. 持久化慢（RDB/AOF）
 5. 集群数据倾斜
-```
+```bash
 
 #### 发现大 Key
 
@@ -1199,7 +1199,7 @@ redis-rdb-tools dump.rdb --command memory --bytes 10240
 # 4. 使用 MEMORY USAGE 命令
 redis> MEMORY USAGE mykey
 (integer) 1048576
-```
+```text
 
 #### 解决方案
 
@@ -1222,7 +1222,7 @@ rdb.Set(ctx, key, value, 1*time.Hour)
 
 // 4. 异步删除大 Key
 rdb.Unlink(ctx, largeKey)  // 非阻塞删除
-```
+```text
 
 #### 热 Key 危害
 
@@ -1235,7 +1235,7 @@ QPS > 10000 的 Key（如秒杀商品）
 2. CPU 占用过高
 3. 网络带宽打满
 4. 集群节点负载不均
-```
+```go
 
 #### 解决方案
 
@@ -1270,7 +1270,7 @@ limiter := rate.NewLimiter(10000, 20000)  // 10000 QPS, burst 20000
 if !limiter.Allow() {
     return ErrTooManyRequests
 }
-```
+```text
 
 ---
 
@@ -1315,7 +1315,7 @@ redis> SLOWLOG GET 10
    3) (integer) 50000              # 耗时 50ms
    4) 1) "KEYS"
       2) "*"
-```
+```text
 
 #### 监控告警
 
@@ -1343,7 +1343,7 @@ groups:
       - alert: RedisReplLag
         expr: redis_master_repl_offset - redis_slave_repl_offset > 10000000
         for: 5m
-```
+```go
 
 ---
 
@@ -1376,7 +1376,7 @@ func Unlock(key string, value string) error {
     `
     return rdb.Eval(ctx, script, []string{key}, value).Err()
 }
-```
+```text
 
 **详细实现**：[Redis 分布式锁](https://juejin.cn/post/6936956908007850014)
 
@@ -1388,28 +1388,28 @@ func Unlock(key string, value string) error {
 
 BloomFilter 用于快速判断元素是否存在，**允许误判（False Positive）**，但**不会漏判（No False Negative）**。
 
-```
+```text
 判断结果 = 一定不存在 or 可能存在
-```
+```text
 
 ### 公式
 
-```
+```text
 m = -n*ln(p) / (ln2)²    # 位数组大小
 k = m/n * ln2            # 哈希函数数量
 
 n = 预期元素数量
 p = 误判率
-```
+```text
 
 **示例**：
-```
+```text
 n = 1,000,000（百万数据）
 p = 0.01（1% 误判率）
 
 m = 9,585,059 bits ≈ 1.15 MB
 k = 7 个哈希函数
-```
+```text
 
 ### Redis 实现
 
@@ -1435,7 +1435,7 @@ rdb.Set(ctx, "bloomfilter:users", data, 0)
 data, _ := rdb.Get(ctx, "bloomfilter:users").Bytes()
 bf := bloom.New(1, 1)
 bf.GobDecode(data)
-```
+```go
 
 ### 应用场景
 
@@ -1471,7 +1471,7 @@ func FilterRecommendations(userID string, items []string) []string {
     }
     return result
 }
-```
+```go
 
 ---
 
@@ -1559,7 +1559,7 @@ func ProcessOrders() {
         db.CreateOrder(&order)
     }
 }
-```
+```go
 
 ---
 
@@ -1624,7 +1624,7 @@ func GetNearbyRank(userID string) ([]User, error) {
     
     return rdb.ZRevRangeWithScores(ctx, "rank:realtime", start, end).Result()
 }
-```
+```go
 
 ### 每日排行榜（自动过期）
 
@@ -1639,7 +1639,7 @@ func UpdateDailyScore(userID string, score int64, date time.Time) error {
     _, err := pipe.Exec(ctx)
     return err
 }
-```
+```text
 
 ---
 
@@ -1669,7 +1669,7 @@ pool := &redis.Pool{
         return redis.Dial("tcp", "localhost:6379")
     },
 }
-```
+```text
 
 ---
 
@@ -1690,7 +1690,7 @@ pool := &redis.Pool{
 
 ### 数据结构选择决策树
 
-```
+```text
 需求：存储用户信息
 ├─ 只需要简单的 key-value？
 │  └─ 是 → String（JSON）
@@ -1701,7 +1701,7 @@ pool := &redis.Pool{
 │  ├─ 消息队列 → List（quicklist）
 │  ├─ 去重集合 → Set（intset/hashtable）
 │  └─ 有序集合 → ZSet（ziplist/skiplist）
-```
+```text
 
 ### 缓存设计检查清单
 
@@ -1737,7 +1737,7 @@ pool := &redis.Pool{
 6. 频繁创建连接（性能差）
 7. 无监控告警（问题发现慢）
 8. 不做持久化（数据丢失）
-```
+```text
 
 ---
 

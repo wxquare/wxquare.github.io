@@ -1,14 +1,15 @@
 ---
 title: 中间件 - 存储与 MySQL 数据库
 date: 2024-03-04
+updated: 2026-09-23
 categories:
   - 系统设计基础
 tags:
-- MySQL
-- 数据库
-- 索引
-- 分库分表
-- 存储设计
+  - MySQL
+  - 数据库
+  - 索引
+  - 分库分表
+  - 存储设计
 toc: true
 ---
 
@@ -33,16 +34,16 @@ toc: true
 
 
 ## 数据建模
-https://vertabelo.com/blog/types-data-models/
-https://blog.csdn.net/zhulangfly/article/details/130432124
-https://aws.amazon.com/cn/what-is/data-modeling
-https://www.qlik.com/us/data-modeling
+<https://vertabelo.com/blog/types-data-models/>
+<https://blog.csdn.net/zhulangfly/article/details/130432124>
+<https://aws.amazon.com/cn/what-is/data-modeling>
+<https://www.qlik.com/us/data-modeling>
 
 
 
 ## 基本使用
 ### 如何建表？
-```
+```sql
 CREATE TABLE `hotel_info_tab` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `hotel_id` bigint(20) NOT NULL DEFAULT '0',
@@ -61,7 +62,7 @@ CREATE TABLE `hotel_info_tab` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uidx_hotel_id` (`hotel_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED
-```
+```text
 
 #### 类型选择？
 - 数值类型：int,tinyint,int(10),bigint
@@ -69,15 +70,15 @@ CREATE TABLE `hotel_info_tab` (
 - 浮点数（approximate-value (floating-point)）：float，double，精度缺失
 - 字符串: varchar(256)，char(10)（定长，根据需要使用空格填充)
 - 文本: text,json
-  ```
+  ```text
   JSON 数据类型提供了数据格式验证和以及一些内置函数帮助查询和检索。
   JSON数据类型更适合存储和处理结构化的JSON数据，而TEXT数据类型更适合存储纯文本字符串。如果你需要在数据库中存储和操作JSON数据，并且使用MySQL 5.7及更高版本，那么JSON数据类型是更好的选择。如果你只需要存储普通的文本字符串，而不需要对JSON数据进行特殊处理，那么TEXT数据类型就足够了
-  ```
+  ```text
 - 时间time：建表时通常会带上create_time,update_time，[datetime，timestamp类型](https://segmentfault.com/a/1190000017393602?utm_source=tag-newest)，有时也会用int32和int64的时间戳类型
-   ```
+   ```text
   `create_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `update_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-   ```
+   ```text
    **通常存储的都是时间戳，需要考虑使用mysql服务器的时间还是业务的时间戳，考虑使用mysql时间戳是否会有不利的影响**
 
 #### primary key
@@ -228,7 +229,7 @@ MySQL支持多种存储引擎，每种存储引擎都有其特点和适用场景
   <br/>
   <strong><a href="http://www.slideshare.net/jboner/scalability-availability-stability-patterns/">资料来源：可扩展性、可用性、稳定性、模式</a></strong>
 </p>
-https://www.digitalocean.com/community/tutorials/understanding-database-sharding
+<https://www.digitalocean.com/community/tutorials/understanding-database-sharding>
 
 分片将数据分配在不同的数据库上，使得每个数据库仅管理整个数据集的一个子集。以用户数据库为例，随着用户数量的增加，越来越多的分片会被添加到集群中。
 类似[联合](#联合)的优点，分片可以减少读取和写入流量，减少复制并提高缓存命中率。也减少了索引，通常意味着查询更快，性能更好。如果一个分片出问题，其他的仍能运行，你可以使用某种形式的冗余来防止数据丢失。类似联合，没有只能串行写入的中心化主库，你可以并行写入，提高负载能力。
@@ -283,21 +284,21 @@ https://www.digitalocean.com/community/tutorials/understanding-database-sharding
 - [关于MySQL索引那些事](https://mp.weixin.qq.com/s?__biz=MzUxNTQyOTIxNA==&mid=2247484041&idx=1&sn=76d3bf1772f9e3c796ad3d8a089220fa&chksm=f9b784b8cec00dae3d52318f6cb2bdee39ad975bf79469b72a499ceca1c5d57db5cbbef914ea&token=2025456560&lang=zh_CN#rd)
 - 什么是索引，对索引的理解，索引时一种数据结构，通过增加索引通常可以提高数据库查询的效率，但是为了维护索引结构也会降低数据更新的效率和增加一些存储代价。
 - **索引类型**
-    ```
+    ```text
     普通索引(INDEX)：最基本的索引，没有任何限制
     唯一索引(UNIQUE)：与"普通索引"类似，不同的就是：索引列的值必须唯一，但允许有空值。
     主键索引(PRIMARY)：它 是一种特殊的唯一索引，不允许有空值。
     全文索引(FULLTEXT )：仅可用于 MyISAM 表， 用于在一篇文章中，检索文本信息的, 针对较大的数据，生成全文索引很耗时好空间。
     组合索引：为了更多的提高mysql效率可建立组合索引，遵循”最左前缀“原则。
-    ```
+    ```text
 - **理解主键索引和普通索引、聚簇索引和非聚簇索引、单列索引和联合索引、覆盖索引和回表**
-  ```
+  ```text
       - 主键索引和普通索引。数据和主键索引用B+Tree来组织的，没有主键innodb会生成唯一列，类似于rowid。InnoDB非主键索引的叶子节点存储的是主键
       - 单列索引和联合索引，联合索引的存储结构，联合索引的左前缀原则
       - 聚簇索引和非聚簇索引，聚簇索引数据和索引一起存储，非聚簇索引在无法做到索引覆盖的情况下需要回表
       - 覆盖索引。覆盖索引（covering index）指一个查询语句的执行只用从索引中就能够取得，不必从数据表中读取。也可以称之为实现了索引覆盖。
       如果一个索引包含了（或覆盖了）满足查询语句中字段与条件的数据就叫做覆盖索引
-  ```
+  ```text
 - [索引的数据结构，红黑树、B树、B+树的比较](https://mp.weixin.qq.com/s?__biz=MzUxNTQyOTIxNA==&mid=2247484041&idx=1&sn=76d3bf1772f9e3c796ad3d8a089220fa&chksm=f9b784b8cec00dae3d52318f6cb2bdee39ad975bf79469b72a499ceca1c5d57db5cbbef914ea&token=2025456560&lang=zh_CN#rd)
 - [面试题：InnoDB中一棵B+树能存多少行数据？计算innob的高度](https://cloud.tencent.com/developer/article/1443681)
 
@@ -324,7 +325,7 @@ https://www.digitalocean.com/community/tutorials/understanding-database-sharding
 
 **示例**：
 
-```
+```text
 红黑树（100 万数据）：
                    50
                  /    \
@@ -332,7 +333,7 @@ https://www.digitalocean.com/community/tutorials/understanding-database-sharding
               /  \    /  \
             ...    ...    ...
            ↓ 需要遍历 20 层才能找到叶子节点
-```
+```text
 
 **2. 为什么不用 B 树？**
 
@@ -342,7 +343,7 @@ https://www.digitalocean.com/community/tutorials/understanding-database-sharding
 
 **B 树 vs B+ 树**：
 
-```
+```text
 B 树（每个节点存数据）：
     ┌───────────┐
     │  10  30   │  ← 非叶子节点也存数据
@@ -364,7 +365,7 @@ B+ 树（只有叶子节点存数据）：
   ┌─────┐ → ┌─────┐ → ┌─────┐  ← 叶子节点有序链表
   │ 10  │   │ 20  │   │ 30  │
   └─────┘   └─────┘   └─────┘
-```
+```text
 
 **3. B+ 树的优势**：
 
@@ -412,7 +413,7 @@ B+ 树（只有叶子节点存数据）：
     - https://dev.mysql.com/doc/refman/5.7/en/multiple-column-indexes.html
 
 ### 单值主键索引（无需回表）
-```
+```text
 1. 在主键索引 B+树中查找 id=25
 2. 找到叶子节点，直接读取完整行数据
 3. 返回结果
@@ -426,10 +427,10 @@ B+ 树（只有叶子节点存数据）：
 └─────────────┘
 
 磁盘IO: 2-3次 (树高度决定)
-```
+```text
 
 ### 单值非索引（需要回表）
-```
+```sql
   CREATE TABLE user (
       id BIGINT PRIMARY KEY,
       name VARCHAR(50),
@@ -460,10 +461,10 @@ B+ 树（只有叶子节点存数据）：
 ├────────────────────────────────┤
 │ age=28 → [主键id: 3, 11]       │
 
-```
+```text
 
 ### 联合索引结构(需要回表，也可以不回表)
-```
+```text
                         非叶子节点（索引页）
                               Root
                     ┌─────────────────────┐
@@ -510,7 +511,7 @@ city:  VARCHAR(50) ≈ 50 bytes
 
 两层： 149 * 146 = 2w
 三层： 149 * 2w = 300w
-```
+```text
 
 ## 事务和并发控制
 ### 事务以及事务之间的隔离属性
@@ -546,10 +547,10 @@ MVCC（Multi-Version Concurrency Control）是 MySQL InnoDB 实现**读已提交
 
 每行记录实际包含 3 个隐藏列：
 
-```
+```text
 | DB_TRX_ID（6字节） | DB_ROLL_PTR（7字节） | DB_ROW_ID（6字节） |
 | 最后修改的事务ID    | 回滚指针(指向undo log) | 隐藏主键(无主键时) |
-```
+```sql
 
 **示例**：
 
@@ -565,7 +566,7 @@ CREATE TABLE user (
 | id | name  | age | DB_TRX_ID | DB_ROLL_PTR | DB_ROW_ID |
 |----|-------|-----|-----------|-------------|-----------|
 | 1  | Alice | 25  | 100       | 0x7f3a...  | NULL      |
-```
+```sql
 
 #### 2. undo log 版本链
 
@@ -582,11 +583,11 @@ UPDATE user SET age = 26 WHERE id = 1;  -- trx_id=101
 
 -- 事务 102 修改
 UPDATE user SET age = 27 WHERE id = 1;  -- trx_id=102
-```
+```text
 
 **版本链**：
 
-```
+```text
 当前版本（id=1, age=27, trx_id=102）
     ↓ DB_ROLL_PTR
 undo log（id=1, age=26, trx_id=101）
@@ -594,7 +595,7 @@ undo log（id=1, age=26, trx_id=101）
 undo log（id=1, age=25, trx_id=100）
     ↓
 NULL
-```
+```go
 
 #### 3. ReadView（可见性判断）
 
@@ -634,7 +635,7 @@ func IsVisible(trx_id int64, readView *ReadView) bool {
     // 规则5：否则可见
     return true
 }
-```
+```text
 
 #### RC vs RR 的 ReadView 差异
 
@@ -653,7 +654,7 @@ T3:
 T4: T1: SELECT * FROM user WHERE id = 1; -- 读到 age=25, 创建ReadView(min=100, max=102, m_ids=[100,101])
 T5: T2: UPDATE user SET age = 26 WHERE id = 1; COMMIT; -- trx_id=101 提交
 T6: T1: SELECT * FROM user WHERE id = 1; -- 仍然读到 age=25（因为ReadView不变）
-```
+```sql
 
 **面试追问：为什么 T6 还是读到 age=25？**
 - T1 的 ReadView 在 T4 时创建，`m_ids=[100,101]`
@@ -673,7 +674,7 @@ SELECT * FROM user WHERE age > 20;  -- 查到 3 条记录
 -- 此时事务 B 插入一条 age=22 的记录并提交
 SELECT * FROM user WHERE age > 20;  -- 查到 4 条记录（幻读！）
 COMMIT;
-```
+```sql
 
 **Next-Key Lock = Record Lock + Gap Lock**：
 - **Record Lock**：锁定记录本身
@@ -689,7 +690,7 @@ SELECT * FROM user WHERE age = 20 FOR UPDATE;
 -- Record Lock：age=20
 -- Gap Lock：(10, 20) 和 (20, 30)
 -- 即 Next-Key Lock：(10, 30]
-```
+```sql
 
 **面试话术**：
 > RR 隔离级别通过 MVCC 解决**不可重复读**，通过 **Next-Key Lock** 解决**幻读**。
@@ -714,7 +715,7 @@ SELECT * FROM user WHERE age = 20 FOR UPDATE;
     SELECT * FROM orders WHERE order_id = 'ORD123' LOCK IN SHARE MODE;
     -- 或 MySQL 8.0+ 新语法
     SELECT * FROM orders WHERE order_id = 'ORD123' FOR SHARE;
-  ```
+  ```sql
 
 #### 注意悲观锁的范围
 ```sql
@@ -726,10 +727,10 @@ SELECT * FROM user WHERE age = 20 FOR UPDATE;
    
    -- 无索引:全表锁
    SELECT * FROM orders WHERE remark = 'test' FOR UPDATE; -- 如果remark无索引
-```
+```text
 
 #### 注意加锁顺序，避免死锁风险
-```
+```go
    // ❌ 容易死锁的写法
    // 事务1: 锁定商品A -> 锁定商品B
    // 事务2: 锁定商品B -> 锁定商品A
@@ -750,15 +751,15 @@ SELECT * FROM user WHERE age = 20 FOR UPDATE;
        }
        return nil
    }
-```
+```text
 #### 注意索引实效导致锁表
-```
+```sql
    -- ❌ 危险:如果product_sku没有索引,会锁整张表
    SELECT * FROM inventory WHERE product_sku = 'SKU123' FOR UPDATE;
    
    -- ✅ 正确:确保WHERE条件使用索引
    SELECT * FROM inventory WHERE product_id = 1001 FOR UPDATE; -- product_id有索引
-```
+```go
 
 #### 账户扣款悲观锁案例（user1->user2)
   ```Go
@@ -807,11 +808,11 @@ SELECT * FROM user WHERE age = 20 FOR UPDATE;
        
        return tx.Commit()
    }
-  ```
+  ```text
 
 
 #### 锁等待监控
-```
+```sql
    -- 查看当前锁等待情况
    SELECT * FROM information_schema.innodb_locks;
    SELECT * FROM information_schema.innodb_lock_waits;
@@ -820,7 +821,7 @@ SELECT * FROM user WHERE age = 20 FOR UPDATE;
    -- 设置锁等待超时
    SET innodb_lock_wait_timeout = 5; -- 默认50秒
 
-```
+```sql
 
 
 #### 其它
@@ -858,7 +859,7 @@ WHERE id = 1001 AND version = 5;  -- 当前版本号是5
 -- 检查 affected_rows
 -- affected_rows = 0 表示更新失败(版本号已变化)
 -- affected_rows = 1 表示更新成功
-```
+```text
 
 #### 必须检查 affected_rows
 ```sql
@@ -878,7 +879,7 @@ WHERE id = 1001 AND version = 5;  -- 当前版本号是5
    if affected == 0 {
        return errors.New("version conflict or record not found")
    }
-```
+```text
 
 #### 避免ABA 问题，版本号不能回退
 ```sql
@@ -886,7 +887,7 @@ WHERE id = 1001 AND version = 5;  -- 当前版本号是5
    // 解决方案1: 不允许版本号回退
    // 解决方案2: 使用时间戳 + 版本号
    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-```
+```text
 
 
 
@@ -917,7 +918,7 @@ WHERE id = 1001 AND version = 5;  -- 当前版本号是5
  
  ## 数据库调优
  ### mysql 架构全景图
-  ```
+  ```text
   ┌─────────────────────────────────────────────────────────────────┐
 │                        客户端/应用层                              │
 │        (MySQL Client, JDBC, PHP, Python, Go等)                  │
@@ -1034,10 +1035,10 @@ WHERE id = 1001 AND version = 5;  -- 当前版本号是5
 │  └──────────────────────────────────────────────────────┘     │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
-```
+```text
  
  ### 大表的分页、排序，where 过滤 深翻页问题
-```
+```text
 ┌──────────────┬─────────────────┬──────────────────┬────────────────┐
 │    功能      │    执行层       │    性能影响      │    优化建议     │
 ├──────────────┼─────────────────┼──────────────────┼────────────────┤
@@ -1055,7 +1056,7 @@ WHERE id = 1001 AND version = 5;  -- 当前版本号是5
 │ LIMIT分页    │ Server层        │ 深分页: 低        │ • 延迟关联      │
 │              │                 │ (OFFSET越大越慢)  │ • 避免深度分页  │
 └──────────────┴─────────────────┴──────────────────┴────────────────┘
-```
+```text
  - where：当where条件有index时，innodb会根据index过滤，否则返回全表数据由server过滤
 
  - 排序：server。order by 
@@ -1064,7 +1065,7 @@ WHERE id = 1001 AND version = 5;  -- 当前版本号是5
 
 
  #### 无索引，全表扫描，排序成本分析
- ```
+ ```sql
 SELECT * FROM employees 
 ORDER BY salary DESC 
 LIMIT 10 OFFSET 100000;
@@ -1131,9 +1132,9 @@ LIMIT 10 OFFSET 100000;
 │ ❌ 主要瓶颈是排序，占总成本的 85-95%                            │
 │                                                                │
 └────────────────────────────────────────────────────────────────┘
- ```
+ ```text
 
-```
+```sql
 方案1:
 -- SQL语句
 SELECT * FROM employees 
@@ -1237,12 +1238,12 @@ LIMIT 10;
 │ 推荐度           │ ⭐    │ ⭐⭐  │ ⭐⭐⭐ │ ⭐⭐⭐ │ ⭐⭐⭐ │ ⭐⭐⭐⭐⭐  🏆    │
 │                                                                              │
 └──────────────────────────────────────────────────────────────────────────────┘
-```
+```text
 
 
 #### innodb 数据读取策略
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                    InnoDB 读取流程                                │
 ├─────────────────────────────────────────────────────────────────┤
@@ -1310,11 +1311,11 @@ Cache Miss: 5-10ms (HDD), 0.1ms (SSD)  ❌
 命中率 >99% 的重要性:
 99%命中率:   每100次读取，1次磁盘IO
 90%命中率:   每100次读取，10次磁盘IO  ← 慢10倍！
-```
+```text
 
 #### innodb 写入策略
 
-```
+```text
 
 ┌─────────────────────────────────────────────────────────────────┐
 │                    InnoDB 写入流程                                │
@@ -1416,7 +1417,7 @@ Cache Miss: 5-10ms (HDD), 0.1ms (SSD)  ❌
 3. ✅ 脏页刷盘是异步的，不阻塞事务
 4. 🔑 WAL机制：先写日志，后刷数据页
 
-```
+```text
 
 
 #### undo log 和 Redo log
@@ -1475,11 +1476,11 @@ Cache Miss: 5-10ms (HDD), 0.1ms (SSD)  ❌
     - 要使用好连接池，除了关注客户端的配置还需要关注mysql服务端的配置
     - 服务端最大连接数量：show variables like '%connection%'; max_connections
     - 服务端连接最大生命周期：show variables like '%wait_timeout%'
-      ```
+      ```text
 	      最大空闲连接数 =（QPS*请求平均耗时）/ 应用节点个数
 	      最大连接数 =（QPS*请求最大耗时）/ 应用节点个数
               客户端连接maxlifetime < 数据库服务端设置的connection_max_lifttime
-      ```
+      ```text
 
 - **慢sql优化**
     - 慢查询问题，查看慢查询设置的阈值。show variables like '%long_query%';
@@ -1487,7 +1488,7 @@ Cache Miss: 5-10ms (HDD), 0.1ms (SSD)  ❌
     - 分析数据sql的结构是否加载了不必要的字段和数据
     - [深度分页查询优化](https://juejin.cn/post/7012016858379321358)
     - 子查询和连接查询
-     ```
+     ```text
        	explain select * from test_xxxx_tab txt order by id limit 10000,10;
 	explain SELECT * from test_xxxx_tab txt where id >= (select id from test_xxxx_tab txt order by id limit 10,1) limit 10;
        id列：在复杂的查询语句中包含多个查询使用id标示
@@ -1498,9 +1499,9 @@ Cache Miss: 5-10ms (HDD), 0.1ms (SSD)  ❌
        key列：显示mysql决定使用哪个索引来优化对该表的访问
        key_len：显示在索引里使用的字节数
        rows：为了找到所需要的行而需要读取的行数
-     ```
+     ```text
    - 慢查询日志样例子
-   ```
+   ```sql
    	# Time: 2022-05-10T10:15:32.123456Z
     # User@Host: myuser[192.168.0.1] @ localhost []  Id: 12345
     # Query_time: 3.456789  Lock_time: 0.123456 Rows_sent: 10  Rows_examined: 100000
@@ -1517,7 +1518,7 @@ Cache Miss: 5-10ms (HDD), 0.1ms (SSD)  ❌
     扫描行数（Rows_examined）: 在执行查询过程中扫描的行数。
     时间戳（SET timestamp）: 查询开始执行的时间戳。
     查询语句（SELECT * FROM orders WHERE customer_id = 1001 ORDER BY order_date DESC LIMIT 10）: 实际执行的查询语句
-   ```
+   ```text
 - **index优化** 
     - 会查看sql执行计划explain
     - 关注：type、const、ref
@@ -1549,16 +1550,16 @@ Cache Miss: 5-10ms (HDD), 0.1ms (SSD)  ❌
 
 
 - **关键配置查看**
-    ```
+    ```text
     show global variables;
     show variables like '%max_connection%'; 查看最大连接数
     show status like  'Threads%';
     show processlist;
     show variables like '%connection%';
-    ```
+    ```sql
 
 - 存储空间information_schema
-  ```
+  ```sql
     -- desc information_schema.tables;
     -- 查看 MySQL「所有库」的容量大小
     SELECT table_schema AS '数据库', SUM(table_rows) AS '记录数', 
@@ -1582,7 +1583,7 @@ Cache Miss: 5-10ms (HDD), 0.1ms (SSD)  ❌
       table_schema='<数据库名>'
     order by 
       data_length desc, index_length desc;
-  ```
+  ```text
   - [performance_schema](https://www.cnblogs.com/Courage129/p/14188422.html)
 
 
@@ -1592,7 +1593,7 @@ Cache Miss: 5-10ms (HDD), 0.1ms (SSD)  ❌
 	- 灵活性：多次单表查询+Service组装方式更加灵活，可以根据具体需求灵活组装和调整查询逻辑，适应各种复杂的查询需求。
 	- 可扩展性：通过多次单表查询和Service组装，可以将查询逻辑分解为多个简单的查询，有助于代码的模块化和可扩展性，方便后续的维护和修改。
 	- 缓存利用：多次单表查询+Service组装方式可以更好地利用缓存，针对每个单表查询的结果进行缓存，提高查询性能
-  https://www.zhihu.com/question/68258877
+  <https://www.zhihu.com/question/68258877>
 
 ## mysql binlog
 - https://zhuanlan.zhihu.com/p/33504555
@@ -1624,14 +1625,14 @@ Cache Miss: 5-10ms (HDD), 0.1ms (SSD)  ❌
         },
           ]
       }' where id = 2;
-	 ```
+	 ```sql
    - truncate table 属于ddl语句，需要ddl的权限
    - mysqldump 库表结构
-	```
+	```sql
       mysqldump --column-statistics=0 -hhost -PPort -uuser_name -ppassword --databases -d db_name --skip-lock-tables --skip-add-drop-table --set-gtid-purged=OFF | sed 's/ AUTO_INCREMENT=	[0-9]*//g' > db.sql
-     ```
+     ```text
 	- 批量更新
-       	```
+```sql
 	UPDATE employees
 	SET salary = CASE
 	    WHEN grade = 'A' THEN salary * 1.1
@@ -1640,7 +1641,7 @@ Cache Miss: 5-10ms (HDD), 0.1ms (SSD)  ❌
 	    ELSE salary
 	END
 	WHERE department = 'IT';
-	```
+	```text
 
 ## 推荐阅读:
 - [MySQL索引那些事](https://mp.weixin.qq.com/s?__biz=MzUxNTQyOTIxNA==&mid=2247484041&idx=1&sn=76d3bf1772f9e3c796ad3d8a089220fa&chksm=f9b784b8cec00dae3d52318f6cb2bdee39ad975bf79469b72a499ceca1c5d57db5cbbef914ea&token=2025456560&lang=zh_CN#rd)
@@ -1656,4 +1657,3 @@ Cache Miss: 5-10ms (HDD), 0.1ms (SSD)  ❌
 - [Redis和mysql数据怎么保持数据一致的？](https://coolshell.cn/articles/17416.html) 
 - [MySQL数据库面试题（2020最新版）](https://thinkwon.blog.csdn.net/article/details/104778621)
 - https://cyborg2077.github.io/2023/05/06/InQMySQL/
-

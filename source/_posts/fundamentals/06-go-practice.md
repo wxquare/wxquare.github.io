@@ -1,14 +1,15 @@
 ---
 title: 编程语言：Go 实践
 date: 2024-03-06
+updated: 2026-09-23
 categories:
   - 计算机基础
 tags:
-- golang
-- 并发
-- GMP
-- 内存管理
-- 面试
+  - golang
+  - 并发
+  - GMP
+  - 内存管理
+  - 面试
 toc: true
 ---
 
@@ -155,7 +156,7 @@ Overall, the choice of programming language depends on the project requirements,
 - Go 语言推荐使用 recover 函数将内部异常转为错误处理，这使得用户可以真正的关心业务相关的错误处理。
 - 在Go服务中通常需要自定义粗错误类型，最好能有效区分业务逻辑错误和系统错误，同时需要捕获panic，将panic转化为error，避免某个错误影响server重启
 - panic 时需要保留runtime stack
-```
+```text
   defer func() {
 		if x := recover(); x != nil {
 			panicReason := fmt.Sprintf("I'm panic because of: %v\n", x)
@@ -165,7 +166,7 @@ Overall, the choice of programming language depends on the project requirements,
 			logger.LogErrorf("%s\n", string(stk[:stkLen]))
 		}
 	}()
- ```
+ ```go
 
 ## Go channel通道
 ### channel
@@ -188,7 +189,7 @@ Overall, the choice of programming language depends on the project requirements,
 6. 通道并非用来取代锁的，通道和锁有各自不同的使用场景，通道倾向于解决逻辑层次的并发处理架构，而锁则用来保护数据的安全性。
 7. channel队列本质上还是使用锁同步机制，单次获取更多的数据（批处理），减少收发的次数，可改善因为频繁加锁造成的性能问题。
 8. channel可能会导致goroutine leak问题，是指goroutine处于发送或者接收阻塞状态，但一直未被唤醒，垃圾回收器并不收集此类资源，造成资源的泄露。    
-```
+```go
 		    func main() {
 		    	done := make(chan struct{})
 		    	s := make(chan int)
@@ -234,7 +235,7 @@ Overall, the choice of programming language depends on the project requirements,
 		    	<-(chan struct{})(nil)
 		    }
 
-```
+```go
 
 ## Go并发模型  (Goroutine/channel/GMP)
 ### what's CSP?
@@ -413,7 +414,7 @@ func main() {
     fmt.Println(c()) // Output: 3
 }
 
-```
+```go
 
 ### Implementing Callbacks
 ```Go
@@ -439,7 +440,7 @@ func main() {
     forEach(numbers, callback)
 }
 
-```
+```go
 
 ### Fibonacci
 
@@ -473,7 +474,7 @@ func main() {
         fmt.Println(fib(i))
     }
 }
-```
+```go
 
 
 ### Factorial
@@ -493,7 +494,7 @@ func main() {
     fmt.Println(factorial(5)) // Output: 120
 }
 
-```
+```go
 
 
 ### Event Handling
@@ -539,7 +540,7 @@ func main() {
 	fmt.Scanln()
 }
 
-```
+```bash
 
 
 
@@ -618,7 +619,7 @@ sync.Pool的使用非常简单，它具有以下几个特点：
 sync.Pool的使用非常简单，定义一个Pool对象池时，需要提供一个New函数，表示当池中没有对象时，如何生成对象。对象池Pool提供Get和Put函数从Pool中取和存放对象。
 
 下面有一个简单的实例，直接运行是会打印两次“new an object”,注释掉runtime.GC(),发现只会调用一次New函数，表示实现了对象重用。
-```
+```go
 	package main
 	
 	import (
@@ -642,7 +643,7 @@ sync.Pool的使用非常简单，定义一个Pool对象池时，需要提供一�
 		b := p.Get().(int)
 		fmt.Println(a, b)
 	}
-```
+```go
 ###  sync.Pool 如何支持多协程共享？
 sync.Pool支持多协程共享，为了尽量减少竞争和加锁的操作，golang在设计的时候为每个P（核）都分配了一个子池，每个子池包含一个私有对象和共享列表。 私有对象只有对应的和核P能够访问，而共享列表是与其它P共享的。  
 
@@ -672,7 +673,7 @@ sync.Pool支持多协程共享，为了尽量减少竞争和加锁的操作，go
 golang中连接池通常利用channel的缓存特性实现。当需要连接时，从channel中获取，如果池中没有连接时，将阻塞或者新建连接，新建连接的数量不能超过某个限制。
 
 [https://github.com/goctx/generic-pool](https://github.com/goctx/generic-pool)基于channel提供了一个通用连接池的实现
-```
+```go
 	package pool
 	
 	import (
@@ -811,7 +812,7 @@ golang中连接池通常利用channel的缓存特性实现。当需要连接时�
 		p.Unlock()
 		return nil
 	}
-```
+```text
 
 
 
@@ -823,7 +824,7 @@ golang中连接池通常利用channel的缓存特性实现。当需要连接时�
 5. 对unsafe.Pointer和uintptr两种类型单独解释两句：  
 	- unsafe.Pointer是一个指针类型，指向的值不能被解析，类似于C/C++里面的(void *)，只说明这是一个指针，但是指向什么的不知道。
 	- uintptr 是一个整数类型，这个整数的宽度足以用来存储一个指针类型数据；那既然是整数类类型，当然就可以对其进行运算了
-```      
+```go
     package main
     import (
     	"fmt"
@@ -852,10 +853,10 @@ golang中连接池通常利用channel的缓存特性实现。当需要连接时�
     	fmt.Println(*px, *pf32, *pi32)
     
     }
-```
+```text
 ### nil
 引用类型声明而没有初始化赋值时，其值为nil。golang需要经常判断nil,防止出现panic错误。  
-```
+```go
     bool  -> false  
     numbers -> 0 
     string-> ""  
@@ -893,14 +894,14 @@ golang中连接池通常利用channel的缓存特性实现。当需要连接时�
     	// var c chan int
     	// close(c)  panic
     }
-```
+```text
 
 
 ## 编译器优化和逃逸分析
 ### 逃逸分析（Escape analysis）
 
 	golang在内存分配的时候没有堆(heap)和栈(stack)的区别，由编译器决定是否需要将对象逃逸到堆中。例如：
-```
+```go
 		func Sum() int {
 		const count = 100
 		numbers := make([]int, count)
@@ -919,22 +920,22 @@ golang中连接池通常利用channel的缓存特性实现。当需要连接时�
 		answer := Sum()
 		fmt.Println(answer)
 	}
-```
+```text
 
-	```
+	```text
 		$ go build -gcflags=-m test_esc.go 
 		command-line-arguments
 		./test_esc.go:9:17: Sum make([]int, count) does not escape
 		./test_esc.go:23:13: answer escapes to heap
 		./test_esc.go:23:13: main ... argument does not escape
-	```
+	```text
 
 ### 内敛（Inlining）
    了解C/C++的应该知道内敛，golang编译器同样支持函数内敛，对于较短且重复调用的函数可以考虑使用内敛
 
 ### Dead code elimination/Branch elimination
 	编译器会将代码中一些无用的分支进行优化，分支判断，提高效率。例如下面一段代码由于a和b是常量，编译器也可以推导出Max(a,b)，因此最终F函数为空
-```	
+```go
 	func Max(a, b int) int {
 		if a > b {
 			return a
@@ -948,7 +949,7 @@ golang中连接池通常利用channel的缓存特性实现。当需要连接时�
 			panic(b)
 		}
 	}
-```
+```text
 常用的编译器选项： go build -gcflags="-lN" xxx.go
 - "-S",编译时查看汇编代码
 - "-l",关闭内敛优化
@@ -996,7 +997,7 @@ Breakpoint 1 at 0x452110: file /usr/local/go/src/runtime/rt0_linux_amd64.s, line
 (gdb) b _rt0_amd64  
 (gdb) b b runtime.rt0_go  
 至此，由汇编代码针对特定平台实现的引导过程就全部完成了，后续的代码都是用Go实现的。分别实现命令行参数初始化，内存分配器初始化、垃圾回收器初始化、协程调度器的初始化等功能。
-```
+```text
 	CALL	runtime·args(SB)
 	CALL	runtime·osinit(SB)
 	CALL	runtime·schedinit(SB)
@@ -1004,7 +1005,7 @@ Breakpoint 1 at 0x452110: file /usr/local/go/src/runtime/rt0_linux_amd64.s, line
 	CALL	runtime·newproc(SB)
 
 	CALL	runtime·mstart(SB)
-```
+```go
 
 ### 特殊的init函数
 1. init函数先于main函数自动执行，不能被其他函数调用
@@ -1067,7 +1068,7 @@ func stackinit() {
 	}
 }
 
-```
+```text
 
 ### newproc 需要一个初始的stack
 ```Go
@@ -1077,7 +1078,7 @@ func stackinit() {
 			gp.stack = stackalloc(startingStackSize)
 		})
 		gp.stackguard0 = gp.stack.lo + _StackGuard
-```
+```go
 goroutine 运行时需要把stack 地址传给m
 
 ### 
@@ -1128,7 +1129,7 @@ dave它通过几个case非常清晰的介绍了golang性能分析与优化的技
 3. Benchamark时输出profile数据：go test -v -bench=. -memprofile=mem.out -cpuprofile=cpu.out
 4. 使用go tool pprof xxx.test mem.out 进行交互式查看，例如top5。同理，可以分析其它profile文件。  
 
-```
+```text
 (pprof) top5
 Showing nodes accounting for 1994.93MB, 63.62% of 3135.71MB total
 Dropped 28 nodes (cum <= 15.68MB)
@@ -1143,7 +1144,7 @@ Showing top 5 nodes out of 46
 - flat：仅当前函数，不包括它调用的其它函数
 - cum： 当前函数调用堆栈的累计
 - sum： 列表前几行所占百分比的总和
-```
+```go
 ### 实际操作
 - 登录容器，查看pprof监听的端口,例如
 - curl -o cpu.out http://localhost:6606/debug/pprof/profile。获取pprof文件数据
@@ -1220,7 +1221,7 @@ Showing top 5 nodes out of 46
     	sync3()
     	time.Sleep(10 * time.Second)
     }
-```
+```go
 
 
 
@@ -1308,7 +1309,7 @@ func main() {
 	produce()
 	fmt.Printf("%d,%d\n", consumer(), atomic.LoadInt32(&AtomicSum))
 }
-```
+```go
 
 
 ## Go 实践：interface/base/derive
@@ -1366,9 +1367,9 @@ func main() {
 	s := NewAService("AService", b)
 	foo(s)
 }
-```
+```text
 ## Go实践：设计模式的实现
-https://refactoringguru.cn/design-patterns/chain-of-responsibility/go/example
+<https://refactoringguru.cn/design-patterns/chain-of-responsibility/go/example>
 
 
 ## Go 1.12 压测后rss内存一直无法释放问题

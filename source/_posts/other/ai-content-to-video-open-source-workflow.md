@@ -2,7 +2,7 @@
 title: '从内容到短视频：用开源工具生成 3 分钟 AI 教程视频'
 date: '2026-05-08'
 categories:
-  - other
+  - AI
 tags:
   - ai-video
   - open-source
@@ -15,7 +15,16 @@ tags:
 
 这篇文章记录完整过程：如何从一段书稿内容出发，生成视频脚本、10 张竖屏图文页、AI 配音、Kdenlive 工程文件，并最终导出 MP4。
 
-这套视频脚本和素材已迁移到通用视频制作项目 `/Users/xianguiwang/Projects/video-production/`，本文中的命令从该仓库根目录执行。
+本文是一次 macOS 环境下的实践复盘。脚本和素材已迁移到独立的视频制作项目；由于该项目不在本文仓库中，下面的路径和命令需要按读者自己的项目目录替换，不能直接假设 `/Users/xianguiwang/Projects/video-production/` 存在。
+
+## 环境与验收标准
+
+- macOS；Node.js 20+；Python 3.11；Piper TTS；Kdenlive；`rsvg-convert`；`ffmpeg` 和 `ffprobe`。
+- 输入：一章 Markdown 书稿、一份视频脚本和一段可公开使用的配音模型。
+- 输出：1080×1920 的 PNG 页面、可编辑的 Kdenlive 工程、带音频的 MP4。
+- 验收：画面比例正确、音频轨存在且不是静音、画面和口播时长对齐、抽帧无文字溢出。
+
+如果没有独立脚本仓库，这篇文章只能作为流程记录；要做成可复现教程，需要同时公开生成脚本、最小输入样例和固定版本。
 
 ## 一、目标：把文章变成可发布的视频资产
 
@@ -110,7 +119,7 @@ AI 配音：Piper TTS
 2:45-3:00  总结：知道什么时候不让模型单独决定
 ```
 
-口播稿建议控制在 800-900 个中文字。中文教程类视频如果语速适中，通常 240-280 字/分钟比较自然。
+本次 3 分钟成片的口播字数应由实际音频时长倒推。以 240—280 字/分钟估算，纯口播约为 720—840 字；停顿、片头和片尾会进一步减少可用字数，因此不要把 800—900 字当作固定标准。
 
 ## 四、第二步：用 SVG 生成 10 张竖屏图文页
 
@@ -140,7 +149,7 @@ video-assets/01-llm-boundaries-3min/llm-boundaries-image-only.mlt
 video-assets/01-llm-boundaries-3min/llm-boundaries-image-only.kdenlive
 ```
 
-每张 PNG 都是 1080x1920，适合抖音、视频号、小红书、B 站竖屏等场景。
+每张 PNG 都是 1080×1920，适合常见竖屏发布场景；不同平台的封面安全区、码率和时长限制仍需单独核对。
 
 可以用下面命令检查图片尺寸：
 
@@ -152,38 +161,41 @@ file video-assets/01-llm-boundaries-3min/png/*.png
 
 配音这一步，我先选了 Piper TTS。它的优点是轻量、本地、开源，适合快速跑通流程；缺点是中文自然度不如 GPT-SoVITS、F5-TTS 这类更复杂的方案。
 
-先创建 Python 虚拟环境：
+先设置项目目录和 Python 虚拟环境路径（下面命令使用 macOS/zsh 语法）：
 
 ```bash
-/usr/local/bin/python3.11 -m venv /private/tmp/piper-tts-venv
+export VIDEO_PROJECT="$PWD"
+export PIPER_VENV="$VIDEO_PROJECT/.venv-piper"
+python3.11 -m venv "$PIPER_VENV"
 ```
 
 安装 Piper：
 
 ```bash
-/private/tmp/piper-tts-venv/bin/python -m pip install piper-tts
+"$PIPER_VENV/bin/python" -m pip install piper-tts
 ```
 
 准备模型目录：
 
 ```bash
-mkdir -p /private/tmp/piper-models/zh_CN-huayan-medium
+export PIPER_MODEL_DIR="$VIDEO_PROJECT/models/zh_CN-huayan-medium"
+mkdir -p "$PIPER_MODEL_DIR"
 ```
 
 下载中文 voice model 和配置文件：
 
 ```bash
 curl -L "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/zh/zh_CN/huayan/medium/zh_CN-huayan-medium.onnx?download=true" \
-  -o /private/tmp/piper-models/zh_CN-huayan-medium/zh_CN-huayan-medium.onnx
+  -o "$PIPER_MODEL_DIR/zh_CN-huayan-medium.onnx"
 
 curl -L "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/zh/zh_CN/huayan/medium/zh_CN-huayan-medium.onnx.json?download=true" \
-  -o /private/tmp/piper-models/zh_CN-huayan-medium/zh_CN-huayan-medium.onnx.json
+  -o "$PIPER_MODEL_DIR/zh_CN-huayan-medium.onnx.json"
 ```
 
 检查 Piper 是否可用：
 
 ```bash
-/private/tmp/piper-tts-venv/bin/piper --help
+"$PIPER_VENV/bin/piper" --help
 ```
 
 ## 六、第四步：从 Markdown 抽出口播稿
@@ -207,9 +219,9 @@ video-assets/01-llm-boundaries-3min/voiceover/voiceover.txt
 基础版命令如下：
 
 ```bash
-/private/tmp/piper-tts-venv/bin/piper \
-  -m /private/tmp/piper-models/zh_CN-huayan-medium/zh_CN-huayan-medium.onnx \
-  -c /private/tmp/piper-models/zh_CN-huayan-medium/zh_CN-huayan-medium.onnx.json \
+"$PIPER_VENV/bin/piper" \
+  -m "$PIPER_MODEL_DIR/zh_CN-huayan-medium.onnx" \
+  -c "$PIPER_MODEL_DIR/zh_CN-huayan-medium.onnx.json" \
   -i video-assets/01-llm-boundaries-3min/voiceover/voiceover.txt \
   -f video-assets/01-llm-boundaries-3min/voiceover/voiceover.wav \
   --sentence-silence 0.25
@@ -218,9 +230,9 @@ video-assets/01-llm-boundaries-3min/voiceover/voiceover.txt
 这版能生成成功，但语速偏快，时长约 144 秒。为了让它接近 3 分钟，我加大了 `--length-scale` 和 `--sentence-silence`：
 
 ```bash
-/private/tmp/piper-tts-venv/bin/piper \
-  -m /private/tmp/piper-models/zh_CN-huayan-medium/zh_CN-huayan-medium.onnx \
-  -c /private/tmp/piper-models/zh_CN-huayan-medium/zh_CN-huayan-medium.onnx.json \
+"$PIPER_VENV/bin/piper" \
+  -m "$PIPER_MODEL_DIR/zh_CN-huayan-medium.onnx" \
+  -c "$PIPER_MODEL_DIR/zh_CN-huayan-medium.onnx.json" \
   -i video-assets/01-llm-boundaries-3min/voiceover/voiceover.txt \
   -f video-assets/01-llm-boundaries-3min/voiceover/voiceover-180s.wav \
   --length-scale 1.55 \
@@ -276,13 +288,15 @@ open -a /Applications/kdenlive.app \
 
 ## 九、第七步：用 melt 渲染视频
 
-Kdenlive 的 macOS 应用内部自带 `melt`、`ffmpeg` 和 `ffprobe`：
+Kdenlive 的 macOS 应用通常自带 `melt`、`ffmpeg` 和 `ffprobe`。不同安装方式路径不同，先设置三个变量，再执行后续命令：
 
 ```text
-/Applications/kdenlive.app/Contents/MacOS/melt
-/Applications/kdenlive.app/Contents/MacOS/ffmpeg
-/Applications/kdenlive.app/Contents/MacOS/ffprobe
+export MELT_BIN="/Applications/kdenlive.app/Contents/MacOS/melt"
+export FFMPEG_BIN="/Applications/kdenlive.app/Contents/MacOS/ffmpeg"
+export FFPROBE_BIN="/Applications/kdenlive.app/Contents/MacOS/ffprobe"
 ```
+
+如果路径不同，用 `which melt`、`which ffmpeg` 或 Kdenlive 的安装目录替换变量值。
 
 先创建输出目录：
 
@@ -293,7 +307,7 @@ mkdir -p video-assets/01-llm-boundaries-3min/output
 直接调用 `melt` 渲染 MLT 文件：
 
 ```bash
-/Applications/kdenlive.app/Contents/MacOS/melt \
+"$MELT_BIN" \
   video-assets/01-llm-boundaries-3min/llm-boundaries-with-audio.mlt \
   -consumer avformat:video-assets/01-llm-boundaries-3min/output/llm-boundaries-3min.mp4 \
   vcodec=libx264 \
@@ -323,7 +337,7 @@ max_volume: -91.0 dB
 解决方案是保留视频轨，重新把 Piper 生成的 WAV 封装进去：
 
 ```bash
-/Applications/kdenlive.app/Contents/MacOS/ffmpeg \
+"$FFMPEG_BIN" \
   -y \
   -i video-assets/01-llm-boundaries-3min/output/llm-boundaries-3min.mp4 \
   -i video-assets/01-llm-boundaries-3min/voiceover/voiceover-180s.wav \
@@ -359,7 +373,7 @@ video-assets/01-llm-boundaries-3min/output/llm-boundaries-3min.mp4
 查看视频和音频轨：
 
 ```bash
-/Applications/kdenlive.app/Contents/MacOS/ffprobe \
+"$FFPROBE_BIN" \
   -v error \
   -show_entries format=duration,size \
   -show_streams \
@@ -380,7 +394,7 @@ video-assets/01-llm-boundaries-3min/output/llm-boundaries-3min.mp4
 检查音量：
 
 ```bash
-/Applications/kdenlive.app/Contents/MacOS/ffmpeg \
+"$FFMPEG_BIN" \
   -i video-assets/01-llm-boundaries-3min/output/llm-boundaries-3min-final.mp4 \
   -af volumedetect \
   -vn -sn -dn \
@@ -399,7 +413,7 @@ max_volume: -0.1 dB
 也可以抽一帧检查画面：
 
 ```bash
-/Applications/kdenlive.app/Contents/MacOS/ffmpeg \
+"$FFMPEG_BIN" \
   -y \
   -ss 00:02:10 \
   -i video-assets/01-llm-boundaries-3min/output/llm-boundaries-3min-final.mp4 \
@@ -418,6 +432,8 @@ file video-assets/01-llm-boundaries-3min/output/preview-02m10s.png
 ```text
 PNG image data, 1080 x 1920
 ```
+
+除了检查总时长，还应抽查片头、转场、重点术语和片尾：口播进入下一段时，画面是否已经切换；字幕是否超出安全区；最后一页是否被音频截断。总时长一致不能证明每个分镜都同步。
 
 ## 十二、常见问题
 

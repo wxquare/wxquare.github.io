@@ -1,13 +1,14 @@
 ---
 title: 编程语言：C/C++ 实践
 date: 2024-03-05
+updated: 2026-09-23
 categories:
   - 计算机基础
 tags:
-- C++
-- STL
-- 内存管理
-- 面试
+  - C++
+  - STL
+  - 内存管理
+  - 面试
 toc: true
 ---
 
@@ -539,28 +540,28 @@ toc: true
 
 ### undefined symbol问题解决步骤
 - file 检查so或者可执行文件的架构
-```
+```text
 $ file _visp.so 
 _visp.so: ELF 64-bit LSB pie executable, x86-64, version 1 (GNU/Linux), dynamically linked, BuildID[sha1]=6503ba6b7545e38e669ab9ed31f86449d8a5f78b, stripped
-```
+```text
 - ldd -r _visp.so 命令查看so库链接状态和错误信息
-```
+```text
 undefined symbol: __itt_api_version_ptr__3_0	(./_visp.so)
 undefined symbol: __itt_id_create_ptr__3_0	(./_visp.so)
-```
+```text
 - c++filt symbol 定位错误在那个C++文件中
-```
+```text
 base) terse@ubuntu:~/code/terse-visp$ c++filt __itt_domain_create_ptr__3_0
 __itt_domain_create_ptr__3_0
-```
+```bash
 - 还可以使用grep -R __itt_domain_create_ptr__3_0 ./
 最终发现这个符号来自XXX/opencv-3.4.6/build/share/OpenCV/3rdparty/libittnotify.a
 
 - 通过nm命令也能看出该符号确实未定义
-```
+```bash
 $ nm _visp.so | grep __itt_domain_create_ptr__3_0
       U __itt_domain_create_ptr__3_0
-```
+```text
 
 ### pkg-config找第三方库的头文件和库文件
 - pkg-config能方便使用第三方库和头文件和库文件

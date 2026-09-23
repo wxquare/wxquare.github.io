@@ -99,11 +99,10 @@ toc:
 
 ### 系统设计与工程实践
 
-- [系统设计完全指南](/2026/03/07/system-design/00-system-design-overview/)
+- [系统设计完全指南](/books/system-design-primer/)
 - [架构与整洁代码：DDD、Clean Architecture 与 CQRS](/2026/04/01/system-design/41-acc-clean-arch-ddd-cqrs/)
-- [领域驱动设计读书笔记](/2026/04/03/system-design/43-acc-ddd-notes/)
+- [领域驱动设计读书笔记](/2026/09/23/system-design/45-ddd-principles-and-pricing-practice/)
 - [商品生命周期管理](/books/system-design-primer/part02/11-product-center-supply-lifecycle.html)
-- [价格日历系统设计](/2026/04/16/system-design/33-ecommerce-price-calendar/)
 - [核心业务长事务怎么处理](/books/system-design-primer/part01/04-large-transaction-orchestration.html)
 
 ### AI 算法与性能优化
@@ -123,7 +122,7 @@ toc:
 
 - [系统设计题库](/system-design-primer/appendix/system-design-questionbank.html)
 - [后端面试基础知识题单](/system-design-primer/appendix/interview-basic-question-bank.html)
-- [系统设计面试高频 50 题](/2026/04/07/system-design/08-system-design-interview/)
+- [系统设计面试高频 50 题](/books/system-design-primer/appendix/system-design-interview-50.html)
 - [AI 与 Agent 开发高频 50 题](/ai-book/appendix/ai-agent-development-interview-50.html)
 - [LeetCode Primer](https://github.com/wxquare/leetcode-primer)
 - [AI 与 AI Agent 开发高频 50 题（旧版归档）](/archive/AI/07-ai-agent-development-interview-50.html)

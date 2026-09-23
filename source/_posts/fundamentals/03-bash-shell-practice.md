@@ -1,13 +1,14 @@
 ---
 title: 编程语言：bash shell 实践
 date: 2024-03-03
+updated: 2026-09-23
 categories:
   - 计算机基础
 tags:
-- bash
-- linux
-- shell
-- 运维
+  - bash
+  - linux
+  - shell
+  - 运维
 toc: true
 ---
 
@@ -32,7 +33,7 @@ toc: true
 
 ```bash
 cat Temp\ Query\ 1_20230914-171937.csv | grep  "\"sop_v3_user" | grep -v "xxxx" | awk -F ',' '{print $2,$5,$6}' | sort | uniq -c | sort -rk 2
-```
+```bash
 
 
 ## 2、系统信息查看工具
@@ -122,6 +123,5 @@ time nc 192.168.0.11 5001 > /dev/null
 
 
 参考：https://linuxtools-rst.readthedocs.io/zh_CN/latest/tool/index.html
-
 
 

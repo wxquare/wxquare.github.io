@@ -1,15 +1,40 @@
 ---
-title: 计算机基础：计算机网络实践
+title: 计算机基础：计算机网络面试与工程实践
 date: 2024-03-02
+updated: 2026-09-23
 categories:
   - 计算机基础
 tags:
-- 计算机网络
-- TCP
-- HTTP
-- 面试
+  - 计算机网络
+  - TCP
+  - HTTP
+  - 面试
 toc: true
 ---
+
+## 本文定位
+
+本文面向 3 年以上后端工程师，保留原有 TCP、UDP、HTTP、RPC、REST 和常见协议速查内容，重点补足面试中更容易被追问的三条主线：协议机制、服务调用链和线上故障定位。
+
+阅读本文时建议始终追问三个问题：
+
+1. 这个机制解决了哪一种不可靠性或资源约束？
+2. 它发生在应用层、传输层、内核还是用户态运行时？
+3. 线上看到延迟、重传、连接堆积或请求失败时，应该观察哪些指标？
+
+文中的协议行为以公开标准为准；Linux Socket 和 `epoll` 部分属于操作系统实现与 API 语境。HTTP/2、HTTP/3、QUIC、TCP KeepAlive 等内容必须结合版本和实现理解，不能把面试中的简化说法当成普遍规律。
+
+## 面试主线
+
+~~~text
+TCP/UDP 边界
+  → 连接建立与可靠传输
+  → 流量控制与拥塞控制
+  → HTTP/DNS/TLS 请求链路
+  → Socket I/O 与连接池
+  → RPC/REST 语义
+  → 网络故障排查
+~~~
 
 
 ## TCP和UDP协议
@@ -150,7 +175,7 @@ toc: true
 </p>
 
 ### 超文本传输协议（HTTPS/HTTP1.1/HTTP2/HTTP3）
-https://aws.amazon.com/cn/compare/the-difference-between-https-and-http/
+<https://aws.amazon.com/cn/compare/the-difference-between-https-and-http/>
 
 HTTP 是一种在客户端和服务器之间编码和传输数据的方法。它是一个请求/响应协议：客户端和服务端针对相关内容和完成状态信息的请求和响应。HTTP 是独立的，允许请求和响应流经许多执行负载均衡，缓存，加密和压缩的中间路由器和服务器。
 
@@ -266,7 +291,7 @@ POST /anotheroperation
   "data":"anId";
   "anotherdata": "another value"
 }
-```
+```text
 
 RPC 专注于暴露方法。RPC 通常用于处理内部通讯的性能问题，这样你可以手动处理本地调用以更好的适应你的情况。
 
@@ -305,7 +330,7 @@ GET /someresources/anId
 
 PUT /someresources/anId
 {"anotherdata": "another value"}
-```
+```http
 
 REST 关注于暴露数据。它减少了客户端／服务端的耦合程度，经常用于公共 HTTP API 接口设计。REST 使用更通常与规范化的方法来通过 URI 暴露资源，[通过 header 来表述](https://github.com/for-GET/know-your-http-well/blob/master/headers.md)并通过 GET、POST、PUT、DELETE 和 PATCH 这些动作来进行操作。因为无状态的特性，REST 易于横向扩展和隔离。
 
@@ -391,8 +416,54 @@ REST 关注于暴露数据。它减少了客户端／服务端的耦合程度，
 
 
 ## 其它
-1. https://blog.csdn.net/justloveyou_/article/details/78303617
-2. 图解https的过程:https://segmentfault.com/a/1190000021494676
+1. [HTTP/HTTPS 相关资料](https://blog.csdn.net/justloveyou_/article/details/78303617)
+2. [图解 HTTPS 的过程](https://segmentfault.com/a/1190000021494676)
 3. [35 张图解：被问千百遍的 TCP 三次握手和四次挥手面试题](https://www.cnblogs.com/xiaolincoding/p/12638546.html)
 4. [30张图解： TCP 重传、滑动窗口、流量控制、拥塞控制](https://www.cnblogs.com/xiaolincoding/p/12732052.html)
 5. [硬核！30 张图解 HTTP 常见的面试题](https://www.cnblogs.com/xiaolincoding/p/12442435.html)
+
+## 工程排障与面试追问
+
+### 从现象回到协议层
+
+| 现象 | 优先观察 | 常见误区 |
+| --- | --- | --- |
+| 连接建立慢 | DNS、SYN、TLS、连接池等待 | 只看应用耗时，不拆分网络阶段 |
+| 大量重传 | RTT、丢包、拥塞窗口、网卡和链路指标 | 把所有重传都归因于服务端代码 |
+| `TIME_WAIT` 很多 | 主动关闭方、连接复用、端口范围 | 直接调小超时参数 |
+| `CLOSE_WAIT` 很多 | 应用是否关闭连接、异常路径是否泄漏 | 认为是内核自动清理问题 |
+| HTTP 请求失败 | 状态码、代理、TLS、上游连接和超时 | 只根据 5xx 判断根因 |
+| 长连接吞吐下降 | 空闲连接、连接池上限、队头阻塞、服务端负载 | 只增加连接数 |
+
+### 高频追问
+
+1. TCP 为什么需要三次握手，四次挥手为什么通常需要四次？
+2. TCP 的可靠性、流量控制和拥塞控制分别解决什么问题？
+3. `TIME_WAIT` 的作用是什么，为什么不能简单认为它是异常？
+4. TCP 是字节流，应用层如何处理消息边界？
+5. HTTP/2 解决了 HTTP/1.1 的哪些问题，仍然有什么限制？
+6. HTTP/3 为什么基于 QUIC/UDP，它获得了什么能力？
+7. `epoll` 为什么适合高并发连接，什么时候它也可能成为瓶颈？
+8. RPC 和 REST 的主要差异是协议格式，还是接口语义和治理方式？
+
+## 结论边界
+
+- TCP 的“可靠”主要表示有序、无差错、无重复地交付字节流，不等于请求一定成功或延迟一定稳定。
+- `TIME_WAIT` 的持续时间和回收策略受协议实现与系统参数影响，不应固定表述为“永远是 2 分钟”。
+- KeepAlive 既可能指 TCP 保活，也可能指 HTTP 连接复用；二者目标不同，回答时必须先说明语境。
+- HTTP/2 的多路复用缓解了 HTTP/1.1 的连接限制，但 TCP 层丢包仍可能影响同一连接上的多个流；QUIC 在传输层重新组织了这部分能力。
+- `epoll` 只负责事件通知，不替应用完成协议解析、数据读取、连接生命周期和业务限流。
+- 网络问题需要结合抓包、内核指标、代理指标和应用日志判断，不能仅凭一条错误信息下结论。
+
+## 权威参考资料
+
+1. [RFC 9293：Transmission Control Protocol](https://www.rfc-editor.org/rfc/rfc9293)
+2. [RFC 9000：QUIC: A UDP-Based Multiplexed and Secure Transport](https://www.rfc-editor.org/rfc/rfc9000)
+3. [RFC 9110：HTTP Semantics](https://www.rfc-editor.org/rfc/rfc9110)
+4. [RFC 9114：HTTP/3](https://www.rfc-editor.org/rfc/rfc9114)
+5. [RFC 7540：HTTP/2](https://www.rfc-editor.org/rfc/rfc7540)
+6. [RFC 8446：The Transport Layer Security Protocol Version 1.3](https://www.rfc-editor.org/rfc/rfc8446)
+7. [Linux tcp(7)](https://man7.org/linux/man-pages/man7/tcp.7.html)
+8. [Linux socket(7)](https://man7.org/linux/man-pages/man7/socket.7.html)
+9. [Linux epoll(7)](https://man7.org/linux/man-pages/man7/epoll.7.html)
+10. [HTTP Working Group](https://httpwg.org/)

@@ -1,13 +1,14 @@
 ---
 title: 中间件 - 搜索和 Elasticsearch
 date: 2024-03-07
+updated: 2026-09-23
 categories:
   - 系统设计基础
 tags:
-- Elasticsearch
-- 搜索引擎
-- 倒排索引
-- DSL
+  - Elasticsearch
+  - 搜索引擎
+  - 倒排索引
+  - DSL
 toc: true
 ---
 
@@ -27,9 +28,9 @@ toc: true
 
 ## 基本使用
 ### 创建index，setting和mapping
-```
+```bash
 curl -XPUT -H'Content-Type: application/json'  host/index_name?pretty=true -d@index_mapping.json 
-```
+```text
 
 <details>
   <summary>es index example</summary>
@@ -194,47 +195,47 @@ curl -XPUT -H'Content-Type: application/json'  host/index_name?pretty=true -d@in
         }
     }
 }
-  ```
+  ```text
 </details>
 
 ### 查看index,_cat 基本信息
-```
+```bash
 curl -XGET 'host/_cat/indices/*hotel_basic_info_v2_live*(支持正则表达式）?v=true&pretty=true'
-```
+```text
 
 ### 查看索引mapping信息
-```
+```bash
 curl -XGET 'host/index_name/_mapping?pretty=true'
-```
+```text
 
 ### 查看索引的setting信息
-```
+```bash
 curl -XGET 'host/index_name/_settings?pretty=true'
-```
+```text
 
 ### 通过doc id 正向查询
-```
+```bash
 curl -XGET  'host/index/_doc/doc_id?pretty=true'
-```
+```text
 
 ### query,search，倒排查询
-```
+```bash
 curl -XPOST -H'Content-Type: application/json' 'host/index_name/_search?pretty=true' -d '{
 "query":{}}'
-```
+```text
 
 
 ### update
-```
+```bash
 curl -XPOST  -H'Content-Type: application/json' 'host/index/_doc/doc_id/_update' -d '{
 "doc": {
     "price": "6500000001"
 }
 }'
-```
+```text
 
 ### 聚合count查询
-```
+```bash
 curl -XPOST -H'Content-Type: application/json' 'host/index_name/_count' -d '{
     "query": {
         "term": {
@@ -242,10 +243,10 @@ curl -XPOST -H'Content-Type: application/json' 'host/index_name/_count' -d '{
         }
     }
 }'
-```
+```text
 
 ### 增加字段
-```
+```bash
 curl -XPOST -H'Content-Type: application/json' 'host/index_name/_doc/_mapping' -d '{
     "properties": {
         "facility_codes": {
@@ -254,7 +255,7 @@ curl -XPOST -H'Content-Type: application/json' 'host/index_name/_doc/_mapping' -
     }
 }'
 
-```
+```text
 
 
 ### analyzer
@@ -262,7 +263,7 @@ curl -XPOST -H'Content-Type: application/json' 'host/index_name/_doc/_mapping' -
 
     Elastic Search 在处理 Text 类型数据的时候，会把数据交给分词器处理。然后根据分词器给的词，建立倒排索引，通常一句话都由若干词语组成，分词结果会极大的影响到查询结果的质量
 在 Elastic Search 中，分词器起到了非常重要的作用，在定义文档结构、录入和更新文档、查询文档的时候都会用到它。例如：
-```
+```text
 武汉市长江大桥欢迎您
 
 默认分词器：
@@ -273,7 +274,7 @@ curl -XPOST -H'Content-Type: application/json' 'host/index_name/_doc/_mapping' -
 
 二哈分词器：
 [武汉, 市长, 江大桥, 欢迎, 您]
-```
+```text
 
 ### normalizer 
 - 参考：https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-index-search-time.html
@@ -281,7 +282,7 @@ curl -XPOST -H'Content-Type: application/json' 'host/index_name/_doc/_mapping' -
 
 
 ### alias
-```
+```http
 POST /_aliases
 {
   "actions": [
@@ -289,11 +290,11 @@ POST /_aliases
     {"add": {"index": "l1", "alias": "a2"}}
   ]
 }
-```
+```text
 
-```
+```bash
 curl -XPUT  host/index_nane/_alias/index_alias_name
-```
+```text
 ### query DSL
 - term level queries
 	- keyword term
@@ -311,7 +312,7 @@ curl -XPUT  host/index_nane/_alias/index_alias_name
 
 <details>
   <summary>es query dsl</summary>
-```
+```json
 {
     "query": {
         "function_score": {
@@ -454,7 +455,7 @@ curl -XPUT  host/index_nane/_alias/index_alias_name
         }
     ]
 }
-```
+```text
 </details>
 
 ## 原理
@@ -514,7 +515,7 @@ query节点知道了要获取哪些信息，但是没有具体的数据，fetch�
 {"id": 1, "content": "Elasticsearch is a search engine"}
 {"id": 2, "content": "Lucene is a search library"}
 {"id": 3, "content": "Elasticsearch is built on Lucene"}
-```
+```text
 
 **倒排索引表**：
 
@@ -556,7 +557,7 @@ query节点知道了要获取哪些信息，但是没有具体的数据，fetch�
 
 // Token Filter: 小写 + 去停用词(is, a)
 ["elasticsearch", "search", "engine"]
-```
+```text
 
 **常用 Analyzer**：
 
@@ -574,9 +575,9 @@ Elasticsearch 使用 **BM25 算法**（Best Matching 25）计算相关性得分�
 
 **核心公式**：
 
-```
+```text
 score(D, Q) = Σ IDF(qi) × TF(qi, D)
-```
+```text
 
 - **TF（Term Frequency）**：词频，词在文档中出现次数
 - **IDF（Inverse Document Frequency）**：逆文档频率，词的稀有程度
@@ -610,7 +611,7 @@ GET /index/_search
   "from": 10000,  // 第 1000 页
   "size": 10
 }
-```
+```sql
 
 **问题**：
 - 5 个分片，每个分片需查询 10010 条数据
@@ -645,7 +646,7 @@ DELETE /_search/scroll
 {
   "scroll_id": "DXF1ZXJ5QW5kRmV0Y2gBAAAAAAAAAD4WYm9laVYtZndUQlNsdDcwakFMNjU1QQ=="
 }
-```
+```text
 
 **缺点**：
 - 占用大量内存（保持查询上下文）
@@ -689,7 +690,7 @@ GET /index/_search
     {"_id": "asc"}
   ]
 }
-```
+```text
 
 **优势**：
 - 内存占用小（无需保持上下文）
@@ -719,7 +720,7 @@ GET /index/_search
 
 **示例**：
 
-```
+```text
 正常状态：
 Node1 (Master) - Node2 - Node3
 
@@ -729,7 +730,7 @@ Node1 (Master) - Node2 - Node3
   写入数据A               写入数据B
      ↓                      ↓
    数据不一致！
-```
+```text
 
 ### 解决方案：quorum 机制
 
@@ -737,7 +738,7 @@ Node1 (Master) - Node2 - Node3
 
 ```yaml
 discovery.zen.minimum_master_nodes: (N/2 + 1)  // N 为 Master 候选节点数
-```
+```text
 
 **示例**：
 - 3 个 Master 候选节点：`minimum_master_nodes = 2`
@@ -749,7 +750,7 @@ discovery.zen.minimum_master_nodes: (N/2 + 1)  // N 为 Master 候选节点数
 
 **示例**：
 
-```
+```text
 3 个节点，minimum_master_nodes=2
 
 网络分区：
@@ -757,7 +758,7 @@ discovery.zen.minimum_master_nodes: (N/2 + 1)  // N 为 Master 候选节点数
    ↓           ↓
  只有1个节点   有2个节点
  无法选举     可以选举新Master
-```
+```text
 
 ### 其他高可用措施
 
@@ -942,7 +943,7 @@ Analyzer 是分词器，包含 3 个组件：
 - setting中定义繁体全文检索时的traditional_chinese_analyzer以及一个名为lowercase的normalizer，常用于keyword类型的匹配
 - 结合profile、explain api 分析query慢的原因。[search profile api](https://www.elastic.co/guide/en/elasticsearch/reference/7.17/search-profile.html)
 
-```
+```json
 {
     "hotel_index_20220810": {
         "settings": {
@@ -984,7 +985,7 @@ Analyzer 是分词器，包含 3 个组件：
     }
 }
 
-```
+```text
 
 ### mapping 数据模型优化
 - 不要使用默认的mapping.默认Mapping的字段类型是系统自动识别的。其中：string类型默认分成：text和keyword两种类型。如果你的业务中不需要分词、检索，仅需要精确匹配，仅设置为keyword即可。根据业务需要选择合适的类型，有利于节省空间和提升精度，如：浮点型的选择.
@@ -1078,7 +1079,7 @@ Analyzer 是分词器，包含 3 个组件：
         }
     }
 }
-```
+```text
 
 
 
@@ -1139,4 +1140,3 @@ Analyzer 是分词器，包含 3 个组件：
   - shard/partiion
   - 副本机制
 - [让Elasticsearch飞起来!——性能优化实践干货](https://developer.aliyun.com/article/706990)
-

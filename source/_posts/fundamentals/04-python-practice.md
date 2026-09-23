@@ -1,18 +1,40 @@
 ---
-title: 编程语言：Python 实践记录
+title: Python 面试与工程实践：性能、并发和 C/C++ 扩展
 date: 2024-03-04
+updated: 2026-09-23
 categories:
   - 计算机基础
 tags:
-- python
-- swig
-- 性能优化
-- C++调用
+  - python
+  - swig
+  - 性能优化
+  - C++调用
 toc: true
 ---
 
-Python程序为什么慢？
-----
+## 本文定位
+
+本文面向 3 年以上后端工程师，保留原有 Python 性能优化、OpenCV/ViSP、C++ 和 SWIG 实践内容，重点回答以下面试与工程问题：
+
+- Python/CPython 为什么在不同负载下表现不同？
+- GIL 对线程、多进程和异步 I/O 的影响边界是什么？
+- 性能问题应该先做 profile，还是先换并发模型？
+- 什么时候应该优化算法，什么时候应该使用矩阵化、C/C++ 扩展或 GPU？
+- C/C++ 扩展如何处理编译、链接、部署和故障定位？
+
+本文中的“Python 行为”和“CPython 实现”分开讨论。GIL、对象布局、解释器调度和免费线程化等内容都需要结合 Python/CPython 版本理解。
+
+## 速查导航
+
+- [Python/CPython 为什么慢](#python-cpython-为什么慢)
+- [性能优化的正确顺序](#性能优化的正确顺序)
+- [C/C++ 扩展与 SWIG 案例](#cc-扩展与-swig-案例)
+- [并发模型：线程、进程与协程](#并发模型线程进程与协程)
+- [面试追问与结论边界](#面试追问与结论边界)
+- [权威参考资料](#权威参考资料)
+
+## Python/CPython 为什么慢
+
 　　不同的场景下，代码是有不同的要求，大体有三个等级，“管用、更好、更快”。相比C/C++，Python具有较好的开发系效率，但是程序的性能运行速度会差一些。究其原因是Python为了灵活性，牺牲了效率。
 1. **动态类型**。对于C/C++等静态类型语言，由于变量的类型固定，变量之间的运算很容易指定特定的函数。而动态类型在运行的时间需要大量if else判断处理，直到找到符合条件的函数。**动态类型增加语言的易用性，但是牺牲了程序的运行效率**。
 
@@ -23,8 +45,8 @@ Python程序为什么慢？
 
 
 
-Python程序优化的思路？
-----
+## 性能优化的正确顺序
+
 　　最近在做一些算法优化方面的工作,简单总结一下思路:
 1. 熟悉算法的整体流程，对于算法代码，最开始尽可能不要使用多线程和多进程方法，
 2. 在1的基础上跑出算法的CPU profile，整体了解算法耗时分布和瓶颈。Python提供的cProfile模块灵活的针对特定函数或者文件产生profile文件，根据profile数据进行代码性能优化。
@@ -57,7 +79,7 @@ Python程序优化的思路？
 6. make install
 
 ### 静态编译visp库
-　　visp库https://github.com/lagadic/visp.git 和opencv库一样都采用cmake管理，编译过程和opencv一样，这里只需要设置静态编译和设置安装路径：
+　　[ViSP 官方仓库](https://github.com/lagadic/visp) 和 OpenCV 库一样都采用 CMake 管理，编译过程类似，这里只需要设置静态编译和设置安装路径：
 关闭动态编译选项：BUILD_SHARED_LIBS=OFF
 设置安装路径： CMAKE_INSTALL_PREFIX=/home/terse/code/terse-visp/visp/build
 
@@ -70,7 +92,7 @@ Python程序优化的思路？
 
 ### 提取模板追踪算法,封装成C++类
 　　visp库中提供了模板追踪算法，但是它不能解决遮挡的情况，参考区域很大的时候，追踪速度也很慢，因此在项目中针对这些问题做了一些优化，这个不是本文的重点就不赘述了。下面从visp中摘取的代码，封装成C++类，say_hello成员函数，没有实际用途，只是为了后续的验证python代码的正确性。
-```
+```cpp
 #ifndef VISP_H_
 #define VISP_H_
 
@@ -115,7 +137,7 @@ private:
 #endif /* VISP_H_ */
 ```
 
-```
+```cpp
 #include "visp.h"  
 
 
@@ -274,10 +296,10 @@ void TemplateTracker::say_hello(){
 
 ### 采用swig实现python调用C++
 　　python调用C++的方法有很多，例如ctypes、PyObject、Boost.python,采用了swig方法，使用之后感觉确挺方便的。为了给追踪功能提供numpy参数的输入和输出，这里需要引入numpy.i文件。
-参考：http://www.swig.org/Doc1.3/Python.html#Python
+参考：[SWIG Python 文档](https://www.swig.org/Doc4.2/Python.html)
 
 #### 1. 定义接口文件：visp.i
-```
+```cpp
 /* File: visp.i */
 %module visp
 
@@ -300,16 +322,16 @@ void TemplateTracker::say_hello(){
 %include "visp.h"
 ```
 #### 2. swig 编译visp.i 文件生成C++和py代码，生成visp_wrap.cxx,visp.py
-```
+```bash
 swig -c++ -python -py3 visp.i //python3
 ```
 #### 3. 分别编译visp.cc和visp_wrap.cxx代码
-```
+```bash
 g++  -O2 -fPIC  -c visp.cc -I/home/terse/code/terse-visp/VispSource/build/include
 g++ -O2 -fPIC -c visp_wrap.cxx -I/home/terse/anaconda3/include/python3.6m -I/home/terse/code/terse-visp/VispSource/build/include -I//home/terse/anaconda3/lib/python3.6/site-packages/numpy/core/include/
 ```
 #### 4. 链接生成_visp.so文件
-```
+```bash
 g++ -shared visp_wrap.o visp.o -L/home/terse/code/terse-visp/VispSource/build/lib -lvisp_ar -lvisp_blob -lvisp_core -lvisp_detection -lvisp_core -lvisp_gui -lvisp_imgproc -lvisp_io -lvisp_klt -lvisp_mbt -lvisp_me -lvisp_robot -lvisp_sensor -lvisp_tt -lvisp_tt_mi -lvisp_vision -lvisp_visual_features -lvisp_vs -lvisp_tt  -lvisp_ar -lvisp_blob -lvisp_core -lvisp_detection -lvisp_core -lvisp_gui -lvisp_imgproc -lvisp_io -lvisp_klt -lvisp_mbt -lvisp_me -lvisp_robot -lvisp_sensor -lvisp_tt -lvisp_tt_mi -lvisp_vision -lvisp_visual_features -lvisp_vs -Wl,-Bstatic -L/home/terse/code/terse-visp/opencv-3.4.6/build/lib -lopencv_dnn -lopencv_ml -lopencv_objdetect -lopencv_shape -lopencv_stitching -lopencv_superres -lopencv_videostab -lopencv_calib3d -lopencv_features2d -lopencv_highgui -lopencv_videoio -lopencv_imgcodecs -lopencv_video -lopencv_photo -lopencv_imgproc -lopencv_flann -lopencv_core -Wl,-Bstatic -L/home/terse/code/terse-visp/opencv-3.4.6/build/share/OpenCV/3rdparty/lib -littnotify -llibprotobuf -llibjasper -lquirc -lippiw -lippicv -Wl,-Bdynamic -lpython3.7m -Wl,-Bdynamic  -llapack  -fopenmp -ldl  -lz -lrt -ltiff -o _visp.so
 
 
@@ -318,7 +340,7 @@ g++ -shared visp_wrap.o visp.o -L/home/terse/code/terse-visp/VispSource/build/li
 
 ### 简单测试
 　　通过ldd -r 检查_visp.so文件没有问题，理论上就没什么问题里，这里通过代码中故意遗留的函数测试一下。
-``` 
+```python
 import visp
 import cv2
 import numpy as np
@@ -373,7 +395,7 @@ if __name__ == '__main__':
 - job1是一个完成CPU没有任务IO的死循环，观察CPU使用率，无论使用多少线程数量num，CPU使用率始终在100%左右，也就是说只能利用核的资源。而多进程则可以使用多核资源，num为1时CPU使用率为100%，num为2时CPU使用率接近200%。
 - job2是一个IO密集型的程序，主要的耗时在print系统调用。num=4时，多线程跑了10.81s，cpu使用率93%；多进程只用了3.23s，CPU使用率130%。
 　
-```
+```python
 import multiprocessing
 import threading
 
@@ -421,7 +443,7 @@ if __name__ == '__main__':
 ```
 
 ## [multiprocessing的使用](https://docs.python.org/3/library/multiprocessing.html#module-multiprocessing)
-参考：https://docs.python.org/3/library/multiprocessing.html#module-multiprocessing
+参考：[Python multiprocessing 文档](https://docs.python.org/3/library/multiprocessing.html)
 
 1. 单个进程multiprocessing.Process对象，和threading.Thread的API完全一样，start(),join(),参考上文中的测试代码。
 2. 进程池
@@ -437,10 +459,65 @@ if __name__ == '__main__':
 
 
 　　Python多线程和多进程的使用非常方面，因为multiprocessing提供了非常好的封装。为了方便设置线程和进程的数量，通常都会使用池pool技术。
-```
+```python
 from multiprocessing.dummy import Pool as DummyPool   # thread pool
 from multiprocessing import Pool                      # process pool
 ```
 multilprocessing包的使用可参考：
-- https://docs.python.org/3/library/multiprocessing.html#module-multiprocessing
-- https://thief.one/2016/11/24/Multiprocessing-Pool/
+- [Python multiprocessing 文档](https://docs.python.org/3/library/multiprocessing.html)
+- [Multiprocessing Pool 实践](https://thief.one/2016/11/24/Multiprocessing-Pool/)
+
+## 并发模型与生产排障
+
+### 如何选择线程、进程和协程
+
+| 场景 | 优先考虑 | 主要代价 |
+| --- | --- | --- |
+| CPU 密集型纯 Python 代码 | 多进程、算法优化或原生扩展 | 进程内存、序列化和进程间通信 |
+| I/O 密集型任务 | 线程或异步 I/O | 共享状态、取消、超时和连接管理 |
+| C 扩展释放 GIL 的计算 | 线程也可能有效 | 需要确认扩展是否真的释放 GIL |
+| 大规模独立任务 | 进程池或任务队列 | 调度、排队、重试和结果汇聚 |
+| 高并发网络服务 | 异步 I/O 或成熟线程模型 | 事件循环阻塞和调用链可观测性 |
+
+“CPU 密集型任务必须多进程”是 CPython 传统 GIL 语境下的工程经验，不是 Python 语言规范。具体方案还要看任务是否执行原生代码、是否释放 GIL、数据是否需要跨进程复制，以及运行的 Python 版本。
+
+### 性能优化的验证闭环
+
+1. 先建立可重复的基准和正确性测试，明确输入规模、机器配置和指标。
+2. 使用 profile 找到主要耗时，不要依据直觉先加线程。
+3. 优先优化算法复杂度、数据访问和不必要的对象分配。
+4. 再考虑矩阵化、批处理、缓存、并发、C/C++ 扩展或 GPU。
+5. 比较吞吐、延迟、CPU、内存和尾延迟，并确认优化没有改变结果语义。
+
+### 高频面试追问
+
+1. GIL 是 Python 语言特性还是 CPython 实现细节？
+2. 为什么 I/O 密集型任务可以从线程或异步中受益？
+3. 为什么多进程能利用多核，但代价是什么？
+4. 如何证明一次优化确实有效？
+5. NumPy 矩阵化为什么可能比 Python 循环快？
+6. C/C++ 扩展如何影响 GIL、内存所有权和异常传播？
+7. 进程池中的任务为什么会因为序列化和数据复制变慢？
+8. Python 服务 CPU 飙高、内存增长或事件循环阻塞时如何排查？
+
+## 面试追问与结论边界
+
+- 动态类型会增加运行时工作，但“Python 慢”不能归结为单一原因；算法、对象分配、解释器、系统调用和第三方库都可能是瓶颈。
+- GIL 是 CPython 历史实现中的核心约束，不应泛化为所有 Python 实现；即使在 CPython 中，执行原生扩展、I/O 或不同版本时行为也不同。
+- `threading`、`multiprocessing` 和 `asyncio` 解决的问题不同，不能仅按“线程慢、进程快、协程最快”排序。
+- 文章中的静态链接和 SWIG 命令依赖旧的 Python、OpenCV、ViSP 和本机路径，适合作为工程案例，不应直接复制到现代环境；实际使用前应重新确认 ABI、编译器、依赖版本和许可证。
+- GIL、JIT、免费线程化和解释器实现会随 Python 版本演进，关键结论必须带版本范围。
+
+## 权威参考资料
+
+1. [Python 官方文档](https://docs.python.org/3/)
+2. [Python `concurrent.futures` 文档](https://docs.python.org/3/library/concurrent.futures.html)
+3. [Python `multiprocessing` 文档](https://docs.python.org/3/library/multiprocessing.html)
+4. [Python `asyncio` 文档](https://docs.python.org/3/library/asyncio.html)
+5. [CPython Developer Guide](https://devguide.python.org/)
+6. [Python `cProfile` 文档](https://docs.python.org/3/library/profile.html)
+7. [pyperf 文档](https://pyperf.readthedocs.io/)
+8. [PEP 703：Making the Global Interpreter Lock Optional in CPython](https://peps.python.org/pep-0703/)
+9. [OpenCV 官方仓库](https://github.com/opencv/opencv)
+10. [ViSP 官方仓库](https://github.com/lagadic/visp)
+11. [SWIG Python 文档](https://www.swig.org/Doc4.2/Python.html)

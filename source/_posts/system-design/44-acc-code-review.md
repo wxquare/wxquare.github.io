@@ -38,7 +38,7 @@ toc: true
 |------|------|
 | {% post_link system-design/41-acc-clean-arch-ddd-cqrs 架构与整洁代码（一）：Clean Architecture、DDD 与 CQRS——三位一体的架构方法论 %}（41） | **怎么定架构**：分层、依赖方向、BC、聚合、CQRS、事件与反模式 |
 | {% post_link system-design/42-acc-clean-code 架构与整洁代码（二）：复杂业务中的 Clean Code 实践指南 %}（42） | **怎么写**：函数、Pipeline、策略、规则引擎等战术 |
-| {% post_link system-design/43-acc-ddd-notes 架构与整洁代码（三）：领域驱动设计读书笔记——从概念到架构实践 %}（43） | **怎么建模**：战略 / 战术 DDD、通用语言；可与（一）对照阅读 |
+| {% post_link system-design/45-ddd-principles-and-pricing-practice 架构与整洁代码（三）：领域驱动设计读书笔记——从概念到架构实践 %}（43） | **怎么建模**：战略 / 战术 DDD、通用语言；可与（一）对照阅读 |
 | **本文（44）** | **查什么**：各阶段 Review 要问什么、反例长什么样 |
 
 建议顺序：**41** 建立地图 → **42** 练实现手法 → **43** 把领域语言与模型讲透（可与 41 穿插）→ **44** 在评审与上线前逐项打勾。四篇互为索引，而不是重复堆砌。
@@ -1018,7 +1018,7 @@ func TestPlaceOrder_OutOfStock(t *testing.T) {
 
 - {% post_link system-design/41-acc-clean-arch-ddd-cqrs 架构与整洁代码（一）：Clean Architecture、DDD 与 CQRS——三位一体的架构方法论 %}
 - {% post_link system-design/42-acc-clean-code 架构与整洁代码（二）：复杂业务中的 Clean Code 实践指南 %}
-- {% post_link system-design/43-acc-ddd-notes 架构与整洁代码（三）：领域驱动设计读书笔记——从概念到架构实践 %}
+- {% post_link system-design/45-ddd-principles-and-pricing-practice 架构与整洁代码（三）：领域驱动设计读书笔记——从概念到架构实践 %}
 
 ### 外部资料
 
@@ -1030,4 +1030,4 @@ func TestPlaceOrder_OutOfStock(t *testing.T) {
 
 ## 总结
 
-系统化的 Code Review 不是挑剔，而是**把重构前移到成本最低的阶段**。按 **架构 → 设计 → 代码 → 上线前** 四段清单推进，并与 {% post_link system-design/42-acc-clean-code 42-acc-clean-code %}、{% post_link system-design/43-acc-ddd-notes 43-acc-ddd-notes %}、{% post_link system-design/41-acc-clean-arch-ddd-cqrs 41-架构方法论 %} 交叉引用，团队可以在一致的语言下讨论分层、边界与实现细节。建议把本文的「附录快速参考」嵌入 MR 模板，并在复盘时根据失效案例**增补你们自己的第 21 条**——最好的 Checklist 永远是活文档。
+系统化的 Code Review 不是挑剔，而是**把重构前移到成本最低的阶段**。按 **架构 → 设计 → 代码 → 上线前** 四段清单推进，并与 {% post_link system-design/42-acc-clean-code 42-acc-clean-code %}、{% post_link system-design/45-ddd-principles-and-pricing-practice 43-acc-ddd-notes %}、{% post_link system-design/41-acc-clean-arch-ddd-cqrs 41-架构方法论 %} 交叉引用，团队可以在一致的语言下讨论分层、边界与实现细节。建议把本文的「附录快速参考」嵌入 MR 模板，并在复盘时根据失效案例**增补你们自己的第 21 条**——最好的 Checklist 永远是活文档。
