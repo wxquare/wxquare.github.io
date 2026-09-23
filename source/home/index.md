@@ -45,6 +45,7 @@ wxquare 的技术知识库，聚焦 AI Engineering、系统设计、复杂业务
 - [后端面试基础知识题单](/system-design-primer/appendix/interview-basic-question-bank.html)：后端基础知识
 - [系统设计面试高频 50 题](/books/system-design-primer/appendix/system-design-interview-50.html)：系统设计面试
 - [AI 与 Agent 开发高频 50 题](/ai-book/appendix/ai-agent-development-interview-50.html)：AI 工程与 Agent 开发
+- [LeetCode Primer](https://github.com/wxquare/leetcode-primer) · [题单 README](https://github.com/wxquare/leetcode-primer/blob/master/README.md)：算法题单
 
 ### 其它杂谈
 
@@ -56,7 +57,6 @@ wxquare 的技术知识库，聚焦 AI Engineering、系统设计、复杂业务
 
 ## 其他入口
 
-- [LeetCode Primer](https://github.com/wxquare/leetcode-primer) · [题单 README](https://github.com/wxquare/leetcode-primer/blob/master/README.md)
 - [阅读书单](/booklist/) · [公开资料库](/library/) · [友情链接](/friends/)
 - [GitHub](https://github.com/wxquare) · [本站源码](https://github.com/wxquare/wxquare.github.io)
 
