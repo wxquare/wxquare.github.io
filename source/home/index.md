@@ -54,7 +54,6 @@ wxquare 的技术知识库，聚焦 AI Engineering、系统设计、复杂业务
 
 - [电商 Agent 项目全景调研报告](/2026/09/11/other/08-agent-electronic-commerce-research-report/)（2026-09-11）
 - [从内容到短视频：用开源工具生成 AI 教程视频](/2026/05/08/other/ai-content-to-video-open-source-workflow/)（2026-05-08）
-- [AI 与 AI Agent 开发高频 50 题（旧版归档）](/archive/AI/07-ai-agent-development-interview-50.html)
 
 [浏览全部博客文章](/archives/) · [按分类浏览](/categories/) · [按标签浏览](/tags/)
 
