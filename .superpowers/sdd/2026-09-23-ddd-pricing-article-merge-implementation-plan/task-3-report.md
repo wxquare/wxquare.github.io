@@ -21,7 +21,7 @@
 
 - `node --test test/legacy-post-alias.test.js`：通过，2/2。
 - `npm run clean`：通过。
-- `npm run build`：失败。Hexo 在渲染既有站内入口时发现归档文章仍被其他文章通过 `post_link system-design/25-ecommerce-pricing-ddd` 引用；由于 `published: false` 后该 slug 不再属于 posts 集合，渲染报 `Post not found`。按 Task 3 要求未修改其他站内入口。
+- `npm run build`：仍失败。Hexo 在渲染既有站内入口时发现归档文章仍被其他文章通过 `post_link system-design/25-ecommerce-pricing-ddd` 和 `post_link system-design/43-acc-ddd-notes` 引用；由于两篇文章均为 `published: false`，这些 slug 不再属于 posts 集合，渲染报 `Post not found`。按 Task 3 要求未修改其他站内入口。
 - 因构建失败，未执行成功的 public HTML 目标检查。
 
 ## Concerns
