@@ -14,7 +14,8 @@ test('native homepage contains the curated reader entry points', () => {
   assert.equal(packageJson.dependencies['hexo-generator-index'], undefined);
   assert.doesNotMatch(config, /^index_generator:/m);
   const links = [
-    '/2026/09/11/AI/08-agent-electronic-commerce-research-report/',
+    '/archive/AI/07-ai-agent-development-interview-50.html',
+    '/2026/09/11/other/08-agent-electronic-commerce-research-report/',
     '/ai-book/',
     '/system-design-primer/',
     '/archives/',
