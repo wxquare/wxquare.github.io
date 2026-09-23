@@ -56,10 +56,3 @@ wxquare 的技术知识库，聚焦 AI Engineering、系统设计、复杂业务
 - [从内容到短视频：用开源工具生成 AI 教程视频](/2026/05/08/other/ai-content-to-video-open-source-workflow/)（2026-05-08）
 
 [浏览全部博客文章](/archives/) · [按分类浏览](/categories/) · [按标签浏览](/tags/)
-
-## 其他入口
-
-- [阅读书单](/booklist/) · [公开资料库](/library/) · [友情链接](/friends/)
-- [GitHub](https://github.com/wxquare) · [本站源码](https://github.com/wxquare/wxquare.github.io)
-
-实验与私有项目：SkillForge、Investment Assistant、wxquare-private。

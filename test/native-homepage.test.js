@@ -30,20 +30,3 @@ test('native homepage contains the curated reader entry points', () => {
   ];
   for (const link of links) assert.ok(homepage.includes(link), `missing ${link}`);
 });
-
-test('homepage distinguishes public projects from private exploration', () => {
-  for (const link of [
-    'https://github.com/wxquare/leetcode-primer',
-    'https://github.com/wxquare/wxquare.github.io',
-    'https://github.com/wxquare/leetcode-primer/blob/master/README.md'
-  ]) assert.ok(homepage.includes(link), `missing public link ${link}`);
-
-  for (const [name, repository] of [
-    ['SkillForge', 'skillforge'],
-    ['Investment Assistant', 'investment-assistant'],
-    ['wxquare-private', 'wxquare-private']
-  ]) {
-    assert.ok(homepage.includes(name));
-    assert.ok(!homepage.includes(`https://github.com/wxquare/${repository}`));
-  }
-});
