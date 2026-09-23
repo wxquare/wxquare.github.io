@@ -10,7 +10,10 @@ tags:
   - clean-architecture
   - system-design
   - software-architecture
+published: false
 ---
+
+> **归档说明：** 本文内容已整合至 {% post_link system-design/45-ddd-principles-and-pricing-practice 领域驱动设计：从方法论到电商计价实践 %}，此文件仅保留原始版本供源码追溯，不再单独发布。
 
 <!-- 文章摘要 -->
 融合《领域驱动设计》（蓝皮书）和《实现领域驱动设计》（红皮书）两本经典著作的系统性读书笔记。从概念理解到架构实践，以电商平台为案例，详细讲解DDD的战略设计和战术设计，帮助中级开发者掌握领域驱动设计的核心思想和落地方法。

@@ -20,10 +20,8 @@ const expectedAliases = [
   ['/system-design/03-middleware-kafka/', 'fundamentals/03-middleware-kafka'],
   ['/system-design/04-middleware-elasticsearch/', 'fundamentals/04-middleware-elasticsearch'],
   ['/system-design/07-system-reliability-engineering/', 'system-design/07-system-reliability-engineering'],
-  ['/system-design/25-ecommerce-pricing-ddd/', 'system-design/25-ecommerce-pricing-ddd'],
   ['/system-design/41-acc-clean-arch-ddd-cqrs/', 'system-design/41-acc-clean-arch-ddd-cqrs'],
   ['/system-design/42-acc-clean-code/', 'system-design/42-acc-clean-code'],
-  ['/system-design/43-acc-ddd-notes/', 'system-design/43-acc-ddd-notes'],
   ['/system-design/44-acc-code-review/', 'system-design/44-acc-code-review']
 ];
 
@@ -31,6 +29,11 @@ const expectedUnavailableAliases = [
   ['/2026/04/02/01-claude-code-practices/', '/archives/'],
   ['/2026/04/03/02-agent-system-design-guid/', '/archives/'],
   ['/2026/04/03/03-dod-agent-design/', '/archives/']
+];
+
+const expectedMergedDddAliases = [
+  ['/system-design/25-ecommerce-pricing-ddd/', '/2026/09/23/system-design/45-ddd-principles-and-pricing-practice/'],
+  ['/system-design/43-acc-ddd-notes/', '/2026/09/23/system-design/45-ddd-principles-and-pricing-practice/']
 ];
 
 const expectedBookAliases = [
@@ -122,14 +125,20 @@ test('legacy post alias generator emits all compatibility redirects', () => {
 
     assert.equal(
       generated.length,
-      expectedAliases.length + expectedUnavailableAliases.length + expectedBookAliases.length + expectedArchivedTvmAliases.length + expectedArchivedTrackingAliases.length
+      expectedAliases.length + expectedMergedDddAliases.length + expectedUnavailableAliases.length + expectedBookAliases.length + expectedArchivedTvmAliases.length + expectedArchivedTrackingAliases.length
     );
     assert.deepEqual(
       generated.map((item) => item.path).sort(),
-      [...expectedAliases, ...expectedUnavailableAliases, ...expectedBookAliases, ...expectedArchivedTvmAliases, ...expectedArchivedTrackingAliases]
+      [...expectedAliases, ...expectedMergedDddAliases, ...expectedUnavailableAliases, ...expectedBookAliases, ...expectedArchivedTvmAliases, ...expectedArchivedTrackingAliases]
         .map(([route]) => `${route.slice(1)}index.html`)
         .sort()
     );
+
+    for (const [route, target] of expectedMergedDddAliases) {
+      const redirect = generated.find((item) => item.path === `${route.slice(1)}index.html`);
+      assert.ok(redirect, `missing redirect for ${route}`);
+      assert.match(redirect.data, new RegExp(target.replaceAll('/', '\\/')));
+    }
 
     const redirect = generated.find((item) => item.path === 'system-design/13-e-commerce/index.html');
     assert.match(redirect.data, /rel="canonical"/);
