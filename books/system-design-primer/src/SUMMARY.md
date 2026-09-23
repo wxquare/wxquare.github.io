@@ -35,3 +35,4 @@
 - [附录 C 工具与构建说明](appendix/tooling.md)
 - [附录 D 系统设计题库与面试追问](appendix/system-design-questionbank.md)
 - [附录 E 后端面试基础知识题单](appendix/interview-basic-question-bank.md)
+- [附录 F 1-10 年互联网后端工程师高频系统设计 50 题](appendix/system-design-interview-50.md)
