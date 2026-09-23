@@ -8,81 +8,29 @@ toc:
 
 # AI、系统设计与工程实践
 
-这里是 wxquare 的技术知识库，长期整理 AI Engineering、系统设计、复杂业务和工程实践。
-
-目前主要维护两本开放阅读的技术书稿：
-
-- 《System Design Primer：系统设计与电商架构》
-- 《AI Engineering：大模型与智能体系统工程》
-
-博客文章主要用于记录书稿之外的实践、研究、工具变化和阶段性思考。
-
----
+wxquare 的技术知识库，聚焦 AI Engineering、系统设计、复杂业务和工程实践。
 
 ## 两本书
 
 ### [System Design Primer：系统设计与电商架构](/system-design-primer/)
 
-从系统设计方法论出发，逐步进入电商系统的真实业务设计。
+从系统设计方法论到电商系统实战，覆盖架构、可靠性、长事务、商品、库存、计价与交易。
 
-主要内容：
-
-- 系统设计与架构方法论
-- 编码、重构与 Code Review
-- 生产系统治理与稳定性建设
-- Saga、补偿、状态机与长事务
-- 商品、库存、营销、计价与交易系统
-- 系统设计题库与后端面试基础
-
-适合希望系统学习后端架构、复杂业务和系统设计面试的读者。
-
-[开始阅读 System Design Primer →](/system-design-primer/)
+[开始阅读 →](/system-design-primer/)
 
 ### [AI Engineering：大模型与智能体系统工程](/ai-book/)
 
-从模型原理、训练与推理基础设施，到 Agent 架构、评估和生产治理，理解如何把 AI 能力构建为可靠系统。
+从模型原理、训练与推理基础设施，到 Agent 架构、应用、评估和生产治理。
 
-主要内容：
+[开始阅读 →](/ai-book/)
 
-- 模型原理、预训练、后训练与推理
-- 训练平台、推理服务、数据与评估系统
-- Context、Memory、Tool Calling 与 MCP
-- Agent Runtime、工作流、多 Agent 与治理
-- Coding Agent、企业知识助手和个人 Agent
-- 应用案例、前沿研究与工程展望
+## AI Engineering 阅读入口
 
-适合希望理解 AI 工程全链路，并构建可靠 AI 应用和 Agent 系统的工程师与架构师。
+- **系统设计**：[方法论](/system-design-primer/part01/01-system-design-guide-methodology.html) → [生产治理](/system-design-primer/part01/03-production-resilience-safeguards.html) → [电商全景](/system-design-primer/part02/10-ecommerce-overview.html) → [系统设计题库](/system-design-primer/appendix/system-design-questionbank.html)
+- **构建 AI 应用**：[模型基础](/ai-book/part1/01-llm-foundations-transformer.html) → [Agent 架构总纲](/ai-book/part2/01-agent-architecture.html) → [Context Engineering](/ai-book/part2/03-context-engineering.html) → [工具系统](/ai-book/part2/06-tool-calling-mcp.html) → [生产治理](/ai-book/part2/10-agent-evals-guardrails-observability.html)
+- **建设 AI 平台**：[训练 Infra](/ai-book/part2/infra-08-training.html) → [推理 Infra](/ai-book/part2/infra-09-inference.html) → [数据与评估](/ai-book/part2/infra-10-data-eval.html) → [可靠性治理](/ai-book/part2/infra-12-reliability-governance.html)
 
-[开始阅读 AI Engineering →](/ai-book/)
-
----
-
-## 推荐阅读路线
-
-### 系统设计学习路线
-
-适合后端工程师、架构师和系统设计面试准备。
-
-1. [系统设计与架构方法论](/system-design-primer/part01/01-system-design-guide-methodology.html)
-2. [编码、重构与 Code Review](/system-design-primer/part01/02-coding-principles-design-patterns.html)
-3. [生产系统治理与稳定性](/system-design-primer/part01/03-production-resilience-safeguards.html)
-4. [大事务、补偿与最终一致性](/system-design-primer/part01/04-large-transaction-orchestration.html)
-5. [电商系统全景图](/system-design-primer/part02/10-ecommerce-overview.html)
-6. [系统设计题库](/system-design-primer/appendix/system-design-questionbank.html)
-
-### AI Engineering 阅读入口
-
-按你的目标选择入口：
-
-1. **全景理解**：从[大模型基础](/ai-book/part1/01-llm-foundations-transformer.html)到[基础设施总览](/ai-book/part1/07-llm-boundaries.html)，再进入 [Agent 架构总纲](/ai-book/part2/01-agent-architecture.html) 和应用案例。
-2. **构建 AI 应用**：从[结构化输出与任务协议](/ai-book/part2/02-prompt-engineering.html)开始，继续阅读 [Context Engineering](/ai-book/part2/03-context-engineering.html)、[工具系统](/ai-book/part2/06-tool-calling-mcp.html)和[生产治理](/ai-book/part2/10-agent-evals-guardrails-observability.html)。
-3. **建设 AI 平台**：优先阅读[训练 Infra](/ai-book/part2/infra-08-training.html)、[推理 Infra](/ai-book/part2/infra-09-inference.html)、[数据与评估 Infra](/ai-book/part2/infra-10-data-eval.html)和[可靠性与治理 Infra](/ai-book/part2/infra-12-reliability-governance.html)。
-
----
-
-## 博客与研究动态
-
-博客文章主要记录两本书之外的实践、研究、工具变化和阶段性思考。
+## 精选文章
 
 ### AI 与 Agent
 
@@ -90,82 +38,31 @@ toc:
 - [电商 Agent 项目全景调研报告](/2026/09/11/other/08-agent-electronic-commerce-research-report/)
 - [从 Vibe Coding 到 Spec Coding](/2026/04/03/AI/00-vibe-coding-vs-spec-coding/)
 - [Karpathy 的自我进化知识库](/2026/04/05/AI/02-karpathy-evolving-knowledge-base/)
-- [从内容到短视频：用开源工具生成 AI 教程视频](/2026/05/08/other/ai-content-to-video-open-source-workflow/)
 
-### 系统设计与工程实践
+### 系统设计与算法
 
-- [系统设计完全指南](/books/system-design-primer/)
 - [架构与整洁代码：DDD、Clean Architecture 与 CQRS](/2026/04/01/system-design/41-acc-clean-arch-ddd-cqrs/)
 - [领域驱动设计读书笔记](/2026/09/23/system-design/45-ddd-principles-and-pricing-practice/)
-- [商品生命周期管理](/books/system-design-primer/part02/11-product-center-supply-lifecycle.html)
-- [核心业务长事务怎么处理](/books/system-design-primer/part01/04-large-transaction-orchestration.html)
-
-### AI 算法与性能优化
-
 - [TVM 算子优化实战](/2026/09/22/AI/05-tvm-operator-optimization-practice/)
 - [TensorFlow 模型压缩与推理优化实战](/2026/09/22/AI/04-tensorflow-model-optimization/)
-- [OpenCL、OpenCV UMat 与 KCF 性能测试](/2020/08/13/AI/03-opencl-mobile-performance-testing/)
-- [视频目标追踪流程](/2020/08/13/AI/06-video-object-tracking/)
+- [从内容到短视频：用开源工具生成 AI 教程视频](/2026/05/08/other/ai-content-to-video-open-source-workflow/)
 
 [浏览全部博客文章](/archives/) · [按分类浏览](/categories/) · [按标签浏览](/tags/)
 
----
+## 其他入口
 
-## 其他项目与资料
-
-### 找工作与面试准备
-
-- [系统设计题库](/system-design-primer/appendix/system-design-questionbank.html)
-- [后端面试基础知识题单](/system-design-primer/appendix/interview-basic-question-bank.html)
 - [系统设计面试高频 50 题](/books/system-design-primer/appendix/system-design-interview-50.html)
 - [AI 与 Agent 开发高频 50 题](/ai-book/appendix/ai-agent-development-interview-50.html)
-- [LeetCode Primer](https://github.com/wxquare/leetcode-primer)
+- [后端面试基础知识题单](/system-design-primer/appendix/interview-basic-question-bank.html)
 - [AI 与 AI Agent 开发高频 50 题（旧版归档）](/archive/AI/07-ai-agent-development-interview-50.html)
-- [LeetCode 500 精选题单](https://github.com/wxquare/leetcode-primer/blob/master/README.md)
-
-### 其他项目
-
-- [本站源码](https://github.com/wxquare/wxquare.github.io)
-- [书籍与学习资料](/booklist/)
-- [友情链接](/friends/)
-
-### 其他资料
-
-- [全部博客归档](/archives/)
-- [文章分类](/categories/)
-- [文章标签](/tags/)
-- [阅读书单](/booklist/)
-
----
+- [LeetCode Primer](https://github.com/wxquare/leetcode-primer) · [题单 README](https://github.com/wxquare/leetcode-primer/blob/master/README.md)
+- [阅读书单](/booklist/) · [公开资料库](/library/) · [友情链接](/friends/)
 
 ## 关于本站
 
-本站的内容分为三层：
-
-```text
-两本书稿
-  └── 系统化、稳定、完整的知识体系
-
-博客文章
-  └── 新实践、研究报告、工具变化和阶段性思考
-
-项目与资料
-  └── 面试题库、开源项目、书单和延伸阅读
-```
-
-内容会持续更新和重构。对于变化较快的 AI 工具、模型和框架，请结合文章更新时间和官方文档阅读。
-
----
-
-## 联系与反馈
+书稿沉淀系统知识，博客记录新实践，项目与资料提供延伸阅读。
 
 - [GitHub](https://github.com/wxquare)
 - [本站源码](https://github.com/wxquare/wxquare.github.io)
 
----
-
-## 实验与私有项目
-
-- **SkillForge**：面向可复用 Agent Skills 的工具与工作流探索
-- **Investment Assistant**：投资研究、信息整理与辅助决策实验
-- **wxquare-private**：个人研究、实验与协作资产的私有工作区
+实验与私有项目：SkillForge、Investment Assistant、wxquare-private。
