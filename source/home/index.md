@@ -102,9 +102,9 @@ toc:
 - [系统设计完全指南](/2026/03/07/system-design/00-system-design-overview/)
 - [架构与整洁代码：DDD、Clean Architecture 与 CQRS](/2026/04/01/system-design/41-acc-clean-arch-ddd-cqrs/)
 - [领域驱动设计读书笔记](/2026/04/03/system-design/43-acc-ddd-notes/)
-- [商品生命周期管理](/2026/04/10/system-design/30-ecommerce-product-lifecycle-management/)
+- [商品生命周期管理](/books/system-design-primer/part02/11-product-center-supply-lifecycle.html)
 - [价格日历系统设计](/2026/04/16/system-design/33-ecommerce-price-calendar/)
-- [核心业务长事务怎么处理](/2026/06/09/system-design/34-ecommerce-long-transactions/)
+- [核心业务长事务怎么处理](/books/system-design-primer/part01/04-large-transaction-orchestration.html)
 
 ### AI 算法与性能优化
 

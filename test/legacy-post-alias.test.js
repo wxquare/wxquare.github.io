@@ -21,10 +21,6 @@ const expectedAliases = [
   ['/system-design/04-middleware-elasticsearch/', 'fundamentals/04-middleware-elasticsearch'],
   ['/system-design/07-system-reliability-engineering/', 'system-design/07-system-reliability-engineering'],
   ['/system-design/25-ecommerce-pricing-ddd/', 'system-design/25-ecommerce-pricing-ddd'],
-  ['/system-design/28-ecommerce-listing/', 'system-design/28-ecommerce-listing'],
-  ['/system-design/29-ecommerce-b-side-ops/', 'system-design/29-ecommerce-b-side-ops'],
-  ['/system-design/30-ecommerce-product-lifecycle-management/', 'system-design/30-ecommerce-product-lifecycle-management'],
-  ['/system-design/34-ecommerce-long-transactions/', 'system-design/34-ecommerce-long-transactions'],
   ['/system-design/41-acc-clean-arch-ddd-cqrs/', 'system-design/41-acc-clean-arch-ddd-cqrs'],
   ['/system-design/42-acc-clean-code/', 'system-design/42-acc-clean-code'],
   ['/system-design/43-acc-ddd-notes/', 'system-design/43-acc-ddd-notes'],
@@ -38,6 +34,14 @@ const expectedUnavailableAliases = [
 ];
 
 const expectedBookAliases = [
+  ['/system-design/34-ecommerce-long-transactions/', '/books/system-design-primer/part01/04-large-transaction-orchestration.html'],
+  ['/2026/06/09/system-design/34-ecommerce-long-transactions/', '/books/system-design-primer/part01/04-large-transaction-orchestration.html'],
+  ['/system-design/30-ecommerce-product-lifecycle-management/', '/books/system-design-primer/part02/11-product-center-supply-lifecycle.html'],
+  ['/2026/04/10/system-design/30-ecommerce-product-lifecycle-management/', '/books/system-design-primer/part02/11-product-center-supply-lifecycle.html'],
+  ['/system-design/29-ecommerce-b-side-ops/', '/books/system-design-primer/part02/11-product-center-supply-lifecycle.html'],
+  ['/2025/09/04/system-design/29-ecommerce-b-side-ops/', '/books/system-design-primer/part02/11-product-center-supply-lifecycle.html'],
+  ['/system-design/28-ecommerce-listing/', '/books/system-design-primer/part02/11-product-center-supply-lifecycle.html'],
+  ['/2025/08/21/system-design/28-ecommerce-listing/', '/books/system-design-primer/part02/11-product-center-supply-lifecycle.html'],
   ['/2026/04/07/system-design/21-ecommerce-product-center/', '/books/system-design-primer/part03/02-product-center.html'],
   ['/2026/04/07/system-design/26-ecommerce-order-system/', '/books/system-design-primer/part03/09-order-system.html'],
   ['/system-design/13-e-commerce/', '/books/system-design-primer/part03/01-ecommerce-overview.html'],

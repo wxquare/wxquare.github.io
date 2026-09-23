@@ -23,8 +23,8 @@ toc: true
 > - **（六）计价系统 DDD 实践**（本文）
 > - [（七）订单系统](/books/system-design-primer/part03/09-order-system.html)
 > - [（八）支付系统深度解析](/books/system-design-primer/part03/10-payment-system.html)
-> - {% post_link system-design/28-ecommerce-listing （九）商品上架系统 %}
-> - {% post_link system-design/29-ecommerce-b-side-ops （十）B 端运营系统 %}
+> - [（九）商品上架系统](/books/system-design-primer/part02/11-product-center-supply-lifecycle.html)
+> - [（十）B 端运营系统](/books/system-design-primer/part02/11-product-center-supply-lifecycle.html)
 
 本文是电商系统设计系列的第六篇，是[（五）计价引擎](/books/system-design-primer/part03/06-pricing-system.html)的姊妹篇，从 DDD 视角重新审视计价系统的建模。
 
