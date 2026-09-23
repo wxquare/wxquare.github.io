@@ -38,6 +38,9 @@ wxquare 的技术知识库，聚焦 AI Engineering、系统设计、复杂业务
 
 - [领域驱动设计与电商计价：从方法论到实践](/2026/09/23/system-design/45-ddd-principles-and-pricing-practice/)（2026-09-23）
 - [整洁架构、DDD 与 CQRS：一套设计方法论](/2026/04/01/system-design/41-acc-clean-arch-ddd-cqrs/)（2026-04-01）
+- [互联网系统设计：从问题分析到技术方案](/2025/04/01/system-design/06-tech-design-methodology/)（2025-04-01）
+- [互联网系统稳定性建设：方法论与实践](/2025/05/15/system-design/07-system-reliability-engineering/)（2025-05-15）
+- [复杂业务中的 Clean Code 实践](/2026/04/02/system-design/42-acc-clean-code/)（2026-04-02）
 
 ### 面试与题库
 
