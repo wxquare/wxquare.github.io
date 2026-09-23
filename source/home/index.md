@@ -28,27 +28,27 @@ wxquare 的技术知识库，聚焦 AI Engineering、系统设计、复杂业务
 
 ### AI
 
-- [AI Agent 工作流实践：从 Claude Code、Codex 到 OpenClaw、Hermes 与 DeepSeek](/2026/09/23/AI/01-ai-agent-workflow-practice/)（2026-09-23）
-- [从 Vibe Coding 到 Spec Coding](/2026/04/03/AI/00-vibe-coding-vs-spec-coding/)（2026-04-03）
-- [Karpathy 的自我进化知识库](/2026/04/05/AI/02-karpathy-evolving-knowledge-base/)（2026-04-05）
-- [TVM 算子优化实战](/2026/09/22/AI/05-tvm-operator-optimization-practice/)（2026-09-22）
-- [TensorFlow 模型压缩与推理优化实战](/2026/09/22/AI/04-tensorflow-model-optimization/)（2026-09-22）
+- [AI Agent 工作流：从 Claude Code 到 DeepSeek](/2026/09/23/AI/01-ai-agent-workflow-practice/)（2026-09-23）
+- [从 Vibe Coding 到 Spec Coding：AI 编程范式演进](/2026/04/03/AI/00-vibe-coding-vs-spec-coding/)（2026-04-03）
+- [Karpathy 的自我进化知识库：LLM 时代的知识管理](/2026/04/05/AI/02-karpathy-evolving-knowledge-base/)（2026-04-05）
+- [TVM 算子优化：Relay、GEMM 与 INT8 量化](/2026/09/22/AI/05-tvm-operator-optimization-practice/)（2026-09-22）
+- [TensorFlow 模型优化：量化、剪枝与推理加速](/2026/09/22/AI/04-tensorflow-model-optimization/)（2026-09-22）
 
 ### 后台系统设计和电商
 
-- [领域驱动设计读书笔记](/2026/09/23/system-design/45-ddd-principles-and-pricing-practice/)（2026-09-23）
-- [架构与整洁代码：DDD、Clean Architecture 与 CQRS](/2026/04/01/system-design/41-acc-clean-arch-ddd-cqrs/)（2026-04-01）
-- [电商 Agent 项目全景调研报告](/2026/09/11/other/08-agent-electronic-commerce-research-report/)（2026-09-11）
+- [领域驱动设计与电商计价：从方法论到实践](/2026/09/23/system-design/45-ddd-principles-and-pricing-practice/)（2026-09-23）
+- [整洁架构、DDD 与 CQRS：一套设计方法论](/2026/04/01/system-design/41-acc-clean-arch-ddd-cqrs/)（2026-04-01）
 
-### 面试题库
+### 面试与题库
 
-- [系统设计题库](/system-design-primer/appendix/system-design-questionbank.html)
-- [后端面试基础知识题单](/system-design-primer/appendix/interview-basic-question-bank.html)
-- [AI 与 Agent 开发高频 50 题](/ai-book/appendix/ai-agent-development-interview-50.html)
-- [系统设计面试高频 50 题](/books/system-design-primer/appendix/system-design-interview-50.html)
+- [系统设计题库](/system-design-primer/appendix/system-design-questionbank.html)：系统设计题目与追问
+- [后端面试基础知识题单](/system-design-primer/appendix/interview-basic-question-bank.html)：后端基础知识
+- [系统设计面试高频 50 题](/books/system-design-primer/appendix/system-design-interview-50.html)：系统设计面试
+- [AI 与 Agent 开发高频 50 题](/ai-book/appendix/ai-agent-development-interview-50.html)：AI 工程与 Agent 开发
 
 ### 其它杂谈
 
+- [电商 Agent 项目全景调研报告](/2026/09/11/other/08-agent-electronic-commerce-research-report/)（2026-09-11）
 - [从内容到短视频：用开源工具生成 AI 教程视频](/2026/05/08/other/ai-content-to-video-open-source-workflow/)（2026-05-08）
 - [AI 与 AI Agent 开发高频 50 题（旧版归档）](/archive/AI/07-ai-agent-development-interview-50.html)
 
