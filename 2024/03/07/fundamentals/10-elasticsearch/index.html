@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="速查导航阅读时间: 40 分钟 | 难度: ⭐⭐⭐⭐ | 面试频率: 高 核心考点速查:  基本使用 - Index 创建、Mapping 设计、Query DSL 倒排索引原理 - 倒排索引结构、Analyzer 工作流程、评分算法 深分页问题 - scroll、search_after、分页优化 高可用与脑裂 - 脑裂原因、quorum 机制、解决方案 性能优化 - 写入性能、查询性能、索引优">
+<meta property="og:type" content="article">
+<meta property="og:title" content="中间件 - 搜索和 Elasticsearch">
+<meta property="og:url" content="http://yoursite.com/2024/03/07/fundamentals/10-elasticsearch/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="速查导航阅读时间: 40 分钟 | 难度: ⭐⭐⭐⭐ | 面试频率: 高 核心考点速查:  基本使用 - Index 创建、Mapping 设计、Query DSL 倒排索引原理 - 倒排索引结构、Analyzer 工作流程、评分算法 深分页问题 - scroll、search_after、分页优化 高可用与脑裂 - 脑裂原因、quorum 机制、解决方案 性能优化 - 写入性能、查询性能、索引优">
+<meta property="og:locale">
+<meta property="article:published_time" content="2024-03-07T00:00:00.000Z">
+<meta property="article:modified_time" content="2026-09-23T00:00:00.000Z">
+<meta property="article:author" content="wxquare">
+<meta property="article:tag" content="Elasticsearch">
+<meta property="article:tag" content="搜索引擎">
+<meta property="article:tag" content="倒排索引">
+<meta property="article:tag" content="DSL">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://yoursite.com/2024/03/07/fundamentals/10-elasticsearch/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2024/03/07/fundamentals/10-elasticsearch/","path":"2024/03/07/fundamentals/10-elasticsearch/","title":"中间件 - 搜索和 Elasticsearch"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>中间件 - 搜索和 Elasticsearch | wxquare's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-book"><a href="/booklist/" rel="section"><i class="fa fa-book fa-fw"></i>Books</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%9F%E6%9F%A5%E5%AF%BC%E8%88%AA"><span class="nav-number">1.</span> <span class="nav-text">速查导航</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8"><span class="nav-number">2.</span> <span class="nav-text">基本使用</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9B%E5%BB%BAindex%EF%BC%8Csetting%E5%92%8Cmapping"><span class="nav-number">2.1.</span> <span class="nav-text">创建index，setting和mapping</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">28</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">6</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">112</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+<section class="site-series">
+  <div class="site-series-title">
+    <i class="fa fa-book"></i> 系列专题
+  </div>
+  <ul class="series-list">
+    <li class="series-item ecommerce">
+      <a href="/categories/电商系统设计/">
+        <i class="fa fa-shopping-cart"></i>
+        <span class="series-name">电商系统设计</span>
+        <span class="series-count">13篇</span>
+      </a>
+    </li>
+    <li class="series-item architecture-clean-code">
+      <a href="/tags/architecture-and-clean-code/">
+        <i class="fa fa-sitemap"></i>
+        <span class="series-name">架构与整洁代码</span>
+        <span class="series-count">4篇</span>
+      </a>
+    </li>
+    <li class="series-item ai">
+      <a href="/categories/AI-与-Agent/">
+        <i class="fa fa-robot"></i>
+        <span class="series-name">AI 与 Agent</span>
+        <span class="series-count">7篇</span>
+      </a>
+    </li>
+    <li class="series-item system-design">
+      <a href="/categories/系统设计基础/">
+        <i class="fa fa-cogs"></i>
+        <span class="series-name">系统设计基础</span>
+        <span class="series-count">15篇</span>
+      </a>
+    </li>
+    <li class="series-item fundamentals">
+      <a href="/categories/计算机基础/">
+        <i class="fa fa-laptop"></i>
+        <span class="series-name">计算机基础</span>
+        <span class="series-count">6篇</span>
+      </a>
+    </li>
+  </ul>
+</section>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2024/03/07/fundamentals/10-elasticsearch/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="中间件 - 搜索和 Elasticsearch | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          中间件 - 搜索和 Elasticsearch
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2024-03-07 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-07T00:00:00+00:00">2024-03-07</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-09-23 00:00:00" itemprop="dateModified" datetime="2026-09-23T00:00:00+00:00">2026-09-23</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E5%9F%BA%E7%A1%80/" itemprop="url" rel="index"><span itemprop="name">系统设计基础</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="速查导航"><a href="#速查导航" class="headerlink" title="速查导航"></a>速查导航</h2><p><strong>阅读时间</strong>: 40 分钟 | <strong>难度</strong>: ⭐⭐⭐⭐ | <strong>面试频率</strong>: 高</p>
+<p><strong>核心考点速查</strong>:</p>
+<ul>
+<li><a href="#%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8">基本使用</a> - Index 创建、Mapping 设计、Query DSL</li>
+<li><a href="#%E5%80%92%E6%8E%92%E7%B4%A2%E5%BC%95%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90%E9%9D%A2%E8%AF%95%E5%BF%85%E9%97%AE">倒排索引原理</a> - 倒排索引结构、Analyzer 工作流程、评分算法</li>
+<li><a href="#%E6%B7%B1%E5%88%86%E9%A1%B5%E9%97%AE%E9%A2%98%E4%B8%8E%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88">深分页问题</a> - scroll、search_after、分页优化</li>
+<li><a href="#%E9%AB%98%E5%8F%AF%E7%94%A8%E4%B8%8E%E8%84%91%E8%A3%82%E9%97%AE%E9%A2%98">高可用与脑裂</a> - 脑裂原因、quorum 机制、解决方案</li>
+<li><a href="#%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96">性能优化</a> - 写入性能、查询性能、索引优化</li>
+<li><a href="#%E9%9D%A2%E8%AF%95%E9%AB%98%E9%A2%91-20-%E9%A2%98">面试高频 20 题</a> - 标准答案 + 追问应对</li>
+</ul>
+<hr>
+<h2 id="基本使用"><a href="#基本使用" class="headerlink" title="基本使用"></a>基本使用</h2><h3 id="创建index，setting和mapping"><a href="#创建index，setting和mapping" class="headerlink" title="创建index，setting和mapping"></a>创建index，setting和mapping</h3><pre><code class="bash">curl -XPUT -H&#39;Content-Type: application/json&#39;  host/index_name?pretty=true -d@index_mapping.json 
+```text
+
+&lt;details&gt;
+  &lt;summary&gt;es index example&lt;/summary&gt;
+  ```json
+ &#123;
+    &quot;settings&quot;: &#123;
+        &quot;index&quot;: &#123;
+            &quot;number_of_shards&quot;: &quot;5&quot;,
+            &quot;number_of_replicas&quot;: &quot;2&quot;
+        &#125;,
+        &quot;analysis&quot;: &#123;
+            &quot;filter&quot;: &#123;
+                &quot;t2sconvert&quot;: &#123;
+                    &quot;convert_type&quot;: &quot;t2s&quot;,
+                    &quot;type&quot;: &quot;stconvert&quot;
+                &#125;
+            &#125;,
+            &quot;analyzer&quot;: &#123;
+                &quot;traditional_chinese_analyzer&quot;: &#123;
+                    &quot;filter&quot;: &quot;t2sconvert&quot;,
+                    &quot;type&quot;: &quot;custom&quot;,
+                    &quot;tokenizer&quot;: &quot;ik_smart&quot;
+                &#125;
+            &#125;,
+            &quot;normalizer&quot;: &#123;
+                &quot;lowercase&quot;: &#123;
+                    &quot;type&quot;: &quot;custom&quot;,
+                    &quot;filter&quot;: [
+                        &quot;lowercase&quot;
+                    ]
+                &#125;
+            &#125;
+        &#125;
+    &#125;,
+    &quot;mappings&quot;: &#123;
+        &quot;_doc&quot;: &#123;
+            &quot;properties&quot;: &#123;
+                &quot;key_type&quot;: &#123;
+                    &quot;type&quot;: &quot;integer&quot;
+                &#125;,
+                &quot;country&quot;: &#123;
+                    &quot;type&quot;: &quot;keyword&quot;
+                &#125;,
+                &quot;language_code&quot;: &#123;
+                    &quot;type&quot;: &quot;keyword&quot;
+                &#125;,
+                &quot;level&quot;: &#123;
+                    &quot;type&quot;: &quot;integer&quot;
+                &#125;,
+                &quot;code&quot;: &#123;
+                    &quot;type&quot;: &quot;keyword&quot;
+                &#125;,
+                &quot;is_available&quot;: &#123;
+                    &quot;type&quot;: &quot;boolean&quot;
+                &#125;,
+                &quot;is_popular&quot;: &#123;
+                    &quot;type&quot;: &quot;boolean&quot;
+                &#125;,
+                &quot;pop_rank&quot;: &#123;
+                    &quot;type&quot;: &quot;integer&quot;
+                &#125;,
+                &quot;name&quot;: &#123;
+                    &quot;properties&quot;: &#123;
+                        &quot;value_in_chinese&quot;: &#123;
+                            &quot;type&quot;: &quot;text&quot;,
+                            &quot;fields&quot;: &#123;
+                                &quot;keyword&quot;: &#123;
+                                    &quot;type&quot;: &quot;keyword&quot;
+                                &#125;
+                            &#125;,
+                            &quot;analyzer&quot;: &quot;ik_max_word&quot;,
+                            &quot;search_analyzer&quot;: &quot;ik_smart&quot;
+                        &#125;,
+                        &quot;value_in_english&quot;: &#123;
+                            &quot;type&quot;: &quot;text&quot;,
+                            &quot;fields&quot;: &#123;
+                                &quot;keyword&quot;: &#123;
+                                    &quot;type&quot;: &quot;keyword&quot;,
+                                    &quot;normalizer&quot;: &quot;lowercase&quot;
+                                &#125;
+                            &#125;
+                        &#125;
+                    &#125;
+                &#125;,
+                &quot;display_name&quot;: &#123;
+                    &quot;properties&quot;: &#123;
+                        &quot;value_in_chinese&quot;: &#123;
+                            &quot;type&quot;: &quot;text&quot;,
+                            &quot;fields&quot;: &#123;
+                                &quot;keyword&quot;: &#123;
+                                    &quot;type&quot;: &quot;keyword&quot;
+                                &#125;
+                            &#125;,
+                            &quot;analyzer&quot;: &quot;ik_max_word&quot;,
+                            &quot;search_analyzer&quot;: &quot;ik_smart&quot;
+                        &#125;,
+                        &quot;value_in_english&quot;: &#123;
+                            &quot;type&quot;: &quot;text&quot;,
+                            &quot;fields&quot;: &#123;
+                                &quot;keyword&quot;: &#123;
+                                    &quot;type&quot;: &quot;keyword&quot;,
+                                    &quot;normalizer&quot;: &quot;lowercase&quot;
+                                &#125;
+                            &#125;
+                        &#125;
+                    &#125;
+                &#125;,
+                &quot;address&quot;: &#123;
+                    &quot;properties&quot;: &#123;
+                        &quot;value_in_chinese&quot;: &#123;
+                            &quot;type&quot;: &quot;text&quot;,
+                            &quot;fields&quot;: &#123;
+                                &quot;keyword&quot;: &#123;
+                                    &quot;type&quot;: &quot;keyword&quot;
+                                &#125;
+                            &#125;,
+                            &quot;analyzer&quot;: &quot;ik_max_word&quot;,
+                            &quot;search_analyzer&quot;: &quot;ik_smart&quot;
+                        &#125;,
+                        &quot;value_in_english&quot;: &#123;
+                            &quot;type&quot;: &quot;text&quot;,
+                            &quot;fields&quot;: &#123;
+                                &quot;keyword&quot;: &#123;
+                                    &quot;type&quot;: &quot;keyword&quot;,
+                                    &quot;normalizer&quot;: &quot;lowercase&quot;
+                                &#125;
+                            &#125;
+                        &#125;
+                    &#125;
+                &#125;,
+                &quot;city_code&quot;: &#123;
+                    &quot;type&quot;: &quot;keyword&quot;
+                &#125;,
+                &quot;city_name&quot;: &#123;
+                    &quot;properties&quot;: &#123;
+                        &quot;value_in_chinese&quot;: &#123;
+                            &quot;type&quot;: &quot;text&quot;,
+                            &quot;fields&quot;: &#123;
+                                &quot;keyword&quot;: &#123;
+                                    &quot;type&quot;: &quot;keyword&quot;
+                                &#125;
+                            &#125;,
+                            &quot;analyzer&quot;: &quot;ik_max_word&quot;,
+                            &quot;search_analyzer&quot;: &quot;ik_smart&quot;
+                        &#125;,
+                        &quot;value_in_english&quot;: &#123;
+                            &quot;type&quot;: &quot;text&quot;,
+                            &quot;fields&quot;: &#123;
+                                &quot;keyword&quot;: &#123;
+                                    &quot;type&quot;: &quot;keyword&quot;,
+                                    &quot;normalizer&quot;: &quot;lowercase&quot;
+                                &#125;
+                            &#125;
+                        &#125;
+                    &#125;,
+                    &quot;updated&quot;: &#123;
+                        &quot;type&quot;: &quot;date&quot;,
+                        &quot;format&quot;: &quot;strict_date_optional_time||epoch_millis&quot;
+                    &#125;
+                &#125;
+            &#125;
+        &#125;
+    &#125;
+&#125;
+  ```text
+&lt;/details&gt;
+
+### 查看index,_cat 基本信息
+```bash
+curl -XGET &#39;host/_cat/indices/*hotel_basic_info_v2_live*(支持正则表达式）?v=true&amp;pretty=true&#39;
+```text
+
+### 查看索引mapping信息
+```bash
+curl -XGET &#39;host/index_name/_mapping?pretty=true&#39;
+```text
+
+### 查看索引的setting信息
+```bash
+curl -XGET &#39;host/index_name/_settings?pretty=true&#39;
+```text
+
+### 通过doc id 正向查询
+```bash
+curl -XGET  &#39;host/index/_doc/doc_id?pretty=true&#39;
+```text
+
+### query,search，倒排查询
+```bash
+curl -XPOST -H&#39;Content-Type: application/json&#39; &#39;host/index_name/_search?pretty=true&#39; -d &#39;&#123;
+&quot;query&quot;:&#123;&#125;&#125;&#39;
+```text
+
+
+### update
+```bash
+curl -XPOST  -H&#39;Content-Type: application/json&#39; &#39;host/index/_doc/doc_id/_update&#39; -d &#39;&#123;
+&quot;doc&quot;: &#123;
+    &quot;price&quot;: &quot;6500000001&quot;
+&#125;
+&#125;&#39;
+```text
+
+### 聚合count查询
+```bash
+curl -XPOST -H&#39;Content-Type: application/json&#39; &#39;host/index_name/_count&#39; -d &#39;&#123;
+    &quot;query&quot;: &#123;
+        &quot;term&quot;: &#123;
+            &quot;city_name.value_in_english.keyword&quot;: &quot;Jakarta&quot;
+        &#125;
+    &#125;
+&#125;&#39;
+```text
+
+### 增加字段
+```bash
+curl -XPOST -H&#39;Content-Type: application/json&#39; &#39;host/index_name/_doc/_mapping&#39; -d &#39;&#123;
+    &quot;properties&quot;: &#123;
+        &quot;facility_codes&quot;: &#123;
+            &quot;type&quot;:&quot;keyword&quot;
+        &#125;
+    &#125;
+&#125;&#39;
+
+```text
+
+
+### analyzer
+- 参考：https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-index-search-time.html
+
+    Elastic Search 在处理 Text 类型数据的时候，会把数据交给分词器处理。然后根据分词器给的词，建立倒排索引，通常一句话都由若干词语组成，分词结果会极大的影响到查询结果的质量
+在 Elastic Search 中，分词器起到了非常重要的作用，在定义文档结构、录入和更新文档、查询文档的时候都会用到它。例如：
+```text
+武汉市长江大桥欢迎您
+
+默认分词器：
+[武, 汉, 市, 长, 江, 大, 桥, 欢, 迎, 您]
+
+普通分词器：
+[武汉, 市, 武汉市, 长江, 大桥,长江大桥, 欢迎, 您, 欢迎您]
+
+二哈分词器：
+[武汉, 市长, 江大桥, 欢迎, 您]
+```text
+
+### normalizer 
+- 参考：https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-index-search-time.html
+
+
+
+### alias
+```http
+POST /_aliases
+&#123;
+  &quot;actions&quot;: [
+    &#123;&quot;remove&quot;: &#123;&quot;index&quot;: &quot;l1&quot;, &quot;alias&quot;: &quot;a1&quot;&#125;&#125;,
+    &#123;&quot;add&quot;: &#123;&quot;index&quot;: &quot;l1&quot;, &quot;alias&quot;: &quot;a2&quot;&#125;&#125;
+  ]
+&#125;
+```text
+
+```bash
+curl -XPUT  host/index_nane/_alias/index_alias_name
+```text
+### query DSL
+- term level queries
+    - keyword term
+    - https://www.elastic.co/guide/en/elasticsearch/reference/6.7/term-level-queries.html
+- full text queries
+    - Match Phrase Query
+    - Mathc Query
+- compound queries
+   - dismax
+   - bool
+   - function score
+   - boosting query
+
+- https://www.elastic.co/guide/en/elasticsearch/reference/6.7/query-dsl.html
+
+&lt;details&gt;
+  &lt;summary&gt;es query dsl&lt;/summary&gt;
+```json
+&#123;
+    &quot;query&quot;: &#123;
+        &quot;function_score&quot;: &#123;
+            &quot;functions&quot;: [
+                &#123;
+                    &quot;filter&quot;: &#123;
+                        &quot;term&quot;: &#123;
+                            &quot;key_type&quot;: 1
+                        &#125;
+                    &#125;,
+                    &quot;weight&quot;: 3
+                &#125;,
+                &#123;
+                    &quot;filter&quot;: &#123;
+                        &quot;term&quot;: &#123;
+                            &quot;key_type&quot;: 2
+                        &#125;
+                    &#125;,
+                    &quot;weight&quot;: 2
+                &#125;
+            ],
+            &quot;min_score&quot;: 0,
+            &quot;query&quot;: &#123;
+                &quot;dis_max&quot;: &#123;
+                    &quot;queries&quot;: [
+                        &#123;
+                            &quot;function_score&quot;: &#123;
+                                &quot;functions&quot;: [
+                                    &#123;
+                                        &quot;filter&quot;: &#123;
+                                            &quot;term&quot;: &#123;
+                                                &quot;search_key.filed1.keyword&quot;: &quot;querywords&quot;
+                                            &#125;
+                                        &#125;,
+                                        &quot;weight&quot;: 100
+                                    &#125;,
+                                    &#123;
+                                        &quot;filter&quot;: &#123;
+                                            &quot;term&quot;: &#123;
+                                                &quot;search_key.filed2.keyword&quot;: &quot;querywords&quot;
+                                            &#125;
+                                        &#125;,
+                                        &quot;weight&quot;: 100
+                                    &#125;
+                                ],
+                                &quot;score_mode&quot;: &quot;max&quot;
+                            &#125;
+                        &#125;,
+                        &#123;
+                            &quot;dis_max&quot;: &#123;
+                                &quot;queries&quot;: [
+                                    &#123;
+                                        &quot;match_phrase&quot;: &#123;
+                                            &quot;search_key.filed1&quot;: &#123;
+                                                &quot;boost&quot;: 50,
+                                                &quot;query&quot;: &quot;querywords&quot;
+                                            &#125;
+                                        &#125;
+                                    &#125;,
+                                    &#123;
+                                        &quot;match_phrase&quot;: &#123;
+                                            &quot;search_key.field2&quot;: &#123;
+                                                &quot;boost&quot;: 50,
+                                                &quot;query&quot;: &quot;querywords&quot;
+                                            &#125;
+                                        &#125;
+                                    &#125;
+                                ]
+                            &#125;
+                        &#125;,
+                        &#123;
+                            &quot;dis_max&quot;: &#123;
+                                &quot;queries&quot;: [
+                                    &#123;
+                                        &quot;prefix&quot;: &#123;
+                                            &quot;search_key.filed1.keyword&quot;: &#123;
+                                                &quot;boost&quot;: 30,
+                                                &quot;value&quot;: &quot;querywords&quot;
+                                            &#125;
+                                        &#125;
+                                    &#125;,
+                                    &#123;
+                                        &quot;prefix&quot;: &#123;
+                                            &quot;search_key.field2.keyword&quot;: &#123;
+                                                &quot;boost&quot;: 30,
+                                                &quot;value&quot;: &quot;querywords&quot;
+                                            &#125;
+                                        &#125;
+                                    &#125;
+                                ]
+                            &#125;
+                        &#125;,
+                        &#123;
+                            &quot;dis_max&quot;: &#123;
+                                &quot;queries&quot;: [
+                                    &#123;
+                                        &quot;match&quot;: &#123;
+                                            &quot;search_key.field1&quot;: &#123;
+                                                &quot;boost&quot;: 10,
+                                                &quot;fuzziness&quot;: &quot;auto:6,20&quot;,
+                                                &quot;minimum_should_match&quot;: &quot;3&gt;75%&quot;,
+                                                &quot;query&quot;: &quot;querywords&quot;
+                                            &#125;
+                                        &#125;
+                                    &#125;,
+                                    &#123;
+                                        &quot;match&quot;: &#123;
+                                            &quot;search_key.field2&quot;: &#123;
+                                                &quot;boost&quot;: 10,
+                                                &quot;fuzziness&quot;: &quot;auto:6,20&quot;,
+                                                &quot;minimum_should_match&quot;: &quot;3&gt;75%&quot;,
+                                                &quot;query&quot;: &quot;querywords&quot;
+                                            &#125;
+                                        &#125;
+                                    &#125;
+                                ]
+                            &#125;
+                        &#125;
+                    ]
+                &#125;
+            &#125;
+        &#125;
+    &#125;,
+    &quot;size&quot;: 30,
+    &quot;sort&quot;: [
+        &#123;
+            &quot;_score&quot;: &#123;
+                &quot;order&quot;: &quot;desc&quot;
+            &#125;
+        &#125;,
+        &#123;
+            &quot;key_type&quot;: &#123;
+                &quot;order&quot;: &quot;asc&quot;
+            &#125;
+        &#125;,
+        &#123;
+            &quot;others&quot;: &#123;
+                &quot;order&quot;: &quot;desc&quot;
+            &#125;
+        &#125;
+    ]
+&#125;
+```text
+&lt;/details&gt;
+
+## 原理
+### 基本概念
+- 节点：分布系统都有的master节点和普通节点。类似于kafka集群都会存在的一种节点
+- master节点:用于管理索引（创建索引、删除索引）、分配分片，维护元数据
+- 协调节点：ES的特殊性，需要由一个节点汇总多个分片的query结果。节点是否担任协调节点可通过配置文件配置。例如某个节点只想做协调节点：node.master=false，node.data=false
+- ES的读写流程主要是协调节点，主分片节点、副分片节点间的相互协调。
+- ES的读取分为GET和Search两种操作。GET根据文档id从正排索引中获取内容；Search不指定id，根据关键字从倒排索引中获取内容。
+
+### 写单个文档的流程
+1. 客户端向集群中的某个节点发送写请求，该节点就作为本次请求的协调节点
+2. 协调节点使用文档ID来确定文档属于某个分片，再通过集群状态中的内容路由表信息获知该分片的主分片位置，将请求转发到主分片所在节点；
+3. 主分片节点上的主分片执行写操作。如果写入成功，则它将请求并行转发到副分片所在的节点，等待副分片写入成功。所有副分片写入成功后，主分片节点向协调节点报告成功，协调节点向客户端报告成功。
+
+### 读取单个文档的流程
+1. 客户端向集群中的某个节点发送读取请求，该节点就作为本次请求的协调节点；
+2. 协调节点使用文档ID来确定文档属于某个分片，再通过集群状态中的内容路由表信息获知该分片的副本信息，此时它可以把请求转发到有副分片的任意节点读取数据。
+3. 协调节点会将客户端请求轮询发送到集群的所有副本来实现负载均衡。
+4. 收到读请求的节点将文档返回给协调节点，协调节点将文档返回给客户端
+
+### Search流程
+ES的Search操作分为两个阶段：query then fetch。需要两阶段完成搜索的原因是：在查询时不知道文档位于哪个分片，因此索引的所有分片都要参与搜索，然后协调节点将结果合并，在根据文档ID获取文档内容。
+
+**Query查询阶段** 
+1. 客户端向集群中的某个节点发送Search请求，该节点就作为本次请求的协调节点；
+2. 协调节点将查询请求转发到索引的每个主分片或者副分片中；
+3. 每个分片在本地执行查询，并使用本地的Term/Document Frequency信息进行打分，添加结果到大小为from+size的本地有序优先队列中；
+4. 每个分片返回各自优先队列中所有文档的ID和排序值给协调节点，协调节点合并这些值到自己的优先队列中，产生一个全局排序后的列表。
+
+**Fetch拉取阶段**
+query节点知道了要获取哪些信息，但是没有具体的数据，fetch阶段要去拉取具体的数据。相当于执行多次上面的GET流程
+1. 协调节点向相关的节点发送GET请求；
+2. 分片所在节点向协调节点返回数据；
+3. 协调阶段等待所有的文档被取得，然后返回给客户端。
+
+
+## 倒排索引深度解析（面试必问）
+
+### 什么是倒排索引？
+
+**标准答案（30 秒）**：
+&gt; 倒排索引是搜索引擎的核心数据结构，类似书籍的&quot;索引&quot;。传统数据库是&quot;文档 → 关键词&quot;的映射（正排），倒排索引是&quot;关键词 → 文档列表&quot;的映射，可以快速定位包含指定关键词的所有文档。
+
+**对比**：
+
+| 索引类型 | 映射关系 | 查询方式 | 示例 |
+|---------|---------|---------|------|
+| **正排索引** | 文档 ID → 内容 | 根据 ID 查内容 | MySQL 主键索引 |
+| **倒排索引** | 关键词 → 文档 ID 列表 | 根据关键词查文档 | Elasticsearch |
+
+### 倒排索引结构
+
+**示例文档**：
+
+```json
+&#123;&quot;id&quot;: 1, &quot;content&quot;: &quot;Elasticsearch is a search engine&quot;&#125;
+&#123;&quot;id&quot;: 2, &quot;content&quot;: &quot;Lucene is a search library&quot;&#125;
+&#123;&quot;id&quot;: 3, &quot;content&quot;: &quot;Elasticsearch is built on Lucene&quot;&#125;
+```text
+
+**倒排索引表**：
+
+| Term（关键词） | Document IDs（文档列表） | Frequency（词频） |
+|---------------|------------------------|-----------------|
+| elasticsearch | [1, 3] | 2 |
+| search | [1, 2] | 2 |
+| engine | [1] | 1 |
+| lucene | [2, 3] | 2 |
+| library | [2] | 1 |
+| built | [3] | 1 |
+
+**查询 &quot;elasticsearch search&quot;**：
+1. 查倒排索引表：`elasticsearch` → [1,3]，`search` → [1,2]
+2. 求交集：[1,3] ∩ [1,2] = [1]
+3. 返回文档 ID=1
+
+### Analyzer 工作流程
+
+**Analyzer 三大组件**：
+
+| 组件 | 作用 | 示例 |
+|------|------|------|
+| **Character Filter** | 字符预处理（去特殊字符） | `&lt;html&gt;` → 空 |
+| **Tokenizer** | 分词 | `Elasticsearch is` → [`Elasticsearch`, `is`] |
+| **Token Filter** | 词项后处理（小写、停用词） | [`Elasticsearch`, `is`] → [`elasticsearch`] |
+
+**示例**：
+
+```json
+// 输入
+&quot;Elasticsearch is a SEARCH Engine!!!&quot;
+
+// Character Filter: 去掉特殊字符
+&quot;Elasticsearch is a SEARCH Engine&quot;
+
+// Tokenizer: 分词
+[&quot;Elasticsearch&quot;, &quot;is&quot;, &quot;a&quot;, &quot;SEARCH&quot;, &quot;Engine&quot;]
+
+// Token Filter: 小写 + 去停用词(is, a)
+[&quot;elasticsearch&quot;, &quot;search&quot;, &quot;engine&quot;]
+```text
+
+**常用 Analyzer**：
+
+| Analyzer | 适用场景 |
+|----------|---------|
+| **standard** | 英文（按空格分词 + 小写） |
+| **ik_smart** | 中文（粗粒度分词） |
+| **ik_max_word** | 中文（细粒度分词） |
+
+### 评分算法（BM25）
+
+**面试追问：Elasticsearch 如何对搜索结果排序？**
+
+Elasticsearch 使用 **BM25 算法**（Best Matching 25）计算相关性得分。
+
+**核心公式**：
+
+```text
+score(D, Q) = Σ IDF(qi) × TF(qi, D)
+```text
+
+- **TF（Term Frequency）**：词频，词在文档中出现次数
+- **IDF（Inverse Document Frequency）**：逆文档频率，词的稀有程度
+  - `IDF = log((总文档数 - 包含该词的文档数 + 0.5) / (包含该词的文档数 + 0.5))`
+
+**示例**：
+
+查询 &quot;elasticsearch search&quot;，文档库有 100 篇文档：
+- `elasticsearch` 出现在 10 篇文档中
+- `search` 出现在 50 篇文档中
+
+**IDF 计算**：
+- `IDF(elasticsearch) = log((100-10+0.5)/(10+0.5)) ≈ 2.18`（稀有词，权重高）
+- `IDF(search) = log((100-50+0.5)/(50+0.5)) ≈ 0.69`（常见词，权重低）
+
+**结论**：包含 `elasticsearch` 的文档得分更高。
+
+
+## 深分页问题与解决方案
+
+### 深分页问题
+
+**面试标准答案**：
+&gt; 深分页是指查询&quot;第 1000 页，每页 10 条&quot;时，Elasticsearch 需要在每个分片上查询 `10000 条`数据（from=10000, size=10），然后在协调节点排序后取 10 条。数据量大时会导致内存溢出和性能急剧下降。
+
+**示例**：
+
+```json
+GET /index/_search
+&#123;
+  &quot;from&quot;: 10000,  // 第 1000 页
+  &quot;size&quot;: 10
+&#125;
+```sql
+
+**问题**：
+- 5 个分片，每个分片需查询 10010 条数据
+- 协调节点需汇总 `5 × 10010 = 50050` 条数据
+- 内存占用：`50050 × 1KB ≈ 50MB`（单次查询）
+
+### 解决方案1：Scroll API（快照滚动）
+
+**适用场景**：导出大量数据、批量处理
+
+**原理**：创建快照，保持查询上下文，依次滚动获取数据。
+
+**示例**：
+
+```json
+// 1. 创建 scroll
+POST /index/_search?scroll=5m  // 保持 5 分钟
+&#123;
+  &quot;size&quot;: 1000,
+  &quot;query&quot;: &#123;&quot;match_all&quot;: &#123;&#125;&#125;
+&#125;
+
+// 2. 滚动获取下一批
+POST /_search/scroll
+&#123;
+  &quot;scroll&quot;: &quot;5m&quot;,
+  &quot;scroll_id&quot;: &quot;DXF1ZXJ5QW5kRmV0Y2gBAAAAAAAAAD4WYm9laVYtZndUQlNsdDcwakFMNjU1QQ==&quot;
+&#125;
+
+// 3. 清理 scroll
+DELETE /_search/scroll
+&#123;
+  &quot;scroll_id&quot;: &quot;DXF1ZXJ5QW5kRmV0Y2gBAAAAAAAAAD4WYm9laVYtZndUQlNsdDcwakFMNjU1QQ==&quot;
+&#125;
+```text
+
+**缺点**：
+- 占用大量内存（保持查询上下文）
+- 不支持实时数据（快照固定）
+- 需要手动清理 scroll
+
+### 解决方案2：search_after（推荐）
+
+**适用场景**：实时滚动分页、无限滚动
+
+**原理**：使用上一次查询的最后一条数据的排序值作为下一次查询的起点。
+
+**示例**：
+
+```json
+// 1. 第一次查询
+GET /index/_search
+&#123;
+  &quot;size&quot;: 10,
+  &quot;sort&quot;: [
+    &#123;&quot;timestamp&quot;: &quot;desc&quot;&#125;,
+    &#123;&quot;_id&quot;: &quot;asc&quot;&#125;  // 唯一字段，避免排序值相同
+  ]
+&#125;
+
+// 返回：
+// &quot;hits&quot;: [
+//   &#123;&quot;_id&quot;: &quot;1&quot;, &quot;sort&quot;: [1609459200000, &quot;1&quot;]&#125;,
+//   &#123;&quot;_id&quot;: &quot;2&quot;, &quot;sort&quot;: [1609459199000, &quot;2&quot;]&#125;,
+//   ...
+//   &#123;&quot;_id&quot;: &quot;10&quot;, &quot;sort&quot;: [1609459190000, &quot;10&quot;]&#125;
+// ]
+
+// 2. 下一页查询（使用上一页最后一条的 sort 值）
+GET /index/_search
+&#123;
+  &quot;size&quot;: 10,
+  &quot;search_after&quot;: [1609459190000, &quot;10&quot;],  // 上一页最后一条的 sort
+  &quot;sort&quot;: [
+    &#123;&quot;timestamp&quot;: &quot;desc&quot;&#125;,
+    &#123;&quot;_id&quot;: &quot;asc&quot;&#125;
+  ]
+&#125;
+```text
+
+**优势**：
+- 内存占用小（无需保持上下文）
+- 支持实时数据
+- 性能稳定（不受深度影响）
+
+### 对比总结
+
+| 方案 | 适用场景 | 优点 | 缺点 |
+|------|---------|------|------|
+| **from+size** | 前 100 页 | 简单、支持跳页 | 深分页性能差 |
+| **scroll** | 数据导出、批量处理 | 全量遍历 | 占用内存、不实时 |
+| **search_after** | 实时分页、无限滚动 | 高性能、实时 | 不支持跳页 |
+
+
+## 高可用与脑裂问题
+
+### 脑裂问题
+
+**面试标准答案**：
+&gt; 脑裂（Split Brain）是指集群因网络分区，导致选举出多个 Master 节点，各自管理集群的一部分，造成数据不一致。
+
+**原因**：
+1. 网络分区：Master 节点与其他节点网络不通
+2. 其他节点认为 Master 挂了，重新选举新 Master
+3. 旧 Master 恢复后，集群出现两个 Master
+
+**示例**：
+
+```text
+正常状态：
+Node1 (Master) - Node2 - Node3
+
+网络分区：
+[Node1 (Master)] | [Node2 (新Master) - Node3]
+     ↓                      ↓
+  写入数据A               写入数据B
+     ↓                      ↓
+   数据不一致！
+```text
+
+### 解决方案：quorum 机制
+
+**配置**：
+
+```yaml
+discovery.zen.minimum_master_nodes: (N/2 + 1)  // N 为 Master 候选节点数
+```text
+
+**示例**：
+- 3 个 Master 候选节点：`minimum_master_nodes = 2`
+- 5 个 Master 候选节点：`minimum_master_nodes = 3`
+
+**原理**：
+- 只有获得 **半数以上** 节点认可，才能成为 Master
+- 网络分区后，只有&quot;多数派&quot;能选出 Master，&quot;少数派&quot;无法选举
+
+**示例**：
+
+```text
+3 个节点，minimum_master_nodes=2
+
+网络分区：
+[Node1] | [Node2 - Node3]
+   ↓           ↓
+ 只有1个节点   有2个节点
+ 无法选举     可以选举新Master
+```text
+
+### 其他高可用措施
+
+1. **Discovery.zen.ping_timeout**：心跳超时时间（默认 3 秒）
+2. **Discovery.zen.fd.ping_interval**：心跳间隔（默认 1 秒）
+3. **分片副本**：每个主分片至少 1 个副本分片
+
+
+## 面试高频 20 题
+
+### 1. Elasticsearch 是什么？
+
+**标准答案**：
+Elasticsearch 是基于 Lucene 的分布式搜索引擎，支持全文检索、日志分析、实时监控等场景。核心特点：分布式、RESTful API、实时搜索、高可用。
+
+### 2. 倒排索引是什么？
+
+**标准答案**：
+倒排索引是&quot;关键词 → 文档列表&quot;的映射，与传统数据库的&quot;文档 ID → 内容&quot;相反。通过倒排索引可以快速定位包含指定关键词的所有文档。
+
+### 3. Elasticsearch 的写入流程？
+
+**标准答案**：
+1. 客户端请求协调节点
+2. 协调节点根据文档 ID 路由到主分片
+3. 主分片写入，并行转发到副分片
+4. 所有副分片写入成功后，向协调节点报告
+5. 协调节点向客户端返回结果
+
+### 4. Elasticsearch 的查询流程？
+
+**标准答案**：
+分为 Query 和 Fetch 两阶段：
+- **Query**：协调节点向所有分片发送查询，各分片返回 top N 的文档 ID 和得分
+- **Fetch**：协调节点合并结果，根据文档 ID 向分片请求完整文档
+
+### 5. 深分页问题如何解决？
+
+**标准答案**：
+1. **scroll**：适用于数据导出，创建快照滚动获取
+2. **search_after**：适用于实时分页，使用上一页最后一条的排序值作为起点
+3. **避免**：使用 from+size 深分页（性能差）
+
+### 6. 脑裂问题是什么？如何解决？
+
+**标准答案**：
+脑裂是指网络分区导致选举出多个 Master，造成数据不一致。解决方案：设置 `minimum_master_nodes = N/2 + 1`，确保只有&quot;多数派&quot;能选举 Master。
+
+### 7. Elasticsearch 和 Solr 的区别？
+
+| 维度 | Elasticsearch | Solr |
+|------|--------------|------|
+| **实时性** | 近实时（1 秒） | 需要手动 commit |
+| **分布式** | 原生支持 | 需要 ZooKeeper |
+| **社区** | 更活跃 | 较老牌 |
+| **适用场景** | 日志分析、实时搜索 | 企业搜索 |
+
+### 8. Elasticsearch 的分片和副本是什么？
+
+**标准答案**：
+- **主分片（Primary Shard）**：数据的横向分区，创建后不可修改数量
+- **副本分片（Replica Shard）**：主分片的备份，提供高可用和负载均衡
+
+### 9. Elasticsearch 如何实现高可用？
+
+**标准答案**：
+1. **分片副本**：每个主分片至少 1 个副本
+2. **quorum 机制**：避免脑裂
+3. **自动故障转移**：Master 挂了自动选举新 Master
+
+### 10. Mapping 是什么？
+
+**标准答案**：
+Mapping 是 Elasticsearch 的 schema，定义字段类型（text、keyword、date 等）和分析器。类似于数据库的表结构。
+
+### 11. text 和 keyword 的区别？
+
+| 字段类型 | 分词 | 适用场景 |
+|---------|------|---------|
+| **text** | 是 | 全文检索（如文章内容） |
+| **keyword** | 否 | 精确匹配（如 ID、标签） |
+
+### 12. Analyzer 是什么？
+
+**标准答案**：
+Analyzer 是分词器，包含 3 个组件：
+1. **Character Filter**：字符预处理
+2. **Tokenizer**：分词
+3. **Token Filter**：词项后处理（小写、停用词）
+
+### 13. 如何优化 Elasticsearch 写入性能？
+
+**标准答案**：
+1. **批量写入**：使用 bulk API
+2. **调整 refresh_interval**：从 1s 调整为 30s
+3. **关闭副本**：写入时临时关闭副本，写入完成后再开启
+4. **增加 indexing buffer**：调整 `indices.memory.index_buffer_size`
+
+### 14. 如何优化 Elasticsearch 查询性能？
+
+**标准答案**：
+1. **使用 filter 而非 query**：filter 可缓存
+2. **避免深分页**：使用 search_after
+3. **合理设计 Mapping**：减少字段数量
+4. **预热查询**：使用 warmers
+
+### 15. 如何监控 Elasticsearch？
+
+**标准答案**：
+1. **集群健康**：`GET /_cluster/health`
+2. **节点统计**：`GET /_nodes/stats`
+3. **索引统计**：`GET /&lt;index&gt;/_stats`
+4. **慢查询日志**：`slowlog`
+
+### 16. Elasticsearch 的 routing 机制？
+
+**标准答案**：
+- 默认 routing：`shard_num = hash(_id) % num_primary_shards`
+- 自定义 routing：可以指定 routing 参数，将相关文档路由到同一分片
+
+### 17. Elasticsearch 的聚合（Aggregation）是什么？
+
+**标准答案**：
+聚合是 Elasticsearch 的分析功能，类似 SQL 的 GROUP BY，支持：
+- **Bucket Aggregation**：分桶（如按时间分桶）
+- **Metric Aggregation**：指标（如求和、平均值）
+
+### 18. Elasticsearch 如何实现实时搜索？
+
+**标准答案**：
+- 写入数据后，默认 1 秒后 refresh，数据从内存刷到文件系统缓存，变为可搜索
+- 调整 `refresh_interval` 可控制实时性
+
+### 19. Elasticsearch 的段（Segment）是什么？
+
+**标准答案**：
+段是 Lucene 的存储单元，一个索引由多个段组成。写入数据时先写入内存，refresh 后生成新段。段会定期合并（merge），减少段数量，提高查询性能。
+
+### 20. Elasticsearch 和 MySQL 的区别？
+
+| 维度 | Elasticsearch | MySQL |
+|------|--------------|-------|
+| **查询类型** | 全文检索、模糊查询 | 精确查询、关联查询 |
+| **事务** | 不支持 | 支持 |
+| **扩展性** | 水平扩展（分片） | 垂直扩展（分库分表） |
+| **适用场景** | 搜索、日志分析 | 事务、关系型数据 |
+
+---
+
+### es 更新和乐观锁控制
+-  &quot;_version&quot; : 1,
+- &quot;_seq_no&quot; : 426,
+- &quot;_primary_term&quot; : 1,
+
+
+## 性能优化
+### 关注哪些性能指标
+- （读）query latency 1-2ms，复杂的查询可能到几十ms
+- （读）fetch latency ，QPS，读数据量，延时
+- （写）index rate，QPS，数据量，延时
+- （写）index latency
+- 存储数据量
+- 集群读写QPS，CPU、内存、存储、网络IO的监控
+- 节点维度的监控
+- index维度的监控
+
+
+### 集群规划
+- 业务存储量，期望的SLA指标
+- 节点数量、内存、CPU数量，是否需要SSD等
+- 预留buffer,磁盘使用率达到85%、90%、95%
+- CPU使用率
+- 内存使用率
+- 冷热数据，灾备方案
+
+### settings 索引优化实践
+- 分片数量：number_of_shards，经验值：建议每个分片大小不要超过30GB。建议根据集群节点的个数规模，分片个数建议&gt;=集群节点的个数。5节点的集群，5个分片就比较合理。注意：除非reindex操作，分片数是不可以修改的
+- 副本数量：number_of_replicas。除非你对系统的健壮性有异常高的要求，比如：银行系统。可以考虑2个副本以上。否则，1个副本足够。注意：副本数是可以通过配置随时修改的
+- refresh_interval 是一个参数，用于配置 Elasticsearch 中的索引刷新间隔。索引刷新是将内存中的数据写入磁盘以使其可搜索的过程。刷新操作会将新的文档和更新的文档写入磁盘，并使其在搜索结果中可见。默认值表示每秒执行一次刷新操作
+- 按照日期规划索引是个很好的习惯
+- 务必使用别名，ES不像mysql方面的更改索引名称。使用别名就是一个相对灵活的选择
+- setting中定义繁体全文检索时的traditional_chinese_analyzer以及一个名为lowercase的normalizer，常用于keyword类型的匹配
+- 结合profile、explain api 分析query慢的原因。[search profile api](https://www.elastic.co/guide/en/elasticsearch/reference/7.17/search-profile.html)
+
+```json
+&#123;
+    &quot;hotel_index_20220810&quot;: &#123;
+        &quot;settings&quot;: &#123;
+            &quot;index&quot;: &#123;
+                &quot;refresh_interval&quot;: &quot;1s&quot;,
+                &quot;number_of_shards&quot;: &quot;5&quot;,
+                &quot;provided_name&quot;: &quot;hotel_index_20220810&quot;,
+                &quot;creation_date&quot;: &quot;1660127508475&quot;,
+                &quot;analysis&quot;: &#123;
+                    &quot;filter&quot;: &#123;
+                        &quot;t2sconvert&quot;: &#123;
+                            &quot;convert_type&quot;: &quot;t2s&quot;,
+                            &quot;type&quot;: &quot;stconvert&quot;
+                        &#125;
+                    &#125;,
+                    &quot;normalizer&quot;: &#123;
+                        &quot;lowercase&quot;: &#123;
+                            &quot;filter&quot;: [
+                                &quot;lowercase&quot;
+                            ],
+                            &quot;type&quot;: &quot;custom&quot;
+                        &#125;
+                    &#125;,
+                    &quot;analyzer&quot;: &#123;
+                        &quot;traditional_chinese_analyzer&quot;: &#123;
+                            &quot;filter&quot;: &quot;t2sconvert&quot;,
+                            &quot;type&quot;: &quot;custom&quot;,
+                            &quot;tokenizer&quot;: &quot;ik_smart&quot;
+                        &#125;
+                    &#125;
+                &#125;,
+                &quot;number_of_replicas&quot;: &quot;2&quot;,
+                &quot;uuid&quot;: &quot;afdjafkdlaf&quot;,
+                &quot;version&quot;: &#123;
+                    &quot;created&quot;: &quot;6080599&quot;
+                &#125;
+            &#125;
+        &#125;
+    &#125;
+&#125;
+
+```text
+
+### mapping 数据模型优化
+- 不要使用默认的mapping.默认Mapping的字段类型是系统自动识别的。其中：string类型默认分成：text和keyword两种类型。如果你的业务中不需要分词、检索，仅需要精确匹配，仅设置为keyword即可。根据业务需要选择合适的类型，有利于节省空间和提升精度，如：浮点型的选择.
+-  Mapping各字段的选型流程
+- 选择合理的分词器。常见的开源中文分词器包括：ik分词器、ansj分词器、hanlp分词器、结巴分词器、海量分词器、“ElasticSearch最全分词器比较及使用方法” 搜索可查看对比效果。如果选择ik，建议使用ik_max_word。因为：粗粒度的分词结果基本包含细粒度ik_smart的结果。
+- 一个字段包含多种语言：分别设置了不同的分词器。中文：ik_max_word，英语：english等
+- analyzer：表示文档写入时的分词，search_analyzer表示检索时query的分词
+- type:text，type:keyword，不分词
+- normalizer 表示英文keyword判断时不区分大小写
+- &quot;dynamic&quot; : &quot;strict&quot;
+- https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-types.html
+
+```json
+&quot;properties&quot;: &#123;
+    &quot;accommodation&quot;: &#123;
+        &quot;properties&quot;: &#123;
+            &quot;value_in_chinese&quot;: &#123;
+                &quot;type&quot;: &quot;text&quot;,
+                &quot;fields&quot;: &#123;
+                    &quot;keyword&quot;: &#123;
+                        &quot;type&quot;: &quot;keyword&quot;
+                    &#125;
+                &#125;,
+                &quot;analyzer&quot;: &quot;ik_max_word&quot;,
+                &quot;search_analyzer&quot;: &quot;ik_smart&quot;
+            &#125;,
+            &quot;value_in_english&quot;: &#123;
+                &quot;type&quot;: &quot;text&quot;,
+                &quot;fields&quot;: &#123;
+                    &quot;keyword&quot;: &#123;
+                        &quot;type&quot;: &quot;keyword&quot;,
+                        &quot;normalizer&quot;: &quot;lowercase&quot;
+                    &#125;
+                &#125;,
+                &quot;analyzer&quot;: &quot;english&quot;
+            &#125;,
+            &quot;value_in_filipino&quot;: &#123;
+                &quot;type&quot;: &quot;text&quot;,
+                &quot;fields&quot;: &#123;
+                    &quot;keyword&quot;: &#123;
+                        &quot;type&quot;: &quot;keyword&quot;
+                    &#125;
+                &#125;,
+                &quot;analyzer&quot;: &quot;standard&quot;
+            &#125;,
+            &quot;value_in_indonesian&quot;: &#123;
+                &quot;type&quot;: &quot;text&quot;,
+                &quot;fields&quot;: &#123;
+                    &quot;keyword&quot;: &#123;
+                        &quot;type&quot;: &quot;keyword&quot;
+                    &#125;
+                &#125;,
+                &quot;analyzer&quot;: &quot;indonesian&quot;
+            &#125;,
+            &quot;value_in_malay&quot;: &#123;
+                &quot;type&quot;: &quot;text&quot;,
+                &quot;fields&quot;: &#123;
+                    &quot;keyword&quot;: &#123;
+                        &quot;type&quot;: &quot;keyword&quot;
+                    &#125;
+                &#125;,
+                &quot;analyzer&quot;: &quot;standard&quot;
+            &#125;,
+            &quot;value_in_thai&quot;: &#123;
+                &quot;type&quot;: &quot;text&quot;,
+                &quot;fields&quot;: &#123;
+                    &quot;keyword&quot;: &#123;
+                        &quot;type&quot;: &quot;keyword&quot;
+                    &#125;
+                &#125;,
+                &quot;analyzer&quot;: &quot;thai&quot;
+            &#125;,
+            &quot;value_in_tw_chinese&quot;: &#123;
+                &quot;type&quot;: &quot;text&quot;,
+                &quot;fields&quot;: &#123;
+                    &quot;keyword&quot;: &#123;
+                        &quot;type&quot;: &quot;keyword&quot;
+                    &#125;
+                &#125;,
+                &quot;analyzer&quot;: &quot;traditional_chinese_analyzer&quot;
+            &#125;,
+            &quot;value_in_vietnamese&quot;: &#123;
+                &quot;type&quot;: &quot;text&quot;,
+                &quot;fields&quot;: &#123;
+                    &quot;keyword&quot;: &#123;
+                        &quot;type&quot;: &quot;keyword&quot;
+                    &#125;
+                &#125;,
+                &quot;analyzer&quot;: &quot;standard&quot;
+            &#125;
+        &#125;
+    &#125;
+&#125;
+```text
+
+
+
+
+
+
+
+
+### 数据写入优化
+1. 要不要秒级响应？Elasticsearch近实时的本质是：最快1s写入的数据可以被查询到。如果refresh_interval设置为1s，势必会产生大量的segment，检索性能会受到影响。所以，非实时的场景可以调大，设置为30s，甚至-1
+2. 能批量就不单条写入
+3. 减少副本，提升写入性能。写入前，副本数设置为0，写入后，副本数设置为原来值
+
+
+
+### 读优化
+1. 分析dsl
+2. 禁用 wildcard模糊匹配,通过match_phrase和slop结合查询。
+3. 极小的概率使用match匹配
+4. 结合业务场景，大量使用filter过滤器
+5. 控制返回字段和结果,同理，ES中，_source 返回全部字段也是非必须的。要通过_source 控制字段的返回，只返回业务相关的字段。
+6. 分页深度查询和遍历.分页查询使用：from+size;遍历使用：scroll；并行遍历使用：scroll+slice
+
+
+### 业务优化
+1. 字段抽取、倾向性分析、分类/聚类、相关性判定放在写入ES之前的ETL阶段进行
+2. 产品经理基于各种奇葩业务场景可能会提各种无理需求
+
+
+
+## SDK 使用
+- github.com/olivere/elastic
+- https://github.com/elastic/go-elasticsearch
+
+
+## es migrate tools
+- https://github.com/medcl/esm
+- https://github.com/medcl/esm/tree/0.1.0
+
+## 拓展阅读
+- [普通搜索和向量搜索介绍](https://blog.csdn.net/weixin_40601534/article/details/122435858?spm=1001.2014.3001.5501)
+- [广告索引（定向）的布尔表达式](https://www.cnblogs.com/chenny7/p/14765412.html)
+- [official document](https://www.elastic.co/guide/en/elasticsearch/reference/8.3/index.html)
+- [scroll使用和Elasticsearch的深度翻页问题](https://www.jianshu.com/p/eb7f11e178b3)
+- [ES 更新并发控制问题](https://www.jianshu.com/p/d4da0182a67a)
+- [ES 读写流程](https://www.cnblogs.com/upupfeng/p/13488120.html)
+- [达观数据搜索引擎的Query自动纠错技术和架构](http://www.datagrand.com/blog/search-query.html)
+- [Elasticsearch基础之相关性介绍](https://donggeitnote.com/2021/09/19/elasticsearch-tfidf/)
+- [ElasticSearch进阶之拼写错误](https://donggeitnote.com/2022/01/02/elasticsearch-typo/)
+- [ElasticSearch进阶之输入匹配](https://donggeitnote.com/2021/11/06/elasticsearch-typematch/)
+- [ElasticSearch进阶之多域搜索](https://donggeitnote.com/2021/10/02/elasticsearch-multiplesearch/)
+- [ElasticSearch进阶之Shard/segment内部原理](https://donggeitnote.com/2021/09/29/elasticsearch-shard/)
+- analysizer,normalizer,常用分词器介绍和评估。https://blog.csdn.net/Q176782/article/details/119054132
+- [Kafka VS ElasticSearch 的相似性和比较](https://juejin.cn/post/6844904008432402440)
+- [理解ES的refresh、flush、merge](https://blog.csdn.net/weixin_37692493/article/details/108182161)
+  - 节点
+  - index/topic
+  - shard/partiion
+  - 副本机制
+- [让Elasticsearch飞起来!——性能优化实践干货](https://developer.aliyun.com/article/706990)
+</code></pre>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Elasticsearch/" rel="tag"># Elasticsearch</a>
+              <a href="/tags/%E6%90%9C%E7%B4%A2%E5%BC%95%E6%93%8E/" rel="tag"># 搜索引擎</a>
+              <a href="/tags/%E5%80%92%E6%8E%92%E7%B4%A2%E5%BC%95/" rel="tag"># 倒排索引</a>
+              <a href="/tags/DSL/" rel="tag"># DSL</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2024/03/06/fundamentals/06-go-practice/" rel="prev" title="编程语言：Go 实践">
+                  <i class="fa fa-angle-left"></i> 编程语言：Go 实践
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2024/03/10/fundamentals/09-kafka/" rel="next" title="中间件 - 异步和消息队列">
+                  中间件 - 异步和消息队列 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":{"light":"default","dark":"dark"},"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js","integrity":"sha256-stuqcu2FrjYCXDOytWFA5SoUE/r3nkp6gTglzNSlavU="}}</script>
+  <script src="/js/third-party/tags/mermaid.js"></script>
+
+
+
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+
+</body>
+</html>

@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文定位本文面向有 3 年以上后端开发经验的工程师，重点不是背诵操作系统名词，而是回答以下工程问题：  一个服务为什么会因为线程、进程或协程数量增加而变慢？ fork、exec 和写时复制到底复制了什么？ 内存明明没有用完，为什么进程仍然会被 OOM 或频繁换页？ 阻塞 I&#x2F;O、非阻塞 I&#x2F;O 和 epoll 分别解决什么问题？ 线上 CPU 飙高、句柄耗尽、D 状态进程过多时">
+<meta property="og:type" content="article">
+<meta property="og:title" content="计算机基础：操作系统面试与工程实践">
+<meta property="og:url" content="http://yoursite.com/2024/03/01/fundamentals/01-operating-system-fundamentals/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="本文定位本文面向有 3 年以上后端开发经验的工程师，重点不是背诵操作系统名词，而是回答以下工程问题：  一个服务为什么会因为线程、进程或协程数量增加而变慢？ fork、exec 和写时复制到底复制了什么？ 内存明明没有用完，为什么进程仍然会被 OOM 或频繁换页？ 阻塞 I&#x2F;O、非阻塞 I&#x2F;O 和 epoll 分别解决什么问题？ 线上 CPU 飙高、句柄耗尽、D 状态进程过多时">
+<meta property="og:locale">
+<meta property="article:published_time" content="2024-03-01T00:00:00.000Z">
+<meta property="article:modified_time" content="2026-09-23T00:00:00.000Z">
+<meta property="article:author" content="wxquare">
+<meta property="article:tag" content="操作系统">
+<meta property="article:tag" content="Linux">
+<meta property="article:tag" content="并发">
+<meta property="article:tag" content="内存管理">
+<meta property="article:tag" content="I&#x2F;O">
+<meta property="article:tag" content="面试">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://yoursite.com/2024/03/01/fundamentals/01-operating-system-fundamentals/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2024/03/01/fundamentals/01-operating-system-fundamentals/","path":"2024/03/01/fundamentals/01-operating-system-fundamentals/","title":"计算机基础：操作系统面试与工程实践"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>计算机基础：操作系统面试与工程实践 | wxquare's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-book"><a href="/booklist/" rel="section"><i class="fa fa-book fa-fw"></i>Books</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9C%AC%E6%96%87%E5%AE%9A%E4%BD%8D"><span class="nav-number">1.</span> <span class="nav-text">本文定位</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%9F%E6%9F%A5%E5%AF%BC%E8%88%AA"><span class="nav-number">2.</span> <span class="nav-text">速查导航</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9B%E7%A8%8B%E3%80%81%E7%BA%BF%E7%A8%8B%E4%B8%8E%E5%8D%8F%E7%A8%8B"><span class="nav-number">3.</span> <span class="nav-text">进程、线程与协程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%B5%84%E6%BA%90%E8%BE%B9%E7%95%8C"><span class="nav-number">3.1.</span> <span class="nav-text">资源边界</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BF%9B%E7%A8%8B%E3%80%81%E7%BA%BF%E7%A8%8B%E4%B8%8E%E5%8D%8F%E7%A8%8B%E5%A6%82%E4%BD%95%E9%80%9A%E4%BF%A1"><span class="nav-number">3.2.</span> <span class="nav-text">进程、线程与协程如何通信</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%B0%83%E5%BA%A6%E4%B8%8E%E4%B8%8A%E4%B8%8B%E6%96%87%E5%88%87%E6%8D%A2"><span class="nav-number">4.</span> <span class="nav-text">调度与上下文切换</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%B0%83%E5%BA%A6%E5%99%A8%E8%B4%9F%E8%B4%A3%E4%BB%80%E4%B9%88"><span class="nav-number">4.1.</span> <span class="nav-text">调度器负责什么</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%8A%E4%B8%8B%E6%96%87%E5%88%87%E6%8D%A2%E7%9A%84%E6%88%90%E6%9C%AC"><span class="nav-number">4.2.</span> <span class="nav-text">上下文切换的成本</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98%E4%B8%8E%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86"><span class="nav-number">5.</span> <span class="nav-text">虚拟内存与内存管理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%8E%E8%99%9A%E6%8B%9F%E5%9C%B0%E5%9D%80%E5%88%B0%E7%89%A9%E7%90%86%E5%9C%B0%E5%9D%80"><span class="nav-number">5.1.</span> <span class="nav-text">从虚拟地址到物理地址</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%A0%88%E3%80%81%E5%A0%86%E3%80%81%E9%A1%B5%E7%BC%93%E5%AD%98%E5%92%8C%E4%BA%A4%E6%8D%A2"><span class="nav-number">5.2.</span> <span class="nav-text">栈、堆、页缓存和交换</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D%E4%B8%8E-Cache"><span class="nav-number">5.3.</span> <span class="nav-text">内存分配与 Cache</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#fork%E3%80%81exec-%E4%B8%8E%E5%86%99%E6%97%B6%E5%A4%8D%E5%88%B6"><span class="nav-number">6.</span> <span class="nav-text">fork、exec 与写时复制</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#fork-%E5%81%9A%E4%BA%86%E4%BB%80%E4%B9%88"><span class="nav-number">6.1.</span> <span class="nav-text">fork 做了什么</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#exec-%E4%B8%8D%E6%98%AF%E5%88%9B%E5%BB%BA%E8%BF%9B%E7%A8%8B"><span class="nav-number">6.2.</span> <span class="nav-text">exec 不是创建进程</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E4%B8%8E%E6%96%87%E4%BB%B6%E6%8F%8F%E8%BF%B0%E7%AC%A6"><span class="nav-number">7.</span> <span class="nav-text">文件系统与文件描述符</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%94%A8%E6%88%B7%E6%80%81%E3%80%81%E5%86%85%E6%A0%B8%E6%80%81%E4%B8%8E%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8"><span class="nav-number">8.</span> <span class="nav-text">用户态、内核态与系统调用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#I-O-%E6%A8%A1%E5%9E%8B%E4%B8%8E-epoll"><span class="nav-number">9.</span> <span class="nav-text">I&#x2F;O 模型与 epoll</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9B%E7%A8%8B%E9%97%B4%E9%80%9A%E4%BF%A1%E3%80%81%E5%90%8C%E6%AD%A5%E4%B8%8E%E6%AD%BB%E9%94%81"><span class="nav-number">10.</span> <span class="nav-text">进程间通信、同步与死锁</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%B6%E4%BB%96%E9%AB%98%E9%A2%91%E5%9F%BA%E7%A1%80%E9%97%AE%E9%A2%98"><span class="nav-number">11.</span> <span class="nav-text">其他高频基础问题</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BF%9B%E7%A8%8B%E7%8A%B6%E6%80%81%E3%80%81%E5%83%B5%E5%B0%B8%E8%BF%9B%E7%A8%8B%E4%B8%8E%E5%AD%A4%E5%84%BF%E8%BF%9B%E7%A8%8B"><span class="nav-number">11.1.</span> <span class="nav-text">进程状态、僵尸进程与孤儿进程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Socket-I-O-%E9%80%9F%E6%9F%A5"><span class="nav-number">11.2.</span> <span class="nav-text">Socket I&#x2F;O 速查</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B5%AE%E7%82%B9%E6%95%B0%E4%B8%8E%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D"><span class="nav-number">11.3.</span> <span class="nav-text">浮点数与内存分配</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BA%BF%E4%B8%8A%E6%8E%92%E9%9A%9C%E4%B8%8E%E9%9D%A2%E8%AF%95%E8%BF%BD%E9%97%AE"><span class="nav-number">12.</span> <span class="nav-text">线上排障与面试追问</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BB%93%E8%AE%BA%E8%BE%B9%E7%95%8C"><span class="nav-number">13.</span> <span class="nav-text">结论边界</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="nav-number">14.</span> <span class="nav-text">参考资料</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9D%83%E5%A8%81%E8%B5%84%E6%96%99"><span class="nav-number">14.1.</span> <span class="nav-text">权威资料</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BB%B6%E4%BC%B8%E9%98%85%E8%AF%BB"><span class="nav-number">14.2.</span> <span class="nav-text">延伸阅读</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">28</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">6</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">112</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+<section class="site-series">
+  <div class="site-series-title">
+    <i class="fa fa-book"></i> 系列专题
+  </div>
+  <ul class="series-list">
+    <li class="series-item ecommerce">
+      <a href="/categories/电商系统设计/">
+        <i class="fa fa-shopping-cart"></i>
+        <span class="series-name">电商系统设计</span>
+        <span class="series-count">13篇</span>
+      </a>
+    </li>
+    <li class="series-item architecture-clean-code">
+      <a href="/tags/architecture-and-clean-code/">
+        <i class="fa fa-sitemap"></i>
+        <span class="series-name">架构与整洁代码</span>
+        <span class="series-count">4篇</span>
+      </a>
+    </li>
+    <li class="series-item ai">
+      <a href="/categories/AI-与-Agent/">
+        <i class="fa fa-robot"></i>
+        <span class="series-name">AI 与 Agent</span>
+        <span class="series-count">7篇</span>
+      </a>
+    </li>
+    <li class="series-item system-design">
+      <a href="/categories/系统设计基础/">
+        <i class="fa fa-cogs"></i>
+        <span class="series-name">系统设计基础</span>
+        <span class="series-count">15篇</span>
+      </a>
+    </li>
+    <li class="series-item fundamentals">
+      <a href="/categories/计算机基础/">
+        <i class="fa fa-laptop"></i>
+        <span class="series-name">计算机基础</span>
+        <span class="series-count">6篇</span>
+      </a>
+    </li>
+  </ul>
+</section>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2024/03/01/fundamentals/01-operating-system-fundamentals/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="计算机基础：操作系统面试与工程实践 | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          计算机基础：操作系统面试与工程实践
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2024-03-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-01T00:00:00+00:00">2024-03-01</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-09-23 00:00:00" itemprop="dateModified" datetime="2026-09-23T00:00:00+00:00">2026-09-23</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9F%BA%E7%A1%80/" itemprop="url" rel="index"><span itemprop="name">计算机基础</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="本文定位"><a href="#本文定位" class="headerlink" title="本文定位"></a>本文定位</h2><p>本文面向有 3 年以上后端开发经验的工程师，重点不是背诵操作系统名词，而是回答以下工程问题：</p>
+<ul>
+<li>一个服务为什么会因为线程、进程或协程数量增加而变慢？</li>
+<li><code>fork</code>、<code>exec</code> 和写时复制到底复制了什么？</li>
+<li>内存明明没有用完，为什么进程仍然会被 OOM 或频繁换页？</li>
+<li>阻塞 I&#x2F;O、非阻塞 I&#x2F;O 和 <code>epoll</code> 分别解决什么问题？</li>
+<li>线上 CPU 飙高、句柄耗尽、<code>D</code> 状态进程过多时，应该如何定位？</li>
+</ul>
+<p>本文保留原有面试题和知识点，但将它们按照“资源边界 → 工作机制 → 工程判断 → 故障排查”的顺序重新组织。文中的 Linux 行为以常见的现代 Linux 实现为背景；如果是内核实现细节，会明确说明适用范围。</p>
+<h2 id="速查导航"><a href="#速查导航" class="headerlink" title="速查导航"></a>速查导航</h2><ul>
+<li><a href="#%E8%BF%9B%E7%A8%8B%E7%BA%BF%E7%A8%8B%E4%B8%8E%E5%8D%8F%E7%A8%8B">进程、线程与协程</a></li>
+<li><a href="#%E8%B0%83%E5%BA%A6%E4%B8%8E%E4%B8%8A%E4%B8%8B%E6%96%87%E5%88%87%E6%8D%A2">调度与上下文切换</a></li>
+<li><a href="#%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98%E4%B8%8E%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86">虚拟内存与内存管理</a></li>
+<li><a href="#forkexec-%E4%B8%8E%E5%86%99%E6%97%B6%E5%A4%8D%E5%88%B6"><code>fork</code>、<code>exec</code> 与写时复制</a></li>
+<li><a href="#%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E4%B8%8E%E6%96%87%E4%BB%B6%E6%8F%8F%E8%BF%B0%E7%AC%A6">文件系统与文件描述符</a></li>
+<li><a href="#%E7%94%A8%E6%88%B7%E6%80%81%E5%86%85%E6%A0%B8%E6%80%81%E4%B8%8E%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8">用户态、内核态与系统调用</a></li>
+<li><a href="#io-%E6%A8%A1%E5%9E%8B%E4%B8%8E-epoll">I&#x2F;O 模型与 <code>epoll</code></a></li>
+<li><a href="#%E8%BF%9B%E7%A8%8B%E9%97%B4%E9%80%9A%E4%BF%A1%E5%90%8C%E6%AD%A5%E4%B8%8E%E6%AD%BB%E9%94%81">进程间通信、同步与死锁</a></li>
+<li><a href="#%E7%BA%BF%E4%B8%8A%E6%8E%92%E9%9A%9C%E4%B8%8E%E9%9D%A2%E8%AF%95%E8%BF%BD%E9%97%AE">线上排障与面试追问</a></li>
+<li><a href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99">参考资料</a></li>
+</ul>
+<h2 id="进程、线程与协程"><a href="#进程、线程与协程" class="headerlink" title="进程、线程与协程"></a>进程、线程与协程</h2><h3 id="资源边界"><a href="#资源边界" class="headerlink" title="资源边界"></a>资源边界</h3><p>进程是资源隔离和故障隔离的基本边界。一个进程通常拥有独立的虚拟地址空间、文件描述符表、信号处理状态和凭证；线程则共享进程的地址空间、打开的文件和大部分进程资源，但拥有自己的栈、寄存器状态和调度状态。</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>进程</th>
+<th>线程</th>
+<th>协程</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>地址空间</td>
+<td>默认隔离</td>
+<td>同一进程内共享</td>
+<td>依附于线程或运行时</td>
+</tr>
+<tr>
+<td>切换成本</td>
+<td>通常最高</td>
+<td>通常低于进程</td>
+<td>通常由用户态运行时管理</td>
+</tr>
+<tr>
+<td>故障影响</td>
+<td>进程级隔离</td>
+<td>可能影响整个进程</td>
+<td>取决于运行时和异常处理</td>
+</tr>
+<tr>
+<td>通信方式</td>
+<td>IPC、Socket、共享内存</td>
+<td>共享内存、锁、条件变量</td>
+<td>Channel、Future、事件循环</td>
+</tr>
+<tr>
+<td>适合场景</td>
+<td>隔离、独立部署、CPU 并行</td>
+<td>共享状态、并发 I&#x2F;O</td>
+<td>大量等待、结构化异步任务</td>
+</tr>
+</tbody></table>
+<p>“协程一定比线程快”并不是可靠结论。协程减少了内核线程切换和栈空间开销，但它不能让 CPU 密集型任务自动并行，也不能消除锁、队列、调度和上下文管理成本。</p>
+<h3 id="进程、线程与协程如何通信"><a href="#进程、线程与协程如何通信" class="headerlink" title="进程、线程与协程如何通信"></a>进程、线程与协程如何通信</h3><ul>
+<li>进程之间可以使用管道、命名管道、Socket、消息队列、共享内存等方式通信。</li>
+<li>线程之间主要通过共享内存通信，并使用互斥锁、读写锁、条件变量、信号量或无锁数据结构进行同步。</li>
+<li>协程之间通常通过事件循环、Channel、Future&#x2F;Promise 或运行时提供的任务调度器通信。</li>
+</ul>
+<p>面试时不要只说“线程共享内存、进程不共享内存”。更完整的回答还应该说明：进程可以通过共享内存显式共享数据，而线程共享内存意味着更低的通信成本，也意味着更高的数据竞争风险。</p>
+<h2 id="调度与上下文切换"><a href="#调度与上下文切换" class="headerlink" title="调度与上下文切换"></a>调度与上下文切换</h2><h3 id="调度器负责什么"><a href="#调度器负责什么" class="headerlink" title="调度器负责什么"></a>调度器负责什么</h3><p>调度器需要在可运行任务中选择下一个执行实体，并处理阻塞、唤醒、抢占、优先级和 CPU 亲和性。任务从运行态进入睡眠态，通常是因为等待 I&#x2F;O、锁、定时器或其他资源；资源就绪后，任务重新进入可运行队列。</p>
+<p>现代 Linux 的调度实现不能简单等同于早期内核资料中的 <code>counter</code>、<code>goodness()</code> 或固定时间片模型。面试中可以先回答调度目标和状态转换，再根据题目补充 CFS、实时调度类、调度实体和内核版本差异。</p>
+<h3 id="上下文切换的成本"><a href="#上下文切换的成本" class="headerlink" title="上下文切换的成本"></a>上下文切换的成本</h3><p>上下文切换不仅是保存和恢复寄存器，还可能带来调度器开销、缓存局部性下降、TLB 相关影响以及线程之间的同步成本。因此，看到“线程越多吞吐越高”或“协程没有切换成本”这类结论时需要保持警惕。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ps -eLf</span><br><span class="line">top -H -p &lt;pid&gt;</span><br><span class="line">pidstat -t -p &lt;pid&gt; 1</span><br><span class="line"><span class="built_in">cat</span> /proc/&lt;pid&gt;/status</span><br></pre></td></tr></table></figure>
+
+<h2 id="虚拟内存与内存管理"><a href="#虚拟内存与内存管理" class="headerlink" title="虚拟内存与内存管理"></a>虚拟内存与内存管理</h2><h3 id="从虚拟地址到物理地址"><a href="#从虚拟地址到物理地址" class="headerlink" title="从虚拟地址到物理地址"></a>从虚拟地址到物理地址</h3><p>进程使用的是虚拟地址。CPU 通过页表把虚拟页映射到物理页，TLB 用来缓存近期的地址转换结果；TLB 未命中时，需要进行页表遍历，访问不存在的页还会触发缺页异常。</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">虚拟地址</span><br><span class="line">  → TLB 查询</span><br><span class="line">  → 命中：得到物理页框</span><br><span class="line">  → 未命中：页表遍历</span><br><span class="line">  → 页不存在：缺页异常</span><br><span class="line">  → 内核分配、换入或建立映射</span><br><span class="line">  → 更新页表和 TLB</span><br></pre></td></tr></table></figure>
+
+<p>这解释了为什么内存访问性能不仅取决于“有没有空闲内存”，还受页面局部性、TLB 命中率、缺页和 NUMA 布局影响。</p>
+<h3 id="栈、堆、页缓存和交换"><a href="#栈、堆、页缓存和交换" class="headerlink" title="栈、堆、页缓存和交换"></a>栈、堆、页缓存和交换</h3><ul>
+<li>栈主要承载函数调用栈和线程私有数据，生命周期通常与线程调用关系相关。</li>
+<li>堆用于动态分配，但具体分配策略由语言运行时和分配器决定，不能简单等同为“慢内存”。</li>
+<li>文件页缓存把磁盘数据缓存到内存中，进程使用的内存统计需要区分匿名页、文件页和共享页。</li>
+<li>交换区可以缓解内存压力，但频繁换入换出通常意味着工作集超过可用内存或访问局部性恶化。</li>
+</ul>
+<p>排查内存问题时，不要只看单个进程的 <code>RES</code>，还要结合容器限制、共享页、页缓存、OOM 日志和 cgroup 统计。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">free -h</span><br><span class="line">vmstat 1</span><br><span class="line"><span class="built_in">cat</span> /proc/meminfo</span><br><span class="line"><span class="built_in">cat</span> /proc/&lt;pid&gt;/status</span><br><span class="line">dmesg -T | rg -i <span class="string">&#x27;oom|out of memory|killed process&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="内存分配与-Cache"><a href="#内存分配与-Cache" class="headerlink" title="内存分配与 Cache"></a>内存分配与 Cache</h3><p>CPU Cache、TLB 和页表是不同层次的机制。Cache 缓存的是数据或指令，TLB 缓存的是地址转换结果；二者都依赖局部性，但不能混为一谈。内存分配器还可能保留 arena、空闲链表或线程本地缓存，因此“业务对象释放了”不一定意味着 RSS 立即下降。</p>
+<h2 id="fork、exec-与写时复制"><a href="#fork、exec-与写时复制" class="headerlink" title="fork、exec 与写时复制"></a><code>fork</code>、<code>exec</code> 与写时复制</h2><h3 id="fork-做了什么"><a href="#fork-做了什么" class="headerlink" title="fork 做了什么"></a><code>fork</code> 做了什么</h3><p><code>fork</code> 创建一个新的进程执行实体。父子进程拥有不同的进程标识和执行状态，但新进程最初可以共享大量只读的地址空间页和文件对象。现代 Unix 实现通常使用写时复制：只有某一方真正写入共享页时，内核才复制该页。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">pid_t</span> pid = fork();</span><br><span class="line"><span class="keyword">if</span> (pid == <span class="number">0</span>) &#123;</span><br><span class="line">    execlp(<span class="string">&quot;worker&quot;</span>, <span class="string">&quot;worker&quot;</span>, <span class="string">&quot;--once&quot;</span>, <span class="literal">NULL</span>);</span><br><span class="line">    _exit(<span class="number">127</span>);</span><br><span class="line">&#125;</span><br><span class="line">waitpid(pid, <span class="literal">NULL</span>, <span class="number">0</span>);</span><br></pre></td></tr></table></figure>
+
+<p>常见追问：</p>
+<ul>
+<li><code>fork</code> 后父子进程都会从 <code>fork</code> 返回点继续执行。</li>
+<li>返回值为 <code>0</code> 的是子进程，返回值为正数的是父进程，负数表示创建失败。</li>
+<li><code>fork</code> 后立即 <code>exec</code> 时，很多原有地址空间不需要真正复制，这正是 COW 的价值之一。</li>
+<li>文件描述符会被继承，但父子进程可能共享同一个 open file description，因此文件偏移和状态标志需要特别注意。</li>
+</ul>
+<h3 id="exec-不是创建进程"><a href="#exec-不是创建进程" class="headerlink" title="exec 不是创建进程"></a><code>exec</code> 不是创建进程</h3><p><code>exec</code> 系列调用用新的程序映像替换当前进程映像，进程 ID 通常不变。它通常和 <code>fork</code> 组合使用：父进程创建子进程，子进程再 <code>exec</code> 启动目标程序。</p>
+<h2 id="文件系统与文件描述符"><a href="#文件系统与文件描述符" class="headerlink" title="文件系统与文件描述符"></a>文件系统与文件描述符</h2><p>文件名属于目录项，inode 保存文件元数据和数据块索引；进程通过文件描述符引用打开的文件对象。一次 <code>open</code> 返回的是进程级整数句柄，但底层还涉及系统级打开文件表和 inode。</p>
+<p>因此，以下问题需要分开回答：文件是否存在是目录项和 inode 层面的问题；进程打开了多少文件是文件描述符表的问题；多个描述符是否共享偏移是 open file description 的问题；磁盘是否真的写入则涉及页缓存、写回策略和 <code>fsync</code>。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">lsof -p &lt;pid&gt;</span><br><span class="line"><span class="built_in">ls</span> -l /proc/&lt;pid&gt;/fd</span><br><span class="line"><span class="built_in">cat</span> /proc/&lt;pid&gt;/limits</span><br><span class="line"><span class="built_in">df</span> -h</span><br><span class="line"><span class="built_in">df</span> -i</span><br></pre></td></tr></table></figure>
+
+<p><code>df -h</code> 关注磁盘空间，<code>df -i</code> 关注 inode；二者任何一个耗尽都可能导致“磁盘还有空间但无法创建文件”。</p>
+<h2 id="用户态、内核态与系统调用"><a href="#用户态、内核态与系统调用" class="headerlink" title="用户态、内核态与系统调用"></a>用户态、内核态与系统调用</h2><p>用户态程序不能直接访问受保护的内核资源，需要通过系统调用进入内核态。系统调用的成本不等于“切换一次 CPU 模式”这么简单，还包含参数检查、权限检查、调度和数据复制等成本。</p>
+<p>优化频繁系统调用时，优先考虑批量读写、缓冲、减少无效轮询、使用合适的 I&#x2F;O 模型和避免重复的数据复制，而不是机械地追求“完全不进入内核”。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">strace -f -c -p &lt;pid&gt;</span><br><span class="line">strace -f -tt -p &lt;pid&gt;</span><br></pre></td></tr></table></figure>
+
+<h2 id="I-O-模型与-epoll"><a href="#I-O-模型与-epoll" class="headerlink" title="I&#x2F;O 模型与 epoll"></a>I&#x2F;O 模型与 <code>epoll</code></h2><p>经典分类包括同步阻塞 I&#x2F;O、同步非阻塞 I&#x2F;O、I&#x2F;O 多路复用、信号驱动 I&#x2F;O 和异步 I&#x2F;O。实际工程中需要同时说明两个维度：谁等待数据就绪，以及谁负责把数据从内核缓冲区复制到用户缓冲区。</p>
+<p>因此，“<code>epoll</code> 是异步 I&#x2F;O”通常是不准确的。<code>epoll</code> 解决的是多个文件描述符的就绪事件管理，应用仍然需要调用 <code>read</code>&#x2F;<code>recv</code> 完成数据读取。</p>
+<ul>
+<li><code>select</code> 通常有文件描述符数量限制，并需要反复传入和扫描集合。</li>
+<li><code>poll</code> 没有相同的位图限制，但仍需要扫描传入的描述符集合。</li>
+<li><code>epoll</code> 维护内核中的兴趣列表和就绪列表，适合大量连接且活跃连接比例较低的场景。</li>
+</ul>
+<p>选择 <code>epoll</code> 不能自动解决所有性能问题。连接数、活跃度、读写策略、事件模式、缓冲区、线程模型和业务处理时间都需要一起评估。</p>
+<h2 id="进程间通信、同步与死锁"><a href="#进程间通信、同步与死锁" class="headerlink" title="进程间通信、同步与死锁"></a>进程间通信、同步与死锁</h2><p>信号量适合表示资源数量，互斥锁适合保护临界区，条件变量适合等待某个状态变化，自旋锁适合临界区极短且不希望睡眠的场景。选型时要同时考虑竞争程度、临界区长度、调度优先级和故障恢复。</p>
+<p>死锁通常需要同时满足互斥、占有且等待、不可剥夺和循环等待。工程上常见的预防手段包括统一加锁顺序、限制锁的持有时间、使用超时和尝试加锁、减少嵌套锁，以及在运行时采集锁等待信息。</p>
+<h2 id="其他高频基础问题"><a href="#其他高频基础问题" class="headerlink" title="其他高频基础问题"></a>其他高频基础问题</h2><h3 id="进程状态、僵尸进程与孤儿进程"><a href="#进程状态、僵尸进程与孤儿进程" class="headerlink" title="进程状态、僵尸进程与孤儿进程"></a>进程状态、僵尸进程与孤儿进程</h3><p>Linux 的进程状态名称和内部实现会随内核演进，但面试中通常需要理解以下语义：可运行、可中断睡眠、不可中断睡眠、停止和僵尸。<code>D</code> 状态通常表示任务在等待不可中断的内核资源，<code>Z</code> 状态表示进程已经退出但父进程尚未回收其退出状态。</p>
+<ul>
+<li><strong>孤儿进程</strong>：父进程退出后仍在运行的子进程，会被重新托管并最终由托管者回收。</li>
+<li><strong>僵尸进程</strong>：子进程已退出，但父进程没有及时调用 <code>wait</code>&#x2F;<code>waitpid</code> 回收退出状态。</li>
+<li><strong>守护进程</strong>：长期运行、脱离交互终端并由服务管理器或自身生命周期管理的进程；现代 Linux 服务通常优先交给 systemd 等服务管理器管理。</li>
+</ul>
+<p>排查僵尸进程时，重点看父进程是否存活、是否正确处理 <code>SIGCHLD</code>、是否调用了 <code>waitpid</code>；盲目杀死僵尸进程本身通常没有意义。</p>
+<h3 id="Socket-I-O-速查"><a href="#Socket-I-O-速查" class="headerlink" title="Socket I&#x2F;O 速查"></a>Socket I&#x2F;O 速查</h3><p>Socket 常见的等待方式包括同步阻塞、同步非阻塞、I&#x2F;O 多路复用、信号驱动 I&#x2F;O 和异步 I&#x2F;O。实际工程中还要区分 TCP 字节流与 UDP 数据报边界，以及应用层是否实现超时、重试、限流和取消。</p>
+<h3 id="浮点数与内存分配"><a href="#浮点数与内存分配" class="headerlink" title="浮点数与内存分配"></a>浮点数与内存分配</h3><p>浮点数采用有限精度表示，不能把所有十进制小数精确映射为二进制浮点数；金额等需要精确十进制语义的场景应使用定点数或整数最小单位。<code>malloc</code> 的返回结果还受到分配器、对齐、arena、线程缓存和虚拟内存策略影响，不能用一个固定公式回答“最多能分配多少内存”。</p>
+<h2 id="线上排障与面试追问"><a href="#线上排障与面试追问" class="headerlink" title="线上排障与面试追问"></a>线上排障与面试追问</h2><table>
+<thead>
+<tr>
+<th>现象</th>
+<th>重点检查</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>CPU 持续 100%</td>
+<td>热点线程、系统态比例、上下文切换、锁竞争</td>
+</tr>
+<tr>
+<td>RSS 持续增长</td>
+<td>堆对象、缓存、线程栈、文件映射、泄漏和 cgroup 限制</td>
+</tr>
+<tr>
+<td><code>D</code> 状态进程增多</td>
+<td>磁盘、网络文件系统、块设备和不可中断等待</td>
+</tr>
+<tr>
+<td><code>Too many open files</code></td>
+<td>进程 FD、系统 FD、连接泄漏和 <code>ulimit</code></td>
+</tr>
+<tr>
+<td>大量 <code>TIME_WAIT</code></td>
+<td>主动关闭方、连接复用、短连接流量和端口范围</td>
+</tr>
+<tr>
+<td><code>epoll</code> 事件异常</td>
+<td>非阻塞设置、边沿&#x2F;水平触发、读写循环和 FD 生命周期</td>
+</tr>
+</tbody></table>
+<p>高频追问：</p>
+<ol>
+<li>进程、线程和协程的资源边界分别是什么？</li>
+<li>为什么 <code>fork</code> 后通常不会立即复制全部内存？</li>
+<li><code>fork</code> 和 <code>exec</code> 的关系是什么？</li>
+<li>为什么 <code>epoll</code> 不等于异步 I&#x2F;O？</li>
+<li><code>select</code>、<code>poll</code> 和 <code>epoll</code> 的主要差异是什么？</li>
+<li>什么情况下线程数增加反而降低吞吐？</li>
+<li>如何定位进程 CPU、内存或文件描述符异常？</li>
+<li>死锁的必要条件是什么？如何预防和定位？</li>
+</ol>
+<h2 id="结论边界"><a href="#结论边界" class="headerlink" title="结论边界"></a>结论边界</h2><ul>
+<li>进程、线程、虚拟内存、系统调用和 I&#x2F;O 模型属于稳定的基础概念。</li>
+<li>调度器、内存回收、<code>epoll</code> 内部实现和文件系统行为属于操作系统实现细节，应注明 Linux 内核版本或具体实现。</li>
+<li>“协程更快”“<code>epoll</code> 一定更高性能”“释放对象后 RSS 必然下降”等说法都缺少前提，不能作为通用结论。</li>
+<li>面试中的简化答案用于快速建立模型，线上决策仍需要结合指标、内核版本、运行时和业务负载验证。</li>
+</ul>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><h3 id="权威资料"><a href="#权威资料" class="headerlink" title="权威资料"></a>权威资料</h3><ol>
+<li><a href="https://docs.kernel.org/">Linux Kernel Documentation</a></li>
+<li><a href="https://www.kernel.org/doc/man-pages/">Linux man-pages project</a></li>
+<li><a href="https://man7.org/linux/man-pages/">man7.org Linux man-pages</a></li>
+<li><a href="https://pubs.opengroup.org/onlinepubs/9799919799/">POSIX.1-2024 文档</a></li>
+<li><a href="https://man7.org/tlpi/">The Linux Programming Interface</a></li>
+<li><a href="https://man7.org/linux/man-pages/man7/epoll.7.html">Linux epoll(7)</a></li>
+<li><a href="https://man7.org/linux/man-pages/man2/fork.2.html">Linux fork(2)</a></li>
+<li><a href="https://man7.org/linux/man-pages/man2/execve.2.html">Linux execve(2)</a></li>
+<li><a href="https://man7.org/linux/man-pages/man5/proc.5.html">Linux proc(5)</a></li>
+</ol>
+<h3 id="延伸阅读"><a href="#延伸阅读" class="headerlink" title="延伸阅读"></a>延伸阅读</h3><ul>
+<li><a href="https://imageslr.github.io/2020/07/07/user-mode-kernel-mode.html">操作系统为什么设计用户态和内核态</a></li>
+<li><a href="https://www.cnblogs.com/leoo2sk/archive/2009/12/11/talk-about-fork-in-linux.html">从一道面试题谈 Linux 下 fork 的运行机制</a></li>
+<li><a href="https://www.cnblogs.com/wxquare/archive/2004/01/13/6802078.html">Linux 下的 I&#x2F;O 模型</a></li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/" rel="tag"># 操作系统</a>
+              <a href="/tags/Linux/" rel="tag"># Linux</a>
+              <a href="/tags/%E5%B9%B6%E5%8F%91/" rel="tag"># 并发</a>
+              <a href="/tags/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/" rel="tag"># 内存管理</a>
+              <a href="/tags/I-O/" rel="tag"># I/O</a>
+              <a href="/tags/%E9%9D%A2%E8%AF%95/" rel="tag"># 面试</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2023/08/13/other/%E5%9F%BA%E4%BA%8EGithub%E5%8F%8C%E5%88%86%E6%94%AF%E5%92%8CHexo%E6%90%AD%E5%BB%BA%E5%8D%9A%E5%AE%A2/" rel="prev" title="使用 Hexo 与 GitHub Pages 搭建博客：双分支部署与日常维护">
+                  <i class="fa fa-angle-left"></i> 使用 Hexo 与 GitHub Pages 搭建博客：双分支部署与日常维护
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2024/03/02/fundamentals/02-computer-network-fundamentals/" rel="next" title="计算机基础：计算机网络面试与工程实践">
+                  计算机基础：计算机网络面试与工程实践 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":{"light":"default","dark":"dark"},"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js","integrity":"sha256-stuqcu2FrjYCXDOytWFA5SoUE/r3nkp6gTglzNSlavU="}}</script>
+  <script src="/js/third-party/tags/mermaid.js"></script>
+
+
+
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+
+</body>
+</html>
