@@ -9,14 +9,16 @@ const aliasScript = path.join(__dirname, '..', 'scripts/legacy-post-alias.js');
 const expectedAliases = [
   ['/2025/05/15/system-design/14-system-reliability/', 'system-design/07-system-reliability-engineering'],
   ['/2025/06/25/system-design/08-system-design-interview/', 'system-design/08-system-design-interview'],
-  ['/2026/04/02/01-claude-code-practices/', 'AI/01-claude-code-practices'],
   ['/2026/04/03/00-vibe-coding-vs-spec-coding/', 'AI/00-vibe-coding-vs-spec-coding'],
-  ['/2026/04/03/02-agent-system-design-guid/', 'AI/02-agent-system-design-guid'],
-  ['/2026/04/03/03-dod-agent-design/', 'AI/03-dod-agent-design'],
+  ['/2026/04/05/AI/04-karpathy-evolving-knowledge-base/', 'AI/02-karpathy-evolving-knowledge-base'],
+  ['/2020/08/13/AI/初始OpenCL及在的移动端的一些测试数据/', 'AI/03-opencl-mobile-performance-testing'],
+  ['/2026/09/22/AI/tensorflow-model-optimization/', 'AI/04-tensorflow-model-optimization'],
+  ['/2026/09/22/AI/tvm-operator-optimization-practice/', 'AI/05-tvm-operator-optimization-practice'],
+  ['/2020/08/13/AI/video-object-tracking/', 'AI/06-video-object-tracking'],
   ['/system-design/00-system-design-overview/', 'system-design/00-system-design-overview'],
-  ['/system-design/02-middleware-redis/', 'system-design/02-middleware-redis'],
-  ['/system-design/03-middleware-kafka/', 'system-design/03-middleware-kafka'],
-  ['/system-design/04-middleware-elasticsearch/', 'system-design/04-middleware-elasticsearch'],
+  ['/system-design/02-middleware-redis/', 'fundamentals/02-middleware-redis'],
+  ['/system-design/03-middleware-kafka/', 'fundamentals/03-middleware-kafka'],
+  ['/system-design/04-middleware-elasticsearch/', 'fundamentals/04-middleware-elasticsearch'],
   ['/system-design/07-system-reliability-engineering/', 'system-design/07-system-reliability-engineering'],
   ['/system-design/25-ecommerce-pricing-ddd/', 'system-design/25-ecommerce-pricing-ddd'],
   ['/system-design/28-ecommerce-listing/', 'system-design/28-ecommerce-listing'],
@@ -27,6 +29,12 @@ const expectedAliases = [
   ['/system-design/42-acc-clean-code/', 'system-design/42-acc-clean-code'],
   ['/system-design/43-acc-ddd-notes/', 'system-design/43-acc-ddd-notes'],
   ['/system-design/44-acc-code-review/', 'system-design/44-acc-code-review']
+];
+
+const expectedUnavailableAliases = [
+  ['/2026/04/02/01-claude-code-practices/', '/archives/'],
+  ['/2026/04/03/02-agent-system-design-guid/', '/archives/'],
+  ['/2026/04/03/03-dod-agent-design/', '/archives/']
 ];
 
 const expectedBookAliases = [
@@ -46,19 +54,19 @@ const expectedBookAliases = [
 ];
 
 const expectedArchivedTvmAliases = [
-  ['/2020/08/13/AI/tvm/TVM-GEMM-CPU/', '/2026/09/22/AI/tvm-operator-optimization-practice/'],
-  ['/2020/08/13/AI/tvm/TVM-Graph-optimization/', '/2026/09/22/AI/tvm-operator-optimization-practice/'],
-  ['/2020/08/13/AI/tvm/TVM-code-generation/', '/2026/09/22/AI/tvm-operator-optimization-practice/'],
-  ['/2020/08/13/AI/tvm/TVM-hello/', '/2026/09/22/AI/tvm-operator-optimization-practice/'],
-  ['/2020/08/13/AI/tvm/TVM-quantization/', '/2026/09/22/AI/tvm-operator-optimization-practice/'],
-  ['/2020/08/13/AI/tvm/TVM-tutorial/', '/2026/09/22/AI/tvm-operator-optimization-practice/']
+  ['/2020/08/13/AI/tvm/TVM-GEMM-CPU/', '/2026/09/22/AI/05-tvm-operator-optimization-practice/'],
+  ['/2020/08/13/AI/tvm/TVM-Graph-optimization/', '/2026/09/22/AI/05-tvm-operator-optimization-practice/'],
+  ['/2020/08/13/AI/tvm/TVM-code-generation/', '/2026/09/22/AI/05-tvm-operator-optimization-practice/'],
+  ['/2020/08/13/AI/tvm/TVM-hello/', '/2026/09/22/AI/05-tvm-operator-optimization-practice/'],
+  ['/2020/08/13/AI/tvm/TVM-quantization/', '/2026/09/22/AI/05-tvm-operator-optimization-practice/'],
+  ['/2020/08/13/AI/tvm/TVM-tutorial/', '/2026/09/22/AI/05-tvm-operator-optimization-practice/']
 ];
 
 const expectedArchivedTrackingAliases = [
-  ['/2020/08/13/AI/computer-vision/video-object-tracking/', '/2020/08/13/AI/video-object-tracking/'],
-  ['/2020/08/13/AI/computer-vision/初始OpenCL及在的移动端的一些测试数据/', '/2020/08/13/AI/初始OpenCL及在的移动端的一些测试数据/'],
-  ['/2020/08/13/AI/computer-vision/DaSiamRPN/', '/2020/08/13/AI/video-object-tracking/'],
-  ['/2020/08/13/AI/computer-vision/visp-template-tracker/', '/2020/08/13/AI/video-object-tracking/']
+  ['/2020/08/13/AI/computer-vision/video-object-tracking/', '/2020/08/13/AI/06-video-object-tracking/'],
+  ['/2020/08/13/AI/computer-vision/初始OpenCL及在的移动端的一些测试数据/', '/2020/08/13/AI/03-opencl-mobile-performance-testing/'],
+  ['/2020/08/13/AI/computer-vision/DaSiamRPN/', '/2020/08/13/AI/06-video-object-tracking/'],
+  ['/2020/08/13/AI/computer-vision/visp-template-tracker/', '/2020/08/13/AI/06-video-object-tracking/']
 ];
 
 function mockConfig() {
@@ -91,20 +99,17 @@ test('legacy post alias generator emits all compatibility redirects', () => {
     assert.equal(registrations.length, 1);
     assert.equal(registrations[0].name, 'legacy-post-alias');
 
-    const posts = [
-      ...expectedAliases.map(([, slug]) => ({
-        slug,
-        path: `2026/04/01/${slug}/`
-      })),
-      {
-        slug: 'AI/video-object-tracking',
-        path: '2020/08/13/AI/video-object-tracking/'
-      },
-      {
-        slug: 'AI/初始OpenCL及在的移动端的一些测试数据',
-        path: '2020/08/13/AI/初始OpenCL及在的移动端的一些测试数据/'
-      }
-    ];
+    const currentPostPaths = new Map([
+      ['AI/02-karpathy-evolving-knowledge-base', '2026/04/05/AI/02-karpathy-evolving-knowledge-base/'],
+      ['AI/03-opencl-mobile-performance-testing', '2020/08/13/AI/03-opencl-mobile-performance-testing/'],
+      ['AI/04-tensorflow-model-optimization', '2026/09/22/AI/04-tensorflow-model-optimization/'],
+      ['AI/05-tvm-operator-optimization-practice', '2026/09/22/AI/05-tvm-operator-optimization-practice/'],
+      ['AI/06-video-object-tracking', '2020/08/13/AI/06-video-object-tracking/']
+    ]);
+    const posts = expectedAliases.map(([, slug]) => ({
+      slug,
+      path: currentPostPaths.get(slug) || `2026/04/01/${slug}/`
+    }));
     const context = {
       config: mockConfig(),
       locals: { get: (name) => name === 'posts' ? posts : undefined }
@@ -113,11 +118,11 @@ test('legacy post alias generator emits all compatibility redirects', () => {
 
     assert.equal(
       generated.length,
-      expectedAliases.length + expectedBookAliases.length + expectedArchivedTvmAliases.length + expectedArchivedTrackingAliases.length
+      expectedAliases.length + expectedUnavailableAliases.length + expectedBookAliases.length + expectedArchivedTvmAliases.length + expectedArchivedTrackingAliases.length
     );
     assert.deepEqual(
       generated.map((item) => item.path).sort(),
-      [...expectedAliases, ...expectedBookAliases, ...expectedArchivedTvmAliases, ...expectedArchivedTrackingAliases]
+      [...expectedAliases, ...expectedUnavailableAliases, ...expectedBookAliases, ...expectedArchivedTvmAliases, ...expectedArchivedTrackingAliases]
         .map(([route]) => `${route.slice(1)}index.html`)
         .sort()
     );

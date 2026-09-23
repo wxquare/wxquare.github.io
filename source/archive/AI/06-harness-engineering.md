@@ -228,7 +228,7 @@ Agent 通过工具与外界交互。工具不仅决定了 Agent 的能力边界�
 - 涉及安全或资金的操作
 - Agent 置信度低于阈值时的升级
 
-**我的实践**：在 {% post_link AI/02-agent-system-design-guid AI Agent 系统设计指南 %} 的 DoD Agent（电商告警处理系统）案例中，验证机制是核心设计要素。Agent 的每次操作都经过三级风险评估：
+**我的实践**：在 AI Agent 系统设计指南（已归档）的 DoD Agent（电商告警处理系统）案例中，验证机制是核心设计要素。Agent 的每次操作都经过三级风险评估：
 
 - **低风险操作**（查询日志、读取监控）：自动执行，事后审计
 - **中风险操作**（重启服务、调整配置）：需要 Agent 生成操作计划并自我检验后执行
@@ -349,7 +349,7 @@ Harness Engineering 正在重新定义软件工程师的工作。
 
 - {% post_link AI/00-vibe-coding-vs-spec-coding 00-Vibe Coding vs Spec Coding %}：从"即兴编程"到"规范驱动编程"——这是思维方式的第一次升级
 - {% post_link AI/01-ai-agent-workflow-practice 01-AI Agent 工作流实践 %}：从 Claude Code、Codex 到个人助手和模型后端——这是工具与工作流的升级
-- {% post_link AI/02-agent-system-design-guid 02-Agent 系统设计 %}：学习如何设计 Agent 架构——这是设计能力的升级
+- 02-Agent 系统设计（已归档）：学习如何设计 Agent 架构——这是设计能力的升级
 
 **Harness Engineering 是这条线的自然延伸**：不只是设计单个 Agent，而是设计让 Agent 可靠运行的整个系统。Spec Coding 中强调的"先写规范再执行"，本质上就是 Harness 思维的雏形——规范就是最基础的约束和验证标准。
 

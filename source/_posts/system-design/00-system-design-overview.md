@@ -28,7 +28,7 @@ toc: true
 
 ### 存储与数据库
 
-**{% post_link system-design/01-middleware-mysql 01-middleware-mysql.md %} ⭐⭐⭐⭐⭐**
+**{% post_link fundamentals/01-middleware-mysql 01-middleware-mysql.md %} ⭐⭐⭐⭐⭐**
 
 | 维度 | 内容 |
 |------|------|
@@ -40,7 +40,7 @@ toc: true
 
 ### 缓存系统
 
-**{% post_link system-design/02-middleware-redis 02-middleware-redis.md %} ⭐⭐⭐⭐⭐**
+**{% post_link fundamentals/02-middleware-redis 02-middleware-redis.md %} ⭐⭐⭐⭐⭐**
 
 | 维度 | 内容 |
 |------|------|
@@ -51,7 +51,7 @@ toc: true
 
 ### 消息队列
 
-**{% post_link system-design/03-middleware-kafka 03-middleware-kafka.md %} ⭐⭐⭐⭐⭐**
+**{% post_link fundamentals/03-middleware-kafka 03-middleware-kafka.md %} ⭐⭐⭐⭐⭐**
 
 | 维度 | 内容 |
 |------|------|
@@ -63,7 +63,7 @@ toc: true
 
 ### 搜索引擎
 
-**{% post_link system-design/04-middleware-elasticsearch 04-middleware-elasticsearch.md %} ⭐⭐⭐⭐**
+**{% post_link fundamentals/04-middleware-elasticsearch 04-middleware-elasticsearch.md %} ⭐⭐⭐⭐**
 
 | 维度 | 内容 |
 |------|------|
@@ -75,7 +75,7 @@ toc: true
 
 ### 容器与云原生
 
-**{% post_link system-design/05-infrastructure-k8s-docker 05-infrastructure-k8s-docker.md %} ⭐⭐⭐⭐⭐**
+**{% post_link fundamentals/05-infrastructure-k8s-docker 05-infrastructure-k8s-docker.md %} ⭐⭐⭐⭐⭐**
 
 | 维度 | 内容 |
 |------|------|
@@ -290,17 +290,17 @@ toc: true
 
 | 场景 | 解决方案 | 技术实现 | 相关文章 |
 |------|----------|---------|---------|
-| 读多写少 | 缓存+读写分离 | Redis + MySQL主从 | {% post_link system-design/01-middleware-mysql 01 %}, {% post_link system-design/02-middleware-redis 02 %} |
-| 写多读少 | 消息队列异步 | Kafka + 批量写入 | {% post_link system-design/03-middleware-kafka 03 %} |
-| 两者都多 | 分库分表+缓存 | ShardingSphere + Redis集群 | {% post_link system-design/01-middleware-mysql 01 %} |
-| 热点数据 | 多级缓存+CDN | 本地缓存+Redis+CDN | {% post_link system-design/02-middleware-redis 02 %} |
+| 读多写少 | 缓存+读写分离 | Redis + MySQL主从 | {% post_link fundamentals/01-middleware-mysql 01 %}, {% post_link fundamentals/02-middleware-redis 02 %} |
+| 写多读少 | 消息队列异步 | Kafka + 批量写入 | {% post_link fundamentals/03-middleware-kafka 03 %} |
+| 两者都多 | 分库分表+缓存 | ShardingSphere + Redis集群 | {% post_link fundamentals/01-middleware-mysql 01 %} |
+| 热点数据 | 多级缓存+CDN | 本地缓存+Redis+CDN | {% post_link fundamentals/02-middleware-redis 02 %} |
 
 ### 可用性保障
 
 | 级别 | 年宕机时间 | 实现方案 | 相关文章 |
 |------|------------|----------|---------|
 | 99% | 3.65天 | 单机+定期备份 | - |
-| 99.9% | 8.76小时 | 主从复制+自动故障转移 | {% post_link system-design/01-middleware-mysql 01 %} |
+| 99.9% | 8.76小时 | 主从复制+自动故障转移 | {% post_link fundamentals/01-middleware-mysql 01 %} |
 | 99.99% | 52分钟 | 多可用区+负载均衡 | {% post_link system-design/07-system-reliability-engineering 07 %} |
 | 99.999% | 5分钟 | 多地多活+智能路由 | {% post_link system-design/07-system-reliability-engineering 07 %} |
 
@@ -309,8 +309,8 @@ toc: true
 | 一致性级别 | 适用场景 | 技术实现 | 相关文章 |
 |------------|----------|----------|---------|
 | 强一致性 | 金融交易 | 分布式事务(2PC, TCC) | {% post_link system-design/08-system-design-interview 08 %} |
-| 最终一致性 | 社交动态 | 消息队列+重试 | {% post_link system-design/03-middleware-kafka 03 %} |
-| 会话一致性 | 用户会话 | 粘性会话+缓存 | {% post_link system-design/02-middleware-redis 02 %} |
+| 最终一致性 | 社交动态 | 消息队列+重试 | {% post_link fundamentals/03-middleware-kafka 03 %} |
+| 会话一致性 | 用户会话 | 粘性会话+缓存 | {% post_link fundamentals/02-middleware-redis 02 %} |
 
 ---
 
@@ -424,7 +424,7 @@ toc: true
 
 **系列导航**:
 - [所有系统设计文章 →](/archives/)
-- {% post_link system-design/01-middleware-mysql 下一篇：MySQL 深度解析 → %}
+- {% post_link fundamentals/01-middleware-mysql 下一篇：MySQL 深度解析 → %}
 
 **更新计划**:
 - 每周更新 1-2 篇深度技术文章

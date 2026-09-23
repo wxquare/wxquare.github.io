@@ -5,16 +5,21 @@ const { url_for } = require('hexo-util');
 const aliases = [
   { path: '/2025/05/15/system-design/14-system-reliability/', slug: 'system-design/07-system-reliability-engineering' },
   { path: '/2025/06/25/system-design/08-system-design-interview/', slug: 'system-design/08-system-design-interview' },
-  { path: '/2026/04/02/01-claude-code-practices/', slug: 'AI/01-claude-code-practices' },
+  { path: '/2026/04/02/01-claude-code-practices/', target: '/archives/' },
   { path: '/2026/04/03/00-vibe-coding-vs-spec-coding/', slug: 'AI/00-vibe-coding-vs-spec-coding' },
-  { path: '/2026/04/03/02-agent-system-design-guid/', slug: 'AI/02-agent-system-design-guid' },
-  { path: '/2026/04/03/03-dod-agent-design/', slug: 'AI/03-dod-agent-design' },
+  { path: '/2026/04/03/02-agent-system-design-guid/', target: '/archives/' },
+  { path: '/2026/04/03/03-dod-agent-design/', target: '/archives/' },
+  { path: '/2026/04/05/AI/04-karpathy-evolving-knowledge-base/', slug: 'AI/02-karpathy-evolving-knowledge-base' },
+  { path: '/2020/08/13/AI/初始OpenCL及在的移动端的一些测试数据/', slug: 'AI/03-opencl-mobile-performance-testing' },
+  { path: '/2026/09/22/AI/tensorflow-model-optimization/', slug: 'AI/04-tensorflow-model-optimization' },
+  { path: '/2026/09/22/AI/tvm-operator-optimization-practice/', slug: 'AI/05-tvm-operator-optimization-practice' },
+  { path: '/2020/08/13/AI/video-object-tracking/', slug: 'AI/06-video-object-tracking' },
   { path: '/2026/04/07/system-design/21-ecommerce-product-center/', target: '/books/system-design-primer/part03/02-product-center.html' },
   { path: '/2026/04/07/system-design/26-ecommerce-order-system/', target: '/books/system-design-primer/part03/09-order-system.html' },
   { path: '/system-design/00-system-design-overview/', slug: 'system-design/00-system-design-overview' },
-  { path: '/system-design/02-middleware-redis/', slug: 'system-design/02-middleware-redis' },
-  { path: '/system-design/03-middleware-kafka/', slug: 'system-design/03-middleware-kafka' },
-  { path: '/system-design/04-middleware-elasticsearch/', slug: 'system-design/04-middleware-elasticsearch' },
+  { path: '/system-design/02-middleware-redis/', slug: 'fundamentals/02-middleware-redis' },
+  { path: '/system-design/03-middleware-kafka/', slug: 'fundamentals/03-middleware-kafka' },
+  { path: '/system-design/04-middleware-elasticsearch/', slug: 'fundamentals/04-middleware-elasticsearch' },
   { path: '/system-design/07-system-reliability-engineering/', slug: 'system-design/07-system-reliability-engineering' },
   { path: '/system-design/13-e-commerce/', target: '/books/system-design-primer/part03/01-ecommerce-overview.html' },
   { path: '/system-design/18-inventory-system-design/', target: '/books/system-design-primer/part03/04-inventory-system.html' },
@@ -36,16 +41,16 @@ const aliases = [
   { path: '/system-design/42-acc-clean-code/', slug: 'system-design/42-acc-clean-code' },
   { path: '/system-design/43-acc-ddd-notes/', slug: 'system-design/43-acc-ddd-notes' },
   { path: '/system-design/44-acc-code-review/', slug: 'system-design/44-acc-code-review' }
-  ,{ path: '/2020/08/13/AI/tvm/TVM-GEMM-CPU/', target: '/2026/09/22/AI/tvm-operator-optimization-practice/' }
-  ,{ path: '/2020/08/13/AI/tvm/TVM-Graph-optimization/', target: '/2026/09/22/AI/tvm-operator-optimization-practice/' }
-  ,{ path: '/2020/08/13/AI/tvm/TVM-code-generation/', target: '/2026/09/22/AI/tvm-operator-optimization-practice/' }
-  ,{ path: '/2020/08/13/AI/tvm/TVM-hello/', target: '/2026/09/22/AI/tvm-operator-optimization-practice/' }
-  ,{ path: '/2020/08/13/AI/tvm/TVM-quantization/', target: '/2026/09/22/AI/tvm-operator-optimization-practice/' }
-  ,{ path: '/2020/08/13/AI/tvm/TVM-tutorial/', target: '/2026/09/22/AI/tvm-operator-optimization-practice/' }
-  ,{ path: '/2020/08/13/AI/computer-vision/video-object-tracking/', slug: 'AI/video-object-tracking' }
-  ,{ path: '/2020/08/13/AI/computer-vision/初始OpenCL及在的移动端的一些测试数据/', slug: 'AI/初始OpenCL及在的移动端的一些测试数据' }
-  ,{ path: '/2020/08/13/AI/computer-vision/DaSiamRPN/', slug: 'AI/video-object-tracking' }
-  ,{ path: '/2020/08/13/AI/computer-vision/visp-template-tracker/', slug: 'AI/video-object-tracking' }
+  ,{ path: '/2020/08/13/AI/tvm/TVM-GEMM-CPU/', target: '/2026/09/22/AI/05-tvm-operator-optimization-practice/' }
+  ,{ path: '/2020/08/13/AI/tvm/TVM-Graph-optimization/', target: '/2026/09/22/AI/05-tvm-operator-optimization-practice/' }
+  ,{ path: '/2020/08/13/AI/tvm/TVM-code-generation/', target: '/2026/09/22/AI/05-tvm-operator-optimization-practice/' }
+  ,{ path: '/2020/08/13/AI/tvm/TVM-hello/', target: '/2026/09/22/AI/05-tvm-operator-optimization-practice/' }
+  ,{ path: '/2020/08/13/AI/tvm/TVM-quantization/', target: '/2026/09/22/AI/05-tvm-operator-optimization-practice/' }
+  ,{ path: '/2020/08/13/AI/tvm/TVM-tutorial/', target: '/2026/09/22/AI/05-tvm-operator-optimization-practice/' }
+  ,{ path: '/2020/08/13/AI/computer-vision/video-object-tracking/', slug: 'AI/06-video-object-tracking' }
+  ,{ path: '/2020/08/13/AI/computer-vision/初始OpenCL及在的移动端的一些测试数据/', slug: 'AI/03-opencl-mobile-performance-testing' }
+  ,{ path: '/2020/08/13/AI/computer-vision/DaSiamRPN/', slug: 'AI/06-video-object-tracking' }
+  ,{ path: '/2020/08/13/AI/computer-vision/visp-template-tracker/', slug: 'AI/06-video-object-tracking' }
 ];
 
 function escapeAttribute(value) {

@@ -2,7 +2,7 @@
 title: 电商 Agent 项目全景调研报告
 date: 2026-09-11
 categories:
-  - AI 与 Agent
+  - other
 tags:
   - ecommerce
   - agentic-commerce

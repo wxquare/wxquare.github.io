@@ -44,7 +44,7 @@ toc:
 - `2026-09` · [电商 Agent 项目全景调研报告](/2026/09/11/AI/08-agent-electronic-commerce-research-report/)
 - `2026-09` · [AI 与 AI Agent 开发高频面试 50 题](/2026/09/09/AI/07-ai-agent-development-interview-50/)
 - `2026-05` · [从内容到短视频：用开源工具生成 3 分钟 AI 教程视频](/2026/05/08/other/ai-content-to-video-open-source-workflow/)
-- `2026-04` · [Karpathy 的自我进化知识库：LLM 时代的知识管理范式](/2026/04/05/AI/04-karpathy-evolving-knowledge-base/)
+- `2026-04` · [Karpathy 的自我进化知识库：LLM 时代的知识管理范式](/2026/04/05/AI/02-karpathy-evolving-knowledge-base/)
 - `2026-04` · [从 Vibe Coding 到 Spec Coding：AI 编程范式的演进与实践](/2026/04/03/AI/00-vibe-coding-vs-spec-coding/)
 - `2026-04` · [AI Agent 系统设计内容已整合至书稿](/ai-book/part2/01-agent-architecture.html)
 

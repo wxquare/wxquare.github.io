@@ -24,7 +24,7 @@ test('native homepage contains the curated reader entry points', () => {
     '/2026/04/03/system-design/43-acc-ddd-notes/',
     '/ai-book/part2/01-agent-architecture.html',
     '/2026/05/08/other/ai-content-to-video-open-source-workflow/',
-    '/2026/04/05/AI/04-karpathy-evolving-knowledge-base/'
+    '/2026/04/05/AI/02-karpathy-evolving-knowledge-base/'
   ];
   for (const link of links) assert.ok(homepage.includes(link), `missing ${link}`);
 });
