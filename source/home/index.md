@@ -44,11 +44,11 @@ wxquare 的技术知识库，聚焦 AI Engineering、系统设计、复杂业务
 
 ### 面试准备与题库
 
-- [LeetCode 500 精选题单](https://github.com/wxquare/leetcode-primer/blob/master/README.md)：算法与面试题学习路线，按主题、模式、难度和来源组织题解
-- [AI 与 Agent 开发高频 50 题](/ai-book/appendix/ai-agent-development-interview-50.html)：50 道 AI 工程题，覆盖模型基础、Prompt、RAG、Agent、推理、评测、治理和成本
-- [系统设计面试高频 50 题](/books/system-design-primer/appendix/system-design-interview-50.html)：50 道电商优先的系统设计题，覆盖交易、库存、营销、计价、高并发、一致性和 SRE
-- [系统设计题库](/system-design-primer/appendix/system-design-questionbank.html)：220+ 道通用与电商题，覆盖需求分析、容量估算、架构设计、可靠性和面试追问
-- [后端面试基础知识题单](/system-design-primer/appendix/interview-basic-question-bank.html)：101 道基础题，覆盖 MySQL、Redis、Kafka、Elasticsearch、Kubernetes、网络、操作系统与编程语言
+- [LeetCode 500 精选题单](https://github.com/wxquare/leetcode-primer/blob/master/README.md)：500 道算法题，按主题、模式和难度组织
+- [AI 与 Agent 开发高频 50 题](/ai-book/appendix/ai-agent-development-interview-50.html)：50 道题，覆盖模型、Prompt、RAG、Agent、评测与治理
+- [系统设计面试高频 50 题](/books/system-design-primer/appendix/system-design-interview-50.html)：50 道题，聚焦电商交易、高并发、一致性与 SRE
+- [系统设计题库](/system-design-primer/appendix/system-design-questionbank.html)：220+ 道题，覆盖需求、容量、架构、可靠性与追问
+- [后端面试基础知识题单](/system-design-primer/appendix/interview-basic-question-bank.html)：101 道题，覆盖数据库、中间件、Kubernetes、网络与编程语言
 
 ### 工程随笔与其他
 
