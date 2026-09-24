@@ -1,6 +1,7 @@
 ---
 title: 视频目标追踪流程：模板追踪、SiameseRPN 与高斯–牛顿法
 date: 2020-08-13
+description: 介绍视频目标追踪中的模板匹配、SiameseRPN 与高斯–牛顿法，并梳理从算法到工程实现的基本流程。
 categories:
   - AI 与 Agent
 tags:

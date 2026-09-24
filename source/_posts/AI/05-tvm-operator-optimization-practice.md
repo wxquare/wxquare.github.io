@@ -1,6 +1,7 @@
 ---
 title: TVM 算子优化实战：从 Relay 图优化到 GEMM 与 INT8 量化
 date: 2026-09-22
+description: 以 TVM 为例，实践 Relay 图优化、GEMM 调优和 INT8 量化，说明算子优化如何连接编译器与推理性能。
 categories:
   - AI 与 Agent
 tags:

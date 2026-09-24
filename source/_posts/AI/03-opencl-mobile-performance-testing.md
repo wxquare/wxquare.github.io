@@ -4,6 +4,11 @@ date: 2020-08-13
 categories:
   - AI 与 Agent
   - AI
+tags:
+  - opencl
+  - computer-vision
+  - mobile-inference
+description: 基于 Android、OpenCV UMat 与 OpenCL，记录 KCF 目标追踪在移动端的异构加速实验、数据传输开销和性能测试方法。
 ---
 
 ## 引言：为什么要在移动端尝试 OpenCL

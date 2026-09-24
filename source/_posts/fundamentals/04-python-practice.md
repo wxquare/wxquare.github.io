@@ -1,6 +1,7 @@
 ---
 title: Python 面试与工程实践：性能、并发和 C/C++ 扩展
 date: 2024-03-04
+description: 从性能、并发和 C/C++ 扩展出发，整理 Python 工程实践与常见面试问题。
 updated: 2026-09-23
 categories:
   - 计算机基础

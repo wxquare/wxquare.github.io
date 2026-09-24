@@ -1,6 +1,7 @@
 ---
 title: 架构与整洁代码（一）：Clean Architecture、DDD 与 CQRS——三位一体的架构方法论
 date: 2026-04-01
+description: 解释 Clean Architecture、DDD 与 CQRS 的关系、适用条件和落地方式，建立复杂业务系统的设计判断框架。
 categories:
   - 系统设计基础
 tags:

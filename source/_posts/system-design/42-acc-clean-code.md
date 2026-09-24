@@ -1,6 +1,7 @@
 ---
 title: 架构与整洁代码（二）：复杂业务中的 Clean Code 实践指南
 date: 2026-04-02
+description: 面向复杂业务代码，讨论命名、边界、依赖、抽象和重构节奏，给出可持续演进的 Clean Code 实践方法。
 categories:
   - 系统设计基础
 tags:

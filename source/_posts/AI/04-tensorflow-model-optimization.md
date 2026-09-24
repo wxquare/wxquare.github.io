@@ -3,6 +3,11 @@ title: TensorFlow 模型压缩与推理优化实战：格式转换、基准测�
 date: 2026-09-22
 categories:
   - AI 与 Agent
+tags:
+  - tensorflow
+  - model-optimization
+  - quantization
+description: 以 TensorFlow 1.x 模型为例，完整整理格式转换、性能基线、量化、稀疏化和通道剪枝，并区分模型压缩与实际推理加速。
 mathjax: true
 ---
 

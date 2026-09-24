@@ -1,6 +1,7 @@
 ---
 title: 架构与整洁代码（四）：架构与编码 Code Review Checklist
 date: 2026-04-04
+description: 提供一套面向架构与整洁代码的 Code Review 清单，帮助识别边界混乱、依赖倒置和可演进性风险。
 categories:
   - 系统设计基础
 tags:

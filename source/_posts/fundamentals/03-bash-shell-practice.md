@@ -1,6 +1,7 @@
 ---
 title: 编程语言：bash shell 实践
 date: 2024-03-03
+description: 面向日常开发和运维，整理 Bash Shell 的语法、文本处理、脚本组织与常见实践。
 updated: 2026-09-23
 categories:
   - 计算机基础
@@ -123,5 +124,4 @@ time nc 192.168.0.11 5001 > /dev/null
 
 
 参考：https://linuxtools-rst.readthedocs.io/zh_CN/latest/tool/index.html
-
 

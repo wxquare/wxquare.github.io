@@ -1,6 +1,7 @@
 ---
 title: 电商 Agent 项目全景调研报告
 date: 2026-09-11
+description: 调研电商场景中的 AI Agent 项目与应用形态，分析典型能力、系统架构、落地难点和工程机会。
 categories:
   - AI
 tags:

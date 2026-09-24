@@ -1,6 +1,7 @@
 ---
 title: 使用 Hexo 与 GitHub Pages 搭建博客：双分支部署与日常维护
 date: 2023-08-13
+description: 介绍 Hexo 博客使用 GitHub Pages 双分支部署的目录约定、发布流程和日常维护方法。
 categories:
   - other
 tags:

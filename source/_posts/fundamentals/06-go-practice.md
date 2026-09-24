@@ -1,6 +1,7 @@
 ---
 title: 编程语言：Go 实践
 date: 2024-03-06
+description: 从语言基础、并发模型、网络编程到工程组织，整理 Go 在后端开发中的常用实践。
 updated: 2026-09-23
 categories:
   - 计算机基础

@@ -1,6 +1,7 @@
 ---
 title: 计算机基础：计算机网络面试与工程实践
 date: 2024-03-02
+description: 以面试和工程问题为线索，解释 TCP/IP、HTTP、DNS、连接管理与网络性能的关键概念。
 updated: 2026-09-23
 categories:
   - 计算机基础

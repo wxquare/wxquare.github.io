@@ -1,6 +1,7 @@
 ---
 title: 中间件 - 搜索和 Elasticsearch
 date: 2024-03-07
+description: 介绍 Elasticsearch 的索引、倒排检索、分片、副本和查询优化，帮助建立搜索系统的基础认知。
 updated: 2026-09-23
 categories:
   - 系统设计基础

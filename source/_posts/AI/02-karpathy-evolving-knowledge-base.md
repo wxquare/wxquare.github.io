@@ -1,6 +1,7 @@
 ---
 title: Karpathy 的自我进化知识库：LLM 时代的知识管理范式
 date: 2026-04-05
+description: 从 Karpathy 的自我进化知识库实践出发，讨论 LLM 时代个人知识采集、整理、检索与持续更新的方法。
 categories:
   - AI 与 Agent
 tags:
