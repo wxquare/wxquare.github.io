@@ -62,7 +62,7 @@ CREATE TABLE `hotel_info_tab` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uidx_hotel_id` (`hotel_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED
-```text
+```
 
 #### 类型选择？
 - 数值类型：int,tinyint,int(10),bigint

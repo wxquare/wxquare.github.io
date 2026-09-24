@@ -48,7 +48,7 @@ wxquare 的技术知识库，聚焦 AI Engineering、系统设计、复杂业务
 - [AI 与 Agent 开发高频 50 题](/ai-book/appendix/ai-agent-development-interview-50.html)：50 道题，覆盖模型、Prompt、RAG、Agent、评测与治理
 - [系统设计面试高频 50 题](/books/system-design-primer/appendix/system-design-interview-50.html)：50 道题，聚焦电商交易、高并发、一致性与 SRE
 - [系统设计题库](/system-design-primer/appendix/system-design-questionbank.html)：220+ 道题，覆盖需求、容量、架构、可靠性与追问
-- [后端面试基础知识题单](/system-design-primer/appendix/interview-basic-question-bank.html)：101 道题，覆盖数据库、中间件、Kubernetes、网络与编程语言
+- [后端面试基础知识题单](/system-design-primer/appendix/interview-basic-question-bank.html)：1,000 道题，覆盖数据库、中间件、Kubernetes、网络与编程语言
 
 ### 工程随笔与其他
 
