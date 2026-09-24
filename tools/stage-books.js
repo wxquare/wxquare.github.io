@@ -9,7 +9,7 @@ const path = require('node:path');
 
 const BOOK_OUTPUTS = [
   ['books/ai-book/book', 'public/ai-book'],
-  ['books/system-design-primer/book', 'public/system-design-primer']
+  ['books/reliable-system-design/book', 'public/reliable-system-design']
 ];
 
 function copyDirectory(sourceDir, destinationDir) {

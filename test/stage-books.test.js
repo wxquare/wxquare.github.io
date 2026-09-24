@@ -14,8 +14,8 @@ test('stageBooks copies both mdBook outputs under the public site tree', () => {
     const outputs = [
       ['books/ai-book/book', 'public/ai-book', 'AI book'],
       [
-        'books/system-design-primer/book',
-        'public/system-design-primer',
+        'books/reliable-system-design/book',
+        'public/reliable-system-design',
         'System design book'
       ]
     ];

@@ -10,7 +10,7 @@ from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
-BOOK_RELATIVE_ROOT = Path("books/system-design-primer")
+BOOK_RELATIVE_ROOT = Path("books/reliable-system-design")
 SOURCE_RELATIVE_ROOT = BOOK_RELATIVE_ROOT / "src"
 EXPECTED_CHAPTERS = tuple(range(1, 15))
 CHAPTER_LINK_RE = re.compile(

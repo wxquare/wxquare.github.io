@@ -17,21 +17,21 @@ published: false
 
 <!-- toc -->
 
-> **电商系统设计系列**（与[（一）推荐阅读顺序](/books/system-design-primer/part03/01-ecommerce-overview.html)一致）
-> - [（一）全景概览与领域划分](/books/system-design-primer/part03/01-ecommerce-overview.html)
-> - [（二）商品中心系统](/books/system-design-primer/part03/02-product-center.html)
-> - [（三）库存系统](/books/system-design-primer/part03/04-inventory-system.html)
-> - [（四）营销系统深度解析](/books/system-design-primer/part03/05-marketing-system.html)
-> - [（五）计价引擎](/books/system-design-primer/part03/06-pricing-system.html)
+> **电商系统设计系列**（与[（一）推荐阅读顺序](/reliable-system-design/part03/01-ecommerce-overview.html)一致）
+> - [（一）全景概览与领域划分](/reliable-system-design/part03/01-ecommerce-overview.html)
+> - [（二）商品中心系统](/reliable-system-design/part03/02-product-center.html)
+> - [（三）库存系统](/reliable-system-design/part03/04-inventory-system.html)
+> - [（四）营销系统深度解析](/reliable-system-design/part03/05-marketing-system.html)
+> - [（五）计价引擎](/reliable-system-design/part03/06-pricing-system.html)
 > - **（六）计价系统 DDD 实践**（本文）
-> - [（七）订单系统](/books/system-design-primer/part03/09-order-system.html)
-> - [（八）支付系统深度解析](/books/system-design-primer/part03/10-payment-system.html)
-> - [（九）商品上架系统](/books/system-design-primer/part02/11-product-center-supply-lifecycle.html)
-> - [（十）B 端运营系统](/books/system-design-primer/part02/11-product-center-supply-lifecycle.html)
+> - [（七）订单系统](/reliable-system-design/part03/09-order-system.html)
+> - [（八）支付系统深度解析](/reliable-system-design/part03/10-payment-system.html)
+> - [（九）商品上架系统](/reliable-system-design/part02/11-product-center-supply-lifecycle.html)
+> - [（十）B 端运营系统](/reliable-system-design/part02/11-product-center-supply-lifecycle.html)
 
-本文是电商系统设计系列的第六篇，是[（五）计价引擎](/books/system-design-primer/part03/06-pricing-system.html)的姊妹篇，从 DDD 视角重新审视计价系统的建模。
+本文是电商系统设计系列的第六篇，是[（五）计价引擎](/reliable-system-design/part03/06-pricing-system.html)的姊妹篇，从 DDD 视角重新审视计价系统的建模。
 
-> 本文是计价引擎系列的方法论篇，聚焦 DDD 在计价系统中的战略/战术设计实践。系统架构与实现细节详见：[电商系统设计（五）：计价引擎](/books/system-design-primer/part03/06-pricing-system.html)。
+> 本文是计价引擎系列的方法论篇，聚焦 DDD 在计价系统中的战略/战术设计实践。系统架构与实现细节详见：[电商系统设计（五）：计价引擎](/reliable-system-design/part03/06-pricing-system.html)。
 
 ## 一、背景与挑战
 
@@ -2318,7 +2318,7 @@ DDD是团队工作，不是个人英雄主义：
 3. DDD Reference：http://domainlanguage.com/ddd/reference/
 
 ### 相关文章
-1. [电商系统价格计算引擎设计与实现](/books/system-design-primer/part03/06-pricing-system.html) — 系统架构、场景分析、核心实现
+1. [电商系统价格计算引擎设计与实现](/reliable-system-design/part03/06-pricing-system.html) — 系统架构、场景分析、核心实现
 2. The Clean Architecture - Robert C. Martin
 3. Hexagonal Architecture - Alistair Cockburn
 4. Bounded Context - Martin Fowler
@@ -2333,4 +2333,4 @@ DDD是团队工作，不是个人英雄主义：
 ---
 
 > **系列导航**
-> 计价引擎的工程实现细节（多级缓存、降级策略等），详见[（五）计价引擎](/books/system-design-primer/part03/06-pricing-system.html)。
+> 计价引擎的工程实现细节（多级缓存、降级策略等），详见[（五）计价引擎](/reliable-system-design/part03/06-pricing-system.html)。

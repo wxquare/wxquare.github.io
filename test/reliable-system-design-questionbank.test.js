@@ -9,7 +9,7 @@ const repoRoot = path.resolve(__dirname, '..');
 const bookRoot = path.join(
   repoRoot,
   'books',
-  'system-design-primer',
+  'reliable-system-design',
   'src'
 );
 

@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 TOOLS_DIR = Path(__file__).resolve().parent
-SCRIPT = TOOLS_DIR / "check-system-design-primer.py"
+SCRIPT = TOOLS_DIR / "check-reliable-system-design.py"
 SPEC = importlib.util.spec_from_file_location("check_system_design_primer", SCRIPT)
 MODULE = importlib.util.module_from_spec(SPEC)
 if SPEC.loader is None:

@@ -31,7 +31,7 @@ if [[ -n "$STAGED_MD_FILES" ]]; then
         ;;
       books/*/src/*)
         BOOK_MD_FILES+="$file"$'\n'
-        if [[ "$file" == books/system-design-primer/src/* ]]; then
+        if [[ "$file" == books/reliable-system-design/src/* ]]; then
           SYSTEM_DESIGN_BOOK_MD_FILES+="$file"$'\n'
         fi
         ;;
@@ -113,7 +113,7 @@ fi
 
 if [[ -n "$SYSTEM_DESIGN_BOOK_MD_FILES" ]]; then
   echo "📘 检查 System Design Primer 书稿结构与篇幅..."
-  if ! python3 tools/check-system-design-primer.py; then
+  if ! python3 tools/check-reliable-system-design.py; then
     ERRORS=$((ERRORS + 1))
   fi
 fi

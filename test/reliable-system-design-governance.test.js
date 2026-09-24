@@ -7,9 +7,9 @@ const path = require('node:path');
 const { test } = require('node:test');
 
 const repoRoot = path.resolve(__dirname, '..');
-const bookRoot = path.join(repoRoot, 'books', 'system-design-primer');
+const bookRoot = path.join(repoRoot, 'books', 'reliable-system-design');
 const sourceRoot = path.join(bookRoot, 'src');
-const checker = path.join(repoRoot, 'tools', 'check-system-design-primer.py');
+const checker = path.join(repoRoot, 'tools', 'check-reliable-system-design.py');
 const agents = fs.readFileSync(path.join(repoRoot, 'AGENTS.md'), 'utf8');
 
 function read(relativePath) {
@@ -37,7 +37,7 @@ test('active navigation exposes chapters 1 through 14 exactly once', () => {
   assert.doesNotMatch(read('SUMMARY.md'), /第三部分/);
 });
 
-test('system-design-primer checker passes the repository source', () => {
+test('reliable-system-design checker passes the repository source', () => {
   const result = spawnSync('python3', [checker], {
     cwd: repoRoot,
     encoding: 'utf8',
@@ -47,9 +47,9 @@ test('system-design-primer checker passes the repository source', () => {
 });
 
 test('AGENTS.md declares the system-design source boundary and generated output', () => {
-  assert.match(agents, /books\/system-design-primer\/src\//);
-  assert.match(agents, /books\/system-design-primer\/book\.toml/);
-  assert.match(agents, /books\/system-design-primer\/images\//);
+  assert.match(agents, /books\/reliable-system-design\/src\//);
+  assert.match(agents, /books\/reliable-system-design\/book\.toml/);
+  assert.match(agents, /books\/reliable-system-design\/images\//);
   assert.match(agents, /books\/\*\/book\//);
   assert.match(agents, /当前结构不存在第三部分或第 15 章/);
   assert.doesNotMatch(agents, /第三部分实战章节/);

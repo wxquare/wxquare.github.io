@@ -30,7 +30,7 @@ test('booklist presents curated routes and verified destinations', () => {
   }
 
   assert.match(booklist, /^## 正在维护的书籍$/m);
-  assert.match(booklist, /\]\(\/system-design-primer\/\)/);
+  assert.match(booklist, /\]\(\/reliable-system-design\/\)/);
   assert.match(booklist, /\]\(\/ai-book\/\)/);
   assert.doesNotMatch(booklist, /\]\(\/library\/\)/);
   assert.match(booklist, /https:\/\/www\.oreilly\.com\//);

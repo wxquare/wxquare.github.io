@@ -7,7 +7,7 @@ date: 2026-09-09 00:00:00
 
 ## 正在维护的书籍
 
-- [System Design Primer](/system-design-primer/)
+- [可靠系统设计与电商架构](/reliable-system-design/)
 - [AI Agent 工程实践](/ai-book/)
 
 ## 互联网系统设计

@@ -101,7 +101,7 @@ toc: true
 - 主链路：搜索/导购 → 详情 → 购物车 → 结算 → 订单 → 支付 → 履约 → 售后。
 - 支撑域：商品、库存、营销、价格、会员、支付、对账、履约。
 - 答题重点：区分“同步承诺”和“异步副作用”，指出交易权威数据与最终一致读模型。
-- 扩展：[电商系统全景](/books/system-design-primer/part03/01-ecommerce-overview.html)
+- 扩展：[电商系统全景](/reliable-system-design/part03/01-ecommerce-overview.html)
 
 ### 商品中心与商品上架
 
@@ -109,35 +109,35 @@ toc: true
 - 状态机：草稿 → 审核 → 发布 → 下线/失效；发布前有版本和审批。
 - 发布后同步：详情缓存、搜索索引、库存可售状态、计价上下文。
 - 答题重点：线上数据不可被编辑直接覆盖，要版本化、审核、灰度发布、失败回滚。
-- 扩展：[商品中心](/books/system-design-primer/part03/02-product-center.html)
+- 扩展：[商品中心](/reliable-system-design/part03/02-product-center.html)
 
 ### 营销、优惠券与活动
 
 - 核心对象：活动、券模板、用户券、预算、资格、核销流水。
 - 关键链路：资格校验 → 预算/库存占用 → 发券/锁券 → 结算核销 → 释放/对账。
 - 答题重点：预算不能靠 Redis 证明，锁券/核销要有幂等键和权威流水；大促要有降级和资损监控。
-- 扩展：[营销系统](/books/system-design-primer/part03/05-marketing-system.html)
+- 扩展：[营销系统](/reliable-system-design/part03/05-marketing-system.html)
 
 ### 价格与计价系统
 
 - 价格组成：商品价、渠道价、会员价、营销优惠、税费、运费、平台补贴。
 - 设计目标：可解释、可追溯、可复算、防篡改。
 - 答题重点：试算和结算必须复用同一计价服务；缓存命中后仍要在下单前重算。
-- 扩展：[计价系统](/books/system-design-primer/part03/06-pricing-system.html)
+- 扩展：[计价系统](/reliable-system-design/part03/06-pricing-system.html)
 
 ### 购物车与结算
 
 - 购物车：未登录本地购物车、登录合并、商品失效、库存变化。
 - 结算：价格重算、库存预占、营销资格、优惠互斥、重复提交防护。
 - 答题重点：购物车是暂存态，结算前必须重新校验价格、库存、营销和用户身份。
-- 扩展：[购物车与结算](/books/system-design-primer/part03/08-cart-checkout.html)
+- 扩展：[购物车与结算](/reliable-system-design/part03/08-cart-checkout.html)
 
 ### 订单系统
 
 - 状态机：创建、待支付、已支付、已发货、已完成、已关闭、退款中。
 - 关键设计：创单幂等、库存预占、支付回调、超时取消、履约编排。
 - 答题重点：订单是交易事实的汇聚点，状态迁移要有前置条件、幂等和审计。
-- 扩展：[订单系统](/books/system-design-primer/part03/09-order-system.html)
+- 扩展：[订单系统](/reliable-system-design/part03/09-order-system.html)
 
 ### 退款、对账与资损防控
 
@@ -145,7 +145,7 @@ toc: true
 - 对账：支付渠道账单 vs 本地账单，差异分类、自动修复、人工处置。
 - 资损防控：金额试算/复算、幂等、红黄线告警、回滚与补偿。
 - 答题重点：不能把“渠道回调成功”等同于“资金已安全到账”，要闭环对账。
-- 扩展：[支付系统](/books/system-design-primer/part03/10-payment-system.html)
+- 扩展：[支付系统](/reliable-system-design/part03/10-payment-system.html)
 
 ## 一、高并发与流量治理
 
@@ -1928,14 +1928,14 @@ if result == 0 {
 
 ### 相关文章
 
-- [系统设计完全指南：从零基础到面试高手](/books/system-design-primer/)
+- [系统设计完全指南：从零基础到面试高手](/reliable-system-design/)
 - {% post_link fundamentals/08-redis Redis 原理与实践 %}
 - {% post_link fundamentals/09-kafka 异步和消息队列 %}
 - {% post_link fundamentals/10-elasticsearch 搜索和 Elasticsearch %}
-- [电商系统设计](/books/system-design-primer/part03/01-ecommerce-overview.html)
+- [电商系统设计](/reliable-system-design/part03/01-ecommerce-overview.html)
 - {% post_link system-design/07-system-reliability-engineering 系统稳定性建设：方法论与实践 %}
-- [多品类统一库存系统设计](/books/system-design-primer/part03/04-inventory-system.html)
-- [System Design Primer 系统设计题库](/books/system-design-primer/appendix/system-design-questionbank.html)
+- [多品类统一库存系统设计](/reliable-system-design/part03/04-inventory-system.html)
+- [可靠系统设计题库](/reliable-system-design/appendix/system-design-questionbank.html)
 
 ### 外部参考
 

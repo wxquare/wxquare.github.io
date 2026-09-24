@@ -1917,7 +1917,7 @@ if result == 0 {
 
 ### 相关文章
 
-- [系统设计完全指南：从零基础到面试高手](/books/system-design-primer/)
+- [系统设计完全指南：从零基础到面试高手](/books/reliable-system-design/)
 - {% post_link fundamentals/08-redis Redis 原理与实践 %}
 - {% post_link fundamentals/09-kafka 异步和消息队列 %}
 - {% post_link fundamentals/10-elasticsearch 搜索和 Elasticsearch %}

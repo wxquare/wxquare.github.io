@@ -18,13 +18,13 @@ toc: true
 
 <!-- toc -->
 
-> **电商系统设计（十五）**（一致性与事务专题；总索引见[（一）全景概览与领域划分](/books/system-design-primer/part03/01-ecommerce-overview.html)）
-> - [（一）全景概览与领域划分](/books/system-design-primer/part03/01-ecommerce-overview.html)
-> - [（三）库存系统](/books/system-design-primer/part03/04-inventory-system.html)
-> - [（四）营销系统深度解析](/books/system-design-primer/part03/05-marketing-system.html)
-> - [（七）订单系统](/books/system-design-primer/part03/09-order-system.html)
-> - [（八）支付系统深度解析](/books/system-design-primer/part03/10-payment-system.html)
-> - [（十三）购物车与结算域](/books/system-design-primer/part03/08-cart-checkout.html)
+> **电商系统设计（十五）**（一致性与事务专题；总索引见[（一）全景概览与领域划分](/books/reliable-system-design/part03/01-ecommerce-overview.html)）
+> - [（一）全景概览与领域划分](/books/reliable-system-design/part03/01-ecommerce-overview.html)
+> - [（三）库存系统](/books/reliable-system-design/part03/04-inventory-system.html)
+> - [（四）营销系统深度解析](/books/reliable-system-design/part03/05-marketing-system.html)
+> - [（七）订单系统](/books/reliable-system-design/part03/09-order-system.html)
+> - [（八）支付系统深度解析](/books/reliable-system-design/part03/10-payment-system.html)
+> - [（十三）购物车与结算域](/books/reliable-system-design/part03/08-cart-checkout.html)
 > - **（十五）核心业务长事务怎么处理（本文）**
 
 ## 引言

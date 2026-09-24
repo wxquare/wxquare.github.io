@@ -6,17 +6,19 @@ toc:
   enable: false
 ---
 
-# AI、系统设计与工程实践
+# AI、可靠系统设计与工程实践
 
-wxquare 的技术知识库，聚焦 AI Engineering、系统设计、复杂业务和工程实践。
+wxquare 的技术知识库，聚焦 AI Engineering、可靠系统设计、复杂业务架构与工程实践，关注系统如何被设计、实现、治理并长期演进。
 
 ## 持续编写的书稿
 
-### [System Design Primer：系统设计与电商架构](/system-design-primer/)
+### [可靠系统设计与电商架构](/reliable-system-design/)
 
-从系统设计方法论到电商系统实战，覆盖架构、可靠性、长事务、商品、库存、计价与交易。
+**System Design: Reliable Systems and E-Commerce Architecture**
 
-[开始阅读 →](/system-design-primer/)
+面向中高级工程师、技术负责人和架构师的系统设计实践书。从问题定义、架构设计到生产治理，覆盖可靠性、一致性、长流程，以及商品、库存、营销、计价、交易和履约等电商核心系统。
+
+[开始阅读 →](/reliable-system-design/)
 
 ### [AI Engineering：大模型与智能体系统工程](/ai-book/)
 
@@ -47,9 +49,9 @@ wxquare 的技术知识库，聚焦 AI Engineering、系统设计、复杂业务
 
 - [LeetCode 500 精选题单](https://github.com/wxquare/leetcode-primer/blob/master/README.md)：500 道算法题，按主题、模式和难度组织
 - [AI 与 Agent 开发高频 50 题](/ai-book/appendix/ai-agent-development-interview-50.html)：50 道题，覆盖模型、Prompt、RAG、Agent、评测与治理
-- [系统设计面试高频 50 题](/books/system-design-primer/appendix/system-design-interview-50.html)：50 道题，聚焦电商交易、高并发、一致性与 SRE
-- [系统设计题库](/system-design-primer/appendix/system-design-questionbank.html)：220+ 道题，覆盖需求、容量、架构、可靠性与追问
-- [后端面试基础知识题单](/system-design-primer/appendix/interview-basic-question-bank.html)：1,000 道题，覆盖数据库、中间件、Kubernetes、网络与编程语言
+- [系统设计面试高频 50 题](/reliable-system-design/appendix/system-design-interview-50.html)：50 道题，聚焦电商交易、高并发、一致性与 SRE
+- [系统设计题库](/reliable-system-design/appendix/system-design-questionbank.html)：220+ 道题，覆盖需求、容量、架构、可靠性与追问
+- [后端面试基础知识题单](/reliable-system-design/appendix/interview-basic-question-bank.html)：1,000 道题，覆盖数据库、中间件、Kubernetes、网络与编程语言
 
 ### 工程随笔与其他
 

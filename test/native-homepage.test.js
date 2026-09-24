@@ -19,10 +19,10 @@ test('native homepage contains the curated reader entry points', () => {
   const links = [
     '/2026/09/11/other/08-agent-electronic-commerce-research-report/',
     '/ai-book/',
-    '/system-design-primer/',
+    '/reliable-system-design/',
     '/archives/',
     '/categories/',
-    '/books/system-design-primer/appendix/system-design-interview-50.html',
+    '/reliable-system-design/appendix/system-design-interview-50.html',
     '/2026/04/03/AI/00-vibe-coding-vs-spec-coding/',
     '/2026/09/23/system-design/45-ddd-principles-and-pricing-practice/',
     '/2026/05/08/other/ai-content-to-video-open-source-workflow/',

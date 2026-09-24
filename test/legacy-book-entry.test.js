@@ -13,7 +13,7 @@ test('canonical booklist page guides readers to both current books', () => {
   const menuConfig = fs.readFileSync(path.join(root, 'themes/next/_config.yml'), 'utf8');
   const zhCN = fs.readFileSync(path.join(root, 'themes/next/languages/zh-CN.yml'), 'utf8');
 
-  assert.match(bookList, /\/system-design-primer\//);
+  assert.match(bookList, /\/reliable-system-design\//);
   assert.match(bookList, /\/ai-book\//);
   assert.match(menuConfig, /^  book: \/booklist\/ \|\| fa fa-book$/m);
   assert.doesNotMatch(menuConfig, /^  categories: \/categories\/ \|\| fa fa-th$/m);

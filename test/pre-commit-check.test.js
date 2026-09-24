@@ -85,7 +85,7 @@ test('pre-commit check does not apply blog Front Matter rules to mdBook Markdown
     runGit(tempRoot, ['init', '-q']);
     const stagedBook = path.join(
       tempRoot,
-      'books/system-design-primer/src/part01/01-test.md'
+      'books/reliable-system-design/src/part01/01-test.md'
     );
     fs.mkdirSync(path.dirname(stagedBook), { recursive: true });
     fs.writeFileSync(stagedBook, '# 第 1 章\n\n## 1.1 测试\n');
@@ -121,7 +121,7 @@ test('pre-commit check does not apply blog Front Matter rules to mdBook Markdown
     assert.match(result.stdout, /跳过博客 Front Matter 检查/);
     assert.match(
       fs.readFileSync(pythonLog, 'utf8'),
-      /tools\/check-system-design-primer\.py/
+      /tools\/check-reliable-system-design\.py/
     );
     assert.deepEqual(
       fs.readFileSync(npmLog, 'utf8').trim().split('\n'),

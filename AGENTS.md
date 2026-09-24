@@ -44,11 +44,11 @@ http://localhost:4000
 - `source/diagrams/`：图表源文件
 - `source/library/`：公开且适合公开保存的参考资料与来源目录；其中 `slides/` 为第三方演示，`presentations/` 为第一方演示
 - `books/ai-book/src/`：AI Agent 书稿源码
-- `books/system-design-primer/src/`：系统设计方法论、生产治理、电商实战和附录面试题库书稿源码；`README.md` 与 `SUMMARY.md` 是读者入口和活动章节导航
-- `books/system-design-primer/book.toml`：mdBook 配置和历史 URL 重定向
-- `books/system-design-primer/images/`：书稿图表与配套图片源
-- `books/system-design-primer/mermaid-init.js`、`books/system-design-primer/mermaid.min.js`：书稿 Mermaid 构建资源
-- `books/system-design-primer/archive/`：历史书稿材料；不进入活动导航，只有迁移或归档维护时编辑
+- `books/reliable-system-design/src/`：系统设计方法论、生产治理、电商实战和附录面试题库书稿源码；`README.md` 与 `SUMMARY.md` 是读者入口和活动章节导航
+- `books/reliable-system-design/book.toml`：mdBook 配置和历史 URL 重定向
+- `books/reliable-system-design/images/`：书稿图表与配套图片源
+- `books/reliable-system-design/mermaid-init.js`、`books/reliable-system-design/mermaid.min.js`：书稿 Mermaid 构建资源
+- `books/reliable-system-design/archive/`：历史书稿材料；不进入活动导航，只有迁移或归档维护时编辑
 - `docs/`：调研、迁移、整理文档
 - `.agents/`：统一的 AI 协作资产与工具配置目录
 - `.agents/work/`：所有 Agent 的唯一工作目录；方案草稿、实施计划、分析记录、迁移过程文档和其他临时产物必须放这里，默认不纳入 Git
@@ -60,7 +60,7 @@ http://localhost:4000
 
 - `public/`
 - `.deploy_git/`
-- `books/*/book/`：所有 mdBook 生成目录，包括 `books/ai-book/book/` 和 `books/system-design-primer/book/`
+- `books/*/book/`：所有 mdBook 生成目录，包括 `books/ai-book/book/` 和 `books/reliable-system-design/book/`
 - `books/system-design-architecture-book/`：旧书稿标识，不是当前活动书稿来源；若只剩 `book/` 生成目录可以清理，不得据此推断存在第二本活动书稿
 - `source/booklist/`：已阻塞的只读遗留目录；逐条书目来源与元数据完成前保持原位，不得新增文件
 - `source/ecommerce-book/`：不再作为源目录维护；旧 `/ecommerce-book/` URL 由构建期 `legacy-book-alias` 跳转到 `/booklist/`
@@ -71,13 +71,13 @@ http://localhost:4000
 每类内容只保留一个主事实源：
 
 - 系统化 Agent 知识：`books/ai-book/src/`
-- 系统设计方法论、生产治理和电商系统实战：`books/system-design-primer/src/`
+- 系统设计方法论、生产治理和电商系统实战：`books/reliable-system-design/src/`
 - 面向读者的博客文章：`source/_posts/AI/`、`source/_posts/system-design/`、`source/_posts/fundamentals/`、`source/_posts/other/`
 - 公开参考资料与演示资料：`source/library/`（第三方演示在 `slides/`，第一方演示在 `presentations/`）
 - AI 协作规则、共享技能与工具配置：`AGENTS.md`、`.agents/`
 - 内部整理文档与迁移说明：`docs/`
 
-系统设计书稿章节以 `books/system-design-primer/src/` 为规范源；`book.toml`、`images/` 和 Mermaid 资源是参与构建的输入，不承载另一份正文事实。`source/_posts/system-design/` 中的文章只有在明确说明为独立文章、导航或历史镜像时才继续维护；旧博客 URL、旧 `/part03` 和 `/part04` URL 只由构建期 alias 或 mdBook redirect 兼容，不作为内容源。
+系统设计书稿章节以 `books/reliable-system-design/src/` 为规范源；`book.toml`、`images/` 和 Mermaid 资源是参与构建的输入，不承载另一份正文事实。`source/_posts/system-design/` 中的文章只有在明确说明为独立文章、导航或历史镜像时才继续维护；旧博客 URL、旧 `/part03` 和 `/part04` URL 只由构建期 alias 或 mdBook redirect 兼容，不作为内容源。
 
 所有 Agent 的工作目录和临时文档必须位于 `.agents/work/`，不得写入 `docs/`、仓库根目录或其他源码目录。只有已经确认需要长期维护、公开发布或参与构建的内容，才由用户明确确认后迁移到合适的受版本控制目录。
 
@@ -415,7 +415,7 @@ tags:
 
 上述四项约束是后续章节优化的优先检查项；八段式结构用于保证内容覆盖，不要求每章机械复制八个同名二级标题。
 
-对于 `books/system-design-primer/src/` 等系统设计方法论书稿，涉及多章重构或新章节时，默认采用统一的八段式结构：
+对于 `books/reliable-system-design/src/` 等系统设计方法论书稿，涉及多章重构或新章节时，默认采用统一的八段式结构：
 
 1. **问题定义**：说明场景边界、典型业务、核心矛盾和明确不做什么。
 2. **约束与指标**：说明流量、数据规模、读写比例、热点分布、SLO、延迟、吞吐、数据新鲜度、成本和合规约束；示例数字必须注明是假设或测量结果，不得把单一经验值写成通用标准。

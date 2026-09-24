@@ -11,7 +11,7 @@
 | [AI Engineering：大模型与智能体系统工程](./books/ai-book/src/README.md) | 从模型原理、基础设施到 Agent 应用与生产治理的系统化专题 |
 | [AGENTS.md](./AGENTS.md) | 仓库内 Agent 内容开发、维护边界与人机协作规范 |
 | [CONTRIBUTING.md](./CONTRIBUTING.md) | 开源贡献流程与改动边界 |
-| [System Design Primer](./books/system-design-primer/src/README.md) | 面向中高级工程师的系统设计、电商架构与可靠性实战 |
+| [可靠系统设计与电商架构](./books/reliable-system-design/src/README.md) | 面向中高级工程师的系统设计、电商架构与可靠性实战 |
 
 ## 精选内容
 
@@ -80,7 +80,7 @@ npm run build
 npm run build:ai-book
 
 # 构建系统设计与架构书籍
-npm run build:system-design-primer
+npm run build:reliable-system-design
 
 # 构建两本书
 npm run build:books
@@ -96,9 +96,9 @@ npm run clean
 ```
 
 Hexo 输出到 `public/`；两本 mdBook 分别输出到 `books/ai-book/book/` 和
-`books/system-design-primer/book/`。需要一次构建全部内容时，先运行
+`books/reliable-system-design/book/`。需要一次构建全部内容时，先运行
 `npm run clean && npm run build && npm run build:books && npm run stage:books`，即可将两本书
-汇总到 `public/ai-book/` 和 `public/system-design-primer/` 下并预览完整发布树。
+汇总到 `public/ai-book/` 和 `public/reliable-system-design/` 下并预览完整发布树。
 
 `npm run server` 访问博客：
 
@@ -122,10 +122,10 @@ http://localhost:3000
 public/
 ├── index.html
 ├── ai-book/
-└── system-design-primer/
+└── reliable-system-design/
 ```
 
-部署后的访问路径分别是 `/`、`/ai-book/` 和 `/system-design-primer/`。
+部署后的访问路径分别是 `/`、`/ai-book/` 和 `/reliable-system-design/`。
 
 ## 仓库结构
 
@@ -144,7 +144,7 @@ public/
 │   │   └── index.md
 ├── books/
 │   ├── ai-book/                 # AI Engineering：大模型与智能体系统工程
-│   └── system-design-primer/  # 系统设计与架构专题
+│   └── reliable-system-design/  # 系统设计与架构专题
 ├── scripts/                     # 共用构建、校验与预处理脚本
 ├── docs/                        # 规划、设计与过程文档
 ├── _config.yml                  # Hexo 配置

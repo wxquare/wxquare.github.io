@@ -57,29 +57,29 @@ const expectedMergedDddAliases = [
 ];
 
 const expectedBookAliases = [
-  ['/system-design/00-system-design-overview/', '/books/system-design-primer/'],
-  ['/2025/06/25/system-design/08-system-design-interview/', '/books/system-design-primer/appendix/system-design-interview-50.html'],
-  ['/system-design/34-ecommerce-long-transactions/', '/books/system-design-primer/part01/04-large-transaction-orchestration.html'],
-  ['/2026/06/09/system-design/34-ecommerce-long-transactions/', '/books/system-design-primer/part01/04-large-transaction-orchestration.html'],
-  ['/system-design/30-ecommerce-product-lifecycle-management/', '/books/system-design-primer/part02/11-product-center-supply-lifecycle.html'],
-  ['/2026/04/10/system-design/30-ecommerce-product-lifecycle-management/', '/books/system-design-primer/part02/11-product-center-supply-lifecycle.html'],
-  ['/system-design/29-ecommerce-b-side-ops/', '/books/system-design-primer/part02/11-product-center-supply-lifecycle.html'],
-  ['/2025/09/04/system-design/29-ecommerce-b-side-ops/', '/books/system-design-primer/part02/11-product-center-supply-lifecycle.html'],
-  ['/system-design/28-ecommerce-listing/', '/books/system-design-primer/part02/11-product-center-supply-lifecycle.html'],
-  ['/2025/08/21/system-design/28-ecommerce-listing/', '/books/system-design-primer/part02/11-product-center-supply-lifecycle.html'],
-  ['/2026/04/07/system-design/21-ecommerce-product-center/', '/books/system-design-primer/part03/02-product-center.html'],
-  ['/2026/04/07/system-design/26-ecommerce-order-system/', '/books/system-design-primer/part03/09-order-system.html'],
-  ['/system-design/13-e-commerce/', '/books/system-design-primer/part03/01-ecommerce-overview.html'],
-  ['/system-design/18-inventory-system-design/', '/books/system-design-primer/part03/04-inventory-system.html'],
-  ['/system-design/20-ecommerce-overview/', '/books/system-design-primer/part03/01-ecommerce-overview.html'],
-  ['/system-design/21-ecommerce-product-center/', '/books/system-design-primer/part03/02-product-center.html'],
-  ['/system-design/22-ecommerce-inventory/', '/books/system-design-primer/part03/04-inventory-system.html'],
-  ['/system-design/23-ecommerce-marketing-system/', '/books/system-design-primer/part03/05-marketing-system.html'],
-  ['/system-design/24-ecommerce-pricing-engine/', '/books/system-design-primer/part03/06-pricing-system.html'],
-  ['/system-design/26-ecommerce-order-system/', '/books/system-design-primer/part03/09-order-system.html'],
-  ['/system-design/27-ecommerce-payment-system/', '/books/system-design-primer/part03/10-payment-system.html'],
-  ['/system-design/31-ecommerce-search-discovery/', '/books/system-design-primer/part03/07-search-discovery.html'],
-  ['/system-design/32-ecommerce-cart-checkout/', '/books/system-design-primer/part03/08-cart-checkout.html']
+  ['/system-design/00-system-design-overview/', '/reliable-system-design/'],
+  ['/2025/06/25/system-design/08-system-design-interview/', '/reliable-system-design/appendix/system-design-interview-50.html'],
+  ['/system-design/34-ecommerce-long-transactions/', '/reliable-system-design/part01/04-large-transaction-orchestration.html'],
+  ['/2026/06/09/system-design/34-ecommerce-long-transactions/', '/reliable-system-design/part01/04-large-transaction-orchestration.html'],
+  ['/system-design/30-ecommerce-product-lifecycle-management/', '/reliable-system-design/part02/11-product-center-supply-lifecycle.html'],
+  ['/2026/04/10/system-design/30-ecommerce-product-lifecycle-management/', '/reliable-system-design/part02/11-product-center-supply-lifecycle.html'],
+  ['/system-design/29-ecommerce-b-side-ops/', '/reliable-system-design/part02/11-product-center-supply-lifecycle.html'],
+  ['/2025/09/04/system-design/29-ecommerce-b-side-ops/', '/reliable-system-design/part02/11-product-center-supply-lifecycle.html'],
+  ['/system-design/28-ecommerce-listing/', '/reliable-system-design/part02/11-product-center-supply-lifecycle.html'],
+  ['/2025/08/21/system-design/28-ecommerce-listing/', '/reliable-system-design/part02/11-product-center-supply-lifecycle.html'],
+  ['/2026/04/07/system-design/21-ecommerce-product-center/', '/reliable-system-design/part03/02-product-center.html'],
+  ['/2026/04/07/system-design/26-ecommerce-order-system/', '/reliable-system-design/part03/09-order-system.html'],
+  ['/system-design/13-e-commerce/', '/reliable-system-design/part03/01-ecommerce-overview.html'],
+  ['/system-design/18-inventory-system-design/', '/reliable-system-design/part03/04-inventory-system.html'],
+  ['/system-design/20-ecommerce-overview/', '/reliable-system-design/part03/01-ecommerce-overview.html'],
+  ['/system-design/21-ecommerce-product-center/', '/reliable-system-design/part03/02-product-center.html'],
+  ['/system-design/22-ecommerce-inventory/', '/reliable-system-design/part03/04-inventory-system.html'],
+  ['/system-design/23-ecommerce-marketing-system/', '/reliable-system-design/part03/05-marketing-system.html'],
+  ['/system-design/24-ecommerce-pricing-engine/', '/reliable-system-design/part03/06-pricing-system.html'],
+  ['/system-design/26-ecommerce-order-system/', '/reliable-system-design/part03/09-order-system.html'],
+  ['/system-design/27-ecommerce-payment-system/', '/reliable-system-design/part03/10-payment-system.html'],
+  ['/system-design/31-ecommerce-search-discovery/', '/reliable-system-design/part03/07-search-discovery.html'],
+  ['/system-design/32-ecommerce-cart-checkout/', '/reliable-system-design/part03/08-cart-checkout.html']
 ];
 
 const expectedArchivedTvmAliases = [
@@ -164,7 +164,7 @@ test('legacy post alias generator emits all compatibility redirects', () => {
 
     const redirect = generated.find((item) => item.path === 'system-design/13-e-commerce/index.html');
     assert.match(redirect.data, /rel="canonical"/);
-    assert.match(redirect.data, /\/books\/system-design-primer\/part03\/01-ecommerce-overview\.html/);
+    assert.match(redirect.data, /\/reliable-system-design\/part03\/01-ecommerce-overview\.html/);
     assert.match(redirect.data, /location\.replace/);
   } finally {
     delete require.cache[aliasScript];

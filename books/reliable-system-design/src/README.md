@@ -1,6 +1,10 @@
-# System Design Primer
+# 可靠系统设计与电商架构
 
-这是一本面向中高级工程师、技术负责人和架构师的系统设计实践书，定位为“系统设计方法论 + 生产治理 + 电商系统实战 + 附录面试题库”。全书帮助读者把“会画架构图”推进到“能落地、能治理、能复盘”的工程能力。
+> **System Design: Reliable Systems and E-Commerce Architecture**
+
+这是一本面向中高级工程师、技术负责人和架构师的系统设计实践书。全书围绕“如何设计能够长期运行的复杂系统”展开，覆盖系统设计方法论、生产可靠性、数据一致性、长流程治理，以及商品、库存、营销、计价、订单、支付和履约等电商核心领域。
+
+本书不止讨论如何画出架构图，更关注系统在真实生产环境中如何面对流量增长、故障恢复、数据不一致、业务变更、对账补偿和资损风险，帮助读者建立从问题定义、边界划分、数据建模、架构权衡，到上线治理、故障复盘和持续演进的完整系统设计方法。
 
 本书强调三个判断：
 
@@ -80,7 +84,7 @@
 需安装 [mdBook](https://github.com/rust-lang/mdBook)。本书复用 `tools/mermaid-preprocessor.py` 处理 Mermaid 图表。
 
 ```bash
-cd books/system-design-primer
+cd books/reliable-system-design
 mdbook build
 mdbook serve
 ```
@@ -88,11 +92,11 @@ mdbook serve
 也可以在仓库根目录生成到 Hexo 本地预览目录并启动服务：
 
 ```bash
-npm run server:system-design-primer
+npm run server:reliable-system-design
 ```
 
 启动后访问：
 
 ```text
-http://localhost:3000/system-design-primer/
+http://localhost:3000/reliable-system-design/
 ```

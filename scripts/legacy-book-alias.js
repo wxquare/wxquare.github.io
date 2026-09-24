@@ -29,10 +29,12 @@ function redirectHtml(targetUrl) {
 }
 
 function registerLegacyBookAlias(hexoContext) {
-  hexoContext.extend.generator.register('legacy-book-alias', () => [{
-    path: 'ecommerce-book/index.html',
-    data: redirectHtml('/booklist/')
-  }]);
+  hexoContext.extend.generator.register('legacy-book-alias', () => [
+    {
+      path: 'ecommerce-book/index.html',
+      data: redirectHtml('/booklist/')
+    }
+  ]);
 }
 
 if (typeof hexo !== 'undefined') registerLegacyBookAlias(hexo);

@@ -5,7 +5,7 @@
 与仓库内其他 mdBook 相同：安装 [mdBook](https://github.com/rust-lang/mdBook)，可选安装 `mdbook-mermaid` 以渲染 Mermaid。
 
 ```bash
-cd books/system-design-primer
+cd books/reliable-system-design
 mdbook build
 mdbook serve
 ```
