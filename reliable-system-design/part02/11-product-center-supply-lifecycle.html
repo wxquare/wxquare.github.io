@@ -1,0 +1,1935 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第 11 章 商品中心、商品供给与生命周期治理 - System Design: Reliable Systems and E-Commerce Architecture</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="可靠系统设计与电商架构实践；覆盖系统设计方法论、生产可靠性、数据一致性、长流程治理与电商核心业务。">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-2459343d.css">
+        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-a2c86ee4.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-09578451.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">System Design: Reliable Systems and E-Commerce Architecture</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第-11-章-商品中心商品供给与生命周期治理"><a class="header" href="#第-11-章-商品中心商品供给与生命周期治理">第 11 章 商品中心、商品供给与生命周期治理</a></h1>
+<p>本章讨论一个看似普通、实际很容易失控的问题：平台如何把来自人工录入、批量文件、供应商接口和内部系统的商品供给，经过标准化、审核、版本化和发布，转化为可查询、可售、可履约、可追溯且可恢复的商品资产。</p>
+<p>电商系统里的商品并不是一行可以随意修改的数据库记录。一个酒店房型、一个数字商品、一个门票套餐或一个实物 SKU，往往同时包含基础描述、售卖计划、价格上下文、履约约束、库存资源、审核状态、上下架窗口和面向订单的历史契约。它们的变化来源不同，变化频率不同，权威事实也不同。如果所有变化都直接写入一张“商品表”，再用一个 <code>status</code> 字段表示全部生命周期，系统很快就会出现状态覆盖、审核失效、库存漂移、搜索脏数据和订单无法解释等问题。</p>
+<p>本章把商品中心、供给平台、库存控制面和下游投影放到同一个端到端模型里分析。重点不在于给出某个公司的唯一实现，而在于建立一套可迁移的判断框架：什么是业务事实，什么是流程状态；谁拥有哪个字段，哪个系统可以写入；哪些动作必须在本地事务内完成，哪些动作只能通过事件最终收敛；当任务超时、消息重复、供应商乱序、库存创建失败或审核对象被再次修改时，系统如何恢复。</p>
+<h2 id="111-问题定义与系统边界"><a class="header" href="#111-问题定义与系统边界">11.1 问题定义与系统边界</a></h2>
+<h3 id="1111-先定义平台真正要交付的对象"><a class="header" href="#1111-先定义平台真正要交付的对象">11.1.1 先定义平台真正要交付的对象</a></h3>
+<p>商品平台最终交付的不是“商品编辑页面”，而是一组可以被其他业务可靠消费的事实和契约。至少要区分以下四类对象：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>对象</th><th>解决的问题</th><th>典型事实</th><th>主要消费者</th><th>是否允许直接修改</th></tr>
+</thead>
+<tbody>
+<tr><td>供给流程对象</td><td>一次创建、编辑、导入或同步动作进行到哪一步</td><td>Draft、Task、QC、错误文件、重试次数</td><td>运营、审核、任务执行器</td><td>允许通过命令推进</td></tr>
+<tr><td>商品主数据对象</td><td>平台认定的正式商品是什么</td><td>Resource、Item、SPU、SKU、Offer、类目属性</td><td>搜索、详情、订单、计价</td><td>只能通过发布契约修改</td></tr>
+<tr><td>可售资源对象</td><td>在给定时间、地点或资源池中还能卖多少</td><td>数量库存、券码、房态、时段容量</td><td>购物车、结算、订单、履约</td><td>由库存域按库存语义修改</td></tr>
+<tr><td>交易历史对象</td><td>某次交易当时买到的是什么</td><td>商品快照、价格快照、规则快照</td><td>订单、客服、退款、对账</td><td>创建后不可覆盖</td></tr>
+</tbody>
+</table>
+</div>
+<p>这四类对象可以共享业务标识，但不能共享所有权。供给流程中的 <code>draft_id</code> 表示一次待发布变更，正式商品中的 <code>item_id</code> 表示稳定的线上资产，库存中的 <code>reservation_id</code> 表示一次资源预占，订单中的 <code>snapshot_id</code> 表示一份不可变的交易解释。把这些标识都简称为“商品 ID”会让接口看起来简单，却会把不同的生命周期和失败语义隐藏起来。</p>
+<p>领域驱动设计强调，模型边界应围绕业务能力和不变量划分，而不是围绕一张数据库表或一个页面划分。[1] 企业应用架构中的分层和服务边界也不是为了增加目录，而是为了让数据访问、领域规则和流程协调有清晰的责任归属。[2] 因此，本章先把商品平台定义为多个协作域，再讨论它们如何通过命令、事件和查询模型协作。</p>
+<h3 id="1112-典型业务场景"><a class="header" href="#1112-典型业务场景">11.1.2 典型业务场景</a></h3>
+<p>一个可复用的商品供给平台至少需要处理五类入口。</p>
+<p>第一类是人工单品创建。运营人员填写标题、类目、属性、售卖计划和履约规则，系统即时返回字段校验结果。这个入口强调交互反馈和可解释错误，通常需要同步完成草稿保存，但不应在用户点击保存时直接让商品对消费者可见。</p>
+<p>第二类是人工编辑在线商品。编辑对象已经存在正式 <code>item_id</code>，因此系统必须记录编辑基线，例如 <code>base_publish_version</code>。如果编辑期间线上版本已经发生变化，平台不能静默覆盖，而应将冲突交给差异比较、合并或重新审核流程处理。</p>
+<p>第三类是批量导入和批量编辑。运营人员上传 Excel 或 CSV，系统需要先保存原始文件，再进行解析、行级校验、标准化、风险审核和分批发布。一个文件中允许部分行成功、部分行失败，但每一行都必须能追溯到输入行号、错误原因、目标对象和重试结果。</p>
+<p>第四类是供应商或 ISV 推送。外部系统可能只提供全量列表，也可能提供增量事件；可能重复发送同一版本，也可能出现延迟和乱序。平台不能假设供应商具有稳定的消息语义，而要通过来源标识、外部版本、指纹、时间戳和对账窗口识别无效更新。</p>
+<p>第五类是运营和生命周期治理。平台要支持上架、下架、封禁、重新上线、销售窗口调整、属性修正、库存补货、券码批次导入和异常修复。这类动作有的改变正式商品状态，有的改变库存事实，有的只改变流程状态，不能通过一条万能更新接口完成。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>用户期望</th><th>系统必须保证</th><th>系统不应承诺</th></tr>
+</thead>
+<tbody>
+<tr><td>单品创建</td><td>页面响应快、错误可理解</td><td>草稿可恢复、提交可幂等、发布有审核边界</td><td>点击保存后所有下游立即完成</td></tr>
+<tr><td>在线编辑</td><td>不覆盖别人的最新版本</td><td>基线版本可比较、冲突可发现</td><td>多人并发编辑永远自动合并</td></tr>
+<tr><td>批量导入</td><td>大文件可提交、错误可下载</td><td>行级隔离、任务可恢复、结果可追溯</td><td>一个长请求内完成全部处理</td></tr>
+<tr><td>供应商同步</td><td>数据最终进入平台</td><td>来源可识别、版本可比较、失效可对账</td><td>外部全量列表天然等价于删除命令</td></tr>
+<tr><td>上下架与封禁</td><td>状态变化可控、可审计</td><td>正式状态有权威、下游可收敛</td><td>搜索缓存和交易读取同时瞬时更新</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="1113-系统边界谁负责什么"><a class="header" href="#1113-系统边界谁负责什么">11.1.3 系统边界：谁负责什么</a></h3>
+<p>建议把平台拆成四个边界，而不是把所有能力称为“商品中心”。</p>
+<p>商品中心负责正式商品主数据和交易前契约。它维护 Resource、Item、SPU、SKU、Offer、Rate Plan、类目属性、履约规则、退款规则、发布版本和商品快照模板。商品中心可以拒绝不符合模型不变量的发布命令，但不应承担 Excel 解析、供应商租约、人工审核队列或库存流水账。</p>
+<p>供给平台负责流程控制面。它接收多种供给入口，创建 Draft、Task、Task Item、Staging、QC 和错误文件，维护来源、操作人、任务进度、字段主导权和审核记录。供给平台可以发起发布，但不应绕过商品中心直接写正式商品表。</p>
+<p>库存系统负责可售资源事实。数量制库存、券码库存、房态库存和日期时段库存的扣减、预占、确认、释放、过期和对账属于库存语义。供给平台可以创建库存配置或发起库存任务，但不应把库存余额当作商品属性写入商品中心。</p>
+<p>下游读模型负责按消费场景投影数据。搜索索引、列表缓存、详情缓存、推荐特征和运营看板都可以从商品中心事件构建，但它们不是商品主数据的权威来源。订单和支付还要保留交易时的快照，因为“当前商品”不能解释过去成交时的合同。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>边界</th><th>权威对象</th><th>允许的输入</th><th>禁止的越权</th></tr>
+</thead>
+<tbody>
+<tr><td>供给平台</td><td>Draft、Task、QC、Change Request</td><td>人工、文件、API、供应商</td><td>直接写正式商品和库存余额</td></tr>
+<tr><td>商品中心</td><td>Item、SPU、SKU、Offer、Publish Version</td><td>受校验的发布命令</td><td>读取所有流程细节并代替供给平台执行任务</td></tr>
+<tr><td>库存系统</td><td>可售数量、券码、资源格、预占记录</td><td>库存命令和履约事件</td><td>用商品编辑接口修改库存事实</td></tr>
+<tr><td>搜索 / 缓存</td><td>查询投影</td><td>版本化事件、批量重建命令</td><td>反向成为商品状态来源</td></tr>
+<tr><td>订单系统</td><td>订单合同和商品快照</td><td>下单时的确认结果</td><td>事后依赖商品当前版本解释历史订单</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="1114-业务事实不变量与非目标"><a class="header" href="#1114-业务事实不变量与非目标">11.1.4 业务事实、不变量与非目标</a></h3>
+<p>任何设计开始前，都应把“必须永远成立”的不变量写出来。下面这些不变量比组件名称更重要：</p>
+<ol>
+<li>已发布的正式商品版本具有单调递增的逻辑版本，旧版本不能覆盖新版本。</li>
+<li>审核通过的对象必须有明确的内容版本，不能审核一个对象、发布另一个未被审核的对象。</li>
+<li>同一个外部来源对象的同一版本重复到达，不应造成第二次业务副作用。</li>
+<li>库存预占、确认和释放必须属于同一库存语义，商品发布不能假装已经完成库存扣减。</li>
+<li>订单创建后必须依赖订单自己的商品快照和价格快照，不能回查商品中心当前内容作为历史事实。</li>
+<li>任意异步任务都必须能回答：谁提交、处理到哪、哪一行失败、是否可以重试、重试会不会重复副作用。</li>
+<li>事件消费失败不能阻塞正式事实写入，但必须进入可观测、可重试、可对账的恢复路径。</li>
+</ol>
+<p>本章不讨论完整的推荐算法、营销优惠计算、支付渠道路由、订单履约编排和供应商结算。它们会在其他章节展开；本章只描述这些系统与商品供给之间的契约和边界。</p>
+<h3 id="1115-读者应该带走的判断"><a class="header" href="#1115-读者应该带走的判断">11.1.5 读者应该带走的判断</a></h3>
+<p>如果一个商品系统只能回答“商品表有哪些字段”，却回答不了以下问题，它就还停留在 CRUD 层面：谁批准了这次变更？批准的是哪个版本？发布时库存是否已经准备好？搜索结果为什么还显示旧内容？供应商重复发送是否会导致重复库存？订单为什么不会随着商品编辑而改变？任务失败以后由谁恢复？</p>
+<p>本章的主线可以压缩为一句话：<strong>供给平台治理变化，商品中心确认事实，库存系统确认资源，下游模型接受版本化投影，订单保存历史契约。</strong></p>
+<h2 id="112-约束指标与核心判断"><a class="header" href="#112-约束指标与核心判断">11.2 约束、指标与核心判断</a></h2>
+<h3 id="1121-约束先于组件"><a class="header" href="#1121-约束先于组件">11.2.1 约束先于组件</a></h3>
+<p>商品平台的技术选型不能从“是否使用微服务、消息队列或 Redis”开始，而应从约束开始。对于一个中大型平台，可以先建立如下假设；这些数字只是容量规划示例，不是行业通用标准，落地时必须替换为测量结果。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>维度</th><th>示例假设</th><th>设计影响</th><th>验证方法</th></tr>
+</thead>
+<tbody>
+<tr><td>正式商品规模</td><td>1,000 万级 Item，SKU 与 Offer 数量更高</td><td>主数据表需要按访问模式设计索引和归档</td><td>生产数据分布、冷热比例</td></tr>
+<tr><td>日常变更</td><td>每天百万级草稿、编辑或供应商更新</td><td>不能让每次变化都同步扇出到所有下游</td><td>任务吞吐和事件积压</td></tr>
+<tr><td>大促峰值</td><td>读流量远高于写流量，峰值按历史压测估算</td><td>详情和列表读取需要独立读模型</td><td>p95 / p99 延迟、缓存命中率</td></tr>
+<tr><td>批量任务</td><td>单个文件可能包含十万到百万行</td><td>必须流式解析、分批处理、行级隔离</td><td>单行耗时、批次大小、恢复时间</td></tr>
+<tr><td>供应商同步</td><td>单次全量任务可能运行数小时</td><td>需要 Checkpoint、租约、分片和断点续跑</td><td>任务最长尾、重启恢复时长</td></tr>
+<tr><td>数据新鲜度</td><td>搜索允许秒级到分钟级滞后，交易校验更严格</td><td>不同下游使用不同版本和新鲜度预算</td><td>事件延迟分位数、版本差距</td></tr>
+<tr><td>可追溯性</td><td>运营需要定位到人、来源文件、输入行和发布版本</td><td>需要操作日志、关联 ID 和不可变快照</td><td>随机抽样回放</td></tr>
+<tr><td>合规与隐私</td><td>外部凭证、个人信息和供应商敏感字段受控</td><td>原始文件和审计记录需要权限、脱敏和保留策略</td><td>权限测试、保留策略检查</td></tr>
+</tbody>
+</table>
+</div>
+<p>数据密集型系统的核心难点不是把数据写入某个存储，而是承认不同访问模式会导致不同的读模型、索引和一致性选择。[3] 因此，同一商品可以有商品中心正式模型、搜索投影、详情缓存、运营看板和订单快照，但它们必须有明确的生成关系，而不能互相竞争成为事实源。</p>
+<h3 id="1122-指标体系业务结果和系统过程分开"><a class="header" href="#1122-指标体系业务结果和系统过程分开">11.2.2 指标体系：业务结果和系统过程分开</a></h3>
+<p>只监控接口 QPS 和 CPU 不足以判断供给平台是否健康。至少需要四组指标。</p>
+<p>第一组是供给结果指标，包括创建成功率、审核通过率、发布成功率、商品可售转化率、供应商有效更新比例、重复更新比例和人工接管比例。它们回答“平台是否把输入转成了可用资产”。</p>
+<p>第二组是过程指标，包括任务等待时间、解析耗时、标准化耗时、QC 耗时、发布耗时、事件延迟、索引刷新延迟、库存初始化延迟和对账修复时长。它们回答“慢在哪里”。</p>
+<p>第三组是正确性指标，包括版本回退次数、乱序消息数、幂等冲突数、重复库存副作用数、快照缺失数、下游版本落后数、库存配置与事实不一致数和错误文件重试成功率。它们回答“系统是否在静默地产生错误”。</p>
+<p>第四组是资源与韧性指标，包括队列深度、最老任务年龄、Worker 租约超时数、DLQ 增长速度、数据库锁等待、缓存击穿次数、供应商限流比例和人工修复队列。它们回答“系统距离失控还有多远”。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标</th><th>计算口径</th><th>目标不是</th><th>触发动作</th></tr>
+</thead>
+<tbody>
+<tr><td>发布成功率</td><td>发布命令成功并生成正式版本的比例</td><td>所有输入都必须发布</td><td>区分数据错误、冲突和基础设施失败</td></tr>
+<tr><td>端到端可售时间</td><td>从提交到交易前可售校验通过</td><td>任意下游都同步完成</td><td>识别最长关键路径和可选投影</td></tr>
+<tr><td>版本滞后</td><td>消费者已处理版本与商品中心版本的差</td><td>全部读模型零延迟</td><td>超过预算进入补偿或降级</td></tr>
+<tr><td>任务最老年龄</td><td>队列中最早未完成任务的等待时间</td><td>单纯增加 Worker</td><td>检查上游洪峰、下游限流和毒性任务</td></tr>
+<tr><td>对账修复时长</td><td>发现差异到最终收敛的时间</td><td>差异永远不出现</td><td>衡量恢复能力和人工负担</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="1123-一致性不是一个开关"><a class="header" href="#1123-一致性不是一个开关">11.2.3 一致性不是一个开关</a></h3>
+<p>商品平台至少有四种一致性语义。</p>
+<p>商品中心本地事务需要原子性。正式 Item、Publish Version、Snapshot 和 Outbox 记录之间的关系不能出现“版本已经变更但没有任何可发布事件”或“事件说已发布但正式事实没有提交”的裂缝。</p>
+<p>跨域发布通常只能最终一致。商品中心不能把搜索、库存、营销、计价和订单都塞入一条跨服务长事务，否则失败恢复、锁持有时间和可用性都会变差。Helland 对大规模系统的讨论指出，许多实际系统会把强一致范围收缩到单个实体或单个服务，再通过消息和补偿协调更大的业务过程。[4]</p>
+<p>读模型允许受控陈旧。列表搜索可以接受索引延迟，但必须在进入购物车、结算或订单创建时重新校验商品状态、价格和库存。陈旧不是“无所谓”，而是必须有明确的时间预算、版本标识和用户体验降级。</p>
+<p>历史事实需要不可变。订单快照、审核结果、发布记录和审计日志不能随着当前商品变更而被覆盖。事件日志可以帮助回放和审计，但本章不把所有表都改造成全量 Event Sourcing；是否采用事件溯源应根据重放价值、外部副作用和运维复杂度单独决策。[5] 对跨服务协作而言，事件更适合表达已经发生的事实，协作方仍需定义事件所有权、处理结果和失败边界。[6]</p>
+<h3 id="1124-复杂度预算"><a class="header" href="#1124-复杂度预算">11.2.4 复杂度预算</a></h3>
+<p>每增加一种入口，系统至少增加一类失败模式。人工入口增加并发编辑和权限问题；文件入口增加格式、行级错误和大任务恢复问题；供应商入口增加重复、乱序、来源可信度和全量删除误判问题；库存入口增加资源生命周期和扣减语义问题。复杂度不是由服务数量决定，而是由状态数量、事实源数量、异步边界和恢复动作共同决定。</p>
+<p>因此，平台需要给每种能力设置复杂度预算：</p>
+<ol>
+<li>只要同步保存草稿能够满足体验，就不要把草稿保存也拆成多个远程服务调用。</li>
+<li>只要数据库 CAS 和短事务能够支撑任务领取，就不要为展示“分布式”而引入 Redis 锁。</li>
+<li>只要单个供应商任务可以在可接受窗口内完成，就先使用 Batch + Checkpoint + DLQ，再根据测量结果引入分片。</li>
+<li>只要搜索投影能够通过版本号过滤旧事件，就不要让搜索索引反向决定商品是否发布。</li>
+<li>只要交易时可以重新校验，就不要为了列表页的即时准确把高频库存写入搜索引擎。</li>
+</ol>
+<p>这不是保守，而是把复杂度放在真正需要它的地方。阿里巴巴的公开工程规范也把数据库、异常、日志、工程结构和安全约束放在同一套开发治理框架中，说明系统质量不只来自业务代码本身，还来自边界和习惯的长期一致性。[20]</p>
+<h3 id="1125-本章的默认数量模型"><a class="header" href="#1125-本章的默认数量模型">11.2.5 本章的默认数量模型</a></h3>
+<p>后文案例使用一个假设的多供应商酒店与数字商品平台。平台有约 1,000 万个正式 Item，平均每个 Item 有 4 个 SKU 或 Offer；每天接收 50 万条供应商输入，其中约 20% 经过标准化后被判定为无效更新；运营侧每天提交 2 万个批量任务，单任务平均 2,000 行，长尾任务可能达到 10 万行。搜索索引允许 60 秒内收敛，详情读模型允许 10 秒内收敛，交易前商品状态和库存校验必须在一次请求内基于权威系统返回。</p>
+<p>这些数值只用于说明设计方法。它们不能推出“所有电商平台都应使用 60 秒新鲜度”或“所有任务都应拆成 2,000 行批次”。真正的设计输入应来自生产日志、压测、供应商 SLA、业务窗口和恢复演练。章节中所有示例数字都标记为假设，避免把单一经验包装成标准答案。</p>
+<h2 id="113-领域模型事实源与状态机"><a class="header" href="#113-领域模型事实源与状态机">11.3 领域模型、事实源与状态机</a></h2>
+<h3 id="1131-商品不是一张表而是一组有边界的事实"><a class="header" href="#1131-商品不是一张表而是一组有边界的事实">11.3.1 商品不是一张表，而是一组有边界的事实</a></h3>
+<p>商品模型需要同时表达“卖什么”“如何卖”“什么时候能卖”“卖了以后如何履约”和“当时卖给用户的是什么”。这几类信息的变化速度和生命周期不同，应该拆成多个相互引用但不互相越权的对象。</p>
+<p><code>Resource</code> 表示被平台管理的可供给资源，例如酒店、景区、课程、数字权益或供应商提供的外部服务。它通常承载资源级名称、地理位置、供应商归属和基础履约能力。<code>Product Item</code> 表示平台面向用户展示和交易的正式商品，是一个可发布、可下架、可归档的业务资产。<code>SPU</code> 用来归纳同一商品族的共性，<code>SKU</code> 表示具体可交易的规格组合，<code>Offer</code> 表示在某个渠道、售卖计划或供应商条件下的销售报价，<code>Rate Plan</code> 表示价格、退改、库存和履约规则组合。</p>
+<p>这套模型不是固定的行业标准。实物电商可以让 SPU 关联多个 SKU；酒店场景可能把房型作为 SKU、日期和入住人数作为资源条件；数字商品可能把一个兑换码批次作为库存资源。关键不在于名词是否完全一致，而在于模型能够回答：对象的稳定身份是什么，哪些字段属于它，哪个变化会创建新版本，哪个变化只更新运行时资源。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>对象</th><th>稳定身份</th><th>典型字段</th><th>变化频率</th><th>权威来源</th></tr>
+</thead>
+<tbody>
+<tr><td>Resource</td><td><code>resource_id</code></td><td>资源名称、供应商、地点、资源类型</td><td>中</td><td>商品中心或资源域</td></tr>
+<tr><td>Item</td><td><code>item_id</code></td><td>展示标题、状态、发布版本、类目</td><td>低到中</td><td>商品中心</td></tr>
+<tr><td>SPU</td><td><code>spu_id</code></td><td>商品族共性属性、品牌、系列</td><td>低</td><td>商品中心</td></tr>
+<tr><td>SKU</td><td><code>sku_id</code></td><td>规格组合、可交易单位、履约约束</td><td>中</td><td>商品中心</td></tr>
+<tr><td>Offer</td><td><code>offer_id</code></td><td>渠道、售卖计划、基础价格、供应商条件</td><td>中到高</td><td>商品中心 / 计价契约</td></tr>
+<tr><td>Rate Plan</td><td><code>rate_plan_id</code></td><td>价格计划、退改规则、适用窗口</td><td>中</td><td>商品中心 / 计价系统</td></tr>
+<tr><td>Inventory Resource</td><td><code>inventory_resource_id</code></td><td>数量、券码、日期、时段、预占规则</td><td>高</td><td>库存系统</td></tr>
+<tr><td>Snapshot</td><td><code>snapshot_id</code></td><td>标题、规格、规则、展示和交易字段</td><td>创建后不可变</td><td>订单系统</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="1132-供给对象和正式对象必须分开"><a class="header" href="#1132-供给对象和正式对象必须分开">11.3.2 供给对象和正式对象必须分开</a></h3>
+<p>供给平台接收的第一份数据不能直接被当作正式商品。一个草稿可能缺少图片、履约规则、库存配置或合规材料；一个供应商对象可能使用本地字段名、旧类目和不稳定的外部 ID；一个批量文件可能同时包含 10 万行，其中只有 9 万行满足最小发布条件。因此，需要用供给对象承载“正在变成商品的变化”。</p>
+<p><code>Draft</code> 表示一次可以被继续编辑的变更草稿。它应记录 <code>draft_id</code>、<code>supply_trace_id</code>、<code>operation_id</code>、来源、操作者、基线版本和草稿内容引用。对于新建商品，Draft 尚未拥有正式 <code>item_id</code>；对于编辑在线商品，Draft 需要指向已有 <code>item_id</code> 和 <code>base_publish_version</code>。</p>
+<p><code>Staging</code> 表示一份准备参与审核或发布的冻结候选版本。它的价值不在于多一张表，而在于把“仍可编辑的草稿”和“已经被审核的输入”分开。审核通过后，如果原 Draft 又被修改，系统仍然可以知道审核针对的是哪个 Staging 版本，而不是模糊地认为“这个商品审核过了”。</p>
+<p><code>QC Record</code> 表示对某个明确内容版本的质量或风险判断。它至少要带有 <code>staging_id</code>、规则版本、审核结果、审核人或规则引擎、时间和理由。QC 通过不能单独改变正式商品状态；它只能让发布命令具备一个必要的前置条件。</p>
+<p>正式 <code>Item</code> 只承载线上资产状态，例如 <code>PUBLISHED</code>、<code>ONLINE</code>、<code>OFFLINE</code>、<code>ENDED</code>、<code>BANNED</code> 和 <code>ARCHIVED</code>。它不应该存储 <code>DRAFTING</code>、<code>QC_PENDING</code> 或 <code>IMPORTING</code> 之类供给流程状态。这样做的好处是，面向消费者的查询不会被后台任务的中间态污染，生命周期的所有者也清晰可见。</p>
+<h3 id="1133-任务模型把长流程变成可恢复对象"><a class="header" href="#1133-任务模型把长流程变成可恢复对象">11.3.3 任务模型把长流程变成可恢复对象</a></h3>
+<p>任务是供给平台的控制面对象。<code>Task</code> 表示一次完整动作，例如“导入一个文件”“同步一个供应商批次”“批量下架一组商品”；<code>Task Item</code> 表示任务中的一行或一个对象。两者不能只用一张任务表，因为任务级成功和行级成功不是同一件事。</p>
+<p>任务记录至少包含以下信息：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段</th><th>作用</th><th>缺少后的问题</th></tr>
+</thead>
+<tbody>
+<tr><td><code>task_id</code></td><td>任务的稳定身份</td><td>无法关联日志和重试</td></tr>
+<tr><td><code>task_type</code></td><td>区分导入、编辑、同步、库存等动作</td><td>不知道使用哪套执行器</td></tr>
+<tr><td><code>source_type</code></td><td>人工、文件、API、供应商或系统事件</td><td>无法判断信任和限流策略</td></tr>
+<tr><td><code>idempotency_key</code></td><td>标识同一次业务提交</td><td>重试可能创建重复任务</td></tr>
+<tr><td><code>payload_uri</code></td><td>指向原始文件或不可变输入</td><td>无法重建解析结果</td></tr>
+<tr><td><code>schema_version</code></td><td>标识输入结构</td><td>老文件被新解析器误读</td></tr>
+<tr><td><code>state</code></td><td>表达任务当前阶段</td><td>无法区分排队、执行和恢复</td></tr>
+<tr><td><code>lease_owner</code> / <code>lease_expire_at</code></td><td>控制 Worker 租约</td><td>机器宕机后任务永久卡住</td></tr>
+<tr><td><code>checkpoint</code></td><td>记录可恢复进度</td><td>重启只能从头执行</td></tr>
+<tr><td><code>success_count</code> / <code>failure_count</code></td><td>汇总结果</td><td>无法给运营准确反馈</td></tr>
+<tr><td><code>error_file_uri</code></td><td>保存行级错误</td><td>失败无法修复和重提</td></tr>
+</tbody>
+</table>
+</div>
+<p><code>Task Item</code> 需要有自己的状态、输入指纹、目标对象、错误码、重试次数、最后一次处理时间和结果版本。任务可以是 <code>PARTIAL_SUCCESS</code>，但每一行必须落在可解释的终态，例如 <code>SUCCEEDED</code>、<code>FAILED_VALIDATION</code>、<code>FAILED_TRANSIENT</code>、<code>SKIPPED_DUPLICATE</code> 或 <code>WAITING_MANUAL</code>。</p>
+<h3 id="1134-正式发布模型与订单快照"><a class="header" href="#1134-正式发布模型与订单快照">11.3.4 正式发布模型与订单快照</a></h3>
+<p>商品中心的发布不是把 Draft 的 JSON 整体复制到 Item，而是一个受约束的合并过程。发布命令需要指定草稿、Staging、基线版本、目标商品和操作者；商品中心在本地事务内读取必要数据，校验当前版本仍然匹配，写入正式表、发布版本、快照和 Outbox，然后提交。</p>
+<p><code>Publish Version</code> 是正式商品变更的逻辑时钟。它可以是单调递增整数，也可以是带来源和序号的版本结构，但必须满足两个条件：消费者可以比较新旧，发布者可以拒绝旧基线。版本不是时间戳的同义词；机器时钟回拨、不同来源的时间精度和乱序都会让时间戳单独承担版本判断变得危险。</p>
+<p>订单快照是另一种不可变对象。下单时，订单系统应保存标题、规格、展示文案、商品版本、价格上下文、履约规则摘要和必要的资源信息。订单快照不是商品中心当前记录的缓存，而是当时合同的一部分。商品中心可以修正当前商品标题，不能因此让三个月前的订单展示内容改变。</p>
+<h3 id="1135-状态机的所有权"><a class="header" href="#1135-状态机的所有权">11.3.5 状态机的所有权</a></h3>
+<p>一个推荐的状态分层如下：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>状态机</th><th>所有者</th><th>状态示例</th><th>允许推进的主体</th></tr>
+</thead>
+<tbody>
+<tr><td>Draft</td><td>供给平台 / 商品写侧</td><td><code>DRAFT</code>、<code>SUBMITTED</code>、<code>WITHDRAWN</code></td><td>创建者、编辑者、供给服务</td></tr>
+<tr><td>Staging</td><td>商品写侧或发布协调域</td><td><code>FROZEN</code>、<code>READY</code>、<code>MERGED</code>、<code>EXPIRED</code></td><td>发布协调器</td></tr>
+<tr><td>QC</td><td>质量与风险治理域</td><td><code>PENDING</code>、<code>PASSED</code>、<code>REJECTED</code>、<code>REVIEWING</code></td><td>规则引擎、审核员</td></tr>
+<tr><td>Task</td><td>任务平台</td><td><code>QUEUED</code>、<code>RUNNING</code>、<code>PAUSED</code>、<code>SUCCEEDED</code>、<code>FAILED</code></td><td>Task Worker、管理员</td></tr>
+<tr><td>Task Item</td><td>任务平台</td><td><code>PENDING</code>、<code>PROCESSING</code>、<code>SUCCEEDED</code>、<code>FAILED</code></td><td>Item Worker</td></tr>
+<tr><td>Item</td><td>商品中心</td><td><code>PUBLISHED</code>、<code>ONLINE</code>、<code>OFFLINE</code>、<code>ENDED</code>、<code>BANNED</code></td><td>商品中心命令</td></tr>
+<tr><td>Sellability</td><td>商品 / 库存 / 交易协同</td><td><code>SELLABLE</code>、<code>SOLD_OUT</code>、<code>NOT_IN_WINDOW</code></td><td>交易前校验和库存域</td></tr>
+<tr><td>Outbox</td><td>业务服务</td><td><code>NEW</code>、<code>SENT</code>、<code>RETRYING</code>、<code>DEAD</code></td><td>发布器、补偿任务</td></tr>
+</tbody>
+</table>
+</div>
+<p>状态推进必须有来源和前置条件。例如，QC 通过只能把一个确定版本标记为可发布；它不能把正式 Item 直接改成 <code>ONLINE</code>，因为发布事务可能尚未提交。库存变更也不能把商品从 <code>OFFLINE</code> 直接改成 <code>ONLINE</code>，因为库存域必须先确认相应资源已创建或已有可用资源。</p>
+<h3 id="1136-状态迁移与不变量"><a class="header" href="#1136-状态迁移与不变量">11.3.6 状态迁移与不变量</a></h3>
+<p>以“新建商品”为例，合理链路是：</p>
+<pre class="mermaid">
+stateDiagram-v2
+    [*] --&gt; Draft
+    Draft --&gt; Submitted: submit
+    Submitted --&gt; Staging: freeze snapshot
+    Staging --&gt; QC_Pending: create review
+    QC_Pending --&gt; Rejected: rule or manual reject
+    QC_Pending --&gt; QC_Passed: review passed
+    QC_Passed --&gt; Publishing: publish command
+    Publishing --&gt; Published: local transaction committed
+    Published --&gt; Online: sell window and resource ready
+    Published --&gt; Offline: policy or operator command
+    Online --&gt; Offline: offline / ban / end
+    Offline --&gt; Online: approved republish
+</pre>
+
+<p>编辑在线商品时，链路稍有不同：Draft 从正式 Item 的某个 <code>base_publish_version</code> 派生；如果在提交前发现当前 Item 版本已经大于基线，系统应转为 <code>CONFLICT</code> 或重新生成差异，而不是直接合并。自动合并只适用于明确可交换的字段，例如独立的运营标签；标题、类目、售卖规则和履约约束等核心字段必须经过业务规则判断。</p>
+<p>状态机还要定义终态和人工接管。<code>FAILED</code> 不等于“可以无限重试”，<code>REJECTED</code> 不等于“系统异常”，<code>WAITING_MANUAL</code> 也不应被 Worker 自动消费。状态表中要记录状态原因、发生时间、操作者、规则版本和关联事件，避免排查时只能看到一个没有上下文的枚举值。</p>
+<h3 id="1137-schema字段主导权与版本兼容"><a class="header" href="#1137-schema字段主导权与版本兼容">11.3.7 Schema、字段主导权与版本兼容</a></h3>
+<p>不同入口不应直接共享一份没有版本的自由格式 JSON。平台需要区分三种 schema：输入 schema 描述来源格式，规范化 schema 描述平台中间模型，正式 schema 描述商品中心可以接受的发布模型。它们之间通过显式映射和校验转换。</p>
+<p>Schema 版本升级时要回答四个问题：旧输入还能否解析，默认值是否改变语义，错误是否能定位到原始字段，已发布对象是否需要回放重建。JSON Schema 可以用来描述结构和约束，OpenAPI 可以用来描述命令和查询契约，但它们本身不能替代业务不变量。[16][17]</p>
+<p>字段主导权表是治理的关键。例如，商品中心主导标题、类目和正式属性；供给平台主导来源、任务、审核和操作记录；供应商只主导约定的外部字段；运营人员可能主导人工标签；库存系统主导可售数量。发生冲突时，系统不是简单采用“最后写入”，而是依据字段主导权、来源可信度、版本和人工覆盖规则决策。</p>
+<h3 id="1138-对象关系边界上下文与契约"><a class="header" href="#1138-对象关系边界上下文与契约">11.3.8 对象关系、边界上下文与契约</a></h3>
+<p>商品供给领域中最容易被忽略的不是对象数量，而是对象之间的关系语义。<code>Resource</code> 表示可被售卖或履约的资源，<code>Item</code> 表示平台面向用户展示和交易的商品对象，<code>SKU</code> 表示可区分的规格或权益单元，<code>Offer</code> 表示在某个渠道、时间或销售规则下的售卖条件。它们可以在数据库中有关联，但不能因为关系紧密就合并成一个对象。</p>
+<p>例如，一个酒店房型可以对应多个销售计划；同一个销售计划可以在不同日期使用不同库存策略；一个门票商品可以有多个场次；同一个课程可以有多个班次和价格计划。如果把这些关系压缩成 <code>product_id + price</code>，系统短期内看似简单，长期却无法表达价格生效窗口、库存资源、退改规则和订单快照。对象模型应优先解释业务事实，再决定关系表、文档或事件中的表示方式。</p>
+<p>领域边界可以按事实变化的节奏和不变量划分。商品中心关注“平台认定的商品是什么以及当前正式版本是什么”；供给平台关注“外部变化如何被接收、校验、审核和发布”；库存系统关注“资源是否可用、是否被预占以及如何恢复”；计价系统关注“在给定上下文下应收多少”；订单系统关注“用户已经确认了什么合同”。这些边界与组织边界可以重合，也可以暂时落在一个模块中，但每个事实只能有一个权威写入者。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>对象</th><th>身份来源</th><th>主要变化</th><th>权威写入者</th><th>其他系统可做的事</th></tr>
+</thead>
+<tbody>
+<tr><td>Resource</td><td>资源方或平台生成</td><td>资源归属、类型、外部映射</td><td>资源 / 商品域</td><td>引用、对账、申请变更</td></tr>
+<tr><td>Item</td><td>平台生成</td><td>生命周期、正式内容、发布版本</td><td>商品中心</td><td>查询、订阅事件</td></tr>
+<tr><td>SKU</td><td>规格组合或权益单元</td><td>规格、履约限制、可交易条件</td><td>商品中心</td><td>查询、提交候选</td></tr>
+<tr><td>Offer</td><td>渠道和销售规则生成</td><td>价格引用、窗口、资格</td><td>商品 / 计价协同域</td><td>请求试算、订阅变更</td></tr>
+<tr><td>Inventory Resource</td><td>仓库、场次或供应商资源</td><td>余额、锁定、确认、释放</td><td>库存域</td><td>发起配置和命令</td></tr>
+<tr><td>Order Snapshot</td><td>下单确认产生</td><td>合同和履约状态</td><td>订单域</td><td>只读追溯</td></tr>
+</tbody>
+</table>
+</div>
+<p>边界上下文之间传递的不是内部对象，而是稳定契约。商品中心不应把内部数据库表直接暴露给库存系统；库存也不应要求商品中心提供可以随时变化的内部锁状态。契约应该说明字段含义、单位、版本、可空性、时效、错误和副作用。一个接口即使只有五个字段，也可能需要说明“空值代表未知还是无资源”“时间是本地时间还是 UTC”“价格是含税还是未税”。</p>
+<p>契约还必须说明读写方向。查询接口允许调用方读取一个投影，但不代表调用方拥有修改权；事件允许消费者得到一个事实，但不代表消费者可以依据事件内容反向覆盖生产者的字段。对于跨域需要修改的对象，应发起命令或变更申请，并把结果通过事件返回。这样的约束能防止系统在演进后形成双主写入。</p>
+<p>设计对象模型时，可以为每个字段制作四元组：业务含义、主导来源、版本语义、失败后处理。比如“退改规则”不是一段普通文本，而是有适用时间、费用区间、渠道范围和订单影响的交易规则。它由商品或规则域主导，发布时带规则版本；如果解析失败，商品不能进入可售状态；如果发布后变更，订单快照不应被覆盖。用四元组审查字段，比只检查字段名和数据库类型更能提前发现跨域错误。</p>
+<h2 id="114-参考架构与端到端主链路"><a class="header" href="#114-参考架构与端到端主链路">11.4 参考架构与端到端主链路</a></h2>
+<h3 id="1141-控制面事实面和投影面"><a class="header" href="#1141-控制面事实面和投影面">11.4.1 控制面、事实面和投影面</a></h3>
+<p>合并后的架构可以分为三层。</p>
+<p>控制面接收命令、生成任务、保存审核状态、安排执行和处理人工接管。它关心“这次变化是谁发起的、处于哪个阶段、下一步由谁执行”。供给平台是控制面最主要的承载者，但商品中心写侧也可以拥有与商品版本强相关的 Draft 和 Staging。</p>
+<p>事实面保存平台认可的业务事实。商品中心保存正式商品模型和发布版本，库存系统保存库存余额、券码实例和资源格，订单系统保存订单合同和交易快照。事实面不应该被某个临时任务的重试状态污染。</p>
+<p>投影面服务不同读取模式。搜索索引适合全文检索和筛选，详情缓存适合高频读取，运营看板适合聚合，推荐系统适合特征计算。投影面可以延迟、重建和丢弃，但必须能够从事实面和事件日志重新生成。</p>
+<pre class="mermaid">
+flowchart LR
+    A[人工 / 文件 / API / 供应商] --&gt; B[供给控制面]
+    B --&gt; C[Draft / Task / QC / Staging]
+    C --&gt;|Publish Command| D[商品中心写侧]
+    D --&gt; E[(正式商品事实)]
+    D --&gt; F[(Publish Version + Snapshot)]
+    D --&gt; G[(Outbox)]
+    G --&gt; H[事件总线]
+    H --&gt; I[库存投影 / 库存命令]
+    H --&gt; J[搜索索引]
+    H --&gt; K[缓存 / 计价上下文 / 营销资格]
+    E --&gt; L[详情查询]
+    I --&gt; M[交易前库存校验]
+    F --&gt; N[订单快照]
+    H --&gt; O[对账与可观测性]
+</pre>
+
+<p>这张图表达的是责任关系，不是要求所有模块必须部署为独立服务。小团队可以把控制面和商品中心写侧部署在同一个应用中，只要接口边界、数据所有权和失败恢复仍然清楚。服务拆分不能替代领域边界；反过来，单体部署也不意味着可以共享所有表。中文架构实践资料也把领域边界、数据一致性和演进过程放在同一条分析链路中，提醒设计者不要只从部署拓扑推导业务职责。[21]</p>
+<h3 id="1142-命令查询和事件的分工"><a class="header" href="#1142-命令查询和事件的分工">11.4.2 命令、查询和事件的分工</a></h3>
+<p>命令表达意图，例如 <code>SubmitDraft</code>、<code>ApproveStaging</code>、<code>PublishItem</code>、<code>InitializeInventory</code>、<code>ReplenishStock</code> 和 <code>OfflineItem</code>。命令需要幂等键、操作者、目标版本和业务原因；命令成功只表示权威服务已经受理或提交了本地事实，不应随意声称所有下游都已完成。</p>
+<p>查询表达当前可读模型，例如 <code>GetItem</code>、<code>ListOffers</code>、<code>GetTask</code> 和 <code>GetPublishStatus</code>。查询可以返回版本、更新时间和新鲜度信息，让调用方知道读到的是哪一份投影。列表查询和搜索查询不应该被要求承担交易最终校验。</p>
+<p>事件表达已经发生的事实，例如 <code>ItemPublished</code>、<code>ItemVersionChanged</code>、<code>InventoryInitialized</code>、<code>ItemOffline</code> 和 <code>SupplierSyncAccepted</code>。事件的命名应使用过去时，并带有事件 ID、聚合 ID、逻辑版本、发生时间、来源、追踪 ID 和 schema 版本。事件不是远程过程调用的替代品；它更适合通知多个下游和支持重放，但不能直接表达“请立即完成另一个服务动作并返回结果”。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>交互</th><th>适合表达</th><th>必须包含</th><th>失败处理</th></tr>
+</thead>
+<tbody>
+<tr><td>Command API</td><td>意图和状态变更</td><td>幂等键、操作者、目标版本</td><td>明确拒绝、冲突或受理状态</td></tr>
+<tr><td>Query API</td><td>当前投影和任务进度</td><td>版本、更新时间、新鲜度</td><td>返回陈旧标识或降级信息</td></tr>
+<tr><td>Domain Event</td><td>已提交事实</td><td>事件 ID、聚合版本、来源</td><td>重复消费、乱序过滤、DLQ</td></tr>
+<tr><td>Reconciliation API</td><td>期望与实际对比</td><td>比较范围、采样规则、修复策略</td><td>进入修复队列和人工审核</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="1143-发布链路的本地原子边界"><a class="header" href="#1143-发布链路的本地原子边界">11.4.3 发布链路的本地原子边界</a></h3>
+<p>商品发布最重要的本地事务通常包含：检查 Draft / Staging 的可发布条件，检查基线版本，写入正式商品表，写入新的 Publish Version，生成订单所需的商品快照，写入变更日志，并写入 Outbox。只要这些记录属于同一个商品中心数据库，就可以在一个本地事务中保证“正式事实”和“待发送事件”同时存在。</p>
+<p>Outbox 的意义是避免业务表提交成功而消息发送失败，或者消息发送成功而业务表回滚。Debezium 的 Outbox Event Router 文档将这种模式描述为：在同一数据库中记录 outbox，再由 CDC 或发布器把事件安全地送往消息系统。[13] 但 Outbox 只解决生产侧的原子性，不会自动解决消费者幂等、事件乱序、下游拒绝和最终对账。</p>
+<p>事件发送后，下游按照自己的事实语义处理。库存服务收到商品发布事件，可以创建库存配置或等待供给平台的库存命令；搜索服务更新索引；缓存服务失效对应键；计价服务刷新可引用的商品上下文；营销服务更新圈品资格。它们不应该通过同步 RPC 链式调用把所有动作串进商品发布事务。</p>
+<h3 id="1144-版本驱动的投影"><a class="header" href="#1144-版本驱动的投影">11.4.4 版本驱动的投影</a></h3>
+<p>每个下游投影都要记录最后成功处理的商品版本。收到事件时，消费者先比较 <code>event.version</code> 和本地 <code>projected_version</code>：如果事件版本更大，进行更新；如果相等，视为重复；如果更小，视为乱序或迟到并记录指标。只有在确实需要回补时，才由对账任务按照事实面重建投影。</p>
+<pre><code class="language-text">if event.version &lt; projection.version:
+    record_stale_event(event)
+    return success
+
+if event.version == projection.version:
+    record_duplicate_event(event)
+    return success
+
+if event.version &gt; projection.version:
+    apply_projection(event)
+    save_projection_version(event.version)
+</code></pre>
+<p>如果一次事件包含跨实体变化，不要只使用一个模糊的全局版本。可以使用聚合版本、字段版本或发布批次版本，但必须让消费者知道比较维度。供应商外部版本也不能直接等同于商品中心版本，平台需要在来源域完成映射，并保留来源版本以便审计。</p>
+<h3 id="1145-正常链路和失败链路"><a class="header" href="#1145-正常链路和失败链路">11.4.5 正常链路和失败链路</a></h3>
+<p>正常链路是：入口受理 → 保存原始输入 → 标准化 → 结构校验 → 风险审核 → 生成 Staging → 发布命令 → 商品中心本地事务 → Outbox → 下游投影 → 交易前校验 → 对账确认。</p>
+<p>失败链路必须逐段定义：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>失败位置</th><th>可能原因</th><th>首次动作</th><th>最终恢复</th></tr>
+</thead>
+<tbody>
+<tr><td>输入受理</td><td>鉴权失败、参数错误、重复提交</td><td>返回可解释错误</td><td>修正输入后重新提交</td></tr>
+<tr><td>文件解析</td><td>编码错误、列缺失、格式非法</td><td>生成行级错误文件</td><td>修复文件后创建新任务</td></tr>
+<tr><td>标准化</td><td>类目映射缺失、字段冲突</td><td>标记人工处理</td><td>补充规则或人工确认</td></tr>
+<tr><td>QC</td><td>风险命中、资料缺失</td><td>拒绝或进入人工审核</td><td>修改 Draft 并生成新版本</td></tr>
+<tr><td>发布事务</td><td>基线冲突、数据库错误、死锁</td><td>回滚本地事务</td><td>按幂等键重试或重新合并</td></tr>
+<tr><td>Outbox</td><td>发布器宕机、消息系统不可用</td><td>保留未发送记录</td><td>扫描重试、超限进入 DLQ</td></tr>
+<tr><td>下游消费</td><td>重复、乱序、依赖超时</td><td>版本过滤或延迟重试</td><td>对账重放和人工接管</td></tr>
+<tr><td>库存初始化</td><td>资源不匹配、供应商限流</td><td>商品保持不可售</td><td>修复库存任务后推进可售</td></tr>
+<tr><td>搜索投影</td><td>索引拒绝、映射冲突</td><td>保留旧索引版本</td><td>修复映射、批量重建</td></tr>
+</tbody>
+</table>
+</div>
+<p>失败处理的关键不是“每一层都重试”，而是判断重试是否安全。AWS 对幂等 API 的总结是：客户端可以把重试当作安全动作，但服务端必须通过唯一请求标识和语义等价结果消除重复副作用。[7] 对无法安全重试的动作，应使用查询确认、补偿命令或人工处理，而不是盲目重复写入。</p>
+<h3 id="1146-数据读取边界"><a class="header" href="#1146-数据读取边界">11.4.6 数据读取边界</a></h3>
+<p>详情页通常可以读取商品中心读模型，再在需要时补充库存和计价信息；列表页通常读取搜索索引或缓存，再根据用户、日期和库存条件做 Hydrate；购物车和结算需要重新调用库存、计价和营销系统；订单创建则必须把最终结果固化为订单快照。</p>
+<p>这条边界意味着“页面上显示可售”不等于“订单一定可创建”。列表页的可售状态是用户体验提示，交易前校验才是事实判断。反过来，交易前校验也不能要求搜索索引实时更新后才能继续，因为这会让读流量和高频库存变化把同一个系统拖垮。</p>
+<h3 id="1147-事件总线不是万能数据库"><a class="header" href="#1147-事件总线不是万能数据库">11.4.7 事件总线不是万能数据库</a></h3>
+<p>事件总线适合传输事实和驱动投影，但不应成为所有查询的唯一数据库。事件需要保留期限、分区、顺序、重放和 schema 演进策略；消费者也需要自己的状态、去重表和失败队列。Kafka 的幂等生产能力主要解决生产者重试造成的重复写入，不能自动保证跨服务业务动作端到端只执行一次。[12] 中文消息系统资料也反复强调生产、消费、重试和死信之间的边界，说明“消息发出”与“业务完成”必须分开度量。[19]</p>
+<p>对于必须审计的发布和库存动作，业务数据库中的正式记录、操作日志和快照仍然是权威事实。消息只承担传播和解耦作用。对于需要全量重建的搜索或看板，可以保留事件流和批量快照；对于订单合同，则应以订单本地不可变记录为主。企业集成模式中的幂等消费者和消息重试模式也说明，消费者必须把重复消息视为正常输入，而不是异常例外。[18]</p>
+<h3 id="1148-失败域降级和恢复优先级"><a class="header" href="#1148-失败域降级和恢复优先级">11.4.8 失败域、降级和恢复优先级</a></h3>
+<p>端到端链路的每一段都可能失败，但不同失败的影响范围不同。设计时可以把失败域分为入口域、控制域、事实域、传播域、投影域和交易域。入口域失败通常只影响一次提交；控制域失败可能让任务无法推进；事实域失败可能阻止正式版本产生；传播域失败会造成事件积压；投影域失败主要影响读体验；交易域失败则直接影响用户是否能够完成购买。恢复顺序应优先保障事实和已确认订单，再恢复低优先级投影。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>失败域</th><th>典型症状</th><th>可以牺牲的能力</th><th>不能牺牲的能力</th><th>首选恢复动作</th></tr>
+</thead>
+<tbody>
+<tr><td>入口域</td><td>上传失败、参数错误、供应商超时</td><td>立即反馈全部细节</td><td>原始输入不丢失、请求可追踪</td><td>保存错误和重试指引</td></tr>
+<tr><td>控制域</td><td>任务不调度、审核积压</td><td>新任务吞吐</td><td>已受理任务的状态可解释</td><td>暂停接收、恢复租约和队列</td></tr>
+<tr><td>事实域</td><td>发布事务失败、数据库不可用</td><td>新版本发布</td><td>旧版本可读、订单快照完整</td><td>读旧版本、修复事务和存储</td></tr>
+<tr><td>传播域</td><td>Outbox 积压、消息不可达</td><td>投影实时性</td><td>事件可重放、事实不回滚</td><td>扩容发布器、限流下游</td></tr>
+<tr><td>投影域</td><td>搜索落后、缓存失效</td><td>筛选新鲜度</td><td>交易前重新校验</td><td>使用旧投影并显示陈旧</td></tr>
+<tr><td>交易域</td><td>库存预占失败、计价不可用</td><td>非关键展示</td><td>不超卖、不重复扣款</td><td>拒绝或稍后重试，不猜测成功</td></tr>
+</tbody>
+</table>
+</div>
+<p>降级不是简单返回一个默认值。默认值可能改变用户看到的合同，甚至制造可售假象。搜索可以在索引落后时返回旧版本，但必须禁止将旧索引中的库存字段直接用于下单；详情页可以返回“库存确认中”，但不能把未知库存显示成可购买；供应商同步可以暂缓缺失对象的下线，但不能把未经确认的异常数据标成正常。每一种降级都要说明用户可见结果、交易影响、恢复入口和最长容忍时间。</p>
+<p>恢复优先级可以按照“事实、合同、资源、投影、体验”的顺序排列。事实包括正式商品版本、发布记录和库存流水；合同包括订单、价格和退改快照；资源包括库存预占、券码状态和外部确认；投影包括索引、缓存和看板；体验包括排序、推荐和非关键扩展信息。这个顺序不是说体验不重要，而是先保证不可逆或高成本的副作用不会继续扩大。</p>
+<p>对于未知结果，系统必须保留 <code>UNKNOWN</code> 或 <code>PENDING_CONFIRMATION</code>，不能把超时当成失败，也不能把没有响应当成成功。比如调用供应商锁库存超时，平台可能已经获得了锁，也可能没有；正确动作是查询确认、等待对账或进入人工处理。若直接重试，可能产生两个外部锁；若直接释放本地资源，又可能与供应商真实锁状态冲突。未知状态要有超时、查询和最终处置规则。</p>
+<p>恢复操作应具有范围控制。自动恢复适合单个事件重放、已知版本的索引补建和过期租约接管；大范围恢复需要先模拟影响对象数量、订单数量和下游事件数量，再按供应商、城市、类目或时间窗口分批执行。恢复命令自身要有幂等键、操作者、原因和审计。完成后必须重新跑同一条对账规则，证明差异收敛，而不是只证明恢复接口返回了成功。</p>
+<p>容量保护也属于恢复设计。Google SRE 对过载处理的讨论强调，服务应通过削峰、排队、拒绝低优先级请求和提供成本更低的结果来保护核心能力，而不是让所有请求一起拖垮系统。[9] 在商品供给场景中，批量同步、搜索重建和运营报表可以让路于订单校验、库存确认和正式下架；任务平台需要有租户级、供应商级和优先级级别的配额，防止单个大文件抢占所有 Worker。</p>
+<h3 id="1149-一条商品变更的时序说明"><a class="header" href="#1149-一条商品变更的时序说明">11.4.9 一条商品变更的时序说明</a></h3>
+<p>为了避免架构图只展示静态组件，可以把“运营修改一个在线房型名称并同时调整退改规则”展开为时序。运营端先读取商品版本 18，保存 Draft 时把 <code>base_publish_version = 18</code> 一并写入；供给服务返回 Draft 身份，不改变正式商品。运营提交审核后，系统冻结内容版本 42，执行结构校验、类目规则和风险规则，生成 QC 记录。审核通过只意味着版本 42 可以被引用，不意味着版本 42 已经进入正式商品。</p>
+<p>发布命令到达商品中心时，服务先检查调用者权限、Staging 是否仍然有效、QC 是否针对版本 42、当前正式版本是否仍为 18，以及变更字段是否有主导权。如果同时有供应商同步把商品发布到版本 19，条件更新失败，发布命令返回冲突并指向差异；运营必须以版本 19 为基线重新合并。这个过程保护了人工编辑，也避免审核结果被悄悄套到另一份内容上。</p>
+<p>如果当前版本仍为 18，商品中心在本地事务内写入版本 19、快照、变更日志和 Outbox。提交成功后，发布 API 返回 <code>publish_version = 19</code> 和事件 ID。搜索消费者收到事件后可能立即更新，也可能因为索引写入受限而等待；库存消费者可能判断退改规则变化不影响库存，但商品可售投影仍要重新计算。运营查询应看到“正式版本已发布，搜索和库存投影处理中”，而不是被同步调用链阻塞。</p>
+<p>若发布后发现标题翻译错误，读模型可以先回退到版本 18；若发现退改规则不合法，则要冻结版本 19、阻止新订单，并生成反向版本或修复版本。已经创建的订单仍然引用自己的快照。若库存初始化在版本 19 上失败，商品可以保持 <code>PUBLISHED + NOT_READY</code>，库存任务修复后再变为可售；不能把库存失败伪装成商品发布失败，也不能在商品状态回滚时丢失已经生成的审计和事件。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>时序节点</th><th>权威事实</th><th>可见状态</th><th>失败后的边界</th></tr>
+</thead>
+<tbody>
+<tr><td>读取编辑基线</td><td>商品版本 18</td><td>可编辑 Draft</td><td>读取失败不创建修改</td></tr>
+<tr><td>保存 Draft</td><td>Draft 内容和基线</td><td>未发布</td><td>可重复保存和覆盖 Draft</td></tr>
+<tr><td>冻结 Staging</td><td>内容版本 42</td><td>待审核</td><td>校验错误回到 Draft</td></tr>
+<tr><td>QC 通过</td><td>版本 42 获得审核结论</td><td>可申请发布</td><td>版本变化必须重新审核</td></tr>
+<tr><td>发布提交</td><td>正式版本 19</td><td>已发布、投影待处理</td><td>本地事务回滚</td></tr>
+<tr><td>投影消费</td><td>下游版本 19</td><td>搜索 / 库存逐步收敛</td><td>重试、重放、对账</td></tr>
+<tr><td>交易确认</td><td>订单快照和库存事实</td><td>合同成立</td><td>进入订单补偿，不改历史</td></tr>
+</tbody>
+</table>
+</div>
+<p>时序中的关键不是消息数量，而是每个动作都能指出自己修改了哪一个事实、引用哪个版本、是否已经产生不可逆副作用。只要这三点清楚，系统可以把部分动作同步化或异步化；如果三点不清楚，增加队列和重试只会隐藏错误。</p>
+<h2 id="115-供给入口与任务执行框架"><a class="header" href="#115-供给入口与任务执行框架">11.5 供给入口与任务执行框架</a></h2>
+<h3 id="1151-统一任务模型而不是统一处理细节"><a class="header" href="#1151-统一任务模型而不是统一处理细节">11.5.1 统一任务模型，而不是统一处理细节</a></h3>
+<p>不同入口可以共享任务生命周期，但不能强迫所有入口使用同一套解析、限流和错误策略。人工单品创建更适合短请求加 Draft 保存；Excel 导入适合文件对象加异步任务；供应商同步适合 Batch、分片和 Checkpoint；库存券码上传适合批次导入和安全扫描。</p>
+<p>统一的是任务的外壳：任务身份、来源、状态、进度、租约、重试、错误、审计和恢复。不同的是任务的载荷、并行度、超时、幂等键和业务完成条件。</p>
+<pre class="mermaid">
+stateDiagram-v2
+    [*] --&gt; ACCEPTED
+    ACCEPTED --&gt; QUEUED: persist task
+    QUEUED --&gt; RUNNING: worker claims lease
+    RUNNING --&gt; PAUSED: rate limit or maintenance
+    PAUSED --&gt; QUEUED: resume
+    RUNNING --&gt; SUCCEEDED: all items converge
+    RUNNING --&gt; PARTIAL_SUCCESS: some items terminal failed
+    RUNNING --&gt; RETRYING: transient failure
+    RETRYING --&gt; QUEUED: backoff elapsed
+    RUNNING --&gt; WAITING_MANUAL: conflict or policy decision
+    RUNNING --&gt; FAILED: non-retryable task failure
+    FAILED --&gt; QUEUED: explicit replay
+    PARTIAL_SUCCESS --&gt; QUEUED: retry failed items
+    WAITING_MANUAL --&gt; QUEUED: operator decision
+</pre>
+
+<p>任务状态必须由状态转移规则保护。Worker 不能通过“更新 status”随意跳到成功；它要带上租约令牌、任务版本和处理批次，使用条件更新确认自己仍然拥有执行权。否则，旧 Worker 在网络分区恢复后可能继续写入，覆盖新 Worker 已经得到的结果。Kubernetes Job 对完成次数、失败重试和并行任务的建模也说明，批处理的成功条件不能只依赖一个进程是否退出，而要与任务目标和失败策略绑定。[15][22]</p>
+<h3 id="1152-单品创建和编辑"><a class="header" href="#1152-单品创建和编辑">11.5.2 单品创建和编辑</a></h3>
+<p>单品创建可以采用同步受理、异步审核和显式发布的三段式体验：</p>
+<ol>
+<li>前端提交字段，供给服务做轻量格式校验并保存 Draft。</li>
+<li>服务返回 <code>draft_id</code>、当前校验结果和下一步动作，不承诺正式商品已经出现。</li>
+<li>用户提交审核，系统冻结一个 Staging 版本，生成 QC 任务。</li>
+<li>QC 通过后，用户或规则决定是否发布；发布命令带上 <code>staging_id</code> 和 <code>base_publish_version</code>。</li>
+<li>商品中心在本地事务内合并正式数据并生成 Outbox。</li>
+<li>库存、搜索、计价和营销分别处理自己的投影，交易前重新校验。</li>
+</ol>
+<p>在线编辑必须记录基线。假设编辑者在版本 8 上打开页面，另一条供应商同步先发布了版本 9，编辑者随后提交。如果系统只比较 <code>updated_at</code>，可能因为时间精度、时钟偏差或异步写入导致误判；更可靠的方式是使用 <code>base_publish_version = 8</code> 做条件更新，当前版本不是 8 就拒绝或进入差异合并。</p>
+<p>对于互不相关的字段，可以使用字段级主导权减少冲突。例如供应商负责房型面积和供应商描述，运营负责平台展示标题和排序标签；但类目、履约规则、退改政策等会改变交易语义的字段，不能因为“来源是最新”就直接覆盖。</p>
+<h3 id="1153-excel-批量导入"><a class="header" href="#1153-excel-批量导入">11.5.3 Excel 批量导入</a></h3>
+<p>批量导入必须把文件当作不可变输入保存。文件上传成功后，系统生成 <code>task_id</code> 和文件版本，计算内容摘要，把文件放入受控对象存储，随后由 Parser Worker 流式读取。不能把一个大文件完整加载进 Web 进程内存，也不应让用户请求保持到全部行处理结束。</p>
+<p>推荐的流水线如下：</p>
+<pre class="mermaid">
+flowchart LR
+    A[上传原始文件] --&gt; B[病毒与格式检查]
+    B --&gt; C[创建 Task]
+    C --&gt; D[Parser Worker]
+    D --&gt; E[行级解析结果]
+    E --&gt; F[标准化与 Schema 校验]
+    F --&gt; G[Task Item]
+    G --&gt; H[Diff 与风险判断]
+    H --&gt; I[Staging 批次]
+    I --&gt; J[QC]
+    J --&gt; K[Publisher]
+    K --&gt; L[成功报告 / 错误文件]
+</pre>
+
+<p>Parser 只负责解析和基本格式错误，不应该直接发布商品。这样可以把“文件不合法”和“业务不允许发布”分开。每个 <code>Task Item</code> 保存原始行号、规范化结果、目标外部 ID、指纹、差异摘要和错误列表。错误信息应指出字段、规则、实际值和建议修复方式，而不是只返回“导入失败”。</p>
+<p>批量更新需要区分三种结果：没有变化、可自动发布、需要人工审核。没有变化的行应该标记为 <code>SKIPPED_NOOP</code>，不重复触发下游刷新；可自动发布的行可以进入批量 Staging；高风险或字段主导权冲突的行进入人工队列。一个文件的任务状态可以是部分成功，不能因为 1 行失败就把 99,999 行成功结果全部回滚，也不能为了显示成功率而吞掉失败行。</p>
+<h3 id="1154-供应商同步"><a class="header" href="#1154-供应商同步">11.5.4 供应商同步</a></h3>
+<p>供应商同步最容易发生“全量列表误删”和“旧数据覆盖新数据”。平台需要为每个供应商建立来源契约：对象外部 ID、来源版本或更新时间、全量批次 ID、删除标记语义、拉取窗口、限流规则和对账责任。</p>
+<p>如果供应商只提供全量列表，不能把“本次列表中没有对象”直接当成删除。可靠做法是：</p>
+<ol>
+<li>为一次拉取生成 <code>sync_batch_id</code>。</li>
+<li>把原始对象和来源版本写入 Raw Snapshot。</li>
+<li>对每个对象计算规范化指纹和来源版本。</li>
+<li>只有批次完整、来源可信、校验通过后，才把“上一批次存在、本批次缺失”的对象放入待确认删除集合。</li>
+<li>经过延迟窗口、重复拉取或供应商确认后，才生成下线命令。</li>
+</ol>
+<p>供应商更新还要处理来源字段和平台字段的冲突。平台可以接受供应商对房型名称、供应商价格和外部库存的主导，但平台审核状态、平台类目、展示标题和合规标签不能被供应商同步静默覆盖。一个字段是否可被外部更新，应由字段主导权表决定，而不是由同步代码里的 <code>UPDATE</code> 语句决定。</p>
+<h3 id="1155-任务抢占与租约"><a class="header" href="#1155-任务抢占与租约">11.5.5 任务抢占与租约</a></h3>
+<p>任务领取可以先用数据库条件更新：查询处于 <code>QUEUED</code> 的任务，按优先级和创建时间排序，尝试把状态改为 <code>RUNNING</code>，同时写入 <code>lease_owner</code>、<code>lease_token</code> 和 <code>lease_expire_at</code>。只有持有当前租约令牌的 Worker 才能更新进度和释放租约。</p>
+<pre><code class="language-sql">UPDATE supply_task
+SET state = 'RUNNING',
+    lease_owner = :worker_id,
+    lease_token = :lease_token,
+    lease_expire_at = :expire_at,
+    version = version + 1
+WHERE task_id = :task_id
+  AND state IN ('QUEUED', 'RETRYING')
+  AND (lease_expire_at IS NULL OR lease_expire_at &lt; CURRENT_TIMESTAMP)
+  AND version = :expected_version;
+</code></pre>
+<p>如果受影响行数为 0，说明任务已被其他 Worker 抢占、状态已变化或版本冲突，当前 Worker 不能继续执行。数据库 CAS 足以解决低到中等竞争的任务领取；只有当领取请求极高、任务分片数量巨大或跨数据库协调成为瓶颈时，才考虑 Redis 或专门的调度服务。引入 Redis 锁并不会自动解决 Worker 宕机、业务幂等和数据库最终状态问题。</p>
+<p>租约续期必须是有限的。Worker 如果一直续期但实际没有推进 Checkpoint，说明它可能陷入死循环、依赖阻塞或毒性数据；监控应区分“心跳正常”和“业务进度正常”。当 Checkpoint 长时间不动，系统应暂停续期、转移任务或进入人工诊断，而不是让租约永远有效。</p>
+<h3 id="1156-checkpoint分片与断点续跑"><a class="header" href="#1156-checkpoint分片与断点续跑">11.5.6 Checkpoint、分片与断点续跑</a></h3>
+<p>Checkpoint 不是简单保存一个行号。它至少需要表达输入批次、分片、游标、最后成功对象、版本、处理统计和校验信息。对供应商分页接口，Checkpoint 可能是游标和上游快照版本；对对象存储文件，Checkpoint 可能是字节偏移加行号；对数据库扫描，Checkpoint 可能是稳定排序键而不是自增 ID。</p>
+<p>分片应建立在稳定的分片键上。按 <code>external_id</code> 哈希可以保证同一个对象尽量落在同一分片，降低同对象并发冲突；按文件行号分片更简单，但重试时需要确保源文件不可变；按城市或供应商分片便于限流，但可能产生热点。分片数量应由单分片处理时间、数据库连接数、下游配额和恢复目标共同决定。</p>
+<p>供应商同步的推荐阶段是：Sharder 生成分片，Fetcher 拉取原始数据，Transformer 标准化和校验，Diff Worker 计算变化，Publisher 写入正式商品或 Staging，Reconciler 检查期望与实际。每个阶段都有自己的输入和输出，不要让一个 Worker 同时承担网络拉取、复杂转换、数据库发布和下游通知，否则任何一步变慢都会让重试边界变得模糊。</p>
+<h3 id="1157-重试限流与-dlq"><a class="header" href="#1157-重试限流与-dlq">11.5.7 重试、限流与 DLQ</a></h3>
+<p>重试只适用于暂态失败，例如网络超时、依赖短暂不可用、数据库死锁或消息系统返回可恢复错误。参数错误、schema 不兼容、权限不足、商品冲突和风险拒绝不能通过重试解决。AWS 的工程建议强调，重试应限制在合适的一层，使用指数退避和抖动，并设置最大次数或最大耗时，避免多层重试叠加形成重试风暴。[8]</p>
+<p>每个任务执行器都应定义重试预算：最大尝试次数、最大总耗时、单次超时、退避算法、可重试错误码和超过预算后的动作。重试间隔可以使用截断指数退避加随机抖动，但不能把随机数当作恢复策略本身。对供应商 API，还要叠加供应商级限流和熔断；对内部数据库，要避免每个行任务独立无限重试。</p>
+<p>DLQ 不是“失败数据垃圾桶”，而是带有处置策略的待治理集合。进入 DLQ 时要记录原始事件、失败阶段、错误类型、最后一次尝试、依赖响应、可重试截止时间和建议动作。DLQ 消费可以分为自动回放、修复后回放、人工确认后回放和永久关闭四类。回放前要重新检查版本和幂等键，不能把几天前的旧事件不加判断地重新写成当前事实。</p>
+<h3 id="1158-任务项批次和整体完成条件"><a class="header" href="#1158-任务项批次和整体完成条件">11.5.8 任务项、批次和整体完成条件</a></h3>
+<p>任务和任务项分别记录业务意图与最小可恢复对象；任务项保存状态、尝试次数、错误、输入摘要、目标对象、处理版本和副作用摘要，才能安全地只重跑失败项。批次大小还要结合对象关联、下游配额和租户隔离，而不能只按固定行数切分。</p>
+<p>完成条件必须区分解析、校验、Staging、正式发布、投影收敛和可售；正式商品已发布但投影或库存待追赶时可以返回 <code>PARTIAL_SUCCESS</code>。规则升级或下游修复需要重新评估时，应创建关联修复任务，保留历史结果，不改写原任务状态。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>完成层级</th><th>判定条件</th><th>用户可见结果</th><th>后续动作</th></tr>
+</thead>
+<tbody>
+<tr><td>接收完成</td><td>原始文件持久化并生成任务</td><td>返回任务 ID</td><td>解析和安全检查</td></tr>
+<tr><td>解析完成</td><td>所有输入行有解析结果</td><td>可下载行级错误</td><td>标准化和校验</td></tr>
+<tr><td>供给完成</td><td>任务项进入 Staging 或明确拒绝</td><td>显示审核状态</td><td>QC、人工处理</td></tr>
+<tr><td>发布完成</td><td>正式商品版本和快照已提交</td><td>商品存在但可能不可售</td><td>投影和库存协同</td></tr>
+<tr><td>交易准备完成</td><td>商品、价格、库存和窗口通过校验</td><td>允许下单</td><td>交易前仍需再校验</td></tr>
+<tr><td>全链路收敛</td><td>规定投影和对账差异归零</td><td>状态稳定</td><td>归档任务和保留审计</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="1159-任务-api进度语义和用户体验"><a class="header" href="#1159-任务-api进度语义和用户体验">11.5.9 任务 API、进度语义和用户体验</a></h3>
+<p>任务 API 的第一原则是让客户端能安全重试和查询。创建任务接口应接收幂等键、输入对象摘要、来源、优先级和预期范围，返回任务身份、受理状态和查询地址。查询任务时应返回总体计数、各状态计数、当前阶段、最近进度时间、估计信息的置信程度和下一步动作。不要在任务还没建立吞吐模型时返回一个看似精确的“剩余 37 秒”。</p>
+<p>进度可以分成已接收、已解析、已校验、已发布和已收敛五类。每一类的分母不同，不能只显示一个百分比。例如文件有十万行，其中两万行无需变化，八万行中有五千行进入人工审核；如果只显示“处理 100%”，用户仍然不知道为什么可售商品数量没有增加。进度接口应同时返回总数、成功数、无变化数、失败数、人工数和等待下游数。</p>
+<p>任务查询还要暴露版本和一致性边界。客户端看到 <code>published_count = 1000</code>，并不等于搜索已有一千条文档；接口可以返回 <code>projection_pending = 143</code>、<code>inventory_pending = 27</code> 和最近一次对账时间。这样前端能够展示“内容已发布，库存初始化中”，运营也能区分任务执行慢和下游投影慢。</p>
+<p>错误报告应该支持机器读取和人工修复。机器字段包括错误码、规则 ID、字段路径、对象 ID、是否可重试和关联事件；人工字段包括解释、示例、建议值和修复入口。错误码应保持稳定，文案可以迭代。对于同一规则在一万行中重复出现的错误，可以按规则聚合并提供受影响行列表，避免生成无法使用的长文本。</p>
+<h3 id="11510-任务平台的隔离和资源治理"><a class="header" href="#11510-任务平台的隔离和资源治理">11.5.10 任务平台的隔离和资源治理</a></h3>
+<p>任务平台通常同时服务人工即时任务、供应商增量同步、供应商全量同步、运营批量修改和修复任务。它们的优先级、可接受延迟和副作用不同，不能放进一个没有隔离的队列。至少需要按照租户或供应商、任务类型、优先级和下游资源设置配额；大任务要有最大并行分片数，修复任务要有独立的安全阈值。</p>
+<p>限流可以在入口、调度器、Worker 和下游客户端多层实施，但每层的目的不同。入口限流保护 API 和文件服务，调度限流保护队列公平，Worker 限制数据库和 CPU，并发客户端限流保护供应商和库存服务。多层限流必须避免形成“每层都认为还能加一点”的乘法放大，平台应记录实际有效并发和等待原因。</p>
+<p>任务优先级不能只看创建时间。订单相关的库存修复、影响可售状态的合规下架、供应商全量同步和低优先级搜索重建应该有不同等级；但高优先级不能无限插队，否则低优先级会饥饿。可以使用带老化的优先级、租户配额和每类任务的保底并发，让系统在高峰时仍然能推进非紧急任务。</p>
+<p>Worker 的扩容依据应来自瓶颈指标，而不是队列长度一个数字。需要同时观察 CPU、内存、数据库连接、锁等待、下游响应、队列年龄、Checkpoint 停滞和 DLQ 增长。队列很长但数据库锁等待很高时，继续扩容只会恶化；队列不长但最老任务年龄持续上升时，可能是某类任务被错误限流或单个毒性任务阻塞了分片。</p>
+<p>租户隔离还包括数据和审计隔离。任务查询不能让一个供应商看到另一个供应商的原始文件、错误行和外部编码；日志和指标需要带租户维度，但敏感值要脱敏；管理员的跨租户修复应记录授权依据。隔离不是只在 API 层加一个 <code>supplier_id</code> 条件，后台重试、DLQ 回放、导出报告和对账脚本也必须使用同一套访问边界。</p>
+<h3 id="11511-取消暂停和终止任务"><a class="header" href="#11511-取消暂停和终止任务">11.5.11 取消、暂停和终止任务</a></h3>
+<p>任务一旦进入异步执行，取消就不是删除一条任务记录。取消请求需要说明范围：取消尚未领取的任务、停止新的任务项、终止正在运行的分片，还是撤销已经发布的业务事实。前三种属于任务控制，最后一种属于业务补偿，必须使用不同的命令和权限。</p>
+<p>暂停适合供应商限流、规则临时下线、数据库维护和人工确认。暂停时要保存原因、暂停者、影响分片和恢复条件；Worker 不能只停止心跳后等待租约自然过期，否则会把可恢复状态伪装成故障。恢复时重新检查任务版本、输入版本和规则版本，必要时把仍未处理的任务项放回队列。</p>
+<p>正在运行的任务项不能保证立即停止。Worker 可能已经调用外部供应商或写入本地事实，因此取消协议要有安全点：读取输入前、写入正式事实前、发送外部命令前和提交本地事务前。安全点发现取消后可以结束；已经越过安全点则记录“取消待确认”，完成查询确认或补偿后再把任务项置为终止。</p>
+<p>批量任务取消后，成功任务项不应被回滚成失败，已发布商品也不应因为任务被取消而自动删除。任务最终状态可以是 <code>CANCELLED_WITH_PARTIAL_SUCCESS</code>，并列出成功、失败、未处理和未知数量。运营人员需要从结果中知道哪些对象已经产生业务影响，工程人员需要知道哪些对象还应由对账或修复任务处理。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>动作</th><th>允许对象</th><th>是否产生业务副作用</th><th>结果记录</th></tr>
+</thead>
+<tbody>
+<tr><td>暂停</td><td>未完成任务</td><td>通常没有</td><td>暂停原因和恢复条件</td></tr>
+<tr><td>取消未领取项</td><td>队列中的任务项</td><td>没有</td><td>取消时间和操作者</td></tr>
+<tr><td>停止运行项</td><td>到达安全点的 Worker</td><td>可能有未知外部结果</td><td>终止状态和查询任务</td></tr>
+<tr><td>撤销发布</td><td>已发布版本</td><td>有</td><td>反向发布版本和审计</td></tr>
+<tr><td>关闭异常</td><td>DLQ 或人工队列项</td><td>取决于业务确认</td><td>关闭原因和责任人</td></tr>
+</tbody>
+</table>
+</div>
+<p>这套语义能防止“取消任务”成为一个危险的万能按钮。用户界面也应区分停止接收、暂停处理、取消未开始对象和撤销正式变更，让操作人员在看到影响范围后再选择动作。</p>
+<h2 id="116-商品中心库存与发布一致性"><a class="header" href="#116-商品中心库存与发布一致性">11.6 商品中心、库存与发布一致性</a></h2>
+<h3 id="1161-正式商品模型的写入边界"><a class="header" href="#1161-正式商品模型的写入边界">11.6.1 正式商品模型的写入边界</a></h3>
+<p>商品中心的正式写模型不应该成为所有输入的公共暂存区。它承载的是已经满足平台不变量、可以被交易前服务依赖的正式事实。因此，商品中心写侧至少需要区分三种操作：创建正式商品、发布已有商品的新版本、改变正式商品的生命周期状态。</p>
+<p>创建正式商品要求输入拥有合法的资源归属、类目、商品族、规格组合、售卖计划和履约规则。发布已有商品要求输入带有基线版本，并且当前版本与基线一致。生命周期操作要求说明原因、操作者和适用范围，例如人工下架、合规封禁、销售期结束、供应商终止或资源不可用。三者可以使用同一个服务入口，但不能共享相同的校验路径。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>写入动作</th><th>主要校验</th><th>事务内写入</th><th>事务外动作</th></tr>
+</thead>
+<tbody>
+<tr><td>创建商品</td><td>外部 ID 唯一、类目完整、SKU 组合合法</td><td>Item、SPU、SKU、Offer、发布版本、快照、Outbox</td><td>搜索、缓存、库存初始化</td></tr>
+<tr><td>发布新版本</td><td>基线版本匹配、QC 通过、字段主导权有效</td><td>正式表变更、版本、快照、日志、Outbox</td><td>下游投影、索引、计价刷新</td></tr>
+<tr><td>下架商品</td><td>权限、原因、当前状态、未完成交易策略</td><td>Item 状态、状态日志、Outbox</td><td>搜索剔除、缓存失效、运营通知</td></tr>
+<tr><td>修正属性</td><td>字段归属、影响范围、是否需要重审</td><td>新版本或受控字段更新</td><td>读模型刷新、对账</td></tr>
+</tbody>
+</table>
+</div>
+<p>正式模型中应尽量保存结构化字段，而不是把全部内容塞进一个无法校验的 JSON。异构品类确实需要扩展字段，但扩展字段也要有 schema、类型、索引策略、敏感级别和演进规则。对于不会参与查询、排序、交易和合规判断的长尾展示字段，可以存放在扩展属性中；一旦某个字段开始影响库存、价格、履约或风控，就应该把它提升为有明确契约的领域字段。</p>
+<h3 id="1162-类目模板和异构品类"><a class="header" href="#1162-类目模板和异构品类">11.6.2 类目模板和异构品类</a></h3>
+<p>平台商品经常同时包含酒店、门票、课程、数字权益和实物资源。它们共享标题、图片、类目、销售状态等通用能力，却在规格、库存、履约和退改上存在巨大差异。如果用一张宽表保存所有可能字段，表结构会被空值和兼容逻辑拖垮；如果每种品类完全独立，又会让搜索、运营和订单无法复用通用能力。</p>
+<p>可以采用“通用核心模型 + 类目模板 + 受控扩展”的方式。核心模型保存身份、归属、状态、版本和通用展示字段；类目模板描述必填属性、属性类型、枚举、校验规则和可继承关系；扩展模型保存品类特有字段，但发布前必须经过模板校验。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段层级</th><th>示例</th><th>适合的存储</th><th>是否可参与核心决策</th></tr>
+</thead>
+<tbody>
+<tr><td>通用身份</td><td><code>item_id</code>、<code>spu_id</code>、类目、品牌</td><td>关系表</td><td>是</td></tr>
+<tr><td>通用展示</td><td>标题、短描述、主图、标签</td><td>关系表或受控 JSON</td><td>影响展示，不直接决定库存</td></tr>
+<tr><td>类目属性</td><td>房型面积、票种、课程时长</td><td>模板化属性表</td><td>可能影响筛选和履约</td></tr>
+<tr><td>交易规则</td><td>退改、预约窗口、使用限制</td><td>结构化规则表</td><td>是</td></tr>
+<tr><td>供应商扩展</td><td>外部房型编码、供应商描述</td><td>来源扩展表</td><td>由字段主导权决定</td></tr>
+<tr><td>原始输入</td><td>供应商原文、文件行</td><td>Raw Snapshot</td><td>不直接作为交易事实</td></tr>
+</tbody>
+</table>
+</div>
+<p>模板版本必须进入发布版本和审核记录。若类目规则从“面积必须大于零”变为“面积必须大于五平方米”，历史已发布商品是否重新校验，取决于业务规则；但新发布版本必须使用新规则，且系统需要能回答某个商品在何时依据哪一版模板通过了审核。</p>
+<h3 id="1163-库存配置和库存事实分离"><a class="header" href="#1163-库存配置和库存事实分离">11.6.3 库存配置和库存事实分离</a></h3>
+<p>库存配置描述“这个商品需要什么样的库存能力”，库存事实描述“现在到底还能卖多少”。例如，商品中心可以保存“该门票按日期和时段管理库存”“该数字商品使用券码池”“该房型由供应商实时确认房态”；库存系统则保存具体日期格、券码实例、预占记录和可售数量。</p>
+<p>两者分离有三个好处。第一，商品编辑不会直接改写高频库存余额。第二，库存系统可以根据不同资源类型选择不同的扣减和恢复算法。第三，商品下架、库存耗尽和销售窗口结束可以分别解释，而不必把所有原因塞进一个 <code>ONLINE</code> 或 <code>OFFLINE</code> 状态。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>库存类型</th><th>库存单位</th><th>典型操作</th><th>关键不变量</th></tr>
+</thead>
+<tbody>
+<tr><td>数量制库存</td><td>数量或可售额度</td><td>增加、扣减、预占、确认、释放</td><td>可售量不能为负，预占必须有过期机制</td></tr>
+<tr><td>券码制库存</td><td>单张券码或码批次</td><td>导入、激活、锁定、发放、回收</td><td>券码只能被一个订单成功消费</td></tr>
+<tr><td>日期库存</td><td>日期、房型、人数</td><td>查询、预占、确认、释放</td><td>同一资源格不能超卖</td></tr>
+<tr><td>时段库存</td><td>日期、时段、容量</td><td>配额分配、冻结、释放</td><td>时间窗和容量规则一致</td></tr>
+<tr><td>外部确认库存</td><td>供应商资源标识</td><td>询价、锁定、确认、取消</td><td>外部状态和本地状态可对账</td></tr>
+</tbody>
+</table>
+</div>
+<p>商品发布可以触发库存初始化，但“发布成功”和“库存可售”不必是同一瞬间。对于需要库存才能交易的商品，Item 可以先处于 <code>PUBLISHED</code>，交易前可售判断为 <code>NOT_READY</code>；库存初始化成功并完成投影后，再进入 <code>SELLABLE</code>。对于无库存或按预约确认的商品，商品中心可以依据库存策略决定是否允许直接展示，但仍然要把资源校验放在交易前。</p>
+<h3 id="1164-发布事务和快照"><a class="header" href="#1164-发布事务和快照">11.6.4 发布事务和快照</a></h3>
+<p>发布事务的目标是确保商品中心的本地事实具有一致解释，而不是让所有外部系统同时完成。一个合理的本地事务可以按照以下顺序执行：</p>
+<ol>
+<li>锁定或读取 Draft / Staging 的确定版本。</li>
+<li>检查当前正式商品版本是否等于基线版本。</li>
+<li>校验 QC 结果、模板版本、字段主导权和必要的交易规则。</li>
+<li>把差异合并到正式 Item、SPU、SKU、Offer 和规则表。</li>
+<li>写入新的 Publish Version 和商品快照。</li>
+<li>写入字段变更日志和操作审计。</li>
+<li>写入带有聚合 ID、版本、事件 ID 和 schema 版本的 Outbox。</li>
+<li>提交事务并返回正式版本。</li>
+</ol>
+<p>数据库事务不应包含远程搜索、库存、计价或营销调用。InnoDB 的锁和事务模型可以保证本地行级更新和一致性读取，但长事务会扩大锁等待、死锁和回滚成本；MySQL 官方文档也建议应用准备好在死锁后重新提交事务，并保持事务短小、操作顺序一致。[11] 中文参考手册对隔离级别、锁和死锁处理提供了同一语义的说明，可作为排查生产问题时的本地化依据。[24]</p>
+<pre><code class="language-sql">START TRANSACTION;
+
+SELECT publish_version
+FROM product_item
+WHERE item_id = :item_id
+FOR UPDATE;
+
+-- 应用层确认 current_version = :base_publish_version
+UPDATE product_item
+SET title = :title,
+    lifecycle_state = 'PUBLISHED',
+    publish_version = publish_version + 1,
+    updated_at = CURRENT_TIMESTAMP
+WHERE item_id = :item_id
+  AND publish_version = :base_publish_version;
+
+INSERT INTO product_publish_version (
+    item_id, version, snapshot_id, source_staging_id
+) VALUES (:item_id, :new_version, :snapshot_id, :staging_id);
+
+INSERT INTO product_outbox (
+    event_id, aggregate_id, aggregate_version, event_type, payload
+) VALUES (:event_id, :item_id, :new_version, 'ItemPublished', :payload);
+
+COMMIT;
+</code></pre>
+<p>如果条件更新影响行数为 0，服务应返回版本冲突，而不是继续写入。死锁或瞬时数据库错误可以重新执行整个事务，但必须复用同一个业务幂等键并重新读取当前版本。事务内不能生成依赖远程服务成功才成立的本地事实，否则重试时很难判断远程副作用是否已经发生。</p>
+<h3 id="1165-版本快照和下游事件"><a class="header" href="#1165-版本快照和下游事件">11.6.5 版本、快照和下游事件</a></h3>
+<p>发布版本至少包含：<code>item_id</code>、逻辑版本、来源 Staging、变更摘要、模板版本、规则版本、操作者、发布时间和快照引用。事件中不一定携带完整商品数据，可以携带事件类型、聚合身份、版本和读取地址；但如果下游必须依赖当时的内容，事件应该携带不可变快照或可长期读取的版本地址，不能指向随时变化的 Draft。</p>
+<p>事件消费者要区分“事实事件”和“刷新命令”。<code>ItemPublished</code> 是事实事件，表示商品中心已经提交了版本；<code>RefreshSearchProjection</code> 是刷新命令，表示某个投影需要执行动作。事实事件可以被多个下游消费，刷新命令通常由编排器根据当前落后版本生成。把二者混为一谈，会导致消费者把收到消息误判成已经完成下游动作。</p>
+<p>在消息系统中，至少一次投递是常见现实。消费者要有去重策略：可以用事件 ID 建立消费记录，可以用聚合版本做条件更新，也可以使用二者组合。Kafka 的幂等生产和事务消息可以改善生产链路，但消费者仍需处理业务数据库写入、外部 API 调用和重复事件；不能把消息系统的“恰好一次”宣传成所有业务副作用都只执行一次。[12]</p>
+<h3 id="1166-库存创建补货和发布协同"><a class="header" href="#1166-库存创建补货和发布协同">11.6.6 库存创建、补货和发布协同</a></h3>
+<p>库存任务不能被写成商品发布事务中的同步远程调用。推荐让商品中心在本地事务内记录库存配置和发布事件，库存系统根据配置创建库存资源。库存资源创建成功后，再产生 <code>InventoryReady</code> 或 <code>InventoryInitialized</code> 事件；商品可售投影根据商品状态、销售窗口和库存状态计算。</p>
+<p>数量制库存的补货通常是一个独立命令。运营人员提交“增加 100 件”时，系统必须记录操作原因、操作者、来源任务和幂等键，并在库存系统内用版本或 CAS 更新。券码制库存则需要先上传原始批次、做重复码和格式校验，再激活可用券码。日期和时段库存需要按照资源格处理，不能把总量库存的加减模型直接套用。</p>
+<p>库存协同要特别处理四种异常：商品发布成功但库存初始化失败，库存初始化成功但商品发布回滚，库存已经可售但商品被合规下架，商品版本已更新但库存配置尚未刷新。每一种异常都应有明确的可售结果、补偿动作和审计记录。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>异常</th><th>商品中心状态</th><th>库存状态</th><th>用户可见结果</th><th>恢复动作</th></tr>
+</thead>
+<tbody>
+<tr><td>发布成功、库存初始化失败</td><td><code>PUBLISHED</code></td><td><code>INIT_FAILED</code></td><td>不可交易或显示暂不可售</td><td>修复库存任务并重试</td></tr>
+<tr><td>发布回滚、库存命令已发出</td><td>旧版本</td><td>可能已创建资源</td><td>不允许新版本交易</td><td>用版本事件撤销或标记孤儿资源</td></tr>
+<tr><td>商品下架、已有预占</td><td><code>OFFLINE</code></td><td>有预占</td><td>新订单拒绝，存量订单按策略处理</td><td>释放未确认预占并通知履约</td></tr>
+<tr><td>配置变更、旧库存仍在售</td><td>新版本</td><td>旧资源</td><td>交易前校验重新确认</td><td>版本化迁移或人工对账</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="1167-下游系统的协同契约"><a class="header" href="#1167-下游系统的协同契约">11.6.7 下游系统的协同契约</a></h3>
+<p>商品中心与下游的契约要写清楚数据含义，而不只是列出接口名称。</p>
+<p>搜索系统消费商品展示、类目和可检索属性，但不承载绝对库存和最终到手价。索引允许最终一致，必须通过版本过滤旧事件，并在 Hydrate 时依据商品中心、库存或计价结果修正结果。</p>
+<p>计价系统消费商品的售卖计划、基础价格、币种、税费和规则引用，但最终金额依赖用户、时间、渠道、优惠和库存条件。商品中心不应把“当前价格”复制成所有交易的永久事实。</p>
+<p>营销系统消费商品标签、圈品属性和资格引用，但预算、优惠叠加和活动库存由营销系统负责。商品发布可以触发圈品刷新，不能在商品本地事务中同步计算所有优惠。</p>
+<p>订单系统在确认商品、库存和价格后，保存订单快照。订单服务可以引用商品中心版本以便追溯，但不能只保存 <code>item_id</code> 并期待未来能够复原当时的标题、规则和价格。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>下游</th><th>商品中心提供</th><th>下游自己负责</th><th>允许的陈旧</th></tr>
+</thead>
+<tbody>
+<tr><td>搜索</td><td>展示字段、类目、属性、版本</td><td>索引、召回和查询</td><td>秒级到分钟级，需标示版本</td></tr>
+<tr><td>计价</td><td>售卖计划、规则引用、基础信息</td><td>试算、优惠、币种和金额</td><td>交易时必须重新计算</td></tr>
+<tr><td>营销</td><td>商品标签和资格上下文</td><td>活动、预算、优惠和风控</td><td>活动资格需按活动规则校验</td></tr>
+<tr><td>库存</td><td>库存配置、商品状态、资源引用</td><td>余额、预占、确认、释放</td><td>交易前必须读权威库存</td></tr>
+<tr><td>订单</td><td>商品版本和快照输入</td><td>订单合同和历史快照</td><td>历史订单不随当前商品变化</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="1168-api-设计"><a class="header" href="#1168-api-设计">11.6.8 API 设计</a></h3>
+<p>商品中心和供给平台 API 可以分为 Command、Query 和 Event 三组。Command API 采用幂等键，Query API 返回版本和新鲜度，Event API 只描述已经提交的事实。</p>
+<pre><code class="language-text">POST /v1/supply/drafts
+POST /v1/supply/drafts/{draft_id}/submit
+POST /v1/supply/stagings/{staging_id}/approve
+POST /v1/items/{item_id}/publish
+POST /v1/items/{item_id}/offline
+POST /v1/inventory-tasks
+
+GET  /v1/supply/tasks/{task_id}
+GET  /v1/items/{item_id}?version=latest
+GET  /v1/items/{item_id}/publish-status
+</code></pre>
+<p>发布 API 的响应应该明确是“已提交”“已发布”还是“已受理”。如果商品中心本地事务已提交，返回正式版本和事件 ID；如果请求只是创建异步任务，则返回任务 ID 和查询地址；如果下游仍在刷新，返回 <code>projection_status = PENDING</code>，而不是阻塞直到搜索、缓存和库存全部完成。</p>
+<p>命令接口的幂等键需要绑定语义。相同 <code>idempotency_key</code> 和相同参数应返回同一业务结果；相同键但参数不同应拒绝。Stripe 的公开 API 文档采用保存首次结果、校验重复参数和在一定时间后清理键的做法，说明幂等层不仅要记录键，还要记录请求语义和结果生命周期。[10]</p>
+<h3 id="1169-核心表模型与数据完整性"><a class="header" href="#1169-核心表模型与数据完整性">11.6.9 核心表模型与数据完整性</a></h3>
+<p>表模型的目标不是把所有对象都画成表，而是让关键不变量可以被数据库约束和应用逻辑共同保护。建议将表分为身份表、内容表、流程表、版本表、事件表、资源表和审计表。</p>
+<p>身份表保存 <code>resource_tab</code>、<code>product_item_tab</code>、<code>product_spu_tab</code>、<code>product_sku_tab</code> 和 <code>product_offer_tab</code> 的稳定关系。身份表中的外部 ID、平台 ID 和租户键需要有明确的唯一约束；如果同一个供应商可以在不同渠道重复使用外部编码，唯一键就不能只放 <code>external_id</code>，而应放在 <code>supplier_id + external_id + namespace</code> 上。</p>
+<p>内容表保存标题、描述、类目属性和规则引用。长文本可以拆到独立表，减少列表和状态更新对主表的影响；但拆分不能让读取正式商品时需要无边界地调用十几个服务。核心读模型可以在发布时物化必要字段，保留原始内容和规范化内容的关系。</p>
+<p>流程表保存 <code>draft_tab</code>、<code>staging_tab</code>、<code>qc_record_tab</code>、<code>task_tab</code>、<code>task_item_tab</code>、<code>change_request_tab</code> 和 <code>compensation_task_tab</code>。流程表的状态字段应该配合状态原因、版本和操作人，不要只依赖数据库枚举。对高频 Task Item，可以按任务或创建时间分区、归档已完成数据，但归档仍应保留可追溯索引。</p>
+<p>版本表保存 <code>publish_version_tab</code>、<code>snapshot_tab</code> 和 <code>schema_version_tab</code>。版本表必须能从正式 Item 找到当前版本，也能从任意订单快照找到当时的商品版本。快照可以使用 JSON 保存完整内容，但应同时保存 schema 版本、摘要和关键索引字段，避免历史展示只能解析一份已经失效的结构。</p>
+<p>事件表保存 <code>outbox_tab</code>、<code>consumer_inbox_tab</code>、<code>event_delivery_tab</code> 和 <code>dead_letter_tab</code>。Outbox 记录业务服务产生了什么事件，Inbox 或消费记录表示某个消费者处理到哪里，Delivery 记录便于分析投递，DLQ 记录失败处置。不是所有消费者都需要独立 Inbox 表，但所有有副作用的消费者都需要可证明的去重依据。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>表组</th><th>关键唯一键</th><th>关键外键 / 引用</th><th>典型归档策略</th></tr>
+</thead>
+<tbody>
+<tr><td>身份表</td><td>租户 + 命名空间 + 外部 ID</td><td>Resource、Item 关系</td><td>长期保留</td></tr>
+<tr><td>流程表</td><td>Task ID、Item ID、版本</td><td>Draft、Staging、QC</td><td>完成后冷热分层</td></tr>
+<tr><td>版本表</td><td>Item ID + publish version</td><td>Snapshot、Staging</td><td>线上版本长期保留摘要</td></tr>
+<tr><td>事件表</td><td>Event ID</td><td>聚合 ID、版本</td><td>成功事件按保留策略归档</td></tr>
+<tr><td>库存配置</td><td>Item ID + config version</td><td>资源类型、规则</td><td>随商品版本保留</td></tr>
+<tr><td>审计表</td><td>operation ID + sequence</td><td>请求、操作者、对象</td><td>合规周期内不可变</td></tr>
+</tbody>
+</table>
+</div>
+<p>数据库约束和应用校验各有边界。唯一索引可以保证同一命名空间内不重复，但不能判断两个商品是否业务上重复；外键可以保证引用存在，但不能保证引用对象的状态允许交易；事务可以保证本地记录原子，但不能保证远程索引已经刷新。设计评审时要明确每个不变量由哪一层保护，避免把所有正确性责任放在应用代码的一个 <code>if</code> 上。</p>
+<h3 id="11610-读模型缓存和索引重建"><a class="header" href="#11610-读模型缓存和索引重建">11.6.10 读模型、缓存和索引重建</a></h3>
+<p>读模型要围绕访问模式设计，而不是复制所有正式表。详情读模型需要快速返回商品核心信息、当前版本、销售窗口和规则摘要；列表读模型需要支持类目、品牌、属性、城市和价格区间筛选；搜索索引需要分词、排序、聚合和高亮；运营看板需要按任务、供应商、类目和时间聚合。四种读模型的字段集合和更新频率可以不同。</p>
+<p>缓存失效有三种常见方式：写入后删除旧缓存，事件到达后刷新新缓存，按版本键保存不可变缓存。选择哪种方式取决于读模型是否容易重建和用户对陈旧的容忍度。高频详情可以使用 <code>item_id + version</code> 作为版本键，避免旧事件删除新缓存；如果使用固定键，也必须防止旧版本的延迟失效操作覆盖新版本。</p>
+<p>索引更新需要考虑映射和全量重建。新增字段时，先确认索引 mapping 兼容性；改变字段类型时，不能只对当前文档执行更新，而需要建立新索引、按正式版本重建、抽样对比后再切换别名。索引重建期间，商品中心继续产生事件，重建任务需要记录开始版本和切换前的增量版本，切换后再补齐这段增量。</p>
+<pre class="mermaid">
+flowchart TD
+    A[读取正式商品版本 V] --&gt; B[建立新索引 alias-v2]
+    B --&gt; C[按快照批量重建]
+    C --&gt; D[记录重建进度与最大版本]
+    D --&gt; E[消费 V 之后的增量事件]
+    E --&gt; F[抽样校验字段和版本]
+    F --&gt; G{差异是否在允许范围}
+    G -- 否 --&gt; H[停止切换并生成差异报告]
+    G -- 是 --&gt; I[切换查询别名]
+    I --&gt; J[继续消费并对账]
+</pre>
+
+<p>读模型必须携带来源版本。用户看到搜索结果时，不一定要展示版本号，但日志和调试接口应能看到 <code>projected_version</code>。当用户从列表进入详情时，详情接口可以发现搜索版本已经落后，选择返回最新商品、标记提示或触发异步补偿。真正的交易动作仍然不能依赖搜索文档的可售字段。</p>
+<h3 id="11611-事务锁和并发更新的工程规则"><a class="header" href="#11611-事务锁和并发更新的工程规则">11.6.11 事务、锁和并发更新的工程规则</a></h3>
+<p>商品发布和任务处理经常同时更新多个表。为了降低死锁，事务内访问表和行的顺序要保持一致，例如先锁定 Item，再写 Publish Version、Snapshot 和 Outbox；不能有的代码先锁 Outbox，再锁 Item，另一段代码反过来。MySQL 官方资料建议保持事务短小、以一致顺序访问资源、及时提交，并准备在死锁后重新执行整个事务。[11]</p>
+<p>锁的范围必须和业务不变量匹配。保护一个商品版本时锁定 Item 行即可；保护同一个 SKU 的规格唯一性需要唯一索引和重试；生成库存预占时锁定资源格或使用原子条件更新；领取任务时锁定任务状态而不是锁住整个任务表。锁得过大降低吞吐，锁得过小则无法保护业务事实。</p>
+<p>乐观并发控制适合编辑和发布：客户端带基线版本，服务器使用条件更新。如果冲突率低，乐观控制避免长时间持锁；如果某个热点资源冲突率很高，例如同一个库存格被大量订单竞争，就应使用库存域专门的原子扣减、队列化或分区策略，而不是让商品中心承担热点。</p>
+<p>并发设计还要考虑读到的版本。一个发布事务刚提交，搜索消费者正在处理版本 9，运营查询可能读到版本 8 的缓存；这是最终一致允许的陈旧，但查询应能返回更新时间和状态。一个订单请求读到商品版本 9，库存预占已经基于资源版本 12，则订单必须记录两者的版本，方便事后解释，而不能把所有版本压缩成一个“商品已确认”布尔值。</p>
+<h3 id="11612-事件-schema-和兼容演进"><a class="header" href="#11612-事件-schema-和兼容演进">11.6.12 事件 Schema 和兼容演进</a></h3>
+<p>事件字段分为身份字段、版本字段、时间字段、来源字段和业务载荷。身份字段包括 <code>event_id</code>、<code>aggregate_id</code> 和 <code>operation_id</code>；版本字段包括 <code>aggregate_version</code> 和 <code>schema_version</code>；时间字段包括发生时间和发送时间；来源字段包括服务、租户、供应商和追踪 ID；载荷字段则表达本事件对下游有用的事实。</p>
+<p>事件升级时优先采用向后兼容方式：新增可选字段，保留旧字段语义，在一段时间内同时提供新旧字段；不要直接改变字段类型、单位和枚举含义。删除字段前要确认所有消费者已经迁移。对于必须改变语义的事件，创建新事件类型或新 schema 版本，不要让消费者根据服务发布时间猜测。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>演进动作</th><th>风险</th><th>推荐处理</th></tr>
+</thead>
+<tbody>
+<tr><td>新增可选字段</td><td>老消费者忽略字段</td><td>直接兼容，但要验证序列化</td></tr>
+<tr><td>新增必填字段</td><td>老生产者无法提供</td><td>先使用默认或新事件版本</td></tr>
+<tr><td>改变字段类型</td><td>解析失败或静默转换</td><td>新字段 / 新事件类型</td></tr>
+<tr><td>改变枚举含义</td><td>消费者行为错误</td><td>保留旧含义，新增枚举并通知</td></tr>
+<tr><td>删除字段</td><td>老消费者缺字段</td><td>观察消费版本后再删除</td></tr>
+<tr><td>拆分一个事件</td><td>消费顺序和幂等复杂</td><td>明确聚合版本和过渡窗口</td></tr>
+</tbody>
+</table>
+</div>
+<p>事件契约测试应覆盖生产者序列化、消费者解析、版本兼容、重复投递、乱序投递和未知字段。OpenAPI 和 JSON Schema 能帮助团队共享结构定义，但业务事件仍需要说明状态、版本和副作用边界。[16][17]</p>
+<h3 id="11613-商品生命周期与历史版本治理"><a class="header" href="#11613-商品生命周期与历史版本治理">11.6.13 商品生命周期与历史版本治理</a></h3>
+<p>商品生命周期不止包含上线和下线。一个正式商品还可能经历草稿、待审核、已发布、可售、暂停售卖、合规冻结、供应商终止、历史归档和永久删除等阶段。不同阶段的读写权限、库存动作、订单影响和恢复方式不同，不能用一个 <code>active</code> 布尔值代替。生命周期状态是用户和下游能理解的业务事实；任务状态、审核状态和投影状态则应分别保存。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>生命周期状态</th><th>新订单</th><th>已有订单</th><th>允许的写入</th><th>可恢复方式</th></tr>
+</thead>
+<tbody>
+<tr><td><code>DRAFT</code></td><td>不可见或仅内部可见</td><td>无</td><td>编辑内容、提交审核</td><td>继续编辑或放弃</td></tr>
+<tr><td><code>PUBLISHED</code></td><td>取决于库存和窗口</td><td>不影响</td><td>受控编辑、投影刷新</td><td>进入可售或回退版本</td></tr>
+<tr><td><code>ONLINE</code></td><td>允许交易前校验</td><td>按订单合同执行</td><td>规则化变更</td><td>下线或暂停</td></tr>
+<tr><td><code>OFFLINE</code></td><td>拒绝新订单</td><td>按存量策略处理</td><td>仅允许恢复或修复</td><td>审批后重新发布</td></tr>
+<tr><td><code>BANNED</code></td><td>拒绝新订单</td><td>触发合规和客服流程</td><td>限制性修复</td><td>合规解除或永久终止</td></tr>
+<tr><td><code>ENDED</code></td><td>拒绝新订单</td><td>仅履约和售后</td><td>不允许改变销售事实</td><td>仅在业务允许时重新建版本</td></tr>
+<tr><td><code>ARCHIVED</code></td><td>不可交易</td><td>保留追溯</td><td>只读查询和对账</td><td>由新商品替代</td></tr>
+</tbody>
+</table>
+</div>
+<p>状态迁移要区分主动动作和派生状态。运营人员可以发起下架命令，供应商终止可以触发待确认下线，库存耗尽可以派生 <code>SOLD_OUT</code>，销售窗口结束可以派生 <code>NOT_IN_WINDOW</code>。派生状态不应覆盖生命周期事实，否则库存恢复后无法知道商品是否仍然被运营下架。可以把可售性建模为多个条件的计算结果：生命周期允许、审核通过、库存可用、销售窗口有效、渠道资格满足。</p>
+<p>版本治理还要处理“当前版本”和“有效版本”的差异。当前版本是商品中心最近提交的正式版本；有效版本是某个渠道、日期或灰度规则下对用户生效的版本；订单版本是结算确认时固化的版本。三个版本可能暂时不同，但每个差异都必须有原因和查询路径。用户投诉时，系统应能从订单快照回到当时有效版本，再回到生成该版本的 Staging、规则和来源输入。</p>
+<p>历史版本不可变并不意味着永远不归档。线上查询只需要当前版本和有限历史，审计、订单和对账需要更长的保留窗口；版本归档可以把完整快照转移到低成本存储，同时保留摘要、哈希、版本号和可恢复地址。归档前必须验证快照可读、引用完整和恢复演练通过，否则只是把问题从数据库搬到了对象存储。</p>
+<p>生命周期动作需要和通知策略解耦。下架命令先写入正式状态和 Outbox，再由通知、搜索、缓存、库存和客服投影分别处理；通知失败不能阻止合规下架，但必须进入待发送队列。对已经存在的订单，通知、库存释放和履约暂停可能需要不同时间和权限，不能把它们压缩成一个同步远程调用。</p>
+<h3 id="11614-数据迁移回放和重建"><a class="header" href="#11614-数据迁移回放和重建">11.6.14 数据迁移、回放和重建</a></h3>
+<p>商品模型演进通常需要迁移旧数据、重建读模型和兼容旧事件。迁移应先定义目标不变量，再设计分批、可暂停、可重入的步骤。不要先写一次性脚本，再事后猜测它是否会覆盖人工修改。迁移记录至少包含迁移版本、批次范围、开始版本、影响对象、成功数、失败数、跳过数和回滚或补偿方法。</p>
+<p>如果新模型需要把一张宽表拆成 Item、SKU、Offer 和库存配置，可以先建立只读映射，再用影子写入验证新旧结果，最后切换读路径。切换前要比较对象数量、关键字段摘要、状态分布和版本差异；切换后保留旧读路径一段观察期，但不允许新旧两套同时成为权威写入者。</p>
+<p>读模型重建需要一个明确的截点。先记录事实面最大版本 <code>V0</code>，再从快照或事件重建到 <code>V0</code>，随后消费 <code>V0</code> 之后的增量，完成抽样校验后切换查询别名。重建任务自身也可能失败，因此要记录每个分片的起止版本和校验摘要，并允许从最后一个稳定 Checkpoint 继续，而不是每次从头开始。</p>
+<p>历史事件回放不是重复执行历史副作用。搜索和看板可以根据历史事实重建；库存和订单这类有现实副作用的系统，不应把旧事件直接当成新的扣减或确认命令。回放框架要区分事件重放、投影重建、补偿命令和业务重演，并在消息头中标示回放原因和目标投影，避免普通消费者误处理。</p>
+<p>迁移期间要保护人工编辑和新流量。可以按租户、供应商或对象范围分批迁移，对正在编辑的 Draft 使用基线版本检测，发现冲突就暂停该对象并生成差异。迁移失败的对象不能被悄悄跳过；需要有失败报告、重试上限和人工队列。迁移结束后用对账确认旧事实与新事实的对应关系，再删除已经不需要的中间结构。</p>
+<h2 id="117-质量治理审核与运营闭环"><a class="header" href="#117-质量治理审核与运营闭环">11.7 质量治理、审核与运营闭环</a></h2>
+<h3 id="1171-从字段校验到可售质量"><a class="header" href="#1171-从字段校验到可售质量">11.7.1 从字段校验到可售质量</a></h3>
+<p>商品质量不是“必填字段都不为空”。一个商品即使通过了格式校验，也可能存在重复商品、类目错配、图片不合规、退改规则缺失、库存类型不匹配、供应商来源失信和价格异常。质量治理应该分层：结构质量保证数据能被系统理解，业务质量保证内容符合品类规则，交易质量保证商品能被正确售卖，运营质量保证异常可以被发现、解释和修复。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>质量层</th><th>检查对象</th><th>典型规则</th><th>失败处理</th></tr>
+</thead>
+<tbody>
+<tr><td>结构质量</td><td>字段类型、编码、枚举、嵌套结构</td><td>必填、长度、格式、引用存在</td><td>行级错误，不进入后续阶段</td></tr>
+<tr><td>语义质量</td><td>类目、属性、规格和履约规则</td><td>房型不能使用实物重量规则</td><td>进入标准化或人工审核</td></tr>
+<tr><td>合规质量</td><td>文案、图片、敏感字段、供应商资质</td><td>禁止词、许可证、来源可信度</td><td>拒绝、冻结或人工复核</td></tr>
+<tr><td>交易质量</td><td>价格、库存、销售窗口、退改规则</td><td>可售时段有资源、价格上下文完整</td><td>保持不可售或回退旧版本</td></tr>
+<tr><td>运行质量</td><td>投影、事件、任务、对账</td><td>版本收敛、无异常积压、可追溯</td><td>自动补偿或人工接管</td></tr>
+</tbody>
+</table>
+</div>
+<p>质量规则需要有版本。规则变更后，新任务使用新规则，历史审核记录仍然保留旧规则版本。对于规则影响范围较大的变更，平台可以进行离线重检，先生成问题清单，再决定是否阻止发布。不能因为新增一条校验规则，就在生产环境中无解释地把所有存量商品立刻下线。</p>
+<h3 id="1172-标准化校验和风险审核"><a class="header" href="#1172-标准化校验和风险审核">11.7.2 标准化、校验和风险审核</a></h3>
+<p>标准化不是简单字段重命名，而是把不同来源的表达转换为平台语义。例如供应商把“含早”“早餐”“早餐包含”都表示为同一类服务，但是否真的等价要由来源契约和业务规则确认；“可退”“免费取消”“入住前一天可退”则不能只做字符串归一化，因为退改时间和费用会影响订单合同。</p>
+<p>推荐把标准化拆为三个阶段：</p>
+<ol>
+<li><strong>词法标准化</strong>：编码、空白、时间格式、币种、单位和枚举别名转换。</li>
+<li><strong>结构标准化</strong>：把来源对象映射到平台对象，例如把一行文件转换为 Resource、Item、SKU、Offer 和库存配置候选。</li>
+<li><strong>语义标准化</strong>：根据类目、来源、规则和历史映射判断是否存在冲突、重复或需要人工确认。</li>
+</ol>
+<p>校验结果要保留规则 ID、规则版本、字段路径、实际值摘要、错误级别和建议动作。错误级别可以分为阻断、警告和信息，但不能让所有警告都被忽略。对于批量任务，阻断错误应停留在行级；对于会造成系统性误售的错误，例如币种缺失、时间窗口反转或库存类型不合法，应提升为任务级失败。</p>
+<p>风险审核关注的是“这次变化是否危险”，而不是“这条记录是否完整”。高风险变化包括大范围价格变化、核心类目迁移、退改规则放宽、供应商来源切换、批量下架、库存异常增加、同一外部对象映射到多个正式商品等。风险审核可以由规则引擎先筛选，再把命中的对象交给人工；但规则引擎的结果仍要保存，不能只留下最终的通过或拒绝。</p>
+<h3 id="1173-qc-与发布的关系"><a class="header" href="#1173-qc-与发布的关系">11.7.3 QC 与发布的关系</a></h3>
+<p>QC 是对确定版本的判断。审核页面应显示 <code>staging_id</code>、内容版本、基线版本、来源、差异、规则版本和风险命中项。审核人点击通过后，系统保存的是“该版本通过了该规则集合”，而不是一个永远有效的 <code>approved = true</code>。</p>
+<p>QC 与发布之间可能存在时间间隔。若 Staging 在审核通过后被修改，必须生成新的版本并重新审核；若商品中心当前正式版本已经发生变化，原审核结果不能自动适用于新的合并结果。只有当发布命令引用的内容版本与 QC 记录一致，且基线没有冲突时，商品中心才可以执行发布。</p>
+<pre><code class="language-text">QC_PASSED(staging_id=S7, content_version=42)
+
+publish(staging_id=S7, content_version=42, base_publish_version=8)
+
+允许发布的前提：
+1. S7 仍然存在且未过期；
+2. S7 的内容版本仍然是 42；
+3. QC 记录针对的正是版本 42；
+4. 当前正式商品版本仍然是 8；
+5. 发布者拥有该商品和该动作的权限；
+6. 必要的库存配置、履约和合规信息完整。
+</code></pre>
+<p>如果商品中心当前版本已经是 9，服务应返回版本冲突并给出差异地址。运营人员可以选择以版本 9 为基线重新编辑，也可以在有明确字段合并规则时生成新的 Staging。不能把“审核通过”当作绕过并发保护的凭证。</p>
+<h3 id="1174-字段主导权和冲突处理"><a class="header" href="#1174-字段主导权和冲突处理">11.7.4 字段主导权和冲突处理</a></h3>
+<p>多来源系统的冲突，不能靠最后写入时间解决。时间只能说明消息到达或写入顺序，不能说明哪个来源拥有业务主导权。平台需要建立字段主导权矩阵。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段族</th><th>商品中心</th><th>供给平台</th><th>供应商</th><th>运营人员</th><th>冲突策略</th></tr>
+</thead>
+<tbody>
+<tr><td>平台 Item 身份</td><td>主导</td><td>只引用</td><td>不可写</td><td>不可改</td><td>平台生成</td></tr>
+<tr><td>供应商外部编码</td><td>保存映射</td><td>可接收</td><td>主导</td><td>只读</td><td>按来源和唯一约束校验</td></tr>
+<tr><td>平台展示标题</td><td>主导</td><td>提交候选</td><td>可提供候选</td><td>可编辑</td><td>运营编辑需留痕</td></tr>
+<tr><td>供应商原始描述</td><td>保存快照</td><td>不改写</td><td>主导</td><td>可标注</td><td>作为来源字段展示</td></tr>
+<tr><td>类目与平台属性</td><td>主导</td><td>候选映射</td><td>提供原始值</td><td>可审核</td><td>规则和人工确认</td></tr>
+<tr><td>价格规则引用</td><td>主导契约</td><td>可申请变更</td><td>提供来源价</td><td>可发起任务</td><td>计价系统计算金额</td></tr>
+<tr><td>可售数量</td><td>只保存配置</td><td>发起库存命令</td><td>提供外部量</td><td>可补货</td><td>库存系统权威</td></tr>
+<tr><td>审核状态</td><td>接受发布前提</td><td>流程协调</td><td>不可决定</td><td>可审核</td><td>QC 域推进</td></tr>
+</tbody>
+</table>
+</div>
+<p>当供应商更新与人工编辑冲突时，系统可以选择拒绝供应商字段、生成待审核差异、合并无冲突字段或让供应商数据只进入 Raw Snapshot。每个选择都要说明用户体验和运营成本。静默覆盖看起来吞吐最高，但会损害可追溯性和人工信任。</p>
+<h3 id="1175-权限审计和人工接管"><a class="header" href="#1175-权限审计和人工接管">11.7.5 权限、审计和人工接管</a></h3>
+<p>权限模型不应只有“运营管理员”和“普通用户”两个角色。至少要区分查看原始供应商数据、编辑 Draft、提交审核、批准 QC、执行发布、修改库存配置、重放 DLQ、强制下架和查看敏感字段等动作。高风险动作需要双人复核或操作原因。</p>
+<p>审计记录不是业务日志的复制品。业务日志说明服务做了什么，审计记录说明谁以什么身份、基于哪份输入、在什么规则版本下、对哪个对象做了什么改变，以及结果是什么。审计记录应尽量不可变，包含前后摘要、关联任务、请求 ID、追踪 ID、客户端来源和人工备注。</p>
+<p>人工接管必须有明确入口和退出条件。进入 <code>WAITING_MANUAL</code> 的任务要有队列、优先级、责任人、超时提醒和最终动作。人工操作不能直接改数据库状态，而应产生受审计的命令。命令成功后，系统回到正常状态机；如果人工确认“关闭此异常”，也要留下关闭理由和不再重试的依据。</p>
+<h3 id="1176-灰度回滚和版本恢复"><a class="header" href="#1176-灰度回滚和版本恢复">11.7.6 灰度、回滚和版本恢复</a></h3>
+<p>商品内容的灰度发布可以按供应商、类目、城市、流量桶或内部用户进行，但灰度规则不能改变权威事实。商品中心仍然保存一个明确的发布版本，读模型根据灰度策略选择展示哪个版本。若灰度版本触发错误，回滚可以选择把读模型切回旧版本，也可以生成一个反向发布版本；直接删除新版本会破坏审计链和订单解释。</p>
+<p>发布回滚和库存回滚不是同一个动作。商品标题或图片可以回滚到旧版本；库存预占和已确认订单不能简单回滚成旧数量。规则变更可以回退，但已经生成的订单合同和已发放的券码要按业务补偿处理。因此，回滚动作需要按对象分类：读模型回退、商品版本反向发布、库存冲正、订单补偿和供应商对账。</p>
+<h3 id="1177-对账和补偿"><a class="header" href="#1177-对账和补偿">11.7.7 对账和补偿</a></h3>
+<p>对账不是定期跑一条 SQL，而是比较两个有明确语义的数据集。常见对账有：商品中心正式版本与搜索索引版本、商品可售状态与库存资源状态、供应商批次与平台映射、发布版本与 Outbox、Task Item 结果与正式商品变更、订单快照与下单时商品版本。</p>
+<p>每种对账都要定义采样范围、比较键、允许的差异、发现后的修复方式和无法自动修复时的人工流程。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>对账对象</th><th>比较键</th><th>允许差异</th><th>自动修复</th></tr>
+</thead>
+<tbody>
+<tr><td>Item / Search</td><td><code>item_id</code> + version</td><td>索引短暂落后</td><td>重放事件或重建文档</td></tr>
+<tr><td>Item / Inventory</td><td><code>item_id</code> + inventory config version</td><td>未初始化期间不可售</td><td>重试初始化或人工处理</td></tr>
+<tr><td>Outbox / Event bus</td><td><code>event_id</code></td><td>发送延迟</td><td>扫描 Outbox 重发</td></tr>
+<tr><td>Supplier / Platform</td><td>外部 ID + source version</td><td>批次窗口内延迟</td><td>拉取确认或生成差异</td></tr>
+<tr><td>Task / Item</td><td><code>task_id</code> + item key</td><td>行级处理中</td><td>续租、重试或人工关闭</td></tr>
+<tr><td>Order / Product</td><td>snapshot ID + publish version</td><td>只允许引用关系差异</td><td>不修改订单快照，补充解释</td></tr>
+</tbody>
+</table>
+</div>
+<p>补偿不是把系统恢复到某个想象中的“正确状态”，而是把当前状态推进到符合不变量的新状态。例如搜索索引落后，可以重放当前商品版本；库存初始化失败，可以重新申请资源；错误的商品发布，需要生成反向变更并重新审核；供应商误删，需要先恢复来源映射，再决定是否重新上架。</p>
+<h3 id="1178-可观测性从技术日志到业务链路"><a class="header" href="#1178-可观测性从技术日志到业务链路">11.7.8 可观测性：从技术日志到业务链路</a></h3>
+<p>OpenTelemetry 将遥测信号分为 traces、metrics 和 logs，并强调上下文传播和语义约定。[14] 中文概念文档对同一套信号和上下文传播提供了本地化说明，便于团队把规范落到实际字段。[23] 对本章场景，最重要的是让同一条商品生命周期能够被关联起来：<code>supply_trace_id</code> 串起供给流程，<code>operation_id</code> 标识一次业务动作，<code>task_id</code> 标识异步任务，<code>item_id</code> 标识正式资产，<code>publish_version</code> 标识事实版本，<code>event_id</code> 标识传播事件，<code>order_id</code> 标识后续交易。</p>
+<p>一次批量导入的追踪不能只在 HTTP 请求结束时停止。它应把 Parser、Normalizer、QC、Publisher、Outbox、Search Projector 和 Inventory Worker 的关键阶段串成可查询的链路。由于一个任务可能包含十万行，不能为每一行都无限制采样完整 trace；可以对任务级、批次级、异常行和随机成功行采样，并用结构化日志保存行级摘要。</p>
+<pre><code class="language-text">trace_id: supply-trace-20260921-001
+operation_id: import-operation-17
+task_id: task-20260921-0008
+item_id: item-88421
+publish_version: 19
+event_id: event-9c2
+
+stage=parser      duration_ms=420   result=success
+stage=normalize   duration_ms=87    result=success
+stage=qc          duration_ms=131   result=manual_review
+stage=publisher   duration_ms=0     result=not_started
+</code></pre>
+<p>指标要能支持决策。<code>task_oldest_age</code> 上升时，平台要知道是入口洪峰、Worker 不足、数据库锁等待、供应商限流还是某类毒性任务；<code>publish_to_search_lag</code> 上升时，要知道 Outbox、消息消费、索引写入还是版本冲突造成；<code>inventory_ready_lag</code> 上升时，要知道初始化命令未受理、资源创建失败还是可售投影没有更新。</p>
+<h3 id="1179-运营看板和稳定性治理"><a class="header" href="#1179-运营看板和稳定性治理">11.7.9 运营看板和稳定性治理</a></h3>
+<p>一个面向运营的看板至少包含：待处理任务、最老任务、失败率、部分成功任务、人工队列、供应商健康度、发布版本滞后、搜索与缓存差异、库存初始化异常和近期强制下架。一个面向工程的看板至少包含：数据库锁等待、事务回滚、Outbox 未发送、消费延迟、DLQ 增长、Worker 租约超时、依赖错误率、重试次数和对账修复时长。</p>
+<p>两种看板要用同一组关联 ID 互相跳转。运营看见“某批任务 20% 失败”，可以定位到错误文件和规则；工程人员看见“搜索消费延迟”，可以跳到商品版本和受影响的业务类目。只有技术指标没有业务结果，或者只有业务结果没有处理上下文，都会导致故障定位依赖人工询问。</p>
+<h3 id="11710-失败后的人工与自动边界"><a class="header" href="#11710-失败后的人工与自动边界">11.7.10 失败后的人工与自动边界</a></h3>
+<p>自动化适合处理重复、明确、可验证的动作：超时重试、Outbox 扫描、旧版本过滤、索引重建、无副作用的格式转换。人工适合处理语义不确定、影响范围大或需要业务判断的动作：供应商对象映射冲突、大批量下架、退改规则变更、跨版本合并和合规风险解除。</p>
+<p>一个健康的平台不是把所有异常都自动化，而是让自动化在不确定时停下来，并把足够的信息交给人工。自动化越强，审计、模拟、回滚和权限边界越重要。</p>
+<h3 id="11711-测试和演练策略"><a class="header" href="#11711-测试和演练策略">11.7.11 测试和演练策略</a></h3>
+<p>商品供给平台的测试不能只验证“接口返回 200”。它需要覆盖模型不变量、状态迁移、异步投递、版本冲突、部分成功和恢复路径。测试对象可以分为五层。</p>
+<p>第一层是领域规则测试。验证类目模板、SKU 组合、退改规则、库存类型、字段主导权和发布前置条件。它们不依赖数据库和消息系统，应该快速覆盖大量边界。</p>
+<p>第二层是状态机测试。对每个状态机列出允许迁移、禁止迁移、重复迁移、并发迁移和人工关闭。状态机测试要验证状态原因、操作者、版本和事件是否同步写入，而不是只验证最终枚举值。</p>
+<p>第三层是事务和幂等测试。重复提交相同命令应返回同一结果；相同幂等键不同参数应拒绝；数据库死锁后重试不能生成第二个版本；事务提交成功而 Outbox 发布失败时，扫描任务能够补发；Outbox 发布成功而消费者超时时，重复消息不会产生第二次库存副作用。</p>
+<p>第四层是契约和投影测试。生产者发布新 schema 后，旧消费者仍能处理兼容事件；搜索、缓存和库存消费者收到版本 3 后再收到版本 2，不得回退；索引重建期间的增量事件能够补齐；订单快照不依赖当前商品读取。</p>
+<p>第五层是故障演练。主动注入 Worker 宕机、租约过期、数据库死锁、消息重复、消息乱序、供应商分页缺失、对象存储不可用、搜索 mapping 冲突、库存资源创建未知结果和 DLQ 堆积。演练目标不是证明系统永远不失败，而是测量发现、隔离、恢复和人工接管分别需要多长时间。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>测试类型</th><th>示例输入</th><th>期待结果</th></tr>
+</thead>
+<tbody>
+<tr><td>规则单测</td><td>缺类目、重复 SKU、时间窗口反转</td><td>精确错误码和字段路径</td></tr>
+<tr><td>状态机测试</td><td><code>QC_PASSED</code> 后修改 Staging</td><td>必须生成新版本或拒绝</td></tr>
+<tr><td>幂等测试</td><td>同命令提交三次</td><td>只生成一个正式版本</td></tr>
+<tr><td>乱序测试</td><td>版本 3 先于版本 2 到达</td><td>投影停留在版本 3</td></tr>
+<tr><td>部分成功测试</td><td>2,000 行中 100 行冲突</td><td>其余行正常完成，报告可下载</td></tr>
+<tr><td>租约测试</td><td>Worker 持有租约后宕机</td><td>超时后由新 Worker 接管</td></tr>
+<tr><td>对账测试</td><td>搜索缺一个版本、库存少一个资源格</td><td>差异被发现并进入修复</td></tr>
+<tr><td>回滚演练</td><td>新版本导致展示错误</td><td>读模型可切回，订单不受破坏</td></tr>
+</tbody>
+</table>
+</div>
+<p>测试数据还要包含时间、时区、重复外部 ID、来源版本回退、空列表和超大列表。供应商接口的模拟不能只返回“成功 JSON”，还要模拟连接超时、部分页、重复页、限流、错误码和返回顺序变化。只有这样，任务执行器的 Checkpoint 和幂等逻辑才会被真正验证。</p>
+<h3 id="11712-数据质量反馈闭环"><a class="header" href="#11712-数据质量反馈闭环">11.7.12 数据质量反馈闭环</a></h3>
+<p>质量治理不是发布前的一道闸门。发布后仍要收集用户投诉、客服工单、订单取消、库存失败、搜索零结果、供应商对账差异和人工修复结果，把它们反馈到规则、模板和来源契约中。</p>
+<p>例如，如果某类酒店商品经常因为退改规则不清导致退款，平台不能只在订单服务增加异常分支，还应回溯到商品模板和供应商映射，要求发布前补充可解释的取消窗口。如果某供应商总是提供过期库存，平台应降低它的同步优先级、增加交易前确认或进入人工审核，而不是让搜索继续展示“看起来有房”的结果。</p>
+<p>质量问题表可以包含问题类型、发现渠道、对象、版本、来源、影响订单数、当前状态、根因、处置动作和规则修订。问题关闭前要确认修复已投影到受影响对象，而不是只把工单标记为完成。</p>
+<h3 id="11713-版本化运营规则"><a class="header" href="#11713-版本化运营规则">11.7.13 版本化运营规则</a></h3>
+<p>运营规则本身也需要版本化。类目模板、审核规则、字段主导权、供应商可信等级、库存初始化策略和灰度配置都可能改变商品处理结果。若系统只保存当前配置，事后无法解释为什么同样的输入在昨天通过、今天被拒绝。</p>
+<p>规则执行记录至少保存规则版本、执行时间、输入摘要、输出结果和执行器版本。规则发布可以采用配置灰度，先在影子模式下计算结果但不阻断发布，再比较误报和漏报，确认后逐步启用。高风险规则需要能够快速回退，但回退只影响新任务，不应自动改写已经完成的审计记录。</p>
+<h3 id="11714-质量指标抽样和规则校准"><a class="header" href="#11714-质量指标抽样和规则校准">11.7.14 质量指标、抽样和规则校准</a></h3>
+<p>质量平台需要同时观察通过率和错误后果。通过率高可能意味着规则过松，也可能意味着上游输入变好了；驳回率高可能意味着供应商质量差，也可能意味着模板设计不适配。不能把“通过率越高越好”作为唯一目标。至少需要按来源、类目、规则版本和处理阶段分层统计，并把发布后的订单取消、投诉和库存失败回流到质量指标中。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标</th><th>观察问题</th><th>不能单独说明什么</th><th>需要联动的指标</th></tr>
+</thead>
+<tbody>
+<tr><td>结构校验通过率</td><td>输入是否满足 schema</td><td>业务内容是否正确</td><td>语义错误率、人工驳回率</td></tr>
+<tr><td>人工审核率</td><td>自动规则覆盖程度</td><td>审核结果是否准确</td><td>误报率、审核时长</td></tr>
+<tr><td>发布成功率</td><td>正式写入是否稳定</td><td>下游是否已收敛</td><td>Outbox 年龄、投影滞后</td></tr>
+<tr><td>可售转化率</td><td>商品是否具备交易条件</td><td>价格和用户体验是否正确</td><td>库存初始化、订单失败</td></tr>
+<tr><td>投诉率</td><td>用户实际感知质量</td><td>根因属于哪个字段</td><td>订单快照、规则版本</td></tr>
+<tr><td>规则误报率</td><td>风险规则是否过严</td><td>漏报风险有多大</td><td>线上事故、人工复核</td></tr>
+</tbody>
+</table>
+</div>
+<p>抽样要覆盖成功和失败两侧。只抽查错误数据会高估问题严重程度，只有成功样本则无法发现规则漏报。可以按供应商和类目做分层抽样，对高风险字段提高抽样比例，对低风险展示字段降低抽样比例；样本结论要记录到规则版本，避免规则升级后仍引用旧校准结果。</p>
+<p>规则校准还要关注变化率。一个供应商每天新增一万条房型，其中九千条标题变化可能是正常的批量重命名，也可能是接口把语言字段错映射；单看变化数量无法判断。平台可以比较字段变化的分布、历史基线、关联订单和人工确认结果，形成“变化可信度”。可信度不是最终权威，但能帮助调度器决定自动发布、延迟发布或进入人工队列。</p>
+<h3 id="11715-数据保留脱敏和删除语义"><a class="header" href="#11715-数据保留脱敏和删除语义">11.7.15 数据保留、脱敏和删除语义</a></h3>
+<p>商品供给链路同时包含供应商合同数据、原始文件、运营备注、用户订单引用和可能的敏感信息。数据保留不能只按表设置一个统一天数。正式商品版本、订单快照、审计记录、原始供应商输入、任务日志和临时错误文件的法律责任与恢复价值不同，应分别定义保留、归档、脱敏和删除策略。</p>
+<p>原始文件需要在任务完成后从在线处理区迁移到受控归档区，并限制下载权限；日志只保留必要的字段摘要，避免把完整供应商响应和个人信息写进高复制率的日志系统；订单快照应满足合同和售后追溯需要，不能因为当前商品被删除就失去解释能力；当供应商要求删除其来源数据时，平台要区分可删除的原始副本、必须保留的交易证据和仅保留摘要的审计记录。</p>
+<p>删除也应是有版本和审计的业务动作。直接物理删除 Item 可能破坏订单外键、对账映射和客服查询，因此更多情况下应使用下线、封禁、归档或不可售状态。真正需要删除时，要先计算影响范围，确认没有未完成交易和待处理任务，执行级联或保留替代引用，并记录删除操作本身。数据保留策略必须在架构设计阶段确定，而不是等存储成本升高后临时清理。</p>
+<h2 id="118-完整案例商品从创建到可售运营"><a class="header" href="#118-完整案例商品从创建到可售运营">11.8 完整案例：商品从创建到可售运营</a></h2>
+<h3 id="1181-案例边界和输入"><a class="header" href="#1181-案例边界和输入">11.8.1 案例边界和输入</a></h3>
+<p>下面用一个假设的酒店平台走通完整链路。供应商提供一个酒店资源、两个房型、三个售卖计划和未来九十天的日期库存；运营人员希望把其中一个房型改成平台统一的展示名称，并补充“入住前一天可取消”的退改规则；搜索系统需要能够按城市、入住日期和房型标签召回；订单系统需要在下单时保存当日看到的商品和规则。</p>
+<p>这个案例同时包含三个输入：第一次由供应商同步创建酒店资源和房型，第二次由运营人员编辑展示字段，第三次由库存运营人员补充未来日期的可售数量。它们不能互相覆盖，但必须最终形成一个能被搜索、详情和交易链路共同理解的商品。</p>
+<p>假设输入的关键标识如下：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>标识</th><th>示例</th><th>语义</th></tr>
+</thead>
+<tbody>
+<tr><td><code>supplier_id</code></td><td><code>hotel-supplier-17</code></td><td>外部来源主体</td></tr>
+<tr><td><code>external_resource_id</code></td><td><code>H-88921</code></td><td>供应商侧酒店身份</td></tr>
+<tr><td><code>external_room_id</code></td><td><code>H-88921-R-03</code></td><td>供应商侧房型身份</td></tr>
+<tr><td><code>supply_trace_id</code></td><td><code>supply-20260921-001</code></td><td>贯穿一次商品生命周期的跟踪身份</td></tr>
+<tr><td><code>operation_id</code></td><td><code>op-20260921-043</code></td><td>一次创建、编辑或同步动作</td></tr>
+<tr><td><code>item_id</code></td><td><code>item-88421</code></td><td>平台正式商品身份</td></tr>
+<tr><td><code>publish_version</code></td><td><code>19</code></td><td>平台正式版本</td></tr>
+<tr><td><code>inventory_batch_id</code></td><td><code>inv-batch-302</code></td><td>库存初始化或补货批次</td></tr>
+</tbody>
+</table>
+</div>
+<p>案例的完成条件不是“所有服务都返回成功”，而是以下不变量同时成立：</p>
+<ol>
+<li>平台能够由 <code>item_id</code> 反查来源、草稿、审核、发布和库存任务。</li>
+<li>当前正式 Item 对应一个明确的 <code>publish_version</code>，搜索和缓存不会接受更旧版本覆盖。</li>
+<li>交易前能够依据入住日期、房型和人数检查权威库存，不能只信搜索结果。</li>
+<li>订单保存自己的商品、退改和价格快照，后续商品编辑不改变历史解释。</li>
+<li>任意一次失败都能定位到阶段、输入、责任主体和下一步恢复动作。</li>
+</ol>
+<h3 id="1182-阶段一接收供应商原始数据"><a class="header" href="#1182-阶段一接收供应商原始数据">11.8.2 阶段一：接收供应商原始数据</a></h3>
+<p>供应商任务调度器先创建 <code>sync_task</code>，而不是直接调用商品中心的创建接口。任务包含供应商、拉取窗口、请求凭证引用、上一次成功 Checkpoint、全量或增量模式以及本次批次 ID。调度器根据供应商配额决定是否立即执行。</p>
+<p>Fetcher 从供应商 API 取得房型对象后，把原始响应保存为不可变 Raw Snapshot。原始数据的用途是审计和重放，不直接用于展示。保存时计算内容摘要、记录响应时间、供应商版本、分页游标和协议状态；如果供应商接口返回部分页或响应签名校验失败，任务不能进入标准化阶段。</p>
+<p>Raw Snapshot 不能只保存“最新值”。如果供应商在凌晨把房型名称从“高级大床”改成“豪华大床”，平台需要知道两次原始输入的差异，才能判断这是不是业务变更、重复推送还是接口回退。原始数据可以按保留策略归档，但至少要保留与正式版本和订单影响相关的窗口。</p>
+<h3 id="1183-阶段二标准化映射和去重"><a class="header" href="#1183-阶段二标准化映射和去重">11.8.3 阶段二：标准化、映射和去重</a></h3>
+<p>Transformer 读取 Raw Snapshot，把供应商字段映射到平台中间模型。它需要完成单位转换、时区归一、币种标识、退改规则拆解、房型属性标准化和资源关系绑定。</p>
+<p>对于房型 <code>H-88921-R-03</code>，平台可能得到以下中间模型：</p>
+<pre><code class="language-json">{
+  "resource": {
+    "external_id": "H-88921",
+    "resource_type": "hotel",
+    "city_code": "SHA"
+  },
+  "product": {
+    "external_id": "H-88921-R-03",
+    "name": "高级大床",
+    "occupancy": 2,
+    "area_sqm": 28
+  },
+  "rate_plans": [
+    {
+      "external_id": "RP-03-FLEX",
+      "cancel_policy": "before_checkin_day_1",
+      "breakfast": true
+    }
+  ]
+}
+</code></pre>
+<p>标准化后先计算对象指纹。指纹应覆盖会影响商品语义的字段，例如名称、入住人数、面积、退改、早餐和售卖计划；不应把供应商返回时间、分页顺序或无业务意义的展示字段纳入指纹。指纹不变的输入标记为 <code>SKIPPED_NOOP</code>，不触发商品中心发布和下游刷新。</p>
+<p>去重需要同时使用来源身份和平台映射。相同供应商、相同外部 ID、相同来源版本的重复消息可以被安全跳过；不同来源 ID 映射到同一个平台 Item，需要检查人工映射和唯一约束；同一个外部 ID 被供应商重新分配给不同资源，则不能直接更新，必须进入冲突队列。</p>
+<h3 id="1184-阶段三生成-draftstaging-和-qc"><a class="header" href="#1184-阶段三生成-draftstaging-和-qc">11.8.4 阶段三：生成 Draft、Staging 和 QC</a></h3>
+<p>对于新对象，供给平台创建 Draft，保存 <code>supplier_id</code>、外部 ID、原始快照引用、中间模型、规范化指纹和 <code>supply_trace_id</code>。Draft 还会加入平台默认类目、履约规则候选和库存类型候选。</p>
+<p>规则引擎随后执行三类校验：</p>
+<ul>
+<li>类目和字段校验：房型必须有入住人数、面积、资源归属和售卖计划。</li>
+<li>交易和履约校验：退改规则、入住窗口、供应商确认方式和库存类型必须相容。</li>
+<li>风险和运营校验：标题不能命中禁用词，供应商资质有效，价格和库存变化在允许范围内。</li>
+</ul>
+<p>如果校验只发现字段级错误，Task Item 进入 <code>FAILED_VALIDATION</code> 并生成错误明细；如果发现供应商批次全部使用了未知 schema，Task 进入任务级失败；如果发现一个房型映射到两个平台商品，进入 <code>WAITING_MANUAL</code>，不能让后续 Worker 继续猜测。</p>
+<p>通过结构和语义校验的 Draft 被复制或冻结为 Staging。这里的“复制”不是复制所有大字段，而是创建一个指向不可变内容版本的引用。Staging 记录内容摘要、规则版本和基线版本，QC 记录针对这个确定版本生成。</p>
+<p>审核员在 QC 页面看到：供应商原文、平台标准化结果、与已有 Item 的差异、字段主导权冲突、库存配置、退改规则和风险命中项。如果运营人员只想修改展示标题，可以在 Draft 层编辑并生成新的 Staging；如果修改入住人数或退改政策，必须重新走相应的风险规则。</p>
+<h3 id="1185-阶段四发布正式商品"><a class="header" href="#1185-阶段四发布正式商品">11.8.5 阶段四：发布正式商品</a></h3>
+<p>QC 通过后，发布协调器生成 <code>PublishCommand</code>：</p>
+<pre><code class="language-json">{
+  "command_id": "cmd-publish-77",
+  "idempotency_key": "supplier-17:H-88921-R-03:version-5",
+  "staging_id": "staging-502",
+  "content_version": 5,
+  "item_id": null,
+  "base_publish_version": 0,
+  "operator_id": "system-supplier-sync",
+  "reason": "supplier_initial_publish"
+}
+</code></pre>
+<p>商品中心写侧先检查 <code>staging_id</code> 和 QC 结果，再决定创建新的 <code>item_id</code>。事务内写入 Resource 引用、Product Item、SPU、SKU、Offer、Rate Plan、发布版本、商品快照、变更日志和 Outbox。事务提交后返回 <code>item_id = item-88421</code>、<code>publish_version = 1</code> 和 <code>event_id = event-9001</code>。</p>
+<p>发布成功不等于商品马上可售。此时商品中心的正式事实已经存在，但库存系统可能还没有创建日期资源。商品状态可以是 <code>PUBLISHED</code>，可售投影是 <code>NOT_READY</code>。如果产品允许展示不可预订的详情页，详情可以返回商品；如果产品要求只有有库存才展示，搜索投影暂时不收录。</p>
+<h3 id="1186-阶段五库存初始化和可售投影"><a class="header" href="#1186-阶段五库存初始化和可售投影">11.8.6 阶段五：库存初始化和可售投影</a></h3>
+<p>库存协调器消费 <code>ItemPublished</code>，读取商品中心的库存配置。对于酒店房型，库存配置说明它按入住日期、房型和人数管理资源格；协调器创建未来九十天的资源格或向供应商申请可查询的外部资源引用。</p>
+<p>初始化任务使用 <code>inventory_batch_id</code>，每个日期格有自己的 Task Item。某一天供应商返回超时，不应让九十天全部失败；该日期标记为 <code>INIT_RETRYING</code>，其他成功日期可以进入 <code>AVAILABLE</code>。可售投影计算的是“商品状态 + 销售窗口 + 资源状态”的组合，而不是简单复制库存数量。</p>
+<pre class="mermaid">
+sequenceDiagram
+    participant O as 运营 / 供应商
+    participant S as 供给平台
+    participant P as 商品中心
+    participant I as 库存系统
+    participant X as 搜索投影
+    participant T as 交易系统
+
+    O-&gt;&gt;S: 提交供应商对象或编辑
+    S-&gt;&gt;S: Raw Snapshot / 标准化 / QC
+    S-&gt;&gt;P: PublishCommand
+    P-&gt;&gt;P: 本地事务写 Item、Version、Snapshot、Outbox
+    P--&gt;&gt;S: item_id + publish_version
+    P--&gt;&gt;I: ItemPublished(version=1)
+    I-&gt;&gt;I: 创建日期资源与库存任务
+    I--&gt;&gt;P: InventoryReady 或 InventoryInitFailed
+    P--&gt;&gt;X: ItemPublished + InventoryReady
+    X-&gt;&gt;X: 版本检查与索引投影
+    T-&gt;&gt;P: 交易前商品校验
+    T-&gt;&gt;I: 交易前库存预占
+    T-&gt;&gt;T: 保存商品、价格和规则快照
+</pre>
+
+<h3 id="1187-阶段六运营编辑与版本冲突"><a class="header" href="#1187-阶段六运营编辑与版本冲突">11.8.7 阶段六：运营编辑与版本冲突</a></h3>
+<p>两天后，运营人员发现平台展示名称“高级大床”不符合统一话术，希望改成“城市景观大床房”。运营页面打开的是商品版本 1，生成 Draft <code>draft-701</code>，基线为 1。与此同时，供应商推送了新的面积和入住人数变更，商品中心发布版本 2。</p>
+<p>运营提交时，商品中心发现 <code>base_publish_version = 1</code>，当前版本为 2，于是拒绝直接发布。供给平台给出差异：供应商修改了面积和入住人数，运营修改了展示标题。平台可以依据字段主导权进行安全合并，也可以要求运营确认版本 2。若标题和面积互不冲突，系统生成基于版本 2 的新 Staging；若双方都修改了退改规则，则必须人工选择。</p>
+<p>这个过程看起来比“最后写入覆盖”复杂，但它保护了两个重要事实：运营人员确实是在旧版本上编辑的，供应商变更没有被静默抹掉。审计记录能解释最终版本 3 是如何由版本 2 和运营 Draft 合并而来。</p>
+<h3 id="1188-阶段七重复超时和乱序"><a class="header" href="#1188-阶段七重复超时和乱序">11.8.8 阶段七：重复、超时和乱序</a></h3>
+<p>供应商没有收到第一次发布请求的响应，于是用相同的幂等键重试。商品中心发现 <code>idempotency_key</code> 已有成功结果，返回原来的 <code>item_id</code> 和版本，不再创建第二个 Item。若供应商用相同键发送了不同面积，服务返回参数冲突，要求供应商生成新的业务操作键。</p>
+<p>随后，事件 <code>ItemPublished(version=3)</code> 因消息系统延迟先于 <code>ItemPublished(version=2)</code> 到达搜索系统。搜索投影先应用版本 3 并记录 <code>projected_version = 3</code>；版本 2 到达时，消费者判断它更旧，记录乱序指标后确认消息，不回滚索引。对账任务仍会比较商品中心版本和索引版本，确保不是消费者误判。</p>
+<p>如果库存初始化请求超时，库存系统不能直接返回“没有库存”。它需要查询请求 ID 或幂等键对应的执行记录，判断远端是否已经创建资源。如果查询仍然不确定，任务进入 <code>UNKNOWN</code> 或 <code>WAITING_CONFIRMATION</code>，而不是立即重试一个可能产生重复资源的创建动作。AWS 的幂等 API 讨论也强调，网络超时造成的“结果未知”需要通过语义等价重试或查询确认处理。[7]</p>
+<h3 id="1189-阶段八批量编辑和部分成功"><a class="header" href="#1189-阶段八批量编辑和部分成功">11.8.9 阶段八：批量编辑和部分成功</a></h3>
+<p>运营又上传了一个文件，希望给同一城市的 2,000 个房型统一补充“含早餐”标签。Parser 生成 2,000 个 Task Item，其中 1,850 个对象版本匹配，100 个对象已经被供应商更新，30 个对象无法映射，20 个对象命中需要人工复核的风险规则。</p>
+<p>任务不能简单返回失败。1,850 个对象可以生成一个批量 Staging 并发布；100 个版本冲突对象进入差异队列；30 个映射失败对象进入错误文件；20 个高风险对象进入人工审核。运营看到的结果应该是：成功 1,850、冲突 100、数据错误 30、待审核 20，并能下载每一类的处理明细。</p>
+<p>批量发布可以按批次提交，但每个对象仍然使用自己的基线版本和幂等键。批次级事件可以用于进度汇总，商品级事件用于下游投影。不能因为批量操作共用了一个 HTTP 请求，就把所有商品放进一个数据库长事务。</p>
+<h3 id="11810-阶段九下架库存和订单"><a class="header" href="#11810-阶段九下架库存和订单">11.8.10 阶段九：下架、库存和订单</a></h3>
+<p>若供应商宣布该酒店房型终止销售，平台不会直接删除 Item。同步任务先生成下线候选，检查是否存在未来订单、未完成预占和仍有效的其他供应商 Offer。合规要求或供应商明确终止可以使 Item 进入 <code>BANNED</code> 或 <code>OFFLINE</code>，但订单系统需要继续读取历史快照，履约系统需要依据订单合同处理已有订单。</p>
+<p>对未来没有订单但存在未使用券码的数字商品，下架也不能简单删除券码库存。系统需要决定券码是否还能兑换、是否需要停止发放、是否需要通知用户。商品生命周期和资源生命周期可以不同步，但必须通过策略明确连接。</p>
+<h3 id="11811-阶段十对账和最终收敛"><a class="header" href="#11811-阶段十对账和最终收敛">11.8.11 阶段十：对账和最终收敛</a></h3>
+<p>案例结束后，对账任务抽样检查：</p>
+<ol>
+<li>商品中心的 <code>item-88421</code> 当前版本是否等于 3。</li>
+<li>搜索索引的 <code>projected_version</code> 是否等于 3 或处于允许滞后窗口。</li>
+<li>库存系统的未来日期资源是否与库存配置版本相容。</li>
+<li>Outbox 的 <code>event-9001</code> 是否已发送并被关键消费者确认。</li>
+<li>订单快照是否引用正确的商品版本和规则快照。</li>
+<li>供应商最新来源版本是否已经映射到平台版本，还是处于冲突队列。</li>
+</ol>
+<p>如果搜索版本落后，自动重放版本 3 事件；如果库存某个日期格缺失，重试对应 Task Item；如果供应商来源版本和平台人工版本冲突，保留人工版本并创建待确认差异；如果订单快照缺少字段，不能通过刷新当前商品修复，而应进入订单数据修复流程。</p>
+<h3 id="11812-案例中的失败语义"><a class="header" href="#11812-案例中的失败语义">11.8.12 案例中的失败语义</a></h3>
+<p>完整链路中最重要的不是每一步都成功，而是每一步失败后仍然知道系统处于什么状态。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>事件</th><th>已完成事实</th><th>未完成事实</th><th>对外状态</th><th>下一步</th></tr>
+</thead>
+<tbody>
+<tr><td>Draft 保存成功</td><td>草稿可恢复</td><td>未审核、未发布</td><td>处理中</td><td>提交审核</td></tr>
+<tr><td>QC 通过</td><td>指定版本通过规则</td><td>未发布</td><td>待发布</td><td>生成发布命令</td></tr>
+<tr><td>商品中心提交成功</td><td>正式 Item、版本、Outbox 已存在</td><td>下游未必完成</td><td>已发布、投影待收敛</td><td>事件消费</td></tr>
+<tr><td>库存初始化部分成功</td><td>部分日期资源可售</td><td>其他日期未就绪</td><td>部分可售或不可售</td><td>重试失败格</td></tr>
+<tr><td>搜索投影失败</td><td>正式商品不受影响</td><td>列表仍是旧版本</td><td>搜索暂时陈旧</td><td>重放或重建</td></tr>
+<tr><td>供应商版本冲突</td><td>人工版本仍权威</td><td>外部变更未合并</td><td>待人工确认</td><td>差异合并</td></tr>
+<tr><td>订单创建成功</td><td>合同和快照已保存</td><td>商品后续可变化</td><td>订单有效</td><td>按订单事实履约</td></tr>
+</tbody>
+</table>
+</div>
+<p>如果系统能清楚表达这些状态，运营和工程团队就可以围绕事实协作；如果只能返回一个“失败”，所有恢复都将变成数据库探查和人工猜测。</p>
+<h3 id="11813-从案例抽象出的通用方法"><a class="header" href="#11813-从案例抽象出的通用方法">11.8.13 从案例抽象出的通用方法</a></h3>
+<p>这个酒店案例可以迁移到其他供给业务。实物商品把日期资源换成数量库存，数字商品把房型换成券码批次，门票把供应商确认换成场次容量，课程把资源格换成开班名额。变化的是库存语义、履约规则和风控规则，不变的是：来源输入先进入控制面，确定版本后才进入事实面，跨域动作通过事件和补偿收敛，历史交易保存不可变快照。</p>
+<p>因此，评审一个新的商品供给需求时，可以先问：它新增了哪种对象、哪个状态机、哪个事实源、哪类输入、哪条发布边界和哪种恢复动作。如果答案只是“加几个字段、加一个接口”，通常说明复杂度还没有被显式建模。</p>
+<h3 id="11814-数字商品和实物商品的差异"><a class="header" href="#11814-数字商品和实物商品的差异">11.8.14 数字商品和实物商品的差异</a></h3>
+<p>为了检验模型是否真正通用，再把案例分别映射到数字商品和实物商品。</p>
+<p>数字商品通常没有日期库存，而是券码批次或权益实例。发布商品时，商品中心可以先发布 Offer，库存系统异步导入券码批次。券码上传必须经过格式、重复、敏感信息和批次归属检查；券码进入 <code>AVAILABLE</code> 后才能分配给订单。订单确认后，券码实例进入 <code>LOCKED</code> 或 <code>DELIVERED</code>，退款或取消是否释放要由权益规则决定，不能套用数量库存的简单加回。</p>
+<p>数字商品的供应商同步还要关注“码池已经发出但平台不知道”的未知结果。如果调用供应商激活接口超时，平台不能直接把券码标记为可用或已发放，而应使用请求 ID 查询。若供应商没有查询接口，必须建立对账文件或人工确认流程，并把未知状态与可用状态分开。</p>
+<p>实物商品的库存事实通常按仓库、批次、可售状态和配送区域管理。商品中心负责 SKU、包装、尺寸、重量和履约规则，库存系统负责仓库可用量、锁定量、在途量和冻结量。商品编辑可以改变包装描述，但改变重量和配送区域可能影响计价、仓配和订单履约，应按字段主导权进入重新审核或灰度。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>商品中心事实</th><th>库存事实</th><th>主要恢复动作</th></tr>
+</thead>
+<tbody>
+<tr><td>数字券码</td><td>商品、权益规则、使用窗口</td><td>券码实例和批次</td><td>查询激活结果、对账码池</td></tr>
+<tr><td>实物 SKU</td><td>规格、包装、履约限制</td><td>仓库、批次、可售和冻结量</td><td>订单级补偿、库存冲正</td></tr>
+<tr><td>酒店房型</td><td>房型、Rate Plan、退改规则</td><td>日期房态、供应商确认</td><td>重新询价、日期格对账</td></tr>
+<tr><td>门票场次</td><td>场次、票种、入场规则</td><td>场次容量、座位或配额</td><td>释放锁定、重新分配</td></tr>
+</tbody>
+</table>
+</div>
+<p>模型的通用部分是“商品配置和资源事实分离”，差异部分是库存单位、资源状态和恢复动作。设计新业务时，不要因为几个字段名称相同就复用全部库存代码；先确认资源的身份、可售条件、预占语义和最终履约动作。</p>
+<h3 id="11815-批量任务的端到端容量推演"><a class="header" href="#11815-批量任务的端到端容量推演">11.8.15 批量任务的端到端容量推演</a></h3>
+<p>假设一个批量文件有 100,000 行，Parser 每秒解析 2,000 行，标准化每秒处理 1,000 行，QC 规则每秒处理 500 行，Publisher 每秒提交 200 个对象，搜索投影每秒处理 500 个事件，库存初始化每秒处理 100 个资源格。粗略串行耗时分别约为 50 秒、100 秒、200 秒、500 秒、200 秒和 1,000 秒；但真实总时长还会受到数据库批次提交、供应商限流、锁冲突和尾部重试影响。</p>
+<p>这个推演说明两个问题。第一，最后的库存初始化可能是关键路径，而不是文件解析；第二，简单增加 Parser Worker 不能缩短端到端时间，必须观察每个阶段的队列和最慢批次。若 Publisher 是瓶颈，可以通过批量写入、按商品分区和独立连接池优化；若库存初始化受供应商配额限制，增加本地 Worker 反而会增加失败和重试。</p>
+<p>批次大小也需要测量。批次过小会增加数据库提交、消息和日志开销；批次过大则会放大失败重试范围，增加锁持有和单次内存占用。可以根据对象大小、事务耗时和下游接口配额动态选择批次，并记录每批耗时和失败行数。一个批次成功后才推进 Checkpoint，不能在处理到一半时提前写入“已完成”。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>参数</th><th>过小的代价</th><th>过大的代价</th><th>需要观测</th></tr>
+</thead>
+<tbody>
+<tr><td>解析批次</td><td>调度和提交开销高</td><td>内存和错误重放范围大</td><td>单批耗时、内存</td></tr>
+<tr><td>数据库提交批次</td><td>吞吐低</td><td>锁持有时间长</td><td>锁等待、回滚</td></tr>
+<tr><td>消息批次</td><td>网络调用多</td><td>单条失败影响范围大</td><td>发送延迟、重试量</td></tr>
+<tr><td>并行 Worker</td><td>资源利用不足</td><td>下游限流和数据库争用</td><td>队列深度、依赖错误</td></tr>
+<tr><td>Checkpoint 间隔</td><td>重启丢失进度多</td><td>Checkpoint 写放大</td><td>恢复时间、写入量</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="11816-供应商全量缺失和安全下线"><a class="header" href="#11816-供应商全量缺失和安全下线">11.8.16 供应商全量缺失和安全下线</a></h3>
+<p>假设供应商全量接口在一次分页请求中返回空列表。平台不能马上把全部房型下线，因为空列表可能是接口故障、权限失效、过滤条件错误或供应商真的没有资源。系统应先检查响应状态、签名、批次完整性、分页数、数据量是否低于历史阈值和供应商是否发布了明确的全量结束标记。</p>
+<p>如果批次完整但数量骤降，可以进入“疑似大规模变更”状态，要求供应商确认或进行第二次拉取。只有在确认来源可信、批次完整且业务策略允许时，才为缺失对象生成待下线集合。待下线对象仍然保留正式商品和历史映射，先停止新的可售投影；经过延迟窗口和订单检查后再推进正式下线。</p>
+<p>这个流程看起来增加了延迟，却避免了把供应商短暂故障放大成平台级下架。对大规模变更，系统要有熔断和人工确认阈值，例如按供应商、城市、类目和日期分组比较变化率。阈值本身也要版本化，因为旺季和淡季的正常变更范围不同。</p>
+<h3 id="11817-订单和商品并发变化"><a class="header" href="#11817-订单和商品并发变化">11.8.17 订单和商品并发变化</a></h3>
+<p>在用户浏览和下单之间，商品可能被编辑、下架，价格可能被计价系统重新计算，库存可能被其他订单预占。系统不能试图让所有页面和服务共享一个永远不变的商品状态，而应明确下单时的重新校验和快照边界。</p>
+<p>一个典型下单链路是：购物车携带 <code>item_id</code>、商品版本和用户选择；结算读取商品当前可交易字段、计价结果和库存可售；订单服务在本地事务内写订单草稿、商品快照、价格快照和预占引用；库存确认后订单进入待支付或已确认状态。如果商品版本在结算期间变化，系统可以根据字段影响判断是否重新计算：标题变化可能不影响合同，退改、价格、库存规则变化则必须重新确认。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>变化</th><th>是否必须重新确认</th><th>原因</th></tr>
+</thead>
+<tbody>
+<tr><td>展示标题变更</td><td>通常不需要</td><td>不改变交易金额和履约</td></tr>
+<tr><td>主图变更</td><td>视产品策略</td><td>可能影响用户预期但不一定改变合同</td></tr>
+<tr><td>价格规则变更</td><td>需要</td><td>金额发生变化</td></tr>
+<tr><td>退改规则变更</td><td>需要</td><td>交易合同发生变化</td></tr>
+<tr><td>房型规格变更</td><td>需要</td><td>用户购买对象发生变化</td></tr>
+<tr><td>商品下架</td><td>必须阻止新订单</td><td>正式状态不允许新交易</td></tr>
+<tr><td>某日期库存减少</td><td>需要重新校验</td><td>资源可能已经不可售</td></tr>
+</tbody>
+</table>
+</div>
+<p>订单快照应保存“确认时采用的版本”，而不是只保存当前状态。这样客服可以回答“下单当时为什么显示可退”，履约可以回答“订单使用了哪个房型规则”，对账可以把订单金额与当时的价格上下文对应起来。</p>
+<h3 id="11818-运营修复和系统自动修复的界面"><a class="header" href="#11818-运营修复和系统自动修复的界面">11.8.18 运营修复和系统自动修复的界面</a></h3>
+<p>自动修复适合没有业务歧义的场景。例如搜索索引落后、Outbox 未发送、事件重复、任务租约过期、数据库死锁、可验证的供应商临时超时。运营修复适合有业务判断的场景，例如两个商品是否重复、一个字段由谁主导、供应商缺失是否意味着下线、规则变更是否影响存量订单。</p>
+<p>修复接口要把“观察”“模拟”“执行”分开。观察接口只列出差异和影响范围；模拟接口计算如果执行会修改哪些对象、触发哪些事件；执行接口需要权限、幂等键、原因和确认。大范围修复要支持预览和分批，不允许管理员点击一次按钮就同步修改百万条正式数据。</p>
+<pre><code class="language-text">GET  /reconciliation/diffs?scope=supplier-17&amp;batch=302
+POST /reconciliation/simulations
+POST /reconciliation/actions
+
+simulation result:
+- affected_items: 1842
+- affected_inventory_resources: 5901
+- events_to_emit: 1842
+- orders_at_risk: 17
+- manual_decisions_required: 23
+</code></pre>
+<p>修复完成后，要重新运行同一对账规则确认差异是否消失；不能只检查命令返回成功。对于无法自动收敛的差异，要进入人工队列并保持可见。修复动作本身也会产生事件和审计，但事件应带有 <code>repair_operation_id</code>，让下游知道这是补偿而不是新的供应商输入。</p>
+<h3 id="11819-案例中的接口事件和数据证据"><a class="header" href="#11819-案例中的接口事件和数据证据">11.8.19 案例中的接口、事件和数据证据</a></h3>
+<p>把案例进一步落到接口契约，可以检查前面的模型是否真的能够实施。创建供给任务时，接口保存原始文件摘要、供应商、批次和幂等键；任务查询返回各阶段计数和最近 Checkpoint；提交审核时引用确定的 Staging 版本；发布时携带基线版本和发布原因；库存初始化时引用商品版本和库存配置版本。每个接口都只承诺自己掌握的边界。</p>
+<pre><code class="language-json">{
+  "operation_id": "op-20260921-043",
+  "item_id": "item-88421",
+  "base_publish_version": 18,
+  "staging_version": 42,
+  "idempotency_key": "publish-item-88421-v42",
+  "reason": "supplier-sync-and-operator-review",
+  "requested_by": "operator-17"
+}
+</code></pre>
+<p>商品中心接受发布后，返回正式版本和本地事件身份；它不等待搜索和库存完成。事件可以包含以下证据：谁发起了操作、哪个正式版本发生了变化、源 Staging 是什么、规则版本是什么、事件由哪个服务产生。下游在处理时保存自己的投影版本和处理结果，任何一方都能通过 <code>operation_id</code>、<code>item_id</code>、<code>publish_version</code> 和 <code>event_id</code> 回到同一条生命周期链路。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>证据</th><th>产生位置</th><th>解释的问题</th><th>保留方式</th></tr>
+</thead>
+<tbody>
+<tr><td>原始输入摘要</td><td>入口 / Raw Snapshot</td><td>平台收到的是什么</td><td>原始对象或摘要与地址</td></tr>
+<tr><td>标准化结果</td><td>Transformer</td><td>来源如何映射到平台</td><td>中间模型和错误</td></tr>
+<tr><td>QC 记录</td><td>审核域</td><td>为什么允许或拒绝</td><td>规则版本、审核人、结论</td></tr>
+<tr><td>发布版本</td><td>商品中心</td><td>正式事实何时改变</td><td>不可变版本和快照</td></tr>
+<tr><td>Outbox 事件</td><td>商品中心数据库</td><td>事实是否产生传播任务</td><td>事件记录和发送状态</td></tr>
+<tr><td>投影版本</td><td>搜索、缓存、库存</td><td>下游是否追上</td><td>消费记录和差异</td></tr>
+<tr><td>订单快照</td><td>订单系统</td><td>用户确认了什么</td><td>合同快照和价格规则</td></tr>
+</tbody>
+</table>
+</div>
+<p>证据链要避免两个极端。只保存完整原始响应会造成存储和隐私压力，完全不保存原始输入又无法复盘来源错误；只保存当前商品会丢失历史，保存所有中间对象又会让查询和归档复杂。可以按风险和不可逆程度分层：正式版本、订单快照和审计记录长期保留；Raw Snapshot 在可解释和对账窗口内保留；临时解析结果在任务完成后转为摘要或归档。</p>
+<h3 id="11820-案例的上线切分和回滚顺序"><a class="header" href="#11820-案例的上线切分和回滚顺序">11.8.20 案例的上线切分和回滚顺序</a></h3>
+<p>完整链路不应一次性切换。可以先让供应商数据进入 Raw Snapshot 和任务看板，观察解析错误和批次完整性；再开启标准化和 Diff，但不写正式商品；然后对一小批供应商开启 Draft、QC 和 Staging；确认版本、审计和人工队列稳定后，再开启商品发布；最后逐步接入库存初始化、搜索投影和交易前校验。每一步都要有停止条件和可回退的读路径。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>阶段</th><th>开启能力</th><th>观察重点</th><th>停止条件</th></tr>
+</thead>
+<tbody>
+<tr><td>影子接入</td><td>原始数据、解析和错误报告</td><td>批次完整、字段映射、敏感信息</td><td>原始输入丢失或错误率异常</td></tr>
+<tr><td>受控标准化</td><td>中间模型和 Diff</td><td>重复率、字段冲突、规则误报</td><td>正式对象被错误覆盖</td></tr>
+<tr><td>受控发布</td><td>少量供应商进入商品中心</td><td>版本冲突、Outbox、QC 队列</td><td>正式版本无法解释或回放</td></tr>
+<tr><td>投影接入</td><td>搜索、缓存和营销消费事件</td><td>版本滞后、乱序、重建能力</td><td>旧版本覆盖新版本</td></tr>
+<tr><td>交易接入</td><td>库存和订单使用新契约</td><td>交易前失败、快照完整、对账</td><td>超卖或订单无法追溯</td></tr>
+</tbody>
+</table>
+</div>
+<p>回滚顺序应从用户可见投影到事实写入逐步处理。发现搜索文案错误时，先切换读模型或停止错误版本的投影；发现商品正式版本错误时，创建反向发布版本并重新走审核；发现库存配置错误时，冻结受影响资源、停止新订单并按库存域规则冲正；发现订单合同问题时，进入客服和履约补偿流程，不能删除商品版本掩盖历史。</p>
+<p>灰度期间要区分“新链路产生的事实”和“新链路展示的投影”。如果新链路只在影子模式计算结果，不能把影子结果写进正式事件；如果新链路已经写正式版本，旧链路就只能读取或处理明确分工的对象，不能同时写同一个字段。灰度结束前要关闭旧写入口或建立唯一主导权，否则两个版本会继续竞争。</p>
+<h2 id="119-方案决策与演进路线"><a class="header" href="#119-方案决策与演进路线">11.9 方案决策与演进路线</a></h2>
+<h3 id="1191-adr-的写法"><a class="header" href="#1191-adr-的写法">11.9.1 ADR 的写法</a></h3>
+<p>商品平台的方案讨论经常被简化成“推荐使用某组件”。这种写法无法解释约束，也无法告诉后来者什么情况下应该重新评估。一个可复用的 ADR 至少要包含：背景与问题、决策驱动因素、候选方案、最终决策、获得的能力、主动牺牲的能力、已接受的风险、验证指标和重新评估条件。</p>
+<p>下面统一使用一组维度比较方案：一致性、可用性、延迟、吞吐、成本、复杂度、可运维性、数据新鲜度、恢复能力和团队负担。表格负责横向比较，正文负责解释为什么在当前约束下做出选择。</p>
+<h3 id="1192-adr-1draft-放在哪里"><a class="header" href="#1192-adr-1draft-放在哪里">11.9.2 ADR-1：Draft 放在哪里</a></h3>
+<p><strong>背景与问题。</strong> Draft 需要支持多入口写入、持续编辑、与正式版本做 Diff，并在发布前接受 QC。它应该放在供给平台，还是商品中心写侧？</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>获得的能力</th><th>牺牲的能力</th><th>主要风险</th></tr>
+</thead>
+<tbody>
+<tr><td>Draft 全部放供给平台</td><td>流程隔离、供给任务易扩展</td><td>Diff 和发布需要跨服务读取正式模型</td><td>跨服务读风暴、审核版本不稳定</td></tr>
+<tr><td>Draft 放商品中心写侧</td><td>与正式模型和版本比较简单</td><td>商品中心写流量增加</td><td>商品中心需要承载更多流程治理</td></tr>
+<tr><td>每个入口各自保存 Draft</td><td>入口局部简单</td><td>无统一生命周期和审计</td><td>多份事实漂移、无法统一发布</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>决策。</strong> 采用商品中心写侧维护与正式模型强相关的 Draft / Staging，供给平台维护 Task、来源、审核队列和执行控制。供给平台通过命令 API 写入，不直连商品中心正式表。</p>
+<p><strong>获得的能力。</strong> Diff 可以在同一事实边界内完成，发布版本和 Draft 的关系清楚，审核对象不会因为跨服务读取延迟而漂移。<strong>主动牺牲的能力。</strong> 商品中心写侧需要增加草稿表、版本管理和写入容量，初期部署边界不如纯供给平台方案简单。<strong>接受的风险。</strong> 商品中心可能被批量导入写流量冲击，因此必须通过分批、限流、独立连接池和冷热隔离治理。</p>
+<p><strong>验证指标。</strong> 草稿写入 p95、版本冲突率、商品中心数据库锁等待、批量任务对正式查询的影响、Draft 到 Staging 的平均耗时。<strong>重新评估条件。</strong> 供给写入量使商品中心正式读写无法隔离，或者 Draft 的生命周期已经完全独立于商品模型，需要单独扩展为写侧服务。</p>
+<h3 id="1193-adr-2是否需要-staging"><a class="header" href="#1193-adr-2是否需要-staging">11.9.3 ADR-2：是否需要 Staging</a></h3>
+<p><strong>背景与问题。</strong> 只有 Draft 加 Operation Log 是否足够？如果 Draft 提交审核后仍然允许修改，QC 审核的版本如何冻结？</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>一致性</th><th>可用性</th><th>复杂度</th><th>恢复能力</th></tr>
+</thead>
+<tbody>
+<tr><td>只有 Draft</td><td>审核对象容易漂移</td><td>编辑体验简单</td><td>低</td><td>审核回放困难</td></tr>
+<tr><td>Draft + 操作日志</td><td>可重建部分历史</td><td>依赖日志完整性</td><td>中</td><td>需要重放和重建</td></tr>
+<tr><td>Draft + Staging + Item</td><td>审核和发布版本明确</td><td>编辑与审核可以并行</td><td>较高</td><td>版本回滚和审计清晰</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>决策。</strong> 对有人工审核、批量导入和供应商同步的商品平台，采用 Draft + Staging + Item。Draft 可以继续编辑，Staging 是审核和发布的冻结候选，Item 是正式线上资产。</p>
+<p><strong>获得的能力。</strong> 审核结果绑定明确内容版本，发布可以重复确认基线，编辑新草稿不会覆盖已经审核的候选。<strong>主动牺牲的能力。</strong> 存储对象增多，状态解释和清理策略更复杂。<strong>接受的风险。</strong> Staging 可能过期并积累，需要设置保留时间、清理任务和审计归档。</p>
+<p><strong>验证指标。</strong> Staging 过期率、审核通过后发布冲突率、审核对象被编辑的次数、因版本不一致重新审核的比例。<strong>重新评估条件。</strong> 所有入口都变成规则自动发布，且不再需要人工审核和差异回放时，可以缩减 Staging，但仍需保留不可变发布版本。</p>
+<h3 id="1194-adr-3任务抢占使用数据库还是-redis"><a class="header" href="#1194-adr-3任务抢占使用数据库还是-redis">11.9.4 ADR-3：任务抢占使用数据库还是 Redis</a></h3>
+<p><strong>背景与问题。</strong> 多个 Worker 需要竞争领取任务，应该使用数据库条件更新、Redis 分布式锁，还是专门的调度系统？</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>一致性</th><th>吞吐</th><th>运维成本</th><th>主要风险</th></tr>
+</thead>
+<tbody>
+<tr><td>数据库 CAS</td><td>与任务事实同源</td><td>中等，适合大多数任务</td><td>低</td><td>高竞争时锁等待</td></tr>
+<tr><td>Redis 锁</td><td>领取延迟低</td><td>高</td><td>中</td><td>锁丢失、业务状态仍在数据库</td></tr>
+<tr><td>调度平台</td><td>分片和编排能力强</td><td>高</td><td>高</td><td>业务语义被外部系统隐藏</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>决策。</strong> 第一阶段使用数据库 CAS + 租约 + Checkpoint。Redis 只在测量证明任务领取成为瓶颈，且团队已经具备 Redis 高可用、锁续期、故障切换和一致性排查能力时引入。即使使用 Redis，最终任务状态仍以数据库为权威，不能把锁的存在当作任务成功。</p>
+<p><strong>获得的能力。</strong> 任务领取与状态更新在同一事实源内，宕机后租约过期即可恢复，部署简单。<strong>主动牺牲的能力。</strong> 极高并发领取时数据库会有竞争，任务调度吞吐受数据库写入能力约束。<strong>接受的风险。</strong> 热点任务可能形成锁等待，需要按优先级、分片和任务类型隔离。</p>
+<p><strong>验证指标。</strong> 领取冲突率、锁等待、租约过期数、Checkpoint 停滞时间、每秒可领取任务数。<strong>重新评估条件。</strong> 领取操作本身占用了明显数据库写入预算，且任务事实可以安全分离成独立调度存储时，再引入 Redis 或调度服务。</p>
+<h3 id="1195-adr-4发布采用本地事务加-outbox"><a class="header" href="#1195-adr-4发布采用本地事务加-outbox">11.9.5 ADR-4：发布采用本地事务加 Outbox</a></h3>
+<p><strong>背景与问题。</strong> 商品正式事实、发布事件、搜索、库存、计价和营销需要协同，是否使用跨服务分布式事务？</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>一致性</th><th>可用性</th><th>延迟</th><th>失败恢复</th><th>团队负担</th></tr>
+</thead>
+<tbody>
+<tr><td>跨服务长事务</td><td>事务范围大</td><td>依赖多、可用性低</td><td>高</td><td>回滚复杂</td><td>高</td></tr>
+<tr><td>同步 RPC 链</td><td>局部即时</td><td>下游失败阻塞上游</td><td>不稳定</td><td>补偿边界模糊</td><td>中高</td></tr>
+<tr><td>本地事务 + Outbox + 版本事件</td><td>本地强、跨域最终</td><td>较高</td><td>可控</td><td>重试、DLQ、对账</td><td>中</td></tr>
+<tr><td>事件溯源全量模型</td><td>审计和重放强</td><td>外部交互复杂</td><td>需构建投影</td><td>回放和版本迁移复杂</td><td>高</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>决策。</strong> 商品中心内部使用本地事务写正式事实、发布版本、快照、日志和 Outbox；跨域通过版本化事件、幂等消费者和对账收敛。仅在有充分重放价值的局部领域考虑 Event Sourcing，不把所有商品表改造成事件存储。</p>
+<p><strong>获得的能力。</strong> 商品中心写入和事件待发送原子，搜索、库存和营销可独立扩展，失败可以按事件重试。<strong>主动牺牲的能力。</strong> 跨域不会瞬时一致，用户可能短时间看到旧索引或不可售提示；运维需要维护 DLQ 和对账。<strong>接受的风险。</strong> 事件积压或消费者缺陷会造成版本滞后，必须有新鲜度预算和降级策略。</p>
+<p><strong>验证指标。</strong> Outbox 未发送年龄、事件端到端延迟、消费者版本滞后、重复事件率、DLQ 处置时长、对账差异数量。<strong>重新评估条件。</strong> 业务有明确的跨域原子约束且能承担全局事务代价，或某个领域需要完整事件重放，才重新讨论更强事务模型。</p>
+<h3 id="1196-adr-5供应商无效更新过滤放在哪里"><a class="header" href="#1196-adr-5供应商无效更新过滤放在哪里">11.9.6 ADR-5：供应商无效更新过滤放在哪里</a></h3>
+<p><strong>背景与问题。</strong> 供应商只提供全量列表，如何识别重复、无效、乱序和应该下线的对象？过滤放供给侧还是商品中心？</p>
+<p><strong>决策。</strong> 来源相关的去重、指纹、批次完整性、供应商版本比较和失效候选识别放在供给侧；平台正式身份、基线版本、字段主导权和发布不变量仍由商品中心确认。供给侧可以拒绝明显无效输入，但不能越权修改正式商品状态。</p>
+<p><strong>获得的能力。</strong> 商品中心不被供应商重复流量打爆，来源策略可以按供应商隔离，原始数据和差异更容易审计。<strong>主动牺牲的能力。</strong> 供给侧需要维护来源适配和映射，新增供应商的接入成本上升。<strong>接受的风险。</strong> 供给侧过滤规则错误可能漏掉合法变化，因此要提供回放、抽样和对账。</p>
+<h3 id="1197-adr-6订单快照在何时固化"><a class="header" href="#1197-adr-6订单快照在何时固化">11.9.7 ADR-6：订单快照在何时固化</a></h3>
+<p><strong>背景与问题。</strong> 商品中心是否提前生成所有订单快照，还是订单中心在下单时生成？</p>
+<p><strong>决策。</strong> 商品中心负责发布版本和可供交易读取的快照来源，订单中心在确认商品、价格、库存和营销结果后，在本地订单事务内固化订单快照。订单中心不能只保存商品 ID，也不能依赖商品中心之后仍然保留原始内容。</p>
+<p><strong>获得的能力。</strong> 订单合同与商品后续编辑隔离，订单可独立展示、退款和客服解释。<strong>主动牺牲的能力。</strong> 同一商品内容会在商品中心和订单中心各保存一份，存储和字段演进需要治理。<strong>接受的风险。</strong> 快照字段定义变化可能导致历史订单兼容问题，因此必须有快照 schema 版本和展示降级策略。</p>
+<h3 id="1198-adr-7库存配置与库存事实分离"><a class="header" href="#1198-adr-7库存配置与库存事实分离">11.9.8 ADR-7：库存配置与库存事实分离</a></h3>
+<p><strong>背景与问题。</strong> 商品中心已经知道商品的库存类型和规则，是否把可售余额一起写在商品表中？</p>
+<p><strong>决策。</strong> 商品中心保存库存配置、库存资源引用和交易前契约；库存系统保存余额、预占、确认、释放、券码实例和资源格。商品发布可以发起初始化，但可售状态由商品、库存和销售窗口联合计算。</p>
+<p><strong>获得的能力。</strong> 高频库存写入不拖累商品主数据，库存算法可以按资源类型演进，预占和释放语义清晰。<strong>主动牺牲的能力。</strong> 详情读取需要跨域聚合，商品发布到可售存在延迟。<strong>接受的风险。</strong> 商品和库存可能短暂不一致，需要交易前权威校验、版本关联和对账。</p>
+<h3 id="1199-adr-8同步体验和异步执行如何分层"><a class="header" href="#1199-adr-8同步体验和异步执行如何分层">11.9.9 ADR-8：同步体验和异步执行如何分层</a></h3>
+<p><strong>背景与问题。</strong> 用户希望提交后立即知道结果，但批量和供应商同步无法在一个请求中完成。是否让所有接口同步等待？</p>
+<p><strong>决策。</strong> 同步接口只负责参数校验、幂等受理和短事务保存；异步任务负责解析、标准化、审核、发布、下游投影和恢复。查询接口返回任务状态、进度、错误文件和下一步动作。</p>
+<p><strong>获得的能力。</strong> 请求延迟可控，长任务可恢复，失败可以分阶段定位。<strong>主动牺牲的能力。</strong> 用户需要理解处理中、部分成功和待人工等状态，产品需要提供进度和通知体验。<strong>接受的风险。</strong> 异步系统更容易产生积压和状态不透明，因此必须提供任务看板和最老任务告警。</p>
+<h3 id="11910-演进路线"><a class="header" href="#11910-演进路线">11.9.10 演进路线</a></h3>
+<p>建议采用四阶段演进，而不是一开始实现所有复杂能力。</p>
+<p><strong>第一阶段：单体或少量服务的可靠闭环。</strong> 先实现商品中心正式模型、Draft、版本、Outbox、基本任务表、人工创建、单品发布和库存配置。任务领取使用数据库 CAS，搜索和缓存通过简单消费者刷新，所有关键动作有审计和基本对账。</p>
+<p><strong>第二阶段：批量和人工治理。</strong> 增加文件对象存储、Parser Worker、Task Item、错误文件、QC 队列、人工接管、部分成功和失败重试。此时重点不是增加服务数量，而是把批量任务从 Web 请求中移出，并让运营能解释每一行结果。</p>
+<p><strong>第三阶段：供应商同步和多阶段流水线。</strong> 引入 Raw Snapshot、来源版本、指纹、Diff、分片、Checkpoint、租约、供应商限流和全量对账。只有当同步窗口或数据规模成为瓶颈时，再把 Fetcher、Transformer、Publisher 拆成独立 Worker。</p>
+<p><strong>第四阶段：大规模投影和治理平台。</strong> 依据真实指标引入事件总线、CDC、独立搜索重建、库存资源编排、数据质量平台和统一可观测性。此阶段可以考虑 Redis 抢占、复杂分片或局部事件溯源，但每一步都要有重新评估条件和回滚方式。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>阶段</th><th>重点能力</th><th>不急于引入</th><th>退出条件</th></tr>
+</thead>
+<tbody>
+<tr><td>一</td><td>正式事实、版本、Outbox、基本任务</td><td>多套调度平台、全量事件溯源</td><td>单品和小批任务稳定</td></tr>
+<tr><td>二</td><td>批量、QC、行级错误、人工接管</td><td>复杂跨供应商编排</td><td>批量结果可追溯、可恢复</td></tr>
+<tr><td>三</td><td>来源治理、分片、Checkpoint、对账</td><td>过度拆分服务</td><td>同步窗口和恢复指标达到目标</td></tr>
+<tr><td>四</td><td>大规模事件投影、治理平台</td><td>没有指标支持的复杂化</td><td>规模、成本或组织边界要求</td></tr>
+</tbody>
+</table>
+</div>
+<p>演进的判断标准不是“当前用了多少组件”，而是“当前最大的未解决不变量是什么”。如果问题是版本冲突，先做基线版本和条件更新；如果问题是任务无法恢复，先做 Checkpoint 和租约；如果问题是下游版本滞后，先做事件 ID、版本过滤和对账；如果问题是供应商流量超过数据库能力，再讨论分片、队列和独立存储。</p>
+<h3 id="11911-数据迁移和兼容策略"><a class="header" href="#11911-数据迁移和兼容策略">11.9.11 数据迁移和兼容策略</a></h3>
+<p>把旧商品系统迁移到新的商品中心和供给平台，不能只做一次全量 <code>INSERT SELECT</code>。迁移首先要建立身份映射：旧商品 ID、供应商外部 ID、旧 SKU、旧库存配置和旧订单引用之间的关系必须被保存。没有映射表，后续订单、客服和供应商对账都无法追溯。</p>
+<p>迁移可以分为四个阶段。</p>
+<p>第一阶段是只读盘点。扫描旧表中的重复商品、缺失类目、无效库存配置、过期状态、供应商映射冲突和没有订单引用的孤儿数据。盘点结果不应直接修复数据，而应形成可审计的迁移问题清单。</p>
+<p>第二阶段是双模型映射。为旧商品生成新模型的候选 Resource、Item、SKU、Offer 和规则对象，保留旧字段原文和转换结果。转换过程需要幂等，可以在失败后重复运行；不应把迁移脚本写成只能执行一次的长事务。</p>
+<p>第三阶段是影子投影。新模型接收旧系统变更或历史快照，但暂时不成为交易权威。比较旧读模型和新读模型的标题、类目、可售状态、价格引用和库存配置，差异进入对账队列。对于允许差异的字段，如排序标签或搜索分词，可以建立容忍规则；对于交易字段，必须人工确认。</p>
+<p>第四阶段是分域切换。先切换详情查询，再切换搜索投影，然后切换供给写入口，最后切换交易前校验。每次切换都要有回滚开关、双读对比、版本指标和明确的停止条件。不要把所有领域在同一个发布窗口中切换，否则出现差异时无法判断是商品、库存、搜索还是订单适配造成。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>迁移对象</th><th>迁移策略</th><th>关键校验</th><th>回滚方式</th></tr>
+</thead>
+<tbody>
+<tr><td>商品主数据</td><td>映射表 + 影子写入</td><td>身份唯一、字段完整、版本可追溯</td><td>读流量切回旧模型</td></tr>
+<tr><td>供给历史</td><td>原始快照 + 任务结果归档</td><td>来源和操作人不丢失</td><td>只读旧审计记录</td></tr>
+<tr><td>库存配置</td><td>先迁配置、后迁事实</td><td>商品与资源类型相容</td><td>交易前继续读旧库存</td></tr>
+<tr><td>搜索投影</td><td>新模型批量重建</td><td>文档数、版本和关键字段对比</td><td>索引别名切回旧版本</td></tr>
+<tr><td>订单快照</td><td>保持订单本地权威</td><td>订单展示和履约字段可读</td><td>不修改已成立订单</td></tr>
+</tbody>
+</table>
+</div>
+<p>迁移还要考虑事件兼容。旧系统事件可能没有 <code>publish_version</code>、<code>schema_version</code> 或 <code>event_id</code>，新消费者不能假设所有历史事件都具备完整字段。可以为历史事件分配迁移批次版本，或者只把历史数据作为快照导入，不重新触发所有外部副作用。重放历史事件时必须区分“构建读模型”和“再次执行业务动作”，例如重建搜索文档可以重放，重新扣库存和再次通知供应商则通常不可以重放。</p>
+<h3 id="11912-多租户供应商隔离与成本"><a class="header" href="#11912-多租户供应商隔离与成本">11.9.12 多租户、供应商隔离与成本</a></h3>
+<p>当平台服务多个品牌、渠道或供应商时，隔离不仅是表里增加 <code>tenant_id</code>。身份、权限、配额、字段主导权、事件主题、文件存储、审计和数据保留都可能需要租户边界。一个供应商的异常批量任务不能消耗掉所有 Worker，也不能读取另一个供应商的原始文件。</p>
+<p>隔离方式可以从逻辑隔离逐步演进到资源隔离。小规模时可以在所有核心表增加租户键并建立组合索引，任务调度按租户配额限制；规模增大后，可以按租户分队列、分数据库或分对象存储前缀；对于合规要求高的租户，再使用独立密钥、独立网络和独立保留策略。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>隔离对象</th><th>轻量方案</th><th>加强方案</th><th>触发条件</th></tr>
+</thead>
+<tbody>
+<tr><td>数据查询</td><td>租户键和权限中间件</td><td>独立 schema 或数据库</td><td>数据量、合规或噪声隔离</td></tr>
+<tr><td>任务执行</td><td>租户配额、加权队列</td><td>租户专属 Worker 池</td><td>大客户任务影响公共队列</td></tr>
+<tr><td>原始文件</td><td>加密对象前缀</td><td>独立桶、密钥和访问角色</td><td>敏感字段或法规要求</td></tr>
+<tr><td>事件传播</td><td>公共主题带租户字段</td><td>租户专属主题</td><td>消费隔离和保密要求</td></tr>
+<tr><td>审计</td><td>统一审计表</td><td>独立保留和查询域</td><td>审计量或访问隔离</td></tr>
+</tbody>
+</table>
+</div>
+<p>成本治理也要进入架构决策。每个商品的事件数量、搜索文档大小、原始文件保留时间、审计记录保留时间、索引重建频率和任务重试次数都会产生存储和计算成本。不能只看数据库单价，而要看“一个业务变更经过多少次序列化、消息传播、索引写入和历史保留”。</p>
+<p>成本预算可以采用单位经济模型：每百万次商品变更的数据库写入量、事件数量、索引更新量、缓存失效量、任务执行时间和人工处理分钟数。若供应商每天重复发送 80% 未变化数据，最有效的优化可能不是扩容 Kafka，而是在来源侧计算指纹和使用批次确认；若搜索文档过大，最有效的优化可能是减少冗余字段和把高频字段转为 Hydrate，而不是继续扩展索引节点。</p>
+<h3 id="11913-组织边界和职责交接"><a class="header" href="#11913-组织边界和职责交接">11.9.13 组织边界和职责交接</a></h3>
+<p>架构边界只有在组织责任匹配时才会稳定。商品中心团队应负责正式模型、发布事务和商品查询契约；供给平台团队负责入口、任务、审核和运营工具；库存团队负责库存事实和资源生命周期；搜索团队负责索引和查询投影；订单团队负责交易快照和订单合同。跨团队的事件 schema、版本语义和故障升级路径必须有共同维护者。</p>
+<p>职责交接要落到具体动作：谁批准字段新增，谁维护模板版本，谁拥有事件 schema，谁确认 DLQ 的业务含义，谁决定人工修复，谁承担对账差异的最终关闭。否则系统虽然拥有多个服务，却没有任何人对端到端结果负责。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>责任对象</th><th>负责的决定</th><th>参与的决定</th><th>不应承担</th></tr>
+</thead>
+<tbody>
+<tr><td>商品中心</td><td>正式模型、发布版本、商品查询</td><td>类目模板、库存配置</td><td>文件解析、库存余额</td></tr>
+<tr><td>供给平台</td><td>入口、任务、审核流程</td><td>发布命令、字段主导权</td><td>绕过商品中心写事实</td></tr>
+<tr><td>库存系统</td><td>余额、预占、确认、释放</td><td>可售投影</td><td>商品描述和订单快照</td></tr>
+<tr><td>搜索系统</td><td>索引、召回、查询</td><td>字段是否可检索</td><td>正式商品状态</td></tr>
+<tr><td>订单系统</td><td>订单合同、交易快照</td><td>交易前读取契约</td><td>修改商品历史</td></tr>
+<tr><td>平台治理</td><td>规则、权限、审计、指标</td><td>高风险变更</td><td>代替业务系统推进所有状态</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="11914-重新评估而不是永久承诺"><a class="header" href="#11914-重新评估而不是永久承诺">11.9.14 重新评估而不是永久承诺</a></h3>
+<p>任何架构决策都不是永久真理。重新评估条件应该在设计完成时就写出，而不是发生故障后临时争论。可以按以下周期检查：</p>
+<ul>
+<li>每周查看最老任务、DLQ、版本滞后和对账差异。</li>
+<li>每月复盘供应商有效更新比例、重复输入比例、人工接管时间和任务单位成本。</li>
+<li>每次大促前验证发布、库存初始化、索引刷新和交易前校验的峰值行为。</li>
+<li>每次 schema、状态机或字段主导权变化前，检查历史版本和下游兼容性。</li>
+<li>每季度进行一次任务 Worker 宕机、消息重复、数据库死锁、供应商超时和索引重建演练。</li>
+</ul>
+<p>当指标越过阈值时，团队需要重新检查的是模型和边界，而不只是扩容。队列变长可能意味着上游重复输入；发布延迟可能意味着审核对象过大；库存不一致可能意味着商品配置和库存事实边界不清；搜索差异可能意味着事件版本设计错误。只有先找到不变量被破坏的原因，组件升级才不会变成临时止痛药。</p>
+<h3 id="11915-成本复杂度和组织能力的约束"><a class="header" href="#11915-成本复杂度和组织能力的约束">11.9.15 成本、复杂度和组织能力的约束</a></h3>
+<p>架构决策不只比较吞吐和延迟，还要比较长期运维成本。商品供给平台的成本来源包括数据库存储、原始文件和快照保留、消息与事件流、搜索索引、任务 Worker、供应商 API 配额、人工审核、故障演练和团队认知负担。一个功能如果把一次性人工处理减少十分钟，却引入三套需要全年值守的中间件，未必是更好的方案。</p>
+<p>可以用单位业务对象计算成本：每成功发布一个商品需要多少数据库写入、消息数、索引更新、库存初始化调用、人工审核分钟数和归档空间。成本模型不必一开始就精确到财务结算，但要能发现数量级变化。例如把完整商品快照塞进每一条事件，会同时放大消息带宽、消费者内存、日志体积和重放成本；如果下游只需要版本和读取地址，携带完整载荷就可能是无谓负担。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>选择</th><th>获得的能力</th><th>主动牺牲</th><th>隐含成本</th><th>适用前提</th></tr>
+</thead>
+<tbody>
+<tr><td>单体模块 + 数据库任务表</td><td>简单事务、低部署成本</td><td>跨模块独立扩容</td><td>代码边界和锁竞争</td><td>规模中小、团队少</td></tr>
+<tr><td>独立任务平台</td><td>异步隔离、弹性扩展</td><td>调试链路变长</td><td>队列、租约、观测和运维</td><td>长任务多、依赖多</td></tr>
+<tr><td>CDC + Outbox</td><td>本地事实与事件一致</td><td>依赖数据库日志和发布链路</td><td>CDC 运维、schema 管理</td><td>事件传播稳定、可重放</td></tr>
+<tr><td>事件总线</td><td>多下游解耦、重放</td><td>即时同步和全局事务</td><td>分区、顺序、消费治理</td><td>下游较多且有事件能力</td></tr>
+<tr><td>外部调度服务</td><td>高并发领取和分片</td><td>本地简单性</td><td>额外状态和故障域</td><td>任务量证明了调度瓶颈</td></tr>
+</tbody>
+</table>
+</div>
+<p>团队能力也是约束。若团队没有事件版本治理、分布式追踪和故障演练经验，直接引入大量异步边界可能把可恢复问题变成不可解释问题。可以先采用数据库任务表、本地事务、明确的 Outbox 扫描和少量读模型，等指标证明需要独立队列、CDC 或专门调度器后再演进。这个过程不是保守，而是让复杂度与问题规模相匹配。</p>
+<p>复杂度预算应写进 ADR。每增加一种状态机、消息主题、存储、重试层或人工入口，就要说明它解决哪个已观察到的问题、增加什么故障域、谁维护、如何测试和何时删除。若没有明确收益，优先复用已有边界。反过来，如果现有单表和同步调用已经无法表达版本、失败和历史合同，也不能为了少部署一个组件而继续堆叠补丁。</p>
+<p>上线后要用实际指标校正假设。设计时可以假设每日一千万行输入、投影延迟一分钟或人工审核率百分之五，但这些只是模型参数；上线后需要比较真实分布、峰值、尾延迟、失败类型和单位成本。如果实际瓶颈不是当初预期的地方，团队应修改 ADR 和演进路线，而不是为了证明原方案正确而继续优化错误的组件。</p>
+<h3 id="11916-从最小闭环到完整平台"><a class="header" href="#11916-从最小闭环到完整平台">11.9.16 从最小闭环到完整平台</a></h3>
+<p>如果团队从零开始建设商品供给能力，最小闭环不应包含所有品类和所有下游。第一阶段只选择一个来源、一个品类和一条发布链路，完成原始输入、Draft、Staging、QC、正式版本、Outbox、一个读模型和一个交易前校验。目标是验证事实边界和恢复路径，而不是通过一次发布证明平台已经通用。</p>
+<p>第二阶段增加第二种来源和批量任务，重点验证字段主导权、重复输入、部分成功、租约接管和供应商限流。此时可以把任务项、Checkpoint、DLQ 和对账做成可观察能力。若没有这一步，平台很容易只在人工少量编辑时看起来可靠，一遇到十万行文件就暴露状态和恢复缺口。</p>
+<p>第三阶段增加库存资源类型、订单快照和灰度发布，验证商品版本与资源事实的协同。此时要明确哪些变更影响交易合同，哪些变更只影响展示；库存初始化失败、商品下架和订单并发变化都要有可执行的补偿。不要等到接入真实大促后才第一次演练这些分支。</p>
+<p>第四阶段才根据数量级引入独立调度器、CDC、事件分区、索引重建平台和多租户资源隔离。每一步引入新组件都要保留旧能力的可验证替代路径，至少在迁移窗口内能够比较新旧结果。平台化不是把所有功能一次性抽象出来，而是让已经被多个真实场景证明的共同不变量成为公共能力。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>阶段</th><th>核心目标</th><th>必须验证</th><th>暂不追求</th></tr>
+</thead>
+<tbody>
+<tr><td>单来源闭环</td><td>事实和发布正确</td><td>版本、事务、Outbox、快照</td><td>多品类通用</td></tr>
+<tr><td>批量与多来源</td><td>任务可恢复</td><td>分片、租约、主导权、对账</td><td>极致吞吐</td></tr>
+<tr><td>资源与交易</td><td>不误售且可解释</td><td>库存、价格、订单快照、下线</td><td>全部营销能力</td></tr>
+<tr><td>平台化扩展</td><td>多租户和弹性</td><td>配额、成本、重建、演练</td><td>无边界统一抽象</td></tr>
+</tbody>
+</table>
+</div>
+<p>每个阶段都要设“停止扩展”的条件。例如正式商品版本仍不能稳定回放时，不应继续增加更多下游；任务失败原因仍只有一段文本时，不应继续扩大批量规模；订单快照缺字段时，不应先优化搜索召回。这样的阶段门把复杂度增长和事实可靠性绑定起来，也让团队能够在需求变化时解释为什么暂缓某项能力。</p>
+<h2 id="1110-方法论总结"><a class="header" href="#1110-方法论总结">11.10 方法论总结</a></h2>
+<h3 id="11101-五句判断句"><a class="header" href="#11101-五句判断句">11.10.1 五句判断句</a></h3>
+<p>第一句：<strong>先问谁拥有事实，再问使用什么组件。</strong> 商品中心、供给平台、库存系统和订单系统可以部署在同一个进程，也可以拆成多个服务；如果没有事实源和写入边界，服务数量不会带来架构清晰度。</p>
+<p>第二句：<strong>把流程状态和业务事实分开。</strong> Draft、QC、Task 和 Outbox 的状态变化说明流程走到哪里，Item、库存余额和订单快照说明业务事实是什么。一个字段不能同时表达“正在审核”和“对消费者可见”。</p>
+<p>第三句：<strong>把版本放在所有异步边界上。</strong> 消息 ID 用于去重，聚合版本用于拒绝乱序，schema 版本用于解析兼容，任务版本用于保护租约，订单快照版本用于解释历史。没有版本的异步系统只能依赖到达时间猜测新旧。</p>
+<p>第四句：<strong>同步接口只承诺本地边界。</strong> 一个请求可以确认参数合法、草稿已保存、任务已受理或商品中心事务已提交，但不应在没有证据时声称搜索、库存、营销和缓存都已完成。</p>
+<p>第五句：<strong>恢复能力是设计的一部分。</strong> 超时、重复、乱序、部分成功、数据库死锁、供应商缺页、索引拒绝和人工误操作都会发生。设计中如果没有错误分类、重试预算、DLQ、对账和人工接管，所谓高可用只覆盖了正常链路。</p>
+<h3 id="11102-选型表问题驱动而不是组件驱动"><a class="header" href="#11102-选型表问题驱动而不是组件驱动">11.10.2 选型表：问题驱动而不是组件驱动</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>需要解决的问题</th><th>首选能力</th><th>何时增加复杂度</th><th>不能解决的问题</th></tr>
+</thead>
+<tbody>
+<tr><td>防止重复提交</td><td>业务幂等键、唯一约束、结果记录</td><td>多客户端语义复杂时增加幂等服务</td><td>业务参数本身不确定</td></tr>
+<tr><td>处理长任务</td><td>Task、Task Item、Checkpoint、租约</td><td>领取吞吐成为瓶颈时分片或专用调度</td><td>业务规则错误</td></tr>
+<tr><td>保证写入和事件一致</td><td>本地事务 + Outbox</td><td>事件量和 CDC 压力达到阈值时优化发布链路</td><td>消费者业务幂等</td></tr>
+<tr><td>防止旧数据覆盖新数据</td><td>基线版本、聚合版本、条件更新</td><td>多来源字段冲突时引入主导权矩阵</td><td>人工无法判断的语义冲突</td></tr>
+<tr><td>提升查询速度</td><td>读模型、缓存、索引</td><td>访问模式稳定且成本可控时物化更多字段</td><td>交易时实时事实</td></tr>
+<tr><td>缩短批量处理窗口</td><td>流式解析、批次、并行 Worker</td><td>任务规模和供应商配额证明需要分片时</td><td>上游接口无法提供稳定游标</td></tr>
+<tr><td>支持回放和审计</td><td>不可变快照、变更日志、事件</td><td>需要重建投影时保留事件或 CDC</td><td>外部副作用可以安全重复</td></tr>
+<tr><td>提高观测能力</td><td>关联 ID、结构化日志、指标、追踪</td><td>高基数和采样成本成为问题时设计分层采样</td><td>没有业务语义的技术日志</td></tr>
+</tbody>
+</table>
+</div>
+<p>选型时必须同时写出“无法保证的部分”。例如 Outbox 可以保证业务表和待发送事件在本地原子提交，但不能保证搜索索引立即刷新；幂等键可以防止同一语义的重复执行，但不能自动判断两个不同请求是否业务上等价；缓存可以降低读延迟，但不能成为库存余额的权威来源；Checkpoint 可以从中断位置继续，但不能修复已经错误写入的业务事实。</p>
+<h3 id="11103-评审清单模型与边界"><a class="header" href="#11103-评审清单模型与边界">11.10.3 评审清单：模型与边界</a></h3>
+<p>评审商品模型时，逐项回答：</p>
+<ol>
+<li>Resource、Item、SPU、SKU、Offer 和 Rate Plan 的身份是否稳定？</li>
+<li>哪些字段是商品中心主导，哪些字段由供应商或运营主导？</li>
+<li>同一个外部对象是否可能映射多个平台对象？发生冲突时谁处理？</li>
+<li>Draft、Staging、QC 和正式 Item 是否有独立语义？</li>
+<li>发布版本是否能比较新旧？版本是否与时间戳混用？</li>
+<li>订单快照是否包含足以解释历史交易的字段？</li>
+<li>库存配置、库存余额、预占和确认是否属于不同对象？</li>
+<li>商品状态和可售状态是否被错误合并？</li>
+<li>规则、schema 和模板是否带版本？历史结果是否能回放？</li>
+<li>是否存在一个“万能 JSON”让所有下游自行解释字段？</li>
+</ol>
+<p>如果这些问题中有三项以上无法回答，说明应该先补模型和契约，暂时不要继续拆服务或增加消息队列。</p>
+<h3 id="11104-评审清单链路与失败"><a class="header" href="#11104-评审清单链路与失败">11.10.4 评审清单：链路与失败</a></h3>
+<p>评审创建、编辑或同步链路时，检查：</p>
+<ol>
+<li>输入是否先保存为不可变原始数据？</li>
+<li>重复提交是否有业务幂等键和参数冲突判断？</li>
+<li>大文件是否流式解析，是否支持行级错误？</li>
+<li>任务是否可以暂停、恢复、重试和人工关闭？</li>
+<li>Worker 是否有租约、令牌和过期恢复？</li>
+<li>Checkpoint 是否足以从稳定位置继续，而不是只保存一个模糊的进度百分比？</li>
+<li>失败是否区分永久错误、暂态错误、冲突和未知结果？</li>
+<li>重试是否设置最大次数、总耗时和退避抖动？</li>
+<li>DLQ 是否有实际的处理人、回放入口和关闭理由？</li>
+<li>事件消费者是否按事件 ID 和业务版本去重？</li>
+<li>旧版本事件到达时，系统是否会拒绝覆盖新事实？</li>
+<li>下游投影失败时，正式商品是否仍然可解释？</li>
+<li>对账是否能发现静默丢失，而不仅仅是接口报错？</li>
+<li>人工接管是否通过命令完成并被审计？</li>
+</ol>
+<h3 id="11105-评审清单发布和交易"><a class="header" href="#11105-评审清单发布和交易">11.10.5 评审清单：发布和交易</a></h3>
+<p>评审发布一致性时，检查：</p>
+<ul>
+<li>正式商品、发布版本、商品快照和 Outbox 是否在同一个本地事务中形成一致解释。</li>
+<li>发布命令是否带有基线版本，版本冲突是否可见且可恢复。</li>
+<li>发布事务是否调用了远程库存、搜索、计价或营销接口。</li>
+<li>下游事件是否包含事件 ID、聚合 ID、版本、来源和 schema 版本。</li>
+<li>消费者是否记录已处理版本，并且重复和乱序可以安全确认。</li>
+<li>搜索和缓存是否承认最终一致，是否有新鲜度预算和降级策略。</li>
+<li>交易前是否重新校验商品状态、价格、营销资格和库存。</li>
+<li>订单是否固化不可变商品快照、价格快照和规则版本。</li>
+<li>下架、封禁、库存耗尽和销售窗口结束的语义是否清晰区分。</li>
+<li>回滚是否区分商品版本回退、索引回退、库存冲正和订单补偿。</li>
+</ul>
+<h3 id="11106-评审清单治理和运维"><a class="header" href="#11106-评审清单治理和运维">11.10.6 评审清单：治理和运维</a></h3>
+<p>评审治理能力时，检查：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>领域</th><th>必问问题</th><th>证据</th></tr>
+</thead>
+<tbody>
+<tr><td>权限</td><td>谁能发布、下架、重放、修改库存和查看原始数据？</td><td>权限矩阵和审计记录</td></tr>
+<tr><td>质量</td><td>结构错误、业务错误、风险错误如何区分？</td><td>规则版本和错误样例</td></tr>
+<tr><td>供应商</td><td>来源版本、限流和全量缺失如何处理？</td><td>来源契约和对账报告</td></tr>
+<tr><td>任务</td><td>最老任务、毒性任务和部分成功如何发现？</td><td>任务看板和告警</td></tr>
+<tr><td>事件</td><td>Outbox、消息、消费者和 DLQ 如何关联？</td><td>事件 ID、追踪链路</td></tr>
+<tr><td>投影</td><td>搜索、缓存和运营看板如何重建？</td><td>重建命令和版本指标</td></tr>
+<tr><td>库存</td><td>配置和事实如何对账？</td><td>资源状态和库存流水</td></tr>
+<tr><td>合规</td><td>原始文件、个人信息和供应商数据保留多久？</td><td>保留、脱敏和访问策略</td></tr>
+<tr><td>演练</td><td>宕机、重复、乱序、超时和回滚是否演练过？</td><td>演练记录和恢复时长</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="11107-常见反模式"><a class="header" href="#11107-常见反模式">11.10.7 常见反模式</a></h3>
+<p><strong>反模式一：商品中心 CRUD 化。</strong> 所有入口直接 <code>UPDATE product</code>，审核、供应商和运营互相覆盖。症状是没有版本冲突、没有来源主导权、无法解释历史。修复方式是引入 Draft、基线版本和正式发布命令。</p>
+<p><strong>反模式二：用一个 status 贯穿全流程。</strong> <code>IMPORTING</code>、<code>QC_PENDING</code>、<code>ONLINE</code>、<code>SOLD_OUT</code> 和 <code>OFFLINE</code> 被写入同一个字段。症状是一个动作覆盖另一个动作，调用方不知道状态的业务含义。修复方式是拆分 Task、QC、Item 和 Sellability 状态机。</p>
+<p><strong>反模式三：同步 RPC 链式发布。</strong> 商品发布同步调用库存、搜索、计价和营销，任意依赖超时就回滚或卡住。症状是长尾延迟高、重试产生重复副作用、故障边界不清。修复方式是本地事务 + Outbox + 版本事件 + 对账。</p>
+<p><strong>反模式四：用消息到达时间解决乱序。</strong> 事件没有版本，消费者把最后到达当作最新。症状是供应商延迟数据覆盖人工修正，索引偶尔回退。修复方式是聚合版本、来源版本和条件更新。</p>
+<p><strong>反模式五：把重试当作恢复。</strong> 所有错误都自动重试，任务无限重试，队列越来越长。症状是重试风暴和 DLQ 失控。修复方式是错误分类、重试预算、退避、熔断和人工接管。</p>
+<p><strong>反模式六：库存写进商品表。</strong> 商品更新同时修改可售数量，搜索、缓存和订单都依赖商品表。症状是商品写入被高频库存拖慢，预占和释放无法表达。修复方式是库存配置与库存事实分离，交易前读取权威库存。</p>
+<p><strong>反模式七：用当前商品解释历史订单。</strong> 订单只保存 <code>item_id</code>，详情页每次回查当前商品。症状是退改、标题、价格和规格随商品更新而改变。修复方式是订单本地快照和快照版本。</p>
+<p><strong>反模式八：用删除代替下线。</strong> 供应商全量列表缺失就直接删除商品和库存。症状是历史订单断链、客服无法解释、错误同步造成大面积下架。修复方式是来源批次、延迟确认、下线状态和可恢复映射。</p>
+<h3 id="11108-如何把方法迁移到其他业务"><a class="header" href="#11108-如何把方法迁移到其他业务">11.10.8 如何把方法迁移到其他业务</a></h3>
+<p>迁移到实物电商时，Resource 可以是品牌或仓配商品，SKU 由颜色和尺寸组合，库存事实由仓库和批次管理；核心仍然是商品主数据、仓库库存和订单快照分离。</p>
+<p>迁移到票务平台时，Item 是场次或票种，库存资源是座位、区域或配额，Staging 和 QC 仍然负责内容与合规审核；新的难点是座位锁定和高并发预占，但商品发布与资源事实边界不变。</p>
+<p>迁移到课程平台时，Item 是课程，Offer 是班次或价格计划，库存资源是名额和开班时间；供应商同步可以替换为教师和机构协作，字段主导权仍然决定谁能修改课程内容和上课安排。</p>
+<p>迁移到 SaaS 套餐时，Item 是套餐，SKU 是计费维度，Offer 是渠道和合同版本；库存资源可以变成席位或配额，订单快照仍然要保存当时的价格和权益规则。</p>
+<p>迁移到内容平台时，Draft、审核、发布版本和读模型尤其重要；搜索、推荐和缓存都是投影，正文或媒体资产的版本化、版权状态和下架治理会替代库存成为核心问题。</p>
+<p>这些领域的组件可以不同，状态机名称也可以不同，但评审顺序保持一致：先列业务对象和不变量，再列事实源和状态所有者，再列同步 / 异步边界，最后才选择数据库、消息系统、缓存和调度器。</p>
+<h3 id="11109-方案交付物清单"><a class="header" href="#11109-方案交付物清单">11.10.9 方案交付物清单</a></h3>
+<p>一份可以进入评审和实施的商品供给方案，至少应该交付以下内容：</p>
+<ol>
+<li>场景边界：列出人工、批量、供应商、库存和生命周期入口，并明确不做什么。</li>
+<li>约束表：记录规模、峰值、延迟、新鲜度、成本、合规和恢复目标，注明假设或测量来源。</li>
+<li>领域模型：说明每个对象的身份、字段、生命周期、权威来源和消费者。</li>
+<li>状态机：列出状态、允许迁移、禁止迁移、原因、操作者和异常终态。</li>
+<li>数据模型：给出主表、版本表、任务表、事件表、审计表和关键唯一约束。</li>
+<li>参考架构：展示控制面、事实面、投影面、同步 / 异步边界和关键失败路径。</li>
+<li>API 契约：区分 Command、Query 和 Event，说明幂等、版本、错误和新鲜度。</li>
+<li>任务设计：说明租约、Checkpoint、批次、分片、重试、DLQ 和人工接管。</li>
+<li>发布设计：说明本地事务、Outbox、事件版本、消费者去重和对账。</li>
+<li>完整案例：走通一个正常链路和至少三种异常分支，说明最终收敛。</li>
+<li>ADR：解释关键选择、放弃的能力、接受的风险和重新评估条件。</li>
+<li>验证计划：列出单测、契约测试、故障演练、容量压测和上线后指标。</li>
+</ol>
+<p>如果只有架构图而没有状态机，读者无法知道异常如何推进；如果只有表结构而没有事件和版本，读者无法知道跨域如何收敛；如果只有推荐方案而没有 ADR，读者无法判断方案是否适合自己的约束。交付物之间必须互相引用，而不是各自写一份看似完整却无法拼接的文档。</p>
+<h3 id="111010-评审时的反事实问题"><a class="header" href="#111010-评审时的反事实问题">11.10.10 评审时的反事实问题</a></h3>
+<p>好的评审不只问“正常流程是什么”，还要问反事实：如果消息先到后到会怎样？如果输入重复会怎样？如果上游说成功但本地超时会怎样？如果人工在供应商同步同时修改同一字段会怎样？如果数据库提交成功但事件发送失败会怎样？如果事件发送成功但消费者处理到一半宕机会怎样？</p>
+<p>可以把反事实问题整理为五类：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>反事实类别</th><th>示例问题</th><th>需要看到的设计</th></tr>
+</thead>
+<tbody>
+<tr><td>时间不确定</td><td>请求超时但副作用是否已完成？</td><td>查询确认、幂等键、未知状态</td></tr>
+<tr><td>顺序不确定</td><td>版本 3 是否可能先于版本 2 到达？</td><td>聚合版本、乱序过滤</td></tr>
+<tr><td>参与者失败</td><td>Worker 宕机时谁接管？</td><td>租约、Checkpoint、重试</td></tr>
+<tr><td>语义冲突</td><td>人工和供应商同时改同一字段怎么办？</td><td>主导权、差异、人工审核</td></tr>
+<tr><td>范围扩大</td><td>一条错误输入会影响多少对象？</td><td>批次隔离、灰度、熔断、回滚</td></tr>
+</tbody>
+</table>
+</div>
+<p>如果方案只能回答“服务重试一下”，通常还没有区分失败类型。重试不是万能答案：参数错误重试不会变好，业务冲突重试会放大队列，未知副作用重试可能重复扣减，永久下游故障重试会拖垮上游。评审需要看到错误分类和每类错误的终态。</p>
+<h3 id="111011-上线前后的指标对照"><a class="header" href="#111011-上线前后的指标对照">11.10.11 上线前后的指标对照</a></h3>
+<p>上线前的压测指标和上线后的业务指标要形成映射。压测只测出系统在假设流量下能处理多少请求，不能证明供应商输入正确、审核队列可用或订单快照完整。因此，发布检查应同时看技术能力和业务结果。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>设计目标</th><th>上线前验证</th><th>上线后指标</th><th>失败时的动作</th></tr>
+</thead>
+<tbody>
+<tr><td>任务可恢复</td><td>Worker 宕机演练</td><td>租约接管时间、Checkpoint 丢失量</td><td>降低并行度、修复租约</td></tr>
+<tr><td>发布可靠</td><td>事务 / Outbox 故障注入</td><td>未发送年龄、版本滞后</td><td>扫描重发、进入 DLQ</td></tr>
+<tr><td>搜索收敛</td><td>索引重建和乱序测试</td><td>索引版本差、零结果率</td><td>重放、切换别名</td></tr>
+<tr><td>库存正确</td><td>并发预占和释放测试</td><td>负库存、对账差异</td><td>冻结资源、冲正</td></tr>
+<tr><td>供应商稳定</td><td>限流和空列表模拟</td><td>有效更新率、批次异常</td><td>降级、人工确认</td></tr>
+<tr><td>审核质量</td><td>规则回放和误报测试</td><td>驳回率、人工队列年龄</td><td>调整规则、重审</td></tr>
+<tr><td>订单可解释</td><td>版本变更期间下单</td><td>快照缺失、客服投诉</td><td>数据修复、补充展示</td></tr>
+</tbody>
+</table>
+</div>
+<p>监控阈值不能只写一个固定数字。某个供应商每天有 80% 的无效更新可能是正常的，而另一个供应商超过 20% 就可能意味着接口故障；某个品类的审核通过率低可能是规则严格，也可能是模板设计错误。阈值应按照供应商、品类、渠道和季节建立基线，并在变更后重新校准。</p>
+<h3 id="111012-从架构判断到实现顺序"><a class="header" href="#111012-从架构判断到实现顺序">11.10.12 从架构判断到实现顺序</a></h3>
+<p>实现一个新的供给能力时，可以按照“事实先行、流程随后、投影最后”的顺序推进。</p>
+<p>第一步定义正式事实和不变量。例如新建一个“按日期售卖的门票”，先定义票种、场次、资源格、可售容量和订单快照，而不是先设计上传页面。</p>
+<p>第二步定义流程对象。说明草稿、审核、任务和发布命令如何关联，哪个版本可以发布，哪些错误可以重试，哪些冲突需要人工。</p>
+<p>第三步实现本地写入。让正式事实、版本、快照、日志和 Outbox 在本地事务内可测试，先保证单域正确性。</p>
+<p>第四步实现异步投影。搜索、缓存、营销上下文和库存初始化各自消费版本事件，加入去重、乱序过滤和失败队列。</p>
+<p>第五步实现对账和恢复。没有对账的异步投影只能在“看起来正常”时工作，发生消息丢失或规则变更后无法证明已经收敛。</p>
+<p>第六步再优化吞吐和成本。根据指标决定是否增加分片、Redis 抢占、CDC、独立事件主题、投影重建或租户级资源隔离。这样做可以让每一步都有可运行的闭环，也更容易定位复杂度来自哪里。</p>
+<h3 id="111013-最终方法论"><a class="header" href="#111013-最终方法论">11.10.13 最终方法论</a></h3>
+<p>商品中心和供给平台的设计可以总结成一条闭环：</p>
+<pre class="mermaid">
+flowchart LR
+    A[定义业务事实] --&gt; B[定义状态与不变量]
+    B --&gt; C[确定权威来源]
+    C --&gt; D[划分本地事务]
+    D --&gt; E[设计命令、事件和查询]
+    E --&gt; F[设计失败、重试和补偿]
+    F --&gt; G[设计指标、对账和人工接管]
+    G --&gt; H[用案例和演练验证]
+    H --&gt; A
+</pre>
+
+<p>这条闭环的每一步都在限制下一步的自由度。没有业务事实，领域模型会变成字段清单；没有状态和不变量，接口会变成任意更新；没有权威来源，事件会变成无主的通知；没有本地事务边界，最终一致会变成长事务或同步链；没有失败设计，重试会产生重复副作用；没有观测和对账，系统无法证明已经恢复。</p>
+<p>对于架构师而言，最重要的能力不是背诵某个组件的特性，而是能够在约束发生变化时重新做判断。供应商从十个增加到一千个，首先变化的是来源治理和限流；商品从百万增加到千万，首先变化的是索引、批量任务和归档；库存从数量变成座位，首先变化的是资源身份和预占语义；团队从一个变成多个，首先变化的是契约、责任和审计。</p>
+<p>最后可以用六个问题结束评审：</p>
+<ol>
+<li>这个对象的业务事实是什么？</li>
+<li>谁拥有它，谁可以修改它？</li>
+<li>哪个版本可以被审核和发布？</li>
+<li>哪些动作必须在本地事务内完成？</li>
+<li>失败、重复、乱序和未知结果如何恢复？</li>
+<li>系统如何证明最终状态已经收敛？</li>
+</ol>
+<p>如果六个问题都有明确答案，技术实现通常可以在多个候选方案中演进；如果答案依赖“组件默认会处理”或“上线后再观察”，系统即使暂时运行，也会在下一次批量导入、供应商故障或大促高峰中暴露边界缺口。</p>
+<h3 id="111014-最小可行评审模板"><a class="header" href="#111014-最小可行评审模板">11.10.14 最小可行评审模板</a></h3>
+<p>一次商品供给方案评审可以用以下模板结束：</p>
+<pre><code class="language-text">业务问题：
+不做什么：
+核心对象：
+权威事实源：
+状态机及所有者：
+关键不变量：
+输入来源：
+同步边界：
+异步边界：
+版本和幂等键：
+失败分类：
+重试预算：
+DLQ 与人工接管：
+对账范围：
+观测指标：
+回滚方式：
+获得的能力：
+主动牺牲的能力：
+接受的风险：
+重新评估条件：
+</code></pre>
+<p>如果方案不能填完这张表，不代表方案一定错误，但说明它还没有达到可实施程度。尤其要警惕“后续再考虑幂等、监控和对账”这类表述：它们不是部署后才添加的外围能力，而是决定状态机和数据模型能否恢复的基础设计。</p>
+<p>这份模板也可以作为跨团队协作的共同语言。产品团队可以从业务对象和用户可见结果开始填写，研发团队补充事务、版本和事件，测试团队补充故障注入与验收条件，运维团队补充指标、告警、回滚和人工入口，数据治理团队补充保留、脱敏和审计。评审结束后，每个空白项都应转化为待确认问题、设计任务或明确的非目标，而不是留在会议记录里等待遗忘。</p>
+<p>真正可迁移的不是某一张表或某一个组件，而是这套从事实到恢复的推理顺序：先定义对象，再定义状态；先确定权威，再划分事务；先说明失败，再决定异步；先建立证据，再扩大规模。只要这个顺序保持稳定，具体实现就能随着流量、品类、供应商和组织变化逐步演进。</p>
+<h3 id="111015-结语"><a class="header" href="#111015-结语">11.10.15 结语</a></h3>
+<p>商品供给系统的难点不在于把一个页面做成多个服务，而在于把变化、事实、资源和历史合同分开建模，再通过版本、事件和补偿把它们连接起来。商品中心保证平台认定的正式商品是什么，供给平台保证变化如何被接收和治理，库存系统保证资源是否真的可卖，搜索和缓存保证读体验，订单系统保证历史交易仍然可解释。</p>
+<p>当一个平台能清楚回答“谁写了什么、依据哪个版本、发布到哪里、失败后怎么办、历史如何复原”时，它才真正拥有可演进的商品基础设施。技术栈可以替换，部署方式可以变化，供应商和品类也会不断增加，但权威事实、职责边界、上下游协作、补偿恢复和观测治理这五个检查框架仍然成立。</p>
+<h3 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h3>
+<p>[1] Eric Evans, <em>Domain-Driven Design: Tackling Complexity in the Heart of Software</em>, Addison-Wesley, 2003, https://www.domainlanguage.com/ddd/.</p>
+<p>[2] Martin Fowler, <em>Patterns of Enterprise Application Architecture</em>, Addison-Wesley, 2002, https://martinfowler.com/books/eaa.html.</p>
+<p>[3] Martin Kleppmann, <em>Designing Data-Intensive Applications</em>, O’Reilly Media, 2017, https://dataintensive.net/.</p>
+<p>[4] Pat Helland, “Life Beyond Distributed Transactions: an Apostate’s Opinion”, CIDR 2007, https://www.cidrdb.org/cidr2007/papers/cidr07p15.pdf.</p>
+<p>[5] Martin Fowler, “Event Sourcing”, martinfowler.com, 2005, https://martinfowler.com/eaaDev/EventSourcing.html.</p>
+<p>[6] Martin Fowler, “Event Collaboration”, martinfowler.com, 2006, https://martinfowler.com/eaaDev/EventCollaboration.html.</p>
+<p>[7] Amazon Web Services, AWS Builders’ Library, “Making retries safe with idempotent APIs”, <a href="https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/">https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/</a>（访问日期：2026-09-21）。</p>
+<p>[8] Amazon Web Services, AWS Builders’ Library, “Timeouts, retries, and backoff with jitter”, <a href="https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/">https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/</a>（访问日期：2026-09-21）。</p>
+<p>[9] Betsy Beyer, Chris Jones, Jennifer Petoff, Niall Richard Murphy, eds., <em>Site Reliability Engineering</em>, Google / O’Reilly Media, 2016, “Handling Overload”, https://sre.google/sre-book/handling-overload/.</p>
+<p>[10] Stripe, “Idempotent requests”, Stripe API Reference, <a href="https://docs.stripe.com/api/idempotent_requests">https://docs.stripe.com/api/idempotent_requests</a>（访问日期：2026-09-21）。</p>
+<p>[11] Oracle, <em>MySQL 8.4 Reference Manual</em>, “How to Minimize and Handle Deadlocks”, <a href="https://dev.mysql.com/doc/refman/8.4/en/innodb-deadlocks-handling.html">https://dev.mysql.com/doc/refman/8.4/en/innodb-deadlocks-handling.html</a>（访问日期：2026-09-21）。</p>
+<p>[12] Apache Software Foundation, <em>Apache Kafka Documentation 4.0</em>, “Design” and “Producer Configs”, <a href="https://kafka.apache.org/40/design/design/">https://kafka.apache.org/40/design/design/</a>；<a href="https://kafka.apache.org/documentation/#producerconfigs">https://kafka.apache.org/documentation/#producerconfigs</a>（访问日期：2026-09-21）。</p>
+<p>[13] Debezium Community, <em>Debezium Documentation</em>, “Outbox Event Router”, <a href="https://debezium.io/documentation/reference/transformations/outbox-event-router.html">https://debezium.io/documentation/reference/transformations/outbox-event-router.html</a>（访问日期：2026-09-21）。</p>
+<p>[14] OpenTelemetry Community, “Concepts”, <a href="https://opentelemetry.io/docs/concepts/">https://opentelemetry.io/docs/concepts/</a>（访问日期：2026-09-21）。</p>
+<p>[15] Kubernetes Authors, “Jobs”, Kubernetes Documentation, <a href="https://kubernetes.io/docs/concepts/workloads/controllers/job/">https://kubernetes.io/docs/concepts/workloads/controllers/job/</a>（访问日期：2026-09-21）。</p>
+<p>[16] JSON Schema Organization, <em>JSON Schema Specification</em>, Draft 2020-12, https://json-schema.org/specification.</p>
+<p>[17] OpenAPI Initiative, <em>OpenAPI Specification 3.1.0</em>, https://spec.openapis.org/oas/latest.html.</p>
+<p>[18] Gregor Hohpe, Bobby Woolf, <em>Enterprise Integration Patterns: Designing, Building, and Deploying Messaging Solutions</em>, Addison-Wesley, 2003, https://www.enterpriseintegrationpatterns.com/.</p>
+<p>[19] Apache RocketMQ 社区，《基本概念》，RocketMQ 中文文档，<a href="https://rocketmq.apache.org/zh/docs/introduction/02concepts/">https://rocketmq.apache.org/zh/docs/introduction/02concepts/</a>（访问日期：2026-09-21）。</p>
+<p>[20] 阿里巴巴，《阿里巴巴 Java 开发手册》，Alibaba P3C，<a href="https://github.com/alibaba/p3c">https://github.com/alibaba/p3c</a>（访问日期：2026-09-21）。</p>
+<p>[21] 周志明，《凤凰架构：构建可靠的大型分布式系统》，2021，https://icyfenix.cn/。</p>
+<p>[22] Kubernetes 中文社区，《Job》，Kubernetes 中文文档，<a href="https://kubernetes.io/zh-cn/docs/concepts/workloads/controllers/job/">https://kubernetes.io/zh-cn/docs/concepts/workloads/controllers/job/</a>（访问日期：2026-09-21）。</p>
+<p>[23] OpenTelemetry 社区，《概念》，OpenTelemetry 中文文档，<a href="https://opentelemetry.io/zh/docs/concepts/">https://opentelemetry.io/zh/docs/concepts/</a>（访问日期：2026-09-21）。</p>
+<p>[24] Oracle，《MySQL 8.4 参考手册》，<a href="https://dev.mysql.com/doc/refman/8.4/zh-CN/">https://dev.mysql.com/doc/refman/8.4/zh-CN/</a>（访问日期：2026-09-21）。</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part02/10-ecommerce-overview.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part02/12-inventory-system.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part02/10-ecommerce-overview.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part02/12-inventory-system.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-c2a407aa.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-ccf746f1.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

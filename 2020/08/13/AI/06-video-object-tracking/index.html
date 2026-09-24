@@ -17,32 +17,32 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
 
-<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+<script class="next-config" data-name="main" type="application/json">{"hostname":"wxquare.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
 
-    <meta name="description" content="在视频目标追踪中，算法需要在第一帧确定目标，然后在后续帧中持续估计目标的位置和大小。传统模板追踪通常通过参考模板与当前帧之间的像素误差、几何变换来完成定位；SiameseRPN&#x2F;DaSiamRPN 则通过共享特征提取网络和候选框回归完成目标定位。两类方法的实现方式不同，但都可以抽象为“初始化参考信息、处理当前帧、评估候选结果、更新目标状态”的流程。 　　在2018年的CVPR上SiameseR">
+    <meta name="description" content="介绍视频目标追踪中的模板匹配、SiameseRPN 与高斯–牛顿法，并梳理从算法到工程实现的基本流程。">
 <meta property="og:type" content="article">
 <meta property="og:title" content="视频目标追踪流程：模板追踪、SiameseRPN 与高斯–牛顿法">
-<meta property="og:url" content="http://yoursite.com/2020/08/13/AI/06-video-object-tracking/index.html">
+<meta property="og:url" content="https://wxquare.github.io/2020/08/13/AI/06-video-object-tracking/index.html">
 <meta property="og:site_name" content="wxquare&#39;s Blogs">
-<meta property="og:description" content="在视频目标追踪中，算法需要在第一帧确定目标，然后在后续帧中持续估计目标的位置和大小。传统模板追踪通常通过参考模板与当前帧之间的像素误差、几何变换来完成定位；SiameseRPN&#x2F;DaSiamRPN 则通过共享特征提取网络和候选框回归完成目标定位。两类方法的实现方式不同，但都可以抽象为“初始化参考信息、处理当前帧、评估候选结果、更新目标状态”的流程。 　　在2018年的CVPR上SiameseR">
+<meta property="og:description" content="介绍视频目标追踪中的模板匹配、SiameseRPN 与高斯–牛顿法，并梳理从算法到工程实现的基本流程。">
 <meta property="og:locale">
-<meta property="og:image" content="http://yoursite.com/images/Siamese-RPN.jpg">
+<meta property="og:image" content="https://wxquare.github.io/images/Siamese-RPN.jpg">
 <meta property="article:published_time" content="2020-08-13T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-24T02:41:28.827Z">
+<meta property="article:modified_time" content="2026-09-24T14:37:05.727Z">
 <meta property="article:author" content="wxquare">
 <meta property="article:tag" content="computer-vision">
 <meta property="article:tag" content="object-tracking">
 <meta property="article:tag" content="siamese-rpn">
 <meta property="article:tag" content="gauss-newton">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="http://yoursite.com/images/Siamese-RPN.jpg">
+<meta name="twitter:image" content="https://wxquare.github.io/images/Siamese-RPN.jpg">
 
 
-<link rel="canonical" href="http://yoursite.com/2020/08/13/AI/06-video-object-tracking/">
+<link rel="canonical" href="https://wxquare.github.io/2020/08/13/AI/06-video-object-tracking/">
 
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2020/08/13/AI/06-video-object-tracking/","path":"2020/08/13/AI/06-video-object-tracking/","title":"视频目标追踪流程：模板追踪、SiameseRPN 与高斯–牛顿法"}</script>
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"https://wxquare.github.io/2020/08/13/AI/06-video-object-tracking/","path":"2020/08/13/AI/06-video-object-tracking/","title":"视频目标追踪流程：模板追踪、SiameseRPN 与高斯–牛顿法"}</script>
 
 <script class="next-config" data-name="calendar" type="application/json">""</script>
 <title>视频目标追踪流程：模板追踪、SiameseRPN 与高斯–牛顿法 | wxquare's Blogs</title>
@@ -238,7 +238,7 @@ mjx-container[display="true"] + br {
     <img class="site-author-image" itemprop="image" alt="wxquare"
       src="/images/avatar.jpg">
   <p class="site-author-name" itemprop="name">wxquare</p>
-  <div class="site-description" itemprop="description"></div>
+  <div class="site-description" itemprop="description">wxquare 的技术知识库，聚焦可靠系统设计、复杂业务架构与 AI Engineering，涵盖电商系统、数据一致性、生产可靠性、Agent 系统和工程实践。</div>
 </div>
 <div class="site-state-wrap animated">
   <nav class="site-state">
@@ -254,7 +254,7 @@ mjx-container[display="true"] + br {
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
-        <span class="site-state-item-count">112</span>
+        <span class="site-state-item-count">113</span>
         <span class="site-state-item-name">tags</span>
       </div>
   </nav>
@@ -332,7 +332,7 @@ mjx-container[display="true"] + br {
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/13/AI/06-video-object-tracking/">
+    <link itemprop="mainEntityOfPage" href="https://wxquare.github.io/2020/08/13/AI/06-video-object-tracking/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.jpg">
@@ -341,12 +341,12 @@ mjx-container[display="true"] + br {
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
       <meta itemprop="name" content="wxquare's Blogs">
-      <meta itemprop="description" content="">
+      <meta itemprop="description" content="wxquare 的技术知识库，聚焦可靠系统设计、复杂业务架构与 AI Engineering，涵盖电商系统、数据一致性、生产可靠性、Agent 系统和工程实践。">
     </span>
 
     <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
       <meta itemprop="name" content="视频目标追踪流程：模板追踪、SiameseRPN 与高斯–牛顿法 | wxquare's Blogs">
-      <meta itemprop="description" content="">
+      <meta itemprop="description" content="介绍视频目标追踪中的模板匹配、SiameseRPN 与高斯–牛顿法，并梳理从算法到工程实现的基本流程。">
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
@@ -368,7 +368,7 @@ mjx-container[display="true"] + br {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-24 02:41:28" itemprop="dateModified" datetime="2026-09-24T02:41:28+00:00">2026-09-24</time>
+      <time title="Modified: 2026-09-24 14:37:05" itemprop="dateModified" datetime="2026-09-24T14:37:05+00:00">2026-09-24</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -383,6 +383,7 @@ mjx-container[display="true"] + br {
   
 </div>
 
+            <div class="post-description">介绍视频目标追踪中的模板匹配、SiameseRPN 与高斯–牛顿法，并梳理从算法到工程实现的基本流程。</div>
         </div>
       </header>
 

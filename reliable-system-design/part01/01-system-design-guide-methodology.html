@@ -1,0 +1,616 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第 1 章 系统设计与架构方法论：从业务建模到工程落地 - System Design: Reliable Systems and E-Commerce Architecture</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="可靠系统设计与电商架构实践；覆盖系统设计方法论、生产可靠性、数据一致性、长流程治理与电商核心业务。">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-2459343d.css">
+        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-a2c86ee4.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-09578451.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">System Design: Reliable Systems and E-Commerce Architecture</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第-1-章-系统设计与架构方法论从业务建模到工程落地"><a class="header" href="#第-1-章-系统设计与架构方法论从业务建模到工程落地">第 1 章 系统设计与架构方法论：从业务建模到工程落地</a></h1>
+<blockquote>
+<p>系统设计不是从选择组件开始，而是从理解业务、定义边界和识别约束开始。本章建立从问题定义、技术方案、架构组织到评审演进的工作链路；后续章节再分别展开编码、分布式一致性、可靠性和电商实战。</p>
+</blockquote>
+<p>面对“做订单系统”“提升并发”“拆微服务”这类需求，最常见的误区是立刻讨论数据库、缓存、消息队列和服务数量。组件只能回答“怎么实现”，不能回答“为什么这样实现、由谁负责、失败后怎样收敛”。架构的价值在于：在业务目标、质量属性、团队能力和成本约束之间，做出可以解释、验证和演进的决策。[1][3]</p>
+<p>本章以一条工作链路组织内容：</p>
+<pre><code class="language-text">问题与约束 → 设计画布 → TD 与决策记录 → 业务边界 → 内部结构
+→ 系统协作 → 架构表达与评审 → 运行反馈与持续演进
+</code></pre>
+<p>其中，六维画布、8 段式 TD 和四阶段评审是本书为日常工程协作归纳的工作框架；DDD、Clean Architecture、CQRS、Outbox、Saga 等模式则是应对不同问题的工具，不是默认答案。</p>
+<h2 id="11-系统设计与工程决策"><a class="header" href="#11-系统设计与工程决策">1.1 系统设计与工程决策</a></h2>
+<h3 id="从问题开始而不是从组件开始"><a class="header" href="#从问题开始而不是从组件开始">从问题开始，而不是从组件开始</a></h3>
+<p>系统设计首先要定义问题。一个完整的问题定义至少包含四件事：谁在什么场景下遇到了什么困难；业务希望改善什么结果；哪些条件不可违反；哪些事情本次明确不做。没有这些信息，“高可用”“低延迟”“支持百万用户”都只是缺少上下文的口号。</p>
+<p>例如，“提升下单性能”可能对应完全不同的问题：高峰期接口 P99 过高、库存热点导致大量失败、支付回调重复、运营活动成本超标，或客服无法解释订单状态。它们可能分别需要排队削峰、库存分片、幂等设计、容量治理或状态机与审计，而不是统一地“加缓存”。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>维度</th><th>要问的问题</th><th>最低产出</th></tr>
+</thead>
+<tbody>
+<tr><td>业务结果</td><td>成功意味着什么？哪个用户动作最重要？</td><td>目标、核心场景、成功指标</td></tr>
+<tr><td>范围边界</td><td>本次负责什么，不负责什么？</td><td>非目标、上下游责任</td></tr>
+<tr><td>负载与容量</td><td>峰值在哪，读写比例怎样，增长速度如何？</td><td>数量级估算、容量假设</td></tr>
+<tr><td>质量属性</td><td>延迟、正确性、可用性、成本和可演进性如何排序？</td><td>架构驱动因素</td></tr>
+<tr><td>现实约束</td><td>团队、预算、合规、历史系统和上线窗口限制是什么？</td><td>风险与依赖清单</td></tr>
+</tbody>
+</table>
+</div>
+<p>这张表的目的不是一次写全，而是把隐含假设公开化。设计讨论中最值得争论的往往不是“Kafka 还是 RabbitMQ”，而是“允许多长时间的最终一致”“库存扣减失败谁来补偿”“是否必须保留可追溯事实”。</p>
+<h3 id="用数量级建立共同现实"><a class="header" href="#用数量级建立共同现实">用数量级建立共同现实</a></h3>
+<p>容量估算不追求伪精确，而是防止方案脱离现实。对核心链路，至少估算请求量、峰谷比、读写比例、单次请求的数据量、存储增长、可接受延迟和可接受错误率：</p>
+<pre><code class="language-text">峰值 QPS ≈ 日请求量 × 峰值占比 ÷ 峰值持续秒数
+日增数据量 ≈ 日写入次数 × 单次有效载荷
+</code></pre>
+<p>公式的价值在于暴露假设。例如日均一千万次请求、20% 集中在两小时内，峰值并不是“日均 QPS 乘几个倍数”可以轻易带过；一条业务事件若需要保留七年，存储、索引、冷热分层和审计成本也必须在方案阶段讨论。容量应围绕实际负载、服务目标与增长预期持续校准，而不是只按当前机器余量决策。[2]</p>
+<h3 id="权衡不是妥协而是设计本身"><a class="header" href="#权衡不是妥协而是设计本身">权衡不是妥协，而是设计本身</a></h3>
+<p>可靠、可扩展、可维护是数据密集型系统的长期目标，但它们不会自动同时达到。[1]</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>目标冲突</th><th>需要做的判断</th><th>常见处理方式</th></tr>
+</thead>
+<tbody>
+<tr><td>强一致性与可用性</td><td>用户是否必须立即看到唯一正确结果？</td><td>缩小强一致事务边界，其余采用最终一致与对账</td></tr>
+<tr><td>低延迟与计算正确性</td><td>能否使用预计算结果？</td><td>缓存、物化视图、异步化，并定义失效与回源策略</td></tr>
+<tr><td>快速交付与长期演进</td><td>当前复杂度是否真的值得？</td><td>先模块化单体，保留边界和迁移路径</td></tr>
+<tr><td>资源成本与峰值体验</td><td>峰值是常态还是偶发？</td><td>弹性扩容、排队、限流、降级与容量预留</td></tr>
+</tbody>
+</table>
+</div>
+<p>好的方案会写出取舍，而不是宣称“既高可用、又强一致、又低成本、还零复杂度”。当某项质量属性被优先保障时，也要明确它带来的代价、适用范围和重新评估的触发条件。[3]</p>
+<h3 id="从单机思维切换到分布式思维"><a class="header" href="#从单机思维切换到分布式思维">从单机思维切换到分布式思维</a></h3>
+<p>单机程序中，一个函数调用通常意味着同一进程、同一事务和明确的成功或失败；分布式系统中，网络会超时、消息会重复、节点会部分失效、时钟并不可靠。因而设计需要先回答：</p>
+<ul>
+<li>请求超时后，调用方能否确认服务端没有执行？</li>
+<li>同一个命令被重试时，业务结果会不会重复？</li>
+<li>本地成功、远端失败时，谁拥有最终收敛责任？</li>
+<li>用户看到“处理中”时，系统如何告知最终状态？</li>
+</ul>
+<p>这些问题使失败路径与正常路径同等重要。不要把分布式设计理解成服务越多越先进；服务拆分只有在业务边界、团队责任、独立扩展或故障隔离的收益足以覆盖网络复杂度时才值得采用。</p>
+<h3 id="用质量属性场景校准讨论"><a class="header" href="#用质量属性场景校准讨论">用质量属性场景校准讨论</a></h3>
+<p>“系统要高性能”无法直接指导设计。更有效的表达是把质量要求写成可观察的场景：在什么条件下，哪个刺激作用于哪个部分，系统应如何响应，如何测量结果。例如“活动开始后的十分钟内，订单创建接口 95% 请求在 300 ms 内返回受理结果；库存依赖故障时，不得重复下单，并在一分钟内将请求转为可查询的处理中状态”。这样的表述把性能、可用性、正确性和恢复行为放进同一个可测试的边界。[3]</p>
+<p>质量属性场景还可以防止团队在不同层次争论同一个词。产品关心的是用户何时得到明确结果，研发关心的是同步链路和资源上限，运维关心的是告警与恢复窗口；把它们写成一个场景后，才有可能设计出共同接受的指标、降级行为和验收测试。</p>
+<h3 id="需求澄清把一句话需求拆成可验证的设计输入"><a class="header" href="#需求澄清把一句话需求拆成可验证的设计输入">需求澄清：把一句话需求拆成可验证的设计输入</a></h3>
+<p>真实项目很少以完整的技术问题开始。更常见的表达是“把订单系统做成平台”“支持多渠道库存”“让结算更快”，这些句子同时混合了业务愿望、解决方案暗示和组织目标。直接把它们翻译成服务、表和接口，容易在还没有确认问题之前就锁定实现。需求澄清的任务不是替业务方写一份更长的需求说明，而是把一句话拆成可以共同验证的设计输入。</p>
+<p>可以先连续追问五个问题：谁遇到了问题；在什么业务事件发生时最明显；当前损失是什么；成功结果由哪个事实证明；本次明确不处理什么。以“支持多渠道库存”为例，真正需要确认的可能是渠道库存展示不一致、库存分配规则无法配置、渠道订单回传延迟，或者仓库无法解释锁定库存。它们的事实源、时效目标、责任团队和补偿路径都不相同。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>需求信息</th><th>需要澄清的内容</th><th>常见误判</th></tr>
+</thead>
+<tbody>
+<tr><td>用户与角色</td><td>谁发起动作，谁接收结果，谁处理例外</td><td>把调用系统当成唯一用户</td></tr>
+<tr><td>业务事件</td><td>什么事实发生后系统必须改变</td><td>把页面按钮当成业务事件</td></tr>
+<tr><td>结果与证据</td><td>成功由什么状态、凭证或指标证明</td><td>只把接口返回 200 当作成功</td></tr>
+<tr><td>时间约束</td><td>哪些结果必须同步，哪些允许异步收敛</td><td>把所有动作都塞进一次请求</td></tr>
+<tr><td>责任与边界</td><td>谁拥有事实，谁可以修改，谁负责补偿</td><td>用共享表绕过责任划分</td></tr>
+<tr><td>非目标</td><td>当前版本不做什么，未来如何接入</td><td>把所有潜在需求都纳入首版</td></tr>
+</tbody>
+</table>
+</div>
+<p>中文工程实践中对 DDD 的总结也反复强调，模型的价值在于表达业务事实，而不是把技术分层换一套名称。[14][15] 因此，需求澄清应当产出术语表、业务事件时间线、目标与非目标、初步指标和争议问题清单，而不是先产出一张“微服务架构图”。这些产出会成为后续 TD、上下文地图和验收测试的共同输入。</p>
+<h3 id="常见误区把架构问题误写成组件问题"><a class="header" href="#常见误区把架构问题误写成组件问题">常见误区：把架构问题误写成组件问题</a></h3>
+<p>系统设计初期有几类错误非常稳定。第一类是“先选技术”：因为团队熟悉某个数据库、消息系统或云产品，就把业务问题改写成它能解决的问题。第二类是“先拆服务”：把每个名词都做成一个服务，却没有定义数据主权、失败语义和独立运维能力。第三类是“只画正常链路”：架构图上只有成功箭头，超时、重复、乱序、回滚和人工处理被留到上线后再补。第四类是“用平均值替代尾部”：平均延迟很好看，但 P99、排队时间和依赖失败时的响应才决定用户体验。第五类是“把历史兼容当作永恒事实”：为兼容旧接口不断增加旁路，最终没有任何团队敢删除旧路径。</p>
+<p>识别误区后，不能只给出相反口号。例如“不要微服务”并不能替代边界分析；“全部异步化”也不能解决用户必须立即知道结果的场景。更有效的做法是把每个争论改写成可验证的问题：该组件消除了哪个瓶颈？服务拆分后谁拥有数据和告警？异常路径如何收敛？新旧接口何时可以停止兼容？如果答案只能依赖“以后再补”，说明方案还没有达到可评审状态。</p>
+<h2 id="12-技术方案设计与-td"><a class="header" href="#12-技术方案设计与-td">1.2 技术方案设计与 TD</a></h2>
+<h3 id="td-的目的让决策可评审可执行可追溯"><a class="header" href="#td-的目的让决策可评审可执行可追溯">TD 的目的：让决策可评审、可执行、可追溯</a></h3>
+<p>技术方案（Technical Design，TD）不是把需求换成架构图，也不是为了在评审会前制造一份长文档。它的作用是让团队在编码前对目标、边界、备选方案、风险和验证方式形成共同理解。优秀的 TD 让读者知道：要解决什么、为什么选择此方案、谁需要配合、失败后怎么办，以及上线后如何证明设计有效。</p>
+<p>对影响边界、数据模型、接口契约、容量或发布方式的变更，TD 通常值得投入。小范围、可逆、无需跨团队协作的改动，可以在 Merge Request 中说明背景与验证即可。ADR 适合记录一项已经做出的关键决策及其后果；它应当短小、不可随意改写，并在决策被替代时链接到新的记录。[4]</p>
+<h3 id="设计阶段六维画布"><a class="header" href="#设计阶段六维画布">设计阶段：六维画布</a></h3>
+<p>在写 TD 前，先完成一轮显式设计。六维画布不是标准规范，而是本书建议的思考顺序：它避免团队只讨论技术选型，却漏掉边界、数据、失败和运行现实。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>维度</th><th>核心问题</th><th>最低产出</th></tr>
+</thead>
+<tbody>
+<tr><td>目标与边界</td><td>解决谁的什么问题？不解决什么？</td><td>目标、非目标、成功指标</td></tr>
+<tr><td>约束与容量</td><td>负载、时延、预算、合规和遗留约束是什么？</td><td>假设、数量级、架构驱动因素</td></tr>
+<tr><td>核心链路</td><td>从触发到结果，状态如何变化？</td><td>主流程、异常流、状态机</td></tr>
+<tr><td>职责与数据</td><td>谁拥有事实、谁可以修改、谁只消费？</td><td>上下文、数据所有权、接口边界</td></tr>
+<tr><td>方案与取舍</td><td>有哪些可行方案，为什么选这一种？</td><td>方案对比、ADR、迁移路径</td></tr>
+<tr><td>风险与运行</td><td>怎样灰度、观测、回滚和补偿？</td><td>风险表、指标、发布计划</td></tr>
+</tbody>
+</table>
+</div>
+<p>一张带假设的容量表、一条主链路时序图、一张上下文图和一份风险清单，通常比几十页组件介绍更能帮助评审。信息不完整时，应把未知项列为待验证假设，而不是用“后续再看”掩盖它。</p>
+<h3 id="8-段式-td-骨架"><a class="header" href="#8-段式-td-骨架">8 段式 TD 骨架</a></h3>
+<p>完成画布后，可以按下列顺序组织 TD。顺序对应评审者理解方案的路径：先判断值不值得做，再判断是否做对，最后判断能否安全落地。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>段落</th><th>回答的问题</th></tr>
+</thead>
+<tbody>
+<tr><td>1. 背景与问题</td><td>当前痛点、触发事件和业务影响是什么？</td></tr>
+<tr><td>2. 目标与非目标</td><td>成功标准和明确不覆盖的范围是什么？</td></tr>
+<tr><td>3. 约束与容量</td><td>负载、SLO、成本、合规、遗留依赖是什么？</td></tr>
+<tr><td>4. 核心流程与边界</td><td>主链路、状态、数据所有权和职责如何划分？</td></tr>
+<tr><td>5. 方案与备选项</td><td>选择了什么，放弃了什么，取舍依据是什么？</td></tr>
+<tr><td>6. 接口、数据与一致性</td><td>API、事件、存储、幂等和异常语义是什么？</td></tr>
+<tr><td>7. 风险、发布与回滚</td><td>依赖、灰度、监控、降级、补偿和回滚如何执行？</td></tr>
+<tr><td>8. 验收与待决项</td><td>如何验证效果，哪些假设仍需确认？</td></tr>
+</tbody>
+</table>
+</div>
+<p>简单需求可以合并段落，跨系统变更则必须把接口、异常路径和发布计划写清楚。关键是让文档与决策复杂度匹配，而不是把模板当成官僚流程。</p>
+<h3 id="一个最小-td-的推导示例"><a class="header" href="#一个最小-td-的推导示例">一个最小 TD 的推导示例</a></h3>
+<p>以“订单创建后异步通知履约”为例，需求表面上只是增加一个通知动作。若不先做设计，它很容易演化为订单服务在数据库事务里直接调用履约接口：接口慢时拖慢下单，接口异常时订单是否应回滚没有答案，重试又可能重复创建履约单。</p>
+<p>用六维画布推导后，问题会被改写得更准确：订单创建必须先稳定落库；履约接收可以异步，但事件不得丢失；重复通知不能重复履约；用户需要能查询订单是否已进入履约流程。相应的 TD 不需要长篇代码，只需明确以下决策：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>TD 段落</th><th>此例的关键结论</th></tr>
+</thead>
+<tbody>
+<tr><td>目标与非目标</td><td>保证订单事实先落库；本次不承诺履约即时完成</td></tr>
+<tr><td>边界与数据</td><td>订单服务拥有订单状态；履约服务拥有履约单与履约状态</td></tr>
+<tr><td>方案与取舍</td><td>使用 Outbox 发布订单已创建事件，接受短暂的异步延迟</td></tr>
+<tr><td>一致性与异常</td><td>事件按至少一次投递；履约侧以订单号或业务键幂等处理</td></tr>
+<tr><td>发布与验收</td><td>监控 Outbox 积压、投递失败和订单到履约单的时延；定期对账</td></tr>
+</tbody>
+</table>
+</div>
+<p>这个例子说明，TD 的价值不在于提前规定每个类和每张表，而在于提前暴露“同步还是异步”“谁拥有事实”“失败怎样收敛”这些会影响长期成本的问题。实现细节可以在编码阶段调整，边界和验收标准则应在开发前取得一致。</p>
+<h3 id="决策记录评审与交付"><a class="header" href="#决策记录评审与交付">决策记录、评审与交付</a></h3>
+<p>技术评审应围绕事实和选择展开。评审者不应只问“图画得是否完整”，还应挑战：目标是否能通过指标验证；关键假设不成立时方案会怎样失效；数据所有权和接口责任是否一致；是否存在更简单、可逆或更容易迁移的方案；灰度、回滚、补偿和人工处理是否真的可执行。</p>
+<p>建议把有长期影响的选择抽成 ADR，例如“订单域采用读写分离”“库存预占采用异步确认”。ADR 不替代 TD：TD 解释一次完整变更，ADR 固化其中值得长期记住的关键取舍。[4] TD 的最后一页也不应停在“待开发”，而要转化为接口契约、迁移步骤、验收指标、负责人、依赖方、灰度开关和回滚预案。</p>
+<p>当需求仍有较大不确定性时，可以把方案拆成“先验证、再扩展”的两步：先用最小实现验证业务规则、流量假设或用户行为，再决定是否投入完整的平台化能力。TD 要写清第一步能够证伪什么、达到什么阈值才进入第二步。这样既避免把探索性需求过度架构化，也避免在关键假设未验证前锁死后续选择。</p>
+<h2 id="13-架构设计核心方法"><a class="header" href="#13-架构设计核心方法">1.3 架构设计核心方法</a></h2>
+<p>技术方案并非一次性文档：当关键假设、边界、依赖或发布策略变化时，应同步审阅相关 TD 与 ADR；过期文档比缺少文档更容易误导后续决策。</p>
+<p>文档更新不必追求重写全文，但必须能让后来者找到仍然有效的决策、已被推翻的假设，以及下一次评审应重点检查的风险。</p>
+<h3 id="一套递进的组合拳"><a class="header" href="#一套递进的组合拳">一套递进的组合拳</a></h3>
+<p>复杂业务系统不需要先选择“DDD 项目”或“Clean Architecture 项目”。更有用的顺序是：先用领域建模划清业务边界，再用依赖规则建立内部秩序；当读写特征显著不同，再考虑 CQRS；当一次业务动作跨越多个边界，再用事件、Outbox、Saga 和对账建立协作机制。每一层都应由实际复杂度触发。</p>
+<pre><code class="language-text">业务复杂度高      → DDD 战略设计：术语、子域、限界上下文、ACL
+内部依赖失控      → 分层与依赖向内：端口、用例、领域模型、适配器
+读写模型冲突      → CQRS：命令模型与查询模型按需分离
+跨边界事务复杂    → 事件、Outbox、Saga、幂等、补偿与对账
+设计持续失真      → 架构/设计/代码/上线前四阶段评审
+</code></pre>
+<h3 id="先划业务边界ddd-战略设计"><a class="header" href="#先划业务边界ddd-战略设计">先划业务边界：DDD 战略设计</a></h3>
+<p>许多大泥球系统的根因不是类写得不够优雅，而是所有概念都被假定为同一个模型。例如商品在供给侧可能表示可编辑的资料，在交易侧表示下单快照，在搜索侧表示面向检索的文档；强行共享一个对象，只会让每个团队都被其他场景的字段和节奏牵制。</p>
+<p>领域驱动设计强调从领域语言与模型开始处理复杂性。[5] 在战略层面，最重要的产出是：</p>
+<ul>
+<li><strong>通用语言</strong>：业务、产品、研发和运营对关键术语有可追溯的一致定义。</li>
+<li><strong>限界上下文</strong>：一个模型在哪个边界内成立；同名概念在不同上下文可以有不同含义。</li>
+<li><strong>上下文映射</strong>：上下文之间如何协作，谁是上游，谁维护契约，哪里需要防腐层（ACL）。</li>
+</ul>
+<p>以交易为例，商品、库存、订单、支付可以先作为不同上下文，而不是急于拆成四个独立服务。先明确谁拥有价格快照、谁决定库存可售、谁维护订单状态、谁确认支付事实，再决定它们以模块、进程还是独立服务的形式部署。限界上下文首先是模型和责任边界，微服务只是可能的部署结果。</p>
+<p>事件风暴、领域故事和四色建模可以帮助发现事件、命令、角色、规则与生命周期；但它们是协作手段，不是必须照抄的图形语言。一次有效的建模工作坊至少应产出一条业务事件时间线、争议术语清单和初版上下文地图。</p>
+<h3 id="从模型边界到部署边界"><a class="header" href="#从模型边界到部署边界">从模型边界到部署边界</a></h3>
+<p>模型边界并不自动等于进程边界。把限界上下文立即拆成微服务，往往会过早引入远程调用、分布式追踪、独立发布和跨服务一致性等成本；反过来，把所有上下文长期塞进同一模块，也会让模型和团队责任重新混杂。更稳妥的做法是把部署视为一个后续决策，并先建立可验证的模块边界。</p>
+<p>一个上下文先以模块化单体落地，通常已经能获得不少收益：目录和依赖清晰、数据访问受控、测试可以围绕用例运行、团队能够明确模块负责人。只有在下面的信号持续出现时，才认真评估拆分：某个边界需要独立扩缩容或独立故障隔离；变化节奏与发布窗口长期不同；数据主权与安全要求必须隔离；团队已具备独立构建、部署、观测和 on-call 的能力。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>判断维度</th><th>适合先保持模块化单体</th><th>需要评估独立部署</th></tr>
+</thead>
+<tbody>
+<tr><td>业务变化</td><td>规则仍高度耦合，需求常跨多个上下文联动</td><td>某个能力有稳定目标和独立变化节奏</td></tr>
+<tr><td>团队协作</td><td>同一团队能端到端负责</td><td>团队边界稳定，能够独立交付与运维</td></tr>
+<tr><td>数据与流量</td><td>读写负载相近，仍可在同一数据域治理</td><td>热点、合规或数据主权要求明显不同</td></tr>
+<tr><td>运行风险</td><td>进程内隔离已满足可用性目标</td><td>故障、资源争抢必须被强隔离</td></tr>
+</tbody>
+</table>
+</div>
+<p>这个判断避免把“微服务化”当成成熟度标志。架构演进的目标是降低未来变更的总成本，不是增加可展示的组件数量。即使最终决定拆分，也应先定义契约、迁移数据、保留兼容窗口，再逐步切换流量；不要把一次组织调整或技术潮流变成不可逆的大爆炸改造。</p>
+<p>从模块化单体走向独立部署，通常可以按“封装、观测、复制、迁移、切流、删除”的顺序推进。先封装模块的入口和数据访问，阻止新增跨模块直连；再补齐调用链、业务指标和所有权；随后为候选边界复制出独立实现或影子读模型；通过双写、回放或校验任务验证结果；最后用小比例流量切换，并在兼容窗口结束后删除旧路径。这里的双写不是天然正确的方案，它会制造新旧数据漂移，因此必须配套版本号、校验任务和停止双写的退出条件。渐进式替换旧实现的思路，也可参考绞杀者模式对兼容层、切流和删除旧路径的总结。[19]</p>
+<p>如果拆分只是为了追赶技术潮流，迁移成本往往高于收益。只有当边界能够独立变化、独立扩展、独立隔离故障或满足明确的数据治理要求时，才值得承担远程调用、部署、监控和一致性成本。AWS 的领域服务设计建议也把“围绕业务领域和能力聚焦”作为服务边界的重要依据，同时提醒团队不要让服务跨越多个业务边界。[17]</p>
+<p>拆分后的第一项验收也不应是“服务已经启动”，而应是边界是否真的独立：调用方是否只能通过契约访问能力，是否仍有跨库读写，失败是否被限制在可接受范围，发布与回滚是否不再依赖所有团队同步操作。若这些条件尚未满足，拆分只是把进程内耦合换成了网络耦合。</p>
+<h3 id="再建内部秩序依赖方向比目录名称更重要"><a class="header" href="#再建内部秩序依赖方向比目录名称更重要">再建内部秩序：依赖方向比目录名称更重要</a></h3>
+<p>传统三层架构擅长回答“接口、业务和数据访问代码放在哪里”，适合大多数业务系统起步。随着业务规则、外部依赖和测试要求增长，真正需要约束的是依赖方向：核心业务不应依赖 HTTP、数据库、消息队列或具体框架，而应由外层适配这些技术细节。</p>
+<p>Clean Architecture 的价值正在于此：让依赖朝向稳定的业务规则和抽象接口，而不是让领域模型被基础设施吞没。[6]</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>层次</th><th>应承担的职责</th><th>不应承担的职责</th></tr>
+</thead>
+<tbody>
+<tr><td>Interface / Adapter</td><td>协议转换、鉴权、参数校验、响应适配</td><td>业务规则和 SQL 编排</td></tr>
+<tr><td>Application / Use Case</td><td>用例编排、事务边界、调用端口</td><td>直接绑定数据库或消息中间件</td></tr>
+<tr><td>Domain</td><td>实体、值对象、聚合、不变量和领域服务</td><td>HTTP、ORM、缓存和远程调用细节</td></tr>
+<tr><td>Infrastructure</td><td>数据库、缓存、MQ、第三方服务实现</td><td>决定核心业务规则</td></tr>
+</tbody>
+</table>
+</div>
+<p>对于复杂领域，DDD 的战术模式帮助代码承载模型：实体表达身份，值对象表达无身份的业务概念，聚合守护一致性不变量，Repository 隔离持久化细节。聚合的关键不是“把关联对象都装进来”，而是定义一次业务事务中必须共同保持正确的最小边界。跨聚合引用通常使用标识符；跨边界协作则通过明确的命令、查询或事件完成。[5]</p>
+<p>一个订单聚合可以守护“已取消订单不能支付”“应付金额不可为负”等本地不变量；它不应直接承担调用支付渠道、更新搜索索引或通知营销系统。这些动作属于用例编排或异步协作。</p>
+<h3 id="cqrs只在读写矛盾真实存在时分离"><a class="header" href="#cqrs只在读写矛盾真实存在时分离">CQRS：只在读写矛盾真实存在时分离</a></h3>
+<p>命令查询职责分离（CQRS）允许写入模型和读取模型使用不同的数据结构。它适合写侧需要严格业务规则、读侧需要多维查询或高并发展示的场景，例如订单写入要守护状态机，运营查询却需要按用户、商品、渠道、时间和状态聚合。</p>
+<p>但 CQRS 会引入投影延迟、数据同步、回放、监控和排障成本。Martin Fowler 也特别提醒：它对少数复杂场景有价值，对大多数系统却可能增加风险性复杂度。[7] 因而选择前应回答：单一模型是否已经无法同时满足写入正确性和读取性能？读模型多久同步一次，用户是否能接受该延迟？投影失败、重复消费和重建时谁负责修复？团队是否具备观测和运营两套模型的能力？</p>
+<p>如果答案不充分，先保持同一模型或采用轻量的读库、缓存和预计算通常更好。CQRS 不等于事件溯源；前者是职责分离，后者是把事件作为状态事实的存储方式，两者可以组合，也可以独立采用。</p>
+<h3 id="一个贯穿式案例从订单平台化推导出可交付方案"><a class="header" href="#一个贯穿式案例从订单平台化推导出可交付方案">一个贯穿式案例：从“订单平台化”推导出可交付方案</a></h3>
+<p>下面用一个简化案例说明方法如何串联。假设业务提出“把订单系统平台化，支持多个销售渠道，并在大促时保持稳定”。如果直接进入技术选型，讨论很快会变成“是否上微服务、消息队列选什么、订单表是否分库”。先按本章工作链路拆解，才能知道哪些设计问题真正重要。</p>
+<p>第一步是定义范围。订单平台负责接收下单意图、保存订单事实、维护订单生命周期，并向库存、支付、履约和营销上下文发布稳定事件；它不负责库存可售计算、支付渠道路由和仓库内部作业。第二步是写出约束：创建请求需要在 300 ms 内返回受理结果，订单事实不能因下游暂时不可用而丢失；库存和支付可以在后续阶段收敛，但用户必须能够查询处理中、成功或失败的明确状态。第三步是画出状态机：<code>待确认 → 已创建 → 待支付 → 已支付 → 履约中 → 已完成</code>，并列出取消、超时和人工介入等旁路状态。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>设计问题</th><th>可交付的判断</th><th>需要验证的指标</th></tr>
+</thead>
+<tbody>
+<tr><td>订单事实由谁拥有</td><td>订单上下文拥有订单号、订单行快照和订单状态</td><td>重复请求是否返回同一订单结果</td></tr>
+<tr><td>下游如何协作</td><td>本地事务写订单与 Outbox，消费者按业务键幂等</td><td>Outbox 延迟、重复消费和未收敛订单数</td></tr>
+<tr><td>高峰如何保护</td><td>入口准入、排队和优先级保护写入事实</td><td>受理延迟、排队深度、拒绝率</td></tr>
+<tr><td>支付未知结果怎么办</td><td>保留处理中状态，通过查询和回调收敛</td><td>未知结果持续时间、对账差异</td></tr>
+<tr><td>新旧渠道如何迁移</td><td>契约适配器隔离渠道差异，按渠道灰度</td><td>新旧结果差异、回滚时间和错误率</td></tr>
+</tbody>
+</table>
+</div>
+<p>这个案例中，微服务不是第一项决策。先确定订单事实和生命周期，才能判断订单是否需要独立部署；先确定受理结果和最终结果的区别，才能决定哪些调用同步、哪些事件异步；先定义重复请求和未知结果，才能评估幂等键、状态查询和对账。最终方案可能是模块化单体，也可能是多个服务，但它们都应能通过同一组业务事实和验收指标被验证。</p>
+<p>架构评审时可以要求团队走完三条路径：正常下单、支付超时、库存服务不可用。每条路径都要指出状态如何推进、哪个组件写入事实、哪些消息会重试、用户看到什么、谁负责最终修复。如果只能讲清正常路径，说明方案还没有把业务状态和运行治理真正设计出来。</p>
+<h3 id="系统协作把一致性设计成一条链路"><a class="header" href="#系统协作把一致性设计成一条链路">系统协作：把一致性设计成一条链路</a></h3>
+<p>跨上下文业务动作很难用一个数据库事务保证。例如创建订单后要预占库存、确认支付、发放权益；任何一步失败，都可能出现局部成功。此时最重要的不是“有没有分布式事务”，而是明确状态、消息、补偿和对账责任。</p>
+<pre><code class="language-text">本地事务：更新业务状态 + 写入 Outbox 事件
+        ↓
+Relay 可靠投递事件（允许至少一次）
+        ↓
+消费者以幂等键处理，更新自己的本地事实
+        ↓
+失败时重试、补偿或转人工；定期对账发现遗漏与漂移
+</code></pre>
+<p>Transactional Outbox 将业务更新和待发布消息写入同一事务；独立 Relay 再向消息系统投递。它避免了“数据库已提交但事件尚未发出”的窗口，但仍可能重复投递，因此消费者必须具备幂等能力。[8] Saga 将跨服务长事务拆成一组本地事务；失败时执行显式补偿，而非期待全局自动回滚。[8]</p>
+<p>设计时必须写清：幂等键来自哪里、重复请求返回什么、补偿是否真的可逆、消息乱序如何处理、对账依据哪个事实源、人工介入后的状态如何回写。对账不是失败的象征，而是最终一致系统中验证和修复业务事实的最后防线。</p>
+<h3 id="把容量与韧性写进设计而不是上线后补救"><a class="header" href="#把容量与韧性写进设计而不是上线后补救">把容量与韧性写进设计，而不是上线后补救</a></h3>
+<p>一致性方案如果没有容量和故障设计，通常难以在生产环境中成立。Outbox 表会积压、消费者会落后、重试会形成流量放大、下游故障会反向拖垮上游。因此，在 TD 中至少应说明核心队列或事件流的正常积压水位、可接受恢复时间、重试上限、死信处理方式和人工介入入口。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>风险</th><th>设计时要明确的策略</th><th>验证信号</th></tr>
+</thead>
+<tbody>
+<tr><td>流量突增</td><td>限流、排队、背压、优先级和降级结果</td><td>拒绝率、排队时长、核心链路成功率</td></tr>
+<tr><td>下游不可用</td><td>超时、熔断、隔离和延迟重试</td><td>超时比例、熔断状态、重试放大倍数</td></tr>
+<tr><td>消息积压</td><td>消费扩容、限速、重放和死信处理</td><td>消费延迟、积压深度、死信数量</td></tr>
+<tr><td>数据漂移</td><td>对账任务、审计事实源、修复流程</td><td>不一致数量、修复时长、重复发生率</td></tr>
+</tbody>
+</table>
+</div>
+<p>容量规划不是只算机器数量，而是为关键业务状态留出缓冲。降级也不是简单返回错误：对下单这类链路，可能是返回“已受理、处理中”；对查询类链路，可能是返回带时间戳的旧数据；对非关键功能，则可以暂时关闭。每一种降级都必须被产品、客服和运营理解，否则技术上成功保护了系统，业务上却制造了不可解释的用户体验。</p>
+<h3 id="用分阶段评审防止设计失真"><a class="header" href="#用分阶段评审防止设计失真">用分阶段评审防止设计失真</a></h3>
+<p>只在 Pull Request 阶段做 Code Review 往往太晚：聚合边界、服务职责或一致性路线若有问题，代码写完后才发现会让返工成本急剧上升。本书建议把评审前移为四个阶段：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>阶段</th><th>主要问题</th><th>代表检查项</th></tr>
+</thead>
+<tbody>
+<tr><td>架构评审</td><td>方向是否正确</td><td>目标、边界、质量属性、方案取舍、演进路径</td></tr>
+<tr><td>设计评审</td><td>模型和协作是否自洽</td><td>数据所有权、聚合、接口、事件、异常路径</td></tr>
+<tr><td>Code Review</td><td>实现是否兑现设计</td><td>依赖方向、命名、错误语义、测试、复杂度</td></tr>
+<tr><td>上线前检查</td><td>运行风险是否可控</td><td>容量、监控、灰度、回滚、补偿与值守</td></tr>
+</tbody>
+</table>
+</div>
+<p>代码评审仍然非常重要：Google 的公开指南将设计、功能、复杂度、测试、可读性和长期代码健康视为评审重点，而不是只检查格式。[12] 但评审者不应试图在 PR 中重新设计整个系统。若发现架构问题，应把讨论升级为设计决策，再回到实现。</p>
+<p>四个阶段的边界并不意味着四次冗长会议。低风险改动可以把架构与设计判断浓缩在 TD 或 MR 描述中，高风险改动才需要专门评审。关键在于问题要在仍然容易改变的阶段被提出：边界问题在编码前发现，错误语义在合并前发现，容量与回滚问题在发布前发现。这样，评审不是减慢交付的关卡，而是减少返工、事故和跨团队沟通成本的反馈机制。</p>
+<h2 id="14-架构表达与评审"><a class="header" href="#14-架构表达与评审">1.4 架构表达与评审</a></h2>
+<h3 id="图不是装饰而是不同层次的共同语言"><a class="header" href="#图不是装饰而是不同层次的共同语言">图不是装饰，而是不同层次的共同语言</a></h3>
+<p>架构图的目标不是把系统所有组件塞进一张图，而是帮助特定读者在特定问题上做判断。C4 Model 以系统上下文、容器、组件和代码等层次组织静态结构，并补充动态与部署视图；团队不必每次画齐所有层次，只画能增加决策价值的视图。[9]</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>受众与问题</th><th>优先视图</th><th>图上必须表达</th></tr>
+</thead>
+<tbody>
+<tr><td>业务、产品、管理者：范围与收益</td><td>上下文图、能力图、主流程图</td><td>用户、边界、外部依赖、业务结果</td></tr>
+<tr><td>架构师、开发、测试：方案是否可行</td><td>容器图、组件图、时序图</td><td>职责、协议、数据流、失败与降级</td></tr>
+<tr><td>运维、安全、SRE：如何运行与恢复</td><td>部署图、流量图、故障演练图</td><td>拓扑、容量、隔离、观测、回滚</td></tr>
+<tr><td>新成员：从哪里理解系统</td><td>上下文图 + 主链路时序图</td><td>术语、入口、核心模块、阅读顺序</td></tr>
+</tbody>
+</table>
+</div>
+<p>静态图负责定边界：谁拥有数据、谁依赖谁、哪些模块可替换。动态图负责拉主轴：一次请求或事件如何穿过系统、何处同步等待、何处异步交接、失败怎样处理。图中的箭头必须有语义，例如 HTTP 查询、发布领域事件、读取只读投影，而不是只画无标签连线。</p>
+<h3 id="让图文档和代码相互校验"><a class="header" href="#让图文档和代码相互校验">让图、文档和代码相互校验</a></h3>
+<p>一张图不能替代设计文档，设计文档也不能替代代码；三者应形成可相互验证的关系。上下文图中的边界应能在 TD 的职责与数据所有权部分找到解释；时序图中的每一次跨边界交互应能在 API 或事件契约中找到定义；代码中的模块依赖应不违背容器图和 ADR 的关键选择。发生偏差时，应先判断是实现偏离了设计，还是新的事实证明原设计需要调整，而不是让图、文档和代码各自演化。</p>
+<p>对长期维护的系统，图也应有生命周期。核心上下文图、主链路时序图和部署图应跟随重大边界、协议和运行变化更新；临时讨论图可以在决策沉淀后归档。这样既避免把画图变成额外负担，也避免新成员只能从过期文档或源码猜测系统意图。</p>
+<h3 id="让图能够经受挑战"><a class="header" href="#让图能够经受挑战">让图能够经受挑战</a></h3>
+<p>评审中的图至少应让读者回答四个问题：这张图的范围和读者是谁？每个节点负责什么，数据由谁拥有？每条连接是同步还是异步，失败时会发生什么？图上的设计选择如何对应质量目标和监控指标？</p>
+<p>若无法回答，通常不是图画得不够漂亮，而是边界、协议或异常语义尚未想清楚。C4 的图表检查清单也强调标题、范围、图例、元素语义和关系标签的明确性。[9]</p>
+<h3 id="评审是一种协作机制"><a class="header" href="#评审是一种协作机制">评审是一种协作机制</a></h3>
+<p>高质量评审不等于找到最多问题，而是让团队以最低成本提升决策与代码质量。评审材料应在会前提供；会上优先讨论有分歧的假设、不可逆决策和高风险链路；会后记录结论、待办和责任人。对“应该用什么模式”的争论，应回到问题：它改善了哪项质量属性，新增了什么运行成本，何时需要撤销或替换？</p>
+<p>技术方案、ADR、架构图、测试、仪表盘和复盘记录共同构成系统的可解释性。它们不是额外负担，而是让未来维护者理解“为什么这样做”的工程资产。[4][10]</p>
+<h3 id="评审要覆盖主链路也要覆盖变化路径"><a class="header" href="#评审要覆盖主链路也要覆盖变化路径">评审要覆盖主链路，也要覆盖变化路径</a></h3>
+<p>一次技术评审至少选择一条成功路径和两类失败路径。成功路径验证职责、数据和协议是否连贯；依赖失败路径验证超时、降级、重试和补偿是否明确；变更路径则验证版本兼容、数据迁移、灰度发布与回滚是否真的可执行。对于跨团队接口，还应确认字段新增、枚举扩展、事件重放和消费者升级的兼容规则。</p>
+<p>评审结论不必追求“所有问题都一次解决”。更重要的是把问题分类：阻塞上线的风险必须解决；可以接受但需要监控的风险要写入 ADR 或发布计划；暂不处理的债务要说明触发重访的条件。这样，评审既不会退化为形式化签字，也不会因为追求完美而阻塞合理交付。</p>
+<h2 id="15-架构师工程思维"><a class="header" href="#15-架构师工程思维">1.5 架构师工程思维</a></h2>
+<h3 id="从局部最优转向长期价值"><a class="header" href="#从局部最优转向长期价值">从局部最优转向长期价值</a></h3>
+<p>架构师的职责不是替所有人决定技术细节，而是在不确定性下持续改善团队的决策质量。一个看似合理的局部优化，可能把复杂度转移给下游团队、运维人员或未来维护者。因此，每个重要决策都应经过至少五个滤网：业务价值、质量属性、实现与运行成本、组织协作，以及未来变化的可逆性。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>滤网</th><th>关键问题</th></tr>
+</thead>
+<tbody>
+<tr><td>业务</td><td>是否直接改善用户结果、收入、风险或效率？</td></tr>
+<tr><td>技术</td><td>关键性能、正确性、可用性和安全目标是什么？</td></tr>
+<tr><td>运维</td><td>如何观察、扩缩、降级、排障与恢复？</td></tr>
+<tr><td>组织</td><td>哪个团队拥有它，沟通路径是否与边界匹配？</td></tr>
+<tr><td>演进</td><td>变化来临时能否替换、迁移或回滚？</td></tr>
+</tbody>
+</table>
+</div>
+<p>康威定律提醒我们，系统的沟通结构往往会反映组织的沟通结构。[13] 这不是把组织图机械映射为微服务图，而是要求设计者看见责任边界、认知负荷和交付流。若一个模块必须由三个团队同时修改，或者一个服务的运行知识只掌握在个人手里，再漂亮的模块划分也难以长期健康。</p>
+<h3 id="简单是管理复杂度不是否认复杂度"><a class="header" href="#简单是管理复杂度不是否认复杂度">简单是管理复杂度，不是否认复杂度</a></h3>
+<p>奥卡姆剃刀在工程中的含义不是“永远选最少组件”，而是避免引入不能证明价值的机制。系统确实需要复杂性时，应让复杂性集中在边界清晰、可观测、可测试的位置；不需要时，应保留更简单、可理解的实现。</p>
+<p>例如，模块化单体往往比过早微服务更适合作为起点；一张明确定义的事件契约比共享数据库更容易演进；一次可逆的灰度发布比大爆炸式重构更可控。演进式架构主张把变化视为常态，并通过适应度函数、自动化验证和渐进式迁移保护关键架构特性。[11] 遗留系统的领域模型也不应被当作一次性设计；业务认知变化后，模型、边界和实现需要通过反馈持续调整。[16]</p>
+<p>工程思维也意味着把“谁来做”纳入设计。一个方案即使技术上正确，如果没有明确的服务所有者、值班责任、接口维护者和迁移负责人，最终仍会在组织边界处失效。架构师应帮助团队把责任写入运行手册、代码所有权和发布流程，并通过复盘持续修正；这比单次输出一份完美架构图更能提高系统的长期质量。</p>
+<p>组织边界还会影响架构演进速度。一个需要多个团队同时修改、共同值班却没有单一责任人的模块，会产生排队、反复沟通和风险转移。反过来，盲目按组织现状拆服务也会把暂时的汇报关系固化成长期的技术边界。更稳妥的做法是先识别端到端交付流，再检查团队是否拥有完成该交付流所需的能力；如果能力缺失，可以通过平台能力、清晰的契约和短期协作降低认知负荷，而不是马上复制更多服务。团队拓扑的讨论也强调，应让团队边界服务于交付流和认知负荷，而不是让系统被组织图机械切割。[20]</p>
+<h3 id="用质量属性场景做取舍"><a class="header" href="#用质量属性场景做取舍">用质量属性场景做取舍</a></h3>
+<p>ATAM 等架构评估方法的核心启发是：不要抽象地讨论“系统要高可用”，而要用具体场景表达质量属性。[3]</p>
+<blockquote>
+<p>在大促峰值期间，订单创建接口在 95% 请求中应在 300 ms 内返回受理结果；当库存服务不可用时，系统应在 1 秒内降级为“排队处理中”，不得重复创建订单，并在恢复后完成或取消处理。</p>
+</blockquote>
+<p>这个场景同时明确了负载、响应目标、故障条件、降级行为和正确性约束。它比“高性能、高可用”更容易指导架构、测试和监控。</p>
+<p>ATAM 的另一个重要启发是把“质量属性场景”与“敏感点、权衡点和风险”联系起来：某个缓存策略可能改善延迟，却增加数据新鲜度风险；某个同步校验可能改善正确性，却压缩高峰吞吐；某个服务拆分可能改善独立发布，却增加跨边界故障。评审不应只列出属性名称，而要指出哪项设计同时影响了多个目标，以及将用什么实验或指标验证它。SEI 对 ATAM 的正式说明也把场景、架构决策和权衡分析放在同一个评估过程中。[18]</p>
+<h3 id="架构师要留在反馈闭环里"><a class="header" href="#架构师要留在反馈闭环里">架构师要留在反馈闭环里</a></h3>
+<p>架构设计不会在评审通过时结束。上线后的指标、告警、故障、用户反馈、研发效率和团队协作摩擦，都会检验原先的假设。架构师需要定期回看：哪些决策产生了预期收益，哪些复杂度没有回报，哪些边界已经不再适合业务变化。</p>
+<p>复盘时不必把每次故障都归因于“实现不够仔细”。更值得追问的是：当时遗漏了哪项假设？边界、契约、监控或发布流程中缺少了什么反馈？将答案写回 ADR、Checklist、自动化测试或运行手册，才能让一次经验真正降低下一次决策成本。</p>
+<p>当同一类问题反复出现时，应把它视为系统性信号：也许是模型边界不清，也许是接口契约缺少版本策略，也许是团队缺少足够的演练和所有权，而不应只靠某位工程师更谨慎来维持质量。</p>
+<p>最有价值的架构能力，最终不是记住多少模式，而是持续把模糊问题转化为可验证假设，把复杂选择转化为清晰边界，并让团队有能力在变化中安全地改进系统。</p>
+<h2 id="16-小结与阅读导航"><a class="header" href="#16-小结与阅读导航">1.6 小结与阅读导航</a></h2>
+<p>本章建立的是一条工程决策主线：从问题、约束与数量级开始，用六维画布形成设计，再用 TD、ADR 和评审把决策沉淀下来；随后以领域边界、依赖方向、读写分离和可靠事件协作组织系统，最后通过架构视图、运行反馈和演进思维持续验证。</p>
+<p>后续章节将把本章的概念拆开落地：</p>
+<ul>
+<li><a href="./02-coding-principles-design-patterns.html">第 2 章：编码、重构与 Code Review</a> 讨论架构意图如何进入日常代码与评审。</li>
+<li><a href="./03-production-resilience-safeguards.html">第 3 章：生产治理与韧性保障</a> 展开 SLO、观测、限流、熔断、降级和故障治理。</li>
+<li><a href="./04-large-transaction-orchestration.html">第 4 章：大事务与跨系统编排</a> 深入 Saga、Outbox、补偿、幂等与对账。</li>
+<li>后续方法论章节分别处理长生命周期流程、任务处理、强一致、复杂读与高并发写；第二部分则用商品、库存、订单、支付等场景验证这些方法。</li>
+</ul>
+<p>读完本章后，读者不必急于采用所有模式，但应能够拿一个真实需求回答：目标和非目标是什么？谁拥有业务事实？关键质量属性怎样排序？失败后如何收敛？为什么当前复杂度值得承担？</p>
+<h2 id="17-参考文献与延伸阅读"><a class="header" href="#17-参考文献与延伸阅读">1.7 参考文献与延伸阅读</a></h2>
+<p>本节汇总正文引用源。正文中的编号用于就近说明概念来源；完整书目按“先建立主线、再按问题深入”的方式组织。链接优先指向作者、出版方或长期维护的官方页面。</p>
+<h3 id="架构决策可靠性与容量"><a class="header" href="#架构决策可靠性与容量">架构决策、可靠性与容量</a></h3>
+<p>[1] Kleppmann M. <a href="https://www.oreilly.com/library/view/designing-data-intensive-applications/9781491903063/titlepage01.html"><em>Designing Data-Intensive Applications</em></a>[M]. O’Reilly Media, 2017. 建立可靠性、可扩展性、可维护性，以及数据系统权衡的主线。</p>
+<p>[2] Beyer B, Jones C, Petoff J, Murphy N R, eds. <a href="https://sre.google/sre-book/table-of-contents/"><em>Site Reliability Engineering</em></a>[M]. O’Reilly Media, 2016；<a href="https://sre.google/workbook/table-of-contents/">《The Site Reliability Workbook》</a> 提供容量、服务目标和运行实践的补充。</p>
+<p>[3] Bass L, Clements P, Kazman R. <a href="https://www.pearson.com/en-us/subject-catalog/p/software-architecture-in-practice/P200000000111/9780136886099"><em>Software Architecture in Practice</em></a>[M]. 4th ed. Addison-Wesley, 2021. 适合系统理解质量属性、架构视图、评估与演进。</p>
+<p>[4] Fowler M. <a href="https://martinfowler.com/bliki/ArchitectureDecisionRecord.html">Architecture Decision Record</a>[EB/OL]. 适合了解短决策记录的背景、状态与替代关系；概念由 Michael Nygard 在 2011 年的实践中推广。</p>
+<h3 id="领域建模内部结构与读写分离"><a class="header" href="#领域建模内部结构与读写分离">领域建模、内部结构与读写分离</a></h3>
+<p>[5] Evans E. <a href="https://www.oreilly.com/library/view/domain-driven-design-tackling/0321125215/title.html"><em>Domain-Driven Design: Tackling Complexity in the Heart of Software</em></a>[M]. Addison-Wesley, 2003. 重点阅读通用语言、限界上下文、聚合与战略设计。</p>
+<p>[6] Martin R C. <em>Clean Architecture: A Craftsman’s Guide to Software Structure and Design</em>[M]. Prentice Hall, 2017. 用于理解依赖倒置、边界与独立于框架的核心业务规则；实现时应结合项目复杂度谨慎取舍。</p>
+<p>[7] Fowler M. <a href="https://martinfowler.com/bliki/CQRS.html">CQRS</a>[EB/OL]. 2011. 说明读写模型分离的价值与额外复杂度，适合作为 CQRS 选型的反过度设计提醒。</p>
+<p>[8] Richardson C. <a href="https://microservices.io/patterns/data/saga.html">Saga</a>；<a href="https://microservices.io/patterns/data/transactional-outbox">Transactional Outbox</a>[EB/OL]. <em>Microservices Patterns</em>. 用于理解跨服务本地事务、补偿、可靠发布和幂等消费的关系。</p>
+<h3 id="架构表达评审与持续演进"><a class="header" href="#架构表达评审与持续演进">架构表达、评审与持续演进</a></h3>
+<p>[9] Brown S. <a href="https://c4model.com/">The C4 Model for Visualising Software Architecture</a>[EB/OL]. 重点参考 <a href="https://c4model.com/diagrams">diagram levels</a> 与 <a href="https://c4model.com/diagrams/checklist">review checklist</a>，按受众选择必要视图。</p>
+<p>[10] Clements P, Bachmann F, Bass L, et al. <em>Documenting Software Architectures: Views and Beyond</em>[M]. 3rd ed. Addison-Wesley, 2011. 适合系统学习架构文档的视图、受众与记录方式。</p>
+<p>[11] Ford N, Parsons R, Kua P. <em>Building Evolutionary Architectures</em>[M]. O’Reilly Media, 2017. 适合进一步学习演进式架构、适应度函数与渐进式变更。</p>
+<p>[12] Google. <a href="https://google.github.io/eng-practices/review/">Engineering Practices: Code Review Guide</a>[EB/OL]. 重点参考 <a href="https://google.github.io/eng-practices/review/reviewer/looking-for.html">What to look for in a code review</a>，将设计、正确性、测试和可维护性纳入日常评审。</p>
+<p>[13] Conway M E. <em>How Do Committees Invent?</em>[J]. Datamation, 1968, 14(4): 28–31；Skelton M, Pais M. <em>Team Topologies</em>[M]. IT Revolution, 2019. 共同用于理解组织结构、团队认知负荷和系统边界之间的关系。</p>
+<p>[14] 文彬, 子维. <a href="https://tech.meituan.com/2017/12/22/ddd-in-practice.html">领域驱动设计在互联网业务开发中的实践</a>[EB/OL]. 美团技术团队, 2017. 用于补充中文互联网业务中从模型、分层到代码落地的实践观察。</p>
+<p>[15] 阿里云开发者社区. <a href="https://developer.aliyun.com/article/743319">领域驱动设计（DDD）-基础思想</a>[EB/OL]. 阿里云, 2020. 用于说明 DDD 与具体架构风格的关系，以及领域层、应用层和基础设施层的职责边界。</p>
+<p>[16] Nik Silver, Mat Wall. <a href="https://www.infoq.cn/article/ddd-evolving-architecture">演进架构中的领域驱动设计</a>[EB/OL]. InfoQ 中文, 2009. 中文译文；用于补充业务模型演进、遗留系统重构和架构适应变化的案例。</p>
+<p>[17] AWS. <a href="https://docs.aws.amazon.com/wellarchitected/2023-04-10/framework/rel_service_architecture_business_domains.html">Build services focused on specific business domains and functionality</a>[EB/OL]. AWS Well-Architected Framework, 2023. 用于服务边界、业务领域聚焦和避免跨领域服务的实践说明。</p>
+<p>[18] Carnegie Mellon Software Engineering Institute. <a href="https://www.sei.cmu.edu/library/architecture-tradeoff-analysis-method-collection/">Architecture Tradeoff Analysis Method Collection</a>[EB/OL]. SEI. 用于质量属性场景、敏感点、权衡点和风险分析。</p>
+<p>[19] Fowler M. <a href="https://martinfowler.com/bliki/StranglerFigApplication.html">Strangler Fig Application</a>[EB/OL]. Martin Fowler’s Bliki. 用于说明通过兼容层、渐进切流和逐步删除旧实现推进架构迁移。</p>
+<p>[20] Skelton M, Pais M. <a href="https://teamtopologies.com/">Team Topologies</a>[EB/OL]. Team Topologies. 用于理解团队认知负荷、流对齐团队、平台团队与系统边界之间的关系。</p>
+<h3 id="建议阅读路径"><a class="header" href="#建议阅读路径">建议阅读路径</a></h3>
+<p>若刚开始建立系统设计方法论，可按 1 → 3 → 5 → 9 建立数据、架构、领域与表达的共同语言；正在处理跨系统一致性时，重点阅读 8，并结合本书后续的大事务章节；希望提升方案评审与团队协作时，重点阅读 4、10、12 与 13。全书范围内的资料索引见<a href="../appendix/references.html">附录 B：参考文献与延伸阅读</a>。</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../index.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part01/02-coding-principles-design-patterns.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../index.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part01/02-coding-principles-design-patterns.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-c2a407aa.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-ccf746f1.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

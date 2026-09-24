@@ -17,30 +17,33 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
 
-<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+<script class="next-config" data-name="main" type="application/json">{"hostname":"wxquare.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
 
-    <meta name="description" content="本文以 TensorFlow 1.x 实践为基础，整理模型格式转换、基准测试、权重量化、权重稀疏和通道剪枝的完整过程。全文以一个实际的模型优化问题为主线：先把训练模型转换为适合推理的格式，再建立优化前的性能基线，之后分别尝试量化、权重稀疏和通道剪枝，最后回到同一套指标上比较优化结果。 这几种方法解决的问题并不完全相同。量化主要改变数值表示，权重稀疏主要减少非零参数，通道剪枝则直接改变网络结构。因此">
+    <meta name="description" content="以 TensorFlow 1.x 模型为例，完整整理格式转换、性能基线、量化、稀疏化和通道剪枝，并区分模型压缩与实际推理加速。">
 <meta property="og:type" content="article">
 <meta property="og:title" content="TensorFlow 模型压缩与推理优化实战：格式转换、基准测试、量化与剪枝">
-<meta property="og:url" content="http://yoursite.com/2026/09/22/AI/04-tensorflow-model-optimization/index.html">
+<meta property="og:url" content="https://wxquare.github.io/2026/09/22/AI/04-tensorflow-model-optimization/index.html">
 <meta property="og:site_name" content="wxquare&#39;s Blogs">
-<meta property="og:description" content="本文以 TensorFlow 1.x 实践为基础，整理模型格式转换、基准测试、权重量化、权重稀疏和通道剪枝的完整过程。全文以一个实际的模型优化问题为主线：先把训练模型转换为适合推理的格式，再建立优化前的性能基线，之后分别尝试量化、权重稀疏和通道剪枝，最后回到同一套指标上比较优化结果。 这几种方法解决的问题并不完全相同。量化主要改变数值表示，权重稀疏主要减少非零参数，通道剪枝则直接改变网络结构。因此">
+<meta property="og:description" content="以 TensorFlow 1.x 模型为例，完整整理格式转换、性能基线、量化、稀疏化和通道剪枝，并区分模型压缩与实际推理加速。">
 <meta property="og:locale">
-<meta property="og:image" content="http://yoursite.com/images/channel_pruning.jpg">
-<meta property="og:image" content="http://yoursite.com/images/channel_pruning2.jpg">
-<meta property="og:image" content="http://yoursite.com/images/channel_pruning3.jpg">
+<meta property="og:image" content="https://wxquare.github.io/images/channel_pruning.jpg">
+<meta property="og:image" content="https://wxquare.github.io/images/channel_pruning2.jpg">
+<meta property="og:image" content="https://wxquare.github.io/images/channel_pruning3.jpg">
 <meta property="article:published_time" content="2026-09-22T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-24T02:41:28.827Z">
+<meta property="article:modified_time" content="2026-09-24T14:37:05.727Z">
 <meta property="article:author" content="wxquare">
+<meta property="article:tag" content="tensorflow">
+<meta property="article:tag" content="model-optimization">
+<meta property="article:tag" content="quantization">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="http://yoursite.com/images/channel_pruning.jpg">
+<meta name="twitter:image" content="https://wxquare.github.io/images/channel_pruning.jpg">
 
 
-<link rel="canonical" href="http://yoursite.com/2026/09/22/AI/04-tensorflow-model-optimization/">
+<link rel="canonical" href="https://wxquare.github.io/2026/09/22/AI/04-tensorflow-model-optimization/">
 
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2026/09/22/AI/04-tensorflow-model-optimization/","path":"2026/09/22/AI/04-tensorflow-model-optimization/","title":"TensorFlow 模型压缩与推理优化实战：格式转换、基准测试、量化与剪枝"}</script>
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"https://wxquare.github.io/2026/09/22/AI/04-tensorflow-model-optimization/","path":"2026/09/22/AI/04-tensorflow-model-optimization/","title":"TensorFlow 模型压缩与推理优化实战：格式转换、基准测试、量化与剪枝"}</script>
 
 <script class="next-config" data-name="calendar" type="application/json">""</script>
 <title>TensorFlow 模型压缩与推理优化实战：格式转换、基准测试、量化与剪枝 | wxquare's Blogs</title>
@@ -236,7 +239,7 @@ mjx-container[display="true"] + br {
     <img class="site-author-image" itemprop="image" alt="wxquare"
       src="/images/avatar.jpg">
   <p class="site-author-name" itemprop="name">wxquare</p>
-  <div class="site-description" itemprop="description"></div>
+  <div class="site-description" itemprop="description">wxquare 的技术知识库，聚焦可靠系统设计、复杂业务架构与 AI Engineering，涵盖电商系统、数据一致性、生产可靠性、Agent 系统和工程实践。</div>
 </div>
 <div class="site-state-wrap animated">
   <nav class="site-state">
@@ -252,7 +255,7 @@ mjx-container[display="true"] + br {
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
-        <span class="site-state-item-count">112</span>
+        <span class="site-state-item-count">113</span>
         <span class="site-state-item-name">tags</span>
       </div>
   </nav>
@@ -330,7 +333,7 @@ mjx-container[display="true"] + br {
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2026/09/22/AI/04-tensorflow-model-optimization/">
+    <link itemprop="mainEntityOfPage" href="https://wxquare.github.io/2026/09/22/AI/04-tensorflow-model-optimization/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.jpg">
@@ -339,12 +342,12 @@ mjx-container[display="true"] + br {
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
       <meta itemprop="name" content="wxquare's Blogs">
-      <meta itemprop="description" content="">
+      <meta itemprop="description" content="wxquare 的技术知识库，聚焦可靠系统设计、复杂业务架构与 AI Engineering，涵盖电商系统、数据一致性、生产可靠性、Agent 系统和工程实践。">
     </span>
 
     <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
       <meta itemprop="name" content="TensorFlow 模型压缩与推理优化实战：格式转换、基准测试、量化与剪枝 | wxquare's Blogs">
-      <meta itemprop="description" content="">
+      <meta itemprop="description" content="以 TensorFlow 1.x 模型为例，完整整理格式转换、性能基线、量化、稀疏化和通道剪枝，并区分模型压缩与实际推理加速。">
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
@@ -366,7 +369,7 @@ mjx-container[display="true"] + br {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-24 02:41:28" itemprop="dateModified" datetime="2026-09-24T02:41:28+00:00">2026-09-24</time>
+      <time title="Modified: 2026-09-24 14:37:05" itemprop="dateModified" datetime="2026-09-24T14:37:05+00:00">2026-09-24</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -381,6 +384,7 @@ mjx-container[display="true"] + br {
   
 </div>
 
+            <div class="post-description">以 TensorFlow 1.x 模型为例，完整整理格式转换、性能基线、量化、稀疏化和通道剪枝，并区分模型压缩与实际推理加速。</div>
         </div>
       </header>
 
@@ -614,6 +618,11 @@ mjx-container[display="true"] + br {
     
 
     <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/tensorflow/" rel="tag"># tensorflow</a>
+              <a href="/tags/model-optimization/" rel="tag"># model-optimization</a>
+              <a href="/tags/quantization/" rel="tag"># quantization</a>
+          </div>
 
         
 

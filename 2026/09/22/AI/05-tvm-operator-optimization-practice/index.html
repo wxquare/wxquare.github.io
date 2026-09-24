@@ -17,17 +17,17 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
 
-<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+<script class="next-config" data-name="main" type="application/json">{"hostname":"wxquare.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
 
-    <meta name="description" content="本文把过去几篇 TVM 学习笔记合并成一条完整的实践主线：先建立 TensorFlow 基线，再观察 TVM 如何导入和优化计算图，接着深入 GEMM 算子调度，最后讨论 INT8 量化和综合测试。文章不把“编译成功”当作“性能一定更好”，而是把优化拆成可测量、可解释的实验。 1. 为什么从推理引擎转向深度学习编译器在模型部署中，模型结构、算子实现、内存布局、线程调度和目标硬件往往同时影响延迟。仅">
+    <meta name="description" content="以 TVM 为例，实践 Relay 图优化、GEMM 调优和 INT8 量化，说明算子优化如何连接编译器与推理性能。">
 <meta property="og:type" content="article">
 <meta property="og:title" content="TVM 算子优化实战：从 Relay 图优化到 GEMM 与 INT8 量化">
-<meta property="og:url" content="http://yoursite.com/2026/09/22/AI/05-tvm-operator-optimization-practice/index.html">
+<meta property="og:url" content="https://wxquare.github.io/2026/09/22/AI/05-tvm-operator-optimization-practice/index.html">
 <meta property="og:site_name" content="wxquare&#39;s Blogs">
-<meta property="og:description" content="本文把过去几篇 TVM 学习笔记合并成一条完整的实践主线：先建立 TensorFlow 基线，再观察 TVM 如何导入和优化计算图，接着深入 GEMM 算子调度，最后讨论 INT8 量化和综合测试。文章不把“编译成功”当作“性能一定更好”，而是把优化拆成可测量、可解释的实验。 1. 为什么从推理引擎转向深度学习编译器在模型部署中，模型结构、算子实现、内存布局、线程调度和目标硬件往往同时影响延迟。仅">
+<meta property="og:description" content="以 TVM 为例，实践 Relay 图优化、GEMM 调优和 INT8 量化，说明算子优化如何连接编译器与推理性能。">
 <meta property="og:locale">
 <meta property="article:published_time" content="2026-09-22T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-24T02:41:28.827Z">
+<meta property="article:modified_time" content="2026-09-24T14:37:05.727Z">
 <meta property="article:author" content="wxquare">
 <meta property="article:tag" content="tvm">
 <meta property="article:tag" content="deep-learning-compiler">
@@ -36,11 +36,11 @@
 <meta name="twitter:card" content="summary">
 
 
-<link rel="canonical" href="http://yoursite.com/2026/09/22/AI/05-tvm-operator-optimization-practice/">
+<link rel="canonical" href="https://wxquare.github.io/2026/09/22/AI/05-tvm-operator-optimization-practice/">
 
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2026/09/22/AI/05-tvm-operator-optimization-practice/","path":"2026/09/22/AI/05-tvm-operator-optimization-practice/","title":"TVM 算子优化实战：从 Relay 图优化到 GEMM 与 INT8 量化"}</script>
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"https://wxquare.github.io/2026/09/22/AI/05-tvm-operator-optimization-practice/","path":"2026/09/22/AI/05-tvm-operator-optimization-practice/","title":"TVM 算子优化实战：从 Relay 图优化到 GEMM 与 INT8 量化"}</script>
 
 <script class="next-config" data-name="calendar" type="application/json">""</script>
 <title>TVM 算子优化实战：从 Relay 图优化到 GEMM 与 INT8 量化 | wxquare's Blogs</title>
@@ -227,7 +227,7 @@ mjx-container[display="true"] + br {
       <div class="sidebar-panel-container">
         <!--noindex-->
         <div class="post-toc-wrap sidebar-panel">
-            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%B8%BA%E4%BB%80%E4%B9%88%E4%BB%8E%E6%8E%A8%E7%90%86%E5%BC%95%E6%93%8E%E8%BD%AC%E5%90%91%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E7%BC%96%E8%AF%91%E5%99%A8"><span class="nav-number">1.</span> <span class="nav-text">1. 为什么从推理引擎转向深度学习编译器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%AE%9E%E9%AA%8C%E8%AE%BE%E8%AE%A1%EF%BC%9A%E5%85%88%E5%9B%BA%E5%AE%9A%E5%9F%BA%E7%BA%BF%EF%BC%8C%E5%86%8D%E9%80%90%E5%B1%82%E5%A2%9E%E5%8A%A0%E4%BC%98%E5%8C%96"><span class="nav-number">2.</span> <span class="nav-text">2. 实验设计：先固定基线，再逐层增加优化</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-TVM-%E7%9A%84%E7%BC%96%E8%AF%91%E6%89%A7%E8%A1%8C%E9%93%BE%E8%B7%AF"><span class="nav-number">3.</span> <span class="nav-text">3. TVM 的编译执行链路</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-Relay-%E5%9B%BE%E7%BA%A7%E4%BC%98%E5%8C%96%EF%BC%9A%E5%85%88%E5%87%8F%E5%B0%91%E4%B8%8D%E5%BF%85%E8%A6%81%E7%9A%84%E8%AE%A1%E7%AE%97"><span class="nav-number">4.</span> <span class="nav-text">4. Relay 图级优化：先减少不必要的计算</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-GEMM-%E4%B8%BA%E4%BB%80%E4%B9%88%E9%80%82%E5%90%88%E5%81%9A%E4%BC%98%E5%8C%96%E5%AE%9E%E9%AA%8C"><span class="nav-number">5.</span> <span class="nav-text">5. GEMM 为什么适合做优化实验</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%9C%A8-TVM-%E4%B8%AD%E8%B0%83%E5%BA%A6-GEMM"><span class="nav-number">6.</span> <span class="nav-text">6. 在 TVM 中调度 GEMM</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-%E4%BB%A3%E7%A0%81%E7%94%9F%E6%88%90%E4%B8%8E%E8%BF%90%E8%A1%8C%E6%97%B6%E6%A8%A1%E5%9D%97"><span class="nav-number">7.</span> <span class="nav-text">7. 代码生成与运行时模块</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#8-INT8-%E9%87%8F%E5%8C%96%E5%AE%9E%E8%B7%B5"><span class="nav-number">8.</span> <span class="nav-text">8. INT8 量化实践</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#9-%E7%BB%BC%E5%90%88%E7%BB%93%E6%9E%9C%E5%BA%94%E5%A6%82%E4%BD%95%E8%A7%A3%E8%AF%BB"><span class="nav-number">9.</span> <span class="nav-text">9. 综合结果应如何解读</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#10-%E6%8A%80%E6%9C%AF%E5%A4%8D%E7%9B%98%EF%BC%9ATVM-%E9%80%82%E5%90%88%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98"><span class="nav-number">10.</span> <span class="nav-text">10. 技术复盘：TVM 适合解决什么问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#11-%E5%A4%8D%E7%8E%B0%E5%AE%9E%E9%AA%8C%E6%B8%85%E5%8D%95"><span class="nav-number">11.</span> <span class="nav-text">11. 复现实验清单</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#12-GEMM-%E8%B0%83%E4%BC%98%E4%B8%AD%E7%9A%84%E5%86%85%E5%AD%98%E5%B1%82%E6%AC%A1"><span class="nav-number">12.</span> <span class="nav-text">12. GEMM 调优中的内存层次</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#13-%E5%90%91%E9%87%8F%E5%8C%96%E3%80%81%E5%BE%AE%E5%86%85%E6%A0%B8%E4%B8%8E%E5%B9%B6%E8%A1%8C%E7%AD%96%E7%95%A5"><span class="nav-number">13.</span> <span class="nav-text">13. 向量化、微内核与并行策略</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#14-%E8%87%AA%E5%8A%A8%E8%B0%83%E4%BC%98%E7%9A%84%E6%AD%A3%E7%A1%AE%E4%BD%BF%E7%94%A8%E6%96%B9%E5%BC%8F"><span class="nav-number">14.</span> <span class="nav-text">14. 自动调优的正确使用方式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#15-Relay-%E8%9E%8D%E5%90%88%E7%9A%84%E6%94%B6%E7%9B%8A%E5%92%8C%E4%BB%A3%E4%BB%B7"><span class="nav-number">15.</span> <span class="nav-text">15. Relay 融合的收益和代价</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#16-%E9%87%8F%E5%8C%96%E8%AF%AF%E5%B7%AE%E7%9A%84%E5%AE%9A%E4%BD%8D%E6%96%B9%E6%B3%95"><span class="nav-number">16.</span> <span class="nav-text">16. 量化误差的定位方法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#17-%E7%89%88%E6%9C%AC%E8%BF%81%E7%A7%BB%E4%B8%8E%E6%97%A7%E4%BB%A3%E7%A0%81%E9%98%85%E8%AF%BB"><span class="nav-number">17.</span> <span class="nav-text">17. 版本迁移与旧代码阅读</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#18-%E4%BB%8E%E7%AE%97%E5%AD%90%E5%BE%AE%E5%9F%BA%E5%87%86%E5%88%B0%E7%AB%AF%E5%88%B0%E7%AB%AF%E6%9C%8D%E5%8A%A1"><span class="nav-number">18.</span> <span class="nav-text">18. 从算子微基准到端到端服务</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#19-%E5%8F%AF%E5%A4%8D%E7%8E%B0%E6%80%A7%E4%B8%8E%E7%BB%93%E6%9E%9C%E5%8F%AF%E4%BF%A1%E5%BA%A6"><span class="nav-number">19.</span> <span class="nav-text">19. 可复现性与结果可信度</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#20-%E5%8E%86%E5%8F%B2%E5%AE%9E%E9%AA%8C%E6%95%B0%E6%8D%AE%EF%BC%9A%E4%BB%8E-TensorFlow-%E5%88%B0-TVM"><span class="nav-number">20.</span> <span class="nav-text">20. 历史实验数据：从 TensorFlow 到 TVM</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#21-%E5%8E%9F%E5%A7%8B-GEMM-%E5%9F%BA%E7%BA%BF%E6%95%B0%E6%8D%AE"><span class="nav-number">21.</span> <span class="nav-text">21. 原始 GEMM 基线数据</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#22-%E5%8E%9F%E5%A7%8B-GEMM-%E6%89%8B%E5%B7%A5%E4%BC%98%E5%8C%96%E9%98%B6%E6%A2%AF"><span class="nav-number">22.</span> <span class="nav-text">22. 原始 GEMM 手工优化阶梯</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#23-TVM-GEMM-%E4%BC%98%E5%8C%96%E7%9A%84%E9%98%B6%E6%AE%B5%E6%80%A7%E7%BB%93%E6%9E%9C"><span class="nav-number">23.</span> <span class="nav-text">23. TVM GEMM 优化的阶段性结果</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#24-Relay-%E5%8E%9F%E5%A7%8B%E7%A4%BA%E4%BE%8B%E5%92%8C-Pass-%E6%B8%85%E5%8D%95"><span class="nav-number">24.</span> <span class="nav-text">24. Relay 原始示例和 Pass 清单</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#25-%E5%8E%9F%E5%A7%8B%E4%BB%A3%E7%A0%81%E7%94%9F%E6%88%90%E7%A4%BA%E4%BE%8B"><span class="nav-number">25.</span> <span class="nav-text">25. 原始代码生成示例</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#26-%E5%8E%9F%E5%A7%8B%E9%87%8F%E5%8C%96%E5%92%8C%E5%AD%A6%E4%B9%A0%E8%B7%AF%E5%BE%84"><span class="nav-number">26.</span> <span class="nav-text">26. 原始量化和学习路径</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#27-%E4%B8%80%E4%BB%BD%E5%8F%AF%E7%9B%B4%E6%8E%A5%E6%89%A7%E8%A1%8C%E7%9A%84%E5%AE%9E%E9%AA%8C%E8%84%9A%E6%9C%AC%E7%BB%93%E6%9E%84"><span class="nav-number">27.</span> <span class="nav-text">27. 一份可直接执行的实验脚本结构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#28-%E5%90%88%E5%B9%B6%E5%90%8E%E7%9A%84%E7%BB%93%E8%AE%BA"><span class="nav-number">28.</span> <span class="nav-text">28. 合并后的结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#29-%E5%8E%9F%E5%A7%8B-Relay-%E4%BB%A3%E7%A0%81%EF%BC%9A%E4%BB%8E%E6%A0%87%E9%87%8F%E8%A1%A8%E8%BE%BE%E5%BC%8F%E5%88%B0%E5%8D%B7%E7%A7%AF%E5%8D%95%E5%85%83"><span class="nav-number">29.</span> <span class="nav-text">29. 原始 Relay 代码：从标量表达式到卷积单元</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#30-Relay-Pass-%E7%9A%84%E5%8E%9F%E5%A7%8B%E5%AF%B9%E7%85%A7"><span class="nav-number">30.</span> <span class="nav-text">30. Relay Pass 的原始对照</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#31-%E5%8E%9F%E5%A7%8B%E9%87%8F%E5%8C%96%E6%B5%8B%E8%AF%95%E7%BB%93%E6%9E%9C%E4%B8%8E%E8%A7%A3%E9%87%8A"><span class="nav-number">31.</span> <span class="nav-text">31. 原始量化测试结果与解释</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#32-%E5%85%AD%E7%AF%87%E5%8E%9F%E6%96%87%E8%A6%86%E7%9B%96%E6%A3%80%E6%9F%A5"><span class="nav-number">32.</span> <span class="nav-text">32. 六篇原文覆盖检查</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#33-%E5%8E%9F%E5%A7%8B%E5%91%BD%E4%BB%A4%E3%80%81%E7%B2%BE%E7%A1%AE%E6%95%B0%E5%AD%97%E4%B8%8E%E4%BF%9D%E7%95%99%E8%AF%B4%E6%98%8E"><span class="nav-number">33.</span> <span class="nav-text">33. 原始命令、精确数字与保留说明</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#34-%E9%87%8D%E6%9E%84%E9%AA%8C%E6%94%B6%E8%A7%84%E5%88%99"><span class="nav-number">34.</span> <span class="nav-text">34. 重构验收规则</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#35-%E5%A4%8D%E6%A0%B8%E7%BB%93%E8%AE%BA"><span class="nav-number">35.</span> <span class="nav-text">35. 复核结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="nav-number">36.</span> <span class="nav-text">参考资料</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#21-%E5%B8%B8%E8%A7%81%E5%A4%B1%E8%B4%A5%E6%A1%88%E4%BE%8B"><span class="nav-number">37.</span> <span class="nav-text">21. 常见失败案例</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#22-CPU%E3%80%81GPU-%E5%92%8C%E7%A7%BB%E5%8A%A8%E7%AB%AF%E7%9A%84%E5%B7%AE%E5%BC%82"><span class="nav-number">38.</span> <span class="nav-text">22. CPU、GPU 和移动端的差异</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#23-%E5%A6%82%E4%BD%95%E5%86%99%E5%87%BA%E5%8F%AF%E4%BF%A1%E7%9A%84%E6%80%A7%E8%83%BD%E7%BB%93%E8%AE%BA"><span class="nav-number">39.</span> <span class="nav-text">23. 如何写出可信的性能结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#24-%E5%90%8E%E7%BB%AD%E4%BC%98%E5%8C%96%E8%B7%AF%E7%BA%BF"><span class="nav-number">40.</span> <span class="nav-text">24. 后续优化路线</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99-1"><span class="nav-number">41.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%B8%BA%E4%BB%80%E4%B9%88%E4%BB%8E%E6%8E%A8%E7%90%86%E5%BC%95%E6%93%8E%E8%BD%AC%E5%90%91%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E7%BC%96%E8%AF%91%E5%99%A8"><span class="nav-number">1.</span> <span class="nav-text">1. 为什么从推理引擎转向深度学习编译器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%AE%9E%E9%AA%8C%E8%AE%BE%E8%AE%A1%EF%BC%9A%E5%85%88%E5%9B%BA%E5%AE%9A%E5%9F%BA%E7%BA%BF%EF%BC%8C%E5%86%8D%E9%80%90%E5%B1%82%E5%A2%9E%E5%8A%A0%E4%BC%98%E5%8C%96"><span class="nav-number">2.</span> <span class="nav-text">2. 实验设计：先固定基线，再逐层增加优化</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-TVM-%E7%9A%84%E7%BC%96%E8%AF%91%E6%89%A7%E8%A1%8C%E9%93%BE%E8%B7%AF"><span class="nav-number">3.</span> <span class="nav-text">3. TVM 的编译执行链路</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-Relay-%E5%9B%BE%E7%BA%A7%E4%BC%98%E5%8C%96%EF%BC%9A%E5%85%88%E5%87%8F%E5%B0%91%E4%B8%8D%E5%BF%85%E8%A6%81%E7%9A%84%E8%AE%A1%E7%AE%97"><span class="nav-number">4.</span> <span class="nav-text">4. Relay 图级优化：先减少不必要的计算</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-GEMM-%E4%B8%BA%E4%BB%80%E4%B9%88%E9%80%82%E5%90%88%E5%81%9A%E4%BC%98%E5%8C%96%E5%AE%9E%E9%AA%8C"><span class="nav-number">5.</span> <span class="nav-text">5. GEMM 为什么适合做优化实验</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%9C%A8-TVM-%E4%B8%AD%E8%B0%83%E5%BA%A6-GEMM"><span class="nav-number">6.</span> <span class="nav-text">6. 在 TVM 中调度 GEMM</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-%E4%BB%A3%E7%A0%81%E7%94%9F%E6%88%90%E4%B8%8E%E8%BF%90%E8%A1%8C%E6%97%B6%E6%A8%A1%E5%9D%97"><span class="nav-number">7.</span> <span class="nav-text">7. 代码生成与运行时模块</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#8-INT8-%E9%87%8F%E5%8C%96%E5%AE%9E%E8%B7%B5"><span class="nav-number">8.</span> <span class="nav-text">8. INT8 量化实践</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#9-%E7%BB%BC%E5%90%88%E7%BB%93%E6%9E%9C%E5%BA%94%E5%A6%82%E4%BD%95%E8%A7%A3%E8%AF%BB"><span class="nav-number">9.</span> <span class="nav-text">9. 综合结果应如何解读</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#10-%E6%8A%80%E6%9C%AF%E5%A4%8D%E7%9B%98%EF%BC%9ATVM-%E9%80%82%E5%90%88%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98"><span class="nav-number">10.</span> <span class="nav-text">10. 技术复盘：TVM 适合解决什么问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#11-%E5%A4%8D%E7%8E%B0%E5%AE%9E%E9%AA%8C%E6%B8%85%E5%8D%95"><span class="nav-number">11.</span> <span class="nav-text">11. 复现实验清单</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#12-GEMM-%E8%B0%83%E4%BC%98%E4%B8%AD%E7%9A%84%E5%86%85%E5%AD%98%E5%B1%82%E6%AC%A1"><span class="nav-number">12.</span> <span class="nav-text">12. GEMM 调优中的内存层次</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#13-%E5%90%91%E9%87%8F%E5%8C%96%E3%80%81%E5%BE%AE%E5%86%85%E6%A0%B8%E4%B8%8E%E5%B9%B6%E8%A1%8C%E7%AD%96%E7%95%A5"><span class="nav-number">13.</span> <span class="nav-text">13. 向量化、微内核与并行策略</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#14-%E8%87%AA%E5%8A%A8%E8%B0%83%E4%BC%98%E7%9A%84%E6%AD%A3%E7%A1%AE%E4%BD%BF%E7%94%A8%E6%96%B9%E5%BC%8F"><span class="nav-number">14.</span> <span class="nav-text">14. 自动调优的正确使用方式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#15-Relay-%E8%9E%8D%E5%90%88%E7%9A%84%E6%94%B6%E7%9B%8A%E5%92%8C%E4%BB%A3%E4%BB%B7"><span class="nav-number">15.</span> <span class="nav-text">15. Relay 融合的收益和代价</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#16-%E9%87%8F%E5%8C%96%E8%AF%AF%E5%B7%AE%E7%9A%84%E5%AE%9A%E4%BD%8D%E6%96%B9%E6%B3%95"><span class="nav-number">16.</span> <span class="nav-text">16. 量化误差的定位方法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#17-%E7%89%88%E6%9C%AC%E8%BF%81%E7%A7%BB%E4%B8%8E%E6%97%A7%E4%BB%A3%E7%A0%81%E9%98%85%E8%AF%BB"><span class="nav-number">17.</span> <span class="nav-text">17. 版本迁移与旧代码阅读</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#18-%E4%BB%8E%E7%AE%97%E5%AD%90%E5%BE%AE%E5%9F%BA%E5%87%86%E5%88%B0%E7%AB%AF%E5%88%B0%E7%AB%AF%E6%9C%8D%E5%8A%A1"><span class="nav-number">18.</span> <span class="nav-text">18. 从算子微基准到端到端服务</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#19-%E5%8F%AF%E5%A4%8D%E7%8E%B0%E6%80%A7%E4%B8%8E%E7%BB%93%E6%9E%9C%E5%8F%AF%E4%BF%A1%E5%BA%A6"><span class="nav-number">19.</span> <span class="nav-text">19. 可复现性与结果可信度</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#20-%E5%8E%86%E5%8F%B2%E5%AE%9E%E9%AA%8C%E6%95%B0%E6%8D%AE%EF%BC%9A%E4%BB%8E-TensorFlow-%E5%88%B0-TVM"><span class="nav-number">20.</span> <span class="nav-text">20. 历史实验数据：从 TensorFlow 到 TVM</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#21-%E5%8E%9F%E5%A7%8B-GEMM-%E5%9F%BA%E7%BA%BF%E6%95%B0%E6%8D%AE"><span class="nav-number">21.</span> <span class="nav-text">21. 原始 GEMM 基线数据</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#22-%E5%8E%9F%E5%A7%8B-GEMM-%E6%89%8B%E5%B7%A5%E4%BC%98%E5%8C%96%E9%98%B6%E6%A2%AF"><span class="nav-number">22.</span> <span class="nav-text">22. 原始 GEMM 手工优化阶梯</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#23-TVM-GEMM-%E4%BC%98%E5%8C%96%E7%9A%84%E9%98%B6%E6%AE%B5%E6%80%A7%E7%BB%93%E6%9E%9C"><span class="nav-number">23.</span> <span class="nav-text">23. TVM GEMM 优化的阶段性结果</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#24-Relay-%E5%8E%9F%E5%A7%8B%E7%A4%BA%E4%BE%8B%E5%92%8C-Pass-%E6%B8%85%E5%8D%95"><span class="nav-number">24.</span> <span class="nav-text">24. Relay 原始示例和 Pass 清单</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#25-%E5%8E%9F%E5%A7%8B%E4%BB%A3%E7%A0%81%E7%94%9F%E6%88%90%E7%A4%BA%E4%BE%8B"><span class="nav-number">25.</span> <span class="nav-text">25. 原始代码生成示例</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#26-%E5%8E%9F%E5%A7%8B%E9%87%8F%E5%8C%96%E5%92%8C%E5%AD%A6%E4%B9%A0%E8%B7%AF%E5%BE%84"><span class="nav-number">26.</span> <span class="nav-text">26. 原始量化和学习路径</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#27-%E4%B8%80%E4%BB%BD%E5%8F%AF%E7%9B%B4%E6%8E%A5%E6%89%A7%E8%A1%8C%E7%9A%84%E5%AE%9E%E9%AA%8C%E8%84%9A%E6%9C%AC%E7%BB%93%E6%9E%84"><span class="nav-number">27.</span> <span class="nav-text">27. 一份可直接执行的实验脚本结构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#28-%E5%90%88%E5%B9%B6%E5%90%8E%E7%9A%84%E7%BB%93%E8%AE%BA"><span class="nav-number">28.</span> <span class="nav-text">28. 合并后的结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#29-%E5%8E%9F%E5%A7%8B-Relay-%E4%BB%A3%E7%A0%81%EF%BC%9A%E4%BB%8E%E6%A0%87%E9%87%8F%E8%A1%A8%E8%BE%BE%E5%BC%8F%E5%88%B0%E5%8D%B7%E7%A7%AF%E5%8D%95%E5%85%83"><span class="nav-number">29.</span> <span class="nav-text">29. 原始 Relay 代码：从标量表达式到卷积单元</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#30-Relay-Pass-%E7%9A%84%E5%8E%9F%E5%A7%8B%E5%AF%B9%E7%85%A7"><span class="nav-number">30.</span> <span class="nav-text">30. Relay Pass 的原始对照</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#31-%E5%8E%9F%E5%A7%8B%E9%87%8F%E5%8C%96%E6%B5%8B%E8%AF%95%E7%BB%93%E6%9E%9C%E4%B8%8E%E8%A7%A3%E9%87%8A"><span class="nav-number">31.</span> <span class="nav-text">31. 原始量化测试结果与解释</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#32-%E5%8E%9F%E5%A7%8B%E5%91%BD%E4%BB%A4%E3%80%81%E7%B2%BE%E7%A1%AE%E6%95%B0%E5%AD%97%E4%B8%8E%E4%BF%9D%E7%95%99%E8%AF%B4%E6%98%8E"><span class="nav-number">32.</span> <span class="nav-text">32. 原始命令、精确数字与保留说明</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#33-%E5%A4%8D%E7%8E%B0%E5%AE%9E%E9%AA%8C%E6%96%B9%E6%B3%95"><span class="nav-number">33.</span> <span class="nav-text">33. 复现实验方法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#34-%E5%B8%B8%E8%A7%81%E5%A4%B1%E8%B4%A5%E6%A1%88%E4%BE%8B"><span class="nav-number">34.</span> <span class="nav-text">34. 常见失败案例</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#35-CPU%E3%80%81GPU-%E5%92%8C%E7%A7%BB%E5%8A%A8%E7%AB%AF%E7%9A%84%E5%B7%AE%E5%BC%82"><span class="nav-number">35.</span> <span class="nav-text">35. CPU、GPU 和移动端的差异</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#36-%E5%A6%82%E4%BD%95%E5%86%99%E5%87%BA%E5%8F%AF%E4%BF%A1%E7%9A%84%E6%80%A7%E8%83%BD%E7%BB%93%E8%AE%BA"><span class="nav-number">36.</span> <span class="nav-text">36. 如何写出可信的性能结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#37-%E5%90%8E%E7%BB%AD%E4%BC%98%E5%8C%96%E8%B7%AF%E7%BA%BF"><span class="nav-number">37.</span> <span class="nav-text">37. 后续优化路线</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="nav-number">38.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
         </div>
         <!--/noindex-->
 
@@ -236,7 +236,7 @@ mjx-container[display="true"] + br {
     <img class="site-author-image" itemprop="image" alt="wxquare"
       src="/images/avatar.jpg">
   <p class="site-author-name" itemprop="name">wxquare</p>
-  <div class="site-description" itemprop="description"></div>
+  <div class="site-description" itemprop="description">wxquare 的技术知识库，聚焦可靠系统设计、复杂业务架构与 AI Engineering，涵盖电商系统、数据一致性、生产可靠性、Agent 系统和工程实践。</div>
 </div>
 <div class="site-state-wrap animated">
   <nav class="site-state">
@@ -252,7 +252,7 @@ mjx-container[display="true"] + br {
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
-        <span class="site-state-item-count">112</span>
+        <span class="site-state-item-count">113</span>
         <span class="site-state-item-name">tags</span>
       </div>
   </nav>
@@ -330,7 +330,7 @@ mjx-container[display="true"] + br {
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2026/09/22/AI/05-tvm-operator-optimization-practice/">
+    <link itemprop="mainEntityOfPage" href="https://wxquare.github.io/2026/09/22/AI/05-tvm-operator-optimization-practice/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.jpg">
@@ -339,12 +339,12 @@ mjx-container[display="true"] + br {
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
       <meta itemprop="name" content="wxquare's Blogs">
-      <meta itemprop="description" content="">
+      <meta itemprop="description" content="wxquare 的技术知识库，聚焦可靠系统设计、复杂业务架构与 AI Engineering，涵盖电商系统、数据一致性、生产可靠性、Agent 系统和工程实践。">
     </span>
 
     <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
       <meta itemprop="name" content="TVM 算子优化实战：从 Relay 图优化到 GEMM 与 INT8 量化 | wxquare's Blogs">
-      <meta itemprop="description" content="">
+      <meta itemprop="description" content="以 TVM 为例，实践 Relay 图优化、GEMM 调优和 INT8 量化，说明算子优化如何连接编译器与推理性能。">
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
@@ -366,7 +366,7 @@ mjx-container[display="true"] + br {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-24 02:41:28" itemprop="dateModified" datetime="2026-09-24T02:41:28+00:00">2026-09-24</time>
+      <time title="Modified: 2026-09-24 14:37:05" itemprop="dateModified" datetime="2026-09-24T14:37:05+00:00">2026-09-24</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -381,6 +381,7 @@ mjx-container[display="true"] + br {
   
 </div>
 
+            <div class="post-description">以 TVM 为例，实践 Relay 图优化、GEMM 调优和 INT8 量化，说明算子优化如何连接编译器与推理性能。</div>
         </div>
       </header>
 
@@ -913,74 +914,30 @@ mjx-container[display="true"] + br {
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">compare_quantized</span>(<span class="params">mod, params, target, calibration_data</span>):</span><br><span class="line">    <span class="comment"># 当前 TVM 版本的 quantize API 可能变化，先按官方文档确认接口。</span></span><br><span class="line">    fp32 = build_and_benchmark(mod, params, target, dtype=<span class="string">'float32'</span>)</span><br><span class="line">    int8_mod, int8_params = quantize_with_calibration(</span><br><span class="line">        mod, params, calibration_data)</span><br><span class="line">    int8 = build_and_benchmark(int8_mod, int8_params, target, dtype=<span class="string">'int8'</span>)</span><br><span class="line">    error = compare_outputs(fp32.outputs, int8.outputs)</span><br><span class="line">    <span class="keyword">return</span> {<span class="string">'fp32'</span>: fp32, <span class="string">'int8'</span>: int8, <span class="string">'error'</span>: error}</span><br></pre></td></tr></table></figure>
 
 <p>这里的 <code>quantize_with_calibration</code> 和 <code>build_and_benchmark</code> 是实验层封装，实际实现必须绑定具体 TVM 版本；它们不能伪装成跨版本稳定 API。正文应同时给出校准数据来源、量化范围、输出误差和失败算子列表。</p>
-<h2 id="32-六篇原文覆盖检查"><a href="#32-六篇原文覆盖检查" class="headerlink" title="32. 六篇原文覆盖检查"></a>32. 六篇原文覆盖检查</h2><p>合并后以以下清单作为内容验收标准：</p>
-<table>
-<thead>
-<tr>
-<th>原文章</th>
-<th>关键内容</th>
-<th>新文章位置</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>初识 TVM</td>
-<td>选择 TVM 的背景、安装、TensorFlow 对比、fallback 警告</td>
-<td>第 1、20 节</td>
-</tr>
-<tr>
-<td>Relay 和图优化</td>
-<td>Hello Relay、卷积单元、Pass、优化前后 IR</td>
-<td>第 3、4、24、29、30 节</td>
-</tr>
-<tr>
-<td>GEMM 优化</td>
-<td>浮点峰值、NumPy、手工优化阶梯、TVM 阶段数据</td>
-<td>第 5、6、21、22、23 节</td>
-</tr>
-<tr>
-<td>代码生成</td>
-<td><code>tvm.build</code>、<code>relay.build</code>、IRModule、PrimFunc、Module、Codegen</td>
-<td>第 7、25 节</td>
-</tr>
-<tr>
-<td>模型量化</td>
-<td>量化动机、跨平台部署、RFC、INT8 测试表</td>
-<td>第 8、26、31 节</td>
-</tr>
-<tr>
-<td>学习资料</td>
-<td>安装、向量加法、TensorFlow 导入、量化资料</td>
-<td>第 26 节和参考资料</td>
-</tr>
-</tbody></table>
-<p>这张表不是文章正文的装饰，而是重构验收记录。每次后续更新都应对照它，确保合并不是只保留新写的概念，而是没有遗漏原博客的一手代码和测试数据。</p>
-<h2 id="33-原始命令、精确数字与保留说明"><a href="#33-原始命令、精确数字与保留说明" class="headerlink" title="33. 原始命令、精确数字与保留说明"></a>33. 原始命令、精确数字与保留说明</h2><p>为了避免重构后丢失一手证据，本文明确保留以下原始命令和精确测量值。旧文章中的构建命令为：</p>
+<h2 id="32-原始命令、精确数字与保留说明"><a href="#32-原始命令、精确数字与保留说明" class="headerlink" title="32. 原始命令、精确数字与保留说明"></a>32. 原始命令、精确数字与保留说明</h2><p>为了避免重构后丢失一手证据，本文明确保留以下原始命令和精确测量值。旧文章中的构建命令为：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get install llvm</span><br><span class="line">git <span class="built_in">clone</span> --recursive https://github.com/dmlc/tvm.git</span><br><span class="line"><span class="built_in">cd</span> tvm &amp;&amp; <span class="built_in">mkdir</span> build</span><br><span class="line"><span class="built_in">cp</span> cmake/config.cmake build</span><br><span class="line"><span class="comment"># 将 USE_LLVM OFF 改为 set(USE_LLVM /usr/bin/llvm-config)</span></span><br><span class="line"><span class="built_in">cd</span> build</span><br><span class="line">cmake ..</span><br><span class="line">cmake -j4</span><br><span class="line">pip install antlr4-python3-runtime</span><br></pre></td></tr></table></figure>
 
 <p>原始 TensorFlow/TVM 对比值分别是 <code>0.5861950877520752</code> 和 <code>0.2770531177520752</code> 秒附近，旧文章记录的完整输出还包括 African elephant、tusker、Indian elephant、banana 和 vault/desk 的分类分数。这里保留原始观察，但由于旧文中的数字存在不同复制版本，当前文章应以归档原文和测试日志为最终证据，不擅自把四舍五入后的数字重新推导成新结论。</p>
 <p>GEMM 阶段数据中的 <code>baseline=2.49s</code>、<code>blocking=1.73s</code>、<code>vectorization=0.411s</code>、<code>loop permutation=0.104s</code>、<code>packing=0.0987s</code>、<code>write cache=0.0926s</code>、<code>parallel=0.018s</code>、<code>auto-tvm=0.014s</code>，以及 NumPy 的 <code>0.0135s</code>、<code>0.012s</code>、<code>0.0117s</code>、<code>0.0116s</code>、<code>0.0103s</code>、<code>0.01158s</code>、<code>0.012s</code>、<code>0.0112s</code>，均直接来自旧文章的实验表。它们统一标记为历史数据，不与新机器结果混合。</p>
 <p>量化表中的 <code>27.8ms</code>、<code>46.9ms</code>、<code>51.10ms</code>、<code>25.83ms</code>、<code>560ms</code>、<code>164ms</code>、<code>185ms</code> 和 <code>116ms</code> 也原样保留。正文的新增分析只解释这些数据可能反映的调度、覆盖率和转换开销，不替代原始测量。这样，正文说明可以压缩和重排，代码、公式、命令和实验数据仍然能回溯到归档文章。</p>
-<h2 id="34-重构验收规则"><a href="#34-重构验收规则" class="headerlink" title="34. 重构验收规则"></a>34. 重构验收规则</h2><p>本次合并遵循以下比例：正文说明保留原段落和原意的 85%～95%，代码和命令保留 95% 以上，公式和实验数据保留 100%，原文结论保留 90% 以上。重复背景只保留信息最完整的一版，原文章之间的互相引用删除，改成本文的章节关系。任何新增的代码如果没有在原文中出现，都必须标注为“当前版本建议写法”或“实验封装示意”，不称作历史实测代码。</p>
-<p>最终文章的可信度来自三条链路：归档文件保存原始事实，新文章通过覆盖表说明事实位于哪个章节，参考资料为术语和算法提供公开依据。后续如果重新运行实验，应新增“当前复测”列，而不是覆盖历史数据。</p>
-<h2 id="35-复核结论"><a href="#35-复核结论" class="headerlink" title="35. 复核结论"></a>35. 复核结论</h2><p>逐篇对照归档文件后，原文的主线、代码入口、关键 Pass、GEMM 阶段表、量化性能表、历史环境和已知问题都已经进入新文章。新增段落只承担连接和解释作用，没有用新的假设替换原始实验。对于当前 API 不兼容的片段，文章同时保留旧版代码语境和当前版本迁移边界，读者可以先理解原始实验，再决定是否在新环境中重跑。正文中的每一组数字都应能够追溯到旧文章的表格或输出，新增参考资料只用于解释背景、校准术语和说明当前实现，不改变原作者当时观察到的结果。这样既保持博客的个人实践痕迹，也让新的读者能够沿着代码、命令、数据和结论逐步复核整个优化过程。</p>
-<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><p>一个可复现的实验不应该从调度参数开始，而应该从目录和命令开始。可以为每种方案保存独立配置，配置中明确模型文件、输入形状、dtype、目标平台、线程数和测量次数。编译阶段和运行阶段分开记录，避免把编译时间误算进稳定推理延迟，也避免把第一次运行的缓存建立误算进每次请求。</p>
+<h2 id="33-复现实验方法"><a href="#33-复现实验方法" class="headerlink" title="33. 复现实验方法"></a>33. 复现实验方法</h2><p>一个可复现的实验不应该从调度参数开始，而应该从目录和命令开始。可以为每种方案保存独立配置，配置中明确模型文件、输入形状、dtype、目标平台、线程数和测量次数。编译阶段和运行阶段分开记录，避免把编译时间误算进稳定推理延迟，也避免把第一次运行的缓存建立误算进每次请求。</p>
 <p>第一步是验证模型输入输出。使用固定随机种子生成输入，保存一份小尺寸样本作为回归数据。第二步是运行原始框架，确认模型能稳定输出，并记录准确率或任务相关指标。第三步是导入 TVM，打印 Relay 模块，确认输入类型、参数数量和布局没有发生意外改变。第四步才是执行图优化和算子调度。每完成一个阶段，都要运行数值校验，防止错误在多个优化叠加后才暴露。</p>
 <p>性能测量建议分成三层。第一层是单个 GEMM 的微基准，用来比较调度参数；第二层是模型热点算子，用来确认 GEMM 优化是否真的覆盖了模型主要耗时；第三层是完整模型，用来判断端到端价值。三层的输入尺寸和统计方式可以不同，但必须在表格中明确标注。不能用一个小矩阵的微基准结果推导大模型的服务延迟。</p>
-<h2 id="21-常见失败案例"><a href="#21-常见失败案例" class="headerlink" title="21. 常见失败案例"></a>21. 常见失败案例</h2><p>第一个失败案例是把编译时间当成运行时间。TVM 需要生成代码和构建运行时模块，首次编译可能很慢，但在线服务通常只在发布阶段编译一次。报告中应分别列出编译耗时和热运行耗时；如果场景需要动态编译，则应把编译成本纳入冷启动指标。</p>
+<h2 id="34-常见失败案例"><a href="#34-常见失败案例" class="headerlink" title="34. 常见失败案例"></a>34. 常见失败案例</h2><p>第一个失败案例是把编译时间当成运行时间。TVM 需要生成代码和构建运行时模块，首次编译可能很慢，但在线服务通常只在发布阶段编译一次。报告中应分别列出编译耗时和热运行耗时；如果场景需要动态编译，则应把编译成本纳入冷启动指标。</p>
 <p>第二个失败案例是只测试一个矩阵尺寸。某组 tile 参数可能对 1024×1024 最好，却对 128×128 或非方阵很差。真实模型通常包含许多不同形状，应该用模型中的形状分布作为候选集合，并分别报告小矩阵、大矩阵和尾部尺寸的结果。</p>
 <p>第三个失败案例是只比较平均值。CPU 频率变化、后台任务和内存分配都会造成长尾。至少应报告中位数、最小值、最大值和 P95；如果测量次数很少，应明确说明结果只是趋势观察。对需要发布的结论，最好在空闲机器上重复多轮，并记录运行环境。</p>
 <p>第四个失败案例是忽略内存布局。模型导入后可能使用 NCHW，某个算子实现却更适合 NHWC；布局转换本身会消耗时间和内存带宽。优化前后必须检查布局变化，不能把布局转换的成本隐藏在“编译器优化”中。</p>
 <p>第五个失败案例是量化后只看延迟。量化模型必须同时做输出误差、任务精度和算子覆盖检查。若某层出现大量饱和，最终准确率下降可能并不是 TVM 编译错误，而是校准集不能代表实际输入分布。对异常层进行逐层比较，比直接重新搜索所有调度参数更有效。</p>
-<h2 id="22-CPU、GPU-和移动端的差异"><a href="#22-CPU、GPU-和移动端的差异" class="headerlink" title="22. CPU、GPU 和移动端的差异"></a>22. CPU、GPU 和移动端的差异</h2><p>CPU 优化通常围绕缓存、SIMD、线程和成熟 BLAS 库展开。CPU 的优势是控制流灵活、内存层次清晰，适合形状不规则和小批量推理；缺点是并行宽度有限，线程启动和同步成本可能很快显现。对于 CPU，单线程调度和多线程调度应分别调优，不能简单把核心数写进配置。</p>
+<h2 id="35-CPU、GPU-和移动端的差异"><a href="#35-CPU、GPU-和移动端的差异" class="headerlink" title="35. CPU、GPU 和移动端的差异"></a>35. CPU、GPU 和移动端的差异</h2><p>CPU 优化通常围绕缓存、SIMD、线程和成熟 BLAS 库展开。CPU 的优势是控制流灵活、内存层次清晰，适合形状不规则和小批量推理；缺点是并行宽度有限，线程启动和同步成本可能很快显现。对于 CPU，单线程调度和多线程调度应分别调优，不能简单把核心数写进配置。</p>
 <p>GPU 优化则更加依赖线程块、共享内存、全局内存合并访问、warp 利用率和同步。一个在 CPU 上合理的循环分块方案，不能直接迁移到 CUDA。GPU 还需要考虑 kernel launch 开销和主机设备同步；如果模型包含许多很小的算子，单个算子的理论吞吐很高，端到端仍可能不理想。CUDA 官方编程指南和最佳实践指南对线程层次、内存和同步提供了完整说明[25][26]。</p>
 <p>移动端的约束更复杂。功耗、热降频、内存容量和异构核心都会影响结果。短时间 benchmark 可能得到漂亮数字，但持续运行后由于温度升高而降频。移动端还需要考虑模型加载、内存拷贝和电池消耗，不能只看一次推理延迟。TVM 的跨平台能力可以减少重复开发，但目标平台仍需要独立测试和调度。</p>
-<h2 id="23-如何写出可信的性能结论"><a href="#23-如何写出可信的性能结论" class="headerlink" title="23. 如何写出可信的性能结论"></a>23. 如何写出可信的性能结论</h2><p>性能结论应该包含对象、条件和范围。例如，“在某 CPU、某 TVM 版本、固定线程数和 1024×1024 FP32 GEMM 下，人工分块调度的中位延迟低于默认调度”是一个有边界的结论；“TVM 比 TensorFlow 快两倍”则缺少模型、版本、线程和统计口径，容易造成误解。</p>
+<h2 id="36-如何写出可信的性能结论"><a href="#36-如何写出可信的性能结论" class="headerlink" title="36. 如何写出可信的性能结论"></a>36. 如何写出可信的性能结论</h2><p>性能结论应该包含对象、条件和范围。例如，“在某 CPU、某 TVM 版本、固定线程数和 1024×1024 FP32 GEMM 下，人工分块调度的中位延迟低于默认调度”是一个有边界的结论；“TVM 比 TensorFlow 快两倍”则缺少模型、版本、线程和统计口径，容易造成误解。</p>
 <p>建议使用三类表述。观察类表述只陈述数据，例如“INT8 路径的 P50 延迟下降，输出准确率下降 0.2 个百分点”。解释类表述说明可能原因，例如“延迟下降与整数算子覆盖增加和权重带宽减少一致”。建议类表述给出适用条件，例如“对于固定硬件和固定形状，可以进一步搜索 tile 和并行参数”。三类表述分开后，读者更容易判断哪些是测量事实，哪些是工程推断。</p>
 <p>如果结果与预期相反，也应该保留。GEMM 调度没有提升，可能说明系统瓶颈在内存拷贝或其他算子；INT8 没有端到端收益，可能说明量化覆盖率太低；Relay 融合后变慢，可能说明函数过度融合或寄存器压力升高。失败结果能帮助读者建立边界，通常比单一成功案例更有实践价值。</p>
-<h2 id="24-后续优化路线"><a href="#24-后续优化路线" class="headerlink" title="24. 后续优化路线"></a>24. 后续优化路线</h2><p>完成基础 GEMM 调优后，可以沿四条路线继续深入。第一条是自动调优，使用更多真实形状和硬件反馈，让调度参数从固定规则发展为模型化搜索。第二条是算子融合，把 GEMM 前后的偏置、激活和布局转换纳入统一调度，减少中间结果写回。第三条是低精度计算，比较 FP16、BF16、INT8 和混合精度在精度与吞吐之间的取舍。第四条是端到端部署，加入模型加载、服务线程池、批处理和监控指标。</p>
+<h2 id="37-后续优化路线"><a href="#37-后续优化路线" class="headerlink" title="37. 后续优化路线"></a>37. 后续优化路线</h2><p>完成基础 GEMM 调优后，可以沿四条路线继续深入。第一条是自动调优，使用更多真实形状和硬件反馈，让调度参数从固定规则发展为模型化搜索。第二条是算子融合，把 GEMM 前后的偏置、激活和布局转换纳入统一调度，减少中间结果写回。第三条是低精度计算，比较 FP16、BF16、INT8 和混合精度在精度与吞吐之间的取舍。第四条是端到端部署，加入模型加载、服务线程池、批处理和监控指标。</p>
 <p>如果模型包含动态形状，应该先分析形状分布，再决定是为常见形状分别编译，还是使用泛化更好的调度。若模型经常更新，编译缓存和调优日志需要纳入发布系统；若硬件平台固定，可以接受更长的离线搜索时间，以换取稳定运行时性能。若硬件平台变化频繁，过度依赖某组参数可能增加维护成本。</p>
 <p>最终目标不是让每个算子都达到理论峰值，而是用合理的工程成本，把最主要的端到端瓶颈消除。TVM 提供了表达和搜索这些优化的工具，性能结果仍需要通过实验、代码检查和业务指标共同确认。</p>
-<h2 id="参考资料-1"><a href="#参考资料-1" class="headerlink" title="参考资料"></a>参考资料</h2><ol>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ol>
 <li><a href="https://tvm.apache.org/docs/">Apache TVM Documentation</a></li>
 <li><a href="https://tvm.apache.org/docs/arch/relay_intro.html">Relay: A High-Level Intermediate Representation for Deep Learning</a></li>
 <li><a href="https://tvm.apache.org/docs/reference/api/python/relay.html">Relay Python API</a></li>
@@ -1036,7 +993,7 @@ mjx-container[display="true"] + br {
 
           <div class="post-nav">
             <div class="post-nav-item">
-                <a href="/2026/09/11/other/08-agent-electronic-commerce-research-report/" rel="prev" title="电商 Agent 项目全景调研报告">
+                <a href="/2026/09/11/other/agent-ecommerce-research-report/" rel="prev" title="电商 Agent 项目全景调研报告">
                   <i class="fa fa-angle-left"></i> 电商 Agent 项目全景调研报告
                 </a>
             </div>

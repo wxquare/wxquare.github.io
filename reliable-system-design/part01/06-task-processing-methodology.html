@@ -1,0 +1,630 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第 6 章 任务处理方法论：从短任务、长任务到 Agent 协作 - System Design: Reliable Systems and E-Commerce Architecture</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="可靠系统设计与电商架构实践；覆盖系统设计方法论、生产可靠性、数据一致性、长流程治理与电商核心业务。">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-2459343d.css">
+        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-a2c86ee4.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-09578451.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">System Design: Reliable Systems and E-Commerce Architecture</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第-6-章-任务处理方法论从短任务长任务到可恢复的-workflow-与-agent-协作"><a class="header" href="#第-6-章-任务处理方法论从短任务长任务到可恢复的-workflow-与-agent-协作">第 6 章 任务处理方法论：从短任务、长任务到可恢复的 Workflow 与 Agent 协作</a></h1>
+<blockquote>
+<p>任务处理解决的不是某个业务对象如何流转，而是一段工作如何被拆分、调度、执行、暂停、恢复和治理。本章以供应商数据同步为主案例，结合离线计算、流处理和 Agent 协作，建立同步请求、异步消息、Batch / 分布式 Job、Workflow、Stateful Agent Runtime 与 Multi-Agent 的统一选型框架。</p>
+</blockquote>
+<p>前面的章节分别讨论了关键业务动作的一致性，以及业务对象跨阶段的生命周期。本章处理第三类问题：一个可执行任务如何可靠跑完，或者如何在没有一次性“跑完”的情况下持续保持正确。扫描超时订单、生成日报、同步供应商库存、重建索引、执行历史数据修复、训练模型、运行 Spark 作业，以及让代码 Agent 修改多个文件，都需要明确执行边界、进度记录和恢复机制。</p>
+<p>从表面看，这些任务的技术栈差异很大：有的使用 HTTP，有的使用消息队列，有的运行在 Kubernetes Job 或数据计算集群上，有的由 Workflow 引擎驱动，有的还需要大模型选择工具和调整路径。但它们共享一个事实：任务一旦跨越请求、进程、时间、步骤、系统或角色边界，就不能再把调用栈当作唯一状态，也不能把“进程退出”当作完成证明。</p>
+<p>本章不把某个框架当成答案，而是先回答五个问题：任务的输入和成功判据是什么？中断后从哪里继续？重复执行会不会产生额外副作用？谁拥有最终事实？自动路径什么时候必须暂停并交给人或另一种执行单元？这些问题回答清楚后，方案才有可能从同步请求逐步演进为异步任务、Batch、Workflow 或 Agent Runtime，而不是在故障发生后被动堆叠重试队列和运维脚本。</p>
+<h2 id="61-问题定义任务为什么会失控"><a class="header" href="#61-问题定义任务为什么会失控">6.1 问题定义：任务为什么会失控</a></h2>
+<h3 id="611-短任务与长任务的区别不在耗时"><a class="header" href="#611-短任务与长任务的区别不在耗时">6.1.1 短任务与长任务的区别不在耗时</a></h3>
+<p>许多团队用“几秒以内是短任务、超过几分钟是长任务”来划分任务。这种经验可以作为容量讨论的线索，却不是架构边界。真正重要的是任务是否需要跨边界持续推进。</p>
+<p>这里的边界包括：</p>
+<ul>
+<li><strong>请求边界</strong>：调用方收到响应后，工作是否还要继续。</li>
+<li><strong>进程边界</strong>：执行进程重启后，是否能从外部状态恢复，而不是依赖内存。</li>
+<li><strong>时间边界</strong>：任务是否可能等待分钟、小时、天甚至更长时间。</li>
+<li><strong>步骤边界</strong>：任务是否包含多个有不同失败语义的阶段。</li>
+<li><strong>系统边界</strong>：任务是否调用外部 API、数据库、计算集群或人工服务。</li>
+<li><strong>角色边界</strong>：任务是否需要审批、复核、转派或人工确认。</li>
+</ul>
+<p>一个耗时两秒但会产生不可逆外部副作用的付款请求，仍然需要幂等和结果未知处理；一个运行一小时但完全可重算、无副作用的离线计算，也许只需要 Batch 和分片。相反，一个只运行十秒的代码 Agent，如果需要修改文件、执行测试、等待用户确认后继续，就已经具有长任务的状态与治理特征。</p>
+<p>因此，本章使用如下定义：短任务是可以在一次执行上下文中完成，并且失败后可以安全地整体重试的工作；长任务是必须跨越至少一个执行边界，且需要把进度、等待、恢复或人工决策持久化的工作。这个定义比固定时长更能解释为什么同一个接口在业务规模增长后会突然需要 Run、Checkpoint 和操作台。</p>
+<h3 id="612-典型错误把执行问题误认为组件问题"><a class="header" href="#612-典型错误把执行问题误认为组件问题">6.1.2 典型错误：把执行问题误认为组件问题</a></h3>
+<p>任务最初往往只是一个函数、一个 Cron 或一条消息消费逻辑。数据量小、依赖稳定时，这种实现能够工作；一旦执行时间变长、对象数量变多或外部依赖开始抖动，问题会以相似的方式出现：</p>
+<ul>
+<li>同步请求一直不返回，线程、连接和客户端重试被长期占用。</li>
+<li>一个 Consumer 同时完成拉取、转换、发布、通知和补偿，失败后无法判断应从哪里恢复。</li>
+<li>全量任务中途失败，只能从头执行，重复写入和重复调用不断累积。</li>
+<li>任务状态散落在日志、队列和开发者记忆中，值班人员无法判断它是否仍在推进。</li>
+<li>下游限流或主库繁忙时，重试反而放大流量，最后影响正常业务。Google SRE 将这种正反馈称为级联故障，并特别强调重试、队列和资源耗尽之间的相互放大关系。[2][3]</li>
+</ul>
+<p>这些问题不能只靠“把消费者扩容”“换成更快的数据库”或“再加一个重试次数”解决。一个任务系统需要把意图、执行事实、执行结果、失败原因和下一步动作分开记录。消息队列可以负责把工作交给 Worker，却不能替代任务状态；日志可以解释发生了什么，却不能作为可靠的恢复点；模型输出可以帮助 Agent 做判断，却不能自动获得生产副作用的权限。</p>
+<h3 id="613-典型长任务场景"><a class="header" href="#613-典型长任务场景">6.1.3 典型长任务场景</a></h3>
+<p>旧版本中被删减的场景仍然有助于建立方法的覆盖范围。它们可以归纳为五类：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>任务为什么会变长</th><th>首要治理问题</th></tr>
+</thead>
+<tbody>
+<tr><td>供应商同步、ETL、索引重建</td><td>对象多、外部源不稳定、需要分片和质量校验</td><td>Checkpoint、数据版本、发布门禁、对账</td></tr>
+<tr><td>模型训练与模型交付</td><td>训练耗时长，资源可能被抢占，结果还要评估和审批</td><td>实验状态、产物版本、指标门槛、回滚</td></tr>
+<tr><td>Spark 离线计算与 Flink 流处理</td><td>前者由 Stage 和 Shuffle 推进，后者长期持有状态</td><td>分区、状态快照、资源隔离、恢复</td></tr>
+<tr><td>代码、调研和运维 Agent</td><td>输入不确定，需要工具调用、计划调整和人工判断</td><td>工具权限、上下文、预算、Checkpoint、审查</td></tr>
+<tr><td>审批、发布、迁移和平台运维</td><td>有等待、角色边界和不可逆动作</td><td>状态机、定时器、审批、暂停和人工接管</td></tr>
+</tbody>
+</table>
+</div>
+<p>供应商同步是本章的主案例。模型训练和 Spark 任务说明 Batch 的边界不只存在于业务中台；Flink 的有状态处理则说明“长”也可以意味着作业长期运行，而不是一次执行很久。Apache Spark 以可容错的 RDD 和血缘重算来处理节点故障，Flink 则通过状态快照和 Checkpoint 恢复有状态算子；两者都说明恢复能力必须建立在明确的中间事实之上，而不是依赖某个 Worker 恰好没有重启。[9][10]</p>
+<p>Agent 场景又增加了一层复杂度。代码 Agent 可能要理解需求、扫描仓库、规划修改、调用编辑工具、运行测试、读取失败输出，再决定返工；调研 Agent 可能并行检索资料、去重、交叉验证并由 Reviewer 收敛结论；运维 Agent 可能需要查询日志、诊断指标、生成变更计划，等待人工批准后再执行。它们的共同点不是“用了大模型”，而是执行路径包含不确定性，同时仍然需要传统任务系统的状态、权限、审计和恢复骨架。</p>
+<h3 id="614-本章的范围与非目标"><a class="header" href="#614-本章的范围与非目标">6.1.4 本章的范围与非目标</a></h3>
+<p>本章聚焦以下问题：</p>
+<ol>
+<li>如何识别任务的执行跨度、数据规模、流程确定性、认知复杂度和副作用风险。</li>
+<li>如何选择同步请求、异步消息、Batch、Workflow、单 Agent、Stateful Agent Runtime 或 Multi-Agent。</li>
+<li>如何设计 Task、Run、Step、Shard、Checkpoint、Lease、状态历史和结果账本。</li>
+<li>如何处理重复投递、结果未知、局部失败、限流、背压、乱序、发布异常和人工接管。</li>
+</ol>
+<p>本章不展开某个具体 Workflow 或 Agent 框架的 API，也不把模型提示词写作当作任务治理。第 4 章深入 Saga、Outbox、补偿和最终一致性；第 5 章深入业务对象的长生命周期状态机；本章只在这些主题交界处保留任务执行所必需的契约，并把 Agent 当成一种可能的执行单元，而不是一种可以替代业务事实的万能架构。</p>
+<h2 id="62-约束与指标先明确什么算跑得对"><a class="header" href="#62-约束与指标先明确什么算跑得对">6.2 约束与指标：先明确什么算“跑得对”</a></h2>
+<h3 id="621-用复杂度画像代替技术名词"><a class="header" href="#621-用复杂度画像代替技术名词">6.2.1 用复杂度画像代替技术名词</a></h3>
+<p>任务选型前，建议先为任务建立一张复杂度画像。至少记录以下九个维度：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>维度</th><th>评审问题</th><th>设计含义</th></tr>
+</thead>
+<tbody>
+<tr><td>执行跨度</td><td>能否在一次请求和一个进程内闭环？</td><td>决定是否需要异步交接与持久状态</td></tr>
+<tr><td>对象规模</td><td>处理一条记录、一个批次还是数十亿事件？</td><td>决定分页、分片和资源调度</td></tr>
+<tr><td>流程确定性</td><td>路径是否固定，还是根据中间结果选择下一步？</td><td>决定 Batch / Workflow 与 Agent 的边界</td></tr>
+<tr><td>状态需求</td><td>是否需要等待、暂停、恢复和历史查询？</td><td>决定 Run、Step、Checkpoint 与状态历史</td></tr>
+<tr><td>依赖复杂度</td><td>是否调用多个系统、外部机构或人工角色？</td><td>决定超时、结果未知、补偿与审批</td></tr>
+<tr><td>副作用风险</td><td>重复执行会不会重复扣费、发布或修改生产数据？</td><td>决定幂等键、版本条件和人工门禁</td></tr>
+<tr><td>认知复杂度</td><td>是否需要阅读非结构化输入、归纳和动态规划？</td><td>决定是否引入单 Agent 或 Agent Runtime</td></tr>
+<tr><td>协作复杂度</td><td>一个执行者能否承担规划、执行和审查？</td><td>决定是否拆为多个角色化 Agent</td></tr>
+<tr><td>治理复杂度</td><td>是否需要配额、审计、回滚、SLO 和合规留痕？</td><td>决定控制面、操作台和权限模型</td></tr>
+</tbody>
+</table>
+</div>
+<p>这九个维度不需要一开始都量化成精确分数，但必须写出证据和假设。例如“每天同步五千万对象”是规模假设；“供应商每分钟最多 600 次调用”是外部约束；“价格波动超过上一版本 30% 必须人工确认”是业务门禁。容量数字如果只是方案假设，要明确标记，运行后的实际吞吐、P99、队列长度和最老任务年龄再用于校正。[1]</p>
+<h3 id="622-成功不能只有一个布尔值"><a class="header" href="#622-成功不能只有一个布尔值">6.2.2 成功不能只有一个布尔值</a></h3>
+<p>长任务至少要区分四种成功：</p>
+<ul>
+<li><strong>受理成功</strong>：任务定义、输入范围和权限检查通过，Run 已创建。</li>
+<li><strong>执行成功</strong>：Worker 已完成某个 Step 或 Shard，并把结果与状态一起落地。</li>
+<li><strong>业务成功</strong>：输出满足业务质量门槛，正式版本已经发布或业务对象已收敛。</li>
+<li><strong>治理成功</strong>：所有失败、跳过、人工豁免和外部差异都有记录，后续责任边界清楚。</li>
+</ul>
+<p>例如供应商同步接口返回 HTTP 202，只代表受理成功，不能让调用方把它展示为“库存已更新”；一个 Shard 的 Fetch 成功，也不意味着数据已经通过校验和发布；一次 Run 标记 <code>SUCCEEDED</code>，还应能解释隔离了多少坏数据、是否存在容忍范围内的差异，以及这些差异由谁负责处理。</p>
+<p>指标应围绕这些层次建立：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标类别</th><th>示例</th><th>需要回答的问题</th></tr>
+</thead>
+<tbody>
+<tr><td>完成性</td><td>输入数、成功数、失败数、跳过数</td><td>是否所有对象都有结论</td></tr>
+<tr><td>正确性</td><td>质量错误率、版本冲突数、对账差异</td><td>输出是否满足不变量</td></tr>
+<tr><td>时效性</td><td>Run 时长、最老 Shard 年龄、等待时间</td><td>是否在截止时间和 SLO 内推进</td></tr>
+<tr><td>恢复性</td><td>Checkpoint 命中率、重试成功率、恢复耗时</td><td>故障后是否能从安全位置继续</td></tr>
+<tr><td>资源性</td><td>并发、CPU、内存、连接池、外部配额</td><td>任务是否挤压在线流量</td></tr>
+<tr><td>治理性</td><td>人工任务逾期、回滚次数、审计缺失</td><td>系统是否可控、可解释、可追责</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="623-taskrunstepshard-与-checkpoint"><a class="header" href="#623-taskrunstepshard-与-checkpoint">6.2.3 Task、Run、Step、Shard 与 Checkpoint</a></h3>
+<p>无论最终使用脚本、消息队列、Kubernetes Job 还是 Workflow 引擎，都建议先持久化执行事实。一个通用模型包含五层：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>实体</th><th>含义</th><th>必备字段示例</th></tr>
+</thead>
+<tbody>
+<tr><td>Task</td><td>可复用的任务定义</td><td>任务类型、输入契约、规则版本、资源策略</td></tr>
+<tr><td>Run</td><td>某次实际执行实例</td><td>Run ID、输入快照、发起人、截止时间、配置版本</td></tr>
+<tr><td>Step</td><td>Run 内具有独立责任的阶段</td><td>阶段状态、输入输出引用、重试预算、门禁</td></tr>
+<tr><td>Shard</td><td>可独立调度和重试的工作切片</td><td>输入范围、租约、幂等范围、Checkpoint</td></tr>
+<tr><td>Checkpoint</td><td>已经落地且可验证的恢复位置</td><td>游标、版本、输出摘要、提交时间、校验和</td></tr>
+</tbody>
+</table>
+</div>
+<p><code>Task</code> 表达“要做什么”，<code>Run</code> 表达“这次究竟处理了什么”。Run 应保存输入范围、规则与配置版本、发起来源、开始时间、截止时间和最终摘要。不能用一个全局任务状态覆盖历史运行记录，否则无法区分今天正在执行的任务和昨天遗留的失败。</p>
+<p><code>Step</code> 的边界应按责任和失败语义划分，而不是按代码函数随意切分。供应商同步可以把 <code>Fetch</code>、<code>Normalize</code>、<code>Validate</code>、<code>Publish</code> 和 <code>Reconcile</code> 分开；Fetch 失败可以重试外部请求，Validate 失败可以隔离坏对象，Publish 失败则需要保护正式版本。阶段边界越清晰，恢复时越不需要重复已经验证过的工作。</p>
+<p><code>Shard</code> 是扩展性与故障隔离的核心。常见切法包括供应商 / 商家维度、ID 范围、时间窗口、分页游标和哈希桶。分片太大，失败恢复成本高；分片太小，调度开销、状态数量和数据库写入压力又会过大。一个好分片应能估算工作量、单独重试、追溯输入范围，并且不会因并行而破坏同一业务对象的顺序约束。</p>
+<p>Checkpoint 必须在副作用与状态事实都落地后推进。正确顺序通常是：读取输入 → 执行幂等写入或生成暂存结果 → 保存输出摘要和版本 → 在同一事务或可验证协议中推进 Checkpoint。只把页码打印到日志，或在落库前更新游标，都不能安全恢复。</p>
+<h3 id="624-状态迁移与版本契约"><a class="header" href="#624-状态迁移与版本契约">6.2.4 状态迁移与版本契约</a></h3>
+<p>Run 可以经历 <code>PENDING</code>、<code>PLANNED</code>、<code>RUNNING</code>、<code>PAUSED</code>、<code>SUCCEEDED</code>、<code>FAILED</code>、<code>CANCELLED</code>、<code>MANUAL_REVIEW</code>；Shard 可以经历 <code>PENDING</code>、<code>RUNNING</code>、<code>RETRYABLE</code>、<code>UNKNOWN</code>、<code>SUCCEEDED</code>、<code>FAILED</code> 和 <code>CANCELLED</code>。状态不是为了增加字段，而是为了避免把“已入队”误判成“已完成”，也避免把“一个分片失败”误判成“整次运行已经无价值”。</p>
+<p>每次迁移都应携带原因、发生时间、操作者或执行器标识、关联错误、版本号和审计引用。状态历史最好追加保存，当前状态服务于调度，历史服务于审计、复盘和容量优化。任务定义、分片规则、质量阈值和发布策略发生变化时，新的 Run 必须固化配置版本；历史 Run 按创建时的版本解释，不能在重试时悄悄读取一份已经变化的全局配置。</p>
+<h2 id="63-参考架构调度执行状态与观测如何协作"><a class="header" href="#63-参考架构调度执行状态与观测如何协作">6.3 参考架构：调度、执行、状态与观测如何协作</a></h2>
+<h3 id="631-控制面与数据面分离"><a class="header" href="#631-控制面与数据面分离">6.3.1 控制面与数据面分离</a></h3>
+<p>一个可演进的任务系统不必一开始就有独立平台，但职责需要清晰。可以把它分成控制面和数据面：</p>
+<pre><code class="language-text">控制面：Trigger / Scheduler / Policy / Operator Console
+  -&gt; 创建 Run、生成分片、检查配额、暂停或取消
+  -&gt; 读取状态、批准发布、触发受控重试
+
+数据面：Queue / Dispatcher / Worker Pool / External Systems
+  -&gt; 领取 Shard、调用依赖、生成结果、提交 Checkpoint
+  -&gt; 执行幂等写入、返回错误和心跳
+
+事实层：State Store / Object Ledger / Input Snapshot / Audit Trail
+  -&gt; 保存 Run、Step、Shard、版本、错误、外部请求号和人工动作
+
+观测层：Metrics / Logs / Traces / Alerts / Reconciliation
+  -&gt; 解释推进速度、积压、失败原因、版本差异和恢复时间
+</code></pre>
+<p>调度器只负责创建运行实例、规划分片和发出可执行意图，不应在内存里长时间循环处理全部数据。Worker 只负责领取可执行分片、在租约内完成工作、持久化结果并续租或释放，不应自行猜测全局进度。状态存储保存权威的运行事实；消息队列负责分发，不应成为唯一状态来源。Airflow 的 DAG 与 Task 模型也强调，DAG 负责依赖、重试和时间控制，Task 才是实际执行单元；这正是控制面与数据面分工的一个具体例子。[8] DolphinScheduler 的官方项目资料同样把 DAG 编排、Worker 隔离、暂停恢复和批量回填作为调度平台能力，说明调度平台负责执行治理，业务任务仍要自己定义输入、结果和幂等边界。[18]</p>
+<h3 id="632-可靠交接意图消息与状态同时可追踪"><a class="header" href="#632-可靠交接意图消息与状态同时可追踪">6.3.2 可靠交接：意图、消息与状态同时可追踪</a></h3>
+<p>如果请求需要异步交接，建议先在本地事务中写入 Run 意图，再写入 Outbox 事件，由 Relay 投递到队列。这样可以避免“数据库已创建任务但消息没发出”或“消息先发出但任务记录不存在”的断裂。Transactional Outbox 只解决本地业务事实与事件之间的双写窗口，Relay 仍可能在发送成功、更新投递状态前崩溃，因此消费者必须按事件 ID 或业务幂等键吸收重复。[5][6] 如果一个 Step 还要协调多个业务服务，则应把每个服务的本地事实和补偿边界显式记录，不能把 Outbox 误当成跨服务全局事务；Saga 的价值正在于把长事务拆为本地事务，并为已完成步骤定义业务补偿。[4]</p>
+<p>消息契约至少应有 <code>event_id</code>、<code>task_id</code>、<code>run_id</code>、<code>step_id</code>、<code>shard_id</code>、业务主键、幂等键、输入版本、发生时间和过期时间。对于大对象，消息只保存对象存储引用与校验和；不能把可能无限增长的输入和上下文直接塞进队列。消费者确认成功的条件也要写清楚：是完成一次外部调用，还是完成本地事务、写入结果和推进 Checkpoint？如果只是调用成功但状态未落地，重新投递仍是正常路径。</p>
+<h3 id="633-lease心跳与重新领取"><a class="header" href="#633-lease心跳与重新领取">6.3.3 Lease、心跳与重新领取</a></h3>
+<p>Worker 领取 Shard 时写入 <code>owner_id</code>、<code>lease_until</code>、<code>attempt</code> 和 <code>heartbeat_at</code>。在租约内，Worker 可以续租；进程崩溃或网络隔离后，租约到期，调度器将 Shard 标记为可恢复并重新投递。租约不是锁住整个任务的长期数据库事务，而是一种“当前执行者暂时负责推进”的可过期声明。</p>
+<p>重新领取意味着执行至少可能一次，所以必须配合幂等和版本校验。一个 Worker 可能已经完成外部副作用，却在写成功状态前失联；另一个 Worker 随后重新执行。如果下游有稳定幂等键，可以查询并吸收这次重复；如果没有查询能力，就必须把结果标为 <code>UNKNOWN</code>，进入对账或人工队列。把“租约过期”直接等价为“前一次一定没有执行”是危险的。</p>
+<h3 id="634-查询管理和数据接口"><a class="header" href="#634-查询管理和数据接口">6.3.4 查询、管理和数据接口</a></h3>
+<p>任务系统通常需要三类接口：提交接口、查询接口和管理接口。提交接口返回 <code>run_id</code>、受理状态和查询地址；查询接口返回 Run、Step、Shard 的进度、最近错误、下一次动作和是否需要人工处理；管理接口支持暂停、取消、恢复、范围重试、跳过和回滚，但每个动作都要受权限、状态机和审计约束。</p>
+<p>对外暴露的状态不能只返回 <code>success / failed</code>。至少要区分 <code>ACCEPTED</code>、<code>RUNNING</code>、<code>PARTIAL_FAILURE</code>、<code>SUCCEEDED</code>、<code>FAILED</code>、<code>PAUSED</code>、<code>CANCELLED</code> 和 <code>MANUAL_REVIEW</code>。调用方得到的是受理结果，还是业务完成结果，必须在接口命名、字段和文档中明确，否则任务系统会把后端的异步不确定性转化成前端的错误承诺。</p>
+<h2 id="64-方案谱系与选型框架"><a class="header" href="#64-方案谱系与选型框架">6.4 方案谱系与选型框架</a></h2>
+<h3 id="641-七种主流执行方案"><a class="header" href="#641-七种主流执行方案">6.4.1 七种主流执行方案</a></h3>
+<p>从简单到复杂，可以把常见方案归纳为七类。它们不是互斥的产品，而是对应不同主导矛盾的执行形态。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>解决的主导矛盾</th><th>获得的能力</th><th>主动牺牲的能力</th><th>升级信号</th></tr>
+</thead>
+<tbody>
+<tr><td>同步短任务</td><td>请求内快速闭环</td><td>调用简单、结果直接</td><td>长等待和局部恢复</td><td>请求超时、连接长期占用</td></tr>
+<tr><td>异步消息 / Consumer</td><td>主链路不应阻塞</td><td>解耦、削峰、快速接入</td><td>多阶段治理和细粒度审计</td><td>Consumer 出现多个阶段和补偿</td></tr>
+<tr><td>Batch / 分布式 Job</td><td>大量对象如何推进</td><td>分片、并行、Checkpoint</td><td>动态规划与人工流程</td><td>需要门禁、审批或发布版本</td></tr>
+<tr><td>阶段化 Workflow</td><td>多阶段如何治理</td><td>等待、重试、审计、人工接管</td><td>部分自由度和平台成本</td><td>流程定义频繁变化或需动态推理</td></tr>
+<tr><td>单 Agent</td><td>不确定输入如何理解</td><td>语义理解、工具选择、动态计划</td><td>长任务可恢复性和确定性</td><td>需要跨会话恢复或高风险副作用</td></tr>
+<tr><td>Stateful Agent Runtime</td><td>智能任务如何持续推进</td><td>状态、Checkpoint、预算、审查</td><td>实现与观测成本</td><td>一个 Agent 无法兼顾规划、执行、审查</td></tr>
+<tr><td>Multi-Agent</td><td>多职责如何分工</td><td>并行探索、专业角色、交叉审查</td><td>通信、协调、Token 和终止成本</td><td>角色边界明确且协作收益可验证</td></tr>
+</tbody>
+</table>
+</div>
+<p>选择顺序不应从“要不要用 Kafka、Airflow 或 Agent”开始，而应从复杂度来源开始：先看是否跨边界，再看是否要批量恢复，再看是否需要阶段治理，最后才看是否需要动态推理和角色协作。Anthropic 对 Workflow 与 Agent 的区分也采用了类似原则：预定义代码路径适合可预测流程，模型动态决定过程和工具使用时才进入 Agent 语境；即使使用 Agent，也应从最简单、可组合的结构开始。[14]</p>
+<h3 id="642-同步异步与-batch-的边界"><a class="header" href="#642-同步异步与-batch-的边界">6.4.2 同步、异步与 Batch 的边界</a></h3>
+<p>同步请求适合校验、查询、单次规则计算和小范围写入。它的价值是及时给出确定结果，而不是把所有工作都放在请求线程里。一旦执行时长不可预测、需要大量 I/O 或调用方只需要“已受理”，就应建立异步交接边界。</p>
+<p>异步消息适合一条消息可以独立完成的动作，例如发送通知、刷新单个商品索引或补写非关键投影。消息体需要携带事件 ID、幂等键、业务主键和输入版本，调用方得到的是 <code>accepted</code>，不是已完成。Consumer 如果开始拉取多个数据源、维护多个阶段、等待人工、发布正式版本，就已经超出单消息任务的边界。</p>
+<p>Batch / 分布式 Job 适合全量同步、ETL、对账、索引重建、历史修复和训练任务。它的核心不是“后台慢慢跑”，而是把“处理全部对象”拆成可观察、可重试、可恢复的分片推进。Kubernetes Job 将一次性任务、并行完成计数和工作队列模式区分开，并允许挂起后恢复，这说明调度层的并行与业务层的对象状态仍然是两个需要分别建模的问题。[11]</p>
+<h3 id="643-workflowagent-runtime-与-multi-agent-的边界"><a class="header" href="#643-workflowagent-runtime-与-multi-agent-的边界">6.4.3 Workflow、Agent Runtime 与 Multi-Agent 的边界</a></h3>
+<p>Workflow 适合阶段依赖、外部等待、审批门禁、发布保护和人工转派。它把执行路径显式写出来，让运行时负责持久化等待、超时、重试、回放和状态查询。Temporal 将 Workflow Execution 描述为可持久、可恢复的执行单位，并通过事件历史与重放恢复进度；这类能力正是长任务需要的执行骨架，但业务事实仍应由领域服务拥有。[7] 中文云工作流资料也把顺序、选择、并行、状态跟踪、错误重试和长时间执行列为工作流编排的核心能力；这些能力可以由平台提供，但不应替代业务状态和发布门禁。[17][19]</p>
+<p>单 Agent 适合高认知密度、低到中等执行跨度的问题，例如一次性分析、轻量诊断、资料归纳和小范围代码解释。它不应直接获得无限工具权限，也不能因为输出了“完成”就被视为完成了副作用。Stateful Agent Runtime 则把 Goal、Plan、Step、Tool Call、Observation、Review、Budget 和 Checkpoint 变成正式事实，让 Agent 可以暂停、恢复、返工和等待人工。</p>
+<p>Multi-Agent 不是“多几个模型一起聊天”，而是把规划、执行、审查、协调或领域专家角色拆开。只有当一个执行单元同时承担这些职责会产生明显冲突，并且角色分工可以用指标证明收益时，才值得引入它。AutoGen 的原始论文把多 Agent 对话描述为可组合的应用基础设施，同时也意味着需要显式定义角色、消息和交互行为，而不是把自然语言对话当作隐式协议。[15]</p>
+<h3 id="644-选型-adr记录获得与牺牲"><a class="header" href="#644-选型-adr记录获得与牺牲">6.4.4 选型 ADR：记录获得与牺牲</a></h3>
+<p>以“供应商同步是否采用 Workflow + Batch”为例，ADR 不应只写“推荐使用某某框架”，而应记录：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>ADR 项目</th><th>内容</th></tr>
+</thead>
+<tbody>
+<tr><td>背景与问题</td><td>供应商分页、限流、质量异常和发布风险使单个 Consumer 无法安全恢复</td></tr>
+<tr><td>候选方案</td><td>串行脚本、MQ Consumer、Batch、Workflow + Batch、Agent 主导流程</td></tr>
+<tr><td>决策驱动因素</td><td>局部恢复、版本发布、人工门禁、外部配额、可审计性</td></tr>
+<tr><td>最终决策</td><td>Workflow 管理阶段，Batch 管理 Shard，Agent 只用于低风险异常归因</td></tr>
+<tr><td>获得的能力</td><td>可观察状态、分片恢复、质量门禁、版本切换、人工接管</td></tr>
+<tr><td>主动牺牲</td><td>额外状态存储、调度运维成本、最终发布延迟和模型调用成本</td></tr>
+<tr><td>已接受风险</td><td>部分差异需要人工处理，Workflow 和 Worker 之间仍可能重复投递</td></tr>
+<tr><td>验证指标</td><td>最老任务年龄、Shard 恢复时长、发布差异率、人工队列逾期量</td></tr>
+<tr><td>重新评估条件</td><td>数据规模、供应商协议、质量规则或人工处理量发生明显变化</td></tr>
+</tbody>
+</table>
+</div>
+<p>ADR 的价值在于把“为什么现在选择它”与“未来什么条件下应重新选择”分开。它也迫使团队承认获得的能力与牺牲的能力必须用同一组维度比较，不能只说“可靠性更高”而不说明成本、延迟、复杂度和人工负担。[16]</p>
+<h3 id="645-一条渐进式升级路径"><a class="header" href="#645-一条渐进式升级路径">6.4.5 一条渐进式升级路径</a></h3>
+<p>实践中可以沿着下面的路径渐进升级：</p>
+<pre><code class="language-text">同步短任务
+  -&gt; 异步单元任务
+  -&gt; 分片并行 Batch
+  -&gt; 阶段化 Workflow
+  -&gt; 在局部步骤引入单 Agent
+  -&gt; Stateful Agent Runtime
+  -&gt; 有明确分工和终止条件的 Multi-Agent
+</code></pre>
+<p>这不是规定所有系统必须走完的路线。能用同步短任务解决，就不要先上 Workflow；能用 Batch 解决，就不要默认上 Agent Runtime；能用单 Agent 解决，就不要为了“更像 AI 系统”直接拆成 Multi-Agent。阿里云的工程实践也把单体函数、事件触发和 Workflow 编排区分为不同适用区间：流程长、需要状态持久化和自定义重试时，才有理由承担 Workflow 的编排成本。[20] 真正的升级信号应来自新出现的事实：请求被阻塞、局部失败无法恢复、阶段需要门禁、输入需要动态理解，或者一个执行单元已经不能兼顾规划、执行和审查。</p>
+<h2 id="65-完整案例供应商数据同步如何设计"><a class="header" href="#65-完整案例供应商数据同步如何设计">6.5 完整案例：供应商数据同步如何设计</a></h2>
+<p>假设平台每天从供应商拉取酒店、房型、价格和库存。供应商接口按城市分页，存在限流、游标过期和字段缺失；同步结果必须经过质量校验后才能覆盖线上可售数据。这个案例同时包含大批量推进、外部不确定性、版本发布和人工治理，适合演示完整任务模型。</p>
+<h3 id="651-plan固化输入规则和分片"><a class="header" href="#651-plan固化输入规则和分片">6.5.1 Plan：固化输入、规则和分片</a></h3>
+<p>调度器首先创建一条 Run，固化供应商、同步范围、输入快照时间、规则版本、发布目标、截止时间和操作者。随后根据城市、数据量和供应商配额生成 Shard。每个 Shard 记录起始游标、预计页数、优先级、最大重试次数和资源池。</p>
+<p>Plan 阶段要验证三个不变量：分片不重叠，所有目标范围都被覆盖；规则版本和发布目标存在，不能中途从全局配置读取；输入快照和截止时间可解释，不能把不同时间采集的数据假装成同一批次。如果配置缺失、范围异常或上一次 Run 仍占用同一资源，应在真正拉取之前拒绝本次 Run。</p>
+<h3 id="652-fetch拉取与暂存分离"><a class="header" href="#652-fetch拉取与暂存分离">6.5.2 Fetch：拉取与暂存分离</a></h3>
+<p>Worker 领取 Shard 后，以供应商配额为上限拉取分页数据。单次请求应有超时、请求号和稳定幂等键；如果游标失效，先判断供应商是否支持按对象版本或时间窗口重建游标，不能无条件从第一页开始制造重复流量。原始响应至少保留来源请求号、拉取时间、页码或游标、规则版本和快照引用，必要时保存压缩快照与校验和。</p>
+<p>转换结果先写入暂存区，并用 <code>run_id + shard_id + source_object_id</code> 作为业务幂等键。暂存的目的不是多存一份数据，而是把“供应商返回了什么”“平台如何转换”“正式发布了什么”分开。重复拉取、分片重试和 Worker 重启都不能制造额外记录，也不能覆盖其他 Run 已确认的结果。</p>
+<h3 id="653-normalizevalidate对象级与批次级门禁"><a class="header" href="#653-normalizevalidate对象级与批次级门禁">6.5.3 Normalize、Validate：对象级与批次级门禁</a></h3>
+<p>对象级校验检查必填字段、日期范围、币种、引用关系、数值上下限和来源版本。错误对象进入失败池，携带输入引用、错误分类、规则版本和推荐动作；对象级错误不一定阻塞全部城市。批次级校验则检查缺失比例、数据量突变、价格波动、库存变化、关键字段覆盖率和与上一有效版本的差异。</p>
+<p>质量门禁应明确三种结果：通过，可以进入发布；可容忍，记录差异并在授权范围内继续；阻断，保留暂存版本并进入 <code>MANUAL_REVIEW</code>。门禁阈值不应被写成一个无法解释的常数。例如“价格下降 50%”可能对促销商品合理，对酒店库存则可能代表供应商接口异常；阈值必须带有业务范围、数据来源、版本和豁免理由。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>阶段</th><th>成功判据</th><th>可恢复点</th><th>失败策略</th></tr>
+</thead>
+<tbody>
+<tr><td>Plan</td><td>范围覆盖且分片不重叠</td><td>分片计划已持久化</td><td>拒绝运行并修正配置</td></tr>
+<tr><td>Fetch</td><td>原始数据可追溯、游标已确认</td><td>最后一页已暂存</td><td>限流退避；永久错误转失败池</td></tr>
+<tr><td>Normalize</td><td>字段映射完成且版本记录完整</td><td>对象级暂存结果</td><td>隔离坏数据并记录规则版本</td></tr>
+<tr><td>Validate</td><td>对象和批次质量门槛通过</td><td>校验报告已保存</td><td>超阈值阻断发布、转人工</td></tr>
+<tr><td>Publish</td><td>目标版本原子切换完成</td><td>发布版本号</td><td>回退有效版本或冻结范围</td></tr>
+<tr><td>Reconcile</td><td>输入、暂存、发布和下游可见数可核对</td><td>差异报告已保存</td><td>补数、重放或再次核验</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="654-publish版本切换而不是逐行污染线上数据"><a class="header" href="#654-publish版本切换而不是逐行污染线上数据">6.5.4 Publish：版本切换而不是逐行污染线上数据</a></h3>
+<p>发布是数据任务最危险的一步。推荐将暂存结果写入候选版本，例如 <code>supplier-A:v19</code>，通过校验后再把城市或供应商的“当前有效版本”从 <code>v18</code> 原子切换到 <code>v19</code>。如果只能按城市发布，也要为每个城市保留上一有效版本、切换时间和回滚点。不要把暂存数据逐行更新到线上主表，否则中途失败会让用户同时看到一半新数据和一半旧数据。</p>
+<p>发布前应执行权限和资源检查：本次 Run 是否有权影响可售数据，发布范围是否与 Plan 一致，是否有其他版本正在切换，是否超过单次影响半径。高风险发布可以按城市、租户或供应商分批灰度，并在每批之间检查错误率、查询延迟和业务指标。发布后再触发索引、缓存和通知等派生任务，避免尚未通过质量门禁的数据扩散到更多系统。</p>
+<h3 id="655-reconcile用对账结束-run"><a class="header" href="#655-reconcile用对账结束-run">6.5.5 Reconcile：用对账结束 Run</a></h3>
+<p>Run 结束前需要比较输入对象数、成功转换数、隔离错误数、暂存数、发布数和下游可见数。数量相等也不代表正确，还要比较版本、业务键、缺失范围和关键字段摘要。某些差异可以在预先定义的容忍范围内结束，某些差异必须把 Run 标为 <code>MANUAL_REVIEW</code>；只有所有必需阶段收敛，并且差异已被解释或转入明确的后续任务，Run 才能进入 <code>SUCCEEDED</code>。</p>
+<p>对账发现问题时，应创建新的、可审计的修复 Run，而不是让运营人员直接修改结果表。修复 Run 需要引用原始 Run、差异报告、修复策略和审批记录。这样可以区分“原始供应商数据有问题”“转换规则有问题”“发布过程有问题”和“下游索引没有追上”，也能避免一次人工修改破坏后续重放。</p>
+<h2 id="66-agent-任务的状态化与协作"><a class="header" href="#66-agent-任务的状态化与协作">6.6 Agent 任务的状态化与协作</a></h2>
+<h3 id="661-agent-增加的是不确定性不是免除治理"><a class="header" href="#661-agent-增加的是不确定性不是免除治理">6.6.1 Agent 增加的是不确定性，不是免除治理</a></h3>
+<p>Workflow 的执行路径通常由代码预先定义；Agent 则可以根据输入和中间观察结果选择下一步。ReAct 论文将推理与行动交错，让模型在行动结果的基础上更新计划，这解释了 Agent 为什么适合检索、诊断和开放式探索；但它也意味着每一次工具调用都可能改变环境，必须被当作正式执行事实记录。[13]</p>
+<p>可以把 Agent 看成一个具有动态规划能力的执行单元：</p>
+<pre><code class="language-text">Goal
+  -&gt; Plan
+  -&gt; Select Tool / Ask Human
+  -&gt; Execute
+  -&gt; Observe Ground Truth
+  -&gt; Update State
+  -&gt; Review / Continue / Stop
+</code></pre>
+<p>其中 <code>Plan</code> 不是承诺，<code>Tool Result</code> 才是环境事实；模型的自然语言总结不是状态机，Checkpoint 也不能用“对话上下文里大概记得什么”替代。Agent 每次需要继续工作时，都应从持久化的 Goal、Step、工具结果、审查结论和预算中恢复。Anthropic 的工程实践也强调，Agent 在每一步都需要从环境取得真实反馈，并在检查点或阻塞点暂停等待人类判断。[14]</p>
+<h3 id="662-stateful-agent-runtime-的最小模型"><a class="header" href="#662-stateful-agent-runtime-的最小模型">6.6.2 Stateful Agent Runtime 的最小模型</a></h3>
+<p>一个可生产化的 Agent Runtime 至少需要以下实体：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>实体</th><th>作用</th><th>不应承担的责任</th></tr>
+</thead>
+<tbody>
+<tr><td>Goal</td><td>用户目标、范围、成功判据</td><td>不直接作为执行状态</td></tr>
+<tr><td>Plan</td><td>当前计划和候选步骤</td><td>不保证每一步一定执行</td></tr>
+<tr><td>Step</td><td>一个可验证的执行单元</td><td>不隐藏多个不可分的副作用</td></tr>
+<tr><td>Tool Call</td><td>一次工具请求、输入和结果</td><td>不默认代表业务成功</td></tr>
+<tr><td>Observation</td><td>环境返回的事实、日志或测试结果</td><td>不把模型猜测当事实</td></tr>
+<tr><td>Review</td><td>自动或人工审查结论</td><td>不绕过权限和策略</td></tr>
+<tr><td>Checkpoint</td><td>可恢复的状态快照</td><td>不只保存对话文本</td></tr>
+<tr><td>Budget</td><td>时间、Token、调用次数和副作用额度</td><td>不用无限预算掩盖失控</td></tr>
+</tbody>
+</table>
+</div>
+<p>每个 Step 至少有 <code>PENDING</code>、<code>RUNNING</code>、<code>WAITING</code>、<code>SUCCEEDED</code>、<code>RETRYABLE</code>、<code>BLOCKED</code>、<code>REJECTED</code> 和 <code>CANCELLED</code> 状态。工具调用需要保存工具版本、参数摘要、请求 ID、权限上下文、返回摘要和是否产生副作用。对代码 Agent 来说，修改文件、执行命令和提交变更的风险等级不同；对运维 Agent 来说，查询监控、生成变更计划和执行生产变更也必须有不同权限。</p>
+<h3 id="663-代码调研与运维-agent-的边界"><a class="header" href="#663-代码调研与运维-agent-的边界">6.6.3 代码、调研与运维 Agent 的边界</a></h3>
+<p>代码 Agent 的安全链路可以是：读取需求 → 生成计划 → 扫描仓库 → 修改受限文件 → 运行测试 → 生成差异摘要 → 等待人工确认 → 提交或回滚。计划阶段可以由模型主导，修改和测试需要确定性工具，提交和发布则应由权限策略与人工门禁控制。测试失败不是“模型再想一会儿”就算恢复，而是一个带输出、环境和重试次数的失败 Step。</p>
+<p>调研 Agent 更适合并行检索、提取证据、去重、冲突检测和摘要，但每个结论都要保留来源、访问时间和证据片段的引用关系。模型可以提出“需要继续搜索”的判断，不能把没有来源的段落自动升级为事实。对于高影响结论，可用第二个 Reviewer 检查来源覆盖和推理跳跃，并把返工次数纳入预算。</p>
+<p>运维 Agent 必须把查询与变更分离。查询日志、指标和配置属于低风险观察动作；生成迁移计划、扩容或重启属于中风险动作；删除数据、切换流量或修改生产配置属于高风险动作。高风险动作应该要求明确授权、显示影响范围、支持 dry-run，并在执行前保存回滚点。Agent 的价值在于缩短诊断和准备时间，不等于应该把最终控制权交给模型。</p>
+<h3 id="664-tool-contract权限与成本预算"><a class="header" href="#664-tool-contract权限与成本预算">6.6.4 Tool Contract、权限与成本预算</a></h3>
+<p>工具契约应包含名称、版本、输入 Schema、输出 Schema、超时、可重试错误、不可重试错误、幂等键、权限范围、副作用等级和审计字段。工具返回值最好分为 <code>success</code>、<code>retryable_error</code>、<code>permanent_error</code>、<code>unknown</code>，而不是只返回一段自然语言。这样 Runtime 才能决定重试、返工、等待人工还是结束。</p>
+<p>预算至少分为四类：最大执行时间、最大模型调用次数、最大工具调用次数和最大副作用额度。预算耗尽后，任务进入 <code>BLOCKED</code> 或 <code>MANUAL_REVIEW</code>，不能通过自动循环悄悄重置。上下文也应分层保存：用户目标和权限是稳定上下文，步骤状态和工具结果是执行事实，临时推理是可丢弃上下文。把全部对话拼成一个越来越长的 Prompt，会使恢复、成本和隐私边界都变得不可控。</p>
+<h3 id="665-multi-agent-的角色共享状态与终止条件"><a class="header" href="#665-multi-agent-的角色共享状态与终止条件">6.6.5 Multi-Agent 的角色、共享状态与终止条件</a></h3>
+<p>复杂调研或研发任务可以采用最小三角结构：Planner 负责拆解，Worker 负责执行，Reviewer 负责检查。只有在角色责任、输入输出和失败路径清晰后，才考虑增加 Router、Supervisor 或领域 Specialist。角色拆分应减少职责冲突，而不是把同一问题让多个 Agent 重复回答。</p>
+<p>共享状态不应只是一个公共聊天房间。更稳妥的做法是维护任务账本，每个 Agent 以结构化消息写入：完成了什么、使用了哪些来源或工具、产出了什么、仍缺什么证据、推荐下一步是什么。Planner 可以读取账本生成下一轮计划，Reviewer 可以针对某个 Step 返回 <code>ACCEPT</code>、<code>REWORK</code> 或 <code>REJECT</code>。消息必须有版本和幂等键，避免重投后重复创建任务。</p>
+<p>终止条件至少包括：目标判据满足、所有必需 Step 已收敛、预算耗尽、连续返工超过上限、遇到无法自动判断的冲突、人工拒绝或截止时间到达。没有终止条件的 Multi-Agent 很容易进入循环讨论；没有最终裁决者的协作系统也无法解释为什么把互相矛盾的结果交付给用户。Agent 之间的分工获得了并行和专业化能力，但牺牲了通信成本、可复现性、延迟和调试简单性，这些都应进入 ADR 和运行指标。</p>
+<h2 id="67-故障与治理默认假设会重复会超时会中断"><a class="header" href="#67-故障与治理默认假设会重复会超时会中断">6.7 故障与治理：默认假设会重复、会超时、会中断</a></h2>
+<h3 id="671-幂等重复和结果未知"><a class="header" href="#671-幂等重复和结果未知">6.7.1 幂等、重复和结果未知</a></h3>
+<p>任何 Shard、Tool Call 或消息都可能被重复执行：消息至少一次投递、租约超时、进程在提交确认前重启，都可能造成重复。数据库写操作可以用唯一约束、条件更新或 <code>UPSERT</code>；外部接口应携带稳定请求号并支持按请求号查询。幂等键必须表达业务意图，而不是简单使用随机消息 ID。例如 <code>run_id + shard_id + source_object_id</code> 能识别同一次同步对象处理，<code>order_id + operation_type</code> 能识别同一次业务动作。</p>
+<p>最危险的是“结果未知”。一次调用超时只说明调用方没有在截止时间内收到响应，并不说明下游没有执行。正确顺序是：把步骤写成 <code>UNKNOWN</code>，记录外部请求号；优先查询同一幂等键；确认已完成则补写执行事实；确认未执行才允许使用同一键重试；仍无法确认则进入延迟查询、对账或人工队列。直接生成一个新请求号重发，可能造成重复扣费、重复发布或两份资源占用。</p>
+<h3 id="672-重试超时与失败池"><a class="header" href="#672-重试超时与失败池">6.7.2 重试、超时与失败池</a></h3>
+<p>重试必须分类。网络抖动、短暂限流和临时不可用通常可以指数退避并加入随机抖动；字段非法、权限拒绝、规则缺失和质量门禁失败属于永久或业务错误，应该隔离而不是重试；超过重试预算的任务应停止自动尝试。Google SRE 建议限制每次请求和客户端的重试预算，并避免多层同时重试，因为多层重试会产生组合式流量放大。[2][3]</p>
+<p>超时至少分为单次调用、Step / Shard 执行和整次 Run 三层。单次超时保护连接与线程；Shard 超时防止死循环或异常大数据；Run 截止时间避免旧任务和下一轮长期重叠。超时触发后，先判断是否存在未知副作用，再决定取消、重试、查询或对账。失败池或 DLQ 不应是垃圾桶，每条记录至少保存原始输入引用、错误分类、尝试次数、最近错误、首次失败时间、下次动作和权限范围；运维人员可以修复输入后重放，但所有动作都要留下审计。</p>
+<h3 id="673-并发限流与背压"><a class="header" href="#673-并发限流与背压">6.7.3 并发、限流与背压</a></h3>
+<p>任务系统常见事故不是完全不跑，而是跑得太快。并发度应按被保护资源设置：供应商配额、租户范围、数据库连接池、计算集群、模型服务和发布能力都可能需要独立限制。实时库存修复不应和月度索引重建共享没有隔离的资源池；紧急补数可以有受控加急通道，但不能绕过配额、权限和审计。</p>
+<p>背压意味着下游处理不过来时，上游主动减速。需要观察队列积压、Shard 等待时间、接口 <code>429</code> 比例、数据库连接池、Worker 利用率、发布延迟、重试率和最老任务年龄。超过阈值后，可以降低拉取并发、延长退避时间、暂停新 Run、只保留高优先级任务或返回“稍后查询”。AWS 和 Google 的可靠性资料都把超时、退避、抖动、限流和负载削减视为同一个过载控制问题，而不是互不相关的参数调节。[2][3]</p>
+<h3 id="674-暂停取消恢复与人工接管"><a class="header" href="#674-暂停取消恢复与人工接管">6.7.4 暂停、取消、恢复与人工接管</a></h3>
+<p>暂停表示保留 Run、Shard 和 Checkpoint，稍后继续；取消表示不再领取新工作，并让已运行的 Shard 在安全边界退出。Worker 应在页、批或对象边界检查控制标记，在完成当前原子单元并写入结果后退出。强行杀进程可以是故障处置手段，但不应被当作正常取消协议，因为它会把状态留在未知位置。</p>
+<p>恢复程序应先回收过期租约，再扫描 <code>RETRYABLE</code>、长期 <code>RUNNING</code> 和 <code>UNKNOWN</code> Shard。对未知外部副作用先查询或对账，确认安全后再投递；对长期无进度的执行器，要结合心跳、资源指标和最后 Checkpoint 判断是卡死、慢任务还是外部依赖阻塞。人工接管不能通过直接改库绕过状态机，操作台应展示进度、最近错误、外部请求号、影响范围和建议动作，并要求操作者填写理由、证据和后续验证。</p>
+<h3 id="675-顺序版本与数据一致性"><a class="header" href="#675-顺序版本与数据一致性">6.7.5 顺序、版本与数据一致性</a></h3>
+<p>任务并行化后，并不是所有对象都需要全局顺序，但同一酒店、商品或账务账户的连续更新常常需要按版本收敛。不能依赖“队列看起来有序”：扩容、重放、延迟投递和人工补发都会破坏全局接收顺序。更可靠的做法是让对象携带来源版本、更新时间或单调序号，写入时只接受不旧于当前版本的数据。</p>
+<p>示例中的条件更新只表达版本保护思想：</p>
+<pre><code class="language-sql">UPDATE staged_inventory
+SET quantity = :quantity,
+    source_version = :source_version,
+    updated_at = :updated_at
+WHERE supplier_id = :supplier_id
+  AND source_object_id = :source_object_id
+  AND source_version &lt;= :source_version;
+</code></pre>
+<p>实际比较依据必须符合来源系统语义。如果上游版本不可信，不能伪造一个“看似有序”的时间戳；应保留原始快照、运行批次和冲突记录，把无法自动判定的新旧关系转入人工核验。对 Agent 任务也一样：旧的计划或工具结果不能因为晚到就覆盖新的人工拒绝或策略版本。</p>
+<h3 id="676-观测对账与发布保护"><a class="header" href="#676-观测对账与发布保护">6.7.6 观测、对账与发布保护</a></h3>
+<p>可观测性要让值班人员在几分钟内回答：Run 是否在推进，停在哪个 Step，哪些 Shard 受影响，下游是否被压垮，是否需要暂停或介入。日志、指标和追踪应携带 <code>task_id</code>、<code>run_id</code>、<code>step_id</code>、<code>shard_id</code>、幂等键、输入版本和外部请求号。OpenTelemetry 提供跨服务关联 Trace、Metric 和 Log 的统一语义，但业务字段仍需要由任务系统主动写入；没有这些字段，技术链路可见也不等于任务事实可见。[12]</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>层级</th><th>必备事实</th><th>主要告警</th></tr>
+</thead>
+<tbody>
+<tr><td>Run</td><td>开始、截止、输入版本、总进度、最终摘要</td><td>长期未结束、整体失败率超阈值</td></tr>
+<tr><td>Step</td><td>耗时、输入输出数、异常率、等待原因</td><td>阶段耗时突增、门禁失败</td></tr>
+<tr><td>Shard</td><td>租约、重试数、处理速率、Checkpoint、最近错误</td><td>租约长期占用、重复失败、无进度</td></tr>
+<tr><td>下游</td><td>队列积压、限流、连接池、发布延迟</td><td>背压触发、配额耗尽、发布阻塞</td></tr>
+<tr><td>Agent</td><td>工具调用、Token、预算、返工次数、人工等待</td><td>循环调用、权限拒绝、成本突增</td></tr>
+</tbody>
+</table>
+</div>
+<p>对账负责发现遗漏、重复和错位，在线任务负责快速推进，二者不能互相替代。供应商同步至少核对输入、暂存、发布和下游可见版本；索引任务核对主库版本与索引版本；Agent 调研核对结论与来源引用；模型训练核对数据集、代码、参数、评估结果和产物签名。发现差异后，创建新的修复 Run 或人工任务，不要直接删除错误历史。</p>
+<p>发布保护应有最小质量门槛、影响半径和停止条件。质量阈值突破、下游错误率持续上升、回滚次数超过上限或人工确认未完成时，系统应暂停后续发布并报警。版本化发布的回滚对象是“当前有效版本或发布开关”，不是试图删除所有已经传播的消息；如果外部副作用已经发生，回滚应被建模为新的补偿任务，并记录影响范围、进度和验证结果。</p>
+<h3 id="677-任务系统的测试与演练"><a class="header" href="#677-任务系统的测试与演练">6.7.7 任务系统的测试与演练</a></h3>
+<p>长任务不能只测试主路径。至少要演练：Worker 在外部调用成功后崩溃、消息重复投递、租约过期、Checkpoint 写入失败、游标失效、下游限流、数据库主从切换、旧版本晚到、发布门禁阻断、人工审批超时、Agent 工具返回歧义结果，以及恢复程序重复运行。</p>
+<p>测试结果应验证不变量，而不是只验证最终 HTTP 状态。例如同一幂等键不能产生两次副作用；旧版本不能覆盖新版本；暂停后不能新增未授权工作；取消后已运行的原子单元可以安全结束；人工拒绝后 Agent 不能自动重新提交同一高风险动作；对账差异必须能指向具体 Run、Step、Shard 和责任人。对于不可确定的模型行为，应使用固定任务集、工具桩、轨迹评估和人工抽检建立回归集，不要把一次“看起来合理”的回答当成可靠性证明。[14]</p>
+<h2 id="68-方法论总结按问题升级而不是按潮流堆组件"><a class="header" href="#68-方法论总结按问题升级而不是按潮流堆组件">6.8 方法论总结：按问题升级，而不是按潮流堆组件</a></h2>
+<p>任务处理可以压缩成一条判断链：先判断是否跨执行边界，再判断是否需要大量对象推进，再判断是否需要阶段治理，最后判断是否需要动态推理与角色协作。同步调用、异步消息、Batch、Workflow、Agent Runtime 和 Multi-Agent 不是互相替代的技术潮流，而是不同复杂度区间中的执行形态。</p>
+<p>本章的核心判断如下：</p>
+<ol>
+<li>先定义输入、输出、成功判据、截止时间和资源边界，再讨论框架。</li>
+<li>只要中断后必须恢复，就需要持久化 Run、分片和可信 Checkpoint。</li>
+<li>只要存在副作用，就把重复、延迟、乱序和结果未知当作默认路径。</li>
+<li>任务级成功不等于对象级成功；批量任务必须能解释局部失败和跳过。</li>
+<li>队列负责分发，状态存储负责事实，日志负责解释；三者不能互相冒充。</li>
+<li>Batch 解决大规模推进，Workflow 解决阶段依赖与治理，二者经常组合。</li>
+<li>Agent 可以处理不确定输入，但不能替代状态机、权限、审计、对账和人工门禁。</li>
+<li>Multi-Agent 只有在角色分工能带来可验证收益时才成立，并且必须有共享状态和终止条件。</li>
+<li>重试、限流、背压、失败池、对账和演练共同构成可靠性，而不是事后补丁。</li>
+</ol>
+<p>在进入实现前，可以用下面的评审清单快速检查一个方案：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>评审问题</th><th>若回答不清，通常意味着</th></tr>
+</thead>
+<tbody>
+<tr><td>这次任务的业务输入、输出和权威事实是什么？</td><td>任务可能把日志、队列或缓存误当成事实</td></tr>
+<tr><td>失败后从哪个最小安全单元继续？</td><td>任务可能只能全量重跑</td></tr>
+<tr><td>同一动作重复两次会怎样？</td><td>幂等、版本或结果查询能力不足</td></tr>
+<tr><td>哪些错误可以重试，哪些必须隔离或人工处理？</td><td>重试策略会放大故障或吞掉数据错误</td></tr>
+<tr><td>谁能暂停、取消、批准发布和人工放行？</td><td>控制面与权限边界不完整</td></tr>
+<tr><td>如何证明已经完成，如何发现遗漏？</td><td>缺少对象级结果和对账闭环</td></tr>
+<tr><td>为什么需要 Agent，为什么还不需要 Multi-Agent？</td><td>方案可能由技术潮流而非复杂度驱动</td></tr>
+</tbody>
+</table>
+</div>
+<p>成熟的任务系统不是一组“后台脚本”，也不是让模型自由循环的对话。它是一套能够跨故障、跨时间、跨人员交接持续收敛的执行机制：有明确的事实、有安全的恢复点、有可见的失败、有受控的副作用，也有在自动化无法安全判断时及时停下来的能力。</p>
+<h2 id="69-参考资料"><a class="header" href="#69-参考资料">6.9 参考资料</a></h2>
+<p>正文中的编号用于就近说明来源支撑的事实或方法；其中“本章推导”表示本书结合供应商同步、数据处理和 Agent 协作场景做出的工程归纳，不等同于来源原文的直接结论。链接优先指向作者、出版方或长期维护的官方页面，访问与加入日期为 2026-09-21。</p>
+<p>[1] Kleppmann M. <a href="https://www.oreilly.com/library/view/designing-data-intensive-applications/9781098119058/"><em>Designing Data-Intensive Applications</em></a>[M]. O’Reilly Media, 2017. 用于数据系统的可靠性、可扩展性、可维护性和数据流处理权衡。</p>
+<p>[2] Beyer B, Jones C, Petoff J, Murphy N R, eds. <a href="https://sre.google/sre-book/table-of-contents/"><em>Site Reliability Engineering</em></a>[M]. O’Reilly Media, 2016. 用于服务目标、过载、重试预算和生产治理。</p>
+<p>[3] Google SRE. <a href="https://sre.google/sre-book/addressing-cascading-failures/">Addressing Cascading Failures</a>[EB/OL]. Google, 2016. 用于解释重试、资源耗尽和级联故障的正反馈关系。</p>
+<p>[4] Richardson C. <a href="https://microservices.io/patterns/data/saga.html">Saga Pattern</a>[EB/OL]. Microservices Patterns. 用于区分跨服务流程协调、补偿和全局原子提交。</p>
+<p>[5] Richardson C. <a href="https://microservices.io/patterns/data/transactional-outbox.html">Transactional Outbox</a>[EB/OL]. Microservices Patterns. 用于说明本地事实与事件可靠交接的双写边界。</p>
+<p>[6] Richardson C. <a href="https://microservices.io/patterns/communication-style/idempotent-consumer.html">Idempotent Consumer</a>[EB/OL]. Microservices Patterns. 用于说明至少一次投递下的重复消费处理。</p>
+<p>[7] Temporal. <a href="https://docs.temporal.io/workflow-execution">Workflow Execution overview</a>[EB/OL]. Temporal Documentation, 2026. 用于说明持久执行、事件历史、重放、暂停和恢复。</p>
+<p>[8] Apache Airflow. <a href="https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/">Core Concepts</a>[EB/OL]. Apache Software Foundation, 2026. 用于说明 DAG、Task、依赖、重试和任务执行架构。</p>
+<p>[9] Apache Spark. <a href="https://spark.apache.org/docs/latest/rdd-programming-guide">RDD Programming Guide</a>[EB/OL]. Apache Software Foundation, 2026. 用于说明 RDD、分区、血缘和节点故障恢复。</p>
+<p>[10] Apache Flink. <a href="https://nightlies.apache.org/flink/flink-docs-stable/zh/docs/concepts/stateful-stream-processing/">有状态流处理</a>[EB/OL]. Apache Software Foundation, 2026. 用于说明状态、Checkpoint、Savepoint 和有状态流处理容错。</p>
+<p>[11] Kubernetes. <a href="https://kubernetes.io/zh-cn/docs/concepts/workloads/controllers/job/">Job 中文文档</a>[EB/OL]. Cloud Native Computing Foundation, 2026. 中文官方资料，用于说明一次性任务、并行 Job、工作队列和挂起恢复。</p>
+<p>[12] OpenTelemetry. <a href="https://opentelemetry.io/docs/">Documentation</a>[EB/OL]. OpenTelemetry, 2026. 用于说明 Trace、Metric、Log 的关联观测基础。</p>
+<p>[13] Yao S, Zhao J, Yu D, et al. <a href="https://arxiv.org/abs/2210.03629">ReAct: Synergizing Reasoning and Acting in Language Models</a>[C/OL]. ICLR, 2023. 用于说明推理与工具行动交错的 Agent 执行模式。</p>
+<p>[14] Anthropic. <a href="https://www.anthropic.com/engineering/building-effective-agents">Building effective agents</a>[EB/OL]. Anthropic, 2024. 英文工程资料，用于区分 Workflow 与 Agent、工具契约、环境反馈和人类检查点。</p>
+<p>[15] Wu Q, Bansal G, Zhang J, et al. <a href="https://arxiv.org/abs/2308.08155">AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation</a>[C/OL]. arXiv, 2023. 用于说明 Multi-Agent 的角色化对话、工具和人工输入组合。</p>
+<p>[16] 周志明. <a href="https://icyfenix.cn/">《凤凰架构：构建可靠的大型分布式系统》</a>[EB/OL]. 2026. 中文开源技术资料，用于补充分布式系统的可靠性、状态和架构演进视角。</p>
+<p>[17] 阿里云. <a href="https://help.aliyun.com/document_detail/114020.html">协调多个分布式任务执行——Serverless 工作流</a>[EB/OL]. 阿里云帮助中心. 中文官方资料，用于说明顺序、选择、并行、状态跟踪、重试和长时间流程编排。</p>
+<p>[18] Apache DolphinScheduler. <a href="https://dolphinscheduler.apache.org/">Apache DolphinScheduler</a>[EB/OL]. Apache Software Foundation, 2026. 官方项目资料，用于补充 DAG 工作流、暂停恢复、工作组隔离和批量回填等调度能力。</p>
+<p>[19] 阿里云. <a href="https://www.alibabacloud.com/help/zh/serverless-workflow/latest/product-function-node-fnf">云工作流：功能特性</a>[EB/OL]. 阿里云帮助中心, 2024. 中文官方资料，用于说明状态节点、选择、并行、循环和标准模式的长流程持久化。</p>
+<p>[20] 阿里云开发者社区. <a href="https://developer.aliyun.com/article/751573">Serverless 工作流适用场景及最佳实践</a>[EB/OL]. 阿里云开发者社区, 2020. 中文工程实践资料，用于补充单体函数、事件触发和 Workflow 编排之间的适用边界；具体产品行为以官方文档为准。</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part01/05-long-lifecycle-business-process-methodology.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part01/07-high-accuracy-strong-consistency-methodology.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part01/05-long-lifecycle-business-process-methodology.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part01/07-high-accuracy-strong-consistency-methodology.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-c2a407aa.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-ccf746f1.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
