@@ -17,7 +17,7 @@ test('native homepage contains the curated reader entry points', () => {
   assert.equal(packageJson.dependencies['hexo-generator-index'], undefined);
   assert.doesNotMatch(config, /^index_generator:/m);
   const links = [
-    '/2026/09/11/other/08-agent-electronic-commerce-research-report/',
+    '/2026/09/11/other/agent-ecommerce-research-report/',
     '/ai-book/',
     '/reliable-system-design/',
     '/archives/',
@@ -25,7 +25,7 @@ test('native homepage contains the curated reader entry points', () => {
     '/reliable-system-design/appendix/system-design-interview-50.html',
     '/2026/04/03/AI/00-vibe-coding-vs-spec-coding/',
     '/2026/09/23/system-design/45-ddd-principles-and-pricing-practice/',
-    '/2026/05/08/other/ai-content-to-video-open-source-workflow/',
+    '/2026/05/08/other/open-source-ai-content-to-video-workflow/',
     '/2026/04/05/AI/02-karpathy-evolving-knowledge-base/'
   ];
   for (const link of links) assert.ok(homepage.includes(link), `missing ${link}`);
