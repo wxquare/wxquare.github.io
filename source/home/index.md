@@ -8,11 +8,11 @@ toc:
 
 # AI、可靠系统设计与工程实践
 
-wxquare 的技术知识库，聚焦 AI Engineering、可靠系统设计、复杂业务架构与工程实践，关注系统如何被设计、实现、治理并长期演进。
+wxquare 的技术知识库，聚焦可靠系统设计、复杂业务架构与 AI Engineering，涵盖电商系统、数据一致性、生产可靠性、Agent 系统和工程实践。
 
 ## 持续编写的书稿
 
-### [可靠系统设计与电商架构](/reliable-system-design/)
+### [《可靠系统设计与电商架构》](/reliable-system-design/)
 
 **System Design: Reliable Systems and E-Commerce Architecture**
 
@@ -20,7 +20,7 @@ wxquare 的技术知识库，聚焦 AI Engineering、可靠系统设计、复杂
 
 [开始阅读 →](/reliable-system-design/)
 
-### [AI Engineering：大模型与智能体系统工程](/ai-book/)
+### [《AI Engineering：大模型与智能体系统工程》](/ai-book/)
 
 从模型原理、训练与推理基础设施，到 Agent 架构、应用、评估和生产治理。
 
