@@ -5,12 +5,12 @@ description: 解释 Clean Architecture、DDD 与 CQRS 的关系、适用条件�
 categories:
   - 系统设计基础
 tags:
-- architecture-and-clean-code
-- 架构设计
-- clean-architecture
-- ddd
-- cqrs
-- 设计模式
+  - architecture-and-clean-code
+  - 架构设计
+  - clean-architecture
+  - ddd
+  - cqrs
+  - 设计模式
 toc: true
 ---
 

@@ -4,7 +4,7 @@ date: 2024-12-20
 description: 从容器基础到 Kubernetes 编排，整理后端工程中常见的部署、服务发现、资源管理与运维实践。
 updated: 2026-09-23
 categories:
-  - 系统设计基础
+  - 计算机基础
 tags:
   - kubernetes
   - docker

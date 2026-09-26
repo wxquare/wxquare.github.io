@@ -5,10 +5,10 @@ description: 从 SLO、故障治理、容量、降级、演练和复盘出发，
 categories:
   - 系统设计基础
 tags:
-- 稳定性
-- SRE
-- 高可用
-- 监控
+  - 稳定性
+  - SRE
+  - 高可用
+  - 监控
 toc: true
 ---
 

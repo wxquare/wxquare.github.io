@@ -4,7 +4,7 @@ date: 2024-03-04
 description: 系统整理 MySQL 存储引擎、索引、事务、锁、日志和性能优化，连接数据库原理与生产实践。
 updated: 2026-09-23
 categories:
-  - 系统设计基础
+  - 计算机基础
 tags:
   - MySQL
   - 数据库

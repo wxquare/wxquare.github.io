@@ -5,12 +5,12 @@ description: 面向复杂业务代码，讨论命名、边界、依赖、抽象�
 categories:
   - 系统设计基础
 tags:
-- architecture-and-clean-code
-- 架构设计
-- 设计模式
-- DDD
-- Pipeline
-- 重构
+  - architecture-and-clean-code
+  - 架构设计
+  - 设计模式
+  - DDD
+  - Pipeline
+  - 重构
 toc: true
 ---
 

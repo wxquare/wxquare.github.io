@@ -5,14 +5,14 @@ description: 提供一套面向架构与整洁代码的 Code Review 清单，帮
 categories:
   - 系统设计基础
 tags:
-- architecture-and-clean-code
-- code-review
-- 架构设计
-- checklist
-- clean-architecture
-- ddd
-- cqrs
-- clean-code
+  - architecture-and-clean-code
+  - code-review
+  - 架构设计
+  - checklist
+  - clean-architecture
+  - ddd
+  - cqrs
+  - clean-code
 toc: true
 ---
 
