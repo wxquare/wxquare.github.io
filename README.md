@@ -48,8 +48,8 @@
 
 ### 环境要求
 
-- Node.js >= 14
-- npm >= 6.0
+- Node.js 20（`.nvmrc`）
+- npm >= 10
 - mdBook 0.5.2（本地版本应与 CI 保持一致）
 
 安装 mdBook：
@@ -62,6 +62,12 @@ brew install mdbook
 cargo install mdbook --version 0.5.2 --locked
 
 mdbook --version
+```
+
+如果使用 nvm，可在仓库根目录执行以下命令切换到项目要求的 Node.js 版本：
+
+```bash
+nvm use
 ```
 
 ### 常用命令
