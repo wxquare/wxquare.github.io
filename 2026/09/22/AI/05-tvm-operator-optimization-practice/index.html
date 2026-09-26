@@ -27,7 +27,7 @@
 <meta property="og:description" content="以 TVM 为例，实践 Relay 图优化、GEMM 调优和 INT8 量化，说明算子优化如何连接编译器与推理性能。">
 <meta property="og:locale">
 <meta property="article:published_time" content="2026-09-22T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-26T09:57:27.746Z">
+<meta property="article:modified_time" content="2026-09-26T12:29:37.257Z">
 <meta property="article:author" content="wxquare">
 <meta property="article:tag" content="tvm">
 <meta property="article:tag" content="deep-learning-compiler">
@@ -366,7 +366,7 @@ mjx-container[display="true"] + br {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-26 09:57:27" itemprop="dateModified" datetime="2026-09-26T09:57:27+00:00">2026-09-26</time>
+      <time title="Modified: 2026-09-26 12:29:37" itemprop="dateModified" datetime="2026-09-26T12:29:37+00:00">2026-09-26</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -390,7 +390,7 @@ mjx-container[display="true"] + br {
     
     <div class="post-body" itemprop="articleBody"><p>本文把过去几篇 TVM 学习笔记合并成一条完整的实践主线：先建立 TensorFlow 基线，再观察 TVM 如何导入和优化计算图，接着深入 GEMM 算子调度，最后讨论 INT8 量化和综合测试。文章不把“编译成功”当作“性能一定更好”，而是把优化拆成可测量、可解释的实验。</p>
 <h2 id="1-为什么从推理引擎转向深度学习编译器"><a href="#1-为什么从推理引擎转向深度学习编译器" class="headerlink" title="1. 为什么从推理引擎转向深度学习编译器"></a>1. 为什么从推理引擎转向深度学习编译器</h2><p>在模型部署中，模型结构、算子实现、内存布局、线程调度和目标硬件往往同时影响延迟。仅修改网络结构并不能保证端到端加速：非结构化稀疏需要运行时和硬件真正跳过零值，量化需要整数算子和合适的校准，剪枝也需要后端识别新的张量形状。过去的实验中，直接使用 TensorFlow 推理、尝试权重量化、稀疏和通道剪枝，都能说明一个事实：优化手段必须和执行引擎配套。</p>
-<p>TVM 的价值在于把模型表示、图级变换、算子程序生成和运行时部署放在同一套编译流程中。原始 TVM 论文把这种思路描述为面向深度学习的端到端优化编译器[1]。这并不意味着 TVM 自动解决所有性能问题，而是把很多过去需要手写内核、适配不同平台的工作，转化为可以检查和搜索的中间表示与调度问题。</p>
+<p>TVM 的价值在于把模型表示、图级变换、算子程序生成和运行时部署放在同一套编译流程中。原始 TVM 论文把这种思路描述为面向深度学习的端到端优化编译器<a href="#ref-1">[1]</a>。这并不意味着 TVM 自动解决所有性能问题，而是把很多过去需要手写内核、适配不同平台的工作，转化为可以检查和搜索的中间表示与调度问题。</p>
 <p>本文的实验问题有三个：</p>
 <ol>
 <li>直接把模型交给 TVM，收益来自哪里？</li>
@@ -439,12 +439,12 @@ mjx-container[display="true"] + br {
 </tr>
 </tbody></table>
 <p>单次测量应包含预热阶段，正式阶段至少重复多次并报告中位数和离散程度。对 CPU 测试，还要固定线程数和 CPU 亲和性；对 GPU 测试，要区分首次编译、首次运行和稳定运行。端到端延迟应包括数据准备和输出同步，内核微基准则可以单独报告，以免把两种指标混为一谈。</p>
-<h2 id="3-TVM-的编译执行链路"><a href="#3-TVM-的编译执行链路" class="headerlink" title="3. TVM 的编译执行链路"></a>3. TVM 的编译执行链路</h2><p>TVM 可以粗略看成两层。第一层接收模型计算图，完成前端导入、类型推导、图级 Pass 和算子拆分；第二层把算子表达成 TensorIR 或底层函数，经过调度、目标相关的代码生成，最后交给运行时模块执行。Relay 是一种面向机器学习程序的函数式中间表示，适合表达张量计算、函数调用和部分控制流[2][3]。</p>
+<h2 id="3-TVM-的编译执行链路"><a href="#3-TVM-的编译执行链路" class="headerlink" title="3. TVM 的编译执行链路"></a>3. TVM 的编译执行链路</h2><p>TVM 可以粗略看成两层。第一层接收模型计算图，完成前端导入、类型推导、图级 Pass 和算子拆分；第二层把算子表达成 TensorIR 或底层函数，经过调度、目标相关的代码生成，最后交给运行时模块执行。Relay 是一种面向机器学习程序的函数式中间表示，适合表达张量计算、函数调用和部分控制流<a href="#ref-2">[2]</a><a href="#ref-3">[3]</a>。</p>
 <p>在旧版 API 中，<code>tvm.build</code> 常被用于从 Tensor Expression 或低层 IR 生成算子模块，<code>tvm.relay.build</code> 则负责从 Relay 模块生成模型运行时。新版本将 IRModule、TensorIR 和统一编译接口进一步整合，因此不能机械照搬 0.6/0.7 时代的代码。阅读旧代码时应先确认 API 版本，再检查生成的 IR 和目标代码。</p>
 <p>最有用的调试路径不是只看最终性能，而是逐层打印：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">print</span>(mod.astext())</span><br><span class="line">lib = tvm.build(schedule_or_ir, target=target)</span><br><span class="line"><span class="built_in">print</span>(lib.get_source())</span><br></pre></td></tr></table></figure>
 
-<p>前者帮助确认 Pass 是否真的改变了计算图，后者帮助确认是否生成了期望的循环、向量指令或目标平台代码。TVM 的 IRModule、Runtime Module、PrimFunc 和 Relay Function 分别处在不同抽象层，不应把它们当成同一个对象[4][5][6][7]。</p>
+<p>前者帮助确认 Pass 是否真的改变了计算图，后者帮助确认是否生成了期望的循环、向量指令或目标平台代码。TVM 的 IRModule、Runtime Module、PrimFunc 和 Relay Function 分别处在不同抽象层，不应把它们当成同一个对象<a href="#ref-4">[4]</a><a href="#ref-5">[5]</a><a href="#ref-6">[6]</a><a href="#ref-7">[7]</a>。</p>
 <h2 id="4-Relay-图级优化：先减少不必要的计算"><a href="#4-Relay-图级优化：先减少不必要的计算" class="headerlink" title="4. Relay 图级优化：先减少不必要的计算"></a>4. Relay 图级优化：先减少不必要的计算</h2><p>Relay 的图级优化通常包括常量折叠、算子融合、死代码消除、布局转换和类型相关的变换。图优化的主要目标不是让单个加法指令更快，而是减少中间张量写回、降低函数调用和调度开销，并把一串适合融合的操作交给后端共同生成。算子融合是否有效取决于张量尺寸、内存带宽、目标硬件和后端实现，不能只看 Pass 名称。</p>
 <p>一个典型流程可以写成：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">with</span> tvm.transform.PassContext(opt_level=<span class="number">3</span>):</span><br><span class="line">    built = relay.build(mod, target=target, params=params)</span><br></pre></td></tr></table></figure>
@@ -457,7 +457,7 @@ mjx-container[display="true"] + br {
 <li>布局转换是否抵消了融合收益？</li>
 <li>动态形状或控制流是否限制了优化？</li>
 </ul>
-<p>XLA 的 HLO、MLIR 的 Linalg/Tensor 方言和 Halide 的调度模型提供了有价值的参照：计算描述与执行策略应该分离，编译器才能在目标硬件变化时重新选择实现[8][9][10][11]。TVM 的 Relay 不应被理解为“另一个 Python 网络框架”，它更接近可以被分析和变换的程序表示。</p>
+<p>XLA 的 HLO、MLIR 的 Linalg/Tensor 方言和 Halide 的调度模型提供了有价值的参照：计算描述与执行策略应该分离，编译器才能在目标硬件变化时重新选择实现<a href="#ref-8">[8]</a><a href="#ref-9">[9]</a><a href="#ref-10">[10]</a><a href="#ref-11">[11]</a>。TVM 的 Relay 不应被理解为“另一个 Python 网络框架”，它更接近可以被分析和变换的程序表示。</p>
 <h2 id="5-GEMM-为什么适合做优化实验"><a href="#5-GEMM-为什么适合做优化实验" class="headerlink" title="5. GEMM 为什么适合做优化实验"></a>5. GEMM 为什么适合做优化实验</h2><p>GEMM 表示通用矩阵乘法，基本形式是 <code>C = alpha * A * B + beta * C</code>。深度学习中的全连接层、卷积降低后的矩阵乘法、注意力中的部分计算，都可能归约为 GEMM。矩阵乘法的计算量容易估算，结果容易校验，性能也会明显受到缓存、SIMD、线程并行和内存布局影响，因此适合作为编译器优化的观察窗口。</p>
 <p>对 <code>M x K</code> 与 <code>K x N</code> 的矩阵相乘，主要计算量约为 <code>2*M*K*N</code> 次浮点运算。理论峰值可以帮助判断结果是否合理，但理论峰值不是实际可达性能。实际效率还受缓存容量、访存带宽、指令宽度、线程同步、矩阵边界和库调用开销影响。旧实验以 2.4 GHz、AVX2、FMA 的 CPU 为例估算单核峰值，这个估算只能作为当时机器的上界，重新测试时必须根据当前 CPU 的 SIMD 宽度和核心频率更新。</p>
 <p>GEMM 优化通常围绕四件事展开：</p>
@@ -475,7 +475,7 @@ mjx-container[display="true"] + br {
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">s = te.create_schedule(C.op)</span><br><span class="line">yo, yi = s[C].split(C.op.axis[<span class="number">0</span>], factor=tile_m)</span><br><span class="line">xo, xi = s[C].split(C.op.axis[<span class="number">1</span>], factor=tile_n)</span><br><span class="line">ko, ki = s[C].split(k, factor=tile_k)</span><br><span class="line">s[C].reorder(yo, xo, ko, yi, xi, ki)</span><br></pre></td></tr></table></figure>
 
 <p>分块参数不能凭经验固定。<code>tile_m</code>、<code>tile_n</code> 和 <code>tile_k</code> 需要结合缓存、向量宽度、数据类型和线程数测试。过小的块会增加循环控制开销，过大的块会造成缓存冲突或寄存器压力。CPU 后端通常还需要考虑向量化轴的连续性，GPU 后端则要考虑线程块、共享内存、warp 和同步。</p>
-<p>TVM 的 AutoTVM、Ansor 和 MetaSchedule 体现了自动搜索的不同阶段。AutoTVM 依赖人工定义模板和搜索空间；Ansor 试图自动生成更广泛的程序和搜索任务[12]；MetaSchedule 则在 TensorIR 和统一搜索流程上进一步发展[13][14]。自动搜索并不是魔法：搜索目标、测量噪声、候选空间、硬件频率波动和正确性检查，都会决定最终结果。</p>
+<p>TVM 的 AutoTVM、Ansor 和 MetaSchedule 体现了自动搜索的不同阶段。AutoTVM 依赖人工定义模板和搜索空间；Ansor 试图自动生成更广泛的程序和搜索任务<a href="#ref-12">[12]</a>；MetaSchedule 则在 TensorIR 和统一搜索流程上进一步发展<a href="#ref-13">[13]</a><a href="#ref-14">[14]</a>。自动搜索并不是魔法：搜索目标、测量噪声、候选空间、硬件频率波动和正确性检查，都会决定最终结果。</p>
 <p>GEMM 测试必须同时做数值校验：将 TVM 输出与 NumPy 或高质量 BLAS 结果比较，设置相对误差和绝对误差阈值。性能更快但结果错误的内核没有工程价值。对于 FP32、FP16 和 INT8，误差阈值不能共用；量化还要报告校准集和准确率变化。</p>
 <h2 id="7-代码生成与运行时模块"><a href="#7-代码生成与运行时模块" class="headerlink" title="7. 代码生成与运行时模块"></a>7. 代码生成与运行时模块</h2><p><code>build</code> 的作用不只是“编译一下”。它把高层计算描述、目标信息和调度结果转换为一个可加载的运行时模块。<code>IRModule</code> 可能包含多个函数，<code>PrimFunc</code> 更接近单个低层张量程序，<code>runtime.Module</code> 则负责保存生成后的函数和目标代码。调试时应检查：</p>
 <ul>
@@ -485,11 +485,11 @@ mjx-container[display="true"] + br {
 <li><code>get_source()</code> 输出的代码是否与目标平台一致；</li>
 <li>运行时输入输出 dtype 和布局是否匹配。</li>
 </ul>
-<p>LLVM 是 CPU 代码生成的重要基础，CUDA、OpenCL 和 Metal 等目标则有自己的运行时和内存模型[15][16][17]。同一套 Relay 图在不同目标上获得不同性能是正常现象；跨平台的价值是复用模型和编译流程，不是保证所有平台共享同一组最佳调度参数。</p>
+<p>LLVM 是 CPU 代码生成的重要基础，CUDA、OpenCL 和 Metal 等目标则有自己的运行时和内存模型<a href="#ref-15">[15]</a><a href="#ref-16">[16]</a><a href="#ref-17">[17]</a>。同一套 Relay 图在不同目标上获得不同性能是正常现象；跨平台的价值是复用模型和编译流程，不是保证所有平台共享同一组最佳调度参数。</p>
 <h2 id="8-INT8-量化实践"><a href="#8-INT8-量化实践" class="headerlink" title="8. INT8 量化实践"></a>8. INT8 量化实践</h2><p>量化通常把 FP32 激活和权重映射到更低位宽的整数表示。最简单的线性映射可以写成：</p>
 <p><code>real_value = scale * (integer_value - zero_point)</code>。</p>
 <p>对称量化简化了硬件计算，但可能浪费非对称分布中的数值范围；非对称量化能更充分利用范围，却会引入 zero point 处理。量化收益不仅取决于模型大小减少，还取决于硬件是否有高效的整数向量指令，以及量化算子是否覆盖完整路径。</p>
-<p>量化流程至少包含：选择量化粒度、准备校准数据、统计激活范围、插入量化/反量化节点、编译整数算子、验证精度和测试延迟。TensorFlow Lite 和 ONNX Runtime 的官方量化文档都强调校准、算子支持和精度验证的重要性[18][19]。TVM 的量化接口和 RFC 则反映了特定版本的实现状态，不能把 2020 年的 RFC 当成当前 API 文档[20][21]。</p>
+<p>量化流程至少包含：选择量化粒度、准备校准数据、统计激活范围、插入量化/反量化节点、编译整数算子、验证精度和测试延迟。TensorFlow Lite 和 ONNX Runtime 的官方量化文档都强调校准、算子支持和精度验证的重要性<a href="#ref-18">[18]</a><a href="#ref-19">[19]</a>。TVM 的量化接口和 RFC 则反映了特定版本的实现状态，不能把 2020 年的 RFC 当成当前 API 文档<a href="#ref-20">[20]</a><a href="#ref-21">[21]</a>。</p>
 <p>量化实验应同时比较：</p>
 <table>
 <thead>
@@ -929,7 +929,7 @@ mjx-container[display="true"] + br {
 <p>第四个失败案例是忽略内存布局。模型导入后可能使用 NCHW，某个算子实现却更适合 NHWC；布局转换本身会消耗时间和内存带宽。优化前后必须检查布局变化，不能把布局转换的成本隐藏在“编译器优化”中。</p>
 <p>第五个失败案例是量化后只看延迟。量化模型必须同时做输出误差、任务精度和算子覆盖检查。若某层出现大量饱和，最终准确率下降可能并不是 TVM 编译错误，而是校准集不能代表实际输入分布。对异常层进行逐层比较，比直接重新搜索所有调度参数更有效。</p>
 <h2 id="35-CPU、GPU-和移动端的差异"><a href="#35-CPU、GPU-和移动端的差异" class="headerlink" title="35. CPU、GPU 和移动端的差异"></a>35. CPU、GPU 和移动端的差异</h2><p>CPU 优化通常围绕缓存、SIMD、线程和成熟 BLAS 库展开。CPU 的优势是控制流灵活、内存层次清晰，适合形状不规则和小批量推理；缺点是并行宽度有限，线程启动和同步成本可能很快显现。对于 CPU，单线程调度和多线程调度应分别调优，不能简单把核心数写进配置。</p>
-<p>GPU 优化则更加依赖线程块、共享内存、全局内存合并访问、warp 利用率和同步。一个在 CPU 上合理的循环分块方案，不能直接迁移到 CUDA。GPU 还需要考虑 kernel launch 开销和主机设备同步；如果模型包含许多很小的算子，单个算子的理论吞吐很高，端到端仍可能不理想。CUDA 官方编程指南和最佳实践指南对线程层次、内存和同步提供了完整说明[25][26]。</p>
+<p>GPU 优化则更加依赖线程块、共享内存、全局内存合并访问、warp 利用率和同步。一个在 CPU 上合理的循环分块方案，不能直接迁移到 CUDA。GPU 还需要考虑 kernel launch 开销和主机设备同步；如果模型包含许多很小的算子，单个算子的理论吞吐很高，端到端仍可能不理想。CUDA 官方编程指南和最佳实践指南对线程层次、内存和同步提供了完整说明<a href="#ref-25">[25]</a><a href="#ref-26">[26]</a>。</p>
 <p>移动端的约束更复杂。功耗、热降频、内存容量和异构核心都会影响结果。短时间 benchmark 可能得到漂亮数字，但持续运行后由于温度升高而降频。移动端还需要考虑模型加载、内存拷贝和电池消耗，不能只看一次推理延迟。TVM 的跨平台能力可以减少重复开发，但目标平台仍需要独立测试和调度。</p>
 <h2 id="36-如何写出可信的性能结论"><a href="#36-如何写出可信的性能结论" class="headerlink" title="36. 如何写出可信的性能结论"></a>36. 如何写出可信的性能结论</h2><p>性能结论应该包含对象、条件和范围。例如，“在某 CPU、某 TVM 版本、固定线程数和 1024×1024 FP32 GEMM 下，人工分块调度的中位延迟低于默认调度”是一个有边界的结论；“TVM 比 TensorFlow 快两倍”则缺少模型、版本、线程和统计口径，容易造成误解。</p>
 <p>建议使用三类表述。观察类表述只陈述数据，例如“INT8 路径的 P50 延迟下降，输出准确率下降 0.2 个百分点”。解释类表述说明可能原因，例如“延迟下降与整数算子覆盖增加和权重带宽减少一致”。建议类表述给出适用条件，例如“对于固定硬件和固定形状，可以进一步搜索 tile 和并行参数”。三类表述分开后，读者更容易判断哪些是测量事实，哪些是工程推断。</p>
@@ -937,41 +937,42 @@ mjx-container[display="true"] + br {
 <h2 id="37-后续优化路线"><a href="#37-后续优化路线" class="headerlink" title="37. 后续优化路线"></a>37. 后续优化路线</h2><p>完成基础 GEMM 调优后，可以沿四条路线继续深入。第一条是自动调优，使用更多真实形状和硬件反馈，让调度参数从固定规则发展为模型化搜索。第二条是算子融合，把 GEMM 前后的偏置、激活和布局转换纳入统一调度，减少中间结果写回。第三条是低精度计算，比较 FP16、BF16、INT8 和混合精度在精度与吞吐之间的取舍。第四条是端到端部署，加入模型加载、服务线程池、批处理和监控指标。</p>
 <p>如果模型包含动态形状，应该先分析形状分布，再决定是为常见形状分别编译，还是使用泛化更好的调度。若模型经常更新，编译缓存和调优日志需要纳入发布系统；若硬件平台固定，可以接受更长的离线搜索时间，以换取稳定运行时性能。若硬件平台变化频繁，过度依赖某组参数可能增加维护成本。</p>
 <p>最终目标不是让每个算子都达到理论峰值，而是用合理的工程成本，把最主要的端到端瓶颈消除。TVM 提供了表达和搜索这些优化的工具，性能结果仍需要通过实验、代码检查和业务指标共同确认。</p>
-<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ol>
-<li><a href="https://tvm.apache.org/docs/">Apache TVM Documentation</a></li>
-<li><a href="https://tvm.apache.org/docs/arch/relay_intro.html">Relay: A High-Level Intermediate Representation for Deep Learning</a></li>
-<li><a href="https://tvm.apache.org/docs/reference/api/python/relay.html">Relay Python API</a></li>
-<li><a href="https://tvm.apache.org/docs/reference/api/python/ir.html">TVM IRModule API</a></li>
-<li><a href="https://tvm.apache.org/docs/deep_dive/tensor_ir/index.html">TVM TensorIR Documentation</a></li>
-<li><a href="https://tvm.apache.org/docs/arch/ir.html">TVM Tensor Expression Language</a></li>
-<li><a href="https://tvm.apache.org/docs/reference/api/python/runtime.html">TVM Runtime Module API</a></li>
-<li><a href="https://arxiv.org/abs/1802.04799">TVM: An Automated End-to-End Optimizing Compiler for Deep Learning</a></li>
-<li><a href="https://arxiv.org/abs/2006.06762">Ansor: Generating High-Performance Tensor Programs for Deep Learning</a></li>
-<li><a href="https://arxiv.org/abs/2207.04296">TensorIR: An Abstraction for Automatic Tensorized Program Optimization</a></li>
-<li><a href="https://arxiv.org/abs/2305.17380">Learning to Optimize Tensor Programs</a></li>
-<li><a href="https://tvm.apache.org/docs/v0.8.0/tutorial/auto_scheduler_matmul_x86.html">AutoTVM Documentation</a></li>
-<li><a href="https://tvm.apache.org/docs/deep_dive/meta_schedule/index.html">MetaSchedule Documentation</a></li>
-<li><a href="https://tvm.apache.org/docs/v0.9.0/how_to/deploy_models/deploy_quantized.html">TVM Quantization Documentation</a></li>
-<li><a href="https://tvm.apache.org/docs/reference/api/python/driver.html">TVM Build API</a></li>
-<li><a href="https://llvm.org/docs/LangRef.html">LLVM Language Reference</a></li>
-<li><a href="https://mlir.llvm.org/docs/Dialects/Linalg/">MLIR Linalg Dialect</a></li>
-<li><a href="https://openxla.org/xla">XLA Architecture</a></li>
-<li><a href="https://halide-lang.org/docs/">Halide Documentation</a></li>
-<li><a href="https://github.com/facebookresearch/TensorComprehensions">Tensor Comprehensions</a></li>
-<li><a href="https://www.netlib.org/blas/">BLAS Technical Forum Standard</a></li>
-<li><a href="https://www.openmathlib.org/OpenBLAS/">OpenBLAS Documentation</a></li>
-<li><a href="https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2024-0/gemm.html">Intel oneMKL GEMM</a></li>
-<li><a href="https://arm-software.github.io/ComputeLibrary/latest/">ARM Compute Library</a></li>
-<li><a href="https://docs.nvidia.com/cuda/cuda-c-programming-guide/">CUDA C++ Programming Guide</a></li>
-<li><a href="https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/">CUDA C++ Best Practices Guide</a></li>
-<li><a href="https://registry.khronos.org/OpenCL/specs/3.0-unified/html/">OpenCL Specification</a></li>
-<li><a href="https://www.tensorflow.org/lite/performance/quantization_spec">TensorFlow Lite 8-bit Quantization Specification</a></li>
-<li><a href="https://www.tensorflow.org/lite/performance/post_training_quantization">TensorFlow Lite Post-training Quantization</a></li>
-<li><a href="https://onnxruntime.ai/docs/performance/model-optimizations/quantization.html">ONNX Runtime Quantization</a></li>
-<li><a href="https://arxiv.org/abs/1806.08342">Quantizing deep convolutional networks for efficient inference</a></li>
-<li><a href="https://arxiv.org/abs/2004.09602">Integer Quantization for Deep Learning Inference</a></li>
-<li><a href="https://arxiv.org/abs/1608.06993">Efficient Processing of Deep Neural Networks</a></li>
-<li><a href="https://arxiv.org/abs/1509.09308">Efficient GEMM-based convolution algorithms</a></li>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><p><a id="ref-1"></a></p>
+<ol>
+<li><a href="https://tvm.apache.org/docs/">Apache TVM Documentation</a><br><a id="ref-2"></a></li>
+<li><a href="https://tvm.apache.org/docs/arch/relay_intro.html">Relay: A High-Level Intermediate Representation for Deep Learning</a><br><a id="ref-3"></a></li>
+<li><a href="https://tvm.apache.org/docs/reference/api/python/relay.html">Relay Python API</a><br><a id="ref-4"></a></li>
+<li><a href="https://tvm.apache.org/docs/reference/api/python/ir.html">TVM IRModule API</a><br><a id="ref-5"></a></li>
+<li><a href="https://tvm.apache.org/docs/deep_dive/tensor_ir/index.html">TVM TensorIR Documentation</a><br><a id="ref-6"></a></li>
+<li><a href="https://tvm.apache.org/docs/arch/ir.html">TVM Tensor Expression Language</a><br><a id="ref-7"></a></li>
+<li><a href="https://tvm.apache.org/docs/reference/api/python/runtime.html">TVM Runtime Module API</a><br><a id="ref-8"></a></li>
+<li><a href="https://arxiv.org/abs/1802.04799">TVM: An Automated End-to-End Optimizing Compiler for Deep Learning</a><br><a id="ref-9"></a></li>
+<li><a href="https://arxiv.org/abs/2006.06762">Ansor: Generating High-Performance Tensor Programs for Deep Learning</a><br><a id="ref-10"></a></li>
+<li><a href="https://arxiv.org/abs/2207.04296">TensorIR: An Abstraction for Automatic Tensorized Program Optimization</a><br><a id="ref-11"></a></li>
+<li><a href="https://arxiv.org/abs/2305.17380">Learning to Optimize Tensor Programs</a><br><a id="ref-12"></a></li>
+<li><a href="https://tvm.apache.org/docs/v0.8.0/tutorial/auto_scheduler_matmul_x86.html">AutoTVM Documentation</a><br><a id="ref-13"></a></li>
+<li><a href="https://tvm.apache.org/docs/deep_dive/meta_schedule/index.html">MetaSchedule Documentation</a><br><a id="ref-14"></a></li>
+<li><a href="https://tvm.apache.org/docs/v0.9.0/how_to/deploy_models/deploy_quantized.html">TVM Quantization Documentation</a><br><a id="ref-15"></a></li>
+<li><a href="https://tvm.apache.org/docs/reference/api/python/driver.html">TVM Build API</a><br><a id="ref-16"></a></li>
+<li><a href="https://llvm.org/docs/LangRef.html">LLVM Language Reference</a><br><a id="ref-17"></a></li>
+<li><a href="https://mlir.llvm.org/docs/Dialects/Linalg/">MLIR Linalg Dialect</a><br><a id="ref-18"></a></li>
+<li><a href="https://openxla.org/xla">XLA Architecture</a><br><a id="ref-19"></a></li>
+<li><a href="https://halide-lang.org/docs/">Halide Documentation</a><br><a id="ref-20"></a></li>
+<li><a href="https://github.com/facebookresearch/TensorComprehensions">Tensor Comprehensions</a><br><a id="ref-21"></a></li>
+<li><a href="https://www.netlib.org/blas/">BLAS Technical Forum Standard</a><br><a id="ref-22"></a></li>
+<li><a href="https://www.openmathlib.org/OpenBLAS/">OpenBLAS Documentation</a><br><a id="ref-23"></a></li>
+<li><a href="https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2024-0/gemm.html">Intel oneMKL GEMM</a><br><a id="ref-24"></a></li>
+<li><a href="https://arm-software.github.io/ComputeLibrary/latest/">ARM Compute Library</a><br><a id="ref-25"></a></li>
+<li><a href="https://docs.nvidia.com/cuda/cuda-c-programming-guide/">CUDA C++ Programming Guide</a><br><a id="ref-26"></a></li>
+<li><a href="https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/">CUDA C++ Best Practices Guide</a><br><a id="ref-27"></a></li>
+<li><a href="https://registry.khronos.org/OpenCL/specs/3.0-unified/html/">OpenCL Specification</a><br><a id="ref-28"></a></li>
+<li><a href="https://www.tensorflow.org/lite/performance/quantization_spec">TensorFlow Lite 8-bit Quantization Specification</a><br><a id="ref-29"></a></li>
+<li><a href="https://www.tensorflow.org/lite/performance/post_training_quantization">TensorFlow Lite Post-training Quantization</a><br><a id="ref-30"></a></li>
+<li><a href="https://onnxruntime.ai/docs/performance/model-optimizations/quantization.html">ONNX Runtime Quantization</a><br><a id="ref-31"></a></li>
+<li><a href="https://arxiv.org/abs/1806.08342">Quantizing deep convolutional networks for efficient inference</a><br><a id="ref-32"></a></li>
+<li><a href="https://arxiv.org/abs/2004.09602">Integer Quantization for Deep Learning Inference</a><br><a id="ref-33"></a></li>
+<li><a href="https://arxiv.org/abs/1608.06993">Efficient Processing of Deep Neural Networks</a><br><a id="ref-34"></a></li>
+<li><a href="https://arxiv.org/abs/1509.09308">Efficient GEMM-based convolution algorithms</a><br><a id="ref-35"></a></li>
 <li><a href="https://www.cs.utexas.edu/~flame/pubs/GotoTOMS_rev.pdf">Anatomy of High-Performance Matrix Multiplication</a></li>
 </ol>
 
