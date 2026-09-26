@@ -196,11 +196,11 @@ return normal_stock - book_num
    - 主逻辑不断以轮询方式 ZRANGE taskGroupKey curTime MAXTIME withscores 获取 [curTime,MAXTIME) 之间的任务，记为已经到期的延时任务（集）
    - 处理延时任务，处理完成后删除即可
    - 保存当前时间戳 curTime，作为下一次轮询时的 ZRANGE 指令的范围起点
-   - https://github.com/bitleak/lmstfy
+   - 延时队列实现可参考 [[3]](#ref-3)
 4. 消息队列
    - redis 支持 List 数据结构，有时也会充当消息队列。使用生产者：LPUSH；消费者：RBPOP 或 RPOP 模拟队列
-5. 分布式锁：https://juejin.cn/post/6936956908007850014
-6. bloomfilter: https://juejin.cn/post/6844903862072000526
+5. 分布式锁：[[4]](#ref-4)
+6. bloomfilter：[[5]](#ref-5)
    
       $m = -\frac{nln(p)}{(ln2)^2}$
 
@@ -219,9 +219,18 @@ return normal_stock - book_num
 
 > 深入理解 Redis 五种数据类型的底层实现原理，掌握内存优化技巧。
 
-**参考资料**：
-- [Redis 五种数据类型底层结构详解](https://juejin.cn/post/6844904192042074126)
-- [Redis 设计与实现](http://redisbook.com/)
+**参考资料**：[[1]](#ref-1)、[[2]](#ref-2)、[[3]](#ref-3)、[[4]](#ref-4) 和 [[5]](#ref-5)
+
+<a id="ref-1"></a>
+1. [Redis 五种数据类型底层结构详解](https://juejin.cn/post/6844904192042074126)
+<a id="ref-2"></a>
+2. [Redis 设计与实现](http://redisbook.com/)
+<a id="ref-3"></a>
+3. [lmstfy 延时队列](https://github.com/bitleak/lmstfy)
+<a id="ref-4"></a>
+4. [Redis 分布式锁](https://juejin.cn/post/6936956908007850014)
+<a id="ref-5"></a>
+5. [BloomFilter 应用](https://juejin.cn/post/6844903862072000526)
 
 ---
 
@@ -1105,9 +1114,12 @@ Redis 提供两种持久化方案：
 
 **GitHub**：https://github.com/CodisLabs/codis
 
-**参考资料**：
-- [Redis 分布式架构演进](https://blog.csdn.net/QQ1006207580/article/details/103243281)
-- [Redis 集群化方案对比：Codis、Twemproxy、Redis Cluster](http://kaito-kidd.com/2020/07/07/redis-cluster-codis-twemproxy/)
+**参考资料**：[[6]](#ref-6) 和 [[7]](#ref-7)
+
+<a id="ref-6"></a>
+6. [Redis 分布式架构演进](https://blog.csdn.net/QQ1006207580/article/details/103243281)
+<a id="ref-7"></a>
+7. [Redis 集群化方案对比：Codis、Twemproxy、Redis Cluster](http://kaito-kidd.com/2020/07/07/redis-cluster-codis-twemproxy/)
 
 ---
 

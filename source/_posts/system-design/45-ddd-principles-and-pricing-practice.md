@@ -1005,38 +1005,64 @@ DDD 的主线是把业务知识变成共同语言、明确边界和可执行模�
 
 ### DDD 原典与模式
 
+<a id="ref-1"></a>
 1. Eric Evans；*Domain-Driven Design*（2003）— https://www.domainlanguage.com/ddd/
+<a id="ref-2"></a>
 2. Vaughn Vernon；*Implementing Domain-Driven Design*（2013）— https://vaughnvernon.com/
+<a id="ref-3"></a>
 3. Vaughn Vernon；*IDDD Samples*（持续维护）— https://github.com/VaughnVernon/IDDD_Samples
+<a id="ref-4"></a>
 4. Martin Fowler；*Patterns of Enterprise Application Architecture*（2002）— https://martinfowler.com/eaaCatalog.html
+<a id="ref-5"></a>
 5. Martin Fowler；Bounded Context（2014）— https://martinfowler.com/bliki/BoundedContext.html
+<a id="ref-6"></a>
 6. Martin Fowler；Domain-Driven Design（2006）— https://martinfowler.com/bliki/DomainDrivenDesign.html
+<a id="ref-7"></a>
 7. Martin Fowler；Domain Model（2003）— https://martinfowler.com/eaaDev/DomainModel.html
+<a id="ref-8"></a>
 8. Martin Fowler；Event Sourcing（2005）— https://martinfowler.com/eaaDev/EventSourcing.html
 
 ### 架构与集成
 
+<a id="ref-9"></a>
 9. Martin Fowler；Event-Driven Architecture（2017）— https://martinfowler.com/articles/201701-event-driven.html
+<a id="ref-10"></a>
 10. Martin Fowler；Event Storming（2018）— https://martinfowler.com/bliki/EventStorming.html
+<a id="ref-11"></a>
 11. Alberto Brandolini；EventStorming（持续维护）— https://www.eventstorming.com/
+<a id="ref-12"></a>
 12. Gregor Hohpe、Bobby Woolf；*Enterprise Integration Patterns*（2003）— https://www.enterpriseintegrationpatterns.com/
+<a id="ref-13"></a>
 13. Chris Richardson；*Microservices Patterns*（2018）— https://microservices.io/
+<a id="ref-14"></a>
 14. Chris Richardson；CQRS pattern（持续维护）— https://microservices.io/patterns/data/cqrs.html
+<a id="ref-15"></a>
 15. Chris Richardson；Transactional Outbox（持续维护）— https://microservices.io/patterns/data/transactional-outbox.html
+<a id="ref-16"></a>
 16. Martin Fowler；*Patterns of Distributed Systems*（持续维护）— https://martinfowler.com/articles/patterns-of-distributed-systems/
 
 ### 云原生与规范
 
+<a id="ref-17"></a>
 17. Microsoft Azure；Microservices architecture（持续维护）— https://learn.microsoft.com/en-us/azure/architecture/guide/architecture-styles/microservices
+<a id="ref-18"></a>
 18. Microsoft Azure；CQRS pattern（持续维护）— https://learn.microsoft.com/en-us/azure/architecture/patterns/cqrs
+<a id="ref-19"></a>
 19. Microsoft Azure；Domain analysis for microservices（持续维护）— https://learn.microsoft.com/en-us/azure/architecture/microservices/model/domain-analysis
+<a id="ref-20"></a>
 20. AWS；Builders’ Library（持续维护）— https://aws.amazon.com/builders-library/
+<a id="ref-21"></a>
 21. CloudEvents Community；CloudEvents Specification（1.0）— https://cloudevents.io/
+<a id="ref-22"></a>
 22. AsyncAPI Initiative；AsyncAPI Specification（3.0）— https://www.asyncapi.com/docs
+<a id="ref-23"></a>
 23. OpenAPI Initiative；OpenAPI Specification（3.1.0）— https://spec.openapis.org/oas/v3.1.0.html
+<a id="ref-24"></a>
 24. IETF；RFC 9457 Problem Details（2023）— https://www.rfc-editor.org/rfc/rfc9457.html
 
 ### 计价、货币与数据语义
 
+<a id="ref-25"></a>
 25. ISO；ISO 4217 currency codes（持续维护）— https://www.iso.org/iso-4217-currency-codes.html
+<a id="ref-26"></a>
 26. Martin Kleppmann；*Designing Data-Intensive Applications*（2017）— https://dataintensive.net/

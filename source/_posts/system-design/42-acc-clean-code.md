@@ -7201,21 +7201,31 @@ flowchart LR
 ## 参考资料
 
 ### 书籍推荐
-- 《Clean Code》（Robert C. Martin）
-- https://awesome-programming-books.github.io/clean-code/%E4%BB%A3%E7%A0%81%E6%95%B4%E6%B4%81%E4%B9%8B%E9%81%93.pdf
-- 《设计模式：可复用面向对象软件的基础》（GoF）
-- 《领域驱动设计》（Eric Evans）
-- https://github.com/wxquare/effective-resourses/blob/master/%E5%AE%9E%E7%8E%B0%E9%A2%86%E5%9F%9F%E9%A9%B1%E5%8A%A8%E8%AE%BE%E8%AE%A1.pdf
-- 《重构：改善既有代码的设计》（Martin Fowler）
-- 《企业应用架构模式》（Martin Fowler）
+<a id="ref-1"></a>
+- 1. 《Clean Code》（Robert C. Martin）
+<a id="ref-2"></a>
+- 2. https://awesome-programming-books.github.io/clean-code/%E4%BB%A3%E7%A0%81%E6%95%B4%E6%B4%81%E4%B9%8B%E9%81%93.pdf
+<a id="ref-3"></a>
+- 3. 《设计模式：可复用面向对象软件的基础》（GoF）
+<a id="ref-4"></a>
+- 4. 《领域驱动设计》（Eric Evans）
+<a id="ref-5"></a>
+- 5. https://github.com/wxquare/effective-resourses/blob/master/%E5%AE%9E%E7%8E%B0%E9%A2%86%E5%9F%9F%E9%A9%B1%E5%8A%A8%E8%AE%BE%E8%AE%A1.pdf
+<a id="ref-6"></a>
+- 6. 《重构：改善既有代码的设计》（Martin Fowler）
+<a id="ref-7"></a>
+- 7. 《企业应用架构模式》（Martin Fowler）
 
 ### 开源项目推荐
-- **工作流引擎**：
+<a id="ref-8"></a>
+- 8. **工作流引擎**：
   - https://github.com/s8sg/goflow
   - https://github.com/go-workflow/go-workflow
-- **规则引擎**：
+<a id="ref-9"></a>
+- 9. **规则引擎**：
   - https://github.com/bilibili/gengine
-- **脚本引擎**：
+<a id="ref-10"></a>
+- 10. **脚本引擎**：
   - https://github.com/d5/tengo
   - https://github.com/mattn/anko
 

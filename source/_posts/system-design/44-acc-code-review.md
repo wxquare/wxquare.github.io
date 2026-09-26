@@ -1017,15 +1017,21 @@ func TestPlaceOrder_OutOfStock(t *testing.T) {
 
 ### 站内文章
 
-- {% post_link system-design/41-acc-clean-arch-ddd-cqrs 架构与整洁代码（一）：Clean Architecture、DDD 与 CQRS——三位一体的架构方法论 %}
-- {% post_link system-design/42-acc-clean-code 架构与整洁代码（二）：复杂业务中的 Clean Code 实践指南 %}
-- {% post_link system-design/45-ddd-principles-and-pricing-practice 架构与整洁代码（三）：领域驱动设计读书笔记——从概念到架构实践 %}
+<a id="ref-1"></a>
+- 1. {% post_link system-design/41-acc-clean-arch-ddd-cqrs 架构与整洁代码（一）：Clean Architecture、DDD 与 CQRS——三位一体的架构方法论 %}
+<a id="ref-2"></a>
+- 2. {% post_link system-design/42-acc-clean-code 架构与整洁代码（二）：复杂业务中的 Clean Code 实践指南 %}
+<a id="ref-3"></a>
+- 3. {% post_link system-design/45-ddd-principles-and-pricing-practice 架构与整洁代码（三）：领域驱动设计读书笔记——从概念到架构实践 %}
 
 ### 外部资料
 
-- Robert C. Martin, *Clean Architecture: A Craftsman's Guide to Software Structure and Design*
-- Eric Evans, *Domain-Driven Design: Tackling Complexity in the Heart of Software*
-- Martin Fowler, [CQRS](https://martinfowler.com/bliki/CQRS.html)（模式概述与适用边界）
+<a id="ref-4"></a>
+- 4. Robert C. Martin, *Clean Architecture: A Craftsman's Guide to Software Structure and Design*
+<a id="ref-5"></a>
+- 5. Eric Evans, *Domain-Driven Design: Tackling Complexity in the Heart of Software*
+<a id="ref-6"></a>
+- 6. Martin Fowler, [CQRS](https://martinfowler.com/bliki/CQRS.html)（模式概述与适用边界）
 
 ---
 

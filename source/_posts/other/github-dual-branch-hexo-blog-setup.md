@@ -124,7 +124,11 @@ $$Agent = Model + Harness$$
 
 ## 参考资料
 
-- [Hexo 官方文档](https://hexo.io/zh-cn/docs/)
-- [NexT Getting Started](https://theme-next.js.org/docs/getting-started/)
-- [NexT Theme Settings](https://theme-next.js.org/docs/theme-settings/)
-- [GitHub Pages 文档](https://docs.github.com/pages)
+<a id="ref-1"></a>
+- 1. [Hexo 官方文档](https://hexo.io/zh-cn/docs/)
+<a id="ref-2"></a>
+- 2. [NexT Getting Started](https://theme-next.js.org/docs/getting-started/)
+<a id="ref-3"></a>
+- 3. [NexT Theme Settings](https://theme-next.js.org/docs/theme-settings/)
+<a id="ref-4"></a>
+- 4. [GitHub Pages 文档](https://docs.github.com/pages)

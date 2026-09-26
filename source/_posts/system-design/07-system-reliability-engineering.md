@@ -33,7 +33,7 @@ toc: true
 
 首先回答另一个问题，怎样的系统算是稳定的？
 
-Google SRE中(SRE三部曲[1])有一个层级模型来描述系统可靠性基础和高层次需求(Dickerson's Hierarchy of Service Reliability)，如下图：
+Google SRE中(SRE三部曲[[1]](#ref-1))有一个层级模型来描述系统可靠性基础和高层次需求(Dickerson's Hierarchy of Service Reliability)，如下图：
 
 <p align="center">
   <img src="/images/service-reliability-hierarchy.png" width=600 height=500>
@@ -820,9 +820,12 @@ var orderPaymentRule = ReconcileRule{
 | **资损率** | 资损金额 / 交易总金额 | < 0.001% |
 
 ### 参考学习
-- [资损防控技术体系简介及实践](https://tech.dewu.com/article?id=73)
-- [浅谈资损防控](https://segmentfault.com/a/1190000040286146)
-- [美团配送资金安全治理实践](https://tech.meituan.com/2022/06/09/meituan-delivery-fund-security-governance.html)
+<a id="ref-1"></a>
+1. [资损防控技术体系简介及实践](https://tech.dewu.com/article?id=73)
+<a id="ref-2"></a>
+2. [浅谈资损防控](https://segmentfault.com/a/1190000040286146)
+<a id="ref-3"></a>
+3. [美团配送资金安全治理实践](https://tech.meituan.com/2022/06/09/meituan-delivery-fund-security-governance.html)
 
 ## 风控体系
 
@@ -1541,17 +1544,27 @@ On-Call 是 SRE/运维团队的核心职责，负责生产环境的故障响应�
 ## 学习资料
 
 **书籍**：
-- [Site Reliability Engineering](https://sre.google/sre-book/table-of-contents/)
-- [The Site Reliability Workbook](https://sre.google/workbook/table-of-contents/)
-- [Building Secure & Reliable Systems](https://sre.google/books/)
+<a id="ref-4"></a>
+4. [Site Reliability Engineering](https://sre.google/sre-book/table-of-contents/)
+<a id="ref-5"></a>
+5. [The Site Reliability Workbook](https://sre.google/workbook/table-of-contents/)
+<a id="ref-6"></a>
+6. [Building Secure & Reliable Systems](https://sre.google/books/)
 
 **文章**：
-- [阿里巴巴大规模应用 Flink 的实践](https://mp.weixin.qq.com/s/w2tOXR6rcTmUHGsJKJilzg)
-- [美团技术年货：稳定性治理实践](https://tech.meituan.com/)
-- 字节跳动 SRE 实践（原始链接已失效，可搜索"字节跳动 SRE"获取相关文章）
+<a id="ref-7"></a>
+7. [阿里巴巴大规模应用 Flink 的实践](https://mp.weixin.qq.com/s/w2tOXR6rcTmUHGsJKJilzg)
+<a id="ref-8"></a>
+8. [美团技术年货：稳定性治理实践](https://tech.meituan.com/)
+<a id="ref-9"></a>
+9. 字节跳动 SRE 实践（原始链接已失效，可搜索"字节跳动 SRE"获取相关文章）
 
 **工具**：
-- [Prometheus](https://prometheus.io/) - 监控系统
-- [Grafana](https://grafana.com/) - 可视化
-- [PagerDuty](https://www.pagerduty.com/) - 告警管理
-- [ChaosBlade](https://chaosblade.io/) - 混沌工程
+<a id="ref-10"></a>
+10. [Prometheus](https://prometheus.io/) - 监控系统
+<a id="ref-11"></a>
+11. [Grafana](https://grafana.com/) - 可视化
+<a id="ref-12"></a>
+12. [PagerDuty](https://www.pagerduty.com/) - 告警管理
+<a id="ref-13"></a>
+13. [ChaosBlade](https://chaosblade.io/) - 混沌工程

@@ -30,7 +30,7 @@ wxquare 的技术知识库，聚焦可靠系统设计、复杂业务架构与 AI
 
 ### AI 工程与 Agent
 
-- 2026-09-24 · [Superpowers 深度解析：从技能发现、工程流程到 Agent 实战](/2026/09/24/AI/2026-09-24-superpowers-source-workflow-practice/)
+- 2026-09-24 · [Superpowers 深度解析：从技能发现、工程流程到 Agent 实战](/2026/09/24/AI/03-superpowers-source-workflow-practice/)
 - 2026-09-23 · [AI Agent 工作流：从 Claude Code 到 DeepSeek](/2026/09/23/AI/01-ai-agent-workflow-practice/)
 - 2026-04-03 · [从 Vibe Coding 到 Spec Coding：AI 编程范式演进](/2026/04/03/AI/00-vibe-coding-vs-spec-coding/)
 - 2026-04-05 · [Karpathy 的自我进化知识库：LLM 时代的知识管理](/2026/04/05/AI/02-karpathy-evolving-knowledge-base/)

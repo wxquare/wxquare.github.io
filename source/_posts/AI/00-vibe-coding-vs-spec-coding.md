@@ -2494,21 +2494,27 @@ AI 编程的未来，不是让 AI 写更多代码，而是让开发者写更好�
 
 ## 参考资料
 
+<a id="ref-1"></a>
 1. **Sean Grove "The New Code" 演讲**  
    AI Engineer World's Fair 2025
 
+<a id="ref-2"></a>
 2. **Easy-Vibe 教程：从 Vibe Coding 到 Spec Coding**  
    https://datawhalechina.github.io/easy-vibe/zh-cn/stage-3/core-skills/spec-coding/
 
+<a id="ref-3"></a>
 3. **Robert C. Martin《Clean Code》**  
    Chapter 1: Clean Code
 
+<a id="ref-4"></a>
 4. **Cursor 官方文档**  
    https://cursor.sh/docs
 
+<a id="ref-5"></a>
 5. **Claude Code 官方文档**  
    https://docs.anthropic.com/claude-code
 
+<a id="ref-6"></a>
 6. **WOWHOW: CLAUDE.md, AGENTS.md, and .cursorrules 完全指南**  
    https://wowhow.cloud/blogs/claude-md-agents-md-cursorrules-ai-coding-config-guide-2026
 

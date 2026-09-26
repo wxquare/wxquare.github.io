@@ -298,9 +298,13 @@ $ bazel-bin/tensorflow/examples/label_image/label_image \
 
 
 ### 3.6 本节参考资料
+<a id="ref-1"></a>
 1. https://zhuanlan.zhihu.com/p/33535898
+<a id="ref-2"></a>
 2. https://arxiv.org/abs/1806.08342
+<a id="ref-3"></a>
 3. https://github.com/google/gemmlowp/blob/master/doc/quantization.md
+<a id="ref-4"></a>
 4. https://github.com/tensorflow/tensorflow/issues/2807
 
 
@@ -418,9 +422,12 @@ $bazel-out/k8-py2-opt/bin/tensorflow/contrib/model_pruning/strip_pruning_vars \
 
 
 ### 4.6 本节参考资料
-1. [https://github.com/tensorflow/tensorflow/tree/r2.0/tensorflow/contrib/model_pruning](https://github.com/tensorflow/tensorflow/tree/r2.0/tensorflow/contrib/model_pruning)
-2. [Michael Zhu and Suyog Gupta, “To prune, or not to prune: exploring the efficacy of pruning for model compression”, 2017 NIPS ](https://arxiv.org/pdf/1710.01878.pdf)
-3. https://zhuanlan.zhihu.com/p/48069799
+<a id="ref-5"></a>
+5. [https://github.com/tensorflow/tensorflow/tree/r2.0/tensorflow/contrib/model_pruning](https://github.com/tensorflow/tensorflow/tree/r2.0/tensorflow/contrib/model_pruning)
+<a id="ref-6"></a>
+6. [Michael Zhu and Suyog Gupta, “To prune, or not to prune: exploring the efficacy of pruning for model compression”, 2017 NIPS ](https://arxiv.org/pdf/1710.01878.pdf)
+<a id="ref-7"></a>
+7. https://zhuanlan.zhihu.com/p/48069799
 
 权重稀疏的实验说明，稀疏率提升并不会自动带来模型体积和推理速度的同步下降。为了在通用计算设备上更直接地减少计算量，下面继续尝试结构化的通道剪枝：它不只是把权重置零，而是删除网络中的部分通道，并同步调整相关卷积层。
 
@@ -439,12 +446,12 @@ $bazel-out/k8-py2-opt/bin/tensorflow/contrib/model_pruning/strip_pruning_vars \
 #### 5.2.2 通道剪枝数学描述
 　　通道剪枝的思想是简单的，难点是怎么选择要裁剪的通道，同时要保证输出feature map误差尽可能得小，这也是文章的主要内容。channel pruning总体分为两个步骤，首先是channel selection，它是采用LASSO regression来做的，通过添加L1范数来约束权重，因为L1范数可以使得权重中大部分值为0，所以能使权重更加稀疏，这样就可以把那些稀疏的channel剪掉；第二步是reconstruction，这一步是基于linear least优化，使输出特征图变化尽可能的小。  
 
-　　接下来通过数学表达式描述了通道剪枝。Ｘ($N\*c\* k_h\*k_w$)表示输入feature map，W($n \* c \* k_h \* k_w$)表示卷积核，Y($N\*n$)表示输出feature map。$\beta_i$表示通道系数，如果等于0，表示该通道可以被删除。我们期望将输入feature map的channel从c压缩为c'($0<=c'<= c$)，同时要使得构造误差(reconstruction error)尽可能的小。通过下面的优化表达式，就可以选择哪些通道被删除。文章中详细介绍了怎么用算法解决下面的数据问题，这里就不赘述了。另外文章还考虑分支情况下的通道剪枝，例如ResNet和GoogleNet，感兴趣的可以仔细研读该论文【3】。
+　　接下来通过数学表达式描述了通道剪枝。Ｘ($N\*c\* k_h\*k_w$)表示输入feature map，W($n \* c \* k_h \* k_w$)表示卷积核，Y($N\*n$)表示输出feature map。$\beta_i$表示通道系数，如果等于0，表示该通道可以被删除。我们期望将输入feature map的channel从c压缩为c'($0<=c'<= c$)，同时要使得构造误差(reconstruction error)尽可能的小。通过下面的优化表达式，就可以选择哪些通道被删除。文章中详细介绍了怎么用算法解决下面的数据问题，这里就不赘述了。另外文章还考虑分支情况下的通道剪枝，例如ResNet和GoogleNet，感兴趣的可以仔细研读该论文[[8]](#ref-8)。
 
 ![channel-pruning示意图](/images/channel_pruning2.jpg)
 
 ### 5.3 使用 PocketFlow 实施通道剪枝
-　　PocketFlow是腾讯AI Lab开源的自动化深度学习模型压缩框架，它集成了腾讯自己研发的和来自其他同行的主流的模型压缩与训练算法，还引入了自研的超参数优化组件，实现了自动托管式模型压缩与加速。PocketFlow能够自动选择模型压缩的超参，极大的方便了算法人员的调参。这里主要使用里面的channel pruning算法（learner）进行通道剪枝。【4】
+　　PocketFlow是腾讯AI Lab开源的自动化深度学习模型压缩框架，它集成了腾讯自己研发的和来自其他同行的主流的模型压缩与训练算法，还引入了自研的超参数优化组件，实现了自动托管式模型压缩与加速。PocketFlow能够自动选择模型压缩的超参，极大的方便了算法人员的调参。这里主要使用里面的channel pruning算法（learner）进行通道剪枝。[[9]](#ref-9)
 #### 5.3.1 实验准备
 1.cifar10数据集： https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz
 2.ResNet56预训练模型：https://share.weiyun.com/5610f11d61dfb733db1f2c77a9f34531
@@ -479,7 +486,7 @@ $ python tools/conversion/export_chn_pruned_tflite_model.py \
 ```
 
 ### 5.4 剪枝前后模型分析
-　　我们可以通过之前介绍的模型基准测试工具benchmark_model分别测试剪枝前后的模型。可以很清楚看到通道剪枝大大减少了模型前向计算的FLOPs的变化，以及各阶段、算子的耗时和内存消耗情况。可以发现模型下降为原来的1/2，卷积耗时下降接近50%。除此之外通过netron工具可以直观的看到模型通道剪枝前后结构发生的变化，通道剪枝之后的模型中明显增加了许多conv1*1的卷积。这里主要利用1x1卷积先降维，然后升维度，达到减少计算量的目的。1x1卷积还有多种用途，可以参考【5】。
+　　我们可以通过之前介绍的模型基准测试工具benchmark_model分别测试剪枝前后的模型。可以很清楚看到通道剪枝大大减少了模型前向计算的FLOPs的变化，以及各阶段、算子的耗时和内存消耗情况。可以发现模型下降为原来的1/2，卷积耗时下降接近50%。除此之外通过netron工具可以直观的看到通道剪枝前后结构发生的变化，剪枝之后的模型中明显增加了许多conv1*1的卷积。这里主要利用1x1卷积先降维，然后升维度，达到减少计算量的目的。1x1卷积还有多种用途，可以参考[[10]](#ref-10)。
 ```
 $ bazel-bin/tensorflow/tools/benchmark/benchmark_model \ 
 --graph=model_original.pb \
@@ -498,9 +505,12 @@ $ bazel-bin/tensorflow/tools/benchmark/benchmark_model \
 
 
 #### 5.4.1 本节参考资料
-[1]. Channel Pruning for Accelerating Very Deep Neural Networks：https://arxiv.org/abs/1707.06168
-[2]. PocketFlow：https://github.com/Tencent/PocketFlow
-[3]. 1x1 卷积：https://www.zhihu.com/question/56024942
+<a id="ref-8"></a>
+8. Channel Pruning for Accelerating Very Deep Neural Networks：https://arxiv.org/abs/1707.06168
+<a id="ref-9"></a>
+9. PocketFlow：https://github.com/Tencent/PocketFlow
+<a id="ref-10"></a>
+10. 1x1 卷积：https://www.zhihu.com/question/56024942
 
 ## 6. 不同优化方法的工程比较
 
@@ -525,28 +535,53 @@ CKPT → PB / Frozen Graph → benchmark_model 建立基线 → 量化/稀疏/�
 
 下面列出本文使用的官方文档、工具资料和论文。
 
-1. TensorFlow SavedModel Guide：https://www.tensorflow.org/guide/saved_model
-2. TensorFlow Lite Post-training Quantization：https://www.tensorflow.org/lite/performance/post_training_quantization
-3. TensorFlow Lite Quantization Specification：https://www.tensorflow.org/lite/performance/quantization_spec
-4. TensorFlow Model Optimization：https://www.tensorflow.org/model_optimization
-5. TensorFlow Model Pruning Guide：https://www.tensorflow.org/model_optimization/guide/pruning
-6. TensorFlow Model Optimization Toolkit：https://github.com/tensorflow/model-optimization
-7. TensorFlow Benchmark Tool：https://github.com/tensorflow/tensorflow/tree/master/tensorflow/tools/benchmark
-8. TensorFlow Graph Transform Tools：https://github.com/tensorflow/tensorflow/tree/master/tensorflow/tools/graph_transforms
-9. Jacob et al., Quantization and Training of Neural Networks for Efficient Integer-Arithmetic-Only Inference, CVPR 2018.
-10. Krishnamoorthi, Quantizing deep convolutional networks for efficient inference, arXiv:1806.08342.
-11. Banner et al., Post Training 4-bit Quantization of Convolution Networks for Rapid-Deployment, NeurIPS 2019.
-12. Nagel et al., A White Paper on Neural Network Quantization, arXiv:2106.08295.
-13. Han et al., Learning both Weights and Connections for Efficient Neural Networks, NeurIPS 2015.
-14. Han et al., Deep Compression, ICLR 2016.
-15. Zhu and Gupta, To Prune, or Not to Prune, arXiv:1710.01878.
-16. Li et al., Pruning Filters for Efficient ConvNets, ICLR 2017 Workshop.
-17. He et al., Channel Pruning for Accelerating Very Deep Neural Networks, ICCV 2017.
-18. Luo et al., ThiNet, ICCV 2017.
-19. Liu et al., Network Slimming, ICCV 2017.
-20. Molchanov et al., Importance Estimation for Neural Network Pruning, CVPR 2019.
-21. PocketFlow：https://github.com/Tencent/PocketFlow
-22. NVIDIA TensorRT Documentation：https://docs.nvidia.com/deeplearning/tensorrt/
-23. Apache TVM Documentation：https://tvm.apache.org/docs/
-24. ONNX Runtime Performance Documentation：https://onnxruntime.ai/docs/performance/
-25. MLPerf Inference：https://mlcommons.org/benchmarks/inference/
+<a id="ref-11"></a>
+11. TensorFlow SavedModel Guide：https://www.tensorflow.org/guide/saved_model
+<a id="ref-12"></a>
+12. TensorFlow Lite Post-training Quantization：https://www.tensorflow.org/lite/performance/post_training_quantization
+<a id="ref-13"></a>
+13. TensorFlow Lite Quantization Specification：https://www.tensorflow.org/lite/performance/quantization_spec
+<a id="ref-14"></a>
+14. TensorFlow Model Optimization：https://www.tensorflow.org/model_optimization
+<a id="ref-15"></a>
+15. TensorFlow Model Pruning Guide：https://www.tensorflow.org/model_optimization/guide/pruning
+<a id="ref-16"></a>
+16. TensorFlow Model Optimization Toolkit：https://github.com/tensorflow/model-optimization
+<a id="ref-17"></a>
+17. TensorFlow Benchmark Tool：https://github.com/tensorflow/tensorflow/tree/master/tensorflow/tools/benchmark
+<a id="ref-18"></a>
+18. TensorFlow Graph Transform Tools：https://github.com/tensorflow/tensorflow/tree/master/tensorflow/tools/graph_transforms
+<a id="ref-19"></a>
+19. Jacob et al., Quantization and Training of Neural Networks for Efficient Integer-Arithmetic-Only Inference, CVPR 2018.
+<a id="ref-20"></a>
+20. Krishnamoorthi, Quantizing deep convolutional networks for efficient inference, arXiv:1806.08342.
+<a id="ref-21"></a>
+21. Banner et al., Post Training 4-bit Quantization of Convolution Networks for Rapid-Deployment, NeurIPS 2019.
+<a id="ref-22"></a>
+22. Nagel et al., A White Paper on Neural Network Quantization, arXiv:2106.08295.
+<a id="ref-23"></a>
+23. Han et al., Learning both Weights and Connections for Efficient Neural Networks, NeurIPS 2015.
+<a id="ref-24"></a>
+24. Han et al., Deep Compression, ICLR 2016.
+<a id="ref-25"></a>
+25. Zhu and Gupta, To Prune, or Not to Prune, arXiv:1710.01878.
+<a id="ref-26"></a>
+26. Li et al., Pruning Filters for Efficient ConvNets, ICLR 2017 Workshop.
+<a id="ref-27"></a>
+27. He et al., Channel Pruning for Accelerating Very Deep Neural Networks, ICCV 2017.
+<a id="ref-28"></a>
+28. Luo et al., ThiNet, ICCV 2017.
+<a id="ref-29"></a>
+29. Liu et al., Network Slimming, ICCV 2017.
+<a id="ref-30"></a>
+30. Molchanov et al., Importance Estimation for Neural Network Pruning, CVPR 2019.
+<a id="ref-31"></a>
+31. PocketFlow：https://github.com/Tencent/PocketFlow
+<a id="ref-32"></a>
+32. NVIDIA TensorRT Documentation：https://docs.nvidia.com/deeplearning/tensorrt/
+<a id="ref-33"></a>
+33. Apache TVM Documentation：https://tvm.apache.org/docs/
+<a id="ref-34"></a>
+34. ONNX Runtime Performance Documentation：https://onnxruntime.ai/docs/performance/
+<a id="ref-35"></a>
+35. MLPerf Inference：https://mlcommons.org/benchmarks/inference/

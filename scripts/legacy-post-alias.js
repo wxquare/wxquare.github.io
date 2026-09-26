@@ -13,6 +13,7 @@ const aliases = [
   { path: '/2020/08/13/AI/初始OpenCL及在的移动端的一些测试数据/', slug: 'AI/03-opencl-mobile-performance-testing' },
   { path: '/2026/09/22/AI/tensorflow-model-optimization/', slug: 'AI/04-tensorflow-model-optimization' },
   { path: '/2026/09/22/AI/tvm-operator-optimization-practice/', slug: 'AI/05-tvm-operator-optimization-practice' },
+  { path: '/2026/09/24/AI/2026-09-24-superpowers-source-workflow-practice/', slug: 'AI/03-superpowers-source-workflow-practice' },
   { path: '/2020/08/13/AI/video-object-tracking/', slug: 'AI/06-video-object-tracking' },
   { path: '/2026/04/07/system-design/21-ecommerce-product-center/', target: '/reliable-system-design/part03/02-product-center.html' },
   { path: '/2026/04/07/system-design/26-ecommerce-order-system/', target: '/reliable-system-design/part03/09-order-system.html' },

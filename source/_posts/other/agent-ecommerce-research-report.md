@@ -44,25 +44,25 @@ toc: true
 
 ### 2.1 消费者购物 Agent
 
-**ChatGPT 商品发现与商家结账。** OpenAI 的商品发现能力把复杂意图、商品属性比较和商户选择放在对话中完成。2026 年 3 月的官方说明明确，体验主轴是商品发现及跳转/应用内浏览器中的商家自有结账；实施方案不能再假设平台统一代收银是默认路径。[1] 沃尔玛的 ChatGPT 应用则展示了账户、会员和支付能力可以由零售商在 Agent 渠道中整合。[2]
+**ChatGPT 商品发现与商家结账。** OpenAI 的商品发现能力把复杂意图、商品属性比较和商户选择放在对话中完成。2026 年 3 月的官方说明明确，体验主轴是商品发现及跳转/应用内浏览器中的商家自有结账；实施方案不能再假设平台统一代收银是默认路径。[[1]](#ref-1) 沃尔玛的 ChatGPT 应用则展示了账户、会员和支付能力可以由零售商在 Agent 渠道中整合。[[2]](#ref-2)
 
-**Shopify Agentic Storefronts。** Shopify 把面向消费者的 Agent 渠道作为销售渠道管理，覆盖 ChatGPT、Google AI Mode/Gemini、Copilot 和 Meta。商户配置可用商品、政策与归因信息；不同渠道的结账能力并不完全相同。[3] 这说明消费者 Agent 的核心不只是检索，而是商品数据质量、可售性、政策解释、跳转/结账状态与订单归因。
+**Shopify Agentic Storefronts。** Shopify 把面向消费者的 Agent 渠道作为销售渠道管理，覆盖 ChatGPT、Google AI Mode/Gemini、Copilot 和 Meta。商户配置可用商品、政策与归因信息；不同渠道的结账能力并不完全相同。[[3]](#ref-3) 这说明消费者 Agent 的核心不只是检索，而是商品数据质量、可售性、政策解释、跳转/结账状态与订单归因。
 
-**Amazon Shop Direct 与 Buy for Me。** Amazon 的 Shop Direct 将外部商户商品纳入其购物发现流程；对符合条件的商品，Buy for Me 在用户确认价格、运费和支付信息后，可协助完成商户站点购买。[4] 对平台方的启示是：即使拥有支付与账户体系，跨商户交易仍必须明确商户身份、订单确认、履约、退换货责任和失败补偿。
+**Amazon Shop Direct 与 Buy for Me。** Amazon 的 Shop Direct 将外部商户商品纳入其购物发现流程；对符合条件的商品，Buy for Me 在用户确认价格、运费和支付信息后，可协助完成商户站点购买。[[4]](#ref-4) 对平台方的启示是：即使拥有支付与账户体系，跨商户交易仍必须明确商户身份、订单确认、履约、退换货责任和失败补偿。
 
 ### 2.2 商家运营 Agent
 
-**Shopify Sidekick。** Sidekick 是较成熟的商家侧范式：在后台利用商店上下文回答经营问题，生成内容并辅助商品、订单和设置相关工作。它把“建议”和“执行”分开，并对写操作设置可见的确认边界。[5] 其可借鉴之处不是对话体验，而是以已授权的后台身份、结构化上下文和可审核动作作为产品前提。
+**Shopify Sidekick。** Sidekick 是较成熟的商家侧范式：在后台利用商店上下文回答经营问题，生成内容并辅助商品、订单和设置相关工作。它把“建议”和“执行”分开，并对写操作设置可见的确认边界。[[5]](#ref-5) 其可借鉴之处不是对话体验，而是以已授权的后台身份、结构化上下文和可审核动作作为产品前提。
 
-**阿里国际站 Smart Assistant Agent。** 阿里国际站将商品发布、询盘处理、商机开发和经营诊断组合为卖家 Agent 工作流。[6] 淘宝开放平台 Q Lab 进一步公开了 Agent、工作流、知识库、插件和 MCP 的集成形态。[7] 这表明国内电商场景的价值重心同样在商家运营自动化，而不是完全自主的消费者交易。
+**阿里国际站 Smart Assistant Agent。** 阿里国际站将商品发布、询盘处理、商机开发和经营诊断组合为卖家 Agent 工作流。[[6]](#ref-6) 淘宝开放平台 Q Lab 进一步公开了 Agent、工作流、知识库、插件和 MCP 的集成形态。[[7]](#ref-7) 这表明国内电商场景的价值重心同样在商家运营自动化，而不是完全自主的消费者交易。
 
 ### 2.3 协议与工具接入
 
-**MCP。** Model Context Protocol 是将外部数据和操作暴露给模型的通用协议；它解决的是模型如何发现并调用工具，不解决业务授权和交易安全本身。官方规范强调服务端授权、资源边界与客户端责任。[8] 对电商系统，MCP 应视为适配层，而不能替代网关、权限服务、风控、幂等和审计。
+**MCP。** Model Context Protocol 是将外部数据和操作暴露给模型的通用协议；它解决的是模型如何发现并调用工具，不解决业务授权和交易安全本身。官方规范强调服务端授权、资源边界与客户端责任。[[8]](#ref-8) 对电商系统，MCP 应视为适配层，而不能替代网关、权限服务、风控、幂等和审计。
 
-**UCP。** Google 与 Shopify 提出的 Universal Commerce Protocol 覆盖商品发现、购物车、结账、支付能力发现等问题，并可映射到 API、MCP、A2A 与 AP2。[9] UCP 对跨渠道商品展示和交易编排有战略价值，但标准仍处于早期，不应成为首期 MVP 的外部依赖。
+**UCP。** Google 与 Shopify 提出的 Universal Commerce Protocol 覆盖商品发现、购物车、结账、支付能力发现等问题，并可映射到 API、MCP、A2A 与 AP2。[[9]](#ref-9) UCP 对跨渠道商品展示和交易编排有战略价值，但标准仍处于早期，不应成为首期 MVP 的外部依赖。
 
-**ACP。** OpenAI 与 Stripe 提出的 Agentic Commerce Protocol 定义商品 feed、订单、委托支付等互动接口。[10] 它适合关注外部 Agent 渠道的商户，但实际渠道规则会持续变化，接入必须以当前平台政策和当地支付/消费者保护要求为准。
+**ACP。** OpenAI 与 Stripe 提出的 Agentic Commerce Protocol 定义商品 feed、订单、委托支付等互动接口。[[10]](#ref-10) 它适合关注外部 Agent 渠道的商户，但实际渠道规则会持续变化，接入必须以当前平台政策和当地支付/消费者保护要求为准。
 
 ## 3. 代表项目对比
 
@@ -81,7 +81,7 @@ toc: true
 | `felixhuhao/ecommerce-agent` | 开发者 | FastAPI 编排与 Spring Boot MCP 服务分层 | 演示/原型 | 中：参考异构服务的 Adapter 边界 |
 | `Maarmapa/storefront-mcp` | 开发者 | Storefront 工具与敏感工具分级 | 演示/原型 | 高：参考敏感写操作隔离 |
 
-上述三个开源项目分别见 [13]、[14]、[15]。本文只按各仓库在研究日期的公开代码和文档做静态参考；它们主要用于学习架构和提示/工具测试，不能直接承担生产交易。所谓“缺少”仅指未在公开仓库中看到相应生产控制面，不代表项目作者没有后续实现。
+上述三个开源项目分别见 [[13]](#ref-13)、[[14]](#ref-14)、[[15]](#ref-15)。本文只按各仓库在研究日期的公开代码和文档做静态参考；它们主要用于学习架构和提示/工具测试，不能直接承担生产交易。所谓“缺少”仅指未在公开仓库中看到相应生产控制面，不代表项目作者没有后续实现。
 
 ## 4. 关键能力拆解
 
@@ -184,11 +184,11 @@ Existing domain systems
 | 敏感信息泄露 | 响应脱敏；提示、工具参数和日志进入分级存储；最小化向模型发送 PII 和券码 |
 | 异步操作不可追踪 | 将 `request_id` 与业务任务、审批单、Kafka 事件和最终状态串联；保留可回放审计链 |
 
-OWASP 对 LLM 应用的提示注入、敏感信息泄露和过度自主性风险，与电商 Agent 的风险模型高度相关。[11] MCP 的授权最佳实践同样要求资源服务自行验证令牌受众、范围和调用上下文。[12]
+OWASP 对 LLM 应用的提示注入、敏感信息泄露和过度自主性风险，与电商 Agent 的风险模型高度相关。[[11]](#ref-11) MCP 的授权最佳实践同样要求资源服务自行验证令牌受众、范围和调用上下文。[[12]](#ref-12)
 
 ## 9. 评测与运营指标
 
-上线前应先建设离线评测集。原型阶段可以从 50—200 个脱敏历史任务开始，实际数量取决于场景复杂度和错误成本；每条样本要有自然语言问题、可调用工具、事实答案、允许的动作、拒绝条件和人工判定规则。WebShop 等基准可用于借鉴任务成功率和工具交互评测方法，但不能替代以本地业务规则、权限和异常路径构建的回放集。[16]
+上线前应先建设离线评测集。原型阶段可以从 50—200 个脱敏历史任务开始，实际数量取决于场景复杂度和错误成本；每条样本要有自然语言问题、可调用工具、事实答案、允许的动作、拒绝条件和人工判定规则。WebShop 等基准可用于借鉴任务成功率和工具交互评测方法，但不能替代以本地业务规则、权限和异常路径构建的回放集。[[16]](#ref-16)
 
 | 指标 | 定义 | MVP 建议门槛 |
 |---|---|---|
@@ -206,15 +206,15 @@ OWASP 对 LLM 应用的提示注入、敏感信息泄露和过度自主性风险
 
 ### 10.1 从创业角度
 
-**优先关注“Agent 就绪的商业基础设施”。** 消费端入口、模型和支付网络会被大型平台快速占据，但商品事实、实时可售性、履约约束、商家政策、身份授权与争议记录存在于大量异构企业系统中。为商家提供可验证的商品 feed、价格/库存同步、政策结构化、MCP/UCP/ACP Adapter 和渠道归因，属于可嵌入既有业务系统的基础设施机会。行业调查也表明，商家已在准备 Agent 渠道，但对支付、争议和消费者信任保持高度关注。[17][18]
+**优先关注“Agent 就绪的商业基础设施”。** 消费端入口、模型和支付网络会被大型平台快速占据，但商品事实、实时可售性、履约约束、商家政策、身份授权与争议记录存在于大量异构企业系统中。为商家提供可验证的商品 feed、价格/库存同步、政策结构化、MCP/UCP/ACP Adapter 和渠道归因，属于可嵌入既有业务系统的基础设施机会。行业调查也表明，商家已在准备 Agent 渠道，但对支付、争议和消费者信任保持高度关注。[[17]](#ref-17)[[18]](#ref-18)
 
 **面向垂直流程，而不是泛化购物机器人。** B2B 复购、工业备件采购、跨境贸易询盘、企业礼赠、复杂售后和本地服务预约的规则密度高、客单价或人工成本高，适合构建领域 Agent。创业公司应选择具有封闭数据、清晰审批人和可衡量结果的流程，例如“将缺货导致的取消率降低”“将售后工单处理时间缩短”或“提高商品目录合规率”，而不是以“替用户浏览网页”为主要卖点。
 
 **Agent 评测、可观测和治理是独立机会。** 企业真正需要的是可回放的任务集、工具调用追踪、事实归因、权限策略测试、提示注入防护和审批审计。通用 LLM 可观测产品会覆盖一部分需求，但电商特有的价格有效期、库存竞态、促销规则、订单状态、退货资格和支付争议仍需要垂直语义模型。
 
-**商家数据治理将成为分发能力。** Agent 不能稳定消费模糊、过期或彼此矛盾的商品信息。围绕商品属性、图片/规格、适配关系、区域税费、配送时效、退换货政策和评论可信度的治理工具，既服务传统搜索与转化，也服务未来 Agent 渠道。WooCommerce/IDC 对平台领导者的调研同样把开放数据架构和平台柔性列为扩展 Agent 的关键条件。[19]
+**商家数据治理将成为分发能力。** Agent 不能稳定消费模糊、过期或彼此矛盾的商品信息。围绕商品属性、图片/规格、适配关系、区域税费、配送时效、退换货政策和评论可信度的治理工具，既服务传统搜索与转化，也服务未来 Agent 渠道。WooCommerce/IDC 对平台领导者的调研同样把开放数据架构和平台柔性列为扩展 Agent 的关键条件。[[19]](#ref-19)
 
-**谨慎进入三类高噪声赛道。** 通用“购物 Agent”前台会受大型平台的账户、支付、流量和信任优势挤压；无领域数据壁垒的客服机器人容易同质化；直接替用户支付、议价或处理退款的 Agent 则面临更高的牌照、损失赔付、风控和消费者保护成本。Forrester 在 2026 年中指出，大多数所谓 Agentic Commerce 体验仍主要停留在对话式发现与推荐，结账仍多由人主导。[20]
+**谨慎进入三类高噪声赛道。** 通用“购物 Agent”前台会受大型平台的账户、支付、流量和信任优势挤压；无领域数据壁垒的客服机器人容易同质化；直接替用户支付、议价或处理退款的 Agent 则面临更高的牌照、损失赔付、风控和消费者保护成本。Forrester 在 2026 年中指出，大多数所谓 Agentic Commerce 体验仍主要停留在对话式发现与推荐，结账仍多由人主导。[[20]](#ref-20)
 
 ### 10.2 求职专题（后续独立文章候选）
 
@@ -229,7 +229,7 @@ OWASP 对 LLM 应用的提示注入、敏感信息泄露和过度自主性风险
 | 商品 feed、价格/库存、政策和订单状态的标准化 | 决定商户能否被 Agent 正确理解和引用 |
 | Agent 归因与激励机制 | 决定品牌是否愿意为 Agent 渠道投入预算 |
 | 隐私、消费者保护和跨境合规要求 | 决定个人数据、推荐、自动决策和退款的可行边界 |
-| 人类保留控制权与可解释性 | 用户对 Agent 过程可见性和可撤销性的要求会直接影响信任；Visa 的 2026 年研究将其列为扩展的关键条件。[21] |
+| 人类保留控制权与可解释性 | 用户对 Agent 过程可见性和可撤销性的要求会直接影响信任；Visa 的 2026 年研究将其列为扩展的关键条件。[[21]](#ref-21) |
 
 ## 11. 选型建议
 
@@ -249,26 +249,47 @@ OWASP 对 LLM 应用的提示注入、敏感信息泄露和过度自主性风险
 
 项目应从现有数据质量最好、流程最确定、错误成本可控的工作流切入，在确定性领域系统外构建独立 Agent Gateway。先证明查询、归因和草拟的业务价值，再通过审批式命令安全扩展到后台操作和外部 Agent 渠道。
 
-## Sources
+## 参考资料
 
+<a id="ref-1"></a>
 1. OpenAI. “Powering product discovery in ChatGPT.” March 24, 2026. https://openai.com/index/powering-product-discovery-in-chatgpt/
+<a id="ref-2"></a>
 2. OpenAI. “Walmart and ChatGPT.” 2026. https://openai.com/index/walmart-and-chatgpt/
+<a id="ref-3"></a>
 3. Shopify Help Center. “Agentic Storefronts.” Accessed September 11, 2026. https://help.shopify.com/en/manual/online-sales-channels/agentic-storefronts
+<a id="ref-4"></a>
 4. Amazon Staff. “Amazon introduces feeds to make it easier for merchants to reach more customers through AI-powered Shop Direct.” March 11, 2026. https://www.aboutamazon.com/news/retail/amazon-shop-direct-external-stores
+<a id="ref-5"></a>
 5. Shopify Help Center. “Sidekick.” Accessed September 11, 2026. https://help.shopify.com/en/manual/ai-powered-tools/sidekick
+<a id="ref-6"></a>
 6. Alibaba.com Seller Central. “Smart Assistant Agent.” Accessed September 11, 2026. https://seller.alibaba.com/pk/smart-assistant-agent
+<a id="ref-7"></a>
 7. 淘宝开放平台. “AI 生态实验室 / Q Lab.” Accessed September 11, 2026. https://developer.alibaba.com/docs/doc.htm?articleId=121802&docType=1&source=search&treeId=840
+<a id="ref-8"></a>
 8. Model Context Protocol. “Authorization.” Accessed September 11, 2026. https://modelcontextprotocol.io/specification/2025-06-18/basic/authorization
+<a id="ref-9"></a>
 9. Google Developers Blog. “Under the hood: Universal Commerce Protocol.” 2026. https://developers.googleblog.com/under-the-hood-universal-commerce-protocol-ucp/
+<a id="ref-10"></a>
 10. Agentic Commerce Protocol. “Get started.” Accessed September 11, 2026. https://agentic-commerce-protocol.com/docs/commerce/guides/get-started
+<a id="ref-11"></a>
 11. OWASP. “OWASP Top 10 for Large Language Model Applications.” 2025. https://genai.owasp.org/llmrisk/llm01-prompt-injection/
+<a id="ref-12"></a>
 12. Model Context Protocol. “Authorization Best Practices.” Accessed September 11, 2026. https://modelcontextprotocol.io/specification/draft/basic/authorization
+<a id="ref-13"></a>
 13. Nitin May. “e-commerce-agents.” GitHub repository. Accessed September 11, 2026. https://github.com/nitin27may/e-commerce-agents
+<a id="ref-14"></a>
 14. Felix Hu. “ecommerce-agent.” GitHub repository. Accessed September 11, 2026. https://github.com/felixhuhao/ecommerce-agent
+<a id="ref-15"></a>
 15. Maarmapa. “storefront-mcp.” GitHub repository. Accessed September 11, 2026. https://github.com/Maarmapa/storefront-mcp
+<a id="ref-16"></a>
 16. Yao et al. “WebShop: Towards Scalable Real-World Web Interaction with Grounded Language Agents.” NeurIPS 2022. https://arxiv.org/abs/2207.01206
+<a id="ref-17"></a>
 17. Checkout.com. “The State of Commerce 2026.” 2026. https://www.checkout.com/resources/reports/state-of-commerce-2026
+<a id="ref-18"></a>
 18. Visa. “The Trust Opportunity: A New Era of Commerce.” 2026. https://corporate.visa.com/content/dam/VCOM/global/run-your-business/documents/visa-the-trust-opportunity-a-new-era-of-commerce.pdf
+<a id="ref-19"></a>
 19. WooCommerce and IDC. “Agentic Commerce: How Open Architectures Will Shape the Future of Digital Commerce.” 2026. https://woocommerce.com/posts/agentic-commerce/
+<a id="ref-20"></a>
 20. Forrester. “Predictions 2026: Commerce.” 2026. https://www.forrester.com/blogs/predictions-2026-commerce/
+<a id="ref-21"></a>
 21. Visa. “How consumers are thinking about AI and agentic commerce.” 2026. https://corporate.visa.com/en/sites/visa-perspectives/innovation/agentic-commerce.html

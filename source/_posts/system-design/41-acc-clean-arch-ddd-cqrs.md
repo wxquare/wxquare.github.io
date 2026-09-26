@@ -1733,8 +1733,13 @@ flowchart TD
 
 ## 参考资料
 
+<a id="ref-1"></a>
 1. Robert C. Martin, *Clean Architecture: A Craftsman's Guide to Software Structure and Design*, 2017
+<a id="ref-2"></a>
 2. Eric Evans, *Domain-Driven Design: Tackling Complexity in the Heart of Software*, 2003（中文版：《领域驱动设计：软件核心复杂性应对之道》，2006）
+<a id="ref-3"></a>
 3. Vaughn Vernon, *Implementing Domain-Driven Design*, 2013（中文版：《实现领域驱动设计》，2014）
+<a id="ref-4"></a>
 4. Martin Fowler, [CQRS Pattern](https://martinfowler.com/bliki/CQRS.html)
+<a id="ref-5"></a>
 5. Microsoft, [CQRS Pattern - Azure Architecture Center](https://learn.microsoft.com/en-us/azure/architecture/patterns/cqrs)

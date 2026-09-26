@@ -13,6 +13,7 @@ const expectedAliases = [
   ['/2020/08/13/AI/初始OpenCL及在的移动端的一些测试数据/', 'AI/03-opencl-mobile-performance-testing'],
   ['/2026/09/22/AI/tensorflow-model-optimization/', 'AI/04-tensorflow-model-optimization'],
   ['/2026/09/22/AI/tvm-operator-optimization-practice/', 'AI/05-tvm-operator-optimization-practice'],
+  ['/2026/09/24/AI/2026-09-24-superpowers-source-workflow-practice/', 'AI/03-superpowers-source-workflow-practice'],
   ['/2020/08/13/AI/video-object-tracking/', 'AI/06-video-object-tracking'],
   ['/2024/03/01/1-os-fundamentals/', 'fundamentals/01-operating-system-fundamentals'],
   ['/2024/03/02/2-network-fundamentals/', 'fundamentals/02-computer-network-fundamentals'],
@@ -133,6 +134,7 @@ test('legacy post alias generator emits all compatibility redirects', () => {
       ['AI/03-opencl-mobile-performance-testing', '2020/08/13/AI/03-opencl-mobile-performance-testing/'],
       ['AI/04-tensorflow-model-optimization', '2026/09/22/AI/04-tensorflow-model-optimization/'],
       ['AI/05-tvm-operator-optimization-practice', '2026/09/22/AI/05-tvm-operator-optimization-practice/'],
+      ['AI/03-superpowers-source-workflow-practice', '2026/09/24/AI/03-superpowers-source-workflow-practice/'],
       ['AI/06-video-object-tracking', '2020/08/13/AI/06-video-object-tracking/']
     ]);
     const posts = expectedAliases.map(([, slug]) => ({

@@ -246,18 +246,32 @@ Socket 常见的等待方式包括同步阻塞、同步非阻塞、I/O 多路复
 
 ### 权威资料
 
+<a id="ref-1"></a>
 1. [Linux Kernel Documentation](https://docs.kernel.org/)
+<a id="ref-2"></a>
 2. [Linux man-pages project](https://www.kernel.org/doc/man-pages/)
+<a id="ref-3"></a>
 3. [man7.org Linux man-pages](https://man7.org/linux/man-pages/)
+<a id="ref-4"></a>
 4. [POSIX.1-2024 文档](https://pubs.opengroup.org/onlinepubs/9799919799/)
+<a id="ref-5"></a>
 5. [The Linux Programming Interface](https://man7.org/tlpi/)
+<a id="ref-6"></a>
 6. [Linux epoll(7)](https://man7.org/linux/man-pages/man7/epoll.7.html)
+<a id="ref-7"></a>
 7. [Linux fork(2)](https://man7.org/linux/man-pages/man2/fork.2.html)
+<a id="ref-8"></a>
 8. [Linux execve(2)](https://man7.org/linux/man-pages/man2/execve.2.html)
+<a id="ref-9"></a>
 9. [Linux proc(5)](https://man7.org/linux/man-pages/man5/proc.5.html)
 
 ### 延伸阅读
 
-- [操作系统为什么设计用户态和内核态](https://imageslr.github.io/2020/07/07/user-mode-kernel-mode.html)
-- [从一道面试题谈 Linux 下 fork 的运行机制](https://www.cnblogs.com/leoo2sk/archive/2009/12/11/talk-about-fork-in-linux.html)
-- [Linux 下的 I/O 模型](https://www.cnblogs.com/wxquare/archive/2004/01/13/6802078.html)
+可进一步阅读 [[10]](#ref-10)、[[11]](#ref-11) 和 [[12]](#ref-12)。
+
+<a id="ref-10"></a>
+10. [操作系统为什么设计用户态和内核态](https://imageslr.github.io/2020/07/07/user-mode-kernel-mode.html)
+<a id="ref-11"></a>
+11. [从一道面试题谈 Linux 下 fork 的运行机制](https://www.cnblogs.com/leoo2sk/archive/2009/12/11/talk-about-fork-in-linux.html)
+<a id="ref-12"></a>
+12. [Linux 下的 I/O 模型](https://www.cnblogs.com/wxquare/archive/2004/01/13/6802078.html)

@@ -511,14 +511,25 @@ multilprocessing包的使用可参考：
 
 ## 权威参考资料
 
+<a id="ref-1"></a>
 1. [Python 官方文档](https://docs.python.org/3/)
+<a id="ref-2"></a>
 2. [Python `concurrent.futures` 文档](https://docs.python.org/3/library/concurrent.futures.html)
+<a id="ref-3"></a>
 3. [Python `multiprocessing` 文档](https://docs.python.org/3/library/multiprocessing.html)
+<a id="ref-4"></a>
 4. [Python `asyncio` 文档](https://docs.python.org/3/library/asyncio.html)
+<a id="ref-5"></a>
 5. [CPython Developer Guide](https://devguide.python.org/)
+<a id="ref-6"></a>
 6. [Python `cProfile` 文档](https://docs.python.org/3/library/profile.html)
+<a id="ref-7"></a>
 7. [pyperf 文档](https://pyperf.readthedocs.io/)
+<a id="ref-8"></a>
 8. [PEP 703：Making the Global Interpreter Lock Optional in CPython](https://peps.python.org/pep-0703/)
+<a id="ref-9"></a>
 9. [OpenCV 官方仓库](https://github.com/opencv/opencv)
+<a id="ref-10"></a>
 10. [ViSP 官方仓库](https://github.com/lagadic/visp)
+<a id="ref-11"></a>
 11. [SWIG Python 文档](https://www.swig.org/Doc4.2/Python.html)

@@ -750,10 +750,17 @@ Config模式：搜索XXX_DIR指定路径下的XXXConfig.cmake文件，执行该�
 
 ## 参考资料
 
-- [了解google C++编码规范](https://zh-google-styleguide.readthedocs.io/en/latest/)
-- [跟我学些makefile](https://github.com/wxquare/programming/blob/master/document/%E8%B7%9F%E6%88%91%E4%B8%80%E8%B5%B7%E5%86%99Makefile-%E9%99%88%E7%9A%93.pdf)
-- [CMake入门实战](https://www.hahack.com/codes/cmake/)
-- [gdb调试利器](https://linuxtools-rst.readthedocs.io/zh_CN/latest/tool/gdb.html)
-- [陈皓专栏gdb调试系列](https://blog.csdn.net/haoel/article/details/2879)
-- [gdb core_dump调试](https://blog.csdn.net/u014403008/article/details/54174109)
-- [进程调试,死循环和死锁卡死](https://blog.csdn.net/guowenyan001/article/details/46238355)
+<a id="ref-1"></a>
+- 1. [了解google C++编码规范](https://zh-google-styleguide.readthedocs.io/en/latest/)
+<a id="ref-2"></a>
+- 2. [跟我学些makefile](https://github.com/wxquare/programming/blob/master/document/%E8%B7%9F%E6%88%91%E4%B8%80%E8%B5%B7%E5%86%99Makefile-%E9%99%88%E7%9A%93.pdf)
+<a id="ref-3"></a>
+- 3. [CMake入门实战](https://www.hahack.com/codes/cmake/)
+<a id="ref-4"></a>
+- 4. [gdb调试利器](https://linuxtools-rst.readthedocs.io/zh_CN/latest/tool/gdb.html)
+<a id="ref-5"></a>
+- 5. [陈皓专栏gdb调试系列](https://blog.csdn.net/haoel/article/details/2879)
+<a id="ref-6"></a>
+- 6. [gdb core_dump调试](https://blog.csdn.net/u014403008/article/details/54174109)
+<a id="ref-7"></a>
+- 7. [进程调试,死循环和死锁卡死](https://blog.csdn.net/guowenyan001/article/details/46238355)

@@ -17,7 +17,7 @@ description: 基于 Superpowers v6.4.1 源码，系统解释技能发现、宿�
 
 经常使用编码 Agent 后，真正让人疲惫的事情往往不是它不会写某段代码，而是它在需求还不明确时就开始实现，修改之后只运行最容易通过的测试，或者在长会话里重新做一遍已经完成的工作。模型有能力完成局部任务，并不意味着它会自动采用可靠的交付过程。
 
-[Superpowers](https://github.com/obra/superpowers) 把需求澄清、设计、计划、测试、审查和交付组织成一组可组合技能。要用好它，需要理解技能如何进入上下文、不同阶段靠什么产物衔接，以及哪些规则只是模型需要遵守的指令，哪些已经变成脚本中的检查。[R01]
+[Superpowers](https://github.com/obra/superpowers) 把需求澄清、设计、计划、测试、审查和交付组织成一组可组合技能。要用好它，需要理解技能如何进入上下文、不同阶段靠什么产物衔接，以及哪些规则只是模型需要遵守的指令，哪些已经变成脚本中的检查。[[1]](#ref-1)
 
 本文面向已经使用过编码 Agent、了解 Git 与自动化测试的开发者。先沿源码认识组成与机制，再通过一个明确标注的教学案例走完整个过程。如果还在比较不同 Agent 的定位，可以先读 {% post_link AI/01-ai-agent-workflow-practice 'AI Agent 工作流实践' %}；这里集中讨论 Superpowers 本身。
 
@@ -33,7 +33,7 @@ description: 基于 Superpowers v6.4.1 源码，系统解释技能发现、宿�
 
 这些问题不是靠补全函数名解决的。它们要求开发者先定义行为，再选择实现，并用测试和审查检查结果。如果 Agent 直接越过这一步，即使后续每个工具调用都成功，也可能交付错误的产品行为。
 
-Superpowers 的 README 将其定位为构建在可组合技能和初始引导之上的软件开发方法论。这里有两个同样重要的部分：一部分是工程方法的内容，另一部分是让 Agent 在合适时机找到并采用这些方法的接入机制。只有技能目录而没有有效发现，方法可能从不被读到；只有启动提示而没有具体过程，Agent 仍然不知道怎样落实。[R01][R04]
+Superpowers 的 README 将其定位为构建在可组合技能和初始引导之上的软件开发方法论。这里有两个同样重要的部分：一部分是工程方法的内容，另一部分是让 Agent 在合适时机找到并采用这些方法的接入机制。只有技能目录而没有有效发现，方法可能从不被读到；只有启动提示而没有具体过程，Agent 仍然不知道怎样落实。[[1]](#ref-1)[[4]](#ref-4)
 
 我把它理解成编码 Agent 的**工程流程约束层**。这个说法是对项目的分析，不是官方组件名称。它约束的对象是工作方式：先消除哪类不确定性，输出什么中间产物，什么证据才足以声明完成。它不会替代业务知识，也不会让不具备数据库知识的模型突然可靠地设计事务。
 
@@ -48,7 +48,7 @@ Superpowers 的 README 将其定位为构建在可组合技能和初始引导之
 | 工具与 MCP | 提供读取文件、执行命令、访问服务等实际能力 | 工具可调用不代表当前任务已授权使用 |
 | 项目规则 | 说明本仓库的命名、测试、目录与交付约束 | 不应为了遵循通用模板而破坏项目约定 |
 
-Agent Skills 规范定义的是技能的目录、元数据和正文格式，OpenAI 官方文档则解释了 Codex 如何发现技能并按需读取内容。这两类资料共同说明：内容可以以相似形式分发，实际执行仍由宿主完成，不能从格式兼容直接推导所有平台行为相同。[R19][R20]
+Agent Skills 规范定义的是技能的目录、元数据和正文格式，OpenAI 官方文档则解释了 Codex 如何发现技能并按需读取内容。这两类资料共同说明：内容可以以相似形式分发，实际执行仍由宿主完成，不能从格式兼容直接推导所有平台行为相同。[[19]](#ref-19)[[20]](#ref-20)
 
 
 ### 1.3 评价它时，先看交付证据
@@ -56,7 +56,7 @@ Agent Skills 规范定义的是技能的目录、元数据和正文格式，Open
 最容易观察到的是 Agent 宣布调用了几个技能、写了多少设计文档、启动了几个子 Agent。它们只是过程信号。更有意义的问题是：设计是否发现了隐藏约束，计划是否把接口说清楚，失败测试是否真的复现问题，完成报告能否指向当前代码的验证结果。
 
 
-因此，本文不会把“按流程做过”当成“结果可靠”的同义词。Superpowers 的价值需要通过产物质量体现：每个阶段应该减少一种具体的不确定性，并留下下一阶段能使用的材料。阅读源码时，也应始终追问某条规则到底防止了什么失败，以及它还防不住什么。[R06][R12]
+因此，本文不会把“按流程做过”当成“结果可靠”的同义词。Superpowers 的价值需要通过产物质量体现：每个阶段应该减少一种具体的不确定性，并留下下一阶段能使用的材料。阅读源码时，也应始终追问某条规则到底防止了什么失败，以及它还防不住什么。[[6]](#ref-6)[[12]](#ref-12)
 
 ## 二、打开仓库：组件如何分工
 
@@ -92,7 +92,7 @@ superpowers/
 └── RELEASE-NOTES.md
 ```
 
-第一类是**分发与适配文件**：告诉宿主在哪里找到技能，以及是否注册生命周期钩子。第二类是**技能内容**：以 `SKILL.md` 为入口，说明触发条件、阶段产物、决策规则和常见错误。第三类是**执行辅助材料**：包括 prompt 模板、参考文件和脚本，把重复的交接或检查做成可复用资源。第四类是**验证与演进记录**：帮助判断行为约定是否有测试、何时发生过变化。[R01][R02][R03][R17][R18]
+第一类是**分发与适配文件**：告诉宿主在哪里找到技能，以及是否注册生命周期钩子。第二类是**技能内容**：以 `SKILL.md` 为入口，说明触发条件、阶段产物、决策规则和常见错误。第三类是**执行辅助材料**：包括 prompt 模板、参考文件和脚本，把重复的交接或检查做成可复用资源。第四类是**验证与演进记录**：帮助判断行为约定是否有测试、何时发生过变化。[[1]](#ref-1)[[2]](#ref-2)[[3]](#ref-3)[[17]](#ref-17)[[18]](#ref-18)
 
 ![Superpowers 的组件职责：宿主读取技能、调用工具并产生可核查产物](/diagrams/superpowers/components.svg)
 
@@ -100,7 +100,7 @@ superpowers/
 
 ### 2.2 15 个技能不是 15 个互不相关的提示词
 
-固定快照的 `skills/` 下有 15 个直接包含 `SKILL.md` 的技能目录。可以按任务中的职责阅读它们，而不必按字母顺序记忆。[R01]
+固定快照的 `skills/` 下有 15 个直接包含 `SKILL.md` 的技能目录。可以按任务中的职责阅读它们，而不必按字母顺序记忆。[[1]](#ref-1)
 
 | 技能 | 典型触发情境 | 关键产物或检查 |
 |---|---|---|
@@ -120,36 +120,36 @@ superpowers/
 | `writing-skills` | 新建或修改技能 | 无技能基线、压力场景、行为回归 |
 | `diagnosing-superpowers` | 会话重复工作、忽略计划或成本异常 | 带 `path:line` 引用的会话调查报告 |
 
-表格中的“产物”有些是文件，有些是可观察行动。例如验证技能不需要发明一种新的报告格式；它要求声明与证据相符。单元测试通过只能支持被运行的测试通过，不能支持“线上问题彻底消失”。这类边界比技能名本身更值得记住。[R12]
+表格中的“产物”有些是文件，有些是可观察行动。例如验证技能不需要发明一种新的报告格式；它要求声明与证据相符。单元测试通过只能支持被运行的测试通过，不能支持“线上问题彻底消失”。这类边界比技能名本身更值得记住。[[12]](#ref-12)
 
 不同技能的关系既有前后衔接，也有横向约束。TDD 贯穿多个实现任务，不是流程末尾的一站；调试可能从任何失败处进入；完成验证适用于每一次结论。把这些关系画成一条没有反馈的流水线，会误导使用者以为只要按顺序调用一遍就结束了。
 
 ### 2.3 一个技能内部为什么同时有正文、参考文件和脚本
 
-`SKILL.md` 适合放所有使用者都需要知道的核心过程。宿主工具映射放在 `references/`，是为了把平台差异留在边界。脚本负责容易机械化、值得统一实现的操作；例如生成任务 brief、收集提交差异、维护计划工作目录。[R04][R08][R09]
+`SKILL.md` 适合放所有使用者都需要知道的核心过程。宿主工具映射放在 `references/`，是为了把平台差异留在边界。脚本负责容易机械化、值得统一实现的操作；例如生成任务 brief、收集提交差异、维护计划工作目录。[[4]](#ref-4)[[8]](#ref-8)[[9]](#ref-9)
 
-Agent Skills 规范和 Codex 文档都将这种方式描述为渐进披露：先暴露发现所需的元数据，再按需要读更详细的内容。[R19][R20]
+Agent Skills 规范和 Codex 文档都将这种方式描述为渐进披露：先暴露发现所需的元数据，再按需要读更详细的内容。[[19]](#ref-19)[[20]](#ref-20)
 
 但是，“放进参考文件”不是隐藏复杂性的万能方法。如果正文没有明确告诉 Agent 何时读取参考材料，重要约束可能永远到不了执行者；如果每项任务都要求读完所有材料，又会失去拆分的价值。因此，一个好的技能不仅需要内容正确，也需要清楚的读取路径。
 
 ### 2.4 如何读项目测试而不高估证明力
 
-`docs/testing.md` 区分了插件程序测试与真实模型会话中的行为评估。前者可以检查 hook 输出、脚本、插件注册或服务端代码；后者观察 Agent 是否在特定场景中遵守流程。文档还指向外部的 `superpowers-evals` 实验室，不能因此假定主仓库下载后包含所有评估资源。[R17]
+`docs/testing.md` 区分了插件程序测试与真实模型会话中的行为评估。前者可以检查 hook 输出、脚本、插件注册或服务端代码；后者观察 Agent 是否在特定场景中遵守流程。文档还指向外部的 `superpowers-evals` 实验室，不能因此假定主仓库下载后包含所有评估资源。[[17]](#ref-17)
 
 两者证明的东西不同。JSON 格式测试能发现上下文输出损坏，却不能证明模型读到规则后一定执行；一次压力场景通过能提供行为证据，却不能保证换模型、换宿主或换任务仍然通过。甚至“能复述 SDD 流程”的测试，也不能替代“实际完成任务时执行了审查”的测试。
 
-读发布说明中的评估结果时，要保留这个区分。维护者报告的样本观察可以解释某条规则为什么出现，但在缺少完整条件和独立复现时，不能拿来宣称自己的项目一定节省同样的费用或避免同样比例的错误。[R17][R18]
+读发布说明中的评估结果时，要保留这个区分。维护者报告的样本观察可以解释某条规则为什么出现，但在缺少完整条件和独立复现时，不能拿来宣称自己的项目一定节省同样的费用或避免同样比例的错误。[[17]](#ref-17)[[18]](#ref-18)
 
 ## 三、一次请求如何加载并触发技能
 
 ### 3.1 Claude Code：先注入使用技能的方法
 
-在本文快照中，`hooks/hooks.json` 为 Claude Code 注册 `SessionStart`，匹配 `startup|clear|compact`，通过 hook 入口运行 `session-start`。主脚本定位插件根目录，读取 `skills/using-superpowers/SKILL.md`，将内容转义后输出为宿主可识别的 JSON。Claude 分支使用 `hookSpecificOutput.additionalContext`。[R02][R21]
+在本文快照中，`hooks/hooks.json` 为 Claude Code 注册 `SessionStart`，匹配 `startup|clear|compact`，通过 hook 入口运行 `session-start`。主脚本定位插件根目录，读取 `skills/using-superpowers/SKILL.md`，将内容转义后输出为宿主可识别的 JSON。Claude 分支使用 `hookSpecificOutput.additionalContext`。[[2]](#ref-2)[[21]](#ref-21)
 
-这里注入的是引导技能，不是整个技能库。它告诉 Agent 在回复或行动前判断有没有适用技能，有则读取，并根据宿主加载相应参考文件。这样，启动层只承担“让后续方法能被找出来”的职责，具体工程过程仍然由目标技能提供。[R04]
+这里注入的是引导技能，不是整个技能库。它告诉 Agent 在回复或行动前判断有没有适用技能，有则读取，并根据宿主加载相应参考文件。这样，启动层只承担“让后续方法能被找出来”的职责，具体工程过程仍然由目标技能提供。[[4]](#ref-4)
 
 
-脚本还根据环境变量选择其他平台的输出形式。例如 Cursor 分支输出 `additional_context`。这些区别看起来只是字段命名，却是连接是否成立的关键。阅读适配层时应看具体条件分支，不能从某段注释或一个平台的成功日志推广到所有宿主。[R02]
+脚本还根据环境变量选择其他平台的输出形式。例如 Cursor 分支输出 `additional_context`。这些区别看起来只是字段命名，却是连接是否成立的关键。阅读适配层时应看具体条件分支，不能从某段注释或一个平台的成功日志推广到所有宿主。[[2]](#ref-2)
 
 ### 3.2 Codex：从原生技能发现开始
 
@@ -164,11 +164,11 @@ Agent Skills 规范和 Codex 文档都将这种方式描述为渐进披露：先
 }
 ```
 
-这是源码中的字段摘录，不是让读者用这几行替换完整 manifest。它说明当前 Codex 入口暴露技能目录，同时显式声明空 hooks。[R03]
+这是源码中的字段摘录，不是让读者用这几行替换完整 manifest。它说明当前 Codex 入口暴露技能目录，同时显式声明空 hooks。[[3]](#ref-3)
 
-`RELEASE-NOTES.md` 解释了这一细节的来历：此前移除 `hooks` 字段后，Codex 会回退自动发现仓库中的 Claude hook 配置，因此“字段缺失”没有达到“不要注册 hook”的目的。显式的 `{}` 是该版本用于避免回退发现的写法。[R18]
+`RELEASE-NOTES.md` 解释了这一细节的来历：此前移除 `hooks` 字段后，Codex 会回退自动发现仓库中的 Claude hook 配置，因此“字段缺失”没有达到“不要注册 hook”的目的。显式的 `{}` 是该版本用于避免回退发现的写法。[[18]](#ref-18)
 
-OpenAI 官方文档说明 Codex 先看到技能名称和描述，选中技能后加载 `SKILL.md`，再按需读取参考文件或执行脚本。结合 manifest，可以理解当前项目在 Codex 中依赖原生技能发现的接入方式。不能因为 Claude 的路径中有 SessionStart，就推断当前 Codex 也必须启动相同脚本。[R03][R20]
+OpenAI 官方文档说明 Codex 先看到技能名称和描述，选中技能后加载 `SKILL.md`，再按需读取参考文件或执行脚本。结合 manifest，可以理解当前项目在 Codex 中依赖原生技能发现的接入方式。不能因为 Claude 的路径中有 SessionStart，就推断当前 Codex 也必须启动相同脚本。[[3]](#ref-3)[[20]](#ref-20)
 
 ![Claude Code 与 Codex 的技能接入双路径时序](/diagrams/superpowers/discovery.svg)
 
@@ -176,17 +176,17 @@ OpenAI 官方文档说明 Codex 先看到技能名称和描述，选中技能后
 
 ### 3.3 描述字段决定“能否被想到”，正文决定“怎么做”
 
-Agent Skills 要求 `SKILL.md` 包含 YAML front matter，其中 `name` 和 `description` 是必填字段。规范给出名称与描述的格式限制，正文则承载技能指令；可选目录保存脚本、引用和资源。[R19]
+Agent Skills 要求 `SKILL.md` 包含 YAML front matter，其中 `name` 和 `description` 是必填字段。规范给出名称与描述的格式限制，正文则承载技能指令；可选目录保存脚本、引用和资源。[[19]](#ref-19)
 
-以 `systematic-debugging` 为例，它的描述把触发场景写成 bug、测试失败或异常行为，并强调在提出修复前使用。这样，即便用户只说“测试突然挂了”，发现阶段也有机会将它与请求匹配。正文进一步规定先读错误、稳定复现、检查最近变化和采集边界证据。[R13]
+以 `systematic-debugging` 为例，它的描述把触发场景写成 bug、测试失败或异常行为，并强调在提出修复前使用。这样，即便用户只说“测试突然挂了”，发现阶段也有机会将它与请求匹配。正文进一步规定先读错误、稳定复现、检查最近变化和采集边界证据。[[13]](#ref-13)
 
-`writing-skills` 对描述的建议更具体：描述应突出什么时候使用，不要把完整流程压缩进描述字段，否则模型可能只依据摘要行动而绕过正文。这是 Superpowers 的技能编写经验，不是所有技能标准都强制要求的额外字段规则。[R16]
+`writing-skills` 对描述的建议更具体：描述应突出什么时候使用，不要把完整流程压缩进描述字段，否则模型可能只依据摘要行动而绕过正文。这是 Superpowers 的技能编写经验，不是所有技能标准都强制要求的额外字段规则。[[16]](#ref-16)
 
 因此，当技能没有触发时，第一反应不应总是把正文写得更强硬。应先检查发现链路：宿主是否看到这个技能，名称是否冲突，描述是否覆盖实际说法，用户是否显式点名，模型有没有读取正确文件。如果正文从未进入上下文，添加更多正文规则没有作用。
 
 ### 3.4 工具适配必须以当前宿主为准
 
-`using-superpowers` 的平台参考文件提供工具与环境差异说明。这让共同方法可以复用，例如都需要创建隔离工作区、派发任务、接收结果，但不要求所有宿主暴露同一种 API。[R04]
+`using-superpowers` 的平台参考文件提供工具与环境差异说明。这让共同方法可以复用，例如都需要创建隔离工作区、派发任务、接收结果，但不要求所有宿主暴露同一种 API。[[4]](#ref-4)
 
 最容易出错的是把一篇旧文章里的工具名或配置片段当成通用接口。子 Agent 的创建、后续消息和生命周期能力可能随宿主版本变化；有的环境允许独立上下文，有的环境只有串行执行。技能参考自己也强调，实际工具列表与旧表格冲突时，应以当前可用能力为依据。
 
@@ -196,7 +196,7 @@ Agent Skills 要求 `SKILL.md` 包含 YAML front matter，其中 `name` 和 `des
 
 ### 4.1 设计先解决目标，再决定需要多重的过程
 
-当前 `brainstorming` 首先要求建立共同理解：为什么做这件事，谁会使用它，什么结果算成功。用户已经提供的信息应被准确复述，不需要为了完成问答仪式而再次询问。接下来按任务性质选择不同路径。[R05]
+当前 `brainstorming` 首先要求建立共同理解：为什么做这件事，谁会使用它，什么结果算成功。用户已经提供的信息应被准确复述，不需要为了完成问答仪式而再次询问。接下来按任务性质选择不同路径。[[5]](#ref-5)
 
 | 路径 | 典型任务 | 需要确认的产物 |
 |---|---|---|
@@ -206,27 +206,27 @@ Agent Skills 要求 `SKILL.md` 包含 YAML front matter，其中 `name` 和 `des
 
 这个划分的价值在于控制工作量。修改已有命令的一项标志，不必机械地写一套大型架构文档；但“做一个简单应用”也不能仅凭“简单”二字就假定边界清楚，因为现有仓库里可能根本没有相关流程可以参考。
 
-三个路径都保留设计确认的含义：确认实际呈现过的目标与方案，而不是把“这个方向不错”扩展成对尚未出现的实现细节的认可。在真实宿主中，还要同时遵守当前用户授权和更高层指令；技能不能自行增加权限，也不能把原本有效的授权解释成不存在。[R04][R05]
+三个路径都保留设计确认的含义：确认实际呈现过的目标与方案，而不是把“这个方向不错”扩展成对尚未出现的实现细节的认可。在真实宿主中，还要同时遵守当前用户授权和更高层指令；技能不能自行增加权限，也不能把原本有效的授权解释成不存在。[[4]](#ref-4)[[5]](#ref-5)
 
 对长期用户而言，更好的输入不是“随便做，别问”，而是提前写清哪些决定可以自主处理、哪些变化需要停下来。比如“可以调整内部函数划分，但不能改变公开响应字段；涉及数据库迁移时先给出迁移方案”。这样减少的是信息缺口，而不是单纯减少对话次数。
 
 ### 4.2 Spec 和 plan 是两种不同的交接
 
-Spec 回答的是“我们要交付什么行为，为什么这样选择”；plan 回答的是“在哪些文件里，按什么顺序，把它实现并验证出来”。两者不能互相替代。只有 spec，执行者可能遗漏仓库的真实约束；只有 plan，执行者遇到计划错误时又不知道最终应服从什么目标。[R06]
+Spec 回答的是“我们要交付什么行为，为什么这样选择”；plan 回答的是“在哪些文件里，按什么顺序，把它实现并验证出来”。两者不能互相替代。只有 spec，执行者可能遗漏仓库的真实约束；只有 plan，执行者遇到计划错误时又不知道最终应服从什么目标。[[6]](#ref-6)
 
-当前 `writing-plans` 的模板包含 Goal、Architecture、Tech Stack、Spec、Global Constraints 和 Review Focus。任务级别还包含 Files、Interfaces，以及按步骤展开的测试、实现和验证。`Consumes` 与 `Produces` 特别值得注意：独立执行者拿到自己的任务时，不能靠猜测推导前一任务的函数签名。[R06]
+当前 `writing-plans` 的模板包含 Goal、Architecture、Tech Stack、Spec、Global Constraints 和 Review Focus。任务级别还包含 Files、Interfaces，以及按步骤展开的测试、实现和验证。`Consumes` 与 `Produces` 特别值得注意：独立执行者拿到自己的任务时，不能靠猜测推导前一任务的函数签名。[[6]](#ref-6)
 
 例如，一项任务写“增加幂等记录存储”，另一项任务写“接入幂等处理”，仍然留下太多空白。至少应说明存储操作返回“首次创建”“已有相同请求结果”“相同键但载荷冲突”中的哪一种，以及事务由谁开启和提交。否则每个局部实现都可能自洽，连接起来却无法使用。
 
-Review Focus 则补上另一类缺口：设计没有逐字枚举，但真实用户合理预期应该处理的输入或失败模式。它不是装饰性风险清单。技能要求把这些关注点落实到拥有相关代码的任务测试中，避免所有实现者都沿着同一份不完整计划忽略同一个问题。[R06][R18]
+Review Focus 则补上另一类缺口：设计没有逐字枚举，但真实用户合理预期应该处理的输入或失败模式。它不是装饰性风险清单。技能要求把这些关注点落实到拥有相关代码的任务测试中，避免所有实现者都沿着同一份不完整计划忽略同一个问题。[[6]](#ref-6)[[18]](#ref-18)
 
-任务粒度也不是越细越好。技能将 task 定义为值得一次独立审查、拥有自身验证结果的交付单元；“建目录”“写一行配置”“改一个 import”通常只是步骤，不天然值得新建三个执行者。粒度过细会让上下文交接与审查的成本超过实际工作。[R06][R08]
+任务粒度也不是越细越好。技能将 task 定义为值得一次独立审查、拥有自身验证结果的交付单元；“建目录”“写一行配置”“改一个 import”通常只是步骤，不天然值得新建三个执行者。粒度过细会让上下文交接与审查的成本超过实际工作。[[6]](#ref-6)[[8]](#ref-8)
 
 ### 4.3 Native 与 SDD：选择上下文和审查成本
 
-v6.4.1 中，`executing-plans` 表示 Native，也称 inline：当前会话自己逐项实施计划，保留进度和测试证据，最后进行一次整体审查。它不再是旧教程里“执行几项就固定停下来汇报”的模式。[R07][R18]
+v6.4.1 中，`executing-plans` 表示 Native，也称 inline：当前会话自己逐项实施计划，保留进度和测试证据，最后进行一次整体审查。它不再是旧教程里“执行几项就固定停下来汇报”的模式。[[7]](#ref-7)[[18]](#ref-18)
 
-`subagent-driven-development`，下文简称 SDD，则由控制者派发新的实现者完成任务，再派发任务审查者。当前任务审查要求同时给出**规格符合性和任务质量**两个结论。不能把历史上的两阶段审查描述，未经核对就写成当前每项任务必定启动两个独立 reviewer。[R08]
+`subagent-driven-development`，下文简称 SDD，则由控制者派发新的实现者完成任务，再派发任务审查者。当前任务审查要求同时给出**规格符合性和任务质量**两个结论。不能把历史上的两阶段审查描述，未经核对就写成当前每项任务必定启动两个独立 reviewer。[[8]](#ref-8)
 
 | 维度 | Native | SDD |
 |---|---|---|
@@ -238,23 +238,23 @@ v6.4.1 中，`executing-plans` 表示 Native，也称 inline：当前会话自�
 | 主要代价 | 长会话可能积累偏差和上下文负担 | 每次派发与审查都要重新建立部分理解 |
 | 适合的判断条件 | 任务明确、规模可控、当前上下文仍有效 | 需要逐任务检查，任务边界清楚且交付错误代价较高 |
 
-这里的“成本”指结构性开销，不是保证某种模式永远便宜。一个能力不足的实现者多轮返工，可能比一个更强的执行者更贵；审查发现了重要问题，也可能使总返工更少。应结合真实任务和日志评估，而不是按子 Agent 数量推算收益。[R08]
+这里的“成本”指结构性开销，不是保证某种模式永远便宜。一个能力不足的实现者多轮返工，可能比一个更强的执行者更贵；审查发现了重要问题，也可能使总返工更少。应结合真实任务和日志评估，而不是按子 Agent 数量推算收益。[[8]](#ref-8)
 
-Native 在没有子 Agent 工具时允许执行者进行独立阶段的自审，但要求说明缺少新上下文审查这一事实。这样才能区分“做过审查”和“由另一个执行上下文审查过”，避免把两者包装成相同保证。[R07]
+Native 在没有子 Agent 工具时允许执行者进行独立阶段的自审，但要求说明缺少新上下文审查这一事实。这样才能区分“做过审查”和“由另一个执行上下文审查过”，避免把两者包装成相同保证。[[7]](#ref-7)
 
 ### 4.4 SDD 并不等于把所有实现任务同时跑起来
 
-当前 SDD 明确要求不要同时派发多个实现者，以避免冲突；它的重点是任务分解、独立上下文和审查交接。另一方面，`dispatching-parallel-agents` 处理的是可以独立调查的问题域，比如彼此不共享状态的几组故障。两者用途不同。[R08]
+当前 SDD 明确要求不要同时派发多个实现者，以避免冲突；它的重点是任务分解、独立上下文和审查交接。另一方面，`dispatching-parallel-agents` 处理的是可以独立调查的问题域，比如彼此不共享状态的几组故障。两者用途不同。[[8]](#ref-8)
 
 判断能否并行，不能只看文件名不同。如果两项任务共同改变接口、共享测试数据库或依赖同一配置，它们仍可能相互干扰。反过来，两组只读调查即使看过同一个目录，也未必会产生状态冲突。应评估读写集合、接口依赖和环境资源，而不是笼统问“要不要多开几个 Agent”。
 
 ### 4.5 失败、审查与收尾是流程的一部分
 
-实现过程中失败时，`systematic-debugging` 要求先调查根因，再分析模式、提出假设并验证。这里的关键是让修复建立在证据上，而不是多改几处直到测试碰巧变绿。测试隔壁模块失败也需要说明，不能只因为自己没有改那个文件就从报告中消失。[R11][R13]
+实现过程中失败时，`systematic-debugging` 要求先调查根因，再分析模式、提出假设并验证。这里的关键是让修复建立在证据上，而不是多改几处直到测试碰巧变绿。测试隔壁模块失败也需要说明，不能只因为自己没有改那个文件就从报告中消失。[[11]](#ref-11)[[13]](#ref-13)
 
-审查意见到来后，`receiving-code-review` 要求先理解并核实。外部 reviewer 可能不知道兼容性约束，也可能提出实际正确的重要问题。执行者应该用代码和需求判断，既不盲目接受，也不因为“计划就是这么写的”拒绝修正。[R14]
+审查意见到来后，`receiving-code-review` 要求先理解并核实。外部 reviewer 可能不知道兼容性约束，也可能提出实际正确的重要问题。执行者应该用代码和需求判断，既不盲目接受，也不因为“计划就是这么写的”拒绝修正。[[14]](#ref-14)
 
-最后，`finishing-a-development-branch` 在运行完整测试套件后识别环境，再处理合并、PR 或保留分支。当前版本的默认选项不包含随手丢弃工作；删除分支或工作区也不应变成清理步骤中的隐含动作。[R14][R18]
+最后，`finishing-a-development-branch` 在运行完整测试套件后识别环境，再处理合并、PR 或保留分支。当前版本的默认选项不包含随手丢弃工作；删除分支或工作区也不应变成清理步骤中的隐含动作。[[14]](#ref-14)[[18]](#ref-18)
 
 ![从设计到执行、反馈与交付的解释性流程图](/diagrams/superpowers/lifecycle.svg)
 
@@ -272,61 +272,61 @@ Native 在没有子 Agent 工具时允许执行者进行独立阶段的自审，
 | 脚本检查 | 测试失败不写完成行；拒绝空审查范围 | 对具体输入执行确定性判断 | 检查对象选错、测试过弱、业务需求遗漏 |
 | 宿主与基础设施 | 工具权限、沙箱、分支保护、CI | 在系统边界限制或验证实际行动 | 被允许的行动在业务上仍可能错误 |
 
-Superpowers 主要组织前两层，并依赖宿主提供第三层能力。要阻止未经授权的发布，不能仅在技能里加一句“禁止发布”，还应依赖宿主权限和实际发布流程；要保证接口兼容，也不能只看测试命令返回零，还要确认测试断言覆盖兼容性。[R09][R10][R12]
+Superpowers 主要组织前两层，并依赖宿主提供第三层能力。要阻止未经授权的发布，不能仅在技能里加一句“禁止发布”，还应依赖宿主权限和实际发布流程；要保证接口兼容，也不能只看测试命令返回零，还要确认测试断言覆盖兼容性。[[9]](#ref-9)[[10]](#ref-10)[[12]](#ref-12)
 
 这一划分并不贬低提示指令。很多工程判断无法提前写成完整程序，必须由模型理解上下文。但当某种失败可以机械识别，例如审查的是空提交范围，就值得交给脚本，而不必每次都期待 Agent 想起来检查。
 
 ### 5.2 “反合理化表”针对的是跳步骤的理由
 
-`using-superpowers`、TDD、验证等技能中都能看到类似的表格：把“这件事很简单”“我已经知道该怎么做”“应该能通过”等常见理由，与需要执行的实际动作一一对应。[R04][R11][R12]
+`using-superpowers`、TDD、验证等技能中都能看到类似的表格：把“这件事很简单”“我已经知道该怎么做”“应该能通过”等常见理由，与需要执行的实际动作一一对应。[[4]](#ref-4)[[11]](#ref-11)[[12]](#ref-12)
 
 它们试图解决的不是知识缺失，而是执行偏移。Agent 可能已经知道应该测试，却为了快速完成而把当前情况解释成例外。将这些理由预先写出来，可以让模型在产生类似判断时重新看到规则。
 
-但措辞强度有收益上限。重复十遍“不要跳过”不一定比一条可检验条件更有效。比如“完成前必须验证”仍然抽象，而“运行项目测试命令，读取失败数量和退出码，只对已经证明的范围声明通过”提供了可以观察的动作。[R12]
+但措辞强度有收益上限。重复十遍“不要跳过”不一定比一条可检验条件更有效。比如“完成前必须验证”仍然抽象，而“运行项目测试命令，读取失败数量和退出码，只对已经证明的范围声明通过”提供了可以观察的动作。[[12]](#ref-12)
 
-编写团队规则时，可以借鉴这种写法，但不应把所有可能行为都升级为绝对禁令。规则之间一旦互相矛盾，模型会花更多时间解释自己该服从哪条。更好的方式是明确适用情境、允许的例外和证据要求，并把冲突交由当前项目与用户授权处理。[R04][R16]
+编写团队规则时，可以借鉴这种写法，但不应把所有可能行为都升级为绝对禁令。规则之间一旦互相矛盾，模型会花更多时间解释自己该服从哪条。更好的方式是明确适用情境、允许的例外和证据要求，并把冲突交由当前项目与用户授权处理。[[4]](#ref-4)[[16]](#ref-16)
 
 ### 5.3 Ledger 把进度从记忆变成外部记录
 
 长会话的一个失败模式是：执行者记得“大概完成了存储层”，却忘记具体提交、失败测试和剩余问题。上下文压缩之后，摘要可能保留了结果，丢失了结果成立的条件。
 
-SDD 通过 `sdd-workspace PLAN_FILE` 为计划解析工作目录，默认位于 `.superpowers/sdd/` 下。目录中保存 `progress.md`、任务 brief、报告和审查材料。Native 使用同类工作区和 ledger 格式，因此进度不是只存在于某个执行者的当前对话中。[R07][R08][R09]
+SDD 通过 `sdd-workspace PLAN_FILE` 为计划解析工作目录，默认位于 `.superpowers/sdd/` 下。目录中保存 `progress.md`、任务 brief、报告和审查材料。Native 使用同类工作区和 ledger 格式，因此进度不是只存在于某个执行者的当前对话中。[[7]](#ref-7)[[8]](#ref-8)[[9]](#ref-9)
 
-这里的身份设计很有启发性。单纯用 `plan.md` 作为目录名，会让 `docs/alpha/plan.md` 与 `docs/beta/plan.md` 冲突。脚本将计划路径写入 `plan-path` 标记；已有目录属于其他计划时，尝试加入父目录名，再用计数后缀消歧。不同计划不会因为同名而自然混用同一目录。[R09]
+这里的身份设计很有启发性。单纯用 `plan.md` 作为目录名，会让 `docs/alpha/plan.md` 与 `docs/beta/plan.md` 冲突。脚本将计划路径写入 `plan-path` 标记；已有目录属于其他计划时，尝试加入父目录名，再用计数后缀消歧。不同计划不会因为同名而自然混用同一目录。[[9]](#ref-9)
 
 这仍不是数据库级别的并发控制。旧的无标记目录存在被首次访问者认领的兼容路径，同一 worktree 中同时运行同一计划也会共享材料。正确结论是“计划归属更明确”，而不是“任何并发和历史残留都已被解决”。
 
-恢复时应同时核对 ledger 和 Git：计划身份是否正确，完成项是否指向实际提交，未完成修复是否还有开放问题。ledger 是协作记录，可以被误写或删除；Git 记录代码变化，也不会自动证明测试曾覆盖正确行为。两者互相补充，不能把其中一个当作无条件真相。[R07][R08]
+恢复时应同时核对 ledger 和 Git：计划身份是否正确，完成项是否指向实际提交，未完成修复是否还有开放问题。ledger 是协作记录，可以被误写或删除；Git 记录代码变化，也不会自动证明测试曾覆盖正确行为。两者互相补充，不能把其中一个当作无条件真相。[[7]](#ref-7)[[8]](#ref-8)
 
 ### 5.4 Brief 和 review package 控制交接信息量
 
-`task-brief` 从计划中提取指定任务，避免控制者每次重新描述需求时发生遗漏或改写。脚本通过匹配 `Task N` 标题定位任务，并跳过代码围栏内的标题识别。因此，计划格式不只是为了阅读舒服，也是后续辅助工具的输入契约。[R08]
+`task-brief` 从计划中提取指定任务，避免控制者每次重新描述需求时发生遗漏或改写。脚本通过匹配 `Task N` 标题定位任务，并跳过代码围栏内的标题识别。因此，计划格式不只是为了阅读舒服，也是后续辅助工具的输入契约。[[8]](#ref-8)
 
 这意味着任意改变模板标题可能产生实际后果。如果计划把所有任务写成“第一步”“第二步”，人类能够理解，提取脚本却未必找到。遇到这类错误时，不要让 Agent 继续凭记忆工作，应修正计划格式或明确采用等效的手动交接方式。
 
-`review-package` 则把提交列表、变更统计和带上下文的差异放到文件里，让审查者一次读取。它要求 BASE 和 HEAD 可解析，BASE 是 HEAD 的祖先，而且范围内至少存在一个提交。空范围和非祖先范围返回错误，避免错误分支产生看似干净的审查包。[R09]
+`review-package` 则把提交列表、变更统计和带上下文的差异放到文件里，让审查者一次读取。它要求 BASE 和 HEAD 可解析，BASE 是 HEAD 的祖先，而且范围内至少存在一个提交。空范围和非祖先范围返回错误，避免错误分支产生看似干净的审查包。[[9]](#ref-9)
 
-为什么不能总用 `HEAD~1`？因为一个任务可能包含多个提交。只查看最后一项会遗漏早先真正的实现。任务开始时记录 BASE，比事后猜测更稳妥。整个分支的审查则需要适合该仓库的分叉基点，并确认目标分支没有选错。[R08][R14]
+为什么不能总用 `HEAD~1`？因为一个任务可能包含多个提交。只查看最后一项会遗漏早先真正的实现。任务开始时记录 BASE，比事后猜测更稳妥。整个分支的审查则需要适合该仓库的分叉基点，并确认目标分支没有选错。[[8]](#ref-8)[[14]](#ref-14)
 
 这些脚本改善了证据形态，却不负责证明材料完整：未提交的修改不在提交范围内，选错但合法的 BASE 也可能截断工作。因此审查前仍应检查工作区状态、任务范围与提交列表，而不是只看到脚本退出成功就宣布证据齐全。
 
 ### 5.5 task-done：一个小脚本的保证与限制
 
-Native 的 `task-done` 接收计划、任务号、BASE 和测试命令。它在计划工作区保留完整测试日志，打印尾部；命令失败时退出，不追加完成记录；成功时写入包含提交范围、命令和输出摘要的完成行。[R10]
+Native 的 `task-done` 接收计划、任务号、BASE 和测试命令。它在计划工作区保留完整测试日志，打印尾部；命令失败时退出，不追加完成记录；成功时写入包含提交范围、命令和输出摘要的完成行。[[10]](#ref-10)
 
 它确实把“测试失败却记录完成”这一类错误挡在正常脚本路径上，但不知道命令是否选对，也不会解释断言语义。传入一个无意义但返回成功的命令，同样可能得到完成行。即使传入真正的测试命令，测试可能只检查格式而没有检查核心行为。
 
 此外，源码是按具体命令控制流运行的：例如它读取日志中的最后一个非空行，空日志路径是否符合预期，应看实际运行结果，不能把代码注释扩展为对所有命令的保证。学习这种辅助工具，最有用的方式是同时读输入、失败分支和成功条件，而不是只记住命令名字。
 
-因此，完成声明仍应受 `verification-before-completion` 约束：先确定要证明的命题，再选择匹配的命令，读取输出并判断证据范围。脚本把证据落盘，执行者对证据是否支持结论负责。[R10][R12]
+因此，完成声明仍应受 `verification-before-completion` 约束：先确定要证明的命题，再选择匹配的命令，读取输出并判断证据范围。脚本把证据落盘，执行者对证据是否支持结论负责。[[10]](#ref-10)[[12]](#ref-12)
 
 ### 5.6 修复循环为什么需要边界
 
-审查不一定一次通过，反复审查也不一定收敛。当前 SDD 将一轮定义为修复派发加一次限定范围的复审，任务级最多五轮：前三轮优先继续原实现者，后两轮换新的、更有能力的实现者；达到上限后由控制者对开放问题作出记录明确的判断。[R08]
+审查不一定一次通过，反复审查也不一定收敛。当前 SDD 将一轮定义为修复派发加一次限定范围的复审，任务级最多五轮：前三轮优先继续原实现者，后两轮换新的、更有能力的实现者；达到上限后由控制者对开放问题作出记录明确的判断。[[8]](#ref-8)
 
 限定范围很重要。复审应检查原问题是否解决，以及修复差异有没有引入新问题，不应每轮都把全仓库重新当成首次审查。否则命名偏好、结构建议和新发现不断进入循环，任务可能永远无法结束。
 
-达到上限也不等于问题消失。控制者需要记录哪些意见被采纳、哪些延期、哪些判断有争议，以及判断错误会造成什么后果。Native 的最终修复路径与 SDD 不完全相同，不能把 SDD 的每任务五轮机制套到 Native 上。[R07][R08]
+达到上限也不等于问题消失。控制者需要记录哪些意见被采纳、哪些延期、哪些判断有争议，以及判断错误会造成什么后果。Native 的最终修复路径与 SDD 不完全相同，不能把 SDD 的每任务五轮机制套到 Native 上。[[7]](#ref-7)[[8]](#ref-8)
 
 从机制设计看，Superpowers 不只规定“做得更仔细”，也在限制无止境地花费预算。读者需要评价这些边界是否适合自己的风险级别，并保留独立 CI、人工审查等项目要求；技能内部的一条完成记录不能替代团队的合并标准。
 
@@ -355,7 +355,7 @@ Native 的 `task-done` 接收计划、任务号、BASE 和测试命令。它在�
 给出设计与非目标。内部代码组织可自行决定，数据库迁移先说明影响。
 ```
 
-应观察到的不是一大段通用幂等知识，而是 Agent 将设计关联到现有代码：认证在何处完成，事务由谁控制，响应如何序列化，测试数据库能否模拟并发。它应区分用户已经明确的条件和从仓库推测出的前提。[R05]
+应观察到的不是一大段通用幂等知识，而是 Agent 将设计关联到现有代码：认证在何处完成，事务由谁控制，响应如何序列化，测试数据库能否模拟并发。它应区分用户已经明确的条件和从仓库推测出的前提。[[5]](#ref-5)
 
 如果现有代码已经有唯一业务请求号，也许只需扩展现有机制；如果接口跨多个外部系统，本例的单数据库前提就不成立，需要重新界定设计。此时停止盲目沿原方案实现，是发现范围变化，而不是工作流失败。
 
@@ -386,7 +386,7 @@ Native 的 `task-done` 接收计划、任务号、BASE 和测试命令。它在�
 
 ### 6.4 计划片段：围绕可验证交付物拆分
 
-依据 `writing-plans` 的思路，完整计划需要实际文件、接口、测试内容和命令。下面仅展示三个任务的交付边界，**不是可直接交给执行者的完整实施计划**。[R06]
+依据 `writing-plans` 的思路，完整计划需要实际文件、接口、测试内容和命令。下面仅展示三个任务的交付边界，**不是可直接交给执行者的完整实施计划**。[[6]](#ref-6)
 
 | 任务 | 本任务负责 | 输入与输出契约 | 验证重点 |
 |---|---|---|---|
@@ -398,7 +398,7 @@ Native 的 `task-done` 接收计划、任务号、BASE 和测试命令。它在�
 
 计划还应该把“规范化算法属于谁”“事务由哪一层开始”“结果类型名字是什么”写入 Interfaces。举例说，Task 1 产生 `ReplayResult`，Task 2 就不能自己假定它叫 `ExistingOrder`，再让集成测试替模糊交接付费。
 
-Review Focus 可以关注认证租户参与唯一范围、同键异载荷、请求字段顺序、事务超时和响应丢失。其中能明确测试的内容，应回填到对应任务；不能只列为“最终 reviewer 留意”。如果这些测试已经全部覆盖，Review Focus 应如实说明，不为了凑满条目重复同一问题。[R06]
+Review Focus 可以关注认证租户参与唯一范围、同键异载荷、请求字段顺序、事务超时和响应丢失。其中能明确测试的内容，应回填到对应任务；不能只列为“最终 reviewer 留意”。如果这些测试已经全部覆盖，Review Focus 应如实说明，不为了凑满条目重复同一问题。[[6]](#ref-6)
 
 ### 6.5 执行输入：保留自主权，也保留边界
 
@@ -413,11 +413,11 @@ Review Focus 可以关注认证租户参与唯一范围、同键异载荷、请�
 完成后提交需求覆盖、验证结果和仍然存在的限制。
 ```
 
-按照当前 Native 技能，执行者读取任务 brief、记录 BASE、实施测试与修改、比较命令输出和 Expected，最后通过 `task-done` 记录结果。[R07][R10]
+按照当前 Native 技能，执行者读取任务 brief、记录 BASE、实施测试与修改、比较命令输出和 Expected，最后通过 `task-done` 记录结果。[[7]](#ref-7)[[10]](#ref-10)
 
-如果改用 SDD，同一任务需要交给新的实现者，并带上任务 brief、前序接口、决策和报告路径；完成后将 brief、报告与差异交给 reviewer。控制者不应把整段历史对话原样复制过去，也不应为了缩短提示而漏掉租户范围这种全局约束。[R08]
+如果改用 SDD，同一任务需要交给新的实现者，并带上任务 brief、前序接口、决策和报告路径；完成后将 brief、报告与差异交给 reviewer。控制者不应把整段历史对话原样复制过去，也不应为了缩短提示而漏掉租户范围这种全局约束。[[8]](#ref-8)
 
-无论选择哪种方式，工作区的隔离需要实际确认。Git worktree 能让不同分支拥有不同工作目录，但不会自动隔离数据库、端口、进程和外部服务。两个 worktree 的测试如果连接同一个可写数据库，仍然可能互相污染。[R22]
+无论选择哪种方式，工作区的隔离需要实际确认。Git worktree 能让不同分支拥有不同工作目录，但不会自动隔离数据库、端口、进程和外部服务。两个 worktree 的测试如果连接同一个可写数据库，仍然可能互相污染。[[22]](#ref-22)
 
 ### 6.6 测试首先证明“真的会错”
 
@@ -435,9 +435,9 @@ Review Focus 可以关注认证租户参与唯一范围、同键异载荷、请�
 
 示例命令可以是 `pytest tests/integration/test_order_idempotency.py -q`，前提是完整计划已经建立该文件和对应测试环境。它只说明运行某个集成测试文件；项目全套验证仍应使用仓库规定的命令。不能把案例中的路径粘贴到任何项目就期待得到同样结果。
 
-按照 TDD，需要先看到一个与目标行为相关的失败。例如重复调用后数据库有两笔订单，才真正暴露了缺少幂等保护。导入错误、数据库没启动或断言写错同样会让命令失败，但并没有证明业务测试有效。[R11]
+按照 TDD，需要先看到一个与目标行为相关的失败。例如重复调用后数据库有两笔订单，才真正暴露了缺少幂等保护。导入错误、数据库没启动或断言写错同样会让命令失败，但并没有证明业务测试有效。[[11]](#ref-11)
 
-通过之后还要思考反事实：如果去掉唯一约束或在重放分支误执行一次创建，哪条测试会失败？如果说不出来，测试可能只是重复实现细节。这里的反事实检查不是要求无边界地增加测试，而是用来判断现有测试是否真能保护预期行为。[R11][R16]
+通过之后还要思考反事实：如果去掉唯一约束或在重放分支误执行一次创建，哪条测试会失败？如果说不出来，测试可能只是重复实现细节。这里的反事实检查不是要求无边界地增加测试，而是用来判断现有测试是否真能保护预期行为。[[11]](#ref-11)[[16]](#ref-16)
 
 ### 6.7 遇到失败时，提供事实而不是指定猜测性修复
 
@@ -451,9 +451,9 @@ Review Focus 可以关注认证租户参与唯一范围、同键异载荷、请�
 不要通过降低并发度、增加固定 sleep 或删除断言让测试表面通过。
 ```
 
-执行者应先查实际数据库 schema、事务日志和测试连接，而不是立刻加锁。可能的原因包括迁移没有应用、键范围写错、测试使用了不同数据库，或者业务调用绕过了事务。症状相同，不代表修复也相同。[R13]
+执行者应先查实际数据库 schema、事务日志和测试连接，而不是立刻加锁。可能的原因包括迁移没有应用、键范围写错、测试使用了不同数据库，或者业务调用绕过了事务。症状相同，不代表修复也相同。[[13]](#ref-13)
 
-在审查阶段，还可以故意检查计划的盲区：如果计划只写了“重复请求返回之前结果”，实现者对同键异载荷也返回旧订单，reviewer 应指出这违背了业务上的冲突语义。若规格明确要求冲突，这是漏实现；若规格没有说明，则需要依据用户预期澄清设计并补上测试，不能以“没有写”为由自动认定安全。[R06][R14]
+在审查阶段，还可以故意检查计划的盲区：如果计划只写了“重复请求返回之前结果”，实现者对同键异载荷也返回旧订单，reviewer 应指出这违背了业务上的冲突语义。若规格明确要求冲突，这是漏实现；若规格没有说明，则需要依据用户预期澄清设计并补上测试，不能以“没有写”为由自动认定安全。[[6]](#ref-6)[[14]](#ref-14)
 
 ### 6.8 完成报告要能逐项对照目标
 
@@ -466,7 +466,7 @@ Review Focus 可以关注认证租户参与唯一范围、同键异载荷、请�
 说明没有覆盖的行为、迁移要求和已延期问题；不要把未运行检查写成通过。
 ```
 
-理想报告中，每个结论都有不同的证据。例如重放语义对应集成测试，公共响应兼容性对应既有测试，数据库约束对应迁移与真实 schema 检查。构建成功证明包能构建，不证明并发正确；代码审查看起来合理，也不能替代特定失败窗口的运行验证。[R12]
+理想报告中，每个结论都有不同的证据。例如重放语义对应集成测试，公共响应兼容性对应既有测试，数据库约束对应迁移与真实 schema 检查。构建成功证明包能构建，不证明并发正确；代码审查看起来合理，也不能替代特定失败窗口的运行验证。[[12]](#ref-12)
 
 最终还应回到设计前提：这个案例仅覆盖同一数据库事务中的订单创建，没有证明跨支付系统的幂等，没有评估长期清理策略，也没有提供吞吐数据。明确边界让后续工作有可靠起点，比一个过于宽泛的“生产可用”标签更有帮助。
 
@@ -474,7 +474,7 @@ Review Focus 可以关注认证租户参与唯一范围、同键异载荷、请�
 
 ### 7.1 更新了项目，不代表当前会话已经使用新规则
 
-使用时间越长，越容易同时存在手动安装目录、插件缓存、项目级副本和旧教程。版本问题不只是“版本号老一点”，也可能是核心流程已经变了：当前设计有三种规模路径，Native 执行持续推进，SDD 的审查结构与旧版介绍不同。[R05][R07][R08][R18]
+使用时间越长，越容易同时存在手动安装目录、插件缓存、项目级副本和旧教程。版本问题不只是“版本号老一点”，也可能是核心流程已经变了：当前设计有三种规模路径，Native 执行持续推进，SDD 的审查结构与旧版介绍不同。[[5]](#ref-5)[[7]](#ref-7)[[8]](#ref-8)[[18]](#ref-18)
 
 排查时应记录实际加载路径、manifest 版本以及读取到的正文。只看 GitHub 主分支不能证明当前会话版本；只看到某个文件夹也不能证明宿主选中了它。升级之后应在新会话中用小任务验证发现和行为，再投入长时间任务。
 
@@ -482,17 +482,17 @@ Review Focus 可以关注认证租户参与唯一范围、同键异载荷、请�
 
 ### 7.2 安装之后，验证一条最小路径
 
-研究基线的 README 为 Claude Code 推荐通过官方插件市场安装：在 Claude Code 交互界面输入以下命令，不是在普通 Shell 里执行。[R01]
+研究基线的 README 为 Claude Code 推荐通过官方插件市场安装：在 Claude Code 交互界面输入以下命令，不是在普通 Shell 里执行。[[1]](#ref-1)
 
 ```text
 /plugin install superpowers@claude-plugins-official
 ```
 
-Codex App 的路径是在 Plugins 中查找并安装 Superpowers；Codex CLI 的 README 路径是进入 `/plugins` 搜索 Superpowers 并选择安装。市场可见性和宿主版本可能变化，因此遇到界面不同应回看当前官方入口，不凭旧博客拼凑安装脚本。[R01][R20]
+Codex App 的路径是在 Plugins 中查找并安装 Superpowers；Codex CLI 的 README 路径是进入 `/plugins` 搜索 Superpowers 并选择安装。市场可见性和宿主版本可能变化，因此遇到界面不同应回看当前官方入口，不凭旧博客拼凑安装脚本。[[1]](#ref-1)[[20]](#ref-20)
 
 安装后用一个只需读取的小请求检查：“请说明本会话可用的 Superpowers 技能、实际读取路径，以及设计阶段会怎样处理一个已有函数的有限修改。”然后观察它是否真的读取正确内容。不要一开始就以改整个项目作为安装验证；失败时很难区分发现问题和任务本身的问题。
 
-这一步还应检查能力是否满足后续计划。没有可用子 Agent 工具时，不应在输出中伪造派发记录；没有可写隔离目录时，也不能只宣布已经创建 worktree。所有“已完成的准备”都应有可观察依据。[R07][R12]
+这一步还应检查能力是否满足后续计划。没有可用子 Agent 工具时，不应在输出中伪造派发记录；没有可写隔离目录时，也不能只宣布已经创建 worktree。所有“已完成的准备”都应有可观察依据。[[7]](#ref-7)[[12]](#ref-12)
 
 ### 7.3 将症状映射到证据，比叠加规则更有效
 
@@ -511,21 +511,21 @@ Codex App 的路径是在 Plugins 中查找并安装 Superpowers；Codex CLI 的
 | 费用明显异常 | 实际轮次、重复读写、重复派发及计费记录 | 先定位成本来源，再决定执行模式 |
 | 要向维护者发会话资料 | 具体证据范围、脱敏结果、导出文件清单 | 检查后再决定分享，不上传整段原始会话 |
 
-这些建议综合来自工作区、执行、验证和会话诊断机制，属于本文的排查组织方式，不是项目提供的统一命令。[R08][R09][R12][R15][R18]
+这些建议综合来自工作区、执行、验证和会话诊断机制，属于本文的排查组织方式，不是项目提供的统一命令。[[8]](#ref-8)[[9]](#ref-9)[[12]](#ref-12)[[15]](#ref-15)[[18]](#ref-18)
 
-特别要注意路径规则冲突。Superpowers 示例常使用 `docs/superpowers/` 保存设计和计划，但项目可能要求工作材料放入其他目录。用户与项目明确约定应被保留。相反，某些辅助脚本默认的工作区路径写在代码里，不会因为自然语言说“换个目录”就自动改变；使用前要确认是否支持覆盖，必要时采用经确认的等效工作方式。[R04][R06][R09]
+特别要注意路径规则冲突。Superpowers 示例常使用 `docs/superpowers/` 保存设计和计划，但项目可能要求工作材料放入其他目录。用户与项目明确约定应被保留。相反，某些辅助脚本默认的工作区路径写在代码里，不会因为自然语言说“换个目录”就自动改变；使用前要确认是否支持覆盖，必要时采用经确认的等效工作方式。[[4]](#ref-4)[[6]](#ref-6)[[9]](#ref-9)
 
 ### 7.4 排查 Superpowers 本身，也需要可核查的证据
 
-新增的 `diagnosing-superpowers` 面向会话行为异常：重复工作、没有遵守计划、技能没有触发，或耗时和费用超出预期。它先明确具体会话、预期与实际现象，再定位 transcript，要求发现附带 `path:line` 引用。[R15]
+新增的 `diagnosing-superpowers` 面向会话行为异常：重复工作、没有遵守计划、技能没有触发，或耗时和费用超出预期。它先明确具体会话、预期与实际现象，再定位 transcript，要求发现附带 `path:line` 引用。[[15]](#ref-15)
 
 这里一个重要约束是区分证据与归因。看到任务被执行两次，可以报告重复派发发生在哪一段；但仅凭这件事，还不能断言是某个技能缺陷导致，也可能是计划身份、宿主上下文或用户新指令造成的。该技能将取证报告和后续项目缺陷判断分开。
 
-它还区分了调查、导出和对外提交：分析会话不等于可以把会话打包发出去。资料可能包含源码、工具结果和用户输入；即使经过自动脱敏，仍需要检查。实践中先用能够支撑问题的最小证据范围，通常也更方便维护者理解。[R15]
+它还区分了调查、导出和对外提交：分析会话不等于可以把会话打包发出去。资料可能包含源码、工具结果和用户输入；即使经过自动脱敏，仍需要检查。实践中先用能够支撑问题的最小证据范围，通常也更方便维护者理解。[[15]](#ref-15)
 
 ### 7.5 遥测范围要读实现，不要扩大也不要淡化
 
-README 说明可选 visual companion 会加载 Prime Radiant 的远程 logo，并附带 Superpowers 版本用于粗略统计。检查 `server.cjs` 可以看到，品牌图片 URL 加了 `?v=` 参数；设置禁用变量后不生成这张远程图片。源码识别 `SUPERPOWERS_DISABLE_TELEMETRY`，也识别 README 所列的另外两个退出变量。[R01]
+README 说明可选 visual companion 会加载 Prime Radiant 的远程 logo，并附带 Superpowers 版本用于粗略统计。检查 `server.cjs` 可以看到，品牌图片 URL 加了 `?v=` 参数；设置禁用变量后不生成这张远程图片。源码识别 `SUPERPOWERS_DISABLE_TELEMETRY`，也识别 README 所列的另外两个退出变量。[[1]](#ref-1)
 
 例如，在启动会继承该环境变量的宿主或视觉工具之前设置：
 
@@ -537,7 +537,7 @@ export SUPERPOWERS_DISABLE_TELEMETRY=1
 
 ### 7.6 不让方法论变成额外的负担
 
-高频使用者最需要管理的是适用范围。对只读解释、机械文档修正和探索问题，应选择相应的工作方式；对行为修改和高风险交付，则需要更强证据。不要为了让日志看起来完整，把所有任务都套成一次大型软件项目。[R05]
+高频使用者最需要管理的是适用范围。对只读解释、机械文档修正和探索问题，应选择相应的工作方式；对行为修改和高风险交付，则需要更强证据。不要为了让日志看起来完整，把所有任务都套成一次大型软件项目。[[5]](#ref-5)
 
 同样，不应把上游的每一条强制措辞原样提升为团队所有任务的最高规则。项目已有 CI、审批和发布流程时，技能应该帮助 Agent 遵循它们，而不是另起一套相互矛盾的要求。实际授权、宿主规则与项目规范的关系要清楚，例外要有具体理由，而不是让模型偷偷跳过。
 
@@ -545,9 +545,9 @@ export SUPERPOWERS_DISABLE_TELEMETRY=1
 
 ### 8.1 从重复出现的失败开始
 
-值得写成技能的，通常不是“这次任务我做了什么”，而是“以后遇到同类条件时应该怎样做”。例如，团队反复在 API 修改中漏查向后兼容性，就可以形成一个读取接口定义、消费者和契约测试的检查流程；某次修复的日志则更适合留在问题记录里。[R16]
+值得写成技能的，通常不是“这次任务我做了什么”，而是“以后遇到同类条件时应该怎样做”。例如，团队反复在 API 修改中漏查向后兼容性，就可以形成一个读取接口定义、消费者和契约测试的检查流程；某次修复的日志则更适合留在问题记录里。[[16]](#ref-16)
 
-一个技能的最小结构是名称、描述和正文。脚本只有在需要重复执行机械工作时才加入；参考资料只有在正文不适合承载时才拆分。不要为了看起来像完整项目而预先建立大量空目录。[R19]
+一个技能的最小结构是名称、描述和正文。脚本只有在需要重复执行机械工作时才加入；参考资料只有在正文不适合承载时才拆分。不要为了看起来像完整项目而预先建立大量空目录。[[19]](#ref-19)
 
 下面是描述字段的教学示例，不是一份已经完成测试的可安装技能：
 
@@ -560,13 +560,13 @@ description: Use when changing a public API response, request schema, or error c
 
 ### 8.2 把技能开发视作行为测试
 
-`writing-skills` 将 TDD 的思想用于过程文档：先设计场景，观察没有技能时的失败，再写最小规则改善行为，最后在新的压力场景中检查是否复发。[R16]
+`writing-skills` 将 TDD 的思想用于过程文档：先设计场景，观察没有技能时的失败，再写最小规则改善行为，最后在新的压力场景中检查是否复发。[[16]](#ref-16)
 
 例如，给 Agent 一个看似简单的响应字段重命名任务，并施加“只剩一点时间”的压力。基线要记录它是否检查了消费者、是否运行契约测试、是否把不兼容修改误称为重构。加入技能后，再观察相同维度，而不是只检查它有没有说出技能名称。
 
 还应准备不会触发的反例：纯粹解释接口文档，未改变任何契约，不应该凭空开启一轮代码修改；内部局部变量更名也不应自动当成公开 API 迁移。只看正例会让技能越来越容易触发，却越来越不适合日常使用。
 
-为减少偶然性，应保持模型、宿主、项目快照和任务条件尽量一致，保留每次运行记录，并承认样本量有限。一次成功说明一个场景里发生了改善，不构成“这个技能永远有效”的证明。跨模型或升级后，关键场景需要重新检查。[R16][R17]
+为减少偶然性，应保持模型、宿主、项目快照和任务条件尽量一致，保留每次运行记录，并承认样本量有限。一次成功说明一个场景里发生了改善，不构成“这个技能永远有效”的证明。跨模型或升级后，关键场景需要重新检查。[[16]](#ref-16)[[17]](#ref-17)
 
 ### 8.3 同时评价正确性与过程成本
 
@@ -584,11 +584,11 @@ description: Use when changing a public API response, request schema, or error c
 
 ### 8.4 给长期用户的源码阅读路线
 
-第一遍只读 `README`、`using-superpowers` 和 Agent Skills 规范，建立“分发—发现—按需读取”的基本结构。第二遍顺着一个真实任务读 `brainstorming`、`writing-plans` 与一种执行模式，记录每个阶段的输入、输出和停止条件。[R01][R04][R19]
+第一遍只读 `README`、`using-superpowers` 和 Agent Skills 规范，建立“分发—发现—按需读取”的基本结构。第二遍顺着一个真实任务读 `brainstorming`、`writing-plans` 与一种执行模式，记录每个阶段的输入、输出和停止条件。[[1]](#ref-1)[[4]](#ref-4)[[19]](#ref-19)
 
-第三遍再读 `sdd-workspace`、`task-brief`、`review-package` 和 `task-done`。不要仅看正常路径，重点看身份冲突、空输入、错误退出和证据范围。你会发现项目已经把一部分常见误操作转成代码，也会看到剩余判断仍然交给执行者。[R09][R10]
+第三遍再读 `sdd-workspace`、`task-brief`、`review-package` 和 `task-done`。不要仅看正常路径，重点看身份冲突、空输入、错误退出和证据范围。你会发现项目已经把一部分常见误操作转成代码，也会看到剩余判断仍然交给执行者。[[9]](#ref-9)[[10]](#ref-10)
 
-第四遍读 `writing-skills`、测试说明与发布记录，理解规则为什么演进。阅读时应特别留意文档之间的版本差异：编写技巧中的历史案例未必描述当前执行模式。发生冲突时，具体行为以固定版本的对应技能和实现为依据，历史案例只用于解释经验来源。[R16][R17][R18]
+第四遍读 `writing-skills`、测试说明与发布记录，理解规则为什么演进。阅读时应特别留意文档之间的版本差异：编写技巧中的历史案例未必描述当前执行模式。发生冲突时，具体行为以固定版本的对应技能和实现为依据，历史案例只用于解释经验来源。[[16]](#ref-16)[[17]](#ref-17)[[18]](#ref-18)
 
 最后，把学习结果应用到一个你熟悉的小项目：先写清交付目标，选择合适流程，检查真实产物。你不需要记住所有技能的每条规则，但应该能够识别什么时候缺了设计、什么时候计划不再可信、什么时候“已完成”还没有证据。
 
@@ -600,46 +600,68 @@ Superpowers 最值得学习的地方，是将原本隐含的工程习惯变成�
 
 以下共 22 个核心参考组，其中 18 组是同一项目的一手实现证据，4 组来自外部官方文档。不同源码文件用于支持不同结论，不代表来自 18 个独立机构的交叉验证。每组附带的相关文件用于补全同一论点，不额外计数。
 
-- **[R01]** [README：定位、安装、遥测](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/README.md)。项目组成、各宿主入口与遥测声明；不能证明普遍提效。关联源码：[skills/brainstorming/scripts/server.cjs](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/brainstorming/scripts/server.cjs)。
+<a id="ref-1"></a>
+- **[[1]](#ref-1)** [README：定位、安装、遥测](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/README.md)。项目组成、各宿主入口与遥测声明；不能证明普遍提效。关联源码：[skills/brainstorming/scripts/server.cjs](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/brainstorming/scripts/server.cjs)。
 
-- **[R02]** [SessionStart hook](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/hooks/session-start)。读取 bootstrap 与 JSON 输出；结合 hooks/hooks.json 核验注册时机。关联源码：[hooks/hooks.json](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/hooks/hooks.json)。
+<a id="ref-2"></a>
+- **[[2]](#ref-2)** [SessionStart hook](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/hooks/session-start)。读取 bootstrap 与 JSON 输出；结合 hooks/hooks.json 核验注册时机。关联源码：[hooks/hooks.json](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/hooks/hooks.json)。
 
-- **[R03]** [Codex 插件 manifest](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/.codex-plugin/plugin.json)。skills 入口与显式空 hooks；不能代表本机安装版本。
+<a id="ref-3"></a>
+- **[[3]](#ref-3)** [Codex 插件 manifest](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/.codex-plugin/plugin.json)。skills 入口与显式空 hooks；不能代表本机安装版本。
 
-- **[R04]** [using-superpowers](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/using-superpowers/SKILL.md)。技能选择、优先级、子任务 bootstrap 豁免。关联源码：[skills/using-superpowers/references/codex-tools.md](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/using-superpowers/references/codex-tools.md)。
+<a id="ref-4"></a>
+- **[[4]](#ref-4)** [using-superpowers](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/using-superpowers/SKILL.md)。技能选择、优先级、子任务 bootstrap 豁免。关联源码：[skills/using-superpowers/references/codex-tools.md](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/using-superpowers/references/codex-tools.md)。
 
-- **[R05]** [brainstorming](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/brainstorming/SKILL.md)。三种任务路径与设计阶段产物、审批边界。
+<a id="ref-5"></a>
+- **[[5]](#ref-5)** [brainstorming](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/brainstorming/SKILL.md)。三种任务路径与设计阶段产物、审批边界。
 
-- **[R06]** [writing-plans](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/writing-plans/SKILL.md)。计划格式、接口契约、Review Focus 和执行交接。
+<a id="ref-6"></a>
+- **[[6]](#ref-6)** [writing-plans](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/writing-plans/SKILL.md)。计划格式、接口契约、Review Focus 和执行交接。
 
-- **[R07]** [executing-plans](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/executing-plans/SKILL.md)。Native 模式、任务完成条件与最终审查。
+<a id="ref-7"></a>
+- **[[7]](#ref-7)** [executing-plans](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/executing-plans/SKILL.md)。Native 模式、任务完成条件与最终审查。
 
-- **[R08]** [subagent-driven-development](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/subagent-driven-development/SKILL.md)。控制者、实现者、审查者、修复循环与断路处理。关联源码：[skills/dispatching-parallel-agents/SKILL.md](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/dispatching-parallel-agents/SKILL.md)；[skills/subagent-driven-development/scripts/task-brief](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/subagent-driven-development/scripts/task-brief)；[skills/subagent-driven-development/task-reviewer-prompt.md](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/subagent-driven-development/task-reviewer-prompt.md)。
+<a id="ref-8"></a>
+- **[[8]](#ref-8)** [subagent-driven-development](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/subagent-driven-development/SKILL.md)。控制者、实现者、审查者、修复循环与断路处理。关联源码：[skills/dispatching-parallel-agents/SKILL.md](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/dispatching-parallel-agents/SKILL.md)；[skills/subagent-driven-development/scripts/task-brief](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/subagent-driven-development/scripts/task-brief)；[skills/subagent-driven-development/task-reviewer-prompt.md](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/subagent-driven-development/task-reviewer-prompt.md)。
 
-- **[R09]** [计划工作区与审查包](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/subagent-driven-development/scripts/sdd-workspace)。计划身份、同名冲突隔离；结合 review-package 分析范围检查。关联源码：[skills/subagent-driven-development/scripts/review-package](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/subagent-driven-development/scripts/review-package)。
+<a id="ref-9"></a>
+- **[[9]](#ref-9)** [计划工作区与审查包](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/subagent-driven-development/scripts/sdd-workspace)。计划身份、同名冲突隔离；结合 review-package 分析范围检查。关联源码：[skills/subagent-driven-development/scripts/review-package](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/subagent-driven-development/scripts/review-package)。
 
-- **[R10]** [Native task-done](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/executing-plans/scripts/task-done)。运行传入命令、保留日志、成功后追加 ledger 的实现边界。关联源码：[skills/executing-plans/scripts/task-start](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/executing-plans/scripts/task-start)。
+<a id="ref-10"></a>
+- **[[10]](#ref-10)** [Native task-done](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/executing-plans/scripts/task-done)。运行传入命令、保留日志、成功后追加 ledger 的实现边界。关联源码：[skills/executing-plans/scripts/task-start](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/executing-plans/scripts/task-start)。
 
-- **[R11]** [test-driven-development](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/test-driven-development/SKILL.md)。先观察失败，再最小实现，再运行验证；不能据此推断收益比例。关联源码：[writing-good-tests.md](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/test-driven-development/writing-good-tests.md)。
+<a id="ref-11"></a>
+- **[[11]](#ref-11)** [test-driven-development](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/test-driven-development/SKILL.md)。先观察失败，再最小实现，再运行验证；不能据此推断收益比例。关联源码：[writing-good-tests.md](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/test-driven-development/writing-good-tests.md)。
 
-- **[R12]** [verification-before-completion](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/verification-before-completion/SKILL.md)。完成声明与新鲜证据的对应关系。
+<a id="ref-12"></a>
+- **[[12]](#ref-12)** [verification-before-completion](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/verification-before-completion/SKILL.md)。完成声明与新鲜证据的对应关系。
 
-- **[R13]** [systematic-debugging](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/systematic-debugging/SKILL.md)。根因调查、模式分析、假设实验和实施。
+<a id="ref-13"></a>
+- **[[13]](#ref-13)** [systematic-debugging](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/systematic-debugging/SKILL.md)。根因调查、模式分析、假设实验和实施。
 
-- **[R14]** [审查、隔离与收尾技能组](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/requesting-code-review/SKILL.md)。审查请求与证据交接；关联 receiving-code-review、using-git-worktrees、finishing-a-development-branch。关联源码：[skills/receiving-code-review/SKILL.md](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/receiving-code-review/SKILL.md)；[skills/using-git-worktrees/SKILL.md](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/using-git-worktrees/SKILL.md)；[skills/finishing-a-development-branch/SKILL.md](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/finishing-a-development-branch/SKILL.md)。
+<a id="ref-14"></a>
+- **[[14]](#ref-14)** [审查、隔离与收尾技能组](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/requesting-code-review/SKILL.md)。审查请求与证据交接；关联 receiving-code-review、using-git-worktrees、finishing-a-development-branch。关联源码：[skills/receiving-code-review/SKILL.md](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/receiving-code-review/SKILL.md)；[skills/using-git-worktrees/SKILL.md](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/using-git-worktrees/SKILL.md)；[skills/finishing-a-development-branch/SKILL.md](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/finishing-a-development-branch/SKILL.md)。
 
-- **[R15]** [diagnosing-superpowers](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/diagnosing-superpowers/SKILL.md)。基于 transcript 的 path:line 取证、报告与导出边界。
+<a id="ref-15"></a>
+- **[[15]](#ref-15)** [diagnosing-superpowers](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/diagnosing-superpowers/SKILL.md)。基于 transcript 的 path:line 取证、报告与导出边界。
 
-- **[R16]** [writing-skills](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/writing-skills/SKILL.md)。描述字段、压力场景、无技能基线与行为回归。
+<a id="ref-16"></a>
+- **[[16]](#ref-16)** [writing-skills](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/writing-skills/SKILL.md)。描述字段、压力场景、无技能基线与行为回归。
 
-- **[R17]** [Testing Superpowers](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/docs/testing.md)。程序测试与行为评估分层、外部 eval lab 和运行边界。
+<a id="ref-17"></a>
+- **[[17]](#ref-17)** [Testing Superpowers](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/docs/testing.md)。程序测试与行为评估分层、外部 eval lab 和运行边界。
 
-- **[R18]** [Release Notes](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/RELEASE-NOTES.md)。版本变化；评估数字只作为维护者报告，不能冒称独立复现。
+<a id="ref-18"></a>
+- **[[18]](#ref-18)** [Release Notes](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/RELEASE-NOTES.md)。版本变化；评估数字只作为维护者报告，不能冒称独立复现。
 
-- **[R19]** [Agent Skills — Specification](https://agentskills.io/specification)。SKILL.md 格式与渐进披露；格式兼容不等于各宿主行为一致。
+<a id="ref-19"></a>
+- **[[19]](#ref-19)** [Agent Skills — Specification](https://agentskills.io/specification)。SKILL.md 格式与渐进披露；格式兼容不等于各宿主行为一致。
 
-- **[R20]** [OpenAI — Customization / Skills](https://learn.chatgpt.com/docs/customization/overview#skills)。Codex 的元数据发现、按需加载及全局/项目技能位置。
+<a id="ref-20"></a>
+- **[[20]](#ref-20)** [OpenAI — Customization / Skills](https://learn.chatgpt.com/docs/customization/overview#skills)。Codex 的元数据发现、按需加载及全局/项目技能位置。
 
-- **[R21]** [Anthropic — Hooks reference](https://code.claude.com/docs/en/hooks)。Claude Code SessionStart 与上下文输出协议；不能泛化到 Codex。
+<a id="ref-21"></a>
+- **[[21]](#ref-21)** [Anthropic — Hooks reference](https://code.claude.com/docs/en/hooks)。Claude Code SessionStart 与上下文输出协议；不能泛化到 Codex。
 
-- **[R22]** [Git project — git-worktree](https://git-scm.com/docs/git-worktree)。linked worktree、共享仓库关系和清理语义；worktree 不等于权限沙箱。
+<a id="ref-22"></a>
+- **[[22]](#ref-22)** [Git project — git-worktree](https://git-scm.com/docs/git-worktree)。linked worktree、共享仓库关系和清理语义；worktree 不等于权限沙箱。

@@ -1014,13 +1014,23 @@ kafka-console-consumer.sh --topic orders --from-beginning --bootstrap-server loc
 
 ## 参考资料
 
+<a id="ref-1"></a>
 1. [Kafka Consumer Rebalance 机制与影响（知乎）](https://zhuanlan.zhihu.com/p/46963810)
+<a id="ref-2"></a>
 2. [Kafka 为什么吞吐量大、速度快？（CSDN）](https://blog.csdn.net/kzadmxz/article/details/101576401)
+<a id="ref-3"></a>
 3. [Kafka 数据可靠性深度解读 / ISR 与副本（CSDN）](https://blog.csdn.net/u013256816/article/details/71091774)
+<a id="ref-4"></a>
 4. [Shopify Sarama 客户端配置参考（config.go）](https://github.com/Shopify/sarama/blob/v1.37.2/config.go)
+<a id="ref-5"></a>
 5. [Kafka 选举机制（掘金）](https://juejin.im/post/6844903846297206797)
+<a id="ref-6"></a>
 6. [简单理解 Kafka 的消息可靠性策略（腾讯云）](https://cloud.tencent.com/developer/article/1752150)
+<a id="ref-7"></a>
 7. [Bootstrap server vs zookeeper in kafka?（StackOverflow）](https://stackoverflow.com/questions/46173003/bootstrap-server-vs-zookeeper-in-kafka)
+<a id="ref-8"></a>
 8. [Kafka 如何保证顺序消费（CSDN）](https://blog.csdn.net/java_atguigu/article/details/123920233)
+<a id="ref-9"></a>
 9. [Kafka 官方文档](https://kafka.apache.org/documentation/)
+<a id="ref-10"></a>
 10. [Kafka-go GitHub](https://github.com/segmentio/kafka-go)

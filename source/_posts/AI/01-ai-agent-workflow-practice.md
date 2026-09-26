@@ -670,16 +670,26 @@ Agent 的能力会继续变化，但这套工作流不会因为某个模型发�
 
 ### 官方文档和项目
 
+<a id="ref-1"></a>
 1. [Claude Code 官方文档](https://code.claude.com/docs/en/overview)
+<a id="ref-2"></a>
 2. [Codex CLI 官方文档](https://learn.chatgpt.com/docs/codex/cli)
+<a id="ref-3"></a>
 3. [OpenClaw 官方文档](https://docs.openclaw.ai/)
+<a id="ref-4"></a>
 4. [OpenClaw GitHub 仓库](https://github.com/openclaw/openclaw)
+<a id="ref-5"></a>
 5. [Hermes Agent GitHub 仓库](https://github.com/NousResearch/hermes-agent)
+<a id="ref-6"></a>
 6. [Hermes Agent 官方文档](https://hermes-agent.nousresearch.com/docs)
+<a id="ref-7"></a>
 7. [DeepSeek API 文档](https://api-docs.deepseek.com/)
 
 ### 本站相关文章
 
-1. {% post_link AI/00-vibe-coding-vs-spec-coding 从 Vibe Coding 到 Spec Coding %}
-2. [书稿第 13 章 Agent 的演化与架构总纲](/ai-book/part2/01-agent-architecture.html)
-3. [书稿第 16 章 Harness Engineering](/ai-book/part2/04-harness-engineering.html)
+<a id="ref-8"></a>
+8. {% post_link AI/00-vibe-coding-vs-spec-coding 从 Vibe Coding 到 Spec Coding %}
+<a id="ref-9"></a>
+9. [书稿第 13 章 Agent 的演化与架构总纲](/ai-book/part2/01-agent-architecture.html)
+<a id="ref-10"></a>
+10. [书稿第 16 章 Harness Engineering](/ai-book/part2/04-harness-engineering.html)

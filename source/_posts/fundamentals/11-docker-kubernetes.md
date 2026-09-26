@@ -1047,18 +1047,33 @@ kubectl get events --sort-by='.metadata.creationTimestamp'
 
 ## 参考资料
 
+<a id="ref-1"></a>
 1. [Minikube 环境安装](https://github.com/caicloud/kube-ladder/blob/master/tutorials/lab1-installation.md)
+<a id="ref-2"></a>
 2. [Kubectl 命令和集群体验](https://github.com/caicloud/kube-ladder/blob/master/tutorials/lab2-application-and-service.md)
+<a id="ref-3"></a>
 3. [Linux network namespace,veth,bridge 和 路由](https://www.zhaohuabing.com/post/2020-03-12-linux-network-virtualization/)
+<a id="ref-4"></a>
 4. [从0到1搭建linux虚拟网络](https://zhuanlan.zhihu.com/p/199298498)
+<a id="ref-5"></a>
 5. [Docker 网络：模拟docker网络](https://morningspace.github.io/tech/k8s-net-mimic-docker/)
+<a id="ref-6"></a>
 6. [Docker 网络：从docker0开始](https://morningspace.github.io/tech/k8s-net-docker0/)
+<a id="ref-7"></a>
 7. [Pod网络和pause容器](https://morningspace.github.io/tech/k8s-net-pod-1/)
+<a id="ref-8"></a>
 8. [认识CNI插件](https://morningspace.github.io/tech/k8s-net-cni/)
+<a id="ref-9"></a>
 9. [深度解读CNI：容器网络接口](https://mp.weixin.qq.com/s/_nzbZYpKlpw4jKd5MFpuzw)
+<a id="ref-10"></a>
 10. [官方文档：服务service](https://kubernetes.io/zh-cn/docs/concepts/services-networking/service/)
+<a id="ref-11"></a>
 11. [创建service之后，k8s会发生什么](https://zhuanlan.zhihu.com/p/677236869)
+<a id="ref-12"></a>
 12. [探究k8s service iptables 路由规则](https://luckymrwang.github.io/2021/02/20/%E6%8E%A2%E7%A9%B6K8S-Service%E5%86%85%E9%83%A8iptables%E8%B7%AF%E7%94%B1%E8%A7%84%E5%88%99/)
+<a id="ref-13"></a>
 13. [官方文档：在minikube中使用nginx ingress 控制配置ingress](https://kubernetes.io/zh-cn/docs/tasks/access-application-cluster/ingress-minikube/)
+<a id="ref-14"></a>
 14. [官方文档：ingress](https://kubernetes.io/zh-cn/docs/concepts/services-networking/ingress/)
+<a id="ref-15"></a>
 15. [Kubernetes 官方文档](https://kubernetes.io/zh-cn/docs/home/)

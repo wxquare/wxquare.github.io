@@ -458,13 +458,23 @@ REST 关注于暴露数据。它减少了客户端／服务端的耦合程度，
 
 ## 权威参考资料
 
+<a id="ref-1"></a>
 1. [RFC 9293：Transmission Control Protocol](https://www.rfc-editor.org/rfc/rfc9293)
+<a id="ref-2"></a>
 2. [RFC 9000：QUIC: A UDP-Based Multiplexed and Secure Transport](https://www.rfc-editor.org/rfc/rfc9000)
+<a id="ref-3"></a>
 3. [RFC 9110：HTTP Semantics](https://www.rfc-editor.org/rfc/rfc9110)
+<a id="ref-4"></a>
 4. [RFC 9114：HTTP/3](https://www.rfc-editor.org/rfc/rfc9114)
+<a id="ref-5"></a>
 5. [RFC 7540：HTTP/2](https://www.rfc-editor.org/rfc/rfc7540)
+<a id="ref-6"></a>
 6. [RFC 8446：The Transport Layer Security Protocol Version 1.3](https://www.rfc-editor.org/rfc/rfc8446)
+<a id="ref-7"></a>
 7. [Linux tcp(7)](https://man7.org/linux/man-pages/man7/tcp.7.html)
+<a id="ref-8"></a>
 8. [Linux socket(7)](https://man7.org/linux/man-pages/man7/socket.7.html)
+<a id="ref-9"></a>
 9. [Linux epoll(7)](https://man7.org/linux/man-pages/man7/epoll.7.html)
+<a id="ref-10"></a>
 10. [HTTP Working Group](https://httpwg.org/)

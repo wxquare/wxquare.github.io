@@ -200,42 +200,70 @@ SiameseRPN/DaSiamRPN 使用共享的 Siamese 特征提取网络，并由 RPN 对
 
 ### 原文参考
 
+<a id="ref-1"></a>
 1. https://zhuanlan.zhihu.com/p/37856765
+<a id="ref-2"></a>
 2. https://github.com/foolwood/DaSiamRPN
+<a id="ref-3"></a>
 3. http://openaccess.thecvf.com/content_cvpr_2018/papers/Li_High_Performance_Visual_CVPR_2018_paper.pdf
+<a id="ref-4"></a>
 4. https://visp.inria.fr/template-tracking/
+<a id="ref-5"></a>
 5. https://visp-doc.inria.fr/doxygen/visp-daily/tutorial-tracking-tt.html
+<a id="ref-6"></a>
 6. https://en.wikipedia.org/wiki/Gauss%E2%80%93Newton_algorithm
+<a id="ref-7"></a>
 7. https://zhuanlan.zhihu.com/p/42383070
 
 ### 补充权威资料
 
 #### 模板追踪、几何与优化
 
-1. Lucas & Kanade, *An Iterative Image Registration Technique with an Application to Stereo Vision*, IJCAI 1981。<https://www.ijcai.org/Proceedings/81-1/Papers/105.pdf>
-2. Baker & Matthews, *Lucas-Kanade 20 Years On: A Unifying Framework*, IJCV 2004。<https://doi.org/10.1023/B:VISI.0000011361.88581.12>
-3. Hartley & Zisserman, *Multiple View Geometry in Computer Vision*, 2nd edition。<https://www.robots.ox.ac.uk/~vgg/hzbook/>
-4. Marchand 等，*ViSP: an Open Source Library for Visual Servoing*，ICRA 2014。<https://doi.org/10.1109/ICRA.2014.6907658>
-5. ViSP 官方 Template Tracking 文档。<https://visp.inria.fr/template-tracking/>
-6. OpenCV 官方 Homography 教程。<https://docs.opencv.org/4.x/d9/dab/tutorial_homography.html>
-7. Nocedal & Wright, *Numerical Optimization*, 2nd edition。<https://doi.org/10.1007/978-0-387-40065-5>
-8. Madsen、Nielsen、Tingleff，*Methods for Non-Linear Least Squares Problems*。<https://www2.imm.dtu.dk/pubdb/edoc/imm3215.pdf>
-9. Ceres Solver 官方 Non-linear Least Squares 文档。<https://ceres-solver.org/nnls_solving.html>
+<a id="ref-8"></a>
+8. Lucas & Kanade, *An Iterative Image Registration Technique with an Application to Stereo Vision*, IJCAI 1981。<https://www.ijcai.org/Proceedings/81-1/Papers/105.pdf>
+<a id="ref-9"></a>
+9. Baker & Matthews, *Lucas-Kanade 20 Years On: A Unifying Framework*, IJCV 2004。<https://doi.org/10.1023/B:VISI.0000011361.88581.12>
+<a id="ref-10"></a>
+10. Hartley & Zisserman, *Multiple View Geometry in Computer Vision*, 2nd edition。<https://www.robots.ox.ac.uk/~vgg/hzbook/>
+<a id="ref-11"></a>
+11. Marchand 等，*ViSP: an Open Source Library for Visual Servoing*，ICRA 2014。<https://doi.org/10.1109/ICRA.2014.6907658>
+<a id="ref-12"></a>
+12. ViSP 官方 Template Tracking 文档。<https://visp.inria.fr/template-tracking/>
+<a id="ref-13"></a>
+13. OpenCV 官方 Homography 教程。<https://docs.opencv.org/4.x/d9/dab/tutorial_homography.html>
+<a id="ref-14"></a>
+14. Nocedal & Wright, *Numerical Optimization*, 2nd edition。<https://doi.org/10.1007/978-0-387-40065-5>
+<a id="ref-15"></a>
+15. Madsen、Nielsen、Tingleff，*Methods for Non-Linear Least Squares Problems*。<https://www2.imm.dtu.dk/pubdb/edoc/imm3215.pdf>
+<a id="ref-16"></a>
+16. Ceres Solver 官方 Non-linear Least Squares 文档。<https://ceres-solver.org/nnls_solving.html>
 
 #### Siamese/RPN 与经典追踪器
 
-10. Bertinetto 等，*Fully-Convolutional Siamese Networks for Object Tracking*，ECCV 2016。<https://arxiv.org/abs/1606.09549>
-11. Li 等，*High Performance Visual Tracking with Siamese Region Proposal Network*，CVPR 2018。<https://openaccess.thecvf.com/content_cvpr_2018/html/Li_High_Performance_Visual_CVPR_2018_paper.html>
-12. Zhu 等，*Distractor-aware Siamese Networks for Visual Object Tracking*，ECCV 2018。<https://openaccess.thecvf.com/content_ECCV_2018/html/Zhihua_Zhu_Distractor-Aware_Siamese_ECCV_2018_paper.html>
-13. Henriques 等，*High-Speed Tracking with Kernelized Correlation Filters*，TPAMI 2015。<https://arxiv.org/abs/1404.7584>
-14. Bolme 等，*Visual Object Tracking using Adaptive Correlation Filters*，CVPR 2010。<https://openaccess.thecvf.com/content_cvpr_2010/html/Bolme_Visual_Object_Tracking_2010_CVPR_paper.html>
-15. Nam & Han，*Learning Multi-Domain Convolutional Neural Networks for Visual Tracking*，CVPR 2016。<https://openaccess.thecvf.com/content_cvpr_2016/html/Nam_Learning_Multi-Domain_Convolutional_CVPR_2016_paper.html>
-16. Danelljan 等，*ECO: Efficient Convolution Operators for Tracking*，CVPR 2017。<https://openaccess.thecvf.com/content_cvpr_2017/html/Danelljan_ECO_Efficient_Convolution_CVPR_2017_paper.html>
+<a id="ref-17"></a>
+17. Bertinetto 等，*Fully-Convolutional Siamese Networks for Object Tracking*，ECCV 2016。<https://arxiv.org/abs/1606.09549>
+<a id="ref-18"></a>
+18. Li 等，*High Performance Visual Tracking with Siamese Region Proposal Network*，CVPR 2018。<https://openaccess.thecvf.com/content_cvpr_2018/html/Li_High_Performance_Visual_CVPR_2018_paper.html>
+<a id="ref-19"></a>
+19. Zhu 等，*Distractor-aware Siamese Networks for Visual Object Tracking*，ECCV 2018。<https://openaccess.thecvf.com/content_ECCV_2018/html/Zhihua_Zhu_Distractor-Aware_Siamese_ECCV_2018_paper.html>
+<a id="ref-20"></a>
+20. Henriques 等，*High-Speed Tracking with Kernelized Correlation Filters*，TPAMI 2015。<https://arxiv.org/abs/1404.7584>
+<a id="ref-21"></a>
+21. Bolme 等，*Visual Object Tracking using Adaptive Correlation Filters*，CVPR 2010。<https://openaccess.thecvf.com/content_cvpr_2010/html/Bolme_Visual_Object_Tracking_2010_CVPR_paper.html>
+<a id="ref-22"></a>
+22. Nam & Han，*Learning Multi-Domain Convolutional Neural Networks for Visual Tracking*，CVPR 2016。<https://openaccess.thecvf.com/content_cvpr_2016/html/Nam_Learning_Multi-Domain_Convolutional_CVPR_2016_paper.html>
+<a id="ref-23"></a>
+23. Danelljan 等，*ECO: Efficient Convolution Operators for Tracking*，CVPR 2017。<https://openaccess.thecvf.com/content_cvpr_2017/html/Danelljan_ECO_Efficient_Convolution_CVPR_2017_paper.html>
 
 #### 数据集与评测基准
 
-17. Wu 等，*Online Object Tracking: A Benchmark*，CVPR 2013。<https://openaccess.thecvf.com/content_cvpr_2013/html/Wu_Online_Object_Tracking_2013_CVPR_paper.html>
-18. Kristan 等，*The Visual Object Tracking VOT2018 Challenge Results*。<https://votchallenge.net/vot2018/>
-19. Müller 等，*TrackingNet: A Large-Scale Dataset and Benchmark for Object Tracking*，ECCV 2018。<https://openaccess.thecvf.com/content_ECCV_2018/html/Matthias_Muller_TrackingNet_A_Large-Scale_ECCV_2018_paper.html>
-20. Fan 等，*LaSOT: A High-quality Benchmark for Large-scale Single Object Tracking*，ICCV 2019。<https://openaccess.thecvf.com/content_ICCV_2019/html/Fan_LaSOT_A_High-Quality_Benchmark_for_Large-Scale_Single_Object_Tracking_ICCV_2019_paper.html>
-21. Huang 等，*GOT-10k: A Large High-diversity Benchmark for Generic Object Tracking*，CVPR 2019。<https://openaccess.thecvf.com/content_CVPR_2019/html/Huang_GOT-10k_A_Large_High-Diversity_Benchmark_for_Generic_Object_Tracking_CVPR_2019_paper.html>
+<a id="ref-24"></a>
+24. Wu 等，*Online Object Tracking: A Benchmark*，CVPR 2013。<https://openaccess.thecvf.com/content_cvpr_2013/html/Wu_Online_Object_Tracking_2013_CVPR_paper.html>
+<a id="ref-25"></a>
+25. Kristan 等，*The Visual Object Tracking VOT2018 Challenge Results*。<https://votchallenge.net/vot2018/>
+<a id="ref-26"></a>
+26. Müller 等，*TrackingNet: A Large-Scale Dataset and Benchmark for Object Tracking*，ECCV 2018。<https://openaccess.thecvf.com/content_ECCV_2018/html/Matthias_Muller_TrackingNet_A_Large-Scale_ECCV_2018_paper.html>
+<a id="ref-27"></a>
+27. Fan 等，*LaSOT: A High-quality Benchmark for Large-scale Single Object Tracking*，ICCV 2019。<https://openaccess.thecvf.com/content_ICCV_2019/html/Fan_LaSOT_A_High-Quality_Benchmark_for_Large-Scale_Single_Object_Tracking_ICCV_2019_paper.html>
+<a id="ref-28"></a>
+28. Huang 等，*GOT-10k: A Large High-diversity Benchmark for Generic Object Tracking*，CVPR 2019。<https://openaccess.thecvf.com/content_CVPR_2019/html/Huang_GOT-10k_A_Large_High-Diversity_Benchmark_for_Generic_Object_Tracking_CVPR_2019_paper.html>
