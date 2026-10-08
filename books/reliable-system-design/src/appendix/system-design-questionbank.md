@@ -828,7 +828,7 @@
 #### 常见失分点
 把系统设计说成算法题的放大版；直接罗列中间件；遗漏非目标。
 #### 关联正文
-[第 1 章 系统设计方法论](../part01/01-system-design-guide-methodology.md)、[第 3 章 生产系统治理](../part01/03-production-resilience-safeguards.md)
+[第 1 章 系统设计与架构](../part01/01-system-design-guide-methodology.md)、[第 3 章 生产系统治理](../part01/03-production-resilience-safeguards.md)
 #### 复盘清单
 - 我是否先说明了目标、约束和非目标？
 - 我是否把澄清结果连到后续决策？
@@ -859,7 +859,7 @@
 #### 常见失分点
 把平均流量当峰值；只谈 Redis；没有问库存释放和重复提交。
 #### 关联正文
-[第 7 章 高准确性与强一致性](../part01/07-high-accuracy-strong-consistency-methodology.md)、[第 9 章 高并发写与热点](../part01/09-high-write-throughput-hotspot-methodology.md)、[第 12 章 库存系统](../part02/12-inventory-system.md)
+[第 7 章 高准确性与强一致性设计](../part01/07-high-accuracy-strong-consistency-methodology.md)、[第 9 章 高并发写入与热点治理](../part01/09-high-write-throughput-hotspot-methodology.md)、[第 12 章 库存系统](../part02/12-inventory-system.md)
 #### 复盘清单
 - 我是否区分了活动瞬时峰值与平均流量？
 - 我是否说明了库存和订单的权威状态？
@@ -892,7 +892,7 @@
 #### 常见失分点
 只报一个 QPS；忽略重试和回调；估算后没有落到架构选择。
 #### 关联正文
-[第 1 章 系统设计方法论](../part01/01-system-design-guide-methodology.md)、[第 8 章 低延迟复杂读](../part01/08-low-latency-complex-read-methodology.md)、[第 9 章 高并发写与热点](../part01/09-high-write-throughput-hotspot-methodology.md)
+[第 1 章 系统设计与架构](../part01/01-system-design-guide-methodology.md)、[第 8 章 低延迟复杂读](../part01/08-low-latency-complex-read-methodology.md)、[第 9 章 高并发写入与热点治理](../part01/09-high-write-throughput-hotspot-methodology.md)
 #### 复盘清单
 - 我是否明确了峰值和容量余量的口径？
 - 我是否把每个数量级结论转化为设计选择？
@@ -925,7 +925,7 @@
 #### 常见失分点
 宣称缓存天然强一致；没有对账；把最终一致当作不处理失败。
 #### 关联正文
-[第 4 章 大事务处理](../part01/04-large-transaction-orchestration.md)、[第 7 章 高准确性与强一致性](../part01/07-high-accuracy-strong-consistency-methodology.md)、[第 14 章 订单系统](../part02/14-ecommerce-customer-lifecycle.md)
+[第 4 章 大事务处理](../part01/04-large-transaction-orchestration.md)、[第 7 章 高准确性与强一致性设计](../part01/07-high-accuracy-strong-consistency-methodology.md)、[第 14 章 订单系统](../part02/14-ecommerce-customer-lifecycle.md)
 #### 复盘清单
 - 我是否明确了每类状态的权威来源？
 - 我是否说明了发现和修复偏差的闭环？
@@ -956,7 +956,7 @@
 #### 常见失分点
 所有链路都强一致；所有异步都最终一致；没有时间边界和修复责任。
 #### 关联正文
-[第 4 章 大事务处理](../part01/04-large-transaction-orchestration.md)、[第 7 章 高准确性与强一致性](../part01/07-high-accuracy-strong-consistency-methodology.md)、[第 14 章 支付与交易全生命周期](../part02/14-ecommerce-customer-lifecycle.md)
+[第 4 章 大事务处理](../part01/04-large-transaction-orchestration.md)、[第 7 章 高准确性与强一致性设计](../part01/07-high-accuracy-strong-consistency-methodology.md)、[第 14 章 支付与交易全生命周期](../part02/14-ecommerce-customer-lifecycle.md)
 #### 复盘清单
 - 我是否说明了一致性的对象和可接受时限？
 - 我是否给出了失败后的补偿和对账路径？
@@ -987,7 +987,7 @@
 #### 常见失分点
 把 MySQL 说成所有数据的唯一选择；忽略读写分离、分片和归档；把消息当存储替代品。
 #### 关联正文
-[第 7 章 高准确性与强一致性](../part01/07-high-accuracy-strong-consistency-methodology.md)、[第 12 章 库存系统](../part02/12-inventory-system.md)、[第 14 章 订单系统](../part02/14-ecommerce-customer-lifecycle.md)
+[第 7 章 高准确性与强一致性设计](../part01/07-high-accuracy-strong-consistency-methodology.md)、[第 12 章 库存系统](../part02/12-inventory-system.md)、[第 14 章 订单系统](../part02/14-ecommerce-customer-lifecycle.md)
 #### 复盘清单
 - 我是否说清了权威状态需要的能力？
 - 我是否说明了缓存和消息不承担什么职责？
@@ -1018,7 +1018,7 @@
 #### 常见失分点
 只用分布式锁；没有库存流水；支付失败后不释放；没有幂等键。
 #### 关联正文
-[第 7 章 高准确性与强一致性](../part01/07-high-accuracy-strong-consistency-methodology.md)、[第 9 章 高并发写与热点](../part01/09-high-write-throughput-hotspot-methodology.md)、[第 12 章 库存系统](../part02/12-inventory-system.md)
+[第 7 章 高准确性与强一致性设计](../part01/07-high-accuracy-strong-consistency-methodology.md)、[第 9 章 高并发写入与热点治理](../part01/09-high-write-throughput-hotspot-methodology.md)、[第 12 章 库存系统](../part02/12-inventory-system.md)
 #### 复盘清单
 - 我是否覆盖了预占、确认、释放和对账？
 - 我是否说明了并发与重复下的状态机约束？
@@ -1080,7 +1080,7 @@
 #### 常见失分点
 把锁当事务；不设置业务幂等；只讨论获取锁，不讨论失锁和释放。
 #### 关联正文
-[第 5 章 长生命周期业务流程](../part01/05-long-lifecycle-business-process-methodology.md)、[第 7 章 高准确性与强一致性](../part01/07-high-accuracy-strong-consistency-methodology.md)、[第 12 章 库存系统](../part02/12-inventory-system.md)
+[第 5 章 长生命周期业务流程](../part01/05-long-lifecycle-business-process-methodology.md)、[第 7 章 高准确性与强一致性设计](../part01/07-high-accuracy-strong-consistency-methodology.md)、[第 12 章 库存系统](../part02/12-inventory-system.md)
 #### 复盘清单
 - 我是否区分了并发优化和最终正确性保护？
 - 我是否覆盖了锁失效后的业务行为？
@@ -1113,7 +1113,7 @@
 #### 常见失分点
 只说多机房；所有功能同等保护；没有监控和演练。
 #### 关联正文
-[第 3 章 生产系统治理](../part01/03-production-resilience-safeguards.md)、[第 9 章 高并发写与热点](../part01/09-high-write-throughput-hotspot-methodology.md)、[第 14 章 电商用户全生命周期](../part02/14-ecommerce-customer-lifecycle.md)
+[第 3 章 生产系统治理](../part01/03-production-resilience-safeguards.md)、[第 9 章 高并发写入与热点治理](../part01/09-high-write-throughput-hotspot-methodology.md)、[第 14 章 电商用户全生命周期](../part02/14-ecommerce-customer-lifecycle.md)
 #### 复盘清单
 - 我是否先定义了必须保护的核心业务？
 - 我是否覆盖了预防、发现、恢复三个阶段？
@@ -1365,7 +1365,7 @@
 #### 常见失分点
 只按组件分类；把所有题归为缓存或消息队列；没有权威状态和失败恢复。
 #### 关联正文
-[第 1 章 系统设计方法论](../part01/01-system-design-guide-methodology.md)、[第 4 章 大事务处理](../part01/04-large-transaction-orchestration.md)、[第 9 章 高并发写与热点](../part01/09-high-write-throughput-hotspot-methodology.md)
+[第 1 章 系统设计与架构](../part01/01-system-design-guide-methodology.md)、[第 4 章 大事务处理](../part01/04-large-transaction-orchestration.md)、[第 9 章 高并发写入与热点治理](../part01/09-high-write-throughput-hotspot-methodology.md)
 #### 复盘清单
 - 我是否先识别题目的主矛盾？
 - 我是否能为每种模式说明边界和失败处理？
@@ -1396,7 +1396,7 @@
 #### 常见失分点
 只看答案对错；只背更多题；没有记录假设和被追问的边界。
 #### 关联正文
-[第 1 章 系统设计方法论](../part01/01-system-design-guide-methodology.md)、[第 3 章 生产系统治理](../part01/03-production-resilience-safeguards.md)
+[第 1 章 系统设计与架构](../part01/01-system-design-guide-methodology.md)、[第 3 章 生产系统治理](../part01/03-production-resilience-safeguards.md)
 #### 复盘清单
 - 我是否能列出本次最影响结果的三项遗漏？
 - 我是否把每项遗漏转化为下一次可验证动作？

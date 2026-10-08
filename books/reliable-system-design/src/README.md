@@ -32,15 +32,15 @@
 
 | 章节 | 主题 | 内容速览 | 阅读收获 |
 | --- | --- | --- | --- |
-| [第 1 章](part01/01-system-design-guide-methodology.md) | 系统设计与方案写作 | 从系统设计的核心问题、容量成本权衡和一致性取舍出发，把架构判断组织成可评审、可执行、可复盘的技术方案。 | 建立从问题定义到 TD 落地的设计表达能力。 |
+| [第 1 章](part01/01-system-design-guide-methodology.md) | 系统设计与架构 | 从系统设计的核心问题、容量成本权衡和一致性取舍出发，把架构判断组织成可评审、可执行、可复盘的技术方案。 | 建立从问题定义到 TD 落地的设计表达能力。 |
 | [第 2 章](part01/02-coding-principles-design-patterns.md) | 编码、重构与 Code Review | 把架构意图落到代码边界、重构节奏和评审标准中，讨论如何避免 Controller、Service、DAO 与外部依赖混杂。 | 用代码结构和 Review 持续守住系统可演进性。 |
-| [第 3 章](part01/03-production-resilience-safeguards.md) | 生产治理与技术债务 | 以治理、保障和技术债务的反馈环为主线，拆解 SLO、错误预算、韧性设计、应急保障和还债机制。 | 能把稳定性、债务和交付速度放进同一套治理框架评估。 |
-| [第 4 章](part01/04-large-transaction-orchestration.md) | 大事务与最终一致性 | 从电商创单切入，比较同步 RPC、Saga、TCC、Outbox 和补偿机制，说明跨系统副作用如何收敛。 | 设计可恢复、可补偿、可审计的大事务链路。 |
+| [第 3 章](part01/03-production-resilience-safeguards.md) | 生产系统治理 | 以治理、保障和技术债务的反馈环为主线，拆解 SLO、错误预算、韧性设计、应急保障和还债机制。 | 能把稳定性、债务和交付速度放进同一套治理框架评估。 |
+| [第 4 章](part01/04-large-transaction-orchestration.md) | 大事务处理 | 从电商创单切入，比较同步 RPC、Saga、TCC、Outbox 和补偿机制，说明跨系统副作用如何收敛。 | 设计可恢复、可补偿、可审计的大事务链路。 |
 | [第 5 章](part01/05-long-lifecycle-business-process-methodology.md) | 长生命周期业务流程 | 区分大事务和长流程，围绕订单、商品、退款、入驻和审批等场景展开状态机、编排、恢复与治理。 | 掌握业务对象跨阶段推进的状态建模和恢复设计。 |
 | [第 6 章](part01/06-task-processing-methodology.md) | 任务处理与 Agent 协作 | 从短任务、长任务、后台任务到 Agent 协作，梳理任务生命周期、调度、幂等、重试、可观测和人机协同边界。 | 为异步任务和长任务系统建立清晰的执行与治理模型。 |
-| [第 7 章](part01/07-high-accuracy-strong-consistency-methodology.md) | 高准确性与强一致性 | 聚焦支付、库存和账务等不能只靠最终一致性口号兜底的场景，强调权威事实、CP 核心段、幂等和对账。 | 能优先保护业务事实，并为强一致链路设计吞吐边界。 |
+| [第 7 章](part01/07-high-accuracy-strong-consistency-methodology.md) | 高准确性与强一致性设计 | 聚焦支付、库存和账务等不能只靠最终一致性口号兜底的场景，强调权威事实、CP 核心段、幂等和对账。 | 能优先保护业务事实，并为强一致链路设计吞吐边界。 |
 | [第 8 章](part01/08-low-latency-complex-read-methodology.md) | 低延迟复杂读 | 面向搜索、推荐、广告和 Feed，分析读写不对称、复杂查询、结果质量和性能耦合下的读模型与缓存策略。 | 设计高性能读路径，并说明一致性、相关性和延迟取舍。 |
-| [第 9 章](part01/09-high-write-throughput-hotspot-methodology.md) | 高并发写与热点 | 以秒杀、社交互动和流量洪峰为代表，讨论削峰、排队、热点隔离、快反馈和后端异步收敛。 | 能识别极端写入热点，并设计抗洪峰的写链路。 |
+| [第 9 章](part01/09-high-write-throughput-hotspot-methodology.md) | 高并发写入与热点治理 | 以秒杀、社交互动和流量洪峰为代表，讨论削峰、排队、热点隔离、快反馈和后端异步收敛。 | 能识别极端写入热点，并设计抗洪峰的写链路。 |
 
 ### 第二部分：电商系统设计实战
 
