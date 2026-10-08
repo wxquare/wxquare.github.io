@@ -1,0 +1,2134 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第 15 章 电商订单与履约全生命周期：创单、支付、履约与售后 - System Design: Reliable Systems and E-Commerce Architecture</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="可靠系统设计与电商架构实践；覆盖系统设计方法论、生产可靠性、数据一致性、长流程治理与电商核心业务。">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-2459343d.css">
+        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-04a43adf.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-47c28d00.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">System Design: Reliable Systems and E-Commerce Architecture</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第-15-章-电商订单与履约全生命周期创单支付履约与售后"><a class="header" href="#第-15-章-电商订单与履约全生命周期创单支付履约与售后">第 15 章 电商订单与履约全生命周期：创单、支付、履约与售后</a></h1>
+<blockquote>
+<p><strong>本章定位</strong>：本章承接第 14 章形成的结算凭证，从创单开始建立订单事实，继续讲解支付确认、履约推进、售后退款和长期治理。订单、支付与履约各自拥有明确的状态主权，并通过可重试、可对账的事实事件协作。</p>
+</blockquote>
+<p>建议先阅读<a href="14-ecommerce-customer-lifecycle.html">第 14 章《电商商品发现与交易准备》</a>，了解搜索、购物车和结算如何形成交易输入；本章重点回答这些输入怎样转化为可恢复、可审计的订单与资金事实。</p>
+<p>配合阅读：<a href="11-product-center-supply-lifecycle.html">第 11 章 商品中心、商品供给与生命周期治理</a>、<a href="12-inventory-system.html">第 12 章 库存系统</a>、<a href="13-marketing-pricing-system.html">第 13 章 营销与计价系统</a>。</p>
+<hr>
+<h2 id="151-创单订单数据模型与订单状态机"><a class="header" href="#151-创单订单数据模型与订单状态机">15.1 创单、订单数据模型与订单状态机</a></h2>
+<h3 id="1511-场景画像"><a class="header" href="#1511-场景画像">15.1.1 场景画像</a></h3>
+<p>用户点击“提交订单”后，订单中心依据结算凭证落地商品、价格和履约快照，再由支付结果推进状态；失败、超时或风控拒绝必须释放库存与权益。</p>
+<h3 id="1512-关键技术点"><a class="header" href="#1512-关键技术点">15.1.2 关键技术点</a></h3>
+<p>创单阶段的关键追问集中在幂等、凭证、快照、补偿和安全边界；下文用数据模型、状态机、时序和 ADR 分别展开，不在此重复问答表。</p>
+<h3 id="1513-订单数据模型主单子单订单项与快照"><a class="header" href="#1513-订单数据模型主单子单订单项与快照">15.1.3 订单数据模型：主单、子单、订单项与快照</a></h3>
+<p>订单不是一个只有金额和状态的表，而是一组需要共同解释交易的事实集合。推荐按下面的关系拆分：</p>
+<pre><code class="language-text">Order（主单）
+├── OrderSubOrder（销售主体 / 履约主体 / 店铺维度）
+│   ├── OrderItem（sku、数量、成交金额、资源引用）
+│   ├── ProductSnapshot（标题、规格、图片、规则摘要）
+│   ├── PriceSnapshot（原价、成交价、优惠分摊、税费、运费）
+│   └── FulfillmentSnapshot（地址、履约方式、预约或核销规则）
+├── PaymentOrder（支付单、渠道、支付状态）
+├── InventoryReservationRef（预占引用与释放状态）
+├── AfterSaleCase（售后单及其范围）
+└── OrderEvent / Outbox（事实事件与待投递消息）
+</code></pre>
+<p>主单适合表达用户一次提交的交易聚合，子单表达销售主体或履约主体的独立推进，订单项表达可售卖的最小业务单位。支付单不能简单等同于主单，因为一个主单可以合并支付多个子单，一个子单也可能拆成多次退款。售后单也不应覆盖订单原始字段，而应引用订单项和快照，记录“针对哪一项事实提出了什么后续请求”。</p>
+<p>快照至少要满足三个条件：第一，字段足以支持客服、售后和争议解释；第二，快照有生成时间、来源版本和摘要校验；第三，快照在订单创建后不可被普通商品更新覆盖。并不是所有商品富文本都要塞进订单库，推荐保留标题、规格、销售主体、成交价格、优惠分摊、履约规则摘要和必要的图片 / 文案版本，长描述和展示素材可以通过不可变版本存储或归档引用获取。</p>
+<h3 id="1514-订单状态机与不变量"><a class="header" href="#1514-订单状态机与不变量">15.1.4 订单状态机与不变量</a></h3>
+<p>订单状态机要先区分“用户可见主状态”和“内部协作状态”。例如库存预占失败、支付渠道处理中、物流回调重复等情况，未必都需要新增一个用户可见状态，但必须在内部事件和诊断字段中留下痕迹。</p>
+<p>标准实物订单可以抽象为：</p>
+<pre><code class="language-text">CREATED -&gt; PENDING_PAYMENT -&gt; PAID -&gt; FULFILLING -&gt; SHIPPED
+    |            |             |          |             |
+    |            |             |          |             +--&gt; DELIVERED
+    |            |             |          +----------------&gt; FULFILLMENT_FAILED
+    |            |             +---------------------------&gt; REFUNDING
+    |            +------------------------------------------&gt; CLOSED
+    +-------------------------------------------------------&gt; CANCELED
+</code></pre>
+<p>不同商品类型可以复用 <code>CREATED</code>、<code>PENDING_PAYMENT</code>、<code>PAID</code>、<code>REFUNDING</code> 等公共状态，再由履约子状态表达“待发码、已发码、已核销、已预约、已入住”等差异。状态迁移必须由事件和前置条件驱动，而不是由任意接口直接写字符串。建议为每条迁移记录：<code>from_state</code>、<code>event_id</code>、<code>event_type</code>、<code>actor</code>、<code>occurred_at</code>、<code>reason_code</code> 和 <code>to_state</code>。</p>
+<p>至少要维护以下不变量：</p>
+<ol>
+<li>已支付金额不能超过订单应付金额，退款累计不能超过已支付金额。</li>
+<li>已确认的订单项数量不能大于提交时的数量，除非存在明确的拆单、换货或补发事实。</li>
+<li>订单进入 <code>PAID</code> 前不能产生“支付成功”的用户可见语义；收到重复支付通知只能返回幂等成功。</li>
+<li>订单进入 <code>CANCELED</code> 后不能再被普通支付成功事件推进为 <code>PAID</code>，异常情况必须转人工或进入纠错流程。</li>
+<li>售后完成必须引用支付、履约和退款事实，不能只凭售后申请记录关闭订单。</li>
+<li>主单状态由子单状态聚合得出时，聚合规则必须固定并可测试，不能依赖消息到达顺序。</li>
+</ol>
+<p>这些不变量比“最终状态有哪些枚举值”更重要。事件乱序、重复和延迟是分布式系统的常态，Kafka 的交付语义文档也明确区分了至少一次、至多一次和恰好一次处理边界；业务状态机仍需要用事件 ID 和版本检查实现自己的幂等。[9] 因此，订单状态更新应使用 <code>order_id + version</code> 的乐观并发条件，更新失败时重新读取最新状态并判断事件是否已经生效。</p>
+<h3 id="1515-创单本地事务与消息发布"><a class="header" href="#1515-创单本地事务与消息发布">15.1.5 创单本地事务与消息发布</a></h3>
+<p>提交订单的本地事务只做本域必须同时成立的事情：验证凭证归属、写入订单主单与子单、写入订单项和快照、创建支付单引用、生成初始状态事件或 Outbox 记录。它不应该在数据库事务中同步等待支付渠道、物流系统或所有回补动作。</p>
+<p>事务边界可以表达为：</p>
+<pre><code class="language-text">BEGIN
+  consume checkout token
+  insert order / sub_order / item
+  insert snapshots
+  insert payment_order
+  insert outbox(OrderCreated)
+COMMIT
+
+publisher -&gt; payment / inventory / marketing / fulfillment
+consumer  -&gt; idempotent state transition
+reconciler -&gt; query status and compensate
+</code></pre>
+<p>Outbox 记录和订单事实必须在同一个本地事务提交，否则会出现“订单已经创建但没有事件”或“事件已发送但订单并不存在”的裂缝。[18] 发布器允许重复发送，因此事件消费者要以 <code>event_id</code> 或业务聚合版本去重；不能把“发布器没有收到确认”误判成“业务没有执行”。当发布器连续失败时，要有积压指标、重试退避、死信和人工重放入口。</p>
+<p>MySQL InnoDB 的事务模型可以为本地订单事实提供行级锁和隔离保证，但数据库事务只覆盖同一个资源边界，不能自动把外部支付和库存纳入同一个可靠提交。[13] 本章选择短本地事务加异步补偿，牺牲跨服务瞬时强一致，换取较低锁持有时间、较高吞吐和可独立扩展的下游边界；这个牺牲必须在 ADR 中明确，而不能包装成“系统已经一致”。</p>
+<h3 id="1516-主单子单与合并支付"><a class="header" href="#1516-主单子单与合并支付">15.1.6 主单、子单与合并支付</a></h3>
+<p>当一次提交包含多个店铺、仓库或履约类型时，主单只是用户视角的聚合，真正可独立履约的单位是子单。设计时要明确三组映射：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>关系</th><th>例子</th><th>作用</th></tr>
+</thead>
+<tbody>
+<tr><td>主单到子单</td><td>一个主单拆为多个店铺子单</td><td>展示一次提交与分别履约并存</td></tr>
+<tr><td>子单到支付单</td><td>多个子单共用一个支付单</td><td>支持合并支付和统一收银台</td></tr>
+<tr><td>订单项到资源</td><td>一个订单项对应预占、券码或预约资源</td><td>售后和补偿定位到最小范围</td></tr>
+</tbody>
+</table>
+</div>
+<p>主单不能因为某个子单发货就直接显示“已完成”，也不能因为一个子单退款就把全部子单金额退回。可以定义聚合规则：全部子单支付完成才是主单支付完成；全部子单进入终态且没有待处理售后才是主单完成；部分退款以金额和订单项范围计算。聚合规则需要覆盖空集合、部分失败、部分取消和退款中的中间态。</p>
+<h3 id="1517-创单时机编排归属与提交流程"><a class="header" href="#1517-创单时机编排归属与提交流程">15.1.7 创单时机、编排归属与提交流程</a></h3>
+<p><strong>订单应该在“提交订单”时创建，还是在“点击支付”时创建</strong></p>
+<p>讨论创单时机时，先区分支付意图与正式订单。无论采用哪种方案，都应在请求渠道之前持久化可查询的交易意图、金额快照和幂等标识；“延后正式订单”不等于不记录用户已经发起的交易。还要区分支付授权与实际扣款：授权通常只是资金冻结，capture/扣款才形成实际资金变动，具体语义取决于支付渠道。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>阶段</th><th>方案 A：提交订单时创建待支付单</th><th>方案 B：延后创建正式订单</th></tr>
+</thead>
+<tbody>
+<tr><td>用户提交/点击支付</td><td>本地事务创建待支付订单、价格快照和支付意图</td><td>先持久化 TradeIntent、金额快照和稳定幂等键；暂不创建正式订单</td></tr>
+<tr><td>库存资格</td><td>创建支付单前预占库存，记录过期时间与订单归属</td><td>在请求支付授权或扣款前取得有效库存预占/购买资格；若业务无法保证资源，必须明确告知结果可能退款</td></tr>
+<tr><td>渠道调用</td><td>建立支付尝试后请求授权或扣款</td><td>优先使用“先授权、后 capture”：授权后提交正式订单，再 capture；若渠道只支持即时扣款，则扣款前仍须持有有效库存资格</td></tr>
+<tr><td>权威事实</td><td>支付渠道成功结果经回调、主动查询或对账核验后记为支付事实；订单记录早已存在</td><td>TradeIntent 是请求已受理的本地事实；渠道确认的授权/扣款是资金事实；正式订单须在本地提交后才算订单事实</td></tr>
+<tr><td>失败收敛</td><td>待支付超时后条件取消并幂等释放预占；未知支付结果先查单，不按超时直接关单</td><td>授权后订单提交失败时撤销授权；即时扣款后订单暂不可写时保留 <code>PAYMENT_SUCCEEDED_ORDER_PENDING</code> 并重试落单；库存或业务资格最终不成立时按渠道能力幂等退款/冲正，并通知用户，未知结果先查单，不能直接发起新扣款</td></tr>
+</tbody>
+</table>
+</div>
+<p>方案 B 的关键是把“减少正式订单写入”与“先扣款再争库存”分开。只要先扣款、后竞争库存，就可能产生已扣款但无资源的结果；后续退款可以收敛资金，却会增加用户等待、渠道费用和客服处置成本。即使 TradeIntent 已持久化，也不能把它当成正式订单或库存承诺。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>决策约束</th><th>方案 A 更合适的条件</th><th>方案 B 可评估的条件</th></tr>
+</thead>
+<tbody>
+<tr><td>资源承诺</td><td>需要进入收银台前确定订单、价格和库存</td><td>有独立的短时资格/库存令牌，或商品本身不受稀缺库存限制</td></tr>
+<tr><td>支付渠道</td><td>普通支付即可，支付成功后更新已有订单</td><td>支持授权与 capture/撤销，或即时扣款后的退款流程和对账能力成熟</td></tr>
+<tr><td>高峰治理</td><td>可用限流、排队、分段库存和异步下游降低压力</td><td>已测量正式订单写入确为瓶颈，且 TradeIntent、幂等、查单、退款和客服链路具备容量</td></tr>
+<tr><td>用户与资金风险</td><td>需要稳定的待支付订单、催付和继续支付体验</td><td>可以接受短暂“支付确认中”，并能对退款时限和用户告知负责</td></tr>
+</tbody>
+</table>
+</div>
+<p>本章主线采用 <strong>方案 A：提交订单时创建待支付单</strong>：购物车 -&gt; 结算 -&gt; 提交订单 -&gt; 支付 -&gt; 履约。订单先承接商品、价格和履约快照；支付结果只推进既有订单状态。方案 B 只有在测量证明正式订单写入构成瓶颈，且库存资格、渠道授权/扣款、未知结果查单、退款与人工治理都已设计并演练时才值得采用。秒杀或高并发本身不足以构成采用方案 B 的理由。</p>
+<p><strong>订单提交流程应该由独立聚合服务编排，还是由订单中心自己协调下游</strong></p>
+<p>这也是交易架构里非常经典的一个分歧点，通常存在两种方案：</p>
+<ul>
+<li><strong>方案 A：单独起一个结算 / 交易聚合服务</strong>
+<ul>
+<li>由结算服务或 Trade-CO 统一去协调商品、库存、计价、营销，再把最终结果交给订单中心落单。</li>
+</ul>
+</li>
+<li><strong>方案 B：前端直接调用订单中心，由订单中心自己协调下游</strong>
+<ul>
+<li>订单中心既管订单写库，又去调用商品、库存、计价、营销这些服务完成前置校验与编排。</li>
+</ul>
+</li>
+</ul>
+<p>这两种方案的本质区别是：<strong>交易主流程编排逻辑，是放在订单领域之外的场景聚合层，还是直接压进订单中心内部。</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>优点</th><th>风险</th><th>适用场景</th></tr>
+</thead>
+<tbody>
+<tr><td>独立聚合服务</td><td>订单中心更纯净；读写压力与场景编排隔离；更适合复杂结算页和多业务协同</td><td>多一跳 RPC；多一个服务需要治理</td><td>中大型电商、业务复杂、团队分工清晰、存在独立预结算页</td></tr>
+<tr><td>订单中心自己协调</td><td>链路短；服务更少；前期开发快</td><td>订单中心容易膨胀成万能大管家；读写混合；迭代风险高</td><td>小团队、早期系统、短期快速上线</td></tr>
+</tbody>
+</table>
+</div>
+<p>从工程演进角度看，很多系统早期会采用“订单中心自己协调”的方式快速上线，但随着以下问题出现，通常都会向独立聚合服务演进：</p>
+<ul>
+<li>结算页逻辑越来越复杂</li>
+<li>商品、计价、库存、营销团队开始独立演进</li>
+<li>订单中心既要承接创单写流量，又要承接大量预览与预结算读流量</li>
+<li>大促时希望把“重编排逻辑”和“订单写库主链路”物理隔离</li>
+</ul>
+<p>本章默认采用的是 <strong>方案 A：独立结算聚合服务编排，下游原子服务各自归位</strong>。原因是：</p>
+<ul>
+<li>结算页本身就天然是一个跨商品、库存、计价、营销、地址的聚合场景；</li>
+<li>订单中心更适合回归为“交易事实持久化 + 状态机推进”的原子领域服务；</li>
+<li>支付、履约、售后后续也都更容易围绕清晰的订单事实展开。</li>
+</ul>
+<p>因此这里的推荐结论是：</p>
+<blockquote>
+<p><strong>当系统存在独立的确认订单页 / 预结算页，且交易链路已经明显跨多个领域服务时，优先采用“结算聚合服务编排，下游原子服务落地”的架构；只有在系统非常轻量时，才让订单中心临时兼做协调者。</strong></p>
+</blockquote>
+<h3 id="1518-创单幂等防重与超时反查"><a class="header" href="#1518-创单幂等防重与超时反查">15.1.8 创单幂等、防重与超时反查</a></h3>
+<p>客户端看到“提交超时”时，服务端可能已经完成创单。正确处理不是立即再写一笔订单，而是按幂等键、业务订单号或结算凭证反查：</p>
+<ol>
+<li>按 <code>idempotency_key</code> 查询提交记录。</li>
+<li>查不到时按 <code>checkout_id</code> 和用户身份查询订单。</li>
+<li>查到待支付订单，返回原订单并允许继续支付。</li>
+<li>查到已支付订单，返回支付状态而不是重新创单。</li>
+<li>仍查不到且凭证已过期，提示刷新结算，不继续消费旧资源。</li>
+</ol>
+<p>对外接口应使用明确的 HTTP 语义和问题详情，区分参数错误、凭证过期、资源不足、处理中和服务暂不可用；RFC 9110 定义了 HTTP 语义，RFC 9457 则提供了机器可读的错误详情表达方式。[16][17] 本章建议错误响应至少包含 <code>type</code>、<code>code</code>、<code>title</code>、<code>detail</code>、<code>retryable</code>、<code>request_id</code> 和可选的 <code>next_action</code>，使前端能选择“重试、刷新、换货或联系人工”，而不是把所有错误显示成“系统繁忙”。</p>
+<p><strong>创单接口的幂等性应该怎么设计</strong></p>
+<p>创单接口的幂等性，不能只理解成“用户重复点按钮怎么办”。它真正要解决的是：</p>
+<ul>
+<li>同一个下单意图因为网络抖动、页面重试、MQ 重放或用户多次点击而重复到达时；</li>
+<li>系统最多只能创建一笔订单；</li>
+<li>如果第一次其实已经成功了，后续重试还应该尽量返回第一次成功的结果，而不是简单报错。</li>
+</ul>
+<p>这类设计在工程上通常不是靠单点手段，而是靠一套<strong>分层防御模型</strong>完成：</p>
+<ul>
+<li><strong>第一层：前端轻量防抖</strong>
+<ul>
+<li>用户点击“提交订单”后，按钮立刻置灰</li>
+<li>页面进入 loading 状态，减少肉眼可见的重复点击</li>
+</ul>
+</li>
+<li><strong>第二层：结算服务前置防重</strong>
+<ul>
+<li>用户进入确认订单页时，后端生成一个全局唯一的 <code>submit_token</code></li>
+<li>提交订单时，前端必须把这个 <code>submit_token</code> 原样透传回来</li>
+<li>结算服务先在 Redis 上做一次幂等拦截，例如：</li>
+<li><code>SET submit_lock:{submit_token} 1 NX EX 30</code></li>
+<li>如果没有拿到锁，说明相同提交意图正在处理中，或者已经处理过</li>
+</ul>
+</li>
+<li><strong>第三层：订单中心存储级最终兜底</strong>
+<ul>
+<li>Redis 分布式锁并不是绝对强一致的</li>
+<li>极端情况下，主从切换、锁过期或网络抖动仍然可能让重复请求穿透</li>
+<li>所以订单中心在落库时，仍然必须对 <code>submit_token</code> 做唯一约束</li>
+<li>即使两个请求同时穿透了 Redis，MySQL 也只能允许一笔订单真正写成功</li>
+</ul>
+</li>
+<li><strong>第四层：结果幂等与顺水推舟</strong>
+<ul>
+<li>如果第一次创单已经成功，但响应前端时网络丢包</li>
+<li>第二次相同请求进来，不应该只返回“重复提交”</li>
+<li>更好的做法是缓存 <code>submit_token -&gt; {status, order_id}</code></li>
+<li>后续重试命中后，直接返回第一次成功的 <code>order_id</code>，把用户平滑带到收银台</li>
+</ul>
+</li>
+</ul>
+<p>这几层的职责并不相同：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>防线</th><th>核心目标</th><th>典型实现</th></tr>
+</thead>
+<tbody>
+<tr><td>前端防抖</td><td>减少普通重复点击</td><td>按钮置灰、loading、防重复提交</td></tr>
+<tr><td>Redis 防重</td><td>前置消峰，保护下游资源</td><td><code>submit_token</code> + 分布式锁 / SETNX</td></tr>
+<tr><td>DB 唯一约束</td><td>存储层最终绝对幂等</td><td>订单表或防重表上的唯一索引</td></tr>
+<tr><td>结果缓存</td><td>平滑处理“成功但回包丢失”</td><td><code>submit_token -&gt; order_id</code> 结果映射</td></tr>
+</tbody>
+</table>
+</div>
+<p>面试里经常会被继续追问两个极端场景。</p>
+<p><strong>场景一：业务还没执行完，Redis 锁先过期怎么办？</strong></p>
+<p>如果创单链路比较长，固定的 <code>EX 30</code> 很容易在高峰期被打穿。更稳妥的工程实现通常是：</p>
+<ul>
+<li>使用具备看门狗续期能力的分布式锁实现；</li>
+<li>业务未结束时自动续期；</li>
+<li>业务结束后显式解锁。</li>
+</ul>
+<p>这样可以避免“创单事务还没跑完，锁却先失效”的幂等击穿问题。</p>
+<p><strong>场景二：Redis 锁挡住了大部分流量，但极端情况下仍然漏了怎么办？</strong></p>
+<p>这里真正的底线是：</p>
+<blockquote>
+<p><strong>Redis 负责前置消峰，MySQL 唯一键负责最终闭环。</strong></p>
+</blockquote>
+<p>也就是说，Redis 锁不是为了替代数据库唯一约束，而是为了减少无意义的重复流量冲击商品、库存、营销和订单中心。</p>
+<p>因此这里更稳妥的结论是：</p>
+<blockquote>
+<p><strong>创单幂等要做成“前端防抖 + 结算服务 submit_token 防重 + 订单中心唯一索引兜底 + 结果缓存顺水推舟”的四层模型。Redis 负责前置消峰，数据库负责最终绝对幂等。</strong></p>
+</blockquote>
+<p><strong>预生成的订单号能不能直接作为创单幂等 token</strong></p>
+<p>在创单幂等设计里，还有一个非常实用的工程化问题：</p>
+<ul>
+<li>结算页是不是一定要单独发一个随机 <code>submit_token</code>；</li>
+<li>还是说，<strong>预生成的订单号本身就可以兼做创单幂等键</strong>。</li>
+</ul>
+<p>答案是：<strong>可以，而且在很多系统里这是更推荐的做法。</strong></p>
+<p>这里的关键不是“先写一条待支付订单”，而是：</p>
+<ul>
+<li>用户进入确认订单页时，系统先生成一个全局唯一的 <code>order_no</code>；</li>
+<li>这个 <code>order_no</code> 先不落订单主表；</li>
+<li>而是先作为一次性的创单提交凭证，写入 Redis，设置合理的过期时间；</li>
+<li>真正提交订单时，前端带着这个 <code>order_no</code> 回来，由后端原子消费它，再执行正式创单。</li>
+</ul>
+<p>这意味着，一个预生成订单号同时承担了两层身份：</p>
+<ul>
+<li><strong>业务主键</strong>：后续支付、履约、售后都围绕这个订单号推进；</li>
+<li><strong>提交幂等键</strong>：用于防止同一个结算确认页被重复提交多次。</li>
+</ul>
+<p>与“纯随机 token”相比，它的优势很明显：</p>
+<ul>
+<li>不需要再维护一套独立 token 体系；</li>
+<li>幂等键和订单主键天然合一，链路更清晰；</li>
+<li>如果提交时 Redis token 已经过期，后端可以直接按 <code>order_no</code> 去订单库反查是否已经成功创单；</li>
+<li>即使前端回包丢失，用户重试时也更容易平滑返回已有订单。</li>
+</ul>
+<p>但要想把这个方案用稳，必须满足几个前提：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>设计点</th><th>要求</th></tr>
+</thead>
+<tbody>
+<tr><td>订单号生成时机</td><td>必须在确认订单页阶段就预生成，而不是创单事务最后才生成</td></tr>
+<tr><td>Redis 侧</td><td><code>order_no</code> 要作为一次性可消费凭证写入缓存，并设置 TTL</td></tr>
+<tr><td>MySQL 侧</td><td>订单表必须对 <code>order_no</code> 做唯一索引，承担最终兜底</td></tr>
+<tr><td>提交失败处理</td><td>Redis token 失效后，不能直接报错，要先按 <code>order_no</code> 反查订单是否已存在</td></tr>
+</tbody>
+</table>
+</div>
+<p>最稳妥的提交流程通常是：</p>
+<ol>
+<li>用户进入确认订单页；</li>
+<li>结算服务预生成 <code>order_no</code>；</li>
+<li>Redis 写入 <code>order:submit:{order_no}</code>，TTL 例如 15~30 分钟；</li>
+<li>前端提交订单时，原样带回这个 <code>order_no</code>；</li>
+<li>后端先原子消费 Redis 中的提交凭证；</li>
+<li>再进入正式创单事务；</li>
+<li>订单表以 <code>order_no unique</code> 最终兜底。</li>
+</ol>
+<p>这里尤其要注意一个容易答错的点：</p>
+<blockquote>
+<p><strong>token 过期，不等于订单一定创建失败。</strong></p>
+</blockquote>
+<p>所以当 Redis 里发现 <code>order_no</code> 已不存在时，更合理的后端处理顺序是：</p>
+<ul>
+<li>先按 <code>order_no</code> 去订单库查；</li>
+<li>如果已经有订单，直接返回这笔已有订单；</li>
+<li>如果没有订单，再提示用户“页面已超时，请刷新后重新提交”。</li>
+</ul>
+<p>当然，这种方案也有边界：</p>
+<ul>
+<li>不要直接暴露纯自增订单号；</li>
+<li>更适合使用 Snowflake、号段 + 随机扰动、带业务前缀的全局唯一号；</li>
+<li>并且 Redis 只负责前置防重，<strong>绝不能替代数据库唯一约束</strong>。</li>
+</ul>
+<p>因此这里更稳妥的结论是：</p>
+<blockquote>
+<p><strong>预生成订单号完全可以直接作为创单幂等 token。最佳实践是“预生成订单号 = 提交幂等键 = 订单业务主键”，再配合 Redis 一次性消费和数据库唯一索引，形成一前一后的双保险。</strong></p>
+</blockquote>
+<p><strong>技术幂等和业务重复单提醒，为什么要分两层设计</strong></p>
+<p>创单链路里还有一个很容易被忽略的点：</p>
+<ul>
+<li><strong>技术幂等</strong>，解决的是“同一个请求重复到达，系统不要创建两笔订单”；</li>
+<li><strong>业务重复单提醒</strong>，解决的是“同一个用户在很短时间内，可能无意中下了两笔高度相似的订单”。</li>
+</ul>
+<p>这两者看起来都在处理“重复”，但其实完全不是一回事。</p>
+<p><strong>技术幂等</strong>的典型触发原因通常是：</p>
+<ul>
+<li>用户重复点击提交；</li>
+<li>网络抖动导致前端自动重试；</li>
+<li>网关超时后客户端再次发起请求；</li>
+<li>消息重发或服务重试。</li>
+</ul>
+<p>它的目标非常纯粹：</p>
+<blockquote>
+<p><strong>同一个下单请求，多次到达，只能被系统真正处理一次。</strong></p>
+</blockquote>
+<p>而<strong>业务重复单提醒</strong>更偏用户体验和业务治理，它处理的是：</p>
+<ul>
+<li>用户已经成功下过一笔极其相似的订单；</li>
+<li>但因为没注意页面状态、没看到待支付订单、或者切了支付方式，又重新下了一笔；</li>
+<li>这两笔订单在技术上是两次不同请求，但在业务上很可能是用户误操作。</li>
+</ul>
+<p>它的目标不是强拦截，而是：</p>
+<blockquote>
+<p><strong>在不破坏正常下单自由度的前提下，提示用户“你刚刚可能已经下过一笔类似订单了”。</strong></p>
+</blockquote>
+<p>所以一个成熟的订单系统，通常要把这两层拆开设计：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>层次</th><th>目标</th><th>典型手段</th></tr>
+</thead>
+<tbody>
+<tr><td>技术幂等</td><td>防止同一请求被重复处理</td><td><code>submit_token/order_no</code>、Redis 一次性消费、数据库唯一索引</td></tr>
+<tr><td>业务重复单提醒</td><td>防止用户短时间内误下两笔相似订单</td><td>按用户、商品、地址、金额、时间窗口做相似订单检测，并给出二次确认提示</td></tr>
+</tbody>
+</table>
+</div>
+<p>业务重复单提醒一般不会像技术幂等那样做成强约束唯一键，而是更偏“软校验”。例如：</p>
+<ul>
+<li>同一用户；</li>
+<li>在最近 1~5 分钟；</li>
+<li>针对相同商品 / SKU / 房型 / 行程；</li>
+<li>收货地址、数量、金额高度一致；</li>
+<li>且前一笔订单还处于待支付或刚支付状态。</li>
+</ul>
+<p>这时系统更合理的动作通常是：</p>
+<ul>
+<li>弹出提醒：
+<ul>
+<li>“你刚刚已经提交过一笔相似订单，是否继续下单？”</li>
+</ul>
+</li>
+<li>给用户两个选择：
+<ul>
+<li>去查看已有订单；</li>
+<li>继续提交当前订单。</li>
+</ul>
+</li>
+</ul>
+<p>这样做的原因是：</p>
+<ul>
+<li>有些重复单确实是误操作；</li>
+<li>但也有些重复单是用户有意为之，例如：
+<ul>
+<li>给不同人各买一份相同商品；</li>
+<li>同一酒店房型连续下两间；</li>
+<li>同一活动商品分开下单。</li>
+</ul>
+</li>
+</ul>
+<p>如果把业务重复单也像技术幂等一样硬挡掉，反而会伤害真实交易。</p>
+<p>因此更稳妥的结论是：</p>
+<blockquote>
+<p><strong>技术幂等和业务重复单提醒必须分层设计：技术幂等前置，负责防止同一请求被系统处理两次；业务重复单提醒后置，负责识别“相似订单”并给用户二次确认。技术幂等优先，业务提醒辅助。</strong></p>
+</blockquote>
+<h3 id="1519-创单失败后的资源补偿"><a class="header" href="#1519-创单失败后的资源补偿">15.1.9 创单失败后的资源补偿</a></h3>
+<p><strong>创单失败后，库存预占和权益占用怎么做最终一致性补偿</strong></p>
+<p>这也是结算编排里非常关键的一道资损防线。</p>
+<p>在标准的提单链路里，前面往往已经发生了这些动作：</p>
+<ul>
+<li>价格快照已经生成</li>
+<li>库存已经预占，拿到了 <code>reserve_ids</code></li>
+<li>营销权益已经占用，拿到了 <code>coupon_tokens</code></li>
+</ul>
+<p>这时如果最后一步：</p>
+<ul>
+<li><code>结算服务 -&gt; 订单中心 CreateOrder</code></li>
+</ul>
+<p>在写库时因为数据库超时、网络断开、主从抖动等原因失败，系统就会落入一个非常危险的中间态：</p>
+<ul>
+<li>前端看到的是“创单失败”</li>
+<li>但库存和权益其实已经被前置链路冻结住了</li>
+</ul>
+<p>如果不处理，就会出现：</p>
+<ul>
+<li>僵尸库存预占</li>
+<li>优惠券被卡死</li>
+<li>用户无法再次下单</li>
+<li>商家可售资源被无故锁住</li>
+</ul>
+<p>这里不能靠 Seata / XA 这类强一致事务硬拉平，因为它们会把高并发交易主链路拖得过重。更可落地的做法是：</p>
+<ul>
+<li><strong>主链路快速失败</strong></li>
+<li><strong>异步补偿兜底</strong></li>
+<li><strong>延迟反查再兜底</strong></li>
+</ul>
+<p>推荐的补偿模型一般有两层：</p>
+<p><strong>第一层：消息补偿</strong></p>
+<p>当结算服务或订单中心感知到创单明确失败时，发布一条 <code>OrderCreateFailedEvent</code>：</p>
+<ul>
+<li>库存中心订阅后释放 <code>reserve_ids</code></li>
+<li>营销中心订阅后释放 <code>coupon_tokens</code></li>
+</ul>
+<p>这样可以把大部分“明确失败”的场景快速回滚掉，而不需要让前台请求同步等待所有补偿完成。</p>
+<p><strong>第二层：下游主动反查 + 延迟释放</strong></p>
+<p>为了防止消息丢失、网络抖动或“创单结果未知”这种灰色状态，库存中心和营销中心本身还应该有一层延迟自愈：</p>
+<ul>
+<li>在预占 / 占用成功时，挂一条延迟检查任务</li>
+<li>到达超时时间后，主动去订单中心反查：
+<ul>
+<li>这个 <code>reserve_ids</code> / <code>coupon_tokens</code> 对应的订单到底创建成功了吗</li>
+</ul>
+</li>
+<li>如果订单不存在，或者订单已经被关闭 / 取消，就自动释放资源</li>
+</ul>
+<p>这意味着：</p>
+<ul>
+<li>结算服务负责主流程编排</li>
+<li>订单中心负责创单真相</li>
+<li>库存和营销中心各自对自己的冻结资源负责自我救赎</li>
+</ul>
+<p>因此这里更稳妥的结论是：</p>
+<blockquote>
+<p><strong>创单失败后的最终一致性，不能依赖运行时强事务，而要依赖“失败事件补偿 + 延迟反查释放”的双层自愈机制。</strong></p>
+</blockquote>
+<h3 id="15110-下单价格与订单快照校验"><a class="header" href="#15110-下单价格与订单快照校验">15.1.10 下单价格与订单快照校验</a></h3>
+<p><strong>价格防篡改应该重新计算一遍，还是依赖价格签名 / 版本核销</strong></p>
+<p>创单链路里还有一个非常关键的安全问题：<strong>前端提交的价格到底能不能信</strong>。</p>
+<p>如果黑客通过抓包改包，把前端传给 <code>SubmitOrder</code> 的金额从 5999 改成 0.01，而后端又没有做价格防篡改校验，就会直接造成巨大资损。</p>
+<p>这类防护一般有两种主流方案：</p>
+<ul>
+<li><strong>方案 A：无状态签名校验</strong>
+<ul>
+<li>预结算时由计价系统生成一个 <code>price_token</code></li>
+<li>它通常由 <code>item_id + user_id + price + timestamp + secret</code> 等因子签名得到</li>
+<li>创单时前端把价格和 <code>price_token</code> 一起透传回来</li>
+<li>结算服务或计价服务重新验签，确认价格未被改包</li>
+</ul>
+</li>
+<li><strong>方案 B：有状态版本核销</strong>
+<ul>
+<li>预结算时由计价系统生成一个 <code>price_version_id</code></li>
+<li>并把对应价格结果写到 Redis 或计价缓存中</li>
+<li>创单时前端只透传版本号</li>
+<li>后端按版本号回查真实价格，再以缓存中的真相落单</li>
+</ul>
+</li>
+</ul>
+<p>这两种方案的本质区别是：</p>
+<ul>
+<li>方案 A 更像“<strong>数学签名防篡改</strong>”</li>
+<li>方案 B 更像“<strong>后端状态核销防篡改</strong>”</li>
+</ul>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>优点</th><th>风险</th><th>适用场景</th></tr>
+</thead>
+<tbody>
+<tr><td>无状态签名校验</td><td>不需要高频读 Redis；延迟低；更适合高并发</td><td>如果只做简单签名，天然不防重放；仍需额外处理超时窗口和 nonce</td><td>高并发场景、性能优先场景</td></tr>
+<tr><td>有状态版本核销</td><td>安全边界清晰；天然适合做一次性核销；方便过期控制</td><td>对 Redis / 状态存储依赖更强；预结算和创单时会增加缓存 IO 压力</td><td>安全要求高、流程较长、可接受缓存成本的场景</td></tr>
+</tbody>
+</table>
+</div>
+<p>工业界更常见的落地方式，往往是：</p>
+<ul>
+<li>以 <strong>无状态签名</strong> 作为主防线，防止前端改价</li>
+<li>再加上 <strong>时间窗口 + nonce 防重放</strong></li>
+<li>如有必要，再用轻量 Redis 记录短期 nonce 或一次性 token</li>
+</ul>
+<p>这样既能保持高并发下的低延迟，又能防止用户把一个合法的价格签名反复提交多次。</p>
+<p>因此这里更稳妥的结论是：</p>
+<blockquote>
+<p><strong>高并发电商链路里，优先采用“价格签名校验 + 时间窗口 / nonce 防重放”的轻量方案；只有在业务对一次性核销、价格版本冻结要求特别强时，再演进到有状态版本核销。</strong></p>
+</blockquote>
+<p><strong>订单快照应该由谁构建：商品中心、订单中心，还是结算服务</strong></p>
+<p>订单快照的职责划分也是一个非常容易设计错的点。这里真正的问题不是“谁能拿到商品标题”，而是：</p>
+<ul>
+<li>谁手里拥有最完整的下单上下文；</li>
+<li>谁最适合在创单前把商品、价格、履约三类事实揉成一份订单解释材料；</li>
+<li>谁应该只负责持久化，而不要再次退化成交易大管家。</li>
+</ul>
+<p>这类职责一般会出现三种候选方案：</p>
+<ul>
+<li><strong>方案 A：由商品中心构建快照</strong>
+<ul>
+<li>看起来商品中心最懂商品，但它只拥有“当前商品真相”</li>
+<li>它并不知道这次交易用了什么券、最终成交价是多少、履约承诺是什么</li>
+<li>如果让商品中心在提单时参与组装订单快照，会把交易上下文反向污染到商品域</li>
+</ul>
+</li>
+<li><strong>方案 B：由订单中心构建快照</strong>
+<ul>
+<li>订单中心在收到创单请求时，理论上可以再去查商品、计价、营销、履约</li>
+<li>但这会让订单中心重新变成“大管家”</li>
+<li>创单链路的耗时、依赖数和失败面都会急剧上升</li>
+</ul>
+</li>
+<li><strong>方案 C：由结算服务构建快照，订单中心只负责落库</strong>
+<ul>
+<li>结算服务在提交订单前，本来就已经拿到了：</li>
+<li>商品静态信息</li>
+<li>价格明细和优惠分摊结果</li>
+<li>履约承诺与交付上下文</li>
+<li>它是最适合在内存里把这些信息揉成 <code>SnapshotDTO</code> 的那一层</li>
+<li>订单中心收到后，只需要把订单事实和快照 JSON 一起持久化</li>
+</ul>
+</li>
+</ul>
+<p>三种方案的关键差异如下：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>优点</th><th>风险</th><th>推荐度</th></tr>
+</thead>
+<tbody>
+<tr><td>商品中心构建</td><td>商品标题、主图、类目天然可得</td><td>职责越界；不拥有价格与履约上下文；容易把交易逻辑污染回商品域</td><td>不推荐</td></tr>
+<tr><td>订单中心构建</td><td>创单和落库在一个服务里闭环</td><td>订单中心重新退化成大管家；创单链路变重；依赖面暴涨</td><td>谨慎使用</td></tr>
+<tr><td>结算服务构建</td><td>最接近完整交易上下文；适合在创单前聚合和揉快照</td><td>需要明确快照字段边界，避免把无意义大字段塞进快照</td><td>推荐</td></tr>
+</tbody>
+</table>
+</div>
+<p>因此这里更稳妥的结论是：</p>
+<blockquote>
+<p><strong>订单快照应由结算服务在提交订单前完成组装，订单中心只负责把订单事实与快照结果持久化；商品中心提供静态契约，但不直接参与快照构建。</strong></p>
+</blockquote>
+<p>进一步说，快照也不能无限膨胀。真正应该进入订单快照的，通常是：</p>
+<ul>
+<li>商品 ID、SKU ID、标题、下单时主图 URL、规格属性；</li>
+<li>成交单价、原价、优惠分摊、券抵扣、运费、税费；</li>
+<li>履约类型、承诺送达时间、退改规则摘要。</li>
+</ul>
+<p>而像商品详情图文、长文本介绍、视频等大字段，不应该进入订单快照。订单列表查询也不应该把大 JSON 混在主表里，而应该通过独立的 <code>order_snapshot</code> 之类的附表按需读取。</p>
+<p><strong>订单中心负责交易事实编排，商品中心负责交易前静态契约</strong></p>
+<p>商品中心负责“商品身份与价格合规”的静态校验，订单中心负责“交易行为与流水合规”的最终编排。</p>
+<p><strong>订单必须保存商品快照、价格快照和履约快照</strong></p>
+<p>订单必须保存商品快照、价格快照和履约快照，而不是回读最新商品。</p>
+<h3 id="15111-订单数据模型演进与主权边界"><a class="header" href="#15111-订单数据模型演进与主权边界">15.1.11 订单数据模型演进与主权边界</a></h3>
+<p><strong>订单模型的演进：从支付单 + 订单，到主单 / 子单 / 商品维度退款</strong></p>
+<p>订单模型的演进，本质上是在回答一个问题：系统到底要先解决“支付聚合”，还是先解决“履约拆分、售后拆分和商品维度退款”。</p>
+<p>在业务早期，很多系统只有三张核心表：</p>
+<ul>
+<li><code>pay_order_tab</code></li>
+<li><code>order_tab</code></li>
+<li><code>refund_tab</code></li>
+</ul>
+<p>这套模型足以支撑最基础的交易闭环：</p>
+<ul>
+<li>一个支付单对应一个或多个订单</li>
+<li>一个订单下挂多个订单明细</li>
+<li>退款主要按整单维度处理</li>
+</ul>
+<p>它的优点是简单、上线快、链路短。但当业务开始出现下面这些诉求时，模型就会越来越吃力：</p>
+<ul>
+<li>一个支付单下挂多个业务订单，需要合并支付</li>
+<li>一个用户视角上的“大订单”需要按商家、仓库、履约方式拆成多个子单</li>
+<li>售后不再只是整单退款，而是按某个商品、某个 <code>order_item</code> 退款</li>
+<li>后续还可能出现部分发货、部分签收、部分退款、部分核销</li>
+</ul>
+<p>这时候，更稳妥的演进方向是把“支付域聚合”和“订单域聚合”拆开：</p>
+<ul>
+<li><code>pay_order_tab</code>：属于支付域，只解决一次支付要付多少钱、走哪个渠道、支付状态是什么</li>
+<li><code>parent_order</code>：属于订单域，解决用户视角和业务聚合问题</li>
+<li><code>order_tab</code>：承载子单，解决分商家、分仓、分履约、分售后的独立处理</li>
+<li><code>order_item_tab</code>：承载商品维度事实，给商品维度退款、部分售后、部分履约提供锚点</li>
+<li><code>refund_tab</code>：从“只关联合同/整单”演进到既可关联订单，也可关联 <code>order_item_id</code></li>
+</ul>
+<p>可以用一句话概括这种演进模型：</p>
+<blockquote>
+<p>主单解决“支付和用户视角的统一”问题，子单解决“履约、结算、售后等多维度独立处理”问题。</p>
+</blockquote>
+<p>一个比较务实的演进顺序通常是三步走：</p>
+<ol>
+<li>先保留现有 <code>pay_order_tab + order_tab + refund_tab</code>，快速支撑基础交易。</li>
+<li>在订单域引入 <code>parent_order</code>，或者至少先在 <code>order_tab</code> 上补 <code>parent_order_id</code>，开始支持合并支付和业务聚合。</li>
+<li>在 <code>refund_tab</code> 上增加 <code>order_item_id</code>，让退款能力从整单退款演进到商品维度退款。</li>
+</ol>
+<p>这里有一个很重要的边界要守住：</p>
+<ul>
+<li><code>pay_order_tab</code> 不应该替代 <code>parent_order</code></li>
+<li>支付单是支付域对象，关注资金流</li>
+<li>主单是订单域对象，关注用户视角、履约拆分和售后聚合</li>
+</ul>
+<p>也就是说，支付单可以聚合多笔业务订单，但它不应该承接“用户看到的是一单还是多单”“履约怎么拆”“退款按哪个粒度处理”这类订单域问题。</p>
+<p>如果系统还处在简单阶段，完全没必要一开始就把主单、子单、订单项、退款项全部做满；但设计时要预留一条清晰演进路径：</p>
+<ul>
+<li>简单模式先跑通支付和整单退款</li>
+<li>复杂模式再逐步引入主单、子单和商品维度退款</li>
+</ul>
+<p>这样既能避免过度设计，也不会在后期被早期模型彻底卡死。</p>
+<h3 id="15112-场景一提交订单时序图"><a class="header" href="#15112-场景一提交订单时序图">15.1.12 场景一：提交订单时序图</a></h3>
+<pre class="mermaid">
+sequenceDiagram
+    participant FE as 前端
+    participant CO as 结算服务
+    participant R as Redis 幂等凭证
+    participant O as 订单中心
+    participant P as 商品中心
+    participant PR as 计价系统
+    participant IV as 库存中心
+    participant MK as 营销中心
+
+    Note over FE,CO: 用户进入确认页 → 预生成 order_no（存 Redis，有效期 15~30min）
+
+    FE-&gt;&gt;CO: SubmitOrder(order_no, price_token, reserve_ids, coupon_tokens, ...)
+
+    CO-&gt;&gt;R: Lua原子消费 order_no 凭证
+
+    alt 凭证不存在或已过期
+        CO-&gt;&gt;O: queryOrderByOrderNo(order_no)
+        O--&gt;&gt;CO: 已有订单 / 未找到
+        CO--&gt;&gt;FE: 返回已有订单 或 "页面已超时，请刷新重试"
+    else 第一次有效提交
+        CO-&gt;&gt;P: 商品静态合规校验
+        CO-&gt;&gt;PR: 价格签名 + 版本校验（price_token）
+        CO-&gt;&gt;IV: 库存预占凭证校验（reserve_ids）
+        CO-&gt;&gt;MK: 营销权益校验（coupon_tokens）
+
+        alt 任意校验失败
+            CO--&gt;&gt;FE: 返回具体错误（不删 Redis 凭证，允许重试）
+        else 全部校验通过
+            CO-&gt;&gt;CO: 组装订单快照 SnapshotDTO
+            CO-&gt;&gt;O: CreateOrder(order_no, orderDTO, snapshotDTO)
+
+            Note over O: 本地事务
+            O-&gt;&gt;O: 1. 插入 orders（order_no 唯一索引）&lt;br&gt;2. 插入 order_snapshot&lt;br&gt;3. 记录操作日志
+            O--&gt;&gt;CO: 成功
+
+            CO-&gt;&gt;R: 删除 order_no 凭证（仅成功后删除）
+            CO--&gt;&gt;FE: 创建成功 + order_id
+        end
+    end
+</pre>
+
+<h3 id="15113-特殊场景预售订单"><a class="header" href="#15113-特殊场景预售订单">15.1.13 特殊场景：预售订单</a></h3>
+<p>预售订单的本质，不是“普通订单加一个活动标签”，而是<strong>延迟履约 + 分阶段支付 + 长周期资源占用</strong>。它和现货单最大的区别在于：交易事实可以先成立，但资源最终确认和履约发生在更晚的时间点。</p>
+<p><strong>业务生命周期</strong></p>
+<p>一个典型的预售订单，通常会经历下面几个阶段：</p>
+<ul>
+<li>预热期：用户可以浏览和加购，但还不能正式下单</li>
+<li>定金期：用户支付定金，锁定购买资格</li>
+<li>尾款期：活动切换到尾款支付窗口，用户补齐尾款</li>
+<li>履约期：尾款支付成功后，订单才进入正常发货 / 履约流程</li>
+<li>异常终止：定金支付后尾款超时、用户主动取消、活动终止</li>
+</ul>
+<p>因此，预售订单不是一次支付完成全部交易，而是把“购买承诺”和“最终成交”拆成了两个时间点。</p>
+<p><strong>核心模型</strong></p>
+<p>预售订单建议显式建模，而不是把逻辑散落在普通订单字段里拼凑：</p>
+<ul>
+<li><code>order_type = PRESALE</code></li>
+<li><code>presale_end_time</code>：尾款支付截止时间</li>
+<li><code>delivery_time</code>：预计发货时间</li>
+<li><code>lock_deadline</code>：库存锁定截止时间</li>
+</ul>
+<p>其中最关键的是“分阶段支付”模型。更推荐单独抽一层 <code>pay_stage</code> 或等价支付阶段表，而不是在 <code>pay_order_tab</code> 上硬塞一组定金 / 尾款字段。原因很简单：</p>
+<ul>
+<li>每个阶段都可能有独立的支付流水 <code>trade_no</code></li>
+<li>退款时可能只退定金，或者只退尾款</li>
+<li>财务对账更容易按阶段落账</li>
+<li>后续即使出现三阶段支付，也不需要推翻原模型</li>
+</ul>
+<p><strong>与其他服务的交互边界</strong></p>
+<p>预售单会把多个中心的责任拉得更长，因此边界必须先钉死：</p>
+<ul>
+<li>商品中心：提供预售商品快照，尤其是定金金额、尾款金额、预计发货时间、活动承诺文案</li>
+<li>营销中心：提供预售活动规则，如定金比例、尾款优惠、限购数量</li>
+<li>库存中心：在定金支付成功后做长时间预占；在尾款支付成功后再转成最终 Confirm</li>
+<li>消息中心：在尾款截止前做多轮提醒，例如提前 24 小时、3 小时、30 分钟</li>
+</ul>
+<p>这里的设计重点是：</p>
+<blockquote>
+<p>结算服务在定金阶段解决“资格锁定”，订单中心在尾款支付完成后才把这笔交易推进到真正可履约状态。</p>
+</blockquote>
+<p><strong>预售链路的关键挑战</strong></p>
+<p>预售最大的风险，不在于普通创单，而在于它把资源和资金拉成了一个长周期博弈。</p>
+<p><strong>挑战一：用户付了定金，但长时间不付尾款</strong></p>
+<ul>
+<li>风险：库存被长时间占用，影响后续售卖</li>
+<li>处理：库存中心使用长 TTL 预占；尾款超时后由订单中心通过 Outbox 异步 Cancel；必要时按规则扣除部分定金作为违约成本</li>
+</ul>
+<p><strong>挑战二：尾款支付窗口集中爆发</strong></p>
+<ul>
+<li>风险：大量用户在最后几小时同时补尾款，触发支付、库存 Confirm、营销结算的洪峰</li>
+<li>处理：尾款支付仍然走普通支付主链路的幂等、防重、Outbox、Confirm 编排，不因为它是“第二阶段支付”就绕开主流程</li>
+</ul>
+<p><strong>挑战三：退款复杂度更高</strong></p>
+<ul>
+<li>风险：预售退款不再是简单整单退款，而可能区分定金退款、尾款退款、履约前退款</li>
+<li>处理：退款模型增加 <code>refund_stage = DEPOSIT / FINAL</code> 一类字段，显式标记退款属于哪个支付阶段</li>
+</ul>
+<p><strong>推荐的落地原则</strong></p>
+<p>预售场景最容易犯的错误，是把它当成“普通订单 + 两次付款”来实现。更稳妥的思路是：</p>
+<ul>
+<li>把预售当成一种独立 <code>order_type</code></li>
+<li>把定金和尾款视为两个支付阶段</li>
+<li>把库存看成“长预占 + 最终确认”的两段式资源状态</li>
+<li>把尾款超时和活动终止视为标准 Saga Cancel 场景</li>
+</ul>
+<p>一句话总结：</p>
+<blockquote>
+<p>预售订单的核心，不是先收一笔钱，而是先锁定资格，再在更晚的时间点完成真正成交与履约。</p>
+</blockquote>
+<h3 id="15114-特殊场景0-元购订单"><a class="header" href="#15114-特殊场景0-元购订单">15.1.14 特殊场景：0 元购订单</a></h3>
+<p>0 元购的本质，不是“没有支付所以更简单”，而是<strong>营销驱动的超高风险低价订单</strong>。它的目标通常是拉新、促活、带动搭售，但系统设计上反而要更谨慎，因为一旦风控、营销核销或库存确认做得不严，很容易直接形成资损。</p>
+<p><strong>业务本质与核心模型</strong></p>
+<p>0 元购订单建议也显式建模，而不是混在普通订单里只靠金额判断：</p>
+<ul>
+<li><code>order_type = ZERO_YUAN</code></li>
+<li><code>real_pay_amount</code>：实际支付金额，很多场景为 <code>0</code></li>
+<li><code>marketing_discount_amount</code>：营销补贴金额，给财务和活动归因使用</li>
+<li><code>campaign_token</code>：营销中心返回的强凭证，后续用于核销和反查</li>
+<li><code>risk_score / risk_level</code>：风控打分结果</li>
+</ul>
+<p>这里要特别强调一个设计边界：</p>
+<blockquote>
+<p>0 元购不是“没有成本”，只是用户不付钱，平台通过营销补贴替用户付款。</p>
+</blockquote>
+<p>因此，订单里必须保留补贴金额和活动凭证，否则后续对账、活动归因、反作弊和财务核销都会变得很被动。</p>
+<p><strong>是否一定要走支付网关</strong></p>
+<p>0 元购最常见的设计争议，是要不要经过支付网关。</p>
+<p>推荐结论是：</p>
+<ul>
+<li>如果用户仍需支付运费或其他附加费用，就必须走正常支付链路</li>
+<li>如果商品、运费、附加费用全部为 <code>0</code>，可以跳过第三方支付网关</li>
+</ul>
+<p>但即使跳过真实支付，也建议保留一笔 <code>pay_order_tab</code> 记录，原因包括：</p>
+<ul>
+<li>用户订单列表和交易流水仍需要一条完整支付事实</li>
+<li>财务和活动分析需要知道这笔单是“0 元成交”，不是“没有支付过程”</li>
+<li>后续退款、活动冲正、对账也更容易统一模型</li>
+</ul>
+<p>也就是说，0 元购可以<strong>跳过外部支付渠道</strong>，但不应该跳过系统内部的支付事实建模。</p>
+<p><strong>库存、营销和风控的处理原则</strong></p>
+<p>0 元购最容易犯的错误，是把它当成“福利单”，然后在库存和营销链路上放松规则。更稳妥的做法是：</p>
+<ul>
+<li>库存仍然走正常的 <code>Reserve -&gt; Confirm / Cancel</code></li>
+<li>营销权益建议在订单创建成功后异步核销，而不是在主请求里同步硬卡死</li>
+<li>风控必须前置，并且允许在订单创建后继续异步二次审查</li>
+</ul>
+<p>为什么营销核销更推荐异步？</p>
+<ul>
+<li>同步核销会把营销中心稳定性直接传染给下单主链路</li>
+<li>0 元购经常是活动洪峰场景，营销系统更容易成为热点瓶颈</li>
+<li>订单事实先落下，再通过 Outbox 异步核销，更符合本章的最终一致性设计</li>
+</ul>
+<p><strong>风控是 0 元购的第一优先级</strong></p>
+<p>0 元购的最大风险，不是支付失败，而是被羊毛党刷穿。推荐采用三层风控：</p>
+<p><strong>事前风控</strong></p>
+<ul>
+<li>用户画像</li>
+<li>设备指纹</li>
+<li>历史 0 元购记录</li>
+<li>IP / 设备 / 账号限频</li>
+</ul>
+<p><strong>事中风控</strong></p>
+<ul>
+<li>营销中心限购规则</li>
+<li>实时风险打分</li>
+<li>对高风险请求直接拒绝创单</li>
+</ul>
+<p><strong>事后风控</strong></p>
+<ul>
+<li>订单创建成功后做异步复审</li>
+<li>对异常订单做人工审核、活动回收或后续履约拦截</li>
+</ul>
+<p>典型规则包括：</p>
+<ul>
+<li>单用户 / 单设备每日限购 N 单</li>
+<li>新用户 + 老设备组合高风险</li>
+<li>短时间内同一商品出现大量 0 元单，直接熔断活动入口</li>
+</ul>
+<p><strong>0 元购的共性架构要求</strong></p>
+<p>虽然预售和 0 元购看起来很不一样，但它们都在提醒我们一件事：</p>
+<blockquote>
+<p>不要把所有业务特性都塞进一个大状态机，而要通过 <code>order_type + 扩展字段 + 异步编排</code> 来承接复杂场景。</p>
+</blockquote>
+<p>因此，这类特殊订单更适合统一遵守下面几条原则：</p>
+<ul>
+<li>基础交易状态仍保持简单：<code>PENDING -&gt; PAID -&gt; FULFILLING -&gt; COMPLETED</code></li>
+<li>业务差异通过 <code>order_type</code> 和专属扩展字段表达</li>
+<li>营销核销、库存确认、风控补偿都依赖 Outbox 和重试机制保证最终一致性</li>
+<li>关键峰值场景仍要靠 Redis + 幂等 + 唯一索引兜底</li>
+</ul>
+<p>一句话总结：</p>
+<blockquote>
+<p>0 元购不是“省掉支付就结束了”，而是把支付简化成了营销补贴问题，同时把风控和最终一致性的要求提高到了更高优先级。</p>
+</blockquote>
+<h3 id="15115-结算服务中的预占凭证--本地事务--异步确认saga-编排"><a class="header" href="#15115-结算服务中的预占凭证--本地事务--异步确认saga-编排">15.1.15 结算服务中的“预占凭证 + 本地事务 + 异步确认”Saga 编排</a></h3>
+<p>在标准电商创单链路里，结算服务最核心的一点，不是自己去做最终扣减，而是把整条交易链路组织成：</p>
+<ul>
+<li><strong>创单前只做预占（Reserve）</strong></li>
+<li><strong>创单成功后保存订单事实</strong></li>
+<li><strong>支付成功后再做确认（Confirm）</strong></li>
+<li><strong>创单失败、支付失败、超时取消后再做取消（Cancel）</strong></li>
+</ul>
+<p>这本质上是一种非常典型的 <strong>Saga 编排模式</strong>。它的核心思想是：</p>
+<blockquote>
+<p><strong>所有下游都采用“预占（Reserve）+ 确认（Confirm）/ 取消（Cancel）”模式；结算服务只做预占校验，不做最终扣减；订单中心创建订单成功后，作为交易事实协调点，再通过本地消息表 / Outbox 异步完成最终确认或取消。</strong></p>
+</blockquote>
+<p>这样设计的原因很直接：</p>
+<ul>
+<li>结算服务面对的是商品、库存、营销、价格等多个下游域；</li>
+<li>如果在提交订单时就要求所有域同步做最终扣减，主链路会非常重；</li>
+<li>一旦订单落库失败，还会面临极其难看的跨域回滚问题；</li>
+<li>因此更稳妥的工业级做法，是让每个下游先给出一个“可确认、可取消”的资源凭证。</li>
+</ul>
+<p>这个模式通常会落成三段：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>阶段</th><th>动作</th><th>目标</th></tr>
+</thead>
+<tbody>
+<tr><td>创单前</td><td><code>Reserve</code></td><td>预占库存、预占权益、冻结报价结果，拿到 <code>reserve_ids / coupon_tokens / price_token</code></td></tr>
+<tr><td>支付成功后</td><td><code>Confirm</code></td><td>正式确认库存消耗、权益消耗，把预占资源转成成交事实</td></tr>
+<tr><td>失败或取消后</td><td><code>Cancel</code></td><td>释放库存、释放权益、失效价格凭证，避免僵尸资源</td></tr>
+</tbody>
+</table>
+</div>
+<p>因此，结算服务在创单阶段的职责不是：</p>
+<ul>
+<li>直接扣库存；</li>
+<li>直接核销券；</li>
+<li>直接把营销权益变成最终消耗。</li>
+</ul>
+<p>而是：</p>
+<ul>
+<li>收集并校验这些预占凭证是否有效；</li>
+<li>把它们和订单事实绑定在一起；</li>
+<li>在订单创建成功后，把后续确认责任交给订单中心；</li>
+<li>通过本地消息表 / Outbox，把“确认”或“取消”动作异步可靠地下发给库存中心和营销中心。</li>
+</ul>
+<p>一个更贴近落地的职责分工可以概括为：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>系统</th><th>在 Saga 中的职责</th></tr>
+</thead>
+<tbody>
+<tr><td>结算服务</td><td>组织预占、校验凭证、提交创单请求</td></tr>
+<tr><td>订单中心</td><td>落交易事实，成为后续确认 / 取消的协调点</td></tr>
+<tr><td>库存中心</td><td>提供 <code>Reserve / Confirm / Cancel</code> 三段式库存能力</td></tr>
+<tr><td>营销中心</td><td>提供权益占用、权益确认、权益释放三段式能力</td></tr>
+<tr><td>支付中心</td><td>提供支付事实，不直接操作库存和营销资源</td></tr>
+</tbody>
+</table>
+</div>
+<p>这里尤其要强调一个经常被问到的点：</p>
+<blockquote>
+<p><strong>为什么创单时只做预占，支付成功后再 Confirm？</strong></p>
+</blockquote>
+<p>因为创单阶段的核心目标是：</p>
+<ul>
+<li>快速、安全地把用户带到收银台；</li>
+<li>让订单中心先拿到一笔清晰、可解释的交易事实；</li>
+<li>把真正不可逆的资源消耗动作，推迟到“支付成功”这个更强的业务事实之后。</li>
+</ul>
+<p>所以本章推荐的主流方案就是：</p>
+<blockquote>
+<p><strong>“预占凭证 + 本地事务落订单 + Outbox 异步确认 / 取消”的 Saga 模式。</strong></p>
+</blockquote>
+<p>也就是说：</p>
+<ul>
+<li><strong>创单时做资源预占</strong></li>
+<li><strong>支付成功后 Confirm 库存和权益</strong></li>
+<li><strong>创单失败、支付失败或超时后 Cancel 资源</strong></li>
+<li><strong>通过本地消息表 / Outbox 保证最终一致性</strong></li>
+</ul>
+<p>它的优势在于：</p>
+<ul>
+<li>主请求足够轻，不需要 XA / Seata 这种重型运行时强一致；</li>
+<li>下游域边界清楚，各自只负责自己的资源预占、确认和释放；</li>
+<li>即使出现网络抖动或部分失败，也可以依赖消息补偿和延迟反查完成自愈。</li>
+</ul>
+<p><strong>为什么核心交易长事务一定要做方案选型</strong></p>
+<p>“用户点击下单 -&gt; 校验商品 -&gt; 预占库存 -&gt; 占用优惠 -&gt; 请求支付” 这条链路，本质上是一个跨订单、库存、营销、支付多个服务的分布式长事务。单机时代的本地事务在这里已经失效，系统必须在下面几个目标之间做权衡：</p>
+<ul>
+<li>数据一致性</li>
+<li>高并发吞吐</li>
+<li>外部支付网关可接入性</li>
+<li>失败后的补偿成本</li>
+</ul>
+<p>因此，创单链路不能只问“能不能保证一致”，而要问：</p>
+<blockquote>
+<p><strong>在高并发电商场景下，系统要用什么代价去换一致性。</strong></p>
+</blockquote>
+<p><strong>四种典型方案的核心差异</strong></p>
+<p><strong>方案一：2PC / XA</strong></p>
+<p>2PC 依赖全局协调器和底层数据库 XA 协议。所有参与方先进入 <code>Prepare</code>，锁住本地资源但不提交；只有全部成功后，协调器才下发 <code>Commit</code>。</p>
+<p>它的问题非常直接：</p>
+<ul>
+<li>底层数据库锁会跟着整个长事务一起悬挂</li>
+<li>高并发下吞吐量会被严重拖死</li>
+<li>外部支付网关根本不支持 XA 协议</li>
+</ul>
+<p>所以在电商创单支付链路里，2PC 基本等于一条走不通的死路。</p>
+<p><strong>方案二：经典 Saga</strong></p>
+<p>经典 Saga 把长事务拆成一串本地子事务，每个服务先执行正向动作并立刻提交；如果后续失败，再逆向执行补偿。</p>
+<p>它的优点是吞吐高、没有数据库全局锁，但缺点也很致命：</p>
+<ul>
+<li>缺少隔离性，容易出现“先真扣库存，后又补回来”的僵尸占位</li>
+<li>容易被网络乱序拖进悬挂、空补偿和重复补偿问题</li>
+<li>防悬挂、防乱序的代码会越来越重</li>
+</ul>
+<p><strong>方案三：标准 TCC</strong></p>
+<p>TCC 把两阶段提交抬升到业务层，要求每个下游都实现：</p>
+<ul>
+<li><code>Try</code></li>
+<li><code>Confirm</code></li>
+<li><code>Cancel</code></li>
+</ul>
+<p>库存中心在 <code>Try</code> 阶段不是直接扣库存，而是冻结一部分资源；支付成功后走 <code>Confirm</code>，失败时走 <code>Cancel</code>。</p>
+<p>它的优点是隔离性很强，特别适合资金类、账户类系统；但代价也很高：</p>
+<ul>
+<li>每个下游都要手写三套接口和状态机</li>
+<li>编排器一般依赖同步 RPC，链路长时容易拖垮线程池</li>
+<li>对研发规范和团队成熟度要求非常高</li>
+</ul>
+<p><strong>方案四：工业级改良 Saga</strong></p>
+<p>这也是本章一直在推荐的方案：把 TCC 的“预留资源思想”和 Saga 的“异步最终一致性”结合起来。</p>
+<p>它的典型形态就是：</p>
+<ul>
+<li>创单时只做 <code>Reserve</code></li>
+<li>订单中心先落本地交易事实</li>
+<li>支付成功后再异步 <code>Confirm</code></li>
+<li>支付失败、超时关闭后异步 <code>Cancel</code></li>
+<li>整个过程依赖 <code>Outbox + Worker + 幂等状态机</code></li>
+</ul>
+<p>这也是为什么本章一直强调：</p>
+<blockquote>
+<p><strong>“预占凭证 + 本地事务落订单 + Outbox 异步确认 / 取消”</strong> 才是标准电商创单支付链路的主流工业实现。</p>
+</blockquote>
+<p><strong>四种方案综合对比</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>对比维度</th><th>2PC / XA</th><th>经典 Saga</th><th>标准 TCC</th><th>改良版 Saga（推荐）</th></tr>
+</thead>
+<tbody>
+<tr><td>一致性级别</td><td>强一致</td><td>最终一致</td><td>业务层强一致</td><td>最终一致</td></tr>
+<tr><td>并发吞吐</td><td>极低</td><td>高</td><td>中</td><td>高</td></tr>
+<tr><td>资源隔离性</td><td>高，但依赖数据库锁</td><td>差</td><td>高</td><td>高</td></tr>
+<tr><td>对外部支付友好度</td><td>极差</td><td>较好</td><td>一般</td><td>极好</td></tr>
+<tr><td>开发成本</td><td>中</td><td>中</td><td>极高</td><td>中</td></tr>
+<tr><td>高并发电商适配度</td><td>很差</td><td>一般</td><td>有限适配</td><td>最优</td></tr>
+</tbody>
+</table>
+</div>
+<p>把它翻译成更贴近业务的话就是：</p>
+<ul>
+<li>2PC 太重，锁不起</li>
+<li>经典 Saga 太莽，容易伤库存和权益</li>
+<li>标准 TCC 太贵，不适合所有链路都重做三段式</li>
+<li>改良版 Saga 在复杂度、性能和一致性之间最平衡</li>
+</ul>
+<p><strong>本章的选型结论</strong></p>
+<p>因此，对标准的电商创单支付链路，推荐结论非常明确：</p>
+<ul>
+<li><strong>坚决不选 2PC / XA</strong></li>
+<li><strong>不建议在核心交易主链路直接使用经典 Saga</strong></li>
+<li><strong>只有金融级资管、账务划转这类场景才值得咬牙做标准 TCC</strong></li>
+<li><strong>普通电商创单支付链路优先使用改良版 Saga</strong></li>
+</ul>
+<p>这也是为什么结算服务在本章里的角色不是“硬拉所有服务做一次全局提交”，而是：</p>
+<ul>
+<li>组织预占</li>
+<li>快速确立订单事实</li>
+<li>把最终确认和取消交给订单中心异步编排</li>
+</ul>
+<p>一句话总结：</p>
+<blockquote>
+<p><strong>在电商结算场景中，我们追求的不是运行时强一致，而是“资源先预占、订单先落地、后续异步确认、失败可靠补偿”的高吞吐最终一致。</strong></p>
+</blockquote>
+<p><strong>落地建议</strong></p>
+<p>如果团队自己维护状态机和消息补偿能力，改良版 Saga 完全可以直接落地为：</p>
+<ul>
+<li>下游三段式接口：<code>Reserve / Confirm / Cancel</code></li>
+<li>订单中心本地事务：订单事实 + <code>outbox</code></li>
+<li>Worker 异步扫描 + 幂等重试</li>
+</ul>
+<p>如果后续链路继续拉长，比如：</p>
+<ul>
+<li>跨境履约</li>
+<li>多段商旅履约</li>
+<li>超长时间预约 / 改签 / 多次补偿</li>
+</ul>
+<p>那么也可以再演进到更成熟的工作流 / Saga 引擎，例如：</p>
+<ul>
+<li>Seata 的 Saga 模式</li>
+<li>Temporal / Cadence 这一类代码化工作流引擎</li>
+</ul>
+<p>但无论是否引入框架，原则都不变：</p>
+<blockquote>
+<p><strong>先把交易链路拆成可预占、可确认、可取消的资源状态机，再谈框架选型。</strong></p>
+</blockquote>
+<hr>
+<h2 id="152-支付交易编排与最终一致性"><a class="header" href="#152-支付交易编排与最终一致性">15.2 支付、交易编排与最终一致性</a></h2>
+<h3 id="1521-支付不是一个按钮而是两条事实链"><a class="header" href="#1521-支付不是一个按钮而是两条事实链">15.2.1 支付不是一个按钮，而是两条事实链</a></h3>
+<p>支付链路至少包含“发起支付”和“确认支付结果”两条不同的事实链：</p>
+<ol>
+<li>订单中心依据订单应付金额创建或获取支付单。</li>
+<li>收银台向用户展示支付方式并向渠道发起支付。</li>
+<li>渠道可能同步返回成功、失败或处理中。</li>
+<li>渠道还可能通过异步通知、查询接口或对账文件给出最终结果。</li>
+<li>支付中心归一化渠道结果，订单中心消费支付事实并推进订单状态。</li>
+</ol>
+<p>同步返回只代表一次请求的即时结果，不能自动覆盖异步通知和对账事实。尤其是移动端、网页支付和银行转账场景，用户可能在客户端超时后已经完成扣款，或者渠道通知先于前端响应到达。支付中心应维护支付单状态、渠道流水号、金额、币种、渠道和通知版本；订单中心只消费标准化的 <code>PaymentSucceeded</code>、<code>PaymentFailed</code>、<code>PaymentPending</code>、<code>RefundSucceeded</code> 等事实事件。</p>
+<p>对外支付接口要采用幂等键。AWS Builders’ Library 将幂等 API 视为安全重试的基础：客户端可以重试同一请求，而服务端不会因为网络丢包重复创建副作用。[7] Stripe 的接口文档也将幂等键与请求参数绑定，避免同一个键被意外用于不同的请求。[23] 在本章的交易模型中，支付幂等键至少应包含订单或支付单身份，不能只使用用户 ID 或任意随机请求 ID。</p>
+<p><strong>支付域中的四类对象</strong></p>
+<p>支付系统最容易出现的模型错误，是只设计一张“支付表”，让订单号、渠道号、退款号和分账信息都堆在同一行。支付过程至少包含四类对象，它们的生命周期和事实主权不同：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>对象</th><th>作用</th><th>关键字段</th><th>生命周期</th><th>不能替代什么</th></tr>
+</thead>
+<tbody>
+<tr><td>支付意图</td><td>表达订单希望完成的一次资金收口</td><td>订单、应付金额、币种、过期时间</td><td>从收银台创建到支付终态</td><td>不能直接证明渠道已扣款</td></tr>
+<tr><td>支付尝试</td><td>表达一次具体的支付方式和渠道尝试</td><td>支付方式、渠道、商户号、路由版本</td><td>可因失败换渠道而产生多次</td><td>不能覆盖支付意图的累计金额</td></tr>
+<tr><td>渠道交易</td><td>表达外部机构接收或完成的交易</td><td>渠道流水号、受理状态、原始报文摘要</td><td>受渠道查询和对账闭合</td><td>不能直接修改订单主状态</td></tr>
+<tr><td>退款单</td><td>表达对已成立资金事实的逆向请求</td><td>原支付单、退款金额、原因、退款流水</td><td>从申请到渠道完成或人工终止</td><td>不能把原支付事实抹掉</td></tr>
+</tbody>
+</table>
+</div>
+<p>因此，订单与支付之间更适合使用 <code>payment_intent_id</code> 关联，而不是让订单直接保存一个会不断变化的渠道流水号。一个支付意图可以有多次支付尝试，一个支付尝试可能因为渠道超时处于未知状态，渠道交易则需要由回调、主动查询和对账文件共同解释。退款也应独立建模，因为一次支付可以发生多次部分退款，退款完成时间和原支付完成时间并不相同。</p>
+<p>这个拆分还有一个实际好处：用户点击“换一种支付方式”时，系统可以创建新的支付尝试，但仍然沿用同一个支付意图和金额快照；渠道回调到达时，只需依据渠道流水号定位尝试，再汇总到支付意图，而不会因为一次失败尝试覆盖另一条已经成功的渠道事实。支付域的金额计算、渠道状态归一和退款累计校验由支付系统负责；订单域只接收支付意图层面的标准事实。</p>
+<p><strong>支付核心的分层与数据边界</strong></p>
+<p>原支付系统可以抽象为接入层、应用编排层、支付核心、渠道适配层和清结算层。分层的价值不在于增加服务数量，而在于隔离变更原因：换微信或银行卡 SDK 不应修改退款金额规则，调整商家结算周期也不应污染回调验签逻辑。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>层次</th><th>主要职责</th><th>可依赖</th><th>不应承担</th></tr>
+</thead>
+<tbody>
+<tr><td>接入层</td><td>鉴权、限流、防重、原始通知接收</td><td>网关、密钥服务</td><td>订单状态推进和资金记账</td></tr>
+<tr><td>应用编排层</td><td>创建支付、发起退款、主动查单、对账任务</td><td>支付核心、路由、任务队列</td><td>渠道字段的长期透传</td></tr>
+<tr><td>支付核心</td><td>支付意图、尝试、状态机、金额闭合、事实事件</td><td>本地数据库、Outbox</td><td>直接依赖某个渠道 SDK</td></tr>
+<tr><td>渠道适配层</td><td>报文转换、验签、预下单、查询、退款</td><td>第三方渠道</td><td>解释订单履约状态</td></tr>
+<tr><td>清结算层</td><td>分账规则、结算批次、渠道账单、差错工单</td><td>支付事实、财务规则</td><td>伪造支付成功事实</td></tr>
+</tbody>
+</table>
+</div>
+<p>支付主表宜保持窄表：状态、金额、币种、订单关联、渠道标识、幂等键、版本和时间边界是高频访问字段；原始回调、渠道扩展字段和大体积报文应放入追加式通知表、扩展表或受控对象存储。这样既能减少支付状态更新时的行放大，又能保留审计需要的原始证据。敏感报文的留存时间、访问权限和脱敏方式应由合规要求决定，不应为了排障把完整卡号、验证码或渠道密钥复制到普通业务日志中。[19]</p>
+<h3 id="1522-支付状态机渠道通知与验签"><a class="header" href="#1522-支付状态机渠道通知与验签">15.2.2 支付状态机、渠道通知与验签</a></h3>
+<p>支付单可以使用独立于订单主状态的状态机：</p>
+<pre><code class="language-text">INIT -&gt; REQUIRES_ACTION -&gt; PROCESSING -&gt; SUCCEEDED
+  |          |                 |             |
+  |          |                 |             +--&gt; REFUNDING -&gt; REFUNDED
+  |          |                 +----------------&gt; FAILED
+  |          +----------------------------------&gt; CANCELED
+  +---------------------------------------------&gt; EXPIRED
+</code></pre>
+<p>渠道回调处理顺序不能只是“收到成功就改状态”，而应是：验签、校验商户号和环境、校验订单与金额、校验通知时间窗口、按渠道流水号去重、按支付单版本推进、记录原始回调摘要、发布标准事件。Adyen 的 Webhook 处理建议也强调验签、持久化事件、返回成功响应以及异步处理业务动作；本章将其抽象为适用于多渠道的回调接入规范。[24]</p>
+<p>回调可能重复、乱序或迟到，因此状态迁移需要定义优先级。例如 <code>SUCCEEDED</code> 已经成立后，迟到的 <code>PROCESSING</code> 只能记录为过时事件，不能把支付单退回处理中；已退款的支付单收到重复退款通知，只能幂等确认。每个渠道适配器负责将渠道状态翻译为内部语义，订单中心不应感知支付宝、微信、银行卡或钱包渠道的原始枚举。</p>
+<p><strong>渠道路由不是简单的支付方式映射</strong></p>
+<p>“用户选择微信，所以调用微信接口”只是最小实现。生产路由还要考虑商户号、销售主体、币种、地区、渠道限额、费率、成功率、响应延迟、风控结果、渠道维护窗口和灰度比例。路由决策必须生成可追溯的快照，至少记录候选渠道、被选渠道、路由规则版本、商户号和选择原因；否则同一订单在重试或对账时无法解释为什么走了不同渠道。</p>
+<p>可以把路由拆成三步：先做硬约束过滤，再对可用渠道评分，最后生成带版本的路由决策。硬约束包括支付方式是否支持、金额和币种是否在限额内、商户主体是否具备资质、渠道是否在当前地区开放；评分项才包括成功率、费率和延迟。渠道健康度只能影响未来尝试，不能把已经发生的渠道交易重新“切换”到另一渠道。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>路由阶段</th><th>输入</th><th>输出</th><th>失败处理</th></tr>
+</thead>
+<tbody>
+<tr><td>资格过滤</td><td>用户、订单主体、币种、金额、地区</td><td>可用渠道集合</td><td>无可用渠道，返回明确不可支付</td></tr>
+<tr><td>健康评分</td><td>渠道成功率、延迟、限额、费率</td><td>首选渠道与备用渠道</td><td>健康数据过期时使用保守规则</td></tr>
+<tr><td>决策落库</td><td>路由规则、灰度桶、商户号</td><td><code>route_snapshot</code></td><td>不能仅放缓存，需可审计</td></tr>
+<tr><td>尝试执行</td><td>支付意图、尝试号、渠道命令</td><td>受理结果或未知状态</td><td>只对幂等操作重试，未知写结果先查单</td></tr>
+</tbody>
+</table>
+</div>
+<p>备用渠道并不等于可以无条件切换。若首选渠道的预下单已经返回未知，系统必须先查询首选渠道，确认没有形成资金事实，或者根据渠道明确支持的幂等语义关闭该尝试，才能创建下一次尝试；否则用户可能在两个渠道都完成扣款。这个约束也是为什么支付尝试要独立于支付意图建模。</p>
+<p><strong>回调入口与主动查单的双保险</strong></p>
+<p>回调入口应与普通收银台查询路径隔离。入口层完成 TLS、来源校验、限流和轻量验签后，先把原始通知摘要及正文指纹以追加方式保存，再向渠道返回满足协议要求的确认响应；支付状态推进、订单事件和履约触发放入异步处理。这样即使下游订单服务抖动，渠道也不会因为平台迟迟不响应而无限重试，同时平台仍保留之后重放所需的证据。</p>
+<p>主动查单是回调的补偿路径，不是回调的替代品。对处于 <code>PROCESSING</code> 的支付尝试，应按渠道建议的间隔查询，并根据支付意图的过期时间、渠道最终性和重试预算决定是否继续等待。查单结果也必须经过金额、商户号、渠道流水号和订单关联校验，不能因为渠道接口返回“成功”字符串就直接写入本地。回调和查单同时到达时，使用同一状态迁移函数和数据库条件更新，确保只有一个合法版本能够产生支付成功事件。</p>
+<pre><code class="language-text">通知接收 -&gt; 保存原始证据 -&gt; 验签与字段校验 -&gt; 支付尝试状态迁移
+                                      |                 |
+                                      |                 +--&gt; Outbox: PaymentSucceeded
+                                      +--&gt; 失败或未知 -&gt; 查单任务 -&gt; 对账闭合
+</code></pre>
+<p>这条路径中，“收到通知”“本地状态已更新”“订单已消费事件”“渠道账单已对账”是四个不同的完成层级。前端只需要得到面向用户的处理中或成功提示，运营和财务则需要能看到每个层级分别是否完成。</p>
+<h3 id="1523-场景二提交支付时序图"><a class="header" href="#1523-场景二提交支付时序图">15.2.3 场景二：提交支付时序图</a></h3>
+<pre class="mermaid">
+sequenceDiagram
+    participant FE as 前端
+    participant PAY as 收银/支付编排中心
+    participant M as 营销/资产中心
+    participant O as 订单中心
+    participant CH as 外部支付网关
+
+    FE-&gt;&gt;PAY: CreatePayment(order_id, voucher_id, use_coin_count)
+    PAY-&gt;&gt;O: 校验订单状态、应付金额、可支付状态
+    O--&gt;&gt;PAY: 返回订单应付基线
+    PAY-&gt;&gt;M: 锁定 Voucher + 冻结 Coin
+    M--&gt;&gt;PAY: 返回 campaign_token / lock_token / freeze_token
+    PAY-&gt;&gt;PAY: 计算现金金额、券抵扣、Coin 抵扣、渠道费
+
+    alt 最终现金支付金额 &gt; 0
+        PAY-&gt;&gt;CH: 请求外部支付网关预下单(最终现金金额 + pay_order_no)
+        CH--&gt;&gt;PAY: 返回 pay_token / 渠道唤起参数
+        PAY--&gt;&gt;FE: 返回收银台参数 + 费用明细
+    else 最终现金支付金额 = 0
+        PAY-&gt;&gt;PAY: 标记为零现金支付单
+        PAY--&gt;&gt;FE: 返回“无需拉起渠道，等待系统完成支付确认”
+    end
+</pre>
+
+<h3 id="1524-场景三支付结果回调与订单编排时序图"><a class="header" href="#1524-场景三支付结果回调与订单编排时序图">15.2.4 场景三：支付结果回调与订单编排时序图</a></h3>
+<pre class="mermaid">
+sequenceDiagram
+    participant CH as 外部支付网关
+    participant PAY as 收银/支付编排中心
+    participant O as 订单中心
+    participant IV as 库存中心
+    participant MK as 营销中心
+    participant AS as 资产中心
+
+    CH--&gt;&gt;PAY: 支付成功回调 / 主动查询返回 SUCCESS
+    PAY-&gt;&gt;PAY: 验签 + 幂等 + 支付状态推进
+    PAY-&gt;&gt;O: 发布 PaymentSucceeded 事件
+    O-&gt;&gt;O: 推进订单为 PAID
+    O-&gt;&gt;IV: ConfirmInventory(reserve_ids)
+    O-&gt;&gt;MK: ConfirmPromotionHold(coupon_tokens)
+    O-&gt;&gt;AS: DeductCoin / UseVoucher(freeze_token, lock_token)
+</pre>
+
+<h3 id="1525-场景四支付失败与超时回滚时序图"><a class="header" href="#1525-场景四支付失败与超时回滚时序图">15.2.5 场景四：支付失败与超时回滚时序图</a></h3>
+<pre class="mermaid">
+sequenceDiagram
+    participant CH as 外部支付网关
+    participant PAY as 收银/支付编排中心
+    participant O as 订单中心
+    participant IV as 库存中心
+    participant MK as 营销中心
+    participant AS as 资产中心
+
+    CH--&gt;&gt;PAY: 支付失败回调 / 主动查询返回 FAIL
+    PAY-&gt;&gt;O: PaymentFailed / PaymentExpired
+    O-&gt;&gt;O: 推进订单为 CLOSED / PAYMENT_FAILED
+    O-&gt;&gt;IV: ReleaseInventory(reserve_ids)
+    O-&gt;&gt;MK: ReleasePromotionHold(coupon_tokens)
+    O-&gt;&gt;AS: UnfreezeCoin / UnlockVoucher(freeze_token, lock_token)
+</pre>
+
+<h3 id="1526-支付成功后的确认履约和库存确认"><a class="header" href="#1526-支付成功后的确认履约和库存确认">15.2.6 支付成功后的确认、履约和库存确认</a></h3>
+<p>支付成功并不意味着所有下游事实已完成。订单中心收到支付成功后，通常需要依次或并行触发：库存 <code>Confirm</code>、营销权益确认、履约创建、发票或会员权益发放。这个阶段的关键是让每个动作都具备幂等键和可查询结果：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>动作</th><th>幂等键</th><th>成功含义</th><th>失败后的动作</th></tr>
+</thead>
+<tbody>
+<tr><td>库存确认</td><td><code>order_id + item_id</code></td><td>预占转为已售</td><td>重试、查询预占、人工对账</td></tr>
+<tr><td>权益确认</td><td><code>order_id + benefit_id</code></td><td>优惠或资产正式消费</td><td>取消订单项或回补权益</td></tr>
+<tr><td>履约创建</td><td><code>sub_order_id</code></td><td>生成仓配、券码或预约任务</td><td>延迟重试、转履约失败</td></tr>
+<tr><td>发票申请</td><td><code>order_id</code></td><td>形成开票任务</td><td>保留待处理，不影响已支付事实</td></tr>
+</tbody>
+</table>
+</div>
+<p>库存确认需要可靠投递、业务幂等和可查询结果。支付成功与库存 Confirm 的本地事务边界、Outbox 表和 Worker 重试方式见 <a href="#15213-outbox-如何可靠驱动库存-confirm">15.2.13</a>；Kafka 的幂等生产者和事务能力只能减少特定消息链路中的重复，不能保证外部库存、支付和订单数据库之间的业务恰好一次。[9][10]</p>
+<h3 id="1527-超时关闭与补偿顺序"><a class="header" href="#1527-超时关闭与补偿顺序">15.2.7 超时关闭与补偿顺序</a></h3>
+<p>待支付订单的超时关闭是一个竞争问题：关闭任务可能与支付成功通知同时到达，库存释放任务可能与支付成功后的库存确认同时到达。正确做法不是依赖定时任务先后，而是用订单版本和支付事实做条件判断：</p>
+<pre><code class="language-text">close_worker(order)
+  -&gt; lock or CAS order version
+  -&gt; query payment status
+  -&gt; if payment is SUCCEEDED: do not cancel
+  -&gt; if payment is PROCESSING: enter PAYMENT_PENDING and retry query
+  -&gt; if payment is FAILED or EXPIRED: move to CANCELED
+  -&gt; publish resource-release command
+</code></pre>
+<p>释放动作也要遵循“先确认事实、再释放资源”。不能仅因支付查询超时就释放库存；应先把订单置为处理中，经过重试窗口和渠道查询仍无结果后，才按照业务策略关闭。AWS Well-Architected 对重试限制的建议强调要设置重试预算和退避，避免多个层级各自重试导致重试风暴。[8] 因此支付服务、订单服务、库存服务不能各自无限重试，必须由一个明确的编排层控制总重试次数。</p>
+<h3 id="1528-混合支付部分支付与-0-元订单"><a class="header" href="#1528-混合支付部分支付与-0-元订单">15.2.8 混合支付、部分支付与 0 元订单</a></h3>
+<p>混合支付把一个订单的应付金额拆成余额、优惠券、积分、银行卡或钱包等多个资金来源，不能用一个简单的 <code>paid=true</code> 字段描述。支付单应记录支付分摊明细和各渠道状态，订单只有在满足“应付金额已被合法覆盖”时才进入支付完成：</p>
+<pre><code class="language-text">ORDER_CREATED
+  -&gt; PAYMENT_PLAN_CREATED
+  -&gt; [balance authorized, coupon consumed, external payment pending]
+  -&gt; PAYMENT_PARTIALLY_AUTHORIZED
+  -&gt; PAYMENT_SUCCEEDED
+</code></pre>
+<p>某个渠道失败时，需要决定是释放所有已占用资产重新让用户支付，还是允许更换支付方式继续支付。对于优惠券、积分等资产，最好先产生可撤销的授权或冻结记录，等支付事实成立后再确认消费；否则外部支付失败会留下难以解释的资产损失。0 元订单可以跳过外部支付渠道，但不能跳过订单、风控、库存、权益和审计：它仍然要产生可追踪的“应付为零、支付条件满足、权益正式发放”的事实。</p>
+<p>多种资产参与时，应把资金和权益的变化拆成三个阶段：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>阶段</th><th>动作</th><th>目标</th></tr>
+</thead>
+<tbody>
+<tr><td>冻结</td><td><code>Lock Voucher</code>、<code>Freeze Coin</code></td><td>先锁定可用权益，不直接确认消耗</td></tr>
+<tr><td>确认</td><td><code>Use Voucher</code>、<code>Deduct Coin</code></td><td>收到支付成功事实后再正式消费</td></tr>
+<tr><td>释放</td><td><code>Unlock Voucher</code>、<code>Unfreeze Coin</code></td><td>取消、超时或支付失败时归还资源</td></tr>
+</tbody>
+</table>
+</div>
+<p>营销和资产服务应提供 <code>Lock / Freeze</code>、<code>Confirm / Use / Deduct</code>、<code>Cancel / Unlock / Unfreeze</code> 等显式接口；订单和支付服务根据下游凭证推进流程，不自行推导权益状态。这样能把多资产链路分成可逆与不可逆阶段，降低并发死锁和部分失败后的回滚难度。账务侧还要保留现金实付、平台补贴、优惠抵扣、积分扣减和渠道手续费等分摊事实，确保后续部分退款和结算沿用下单时的原始口径。</p>
+<h3 id="1529-退款状态与逆向交易"><a class="header" href="#1529-退款状态与逆向交易">15.2.9 退款状态与逆向交易</a></h3>
+<p>退款需要单独的退款单、退款项和退款状态机。创建退款时先读取订单快照和支付事实，计算原支付金额、已经成功退款金额、当前申请金额及剩余可退金额，并以条件更新或锁定方式保证累计值不超过可退上限。一个支付单允许多次部分退款，但每一笔退款都必须有业务原因、申请人、订单项分摊和渠道退款幂等键。</p>
+<p>退款状态可以简化为 <code>REQUESTED -&gt; PROCESSING -&gt; SUCCEEDED / FAILED</code>。<code>FAILED</code> 不代表原支付失败，而只代表本次逆向动作未完成；若渠道支持安全重试，可以继续处理，若渠道返回未知，则保持处理中并进入主动查询和对账队列。退款成功后，支付域发布退款事实，订单售后域再决定是否把库存、优惠、积分、赠品或履约任务回补。支付系统不应因为退款成功就自行把订单改成“已取消”。</p>
+<p>营销资金和平台补贴的回冲需要沿用下单时的分摊快照，而不是重新按当前规则计算。比如用户当时使用平台券、商家券和余额共同支付，部分退款时应先明确退款对象是某个订单项还是整单比例，再根据原始资金来源计算各方应回收或承担的金额。金额分摊、舍入和最小货币单位必须在退款创建时冻结，否则多次部分退款会出现累计误差或补贴被重复退回。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>退款场景</th><th>支付域要记录</th><th>售后/履约域要处理</th></tr>
+</thead>
+<tbody>
+<tr><td>未履约整单退款</td><td>原支付单、全额退款申请、渠道退款流水</td><td>关闭未执行履约、释放未消费权益</td></tr>
+<tr><td>单项部分退款</td><td>订单项、数量、分摊金额、税费和优惠归属</td><td>回补对应库存或取消对应履约任务</td></tr>
+<tr><td>已发货退货退款</td><td>退货验收事实、退款原因、退款金额</td><td>逆向物流、库存质检、重新入库策略</td></tr>
+<tr><td>已核销商品退款</td><td>核销时间、核销状态、可退规则</td><td>判断是否允许人工售后或拒绝退款</td></tr>
+<tr><td>渠道退款未知</td><td>请求幂等键、渠道受理号、查询次数</td><td>不重复发起，保持退款中并告警</td></tr>
+</tbody>
+</table>
+</div>
+<p>退款闭环的判断句是：原支付事实不能删除，退款只能追加新的资金事实；库存、权益和履约是否回滚，必须由各自领域依据订单快照和售后规则决定。</p>
+<h3 id="15210-对账审计与敏感数据边界"><a class="header" href="#15210-对账审计与敏感数据边界">15.2.10 对账、审计与敏感数据边界</a></h3>
+<p>支付系统的最终自愈依赖对账。至少要做三种对账：支付单与订单对账、支付单与渠道流水对账、退款申请与渠道退款结果对账。对账不是单纯比金额，还要比订单身份、渠道流水号、币种、支付时间、退款累计金额和状态版本。</p>
+<p>对账差异应分类处理：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>差异</th><th>可能原因</th><th>处理</th></tr>
+</thead>
+<tbody>
+<tr><td>订单待支付、渠道已成功</td><td>回调丢失或消费积压</td><td>查询渠道并补发标准支付事件</td></tr>
+<tr><td>订单已支付、渠道无流水</td><td>测试数据、错误环境或状态污染</td><td>冻结自动履约，进入人工核验</td></tr>
+<tr><td>退款已申请、渠道处理中</td><td>渠道异步处理</td><td>保持退款中，按退避查询</td></tr>
+<tr><td>订单退款金额大于支付金额</td><td>重复消费或分摊错误</td><td>阻断后续退款，生成高优先级告警</td></tr>
+</tbody>
+</table>
+</div>
+<p>PCI DSS 资料库对支付卡数据保护、访问控制、监测和测试提出了正式要求；本章不把完整合规清单展开成实现细节，但坚持支付卡敏感数据最小化、令牌化、分权访问、审计留痕和环境隔离原则。[19] 订单快照也不应保存不必要的完整卡号、验证码或渠道密钥。</p>
+<p><strong>清分、结算与财务总账的边界</strong></p>
+<p>清算、分账和结算经常被混称为“支付成功后的钱”，但它们回答的问题不同：清分是把一笔支付按平台、商家、服务商、税费和营销补贴拆成可核算的份额；结算是按冻结期、履约完成、售后窗口和渠道到账周期把可结算份额释放给收款主体；财务总账则按照会计科目和凭证规则记录账务。支付系统可以产出资金事实和分账明细，但不应直接冒充财务总账。</p>
+<p>建议以“结算批次 + 结算明细 + 结算凭证”组织模型：结算批次绑定销售主体、账期、币种和规则版本；明细引用订单、支付、退款和分账快照；凭证记录批次冻结、审核、出款、失败和重试结果。结算计算必须可重算但不能静默覆盖历史结果，规则变更后应创建新的版本和差异报告。对于 B2B2C 场景，平台佣金、商家应收、供应商分成和营销补贴要分别列示，不能只保存一个“商家到账金额”。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>层级</th><th>权威事实</th><th>典型状态</th><th>主要消费者</th></tr>
+</thead>
+<tbody>
+<tr><td>支付</td><td>渠道是否受理、扣款、退款</td><td>处理中、成功、失败、退款中</td><td>订单、售后、对账</td></tr>
+<tr><td>清分</td><td>每笔资金应归属于谁</td><td>待清分、已清分、待结算</td><td>结算、财务核算</td></tr>
+<tr><td>结算</td><td>哪个主体何时可收到钱</td><td>冻结、待审核、已出款、失败</td><td>商家、供应商、财务</td></tr>
+<tr><td>总账</td><td>会计科目和凭证是否平衡</td><td>待入账、已入账、冲正</td><td>财务报表、审计</td></tr>
+</tbody>
+</table>
+</div>
+<p>这一区分能避免两个危险做法：一是订单支付成功后立刻把所有钱标记为商家可提现，绕过履约和售后冻结；二是为了让财务报表对上，直接修改支付单状态。正确方式是追加清分、结算或冲正事实，并通过对账任务解释每一次差异。</p>
+<p><strong>对账流程与差错闭环</strong></p>
+<p>日终或 T+N 对账应当是可重复执行的批处理，而不是一次性脚本。基本流程是：下载并校验渠道账单元数据，按渠道流水号和商户号解析，写入不可变的账单记录；读取平台支付、退款和分账事实；按币种和账单日期比对数量、金额、状态和退款累计；生成差异项；对可自动修复的差异执行查询或补发事件；其余差异进入人工工单并记录 SLA。</p>
+<p>对账任务本身也需要幂等：同一渠道、日期、商户号和账单版本只能产生一个对账批次；账单下载成功不代表解析成功，解析成功不代表比对完成，比对完成也不代表差异已关闭。每个阶段都要有独立状态和重试入口。渠道账单可能晚到、重复下载或分片生成，因此不能以文件名作为唯一事实，应校验账单摘要、日期、渠道账号、版本和记录数。</p>
+<p>自动修复必须有边界。仅缺失回调且渠道明确成功、金额和商户号都一致时，可以补发支付成功事件；金额不一致、币种不一致、平台不存在对应支付意图或退款累计超限时，应停止自动推进，冻结相关结算并创建高优先级工单。人工处理只能追加调整或冲正记录，不能直接删除平台账或覆盖原始渠道账单。</p>
+<h3 id="15211-观测支付链路的完整性"><a class="header" href="#15211-观测支付链路的完整性">15.2.11 观测支付链路的完整性</a></h3>
+<p>支付链路需要同时具备业务指标和技术指标。业务指标包括支付发起成功率、支付成功率、支付处理中比例、回调延迟、退款成功率和对账差异率；技术指标包括接口延迟、渠道错误码分布、通知积压、重试次数、幂等命中率和死信数量。Google SRE 建议监控分布式系统时围绕延迟、流量、错误和饱和度组织指标，并使用面向用户可感知结果的告警。[5][6]</p>
+<p>每次支付请求、渠道通知、订单状态迁移和库存确认都要通过 <code>trace_id</code> 关联。W3C Trace Context 规定了跨服务传播追踪上下文的标准字段，OpenTelemetry 语义约定则提供了统一的服务、HTTP、消息和数据库观测维度。[14][15] 因此，客服查询一笔“已扣款未出单”时，应能沿着订单号、支付单号、渠道流水号和 trace ID 找到完整证据，而不需要在多个系统中凭时间猜测。</p>
+<h3 id="15212-库存确认与支付结果查单的依赖方向"><a class="header" href="#15212-库存确认与支付结果查单的依赖方向">15.2.12 库存确认与支付结果查单的依赖方向</a></h3>
+<p><strong>为什么库存 Confirm 不应该反查订单中心，而订单中心必须主动查询支付网关</strong></p>
+<p>这两个场景表面上都像“结果确认”，但它们的依赖方向其实完全不同。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>维度</th><th>库存 Confirm</th><th>支付结果查询</th></tr>
+</thead>
+<tbody>
+<tr><td>对象</td><td>库存中心（内部服务）</td><td>支付网关（外部第三方）</td></tr>
+<tr><td>控制权</td><td>我们完全可控</td><td>我们不可控</td></tr>
+<tr><td>推荐方向</td><td>订单中心主动调用库存 Confirm</td><td>订单中心主动查询支付网关状态</td></tr>
+<tr><td>是否希望被动反查订单中心</td><td>不希望</td><td>不适用</td></tr>
+<tr><td>核心原因</td><td>避免内部服务双向依赖和职责污染</td><td>第三方回调不可靠，必须主动核实</td></tr>
+</tbody>
+</table>
+</div>
+<p>库存中心之所以<strong>不应该反查订单中心</strong>，核心原因有三个：</p>
+<ul>
+<li><strong>避免循环依赖</strong>
+<ul>
+<li>订单中心调用库存中心做 <code>Reserve / Confirm / Cancel</code> 是合理的单向依赖；</li>
+<li>如果库存中心再反过来查询订单中心，就会形成双向耦合。</li>
+</ul>
+</li>
+<li><strong>保持库存中心职责纯净</strong>
+<ul>
+<li>库存中心的职责是管理库存资源和 <code>reserve_token</code> 状态；</li>
+<li>它不应该理解“这个订单是不是已经支付成功”这样的订单域语义。</li>
+</ul>
+</li>
+<li><strong>防止订单中心膨胀成上帝服务</strong>
+<ul>
+<li>如果库存、营销、物流都回头查订单中心，订单中心会变成整个交易系统的公共查询枢纽；</li>
+<li>这会放大瓶颈，也会放大故障传播面。</li>
+</ul>
+</li>
+</ul>
+<p>因此，更合理的做法是：</p>
+<ul>
+<li>订单中心作为协调者，在支付成功后主动调用库存中心做 <code>Confirm</code>；</li>
+<li>库存中心只根据 <code>reserve_token</code> 做幂等状态流转：
+<ul>
+<li><code>RESERVED -&gt; CONFIRMED</code></li>
+<li>或 <code>RESERVED -&gt; CANCELED</code></li>
+</ul>
+</li>
+</ul>
+<p>这也意味着，<strong>订单中心必须能正确处理库存 Confirm 的响应结果</strong>：</p>
+<ul>
+<li><code>SUCCESS</code></li>
+<li><code>ALREADY_CONFIRMED</code></li>
+<li><code>RESERVE_TOKEN_NOT_FOUND</code></li>
+<li>网络超时 / 调用失败</li>
+</ul>
+<p>并且这条 <code>Confirm</code> 调用本身必须支持幂等重试。通常的推荐做法是：</p>
+<ul>
+<li>支付成功后，订单中心在本地事务里写一条待确认库存的 Outbox / 本地消息；</li>
+<li>异步 Worker 调用库存中心 <code>ConfirmInventory(reserve_token)</code>；</li>
+<li>只有收到明确成功响应，才把本地消息标记为完成；</li>
+<li>若响应丢失或调用失败，则按退避策略重试；</li>
+<li>多次失败后，把订单打到“支付成功_库存确认异常”状态，进入自动退款或人工补偿。</li>
+</ul>
+<p>和库存中心不同，<strong>支付网关必须允许订单中心主动查询</strong>。原因也非常明确：</p>
+<ul>
+<li>它是外部第三方，我们无法完全掌控回调行为；</li>
+<li>回调可能丢失、延迟、重复甚至异常；</li>
+<li>所以只依赖回调不足以支撑订单状态推进。</li>
+</ul>
+<p>因此支付结果的推荐模型通常是：</p>
+<ul>
+<li><strong>以回调为主</strong></li>
+<li><strong>以主动查询为兜底</strong></li>
+</ul>
+<p>也就是说：</p>
+<ul>
+<li>支付网关回调来了，订单中心先按回调推进支付事实；</li>
+<li>如果回调迟迟不来，订单中心可以通过定时任务、用户主动查询或收银台轮询去调用支付网关 <code>query</code> 接口确认状态；</li>
+<li>一旦确认支付成功，再继续触发库存 Confirm、权益 Confirm 和履约编排。</li>
+</ul>
+<p>一句话总结就是：</p>
+<blockquote>
+<p><strong>库存是我们的内部资源中心，要保持干净、独立、单向依赖；支付网关是外部不可信第三方，订单中心必须主动多长一个心眼去确认它的最终状态。</strong></p>
+</blockquote>
+<h3 id="15213-outbox-如何可靠驱动库存-confirm"><a class="header" href="#15213-outbox-如何可靠驱动库存-confirm">15.2.13 Outbox 如何可靠驱动库存 Confirm</a></h3>
+<p><strong>Outbox 本地消息表：支付成功后如何可靠驱动库存 Confirm</strong></p>
+<p>如果订单中心承担了主动 <code>ConfirmInventory</code> 的职责，接下来最关键的问题就是：</p>
+<ul>
+<li>支付成功后，怎么保证这条 Confirm 动作一定会被发出去；</li>
+<li>如果调用库存中心时网络超时、响应丢失，怎么继续重试；</li>
+<li>如果系统重启、进程崩溃，怎么保证这条确认任务不会消失。</li>
+</ul>
+<p>这里最稳妥的工业级做法就是 <strong>Outbox Pattern（本地消息表模式）</strong>。</p>
+<p>核心思想是：</p>
+<blockquote>
+<p><strong>把“订单状态更新”和“待确认库存消息写入”放进同一个本地事务里，先把消息落到订单库自己的 <code>outbox</code> 表，再由异步 Worker 扫描并可靠投递。</strong></p>
+</blockquote>
+<p>这里推荐表名直接使用 <code>outbox</code>，而不是 <code>local_message</code>，原因有三点：</p>
+<ul>
+<li><code>outbox</code> 更符合行业标准语义；</li>
+<li>在面试和评审里，一说就能让人联想到 Outbox Pattern；</li>
+<li>后续如果再引入 <code>inbox</code>、事件总线或双向事件处理，命名也更自然。</li>
+</ul>
+<p>推荐的表结构大致如下：</p>
+<pre><code class="language-sql">CREATE TABLE `outbox` (
+    `id` BIGINT(20) NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `message_id` VARCHAR(64) NOT NULL COMMENT '全局唯一消息ID',
+    `biz_type` VARCHAR(32) NOT NULL COMMENT '业务类型：INVENTORY_CONFIRM、MARKETING_CONFIRM 等',
+    `biz_key` VARCHAR(64) NOT NULL COMMENT '业务唯一键，如 order_no',
+    `payload` JSON NOT NULL COMMENT '消息体',
+    `status` VARCHAR(20) NOT NULL DEFAULT 'PENDING' COMMENT 'PENDING/PROCESSING/SUCCESS/FAILED/DEAD',
+    `retry_count` INT NOT NULL DEFAULT 0 COMMENT '重试次数',
+    `next_retry_time` DATETIME NOT NULL COMMENT '下次重试时间',
+    `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_message_id` (`message_id`),
+    UNIQUE KEY `uk_biz` (`biz_type`, `biz_key`),
+    KEY `idx_status_retry` (`status`, `next_retry_time`),
+    KEY `idx_create_time` (`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Outbox 表（本地消息表）';
+</code></pre>
+<p>几个关键字段的职责分别是：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段</th><th>作用</th></tr>
+</thead>
+<tbody>
+<tr><td><code>message_id</code></td><td>全局唯一消息标识，方便排障和防重</td></tr>
+<tr><td><code>biz_type</code></td><td>区分库存确认、营销确认、退款等不同任务</td></tr>
+<tr><td><code>biz_key</code></td><td>业务唯一键，通常用 <code>order_no</code> 或 <code>reserve_token</code></td></tr>
+<tr><td><code>payload</code></td><td>真正的调用参数，如 <code>reserve_token / order_no / sku_list</code></td></tr>
+<tr><td><code>status</code></td><td>当前处理状态，支持重试和死信管理</td></tr>
+<tr><td><code>retry_count</code></td><td>已重试次数</td></tr>
+<tr><td><code>next_retry_time</code></td><td>下一次允许被扫描和重试的时间点</td></tr>
+</tbody>
+</table>
+</div>
+<p>对应到库存 Confirm 场景，订单中心最典型的本地事务写法就是：</p>
+<ol>
+<li>支付回调确认成功；</li>
+<li>在同一个数据库事务里：
+<ul>
+<li>更新订单状态为 <code>PAID</code></li>
+<li>插入一条 <code>biz_type = INVENTORY_CONFIRM</code> 的 Outbox 记录</li>
+</ul>
+</li>
+<li>事务提交后，异步 Worker 扫描 <code>PENDING/FAILED</code> 且 <code>next_retry_time &lt;= now()</code> 的消息；</li>
+<li>Worker 调用库存中心 <code>ConfirmInventory(reserve_token)</code>；</li>
+<li>若收到明确成功响应，则把 Outbox 记录标记为 <code>SUCCESS</code>；</li>
+<li>若调用失败或响应丢失，则把状态改成 <code>FAILED</code>，并按指数退避推进 <code>next_retry_time</code>。</li>
+</ol>
+<p>这里尤其要注意两层幂等：</p>
+<ul>
+<li><strong>订单中心侧幂等</strong>
+<ul>
+<li>同一笔 <code>biz_type + biz_key</code> 的 Outbox 记录只能插一次；</li>
+<li>Worker 重复扫描时，也不能重复推进本地状态。</li>
+</ul>
+</li>
+<li><strong>库存中心侧幂等</strong>
+<ul>
+<li>以 <code>reserve_token</code> 为主键推进状态机：</li>
+<li><code>RESERVED -&gt; CONFIRMED</code></li>
+<li>重复 Confirm 返回成功或 <code>ALREADY_CONFIRMED</code></li>
+</ul>
+</li>
+</ul>
+<p>因此，订单中心处理库存 Confirm 的推荐口径可以总结成：</p>
+<ul>
+<li>同步调用可以有，但<strong>不能只依赖同步 response</strong>；</li>
+<li>最终必须以 Outbox + Worker 重试为准；</li>
+<li>只有收到明确成功响应，才把本地消息标记完成；</li>
+<li>多次重试仍失败，就把订单打到“支付成功_库存确认异常”状态，进入自动退款或人工补偿。</li>
+</ul>
+<p>如果用 Go 落地，这个 Worker 的职责通常就是：</p>
+<ul>
+<li>周期性扫描 <code>outbox</code></li>
+<li>反序列化 <code>payload</code></li>
+<li>调库存中心 Confirm 接口</li>
+<li>根据返回结果更新 <code>status / retry_count / next_retry_time</code></li>
+</ul>
+<p>也就是说，Go 代码真正需要保证的不是“调一次 RPC 就好”，而是：</p>
+<blockquote>
+<p><strong>订单状态推进、Outbox 持久化、异步 Worker 重试、库存 Confirm 幂等，这四层一起构成最终一致性。</strong></p>
+</blockquote>
+<h2 id="153-履约售后与历史事实"><a class="header" href="#153-履约售后与历史事实">15.3 履约、售后与历史事实</a></h2>
+<h3 id="1531-场景画像"><a class="header" href="#1531-场景画像">15.3.1 场景画像</a></h3>
+<p>订单支付成功只是用户交易旅程的中点，不是终点。后面的系统挑战包括：</p>
+<ul>
+<li>实物商品怎么发货、签收、退货退款。</li>
+<li>券码商品怎么发码、核销、退款。</li>
+<li>酒旅、到店和预约型商品怎么预约、履约、取消和退款。</li>
+</ul>
+<p>这里最重要的统一原则是：</p>
+<blockquote>
+<p><strong>订单之后，系统不再回头依赖最新商品真相，而是基于订单快照和履约事实继续推进。</strong></p>
+</blockquote>
+<h3 id="1532-关键技术点"><a class="header" href="#1532-关键技术点">15.3.2 关键技术点</a></h3>
+<p>履约、发码、核销、退款、库存回补、权益回补，看起来像很多独立动作，但真正落地时不能让订单中心自己直接编排所有下游，否则它会再次膨胀成“大管家”。</p>
+<p>因此，第 6 节建议显式引入一个统一角色：</p>
+<blockquote>
+<p><strong>履约与售后服务</strong></p>
+</blockquote>
+<p>它的职责不是拥有订单主状态，而是承接支付之后的流程编排：</p>
+<ul>
+<li>组织履约创建</li>
+<li>接收外部履约回调</li>
+<li>路由发码、核销、预约等不同履约分支</li>
+<li>编排退款、库存回补、权益回补</li>
+<li>把这些结果统一翻译成订单中心可消费的标准化事实</li>
+</ul>
+<p>这套设计里需要先钉死 5 个原则：</p>
+<ol>
+<li>
+<p><strong>订单中心拥有交易主事实和用户可见订单状态。</strong>
+履约与售后服务只负责组织流程，不直接决定最终订单展示语义。</p>
+</li>
+<li>
+<p><strong>履约结果、核销结果、退款结果都只是事实输入。</strong>
+外部仓配、发码、核销、退款系统只负责回传“发生了什么”，状态推进仍由订单中心完成。</p>
+</li>
+<li>
+<p><strong>售后必须基于订单快照、支付事实和履约事实。</strong>
+不能在退款时重新查当前商品价格、当前详情页规则或当前库存展示。</p>
+</li>
+<li>
+<p><strong>实物、券码、预约型商品虽然路径不同，但必须复用同一套幂等、回调归一和补偿机制。</strong></p>
+</li>
+<li>
+<p><strong>外部回调先进入履约与售后服务，再由订单中心消费标准化事件。</strong>
+不让仓配、核销、退款系统直接改订单主状态。</p>
+</li>
+</ol>
+<p>可以把它和第 5 节做一个镜像理解：</p>
+<ul>
+<li>结算服务解决“如何生成一笔订单”</li>
+<li>履约与售后服务解决“订单支付之后如何被执行、被核销、被退款、被回补”</li>
+</ul>
+<h3 id="1533-场景一履约发起时序图"><a class="header" href="#1533-场景一履约发起时序图">15.3.3 场景一：履约发起时序图</a></h3>
+<pre class="mermaid">
+sequenceDiagram
+    participant O as 订单中心
+    participant FA as 履约与售后服务
+    participant W as 仓配服务 / 发码服务 / 预约资源服务
+
+    O-&gt;&gt;F: OrderPaid
+    O-&gt;&gt;FA: OrderPaid(sub_order_id, order_type, snapshot)
+    FA-&gt;&gt;FA: 按商品类型路由履约
+    FA-&gt;&gt;W: CreateFulfillment / IssueVoucher / CreateBooking
+    W--&gt;&gt;FA: 返回 fulfillment_id / issue_task_id / booking_token
+    FA-&gt;&gt;O: 发布 FulfillmentCreated 事件
+    O-&gt;&gt;O: 推进订单为 TO_FULFILL / TO_SHIP / TO_ISSUE / TO_BOOK
+</pre>
+
+<h3 id="1534-场景二履约结果回调与订单编排时序图"><a class="header" href="#1534-场景二履约结果回调与订单编排时序图">15.3.4 场景二：履约结果回调与订单编排时序图</a></h3>
+<pre class="mermaid">
+sequenceDiagram
+    participant W as 仓配 / 供应商 / 履约外部系统
+    participant FA as 履约与售后服务
+    participant O as 订单中心
+    participant IV as 库存服务
+
+    W--&gt;&gt;FA: 回调发货成功 / 签收 / 履约完成 / 履约失败
+    FA-&gt;&gt;FA: 验签 + 幂等 + 状态归一
+    FA-&gt;&gt;O: 发布 FulfillmentUpdated 事件
+    alt 发货成功 / 履约完成
+        O-&gt;&gt;O: 推进订单为 SHIPPED / DELIVERED / FULFILLED
+        O-&gt;&gt;IV: ConsumeFulfillmentResource(如需要)
+    else 履约失败 / 无法履约
+        O-&gt;&gt;O: 推进订单为 FULFILLMENT_FAILED
+    end
+</pre>
+
+<h3 id="1535-场景三券码发码与核销时序图"><a class="header" href="#1535-场景三券码发码与核销时序图">15.3.5 场景三：券码发码与核销时序图</a></h3>
+<pre class="mermaid">
+sequenceDiagram
+    participant O as 订单中心
+    participant FA as 履约与售后服务
+    participant IV as 库存服务 / 券码池服务
+    participant V as 发码服务 / 核销服务
+
+    O-&gt;&gt;FA: OrderPaid(voucher_order)
+    FA-&gt;&gt;IV: AllocateCode / ConfirmInventory
+    IV--&gt;&gt;FA: 返回券码或资源实例
+    FA-&gt;&gt;V: 发码 / 生成核销凭证
+    FA-&gt;&gt;O: 发布 VoucherIssued 事件
+    V-&gt;&gt;V: 用户到店核销
+    V-&gt;&gt;FA: 回调 VoucherConsumed / VoucherExpired
+    FA-&gt;&gt;O: 发布 VoucherConsumed / VoucherExpired 事件
+    O-&gt;&gt;O: 推进订单 / 子单状态
+</pre>
+
+<h3 id="1536-场景四售后退款与库存--权益回补时序图"><a class="header" href="#1536-场景四售后退款与库存--权益回补时序图">15.3.6 场景四：售后退款与库存 / 权益回补时序图</a></h3>
+<pre class="mermaid">
+sequenceDiagram
+    participant U as 用户
+    participant FA as 履约与售后服务
+    participant O as 订单中心
+    participant PAY as 支付服务
+    participant IV as 库存服务
+    participant MK as 营销 / 资产服务
+
+    U-&gt;&gt;FA: 发起退款 / 取消 / 退货
+    FA-&gt;&gt;O: 校验订单快照、支付状态、履约状态
+    O--&gt;&gt;FA: 返回可退条件
+    FA-&gt;&gt;PAY: 发起退款
+    PAY--&gt;&gt;FA: 退款成功 / 退款失败
+    FA-&gt;&gt;IV: 按规则回补库存
+    FA-&gt;&gt;MK: 回补或关闭权益
+    FA-&gt;&gt;O: 发布 RefundSucceeded / AftersaleClosed 事件
+    O-&gt;&gt;O: 推进订单为 REFUNDING / REFUNDED / PARTIAL_REFUNDED / AFTERSALE_CLOSED
+</pre>
+
+<h3 id="1537-特殊场景预约--酒旅--到店履约"><a class="header" href="#1537-特殊场景预约--酒旅--到店履约">15.3.7 特殊场景：预约 / 酒旅 / 到店履约</a></h3>
+<p>这几类场景看起来不像传统“发货”，但它们并不是独立订单系统，而只是履约与售后服务下的不同履约分支。</p>
+<p>它们的共同点是：</p>
+<ul>
+<li>都不再依赖最新商品真相</li>
+<li>都依赖订单快照和支付后的履约事实推进</li>
+<li>都需要把外部世界的状态翻译成订单中心可理解的标准化事件</li>
+</ul>
+<p>其中最典型的事实包括：</p>
+<ul>
+<li>预约 / 酒旅：
+<ul>
+<li><code>BookingConfirmed</code></li>
+<li><code>CheckedIn</code></li>
+<li><code>CheckedOut</code></li>
+<li><code>BookingCanceled</code></li>
+</ul>
+</li>
+<li>到店 / 券码：
+<ul>
+<li><code>VoucherIssued</code></li>
+<li><code>VoucherConsumed</code></li>
+<li><code>VoucherExpired</code></li>
+</ul>
+</li>
+</ul>
+<p>也就是说，履约与售后服务本质上承担了一个“协议翻译层”的角色：</p>
+<ul>
+<li>下游系统说的是“已发码”“已预约”“已入住”“已核销”</li>
+<li>订单中心认的是“这笔订单现在是否已履约、是否可退款、是否已完结”</li>
+</ul>
+<h3 id="1538-履约与售后服务的统一架构原则"><a class="header" href="#1538-履约与售后服务的统一架构原则">15.3.8 履约与售后服务的统一架构原则</a></h3>
+<p>第 6 节之所以也需要一个明确的编排角色，原因和第 5 节是对称的：</p>
+<ul>
+<li>第 5 节有结算服务 / 支付编排服务，解决“怎么生成一笔订单”</li>
+<li>第 6 节有履约与售后服务，解决“订单支付之后如何被执行、核销、退款、回补”</li>
+</ul>
+<p>如果没有这一层，订单中心就必须直接对接：</p>
+<ul>
+<li>仓配</li>
+<li>发码</li>
+<li>核销</li>
+<li>预约资源</li>
+<li>退款</li>
+<li>库存回补</li>
+<li>权益回补</li>
+</ul>
+<p>这样它会再次膨胀成“大管家”，把整个后交易阶段的复杂性都吸进去。</p>
+<p>因此本章的统一结论是：</p>
+<ul>
+<li>订单中心拥有订单主事实和用户可见订单状态</li>
+<li>履约与售后服务拥有支付后的流程编排职责</li>
+<li>下游仓配、发码、核销、退款、回补服务只提供事实，不直接拥有订单主状态</li>
+</ul>
+<p>最后用一句话收口：</p>
+<blockquote>
+<p>结算服务解决“如何生成订单”，履约与售后服务解决“订单支付之后如何被执行、被核销、被退款、被回补”。</p>
+</blockquote>
+<hr>
+<h2 id="154-端到端案例与特殊订单类型"><a class="header" href="#154-端到端案例与特殊订单类型">15.4 端到端案例与特殊订单类型</a></h2>
+<h3 id="1541-实物电商主链路"><a class="header" href="#1541-实物电商主链路">15.4.1 实物电商主链路</a></h3>
+<p>用户搜索手机 → 看详情页 → 加购物车 → 进入结算页试算和预占 → 创建订单 → 支付成功 → 仓配发货 → 签收完成 → 可发起退货退款。</p>
+<p>这一链路的核心风险在于：</p>
+<ul>
+<li>列表页展示价与下单价不一致。</li>
+<li>支付失败后库存未释放。</li>
+<li>发货后退款和库存回补规则错乱。</li>
+</ul>
+<h3 id="1542-券码--到店商品主链路"><a class="header" href="#1542-券码--到店商品主链路">15.4.2 券码 / 到店商品主链路</a></h3>
+<p>用户搜索餐饮券或景区票 → 详情页看使用规则 → 结算页试算与预占 → 支付成功 → 发码 → 到店核销 → 核销完成 → 按规则退款或不可退。</p>
+<p>这一链路的核心风险在于：</p>
+<ul>
+<li>发空码。</li>
+<li>券码核销与订单状态不一致。</li>
+<li>退款后券码或权益没有正确回收。</li>
+</ul>
+<h3 id="1543-酒旅--预约型商品主链路"><a class="header" href="#1543-酒旅--预约型商品主链路">15.4.3 酒旅 / 预约型商品主链路</a></h3>
+<p>用户查看房型、日期、价格日历 → 结算页锁房 / 预占 → 创建订单 → 支付成功 → 预约 / 确认单生成 → 入住 / 出行 / 使用完成 → 按取消规则退款。</p>
+<p>这一链路的核心风险在于：</p>
+<ul>
+<li>详情页看见的日期价与下单时的真实价格不一致。</li>
+<li>预约资源已变动但订单仍按旧状态继续推进。</li>
+<li>售后取消没有依据订单时的规则解释。</li>
+</ul>
+<hr>
+<h2 id="155-订单支付与履约的可靠性治理和演进"><a class="header" href="#155-订单支付与履约的可靠性治理和演进">15.5 订单、支付与履约的可靠性治理和演进</a></h2>
+<h3 id="1551-端到端失败矩阵"><a class="header" href="#1551-端到端失败矩阵">15.5.1 端到端失败矩阵</a></h3>
+<p>可靠性设计不能只按服务名列故障，而要按一笔交易已经走到哪一步来定义处理。下面的矩阵把“用户看到什么、系统保存什么、后台做什么”放在一起：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>故障点</th><th>已发生事实</th><th>用户侧语义</th><th>后台动作</th><th>最终判定</th></tr>
+</thead>
+<tbody>
+<tr><td>搜索索引落后</td><td>商品中心已更新</td><td>允许展示旧候选，但详情和结算需刷新</td><td>异步重建索引</td><td>读投影收敛</td></tr>
+<tr><td>购物车写入超时</td><td>未知是否写入</td><td>允许查询后重试</td><td>按请求键反查版本</td><td>意愿不重复</td></tr>
+<tr><td>价格成功、库存失败</td><td>价格上下文已生成</td><td>提示暂不可购买</td><td>释放或过期价格上下文</td><td>结算拒绝</td></tr>
+<tr><td>库存成功、创单超时</td><td>可能已预占</td><td>不立即重复提交</td><td>按结算凭证反查订单并补偿</td><td>订单或预占收敛</td></tr>
+<tr><td>创单成功、支付未返回</td><td>订单事实已落库</td><td>显示待支付 / 处理中</td><td>查询支付，超时关闭</td><td>订单有明确终态</td></tr>
+<tr><td>渠道已扣款、订单未支付</td><td>外部资金事实存在</td><td>显示处理中，不允许重复支付</td><td>查询渠道、补发支付事件</td><td>支付与订单对账一致</td></tr>
+<tr><td>支付成功、履约创建失败</td><td>资金事实已成立</td><td>显示支付成功、履约处理中</td><td>重试履约并告警</td><td>不回滚支付事实</td></tr>
+<tr><td>发货回调重复</td><td>履约事实已处理</td><td>状态不变</td><td>事件幂等、记录重复通知</td><td>不重复发货</td></tr>
+<tr><td>退款处理中</td><td>申请已受理</td><td>显示退款中</td><td>查询渠道、限制重复申请</td><td>退款最终收敛</td></tr>
+</tbody>
+</table>
+</div>
+<p>这里有一个重要边界：补偿不是把时间倒流，而是产生新的业务事实。例如支付成功后不能简单把订单删除来“回滚”，而应保留支付记录，依据库存、履约和退款策略生成取消、退款或人工介入事实。Saga 的核心价值就在于把长事务拆成可补偿步骤，但补偿动作本身也必须幂等并可观测。[1][2]</p>
+<h3 id="1552-幂等防重与乱序处理"><a class="header" href="#1552-幂等防重与乱序处理">15.5.2 幂等、防重与乱序处理</a></h3>
+<p>幂等要按层设计，而不是只加一个 Redis 锁：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>层次</th><th>机制</th><th>解决的问题</th><th>不能解决的问题</th></tr>
+</thead>
+<tbody>
+<tr><td>客户端</td><td>防抖、按钮状态、提交令牌</td><td>减少重复点击</td><td>无法防网络重试和恶意请求</td></tr>
+<tr><td>网关</td><td>用户 / IP / 设备限流</td><td>削减重复流量</td><td>无法保证业务只执行一次</td></tr>
+<tr><td>服务接口</td><td>幂等键、参数摘要、结果缓存</td><td>同一请求重复调用</td><td>无法处理跨接口的业务冲突</td></tr>
+<tr><td>数据库</td><td>唯一键、版本条件更新</td><td>最终事实防重</td><td>不能替代补偿和消息投递</td></tr>
+<tr><td>消费端</td><td><code>event_id</code>、聚合版本、处理表</td><td>重复和乱序消息</td><td>不能自动修复错误业务规则</td></tr>
+<tr><td>对账任务</td><td>状态查询、差异清单</td><td>长时间未知状态</td><td>不能替代实时用户体验</td></tr>
+</tbody>
+</table>
+</div>
+<p>对于事件消费者，推荐使用“事件 ID 去重 + 聚合版本检查 + 业务前置条件”三道判断：先判断是否处理过，再判断版本是否更新，最后判断当前订单状态是否允许这次迁移。版本落后但事件未处理时不能简单丢弃，应按事件类型进入重放或反查队列；因为有些事件虽然晚到，仍可能代表一个尚未被当前读模型吸收的事实。</p>
+<h3 id="1553-重试退避死信与人工接管"><a class="header" href="#1553-重试退避死信与人工接管">15.5.3 重试、退避、死信与人工接管</a></h3>
+<p>重试策略应由错误类型驱动：</p>
+<ul>
+<li>参数错误、签名错误、权限错误：不重试，记录并告警。</li>
+<li>资源暂时不足、连接超时、服务过载：有限次数重试，使用指数退避和抖动。</li>
+<li>外部渠道处理中：按渠道建议间隔查询，不盲目重复发起支付或退款。</li>
+<li>状态未知且超过自动窗口：进入对账队列或人工接管。</li>
+<li>业务规则冲突：冻结当前聚合，保留证据，等待修复或人工决定。</li>
+</ul>
+<p>重试预算应该在整条调用链上计算。例如前端最多重试 2 次，网关重试 1 次，服务内部重试 3 次，下游消息再重试 5 次，并不代表系统最多执行 11 次；嵌套重试可能形成乘法放大。AWS 的可靠性指导把限制重试、设置退避和避免跨层重复重试作为过载防护的一部分。[8] 本章建议把 <code>attempt</code>、<code>retry_budget</code>、<code>next_retry_at</code> 和 <code>last_error_class</code> 写入任务记录。</p>
+<p>死信不是垃圾桶。死信消息必须带有原始事件、失败次数、最后错误、首次失败时间、所属聚合和可执行动作。运维人员重放前要确认当前状态、版本和补偿风险，重放后要能看到结果。对于支付、退款和库存这类敏感动作，人工操作也必须经过权限审批并留下审计记录。</p>
+<p><strong>支付与退款的安全治理</strong></p>
+<p>支付系统的安全边界不能只靠“回调验签”四个字概括。至少要把身份、完整性、重放、权限和审计分开治理：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>风险</th><th>需要证明的事实</th><th>控制措施</th><th>发现问题后的动作</th></tr>
+</thead>
+<tbody>
+<tr><td>伪造回调</td><td>通知确实来自渠道且未被篡改</td><td>渠道证书、公钥轮换、验签、时间窗口</td><td>拒绝处理并记录安全事件</td></tr>
+<tr><td>金额篡改</td><td>渠道金额等于本地支付快照</td><td>订单号、商户号、币种、金额交叉校验</td><td>冻结支付尝试和相关结算</td></tr>
+<tr><td>重放通知</td><td>同一渠道流水未重复产生副作用</td><td>通知指纹、流水号唯一键、版本条件更新</td><td>返回幂等成功但不重复发事件</td></tr>
+<tr><td>越权退款</td><td>操作人和订单状态具备退款权限</td><td>角色分权、审批、订单项范围校验</td><td>拒绝并保留审计记录</td></tr>
+<tr><td>敏感数据泄露</td><td>日志和快照不包含不必要的支付数据</td><td>令牌化、脱敏、密钥托管、最小权限</td><td>吊销凭证并启动安全响应</td></tr>
+<tr><td>重试双扣</td><td>外部未知时没有重复创建扣款</td><td>幂等键、先查单后切换、重试预算</td><td>转处理中或人工核验</td></tr>
+</tbody>
+</table>
+</div>
+<p>密钥轮换不能只替换配置文件。渠道适配器需要同时支持旧公钥和新公钥的过渡窗口，并记录每次验签使用的 key version；否则轮换期间的失败会被误判成渠道故障。支付通知的原文也不应永久暴露在日志系统，应该保留受访问控制保护的原始证据引用、摘要和脱敏字段。</p>
+<p>退款和调账尤其需要职责分离：提出退款申请的人不应同时批准高风险退款，执行渠道退款的人不应拥有修改原始支付金额的权限。人工纠错不能直接改支付主表的金额或状态，而应生成带原因、审批人、前后差异和关联工单的纠错事件，再由状态机按规则应用。这样既能保留审计证据，也能避免“为了让页面显示正确”破坏对账依据。</p>
+<p><strong>多渠道容量隔离与降级</strong></p>
+<p>渠道接入的容量曲线通常不同：某个渠道可能限制每秒请求数，另一个渠道可能在高峰时尾延迟显著上升，银行转账还可能依赖批量文件而不是实时接口。因此支付网关不能使用一个共享线程池和一个全局超时。应按渠道、商户号和操作类型隔离连接池、并发配额、超时和重试预算；支付创建、查单、退款和账单下载也要分开，避免账单任务占满实时支付资源。</p>
+<p>降级必须保护资金事实而不是只保护接口成功率：</p>
+<ul>
+<li>渠道预下单不可用时，可以隐藏该支付方式或切换到经过确认的备用渠道，但不能对未知扣款直接重发。</li>
+<li>渠道回调处理积压时，可以让收银台显示处理中，不能把超时订单直接标成失败并释放资源。</li>
+<li>对账文件晚到时，可以延后结算批次，但不能静默跳过差异。</li>
+<li>退款渠道异常时，应保持退款中并展示预计处理状态，不能为了降低失败率重复扣减可退余额。</li>
+</ul>
+<p>因此支付服务的核心 SLO 不应只有接口可用率，还应包含成功事实不重复率、未知状态闭合时延、退款累计金额不变量、回调积压时间和对账差异关闭时延。Google SRE 关于过载处理的观点可以支撑“先保护关键事实，再降低非关键体验”的排序；本章进一步将其推导到支付场景，即宁可让用户暂时看见处理中，也不能为了即时返回而制造重复资金动作。[4]</p>
+<p><strong>搜索读链路的故障矩阵</strong></p>
+<p>搜索故障的用户影响通常先表现为“找不到、排得不对或页面变慢”，但处理方式不能只看搜索接口是否返回 200。应把索引投影、查询引擎和 Hydrate 下游分开判定：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>故障点</th><th>用户语义</th><th>自动动作</th><th>不能做什么</th></tr>
+</thead>
+<tbody>
+<tr><td>索引事件积压</td><td>允许部分结果滞后</td><td>扩容消费者、按聚合版本追平、告警</td><td>不能把旧索引当商品正式状态</td></tr>
+<tr><td>旧事件乱序到达</td><td>单个商品可能短暂旧</td><td>版本条件更新或丢弃旧写入</td><td>不能让旧文档覆盖新文档</td></tr>
+<tr><td>重建索引失败</td><td>继续使用旧读别名</td><td>重试构建、保留旧索引、人工切换</td><td>不能半成品切读流量</td></tr>
+<tr><td>ES 慢查询或不可用</td><td>返回缓存、缩小召回或明确稍后重试</td><td>熔断高成本查询、限流、回滚排序</td><td>不能用无约束深分页拖垮集群</td></tr>
+<tr><td>Hydrate 部分超时</td><td>卡片显示参考价或库存确认中</td><td>按字段局部降级、记录依赖超时</td><td>不能把旧价格当实时成交价</td></tr>
+<tr><td>热点 query / suggest 洪峰</td><td>结果可能延迟或被限流</td><td>独立配额、本地缓存、热点隔离</td><td>不能挤占结算和支付资源</td></tr>
+<tr><td>零结果率异常升高</td><td>引导纠错或类目浏览</td><td>检查索引版本、词典、过滤互斥和事件链路</td><td>不能放宽合规和上下架过滤</td></tr>
+<tr><td>实验排序异常</td><td>回退稳定排序版本</td><td>按 <code>exp_id</code> 停止实验、清理版本缓存</td><td>不能只看 CTR 忽略投诉和成交口径</td></tr>
+</tbody>
+</table>
+</div>
+<p>索引对账应至少抽样比较主数据版本、文档可搜索状态、关键类目和删除事件；查询治理则要保留归一化 query、scene、rank 版本和超时分支。这样搜索的恢复动作才有证据，而不是“重启服务看看”。搜索可以在故障时降低体验，但不能越过商品合规、交易价格和库存事实边界；这与支付故障时保留资金事实的原则一致，都是先保护权威事实，再保护非关键体验。</p>
+<h3 id="1554-可观测性从技术指标到业务不变量"><a class="header" href="#1554-可观测性从技术指标到业务不变量">15.5.4 可观测性：从技术指标到业务不变量</a></h3>
+<p>常规的 CPU、内存和接口 RT 不足以判断交易系统是否健康。至少需要四类指标：</p>
+<ol>
+<li><strong>用户结果</strong>：搜索成功率、结算成功率、创单成功率、支付成功率、履约及时率、退款完成时延。</li>
+<li><strong>状态流转</strong>：各状态停留时间、状态迁移失败数、重复事件数、乱序事件数、待处理聚合数。</li>
+<li><strong>资源与消息</strong>：库存预占量、预占超时量、Outbox 积压、消费者延迟、死信数、对账差异数。</li>
+<li><strong>安全与合规</strong>：签名失败、越权访问、异常支付频率、敏感字段访问、人工纠错操作。</li>
+</ol>
+<p>告警要围绕“用户结果和不变量”设定，而不是为每个指标设置阈值。例如“支付成功但 10 分钟后仍无履约任务”的比例，比单独监控履约服务 CPU 更能发现真实故障；“退款累计金额大于支付金额”的不变量违反，应立即告警，即使服务总体错误率很低。Google SRE 的监控和告警原则要求告警能够驱动明确行动，并尽量减少无法行动的噪声。[5][6]</p>
+<p>链路追踪要贯穿用户请求、结算凭证、订单、支付单、事件和下游任务。日志字段至少统一：<code>trace_id</code>、<code>request_id</code>、<code>user_id_hash</code>、<code>order_id</code>、<code>sub_order_id</code>、<code>payment_id</code>、<code>event_id</code>、<code>attempt</code>、<code>state_version</code> 和 <code>error_code</code>。个人信息与支付敏感字段要脱敏，日志不能为了方便排查而复制完整地址、身份证号、卡号或验证码。</p>
+<p>支付治理还需要把指标组织成可验证的不变量，而不是只看各系统自己的成功率。可以每天或每小时计算以下关系：支付意图的成功金额不应大于订单应付金额；一笔支付的成功金额减去成功退款金额不应小于零；同一渠道流水号只能对应一个本地渠道交易；已发布的支付成功事件数量应能与支付状态历史中的成功迁移数量解释；已结算金额不应超过已确认支付金额扣除冻结和退款后的可结算金额。指标出现偏差时，先生成差异快照和影响范围，再决定是否暂停履约或结算，不能直接用批量更新把数字抹平。</p>
+<p>这类不变量最好由独立的治理任务计算，而不是由支付主链路临时查询多个系统。治理任务读取不可变支付流水、退款流水、结算明细和事件投递记录，生成带时间窗口与版本的检查结果；检查结果本身也要可审计。这样既能避免高峰期把在线支付链路拖慢，也能让运营在故障复盘时回答“问题从哪个时间窗口开始、影响了多少金额、哪些订单已经自动收敛”。</p>
+<h3 id="1555-灰度回滚与数据修复"><a class="header" href="#1555-灰度回滚与数据修复">15.5.5 灰度、回滚与数据修复</a></h3>
+<p>交易链路的灰度不能只按服务实例比例切流，还要考虑订单状态和数据版本。推荐按用户、设备、销售主体或订单号做稳定路由，并为每次变更记录：协议版本、状态机版本、快照 schema、事件 schema、回滚条件和观测窗口。</p>
+<p>涉及状态机或金额计算的变更，应采用兼容优先的双读 / 双写策略：先让新版本能够读取旧快照和旧事件，再逐步写出新字段；确认新旧结果一致后，才切换主读路径。事件 schema 需要版本化，消费者要能在一段迁移窗口内处理至少两个版本。回滚应用版本不等于回滚已经产生的订单事实，数据修复应通过受控的纠错事件完成。</p>
+<p>数据修复至少要遵循：先冻结自动动作、导出证据、计算影响范围、生成可审计的修复计划、小批量执行、复核结果、解除冻结。不能直接批量改订单状态来“修好看板”，否则会破坏支付、履约、售后和对账证据链。</p>
+<h3 id="1556-容量估算与隔离"><a class="header" href="#1556-容量估算与隔离">15.5.6 容量估算与隔离</a></h3>
+<p>容量设计要按交易阶段拆分，而不是拿站点总访问量平均分配。设每日访问用户为 (U)，商品详情转化率为 (c_d)，加购率为 (c_a)，结算率为 (c_c)，支付率为 (c_p)，则可以用下列假设估算日级业务量：</p>
+<pre><code class="language-text">detail_views  = U × c_d
+cart_actions  = detail_views × c_a
+checkouts     = cart_actions × c_c
+orders        = checkouts × c_p
+</code></pre>
+<p>峰值不能简单等于日均除以 86400，应另外给出峰值系数、活动集中系数和热点 SKU 系数。搜索和详情读流量通常数量级更大，应与结算、创单和支付写流量隔离；热点库存、支付回调、Outbox 消费和对账任务也应分别设置连接池、线程池和限流器。</p>
+<p>容量估算最重要的不是得到一个“准确数字”，而是说明假设改变时哪个边界先失效。若支付成功率不变但结算转化率突然提升，库存预占和订单库写入可能先成为瓶颈；若支付渠道变慢，待处理支付和订单保留量会先膨胀。每个容量结论都要配套一个降级动作和一个扩容触发指标。</p>
+<h3 id="1557-演进路线从单体交易模块到领域协作"><a class="header" href="#1557-演进路线从单体交易模块到领域协作">15.5.7 演进路线：从单体交易模块到领域协作</a></h3>
+<p>不建议一开始就把所有能力拆成大量微服务。可以按事实主权和变化速度分阶段演进：</p>
+<ol>
+<li>第一阶段：单体内按商品、购物车、结算、订单、支付、履约模块分层，先建立快照、状态机和幂等契约。</li>
+<li>第二阶段：将搜索读模型、购物车存储、支付渠道适配和履约回调接入独立出来，降低读写和外部不稳定性的影响。</li>
+<li>第三阶段：按销售主体和履约边界拆分订单子域，引入 Outbox、事件版本和对账平台。</li>
+<li>第四阶段：对高峰流量、跨境履约和复杂预约引入工作流编排，但保留订单事实和支付事实的主权边界。</li>
+</ol>
+<p>拆分标准不是“服务越多越先进”，而是某个边界是否拥有独立的数据主权、容量曲线、发布节奏和故障隔离收益。Enterprise Integration Patterns 对消息通道、路由、转换、幂等接收者和事务消息等模式的总结，可作为跨域协作设计的共同语言。[3] 本章结合电商场景的推导是：只有当一个边界能够定义自己的事实、事件、补偿和运维责任时，才值得成为独立服务。</p>
+<h2 id="156-本章总结adr评审清单与参考资料"><a class="header" href="#156-本章总结adr评审清单与参考资料">15.6 本章总结、ADR、评审清单与参考资料</a></h2>
+<p>订单创建之后，关键是让资金、订单和履约事实逐步收敛，同时保留可解释、可恢复的证据：</p>
+<ol>
+<li>订单是交易事实，支付事实由支付域拥有，订单域根据标准事实推进自己的状态机。</li>
+<li>支付成功后，库存、权益和履约通过幂等事件确认；未知状态由查单、对账和补偿闭合。</li>
+<li>售后基于订单快照和履约事实处理，不能依赖商品当前配置重建历史交易。</li>
+</ol>
+<h3 id="1561-adr-00支付采用支付意图支付尝试渠道交易三级模型"><a class="header" href="#1561-adr-00支付采用支付意图支付尝试渠道交易三级模型">15.6.1 ADR-00：支付采用“支付意图—支付尝试—渠道交易”三级模型</a></h3>
+<ul>
+<li><strong>背景与问题</strong>：一个订单可能更换支付方式、重复打开收银台、收到重复或乱序通知，渠道同步返回也可能只是受理结果。若订单只保存一个渠道流水号，未知状态和部分退款会被迫覆盖原事实。</li>
+<li><strong>决策驱动因素</strong>：资金安全、渠道可替换、幂等重试、对账可追溯、部分退款和多币种扩展能力。</li>
+<li><strong>候选方案</strong>：订单直接绑定渠道交易；支付中心只维护一张支付表；支付意图、支付尝试和渠道交易分层建模。</li>
+<li><strong>最终决策</strong>：支付意图绑定订单应付快照，支付尝试记录一次方式和路由决策，渠道交易保存外部流水与原始证据；退款单和结算明细继续作为独立事实对象。</li>
+<li><strong>获得的能力</strong>：可以在不覆盖历史事实的前提下切换支付方式、处理未知状态和多次部分退款，并且能够按渠道流水号完成回调、查单和对账闭合。</li>
+<li><strong>主动牺牲的能力</strong>：数据模型和查询编排更复杂，前端需要理解处理中状态，财务与客服需要使用多个关联号排查问题。</li>
+<li><strong>已接受的风险</strong>：对象之间可能出现暂时未收敛的关联；通过唯一键、版本条件更新、Outbox、主动查单和对账批次控制风险。</li>
+<li><strong>验证指标</strong>：重复扣款率、支付尝试未知状态闭合时间、支付与渠道流水匹配率、部分退款超限数、渠道路由切换后的成功率和对账差异关闭时间。</li>
+<li><strong>重新评估条件</strong>：出现新的资金来源、跨境币种或监管要求，导致当前三级模型无法表达资金归属时，新增明确的事实对象，不把新字段继续堆到支付主表。</li>
+</ul>
+<h3 id="1562-adr-01采用结算凭证--订单本地事务--异步补偿"><a class="header" href="#1562-adr-01采用结算凭证--订单本地事务--异步补偿">15.6.2 ADR-01：采用“结算凭证 + 订单本地事务 + 异步补偿”</a></h3>
+<ul>
+<li><strong>背景与问题</strong>：结算需要同时接入商品、价格、库存、营销和履约规则；如果把所有调用放入全局强一致事务，会导致锁持有时间长、尾延迟放大，并且无法可靠覆盖外部支付渠道。</li>
+<li><strong>决策驱动因素</strong>：吞吐、尾延迟、资源隔离、补偿能力、团队可运维性和外部系统可控程度。</li>
+<li><strong>候选方案</strong>：XA / 2PC、经典 Saga、TCC、预占资源加改良 Saga。</li>
+<li><strong>最终决策</strong>：结算阶段产生带 TTL 的价格、库存和权益凭证；订单中心用短本地事务保存订单事实和快照；通过 Outbox 发布事件，由下游幂等执行 Confirm / Cancel，使用对账任务处理长期未知状态。</li>
+<li><strong>获得的能力</strong>：较短的数据库事务、较高吞吐、明确的资源释放入口、对外部支付友好、能够按域独立扩容。</li>
+<li><strong>主动牺牲的能力</strong>：不保证跨所有域的瞬时强一致；用户可能短暂看到“处理中”；补偿和对账系统必须长期运行。</li>
+<li><strong>已接受的风险</strong>：重复消息、乱序事件和补偿延迟会增加状态机复杂度；通过版本、幂等、审计和人工接管控制风险。</li>
+<li><strong>验证指标</strong>：结算成功率、凭证失效率、预占超时量、补偿成功率、Outbox 延迟、支付成功后履约创建时延和对账差异率。</li>
+<li><strong>重新评估条件</strong>：出现高比例资金级强一致需求、跨域补偿成本持续高于收益，或业务需要法律上不可拆分的原子转移时，再评估 TCC 或专用工作流。Seata 官方资料对 AT、TCC、SAGA 等模式的边界有明确说明；它们可以作为实现选项，但不能替代业务状态机设计。[20][21][22]</li>
+</ul>
+<h3 id="1563-adr-02订单保存不可变快照搜索与详情使用分层读模型"><a class="header" href="#1563-adr-02订单保存不可变快照搜索与详情使用分层读模型">15.6.3 ADR-02：订单保存不可变快照，搜索与详情使用分层读模型</a></h3>
+<ul>
+<li><strong>背景与问题</strong>：搜索需要吞吐和排序，详情需要解释当前商品，订单和售后需要解释历史成交事实。</li>
+<li><strong>最终决策</strong>：搜索索引只保存可容忍滞后的召回与排序字段；详情和结算通过批量 Hydrate 获取当前正式契约；订单保存商品、价格和履约快照；快照版本不可被商品更新覆盖。</li>
+<li><strong>获得的能力</strong>：读写隔离、搜索可扩展、历史订单可解释、交易前可以重新校验关键字段。</li>
+<li><strong>主动牺牲的能力</strong>：搜索列表可能短暂落后；详情聚合多一次或多次调用；快照和索引需要额外存储及重建机制。</li>
+<li><strong>验证指标</strong>：索引延迟、Hydrate 成功率、列表与结算价格差异率、快照完整率、订单争议可解释率。Elasticsearch 的乐观并发控制用于防止版本覆盖，分片请求缓存用于降低重复查询压力；这些能力只解决读模型和版本问题，不会替代库存或订单事实。[11][12]</li>
+</ul>
+<h3 id="1564-adr-03状态机由订单域拥有支付与履约通过标准事实事件驱动"><a class="header" href="#1564-adr-03状态机由订单域拥有支付与履约通过标准事实事件驱动">15.6.4 ADR-03：状态机由订单域拥有，支付与履约通过标准事实事件驱动</a></h3>
+<ul>
+<li><strong>背景与问题</strong>：支付、仓配、发码、预约和退款都有自己的状态，但用户需要一个统一、可解释的订单状态。</li>
+<li><strong>最终决策</strong>：订单中心拥有用户可见主状态和状态迁移规则；支付中心拥有支付事实；履约与售后服务拥有流程编排；外部系统通过验签、幂等和事件归一后输入标准事实。</li>
+<li><strong>获得的能力</strong>：状态主权清晰、渠道可替换、事件可重放、售后基于事实解释。</li>
+<li><strong>主动牺牲的能力</strong>：订单详情可能短暂显示处理中；跨域排障需要 trace、事件和对账工具；各域要维护自己的幂等与补偿。</li>
+<li><strong>重新评估条件</strong>：如果某个履约领域形成独立产品、拥有独立状态和独立 SLO，可以把它拆为更明确的子域，但不能通过让外部系统直接写订单主状态来“简化”当前链路。</li>
+</ul>
+<h3 id="1565-订单支付与履约评审清单"><a class="header" href="#1565-订单支付与履约评审清单">15.6.5 订单、支付与履约评审清单</a></h3>
+<p>评审订单之后的交易链路时，重点确认：</p>
+<ol>
+<li>每个关键事实的权威系统是谁？其他系统保存的是投影、快照还是引用？</li>
+<li>展示数据、交易前提和交易事实分别允许多大延迟？</li>
+<li>结算凭证绑定了哪些身份、版本、金额、资源和过期信息？</li>
+<li>同一请求、同一事件、同一订单状态被重复处理时会发生什么？</li>
+<li>超时后如何反查，消息失败后如何重试，长期未知后谁来对账？</li>
+<li>订单快照是否足以解释客服、售后、退款和争议？是否误存敏感支付数据？</li>
+<li>支付成功后库存确认、权益确认和履约创建的幂等键分别是什么？</li>
+<li>是否有部分支付、部分退款、拆单、预售、0 元订单和预约商品的状态模型？</li>
+<li>是否能从 <code>trace_id</code>、订单号、支付单号和事件 ID 还原一条完整证据链？</li>
+<li>每个降级、回滚和人工接管动作是否有明确的触发条件、权限和审计记录？</li>
+</ol>
+<h3 id="1566-参考资料"><a class="header" href="#1566-参考资料">15.6.6 参考资料</a></h3>
+<p>[1] Hector Garcia-Molina, Kenneth Salem, “Sagas”, ACM SIGMOD Record, 1987, https://doi.org/10.1145/38713.38742</p>
+<p>[2] Pat Helland, “Life Beyond Distributed Transactions: An Apostate’s Opinion”, CIDR, 2007, https://www.cidrdb.org/cidr2007/papers/cidr07p15.pdf</p>
+<p>[3] Gregor Hohpe, Bobby Woolf, “Enterprise Integration Patterns”, official pattern catalog, https://www.enterpriseintegrationpatterns.com/</p>
+<p>[4] Google SRE, “Handling Overload”, Google SRE Book, https://sre.google/sre-book/handling-overload/</p>
+<p>[5] Google SRE, “Monitoring Distributed Systems”, Google SRE Book, https://sre.google/sre-book/monitoring-distributed-systems/</p>
+<p>[6] Google SRE, “Practical Alerting from Time-Series Data”, Google SRE Book, https://sre.google/sre-book/practical-alerting/</p>
+<p>[7] Amazon Web Services, “Making Retries Safe with Idempotent APIs”, Builders’ Library, https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/</p>
+<p>[8] Amazon Web Services, “Limit Retries”, Well-Architected Framework, https://docs.aws.amazon.com/wellarchitected/latest/framework/rel_mitigate_interaction_failure_limit_retries.html</p>
+<p>[9] Apache Kafka, “Design: Message Delivery Semantics”, official documentation, https://kafka.apache.org/08/design/design/</p>
+<p>[10] Apache Kafka, “Upgrade Notes: Idempotent and Transactional Producers”, official documentation, https://kafka.apache.org/38/getting-started/upgrade/</p>
+<p>[11] Elastic, “Optimistic Concurrency Control”, Elasticsearch Reference, https://www.elastic.co/docs/reference/elasticsearch/rest-apis/optimistic-concurrency-control</p>
+<p>[12] Elastic, “Shard Request Cache”, Elasticsearch Reference, https://www.elastic.co/docs/reference/elasticsearch/rest-apis/shard-request-cache</p>
+<p>[13] Oracle, “InnoDB Transaction Model”, MySQL Reference Manual, https://dev.mysql.com/doc/refman/26.7/en/innodb-transaction-model.html</p>
+<p>[14] World Wide Web Consortium, “Trace Context”, W3C Recommendation, https://www.w3.org/TR/trace-context/</p>
+<p>[15] OpenTelemetry, “General Semantic Conventions”, official specification, https://opentelemetry.io/docs/specs/semconv/general/</p>
+<p>[16] IETF, “HTTP Semantics”, RFC 9110, 2022, https://datatracker.ietf.org/doc/rfc9110/</p>
+<p>[17] IETF, “Problem Details for HTTP APIs”, RFC 9457, 2023, https://datatracker.ietf.org/doc/html/rfc9457</p>
+<p>[18] Chris Richardson, “Pattern: Transactional outbox”, microservices.io, https://microservices.io/patterns/data/transactional-outbox</p>
+<p>[19] PCI Security Standards Council, “Document Library”, official standards library, https://www.pcisecuritystandards.org/document_library/</p>
+<p>[20] Apache Seata, “What is Seata?”, 中文官方文档, https://seata.apache.org/zh-cn/docs/overview/what-is-seata/</p>
+<p>[21] Apache Seata, “Saga 模式”, 中文官方文档, https://seata.apache.org/zh-cn/docs/user/mode/saga/</p>
+<p>[22] Alibaba Cloud, “分布式事务参与者模式”, 中文官方文档, https://help.aliyun.com/zh/document_detail/132909.html</p>
+<p>[23] Stripe, “Idempotent requests”, official API documentation, https://docs.stripe.com/api/idempotent_requests</p>
+<p>[24] Adyen, “Handle webhook events”, official documentation, https://docs.adyen.com/development-resources/webhooks/handle-webhook-events</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part02/14-ecommerce-customer-lifecycle.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../appendix/glossary.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part02/14-ecommerce-customer-lifecycle.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../appendix/glossary.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-c2a407aa.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-ccf746f1.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

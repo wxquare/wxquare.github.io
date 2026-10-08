@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第 7 章 高准确性与强一致性系统设计方法论：支付、库存与账务场景 - System Design: Reliable Systems and E-Commerce Architecture</title>
+        <title>第 7 章 高准确性与强一致性设计：并发不变量、权威事实与账本约束 - System Design: Reliable Systems and E-Commerce Architecture</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a2c86ee4.js";
+            window.path_to_searchindex_js = "../searchindex-04a43adf.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-09578451.js"></script>
+        <script src="../toc-47c28d00.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,7 +177,7 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="第-7-章-高准确性与强一致性系统设计方法论支付库存与账务场景"><a class="header" href="#第-7-章-高准确性与强一致性系统设计方法论支付库存与账务场景">第 7 章 高准确性与强一致性系统设计方法论：支付、库存与账务场景</a></h1>
+                        <h1 id="第-7-章-高准确性与强一致性设计并发不变量权威事实与账本约束"><a class="header" href="#第-7-章-高准确性与强一致性设计并发不变量权威事实与账本约束">第 7 章 高准确性与强一致性设计：并发不变量、权威事实与账本约束</a></h1>
 <blockquote>
 <p>当系统面对支付、库存、账务、钱包、积分等“结果必须正确”的业务时，设计重点不再只是流程能不能跑通，而是事实能不能被严格定义、状态能不能被安全推进、错误能不能被可审计地恢复。</p>
 </blockquote>
@@ -235,8 +235,8 @@
 <li>如何处理请求重试、回调重复、状态未知、消息乱序和跨系统失败。</li>
 <li>如何建立审计、对账、人工接管和恢复机制。</li>
 </ol>
-<p>本章不试图展开完整的数据库实现、支付渠道接入协议或财务会计制度。数据库隔离级别、Redis 细节、Kafka 消费模型和订单系统的完整实现，应分别结合本书后续基础设施和电商实战章节阅读。</p>
-<p>关于大事务、Saga 和 Outbox 的通用流程可参见<a href="04-large-transaction-orchestration.html">第 4 章《大事务处理方法论》</a>；购物车、结算、订单和支付的完整领域实现可参见<a href="../part02/14-ecommerce-customer-lifecycle.html">第 14 章《电商用户 C 端搜索、交易、履约与售后全生命周期设计》</a>。本章只保留跨场景的判断框架和关键取舍。</p>
+<p>本章不试图展开完整的数据库实现、支付渠道接入协议或财务会计制度。数据库隔离级别和 Redis 库存并发细节可参见第 12 章；消息投递、Outbox 与消费幂等可参见第 4 章；订单流程与支付渠道的领域实现可参见第 15 章。</p>
+<p>关于大事务、Saga 和 Outbox 的通用流程可参见<a href="04-large-transaction-orchestration.html">第 4 章《大事务处理》</a>；购物车与结算见<a href="../part02/14-ecommerce-customer-lifecycle.html">第 14 章《电商商品发现与交易准备》</a>，订单、支付与履约见<a href="../part02/15-ecommerce-order-fulfillment.html">第 15 章《电商订单与履约全生命周期》</a>。本章只保留跨场景的判断框架和关键取舍。</p>
 <h2 id="72-约束与指标先把正确性写成可以验证的条件"><a class="header" href="#72-约束与指标先把正确性写成可以验证的条件">7.2 约束与指标：先把正确性写成可以验证的条件</a></h2>
 <p>高准确性系统不能只用“成功率”和“接口延迟”衡量。它必须同时有业务正确性指标、状态收敛指标和恢复能力指标。更重要的是，指标必须和约束绑定：没有时间窗口的收敛率、没有金额口径的差异数、没有资源范围的库存准确率，都不足以指导设计。</p>
 <h3 id="721-四类约束"><a class="header" href="#721-四类约束">7.2.1 四类约束</a></h3>
@@ -280,7 +280,7 @@
 <tr><th>不变量</th><th>代码或存储约束</th><th>对账方式</th></tr>
 </thead>
 <tbody>
-<tr><td>同一支付意图只成功一次</td><td><code>(order_id, payment_intent_id)</code> 唯一约束</td><td>渠道成功单与本地成功单逐笔比对</td></tr>
+<tr><td>同一支付尝试只登记一次</td><td><code>(payment_intent_id, attempt_id)</code> 唯一约束；同一 <code>attempt_id</code> 重试时复用渠道幂等键，结果未知先查单</td><td>按商户请求号、渠道流水号和支付意图逐笔核对；若同一意图出现多笔渠道成功，保留资金事实并进入重复扣款退款或人工处理</td></tr>
 <tr><td>库存不能负数</td><td>条件更新 <code>available &gt;= quantity</code>、库存流水唯一</td><td>总量、预占、已售和订单聚合比对</td></tr>
 <tr><td>状态不能逆向</td><td>状态转移表、版本号和前置状态条件</td><td>扫描非法边、检查状态事件顺序</td></tr>
 <tr><td>账务借贷平衡</td><td>记账凭证号唯一、分录金额约束</td><td>按凭证、账户、币种汇总借贷差额</td></tr>

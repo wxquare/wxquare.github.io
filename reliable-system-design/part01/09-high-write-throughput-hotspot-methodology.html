@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第 9 章 高并发写与热点场景系统设计方法论：秒杀、社交互动与流量洪峰处理 - System Design: Reliable Systems and E-Commerce Architecture</title>
+        <title>第 9 章 高并发写入与热点治理：秒杀、社交互动与流量洪峰应对 - System Design: Reliable Systems and E-Commerce Architecture</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a2c86ee4.js";
+            window.path_to_searchindex_js = "../searchindex-04a43adf.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-09578451.js"></script>
+        <script src="../toc-47c28d00.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,7 +177,7 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="第-9-章-高并发写与热点场景系统设计方法论秒杀社交互动与流量洪峰处理"><a class="header" href="#第-9-章-高并发写与热点场景系统设计方法论秒杀社交互动与流量洪峰处理">第 9 章 高并发写与热点场景系统设计方法论：秒杀、社交互动与流量洪峰处理</a></h1>
+                        <h1 id="第-9-章-高并发写入与热点治理秒杀社交互动与流量洪峰应对"><a class="header" href="#第-9-章-高并发写入与热点治理秒杀社交互动与流量洪峰应对">第 9 章 高并发写入与热点治理：秒杀、社交互动与流量洪峰应对</a></h1>
 <blockquote>
 <p>当系统面对秒杀、社交点赞、评论洪峰、直播互动、抢票、短时间上传等场景时，设计重点不再只是单次写入是否成功，而是如何在极端流量下保护入口、隔离热点、控制写入速率，并让用户看到的结果与最终事实安全收敛。</p>
 </blockquote>
@@ -236,7 +236,8 @@
 异步处理能力：5,000 req/s
 队列容量：600,000 条
 </code></pre>
-<p>如果 100,000 req/s 持续五分钟，而消费者只有 5,000 req/s，即使入口只接受 20,000 req/s，队列仍会以 15,000 条每秒的速度增长，约 300 秒后新增积压达到 4,500,000 条，远超 600,000 条容量。若系统在第 30 秒发现积压并立刻拒绝新请求，队列仍然需要约 120 秒才能消化原有积压；若消费者处理速率只能提升到 10,000 req/s，恢复时间还会更长。排队设计必须同时给出最大积压、最大等待时间、满队列策略和恢复速率。</p>
+<p>假设入口从开始就把准入速率限制在 20,000 req/s，消费者持续处理 5,000 条/秒，队列初始为空，则积压净增长率为 <code>20,000 - 5,000 = 15,000 条/秒</code>。容量为 600,000 条时，队列在 <code>600,000 / 15,000 = 40 秒</code>后达到上限。若外部峰值 100,000 req/s 持续五分钟，入口最多只能准入 20,000 req/s；若仍无视队列上限持续准入，理论净积压会达到 <code>15,000 × 300 = 4,500,000 条</code>，但实际队列会在第 40 秒先满，系统必须按预先定义的策略拒绝、限速或施加背压。</p>
+<p>若运行 30 秒后停止接收新请求，此时积压为 <code>15,000 × 30 = 450,000 条</code>；消费者以 5,000 条/秒继续处理且没有新流量时，清空需要 <code>450,000 / 5,000 = 90 秒</code>。如果恢复阶段仍有流量，则清空时间为 <code>当前积压 / (恢复处理速率 - 恢复阶段到达速率)</code>，并且只有恢复处理速率大于到达速率时队列才会下降。排队设计必须同时给出最大积压、最大等待时间、满队列策略和恢复速率。</p>
 <p>可以用近似公式帮助评审：</p>
 <pre><code class="language-text">积压变化率 = 到达速率 - 有效处理速率
 预计等待时间 ≈ 当前积压量 / 有效处理速率
@@ -490,7 +491,7 @@
 </ol>
 <p>这套方法不要求所有系统都引入 Redis、MQ、分片或复杂的分布式事务。低流量、强同步、热点有限的业务可能直接写 OLTP 更合适；如果引入异步化后用户必须等待很久、无法查询结果，或者补偿成本高于同步处理，应该重新评估边界。方法论的目标是把不可避免的取舍显式化，而不是堆叠中间件名称。</p>
 <h3 id="983-一句话表达"><a class="header" href="#983-一句话表达">9.8.3 一句话表达</a></h3>
-<p>高并发写与热点场景系统设计的核心，不是把后端数据库做成无限吞吐的洪峰吸收器，而是先定义结果承诺，再用准入、限流、队列、预处理和热点隔离保护系统，最后通过异步处理、幂等、补偿和对账让最终结果回到权威事实。</p>
+<p>高并发写入与热点治理的核心，不是把后端数据库做成无限吞吐的洪峰吸收器，而是先定义结果承诺，再用准入、限流、队列、预处理和热点隔离保护系统，最后通过异步处理、幂等、补偿和对账让最终结果回到权威事实。</p>
 <h2 id="99-参考资料"><a class="header" href="#99-参考资料">9.9 参考资料</a></h2>
 <p>[1] Martin Kleppmann、Chris Riccomini，《<a href="https://www.oreilly.com/library/view/designing-data-intensive-applications/9781098119058/">Designing Data-Intensive Applications, 2nd Edition</a>》，O’Reilly，2026。</p>
 <p>[2] Google SRE，<a href="https://sre.google/sre-book/handling-overload/">“Handling Overload”</a>，<em>Site Reliability Engineering</em>，Google，2017。</p>
