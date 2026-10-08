@@ -53,9 +53,9 @@
 3. 如何通过索引、缓存、预计算、物化视图和 Fanout 保护读路径。
 4. 如何在不一致、依赖故障和过载时提供可解释的降级结果。
 
-本章不展开具体搜索分词算法、推荐模型训练细节或某个云厂商的产品配置。搜索引擎、Redis、Kafka、推荐模型和 Elasticsearch 的实现细节，应结合本书后续基础设施章节阅读。
+本章不展开具体搜索分词算法、推荐模型训练细节或某个云厂商的产品配置。本书没有单独的基础设施篇：Redis、Kafka 和 Elasticsearch 的基础概念可参见[附录 E 后端面试基础知识题单中的 Redis](../appendix/interview-basic-question-bank.md#redis)、[Kafka](../appendix/interview-basic-question-bank.md#kafka)和[Elasticsearch](../appendix/interview-basic-question-bank.md#elasticsearch)主题。这些题单用于复习关键概念，不替代组件官方文档或完整操作手册。推荐模型训练细节可从本章参考资料中的 YouTube 推荐系统论文[6]及相关工程资料[14][17][19]继续阅读；商品搜索与详情的完整业务读路径见[第 14 章 14.3 节](../part02/14-ecommerce-customer-lifecycle.md)。
 
-索引和搜索引擎的底层面试题可参见[后端面试基础知识题单中的 Elasticsearch 主题](../appendix/interview-basic-question-bank.md#elasticsearch)，商品发现的完整业务读路径可参见[第 14 章电商用户全生命周期设计](../part02/14-ecommerce-customer-lifecycle.md)。本章重点保留复杂读场景的统一模型、延迟预算和方案取舍。
+本章重点保留复杂读场景的统一模型、延迟预算和方案取舍。
 
 ## 8.2 约束与指标：把“快”拆成预算，把“好”拆成质量
 

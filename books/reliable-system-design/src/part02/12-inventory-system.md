@@ -505,7 +505,7 @@ Command
 
 ### 12.4.2 核心表模型
 
-下面的表名和字段是公开示例，不对应任何内部系统。字段的价值在于表达约束。
+下面的表名和字段是公开示例，不对应任何内部系统。此例以 MySQL 8.x 为前提，使用生成列为日期维度建立唯一键：有日期时保存 MySQL 对 DATE 的规范字符串表示，没有日期时保存 `NO_DATE`。MySQL DATE 的规范字符串是 `YYYY-MM-DD`，因此不会与 `NO_DATE` 冲突。
 
 ```sql
 CREATE TABLE inventory_unit (
@@ -520,18 +520,21 @@ CREATE TABLE inventory_unit (
   supplier_id       BIGINT NOT NULL DEFAULT 0,
   batch_id          BIGINT NOT NULL DEFAULT 0,
   calendar_date     DATE NULL,
+  calendar_date_key VARCHAR(10) GENERATED ALWAYS AS (
+    COALESCE(CAST(calendar_date AS CHAR), 'NO_DATE')
+  ) STORED,
   status            VARCHAR(32) NOT NULL,
   inventory_epoch   BIGINT NOT NULL DEFAULT 1,
   created_at        DATETIME NOT NULL,
   updated_at        DATETIME NOT NULL,
   UNIQUE KEY uk_unit_scope (
     product_id, sku_id, scope_type, scope_id,
-    batch_id, calendar_date, supplier_id
+    batch_id, calendar_date_key, supplier_id
   )
 ) ENGINE = InnoDB;
 ```
 
-inventory_epoch 是库存单元的世代号。活动重置、全量重建或灾备切换时递增它，任何旧预占、旧释放和旧投影都必须带上旧 epoch；写入新世代时直接拒绝。它解决的是“旧操作写入新库存”的问题，不等价于数据库行版本。
+这样一来，同一组业务维度下的无日期库存都使用唯一键值 `NO_DATE`；有日期库存按规范日期字符串区分，不依赖 MySQL 唯一索引对 NULL 的行为，也不占用任何合法 DATE 值。`inventory_epoch` 是库存单元的世代号。活动重置、全量重建或灾备切换时递增它，任何旧预占、旧释放和旧投影都必须带上旧 epoch；写入新世代时直接拒绝。它解决的是“旧操作写入新库存”的问题，不等价于数据库行版本。
 
 ```sql
 CREATE TABLE stock_balance (
@@ -869,11 +872,12 @@ sequenceDiagram
     participant W as Sweep
 
     C->>O: Submit(idempotency_key)
+    O->>D: persist PENDING intent + stable operation_id
     O->>I: Reserve(reservation_id, unit, qty)
     I->>R: Lua check + move available -> booking
     R-->>I: RESERVED or known duplicate
-    I->>D: Document + Reservation + Ledger + Outbox
-    D-->>I: PAYMENT_ELIGIBLE
+    I->>D: commit Reservation + Ledger + Outbox
+    D-->>I: PAYMENT_ELIGIBLE after durable confirmation
     I-->>O: reserve success
     O->>P: Create payment after eligibility
     P-->>O: paid callback (may repeat)
@@ -881,10 +885,12 @@ sequenceDiagram
     I->>R: Lua booking -> sold
     I->>D: Confirm Ledger + Outbox
     D-->>I: CONFIRMED
-    Note over W,D: TTL/Delay/Sweep releases expired reservations
+    Note over W,D: Due index / Delay / DB Sweep; TTL does not release stock
 ```
 
 真正的 Reserve 不是“检查一下 Redis 还有没有”，而是一次具备幂等性的状态迁移。应用层可以先创建 reservation_id，但不能在 Redis 失败后生成新的 ID 重新扣减；否则第一次请求可能已经成功，第二个 ID 会造成重复占用。
+
+上面的 Redis 脚本只是同一 Redis Cluster 槽位内的热路径原子迁移，不能与 MySQL 事务原子提交。调用脚本前，服务先用稳定的 `operation_id` 在事实库持久化 `PENDING` 意图；脚本返回后，再由 MySQL 本地事务写入 Reservation、库存流水和 Outbox。只有事实库确认该操作后，订单编排器才能创建支付单。若 Redis 调用超时，使用相同的 reservation_id、operation_id、数量和 epoch 查询或重试；保留的 Redis 操作标记会返回原结果。若 Redis 状态丢失或无法证明当前 epoch 连续，则冻结该库存单元，以已提交的事实重建数量投影和 Reservation 标记，并先处理完所有 PENDING 意图，再恢复 Reserve。结果未知期间不得返回支付资格，也不得换新 ID 再扣一次。
 
 支付回调也必须以状态机为准。第一次回调推动 PAYMENT_ELIGIBLE -> CONFIRMING -> CONFIRMED；同一回调重试返回第一次的结果；如果 Reservation 已经 RELEASED，则返回业务冲突并触发订单/支付人工策略，不能因为回调晚到而重新增加 sold。
 
@@ -909,11 +915,11 @@ sequenceDiagram
 
 释放是最常见也最容易被低估的库存操作。至少应有三道触发：
 
-1. Redis Reservation 的 TTL 或过期扫描，尽快发现过期；
+1. Redis 到期索引或扫描，尽快发现过期；Reservation 操作标记不得因 TTL 自动删除；
 2. 延时任务，在订单进入待支付时安排一次低延迟触发；
 3. 数据库 Sweep，周期扫描所有 RESERVED 且 reserve_expire_at < now 的记录，作为完整性后盾。
 
-延时任务可以丢失、重复或延迟，所以它不能作为唯一事实来源。Sweep 也不能直接把所有过期行加回库存；它需要先用租约领取 Reservation，再用状态 CAS：
+延时任务可以丢失、重复或延迟，所以它不能作为唯一事实来源。Redis 中的 `reserve_expires_at` 只用于到期发现，不设置会自动删除幂等标记的 TTL；操作标记至少保留到数据库已记录终态且超过约定的重试保留期，清理时仍以数据库状态为依据。超过保留期的客户端重试必须先按 `operation_id` 查询数据库终态，不能绕过事实库直接再次调用 Reserve。Sweep 也不能直接把所有过期行加回库存；它需要先用租约领取 Reservation，再用状态 CAS：
 
 ```text
 RESERVED
@@ -1007,28 +1013,77 @@ Google SRE 对过载的建议是，系统应在无法提供完整结果时考虑
 6. 保存 Reservation 数量、操作 ID、epoch 和过期时间；
 7. 返回明确结果码。
 
-示例：
+下面的脚本演示 Redis 热视图中的 Reserve 原子迁移。调用方必须先在事实库持久化 PENDING 意图，且只有 MySQL 随后确认 Reservation、流水和 Outbox 后才可把结果作为支付资格。Redis 中的库存 Hash 由事实库投影初始化，`status` 必须是 `ACTIVE`。操作标记不设置自动过期；超时重试复用同一组参数，Redis 状态重建前冻结该单元并处理完所有待定意图。
 
 ```lua
--- KEYS[1]: inventory:qty:{unit_id}
--- KEYS[2]: inventory:reservation:{reservation_id}
+-- KEYS[1]: inventory:{unit_id}:qty
+-- KEYS[2]: inventory:{unit_id}:reservation:{reservation_id}
+-- KEYS[3]: inventory:{unit_id}:reservation_due
 -- ARGV[1]: quantity
 -- ARGV[2]: expected_epoch
--- ARGV[3]: expire_seconds
+-- ARGV[3]: reserve_expires_at (Unix timestamp; for due scanning)
 -- ARGV[4]: operation_id
 local stock_key = KEYS[1]
 local reservation_key = KEYS[2]
+local due_key = KEYS[3]
 local qty = tonumber(ARGV[1])
 local expected_epoch = ARGV[2]
-local expire_seconds = tonumber(ARGV[3])
+local reserve_expires_at = tonumber(ARGV[3])
 local operation_id = ARGV[4]
 
-local existing = redis.call('HGET', reservation_key, 'operation_id')
-if existing then
-  if existing == operation_id then
-    return {1, redis.call('HGET', reservation_key, 'status') or 'RESERVED'}
+if not qty or qty <= 0 or qty % 1 ~= 0 then
+  return {-2, 'INVALID_QUANTITY'}
+end
+local max_exact_integer = 9007199254740991
+if qty > max_exact_integer then
+  return {-2, 'INVALID_QUANTITY'}
+end
+if not operation_id or operation_id == '' then
+  return {-5, 'INVALID_OPERATION_ID'}
+end
+if not reserve_expires_at or reserve_expires_at <= 0 then
+  return {-6, 'INVALID_EXPIRY'}
+end
+if reserve_expires_at % 1 ~= 0 then
+  return {-6, 'INVALID_EXPIRY'}
+end
+
+local stock_type = redis.call('TYPE', stock_key).ok
+local reservation_type = redis.call('TYPE', reservation_key).ok
+local due_type = redis.call('TYPE', due_key).ok
+if stock_type ~= 'hash' then
+  return {-9, 'INVALID_STOCK_KEY'}
+end
+if reservation_type ~= 'none' and reservation_type ~= 'hash' then
+  return {-7, 'CORRUPT_RESERVATION'}
+end
+if due_type ~= 'none' and due_type ~= 'zset' then
+  return {-10, 'INVALID_DUE_INDEX'}
+end
+
+if redis.call('EXISTS', reservation_key) == 1 then
+  local existing_operation_id =
+    redis.call('HGET', reservation_key, 'operation_id')
+  local existing_quantity =
+    tonumber(redis.call('HGET', reservation_key, 'quantity') or '')
+  local existing_epoch = redis.call('HGET', reservation_key, 'epoch')
+  local existing_expiry =
+    tonumber(redis.call('HGET', reservation_key, 'reserve_expires_at') or '')
+  if not existing_operation_id then
+    return {-7, 'CORRUPT_RESERVATION'}
+  end
+  if existing_operation_id == operation_id
+    and existing_quantity == qty
+    and existing_epoch == expected_epoch
+    and existing_expiry == reserve_expires_at then
+    return {1, redis.call('HGET', reservation_key, 'status') or 'UNKNOWN'}
   end
   return {-3, 'RESERVATION_CONFLICT'}
+end
+
+local status = redis.call('HGET', stock_key, 'status')
+if status ~= 'ACTIVE' then
+  return {-8, 'INVENTORY_NOT_ACTIVE'}
 end
 
 local epoch = redis.call('HGET', stock_key, 'epoch')
@@ -1037,6 +1092,13 @@ if not epoch or epoch ~= expected_epoch then
 end
 
 local available = tonumber(redis.call('HGET', stock_key, 'available') or '0')
+local booking = tonumber(redis.call('HGET', stock_key, 'booking') or '0')
+if not available or available < 0 or available % 1 ~= 0
+  or available > max_exact_integer
+  or not booking or booking < 0 or booking % 1 ~= 0
+  or booking > max_exact_integer - qty then
+  return {-11, 'CORRUPT_STOCK_BUCKET'}
+end
 if available < qty then
   return {-1, 'INSUFFICIENT'}
 end
@@ -1047,12 +1109,13 @@ redis.call('HSET', reservation_key,
   'operation_id', operation_id,
   'quantity', qty,
   'epoch', epoch,
+  'reserve_expires_at', tostring(reserve_expires_at),
   'status', 'RESERVED')
-redis.call('EXPIRE', reservation_key, expire_seconds)
+redis.call('ZADD', due_key, reserve_expires_at, reservation_key)
 return {0, 'RESERVED'}
 ```
 
-Redis 官方文档说明，Lua 脚本执行时会阻塞其他 Redis 活动，因而能把多步条件更新作为一个原子脚本执行[12]。但脚本越长，阻塞时间越大；脚本中的 key 必须显式传入，集群环境下多个 key 还要落在同一 hash slot。腾讯云中文命令准则也明确区分了原生命令、pipeline 和 Lua，并提醒集群脚本的 key 槽位要求[23]。因此，Lua 适合封装短小的库存状态迁移，不适合在脚本中调用外部服务、扫描大集合或实现复杂 Saga。
+三个 Redis Key 都使用 `{unit_id}` 作为 hash tag，因此在 Redis Cluster 中落到同一个 slot。Redis 官方文档说明，Lua 脚本执行时会阻塞其他 Redis 活动，因而能把多步条件更新作为一个原子脚本执行[12]；但这个原子性只覆盖 Redis 内部，不能代替 MySQL 事务。`reservation_due` 只用于发现到期项；Confirm 或 Release 进入终态时，应在对应脚本中同时从该有序集合移除 Reservation。脚本越长，阻塞时间越大；腾讯云中文命令准则也明确区分原生命令、pipeline 和 Lua，并提醒集群脚本的 key 槽位要求[23]。因此，Lua 适合封装短小的库存状态迁移，不适合在脚本中调用外部服务、扫描大集合或实现复杂 Saga。
 
 热点库存的扩展手段有四类：
 
