@@ -12,7 +12,7 @@ from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 BOOK_RELATIVE_ROOT = Path("books/reliable-system-design")
 SOURCE_RELATIVE_ROOT = BOOK_RELATIVE_ROOT / "src"
-EXPECTED_CHAPTERS = tuple(range(1, 15))
+EXPECTED_CHAPTERS = tuple(range(1, 16))
 CHAPTER_LINK_RE = re.compile(
     r"\[第\s*(\d+)\s*章[^\]]*\]\((part0[12]/[^)]+\.md)\)"
 )
@@ -85,7 +85,7 @@ def validate_navigation(root: Path) -> List[str]:
         numbers = [number for number, _ in entries]
         if numbers != list(EXPECTED_CHAPTERS):
             errors.append(
-                f"{label} 必须按顺序各包含第 1–14 章一次，实际章节编号为：{numbers}"
+                f"{label} 必须按顺序各包含第 1–15 章一次，实际章节编号为：{numbers}"
             )
 
     summary_map = parse_summary(summary_text)
@@ -102,7 +102,7 @@ def validate_navigation(root: Path) -> List[str]:
     source_numbers = sorted(source_chapters)
     if source_numbers != list(EXPECTED_CHAPTERS):
         errors.append(
-            f"活动章节源码必须覆盖第 1–14 章一次，实际源码编号为：{source_numbers}"
+            f"活动章节源码必须覆盖第 1–15 章一次，实际源码编号为：{source_numbers}"
         )
 
     for number in EXPECTED_CHAPTERS:
@@ -233,7 +233,7 @@ def _chapter_warnings(path: Path, text: str) -> List[str]:
         warnings.append(f"{path}: 未发现明显的约束表或方案选型表，请人工确认")
     if not re.search(r"\bADR\b|决策记录|架构决策", text, re.IGNORECASE):
         warnings.append(f"{path}: 未发现明显 ADR 结构，请人工确认关键取舍是否已记录")
-    if re.search(r"第三部分|第\s*(?:15|16|17)\s*章", text):
+    if re.search(r"第三部分|第\s*(?:16|17)\s*章", text):
         warnings.append(f"{path}: 出现疑似旧章节结构引用，请人工确认是否为历史说明")
     return warnings
 
@@ -241,7 +241,7 @@ def _chapter_warnings(path: Path, text: str) -> List[str]:
 def _length_limits(chapter_number: int) -> Tuple[Optional[int], Optional[int]]:
     if 1 <= chapter_number <= 9:
         return 10_000, 20_000
-    if 11 <= chapter_number <= 14:
+    if 11 <= chapter_number <= 15:
         return None, 50_000
     return None, None
 

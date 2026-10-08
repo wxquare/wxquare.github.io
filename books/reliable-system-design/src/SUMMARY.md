@@ -24,7 +24,8 @@
 - [第 11 章 商品中心、商品供给与生命周期治理](part02/11-product-center-supply-lifecycle.md)
 - [第 12 章 库存系统](part02/12-inventory-system.md)
 - [第 13 章 营销与计价系统](part02/13-marketing-pricing-system.md)
-- [第 14 章 电商用户 C 端搜索、交易、履约与售后全生命周期设计](part02/14-ecommerce-customer-lifecycle.md)
+- [第 14 章 电商商品发现与交易准备：搜索、详情、购物车与结算](part02/14-ecommerce-customer-lifecycle.md)
+- [第 15 章 电商订单与履约全生命周期：创单、支付、履约与售后](part02/15-ecommerce-order-fulfillment.md)
 
 ---
 

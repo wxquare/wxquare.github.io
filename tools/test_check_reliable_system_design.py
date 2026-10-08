@@ -19,11 +19,13 @@ class SystemDesignPrimerCheckerTest(unittest.TestCase):
 
 - [第 1 章 方法论](part01/01-method.md)
 - [第 13 章 营销与计价系统](part02/13-marketing-pricing-system.md)
-- [第 14 章 交易](part02/14-trade.md)
+- [第 14 章 商品发现](part02/14-discovery.md)
+- [第 15 章 订单与履约](part02/15-fulfillment.md)
 """
         readme = """| [第 1 章](part01/01-method.md) | 方法论 |
 | [第 13 章](part02/13-marketing-pricing-system.md) | 营销与计价 |
-| [第 14 章](part02/14-trade.md) | 交易 |
+| [第 14 章](part02/14-discovery.md) | 商品发现 |
+| [第 15 章](part02/15-fulfillment.md) | 订单与履约 |
 """
 
         self.assertEqual(
@@ -31,7 +33,8 @@ class SystemDesignPrimerCheckerTest(unittest.TestCase):
             {
                 1: "part01/01-method.md",
                 13: "part02/13-marketing-pricing-system.md",
-                14: "part02/14-trade.md",
+                14: "part02/14-discovery.md",
+                15: "part02/15-fulfillment.md",
             },
         )
         self.assertEqual(MODULE.parse_readme(readme), MODULE.parse_summary(summary))

@@ -21,18 +21,26 @@ function chapterEntries(markdown) {
     .map((match) => ({ number: Number(match[1]), path: match[2] }));
 }
 
-test('active navigation exposes chapters 1 through 14 exactly once', () => {
+test('active navigation exposes chapters 1 through 15 exactly once', () => {
   const summaryEntries = chapterEntries(read('SUMMARY.md'));
   const readmeEntries = chapterEntries(read('README.md'));
 
   assert.deepEqual(
     summaryEntries.map((entry) => entry.number),
-    Array.from({ length: 14 }, (_, index) => index + 1)
+    Array.from({ length: 15 }, (_, index) => index + 1)
   );
   assert.deepEqual(readmeEntries, summaryEntries);
   assert.equal(
     summaryEntries.find((entry) => entry.number === 13).path,
     'part02/13-marketing-pricing-system.md'
+  );
+  assert.equal(
+    summaryEntries.find((entry) => entry.number === 14).path,
+    'part02/14-ecommerce-customer-lifecycle.md'
+  );
+  assert.equal(
+    summaryEntries.find((entry) => entry.number === 15).path,
+    'part02/15-ecommerce-order-fulfillment.md'
   );
   assert.doesNotMatch(read('SUMMARY.md'), /第三部分/);
 });
@@ -51,6 +59,6 @@ test('AGENTS.md declares the system-design source boundary and generated output'
   assert.match(agents, /books\/reliable-system-design\/book\.toml/);
   assert.match(agents, /books\/reliable-system-design\/images\//);
   assert.match(agents, /books\/\*\/book\//);
-  assert.match(agents, /当前结构不存在第三部分或第 15 章/);
+  assert.match(agents, /第 14 章覆盖商品发现与交易准备，第 15 章覆盖创单、支付、履约与售后/);
   assert.doesNotMatch(agents, /第三部分实战章节/);
 });
