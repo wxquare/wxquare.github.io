@@ -1,6 +1,7 @@
 ---
 title: 从 Vibe Coding 到 Spec Coding：AI 编程范式的演进与实践
 date: 2026-04-03
+permalink: /2026/04/03/AI/00-vibe-coding-vs-spec-coding/
 description: 比较 Vibe Coding 与 Spec Coding 的工作方式，讨论 AI 编程从快速生成走向可验证工程交付的变化。
 categories:
   - AI 与 Agent

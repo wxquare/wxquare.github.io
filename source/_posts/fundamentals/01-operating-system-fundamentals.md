@@ -1,6 +1,7 @@
 ---
 title: 操作系统：面试与工程实践
 date: 2024-03-01
+permalink: /2024/03/01/fundamentals/01-operating-system-fundamentals/
 description: 以面试和工程实践为线索，梳理进程、线程、内存、文件系统和 I/O 等操作系统核心概念。
 updated: 2026-09-23
 categories:

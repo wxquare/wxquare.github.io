@@ -1,6 +1,7 @@
 ---
 title: Docker 与 Kubernetes：基础原理与实践
 date: 2024-12-20
+permalink: /2024/12/20/fundamentals/11-docker-kubernetes/
 description: 从容器基础到 Kubernetes 编排，整理后端工程中常见的部署、服务发现、资源管理与运维实践。
 updated: 2026-09-23
 categories:

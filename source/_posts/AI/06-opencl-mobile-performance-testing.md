@@ -1,6 +1,7 @@
 ---
 title: 边缘端视觉算法异构加速实战：OpenCL、OpenCV UMat 与 KCF 性能测试
 date: 2020-08-13
+permalink: /2020/08/13/AI/03-opencl-mobile-performance-testing/
 categories:
   - AI 与 Agent
   - AI

@@ -13,7 +13,7 @@ tags:
 published: false
 ---
 
-> **归档说明：** 本文内容已整合至 {% post_link system-design/45-ddd-principles-and-pricing-practice 领域驱动设计：从方法论到电商计价实践 %}，此文件仅保留原始版本供源码追溯，不再单独发布。
+> **归档说明：** 本文内容已整合至 {% post_link system-design/04-ddd-pricing-practice 领域驱动设计：从方法论到电商计价实践 %}，此文件仅保留原始版本供源码追溯，不再单独发布。
 
 <!-- 文章摘要 -->
 融合《领域驱动设计》（蓝皮书）和《实现领域驱动设计》（红皮书）两本经典著作的系统性读书笔记。从概念理解到架构实践，以电商平台为案例，详细讲解DDD的战略设计和战术设计，帮助中级开发者掌握领域驱动设计的核心思想和落地方法。
@@ -129,7 +129,7 @@ DDD（领域驱动设计）正是为了解决这些问题而生。
    - 落地时不必一次上齐所有模式：先稳定上下文边界与聚合不变量，再逐步引入事件与集成方式。
 
 **与 30 号文章的关系**：
-本文专注于 DDD 本身，而 {% post_link system-design/41-acc-clean-arch-ddd-cqrs 41-acc-clean-arch-ddd-cqrs.md %} 讲解了 DDD 与 Clean Architecture、CQRS 的关系。两篇文章互为补充：
+本文专注于 DDD 本身，而 {% post_link system-design/02-clean-architecture-ddd-cqrs 41-acc-clean-arch-ddd-cqrs.md %} 讲解了 DDD 与 Clean Architecture、CQRS 的关系。两篇文章互为补充：
 - 30 号文章：架构模式的对比和组合
 - 本文：DDD 的深入讲解和实践
 - 若你关心「分层是否必须」「CQRS 是否与 DDD 绑定」这类问题，可先在 30 号文中看模式对比与取舍，再回到本文把**领域模型与上下文**讨论清楚，避免把架构风格误当成领域本身。
@@ -2214,7 +2214,7 @@ sequenceDiagram
 
 ## 五、架构落地
 
-战略设计与战术设计解决「边界与模型」；**架构落地**则回答「目录怎么摆、分层怎么切、和 CQRS / 消息怎么配合」。本节给出经典四层、Go 目录示例、CQRS 读写分离思路，以及 Kafka 等消息设施上的事件驱动集成要点，可与 {% post_link system-design/41-acc-clean-arch-ddd-cqrs 41-acc-clean-arch-ddd-cqrs.md %} 对照阅读。
+战略设计与战术设计解决「边界与模型」；**架构落地**则回答「目录怎么摆、分层怎么切、和 CQRS / 消息怎么配合」。本节给出经典四层、Go 目录示例、CQRS 读写分离思路，以及 Kafka 等消息设施上的事件驱动集成要点，可与 {% post_link system-design/02-clean-architecture-ddd-cqrs 41-acc-clean-arch-ddd-cqrs.md %} 对照阅读。
 
 ---
 
@@ -2381,7 +2381,7 @@ func (r *PostgresOrderRepository) Save(order *Order) error {
 | 领域层 | Entities（核心企业规则） | 与框架无关的领域模型 |
 | 基础设施层 | Frameworks & Drivers | DB、MQ、外部系统 |
 
-更系统的对照与 CQRS 分层变体见 {% post_link system-design/41-acc-clean-arch-ddd-cqrs 41-acc-clean-arch-ddd-cqrs.md %} 第四、五部分。
+更系统的对照与 CQRS 分层变体见 {% post_link system-design/02-clean-architecture-ddd-cqrs 41-acc-clean-arch-ddd-cqrs.md %} 第四、五部分。
 
 ---
 
@@ -2586,7 +2586,7 @@ flowchart LR
 2. 同一业务可有**多套读模型**（列表、详情、运营报表）。
 3. 读写可**独立扩缩**与选型（OLTP + 搜索 / 分析引擎）。
 
-更多分层与 CQRS 变体仍推荐对照 {% post_link system-design/41-acc-clean-arch-ddd-cqrs 41-acc-clean-arch-ddd-cqrs.md %} 第五部分。
+更多分层与 CQRS 变体仍推荐对照 {% post_link system-design/02-clean-architecture-ddd-cqrs 41-acc-clean-arch-ddd-cqrs.md %} 第五部分。
 
 ---
 
@@ -3410,7 +3410,7 @@ func main() {
 
 #### 小结
 
-- **接口归属领域**，**实现归属基础设施**；这是 Clean Architecture 与 DDD 常见的结合点（详见本文 **第五部分** 与 {% post_link system-design/41-acc-clean-arch-ddd-cqrs 41-acc-clean-arch-ddd-cqrs.md %}）。
+- **接口归属领域**，**实现归属基础设施**；这是 Clean Architecture 与 DDD 常见的结合点（详见本文 **第五部分** 与 {% post_link system-design/02-clean-architecture-ddd-cqrs 41-acc-clean-arch-ddd-cqrs.md %}）。
 
 ---
 
@@ -3559,7 +3559,7 @@ public class OrderJpaEntity {
 
 **提升工程质量**：充血模型带来更高**内聚**；领域事件削弱模块间**耦合**；分层 + 依赖倒置让核心逻辑**可单测**、可替换基础设施。
 
-**电商叙事收束**：战略上划分订单、库存、支付等上下文；战术上用 `Order` 聚合承载生命周期；架构上用四层、CQRS、事件驱动落地——这与 {% post_link system-design/41-acc-clean-arch-ddd-cqrs 41-acc-clean-arch-ddd-cqrs.md %} 中的实践相互印证。
+**电商叙事收束**：战略上划分订单、库存、支付等上下文；战术上用 `Order` 聚合承载生命周期；架构上用四层、CQRS、事件驱动落地——这与 {% post_link system-design/02-clean-architecture-ddd-cqrs 41-acc-clean-arch-ddd-cqrs.md %} 中的实践相互印证。
 
 ---
 
@@ -3606,14 +3606,14 @@ public class OrderJpaEntity {
 
 ### 8.4 与其他架构模式的关系
 
-- **DDD + Clean Architecture**：DDD 回答「**模型如何表达业务**」；Clean Architecture 回答「**依赖如何向内收敛**」。领域层大致对应最内圈的实体与用例规则。详见 {% post_link system-design/41-acc-clean-arch-ddd-cqrs 41-acc-clean-arch-ddd-cqrs.md %}。
+- **DDD + Clean Architecture**：DDD 回答「**模型如何表达业务**」；Clean Architecture 回答「**依赖如何向内收敛**」。领域层大致对应最内圈的实体与用例规则。详见 {% post_link system-design/02-clean-architecture-ddd-cqrs 41-acc-clean-arch-ddd-cqrs.md %}。
 - **DDD + CQRS**：写模型由聚合守护不变量；读模型可旁路优化；领域事件常用于投影。见本文 **5.3**。
 - **DDD + 事件驱动**：事件既是**业务事实**的载体，也是上下文之间**解耦集成**的手段。见本文 **5.4**。
 - **DDD + 微服务**：**限界上下文**提供拆分依据；**上下文映射**指导集成与治理。见本文 **6.2**。
 
 **收束建议**：DDD 不是银弹；从**小范围、可验证**的改进开始；坚持**统一语言**与**持续重构**，模型会随业务一起演进。
 
-**本专题衔接**：建议先读 {% post_link system-design/41-acc-clean-arch-ddd-cqrs 架构与整洁代码（一） %} 与 {% post_link system-design/42-acc-clean-code （二） %}；落地评审可配合 {% post_link system-design/44-acc-code-review 架构与整洁代码（四）：Code Review Checklist %}。
+**本专题衔接**：建议先读 {% post_link system-design/02-clean-architecture-ddd-cqrs 架构与整洁代码（一） %} 与 {% post_link system-design/03-clean-code-practice （二） %}；落地评审可配合 {% post_link system-design/05-architecture-code-review-checklist 架构与整洁代码（四）：Code Review Checklist %}。
 
 ---
 
@@ -3622,7 +3622,7 @@ public class OrderJpaEntity {
 1. Eric Evans, *Domain-Driven Design: Tackling Complexity in the Heart of Software*, Addison-Wesley, 2003（中文版：《领域驱动设计：软件核心复杂性应对之道》，清华大学出版社，2006）。
 2. Vaughn Vernon, *Implementing Domain-Driven Design*, Addison-Wesley, 2013（中文版：《实现领域驱动设计》，电子工业出版社，2014）。
 3. Martin Fowler, *Patterns of Enterprise Application Architecture*, Addison-Wesley, 2002.
-4. 本站：{% post_link system-design/41-acc-clean-arch-ddd-cqrs Clean Architecture + DDD + CQRS %}。
+4. 本站：{% post_link system-design/02-clean-architecture-ddd-cqrs Clean Architecture + DDD + CQRS %}。
 5. 本站：[电商系统概览](/reliable-system-design/part03/01-ecommerce-overview.html)。
 6. 本站：[电商商品列表 / 订单相关](/reliable-system-design/part02/11-product-center-supply-lifecycle.html)。
 7. 本站：[电商库存系统](/reliable-system-design/part03/04-inventory-system.html)。

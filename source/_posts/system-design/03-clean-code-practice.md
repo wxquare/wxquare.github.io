@@ -1,6 +1,7 @@
 ---
 title: 架构与整洁代码（二）：复杂业务中的 Clean Code 实践指南
 date: 2026-04-02
+permalink: /2026/04/02/system-design/42-acc-clean-code/
 description: 面向复杂业务代码，讨论命名、边界、依赖、抽象和重构节奏，给出可持续演进的 Clean Code 实践方法。
 categories:
   - 系统设计基础
@@ -7063,7 +7064,7 @@ Clean Code 与 Pipeline 重构不仅是个人习惯，更是**团队契约**：R
 4. 选用的模式（Pipeline、策略、规则引擎）是否**与复杂度匹配**，没有过度设计？  
 5. 是否**可测**：关键路径能否用 fake / mock 在单测覆盖，而不必起全栈？
 
-完整版检查清单见 {% post_link system-design/44-acc-code-review 架构与整洁代码（四）：架构与编码 Code Review Checklist %}。
+完整版检查清单见 {% post_link system-design/05-architecture-code-review-checklist 架构与整洁代码（四）：架构与编码 Code Review Checklist %}。
 
 ### 如何说服团队重构
 
@@ -7194,7 +7195,7 @@ flowchart LR
 
 认知升级可以概括为三层：**代码级**（函数与命名）、**模块级**（边界、依赖方向、聚合）、**系统级**（上下文映射、限界上下文、读写分离与演进式架构）。Clean Code 解决「这一行好不好懂」；Clean Architecture 与 DDD 回答「这一块该不该存在、跟谁说话、如何独立演进」。
 
-本专题建议先读 **（一）** 建立分层与 CQRS 地图，再在 **（二）**（本文）打磨实现细节。接下来请阅读 {% post_link system-design/45-ddd-principles-and-pricing-practice 架构与整洁代码（三）：领域驱动设计读书笔记——从概念到架构实践 %}，把战略 / 战术 DDD 与 **（一）** 中的架构视角对照起来。若尚未读过 **（一）**，请先阅读 {% post_link system-design/41-acc-clean-arch-ddd-cqrs 架构与整洁代码（一） %}。全系列阶段说明见 {% post_link system-design/44-acc-code-review 架构与整洁代码（四） %}。
+本专题建议先读 **（一）** 建立分层与 CQRS 地图，再在 **（二）**（本文）打磨实现细节。接下来请阅读 {% post_link system-design/04-ddd-pricing-practice 架构与整洁代码（三）：领域驱动设计读书笔记——从概念到架构实践 %}，把战略 / 战术 DDD 与 **（一）** 中的架构视角对照起来。若尚未读过 **（一）**，请先阅读 {% post_link system-design/02-clean-architecture-ddd-cqrs 架构与整洁代码（一） %}。全系列阶段说明见 {% post_link system-design/05-architecture-code-review-checklist 架构与整洁代码（四） %}。
 
 ---
 

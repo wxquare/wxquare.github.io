@@ -1929,11 +1929,11 @@ if result == 0 {
 ### 相关文章
 
 - [系统设计完全指南：从零基础到面试高手](/reliable-system-design/)
-- {% post_link fundamentals/08-redis Redis 原理与实践 %}
-- {% post_link fundamentals/09-kafka 异步和消息队列 %}
-- {% post_link fundamentals/10-elasticsearch 搜索和 Elasticsearch %}
+- {% post_link fundamentals/08-redis-principles-and-practice Redis 原理与实践 %}
+- {% post_link fundamentals/09-kafka-messaging-practice 异步和消息队列 %}
+- {% post_link fundamentals/10-elasticsearch-search-practice 搜索和 Elasticsearch %}
 - [电商系统设计](/reliable-system-design/part03/01-ecommerce-overview.html)
-- {% post_link system-design/07-system-reliability-engineering 系统稳定性建设：方法论与实践 %}
+- {% post_link system-design/06-system-reliability-engineering 系统稳定性建设：方法论与实践 %}
 - [多品类统一库存系统设计](/reliable-system-design/part03/04-inventory-system.html)
 - [可靠系统设计题库](/reliable-system-design/appendix/system-design-questionbank.html)
 

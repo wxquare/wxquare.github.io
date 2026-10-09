@@ -3,18 +3,18 @@
 const { url_for } = require('hexo-util');
 
 const aliases = [
-  { path: '/2025/05/15/system-design/14-system-reliability/', slug: 'system-design/07-system-reliability-engineering' },
+  { path: '/2025/05/15/system-design/14-system-reliability/', slug: 'system-design/06-system-reliability-engineering' },
   { path: '/2025/06/25/system-design/08-system-design-interview/', target: '/reliable-system-design/' },
   { path: '/2026/04/02/01-claude-code-practices/', target: '/archives/' },
-  { path: '/2026/04/03/00-vibe-coding-vs-spec-coding/', slug: 'AI/00-vibe-coding-vs-spec-coding' },
+  { path: '/2026/04/03/00-vibe-coding-vs-spec-coding/', slug: 'AI/01-vibe-coding-vs-spec-coding' },
   { path: '/2026/04/03/02-agent-system-design-guid/', target: '/archives/' },
   { path: '/2026/04/03/03-dod-agent-design/', target: '/archives/' },
-  { path: '/2026/04/05/AI/04-karpathy-evolving-knowledge-base/', slug: 'AI/02-karpathy-evolving-knowledge-base' },
-  { path: '/2020/08/13/AI/初始OpenCL及在的移动端的一些测试数据/', slug: 'AI/03-opencl-mobile-performance-testing' },
-  { path: '/2026/09/22/AI/tensorflow-model-optimization/', slug: 'AI/04-tensorflow-model-optimization' },
-  { path: '/2026/09/22/AI/tvm-operator-optimization-practice/', slug: 'AI/05-tvm-operator-optimization-practice' },
+  { path: '/2026/04/05/AI/04-karpathy-evolving-knowledge-base/', slug: 'AI/04-karpathy-evolving-knowledge-base' },
+  { path: '/2020/08/13/AI/初始OpenCL及在的移动端的一些测试数据/', slug: 'AI/06-opencl-mobile-performance-testing' },
+  { path: '/2026/09/22/AI/tensorflow-model-optimization/', slug: 'AI/07-tensorflow-model-optimization' },
+  { path: '/2026/09/22/AI/tvm-operator-optimization-practice/', slug: 'AI/08-tvm-operator-optimization-practice' },
   { path: '/2026/09/24/AI/2026-09-24-superpowers-source-workflow-practice/', slug: 'AI/03-superpowers-source-workflow-practice' },
-  { path: '/2020/08/13/AI/video-object-tracking/', slug: 'AI/06-video-object-tracking' },
+  { path: '/2020/08/13/AI/video-object-tracking/', slug: 'AI/05-video-object-tracking-practice' },
   { path: '/2026/04/07/system-design/21-ecommerce-product-center/', target: '/reliable-system-design/part03/02-product-center.html' },
   { path: '/2026/04/07/system-design/26-ecommerce-order-system/', target: '/reliable-system-design/part03/09-order-system.html' },
   { path: '/system-design/00-system-design-overview/', target: '/reliable-system-design/' },
@@ -24,26 +24,26 @@ const aliases = [
   { path: '/2024/03/04/4-python-practice/', slug: 'fundamentals/04-python-practice' },
   { path: '/2024/03/05/5-cpp-practice/', slug: 'fundamentals/05-cpp-practice' },
   { path: '/2024/03/06/6-golang-practice/', slug: 'fundamentals/06-go-practice' },
-  { path: '/2024/03/04/01-middleware-mysql/', slug: 'fundamentals/07-mysql-database' },
-  { path: '/2024/03/06/02-middleware-redis/', slug: 'fundamentals/08-redis' },
-  { path: '/2024/03/10/03-middleware-kafka/', slug: 'fundamentals/09-kafka' },
-  { path: '/2024/03/07/04-middleware-elasticsearch/', slug: 'fundamentals/10-elasticsearch' },
-  { path: '/2024/12/20/05-infrastructure-k8s-docker/', slug: 'fundamentals/11-docker-kubernetes' },
+  { path: '/2024/03/04/01-middleware-mysql/', slug: 'fundamentals/07-mysql-database-practice' },
+  { path: '/2024/03/06/02-middleware-redis/', slug: 'fundamentals/08-redis-principles-and-practice' },
+  { path: '/2024/03/10/03-middleware-kafka/', slug: 'fundamentals/09-kafka-messaging-practice' },
+  { path: '/2024/03/07/04-middleware-elasticsearch/', slug: 'fundamentals/10-elasticsearch-search-practice' },
+  { path: '/2024/12/20/05-infrastructure-k8s-docker/', slug: 'fundamentals/11-docker-kubernetes-practice' },
   { path: '/fundamentals/1-os-fundamentals/', slug: 'fundamentals/01-operating-system-fundamentals' },
   { path: '/fundamentals/2-network-fundamentals/', slug: 'fundamentals/02-computer-network-fundamentals' },
   { path: '/fundamentals/3-bash-shell/', slug: 'fundamentals/03-bash-shell-practice' },
   { path: '/fundamentals/4-python-practice/', slug: 'fundamentals/04-python-practice' },
   { path: '/fundamentals/5-cpp-practice/', slug: 'fundamentals/05-cpp-practice' },
   { path: '/fundamentals/6-golang-practice/', slug: 'fundamentals/06-go-practice' },
-  { path: '/fundamentals/01-middleware-mysql/', slug: 'fundamentals/07-mysql-database' },
-  { path: '/fundamentals/02-middleware-redis/', slug: 'fundamentals/08-redis' },
-  { path: '/fundamentals/03-middleware-kafka/', slug: 'fundamentals/09-kafka' },
-  { path: '/fundamentals/04-middleware-elasticsearch/', slug: 'fundamentals/10-elasticsearch' },
-  { path: '/fundamentals/05-infrastructure-k8s-docker/', slug: 'fundamentals/11-docker-kubernetes' },
-  { path: '/system-design/02-middleware-redis/', slug: 'fundamentals/08-redis' },
-  { path: '/system-design/03-middleware-kafka/', slug: 'fundamentals/09-kafka' },
-  { path: '/system-design/04-middleware-elasticsearch/', slug: 'fundamentals/10-elasticsearch' },
-  { path: '/system-design/07-system-reliability-engineering/', slug: 'system-design/07-system-reliability-engineering' },
+  { path: '/fundamentals/01-middleware-mysql/', slug: 'fundamentals/07-mysql-database-practice' },
+  { path: '/fundamentals/02-middleware-redis/', slug: 'fundamentals/08-redis-principles-and-practice' },
+  { path: '/fundamentals/03-middleware-kafka/', slug: 'fundamentals/09-kafka-messaging-practice' },
+  { path: '/fundamentals/04-middleware-elasticsearch/', slug: 'fundamentals/10-elasticsearch-search-practice' },
+  { path: '/fundamentals/05-infrastructure-k8s-docker/', slug: 'fundamentals/11-docker-kubernetes-practice' },
+  { path: '/system-design/02-middleware-redis/', slug: 'fundamentals/08-redis-principles-and-practice' },
+  { path: '/system-design/03-middleware-kafka/', slug: 'fundamentals/09-kafka-messaging-practice' },
+  { path: '/system-design/04-middleware-elasticsearch/', slug: 'fundamentals/10-elasticsearch-search-practice' },
+  { path: '/system-design/07-system-reliability-engineering/', slug: 'system-design/06-system-reliability-engineering' },
   { path: '/system-design/13-e-commerce/', target: '/reliable-system-design/part03/01-ecommerce-overview.html' },
   { path: '/system-design/18-inventory-system-design/', target: '/reliable-system-design/part03/04-inventory-system.html' },
   { path: '/system-design/20-ecommerce-overview/', target: '/reliable-system-design/part03/01-ecommerce-overview.html' },
@@ -64,20 +64,20 @@ const aliases = [
   { path: '/system-design/32-ecommerce-cart-checkout/', target: '/reliable-system-design/part03/08-cart-checkout.html' },
   { path: '/system-design/34-ecommerce-long-transactions/', target: '/reliable-system-design/part01/04-large-transaction-orchestration.html' },
   { path: '/2026/06/09/system-design/34-ecommerce-long-transactions/', target: '/reliable-system-design/part01/04-large-transaction-orchestration.html' },
-  { path: '/system-design/41-acc-clean-arch-ddd-cqrs/', slug: 'system-design/41-acc-clean-arch-ddd-cqrs' },
-  { path: '/system-design/42-acc-clean-code/', slug: 'system-design/42-acc-clean-code' },
+  { path: '/system-design/41-acc-clean-arch-ddd-cqrs/', slug: 'system-design/02-clean-architecture-ddd-cqrs' },
+  { path: '/system-design/42-acc-clean-code/', slug: 'system-design/03-clean-code-practice' },
   { path: '/system-design/43-acc-ddd-notes/', target: '/2026/09/23/system-design/45-ddd-principles-and-pricing-practice/' },
-  { path: '/system-design/44-acc-code-review/', slug: 'system-design/44-acc-code-review' }
+  { path: '/system-design/44-acc-code-review/', slug: 'system-design/05-architecture-code-review-checklist' }
   ,{ path: '/2020/08/13/AI/tvm/TVM-GEMM-CPU/', target: '/2026/09/22/AI/05-tvm-operator-optimization-practice/' }
   ,{ path: '/2020/08/13/AI/tvm/TVM-Graph-optimization/', target: '/2026/09/22/AI/05-tvm-operator-optimization-practice/' }
   ,{ path: '/2020/08/13/AI/tvm/TVM-code-generation/', target: '/2026/09/22/AI/05-tvm-operator-optimization-practice/' }
   ,{ path: '/2020/08/13/AI/tvm/TVM-hello/', target: '/2026/09/22/AI/05-tvm-operator-optimization-practice/' }
   ,{ path: '/2020/08/13/AI/tvm/TVM-quantization/', target: '/2026/09/22/AI/05-tvm-operator-optimization-practice/' }
   ,{ path: '/2020/08/13/AI/tvm/TVM-tutorial/', target: '/2026/09/22/AI/05-tvm-operator-optimization-practice/' }
-  ,{ path: '/2020/08/13/AI/computer-vision/video-object-tracking/', slug: 'AI/06-video-object-tracking' }
-  ,{ path: '/2020/08/13/AI/computer-vision/初始OpenCL及在的移动端的一些测试数据/', slug: 'AI/03-opencl-mobile-performance-testing' }
-  ,{ path: '/2020/08/13/AI/computer-vision/DaSiamRPN/', slug: 'AI/06-video-object-tracking' }
-  ,{ path: '/2020/08/13/AI/computer-vision/visp-template-tracker/', slug: 'AI/06-video-object-tracking' }
+  ,{ path: '/2020/08/13/AI/computer-vision/video-object-tracking/', slug: 'AI/05-video-object-tracking-practice' }
+  ,{ path: '/2020/08/13/AI/computer-vision/初始OpenCL及在的移动端的一些测试数据/', slug: 'AI/06-opencl-mobile-performance-testing' }
+  ,{ path: '/2020/08/13/AI/computer-vision/DaSiamRPN/', slug: 'AI/05-video-object-tracking-practice' }
+  ,{ path: '/2020/08/13/AI/computer-vision/visp-template-tracker/', slug: 'AI/05-video-object-tracking-practice' }
 ];
 
 function escapeAttribute(value) {

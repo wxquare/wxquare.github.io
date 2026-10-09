@@ -1,6 +1,7 @@
 ---
 title: Superpowers 深度解析：从技能发现、工程流程到 Agent 实战
 date: 2026-09-24
+permalink: /2026/09/24/AI/03-superpowers-source-workflow-practice/
 categories:
   - AI 与 Agent
 tags:
@@ -17,7 +18,7 @@ description: 基于 Superpowers v6.4.1 源码，系统解释技能发现、宿�
 
 [Superpowers](https://github.com/obra/superpowers) 把需求澄清、设计、计划、测试、审查和交付组织成一组可组合技能。要用好它，需要理解技能如何进入上下文、不同阶段靠什么产物衔接，以及哪些规则只是模型需要遵守的指令，哪些已经变成脚本中的检查。[[1]](#ref-1)
 
-本文面向已经使用过编码 Agent、了解 Git 与自动化测试的开发者。先沿源码认识组成与机制，再通过一个明确标注的教学案例走完整个过程。如果还在比较不同 Agent 的定位，可以先读 {% post_link AI/01-ai-agent-workflow-practice 'AI Agent 工作流实践' %}；这里集中讨论 Superpowers 本身。
+本文面向已经使用过编码 Agent、了解 Git 与自动化测试的开发者。先沿源码认识组成与机制，再通过一个明确标注的教学案例走完整个过程。如果还在比较不同 Agent 的定位，可以先读 {% post_link AI/02-ai-agent-workflow-practice 'AI Agent 工作流实践' %}；这里集中讨论 Superpowers 本身。
 
 > **研究基线**：Superpowers **v6.4.1**，提交 `5bf4e78011075bcfc0dc295f0724994cd123ee71`，资料核验日期为 **2026-09-24**。源码结论对应这个固定快照，不自动代表你已安装的副本。案例是设计演示，不是线上经验或已运行实验；文中不给出未经测量的效率提升比例。
 

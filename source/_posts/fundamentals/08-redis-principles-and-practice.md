@@ -1,6 +1,7 @@
 ---
 title: Redis：原理与实践
 date: 2024-03-06
+permalink: /2024/03/06/fundamentals/08-redis/
 updated: 2026-01-08
 categories:
   - 系统设计基础

@@ -1,6 +1,7 @@
 ---
 title: AI Agent 工作流实践：从 Claude Code、Codex 到 OpenClaw、Hermes 与 DeepSeek
 date: 2026-09-23
+permalink: /2026/09/23/AI/01-ai-agent-workflow-practice/
 categories:
   - AI 与 Agent
 tags:
@@ -114,7 +115,7 @@ Agent 工作面：会话、状态、工具、权限、记忆、调度
 - 最后输出修改文件、测试结果和未解决风险
 ```
 
-这和我在 Spec Coding 文章中讨论的思路是一致的：规范不是给 Agent 增加形式负担，而是把人的意图变成可检查的输入。相关背景可以参考 {% post_link AI/00-vibe-coding-vs-spec-coding 规范驱动的 AI 编程 %}。
+这和我在 Spec Coding 文章中讨论的思路是一致的：规范不是给 Agent 增加形式负担，而是把人的意图变成可检查的输入。相关背景可以参考 {% post_link AI/01-vibe-coding-vs-spec-coding 规范驱动的 AI 编程 %}。
 
 ### 第二步：先加载上下文，再给具体任务
 
@@ -687,7 +688,7 @@ Agent 的能力会继续变化，但这套工作流不会因为某个模型发�
 ### 本站相关文章
 
 <a id="ref-8"></a>
-8. {% post_link AI/00-vibe-coding-vs-spec-coding 从 Vibe Coding 到 Spec Coding %}
+8. {% post_link AI/01-vibe-coding-vs-spec-coding 从 Vibe Coding 到 Spec Coding %}
 <a id="ref-9"></a>
 9. [书稿第 13 章 Agent 的演化与架构总纲](/ai-book/part2/01-agent-architecture.html)
 <a id="ref-10"></a>

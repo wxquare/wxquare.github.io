@@ -1,6 +1,7 @@
 ---
 title: Go：语言与工程实践
 date: 2024-03-06
+permalink: /2024/03/06/fundamentals/06-go-practice/
 description: 从语言基础、并发模型、网络编程到工程组织，整理 Go 在后端开发中的常用实践。
 updated: 2026-09-23
 categories:

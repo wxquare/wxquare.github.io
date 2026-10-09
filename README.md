@@ -18,7 +18,7 @@
 - [Claude Code 实践：从能写到写对](./source/_posts/AI/01-claude-code-practices.md)
 - [Harness Engineering：把模型放进可验证的工程系统](./source/_posts/AI/06-harness-engineering.md)
 - [系统设计完全指南：从问题定义到架构落地](./source/_posts/system-design/00-system-design-overview.md)
-- [系统可靠性工程：从故障恢复到治理闭环](./source/_posts/system-design/07-system-reliability-engineering.md)
+- [系统可靠性工程：从故障恢复到治理闭环](./source/_posts/system-design/06-system-reliability-engineering.md)
 - [计价系统设计与实现](./source/_posts/system-design/24-ecommerce-pricing-engine.md)
 - [搜索与导购系统设计](./source/_posts/system-design/31-ecommerce-search-discovery.md)
 
@@ -204,7 +204,7 @@ tags:
 
 ### 相关说明
 
-- Hexo 配置与博客搭建记录见 [基于 Github 双分支和 Hexo 搭建博客](./source/_posts/other/基于Github双分支和Hexo搭建博客.md)。
+- Hexo 配置与博客搭建记录见 [使用 Hexo 与 GitHub Pages 搭建博客：双分支部署与日常维护](./source/_posts/other/01-hexo-github-pages-blog-setup.md)。
 
 ## 许可证
 

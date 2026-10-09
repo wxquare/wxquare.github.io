@@ -347,8 +347,8 @@ Harness Engineering 正在重新定义软件工程师的工作。
 
 回顾我这个 AI 系列的写作历程：
 
-- {% post_link AI/00-vibe-coding-vs-spec-coding 00-Vibe Coding vs Spec Coding %}：从"即兴编程"到"规范驱动编程"——这是思维方式的第一次升级
-- {% post_link AI/01-ai-agent-workflow-practice 01-AI Agent 工作流实践 %}：从 Claude Code、Codex 到个人助手和模型后端——这是工具与工作流的升级
+- {% post_link AI/01-vibe-coding-vs-spec-coding 00-Vibe Coding vs Spec Coding %}：从"即兴编程"到"规范驱动编程"——这是思维方式的第一次升级
+- {% post_link AI/02-ai-agent-workflow-practice 01-AI Agent 工作流实践 %}：从 Claude Code、Codex 到个人助手和模型后端——这是工具与工作流的升级
 - 02-Agent 系统设计（已归档）：学习如何设计 Agent 架构——这是设计能力的升级
 
 **Harness Engineering 是这条线的自然延伸**：不只是设计单个 Agent，而是设计让 Agent 可靠运行的整个系统。Spec Coding 中强调的"先写规范再执行"，本质上就是 Harness 思维的雏形——规范就是最基础的约束和验证标准。

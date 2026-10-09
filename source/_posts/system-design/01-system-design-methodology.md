@@ -1,6 +1,7 @@
 ---
 title: 系统设计：概述与技术方案写作
 date: 2025-04-01
+permalink: /2025/04/01/system-design/06-tech-design-methodology/
 description: 从问题定义、容量估算、方案比较到风险和发布计划，整理一份可评审、可执行的互联网系统技术方案写作方法。
 categories:
   - 系统设计基础
@@ -944,11 +945,11 @@ HTTP/1.1 400
 
 ### 各中间件详细专题
 
-- {% post_link fundamentals/07-mysql-database 存储与 MySQL 数据库 %} - 建表规范、索引优化、分库分表
-- {% post_link fundamentals/08-redis Redis 原理与实践 %} - 数据结构、缓存策略、分布式锁
-- {% post_link fundamentals/09-kafka 异步和消息队列 %} - Kafka 架构、消息语义、性能调优
-- {% post_link fundamentals/10-elasticsearch 搜索和 Elasticsearch %} - 索引设计、DSL 查询、性能优化
-- {% post_link fundamentals/11-docker-kubernetes Kubernetes 与 Docker %} - 容器网络、Pod/Service、运维实践
+- {% post_link fundamentals/07-mysql-database-practice 存储与 MySQL 数据库 %} - 建表规范、索引优化、分库分表
+- {% post_link fundamentals/08-redis-principles-and-practice Redis 原理与实践 %} - 数据结构、缓存策略、分布式锁
+- {% post_link fundamentals/09-kafka-messaging-practice 异步和消息队列 %} - Kafka 架构、消息语义、性能调优
+- {% post_link fundamentals/10-elasticsearch-search-practice 搜索和 Elasticsearch %} - 索引设计、DSL 查询、性能优化
+- {% post_link fundamentals/11-docker-kubernetes-practice Kubernetes 与 Docker %} - 容器网络、Pod/Service、运维实践
 
 ## 框架和引擎
 ### 工作流引擎与任务编排
@@ -1021,7 +1022,7 @@ HTTP/1.1 400
 
 ## 系统稳定性建设
 
-> 详见 {% post_link system-design/07-system-reliability-engineering 互联网系统稳定性建设：方法论与实践 %}
+> 详见 {% post_link system-design/06-system-reliability-engineering 互联网系统稳定性建设：方法论与实践 %}
 
 ## 系统设计实践
 - 设计类似于 Dropbox 的文件同步服务
