@@ -36,11 +36,24 @@
 容量估算不追求伪精确，而是防止方案脱离现实。对核心链路，至少估算请求量、峰谷比、读写比例、单次请求的数据量、存储增长、可接受延迟和可接受错误率：
 
 ~~~text
-峰值 QPS ≈ 日请求量 × 峰值占比 ÷ 峰值持续秒数
+全天平均 QPS = 日请求量 ÷ 86,400
+繁忙窗口平均 QPS = 该窗口请求量 ÷ 窗口持续秒数
+设计秒级峰值 = 实测秒级峰值，或窗口平均 QPS × 明确的突发系数假设
 日增数据量 ≈ 日写入次数 × 单次有效载荷
 ~~~
 
-公式的价值在于暴露假设。例如日均一千万次请求、20% 集中在两小时内，峰值并不是“日均 QPS 乘几个倍数”可以轻易带过；一条业务事件若需要保留七年，存储、索引、冷热分层和审计成本也必须在方案阶段讨论。容量应围绕实际负载、服务目标与增长预期持续校准，而不是只按当前机器余量决策。[2]
+窗口内请求量除以窗口时长只能得到窗口平均，不能直接得到瞬时峰值。以下全部是教学假设：每天一千万次请求，20% 集中在两小时内；假设这个窗口的秒级突发系数为 4，一个热点键承接峰值流量的 30%。
+
+| 口径 | 推导 | 结果 |
+| --- | --- | --- |
+| 全天平均 | `10,000,000 ÷ 86,400` | 约 115.7 req/s |
+| 两小时窗口平均 | `10,000,000 × 20% ÷ 7,200` | 约 277.8 req/s |
+| 设计秒级峰值 | `277.777… × 4` | 约 1,111.1 req/s |
+| 热点键基线 | `1,111.111… × 30%` | 约 333.3 req/s |
+
+突发系数不是行业标准，上线前应通过秒级采样和压测校准，并说明峰值持续多久。若某类操作因重试增加 20% 尝试次数，只对这一类调用按 1.2 倍预算；不要让库存明细、批量查询和其他下游都机械套用入口 QPS。并发数还取决于处理时间，不能把请求速率、库存操作速率和连接数混为一个指标。
+
+公式的价值在于暴露假设，而不是制造未经验证的容量上界。一条业务事件若需要保留七年，存储、索引、冷热分层和审计成本也必须在方案阶段讨论。容量应围绕实际负载、服务目标与增长预期持续校准，而不是只按当前机器余量决策。[2]
 
 ### 权衡不是妥协，而是设计本身
 
@@ -427,7 +440,7 @@ ATAM 的另一个重要启发是把“质量属性场景”与“敏感点、权
 
 [9] Brown S. [The C4 Model for Visualising Software Architecture](https://c4model.com/)[EB/OL]. 重点参考 [diagram levels](https://c4model.com/diagrams) 与 [review checklist](https://c4model.com/diagrams/checklist)，按受众选择必要视图。
 
-[10] Clements P, Bachmann F, Bass L, et al. *Documenting Software Architectures: Views and Beyond*[M]. 3rd ed. Addison-Wesley, 2011. 适合系统学习架构文档的视图、受众与记录方式。
+[10] Clements P, Bachmann F, Bass L, et al. [*Documenting Software Architectures: Views and Beyond*](https://www.informit.com/store/documenting-software-architectures-views-and-beyond-9780132488594)[M]. 2nd ed. Addison-Wesley Professional, 2010（出版社标注版权年为 2011）. 适合系统学习架构文档的视图、受众与记录方式。
 
 [11] Ford N, Parsons R, Kua P. *Building Evolutionary Architectures*[M]. O'Reilly Media, 2017. 适合进一步学习演进式架构、适应度函数与渐进式变更。
 

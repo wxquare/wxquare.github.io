@@ -49,9 +49,6 @@ wxquare 的技术知识库，聚焦可靠系统设计、复杂业务架构与 AI
 
 - [LeetCode 500 精选题单](https://github.com/wxquare/leetcode-primer/blob/master/README.md)：500 道算法题，按主题、模式和难度组织
 - [AI 与 Agent 开发高频 50 题](/ai-book/appendix/ai-agent-development-interview-50.html)：50 道题，覆盖模型、Prompt、RAG、Agent、评测与治理
-- [系统设计面试高频 50 题](/reliable-system-design/appendix/system-design-interview-50.html)：50 道题，聚焦电商交易、高并发、一致性与 SRE
-- [系统设计题库](/reliable-system-design/appendix/system-design-questionbank.html)：220+ 道题，覆盖需求、容量、架构、可靠性与追问
-- [后端面试基础知识题单](/reliable-system-design/appendix/interview-basic-question-bank.html)：1,000 道题，覆盖数据库、中间件、Kubernetes、网络与编程语言
 
 ### 工程随笔与其他
 

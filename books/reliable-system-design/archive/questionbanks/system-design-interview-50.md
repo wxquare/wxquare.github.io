@@ -24,7 +24,7 @@
 | 7 | 订单系统 | P0 | 3-8年 | 状态机、创单幂等、超时取消、履约编排、补偿 |
 | 8 | 支付系统 | P0 | 5-10年 | 支付单、渠道网关、回调幂等、退款状态机、对账 |
 | 9 | 退款、对账与资损防控 | P0 | 5-10年 | 退款状态机、差异账单、资损监控、人工处置闭环 |
-| 10 | 秒杀系统 | P0 | 3-7年 | Redis 预热、Lua 扣减、MQ 削峰、限流防刷 |
+| 10 | 秒杀系统 | P0 | 3-7年 | Redis 准入、权威预占、MQ 削峰、限流防刷 |
 | 11 | 分布式限流 | P0 | 3-7年 | 固定/滑动窗口、漏桶、令牌桶、Redis Lua、自适应限流 |
 | 12 | 热点 Key 治理 | P0 | 3-7年 | 探测、本地缓存、Key 分散、隔离线程池 |
 | 13 | 熔断、降级、限流边界 | P0 | 3-7年 | 限流防激增、熔断防雪崩、降级保核心、兜底保体验 |
@@ -90,7 +90,7 @@
 - 主链路：搜索/导购 → 详情 → 购物车 → 结算 → 订单 → 支付 → 履约 → 售后。
 - 支撑域：商品、库存、营销、价格、会员、支付、对账、履约。
 - 答题重点：区分“同步承诺”和“异步副作用”，指出交易权威数据与最终一致读模型。
-- 扩展：[电商系统全景](../part02/10-ecommerce-overview.md)
+- 扩展：[电商系统全景](../../src/part02/10-ecommerce-overview.md)
 
 ### 商品中心与商品上架
 
@@ -98,35 +98,35 @@
 - 状态机：草稿 → 审核 → 发布 → 下线/失效；发布前有版本和审批。
 - 发布后同步：详情缓存、搜索索引、库存可售状态、计价上下文。
 - 答题重点：线上数据不可被编辑直接覆盖，要版本化、审核、灰度发布、失败回滚。
-- 扩展：[商品中心](../part02/11-product-center-supply-lifecycle.md)
+- 扩展：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)
 
 ### 营销、优惠券与活动
 
 - 核心对象：活动、券模板、用户券、预算、资格、核销流水。
 - 关键链路：资格校验 → 预算/库存占用 → 发券/锁券 → 结算核销 → 释放/对账。
 - 答题重点：预算不能靠 Redis 证明，锁券/核销要有幂等键和权威流水；大促要有降级和资损监控。
-- 扩展：[营销系统](../part02/13-marketing-pricing-system.md)
+- 扩展：[营销系统](../../src/part02/13-marketing-pricing-system.md)
 
 ### 价格与计价系统
 
 - 价格组成：商品价、渠道价、会员价、营销优惠、税费、运费、平台补贴。
 - 设计目标：可解释、可追溯、可复算、防篡改。
 - 答题重点：试算和结算必须复用同一计价服务；缓存命中后仍要在下单前重算。
-- 扩展：[计价系统](../part02/13-marketing-pricing-system.md)
+- 扩展：[计价系统](../../src/part02/13-marketing-pricing-system.md)
 
 ### 购物车与结算
 
 - 购物车：未登录本地购物车、登录合并、商品失效、库存变化。
 - 结算：价格重算、库存预占、营销资格、优惠互斥、重复提交防护。
 - 答题重点：购物车是暂存态，结算前必须重新校验价格、库存、营销和用户身份。
-- 扩展：[购物车与结算](../part02/14-ecommerce-customer-lifecycle.md)
+- 扩展：[购物车与结算](../../src/part02/14-ecommerce-customer-lifecycle.md)
 
 ### 订单系统
 
 - 状态机：创建、待支付、已支付、已发货、已完成、已关闭、退款中。
 - 关键设计：创单幂等、库存预占、支付回调、超时取消、履约编排。
 - 答题重点：订单是交易事实的汇聚点，状态迁移要有前置条件、幂等和审计。
-- 扩展：[订单系统](../part02/15-ecommerce-order-fulfillment.md)
+- 扩展：[订单系统](../../src/part02/15-ecommerce-order-fulfillment.md)
 
 ### 退款、对账与资损防控
 
@@ -134,7 +134,7 @@
 - 对账：支付渠道账单 vs 本地账单，差异分类、自动修复、人工处置。
 - 资损防控：金额试算/复算、幂等、红黄线告警、回滚与补偿。
 - 答题重点：不能把“渠道回调成功”等同于“资金已安全到账”，要闭环对账。
-- 扩展：[支付系统](../part02/15-ecommerce-order-fulfillment.md)
+- 扩展：[支付系统](../../src/part02/15-ecommerce-order-fulfillment.md)
 
 ## 一、高并发与流量治理
 
@@ -148,10 +148,10 @@
 |------|------|
 | **客户端/CDN** | 静态资源缓存；按钮置灰+答题验证（削峰防刷） |
 | **网关层** | 令牌桶/漏桶限流；黑名单拦截；设备指纹识别 |
-| **服务层** | 库存预热到 Redis；MQ 异步扣减 DB 库存；非核心服务降级 |
+| **服务层** | Redis 准入；权威库存建立预占后才正式承诺；MQ 异步建单与传播投影 |
 
 **防超卖**（核心）：
-- **Redis Lua 脚本**原子扣减：`if redis.call('get', key) > 0 then redis.call('decr', key) ...`
+- **Redis Lua 脚本**可原子处理热层准入，但不证明故障恢复后的库存正确；只有权威预占成功才承诺购买资格，超时按操作号查询，不能盲目回补。令牌预分配需另证配额守恒、epoch 和占用恢复。
 - **DB 乐观锁兜底**：`UPDATE stock SET num = num - 1 WHERE id = ? AND num > 0`
 
 **防黄牛/脚本**：
@@ -430,7 +430,7 @@ BITCOUNT online          -- 统计在线人数
     ↓
 具体策略: SelfManagedStrategy / SupplierManagedStrategy / UnlimitedStrategy
     ↓
-存储层: Redis (Hot) + MySQL (Cold) + Kafka (Async)
+事实与投影层: MySQL 权威预占/流水 + Redis 热视图/准入 + Kafka 异步传播
 ```
 
 **核心优势**：
@@ -455,29 +455,34 @@ Key:   inventory:empty:{itemID}:{skuID}:{batchID}
 TTL:   1h  (库存空标志，避免重复查 DB)
 ```
 
-**出货流程**（核心）：
+**预占流程**（默认权威库方案；数量和缓存时间均为案例假设）：
 
 ```text
-1. 检查库存空标志 → 命中则直接返回缺货
-2. Redis LIST 原子出货 (Lua: LRANGE + LTRIM)
-3. 如果库存不足 → 补货 (从 MySQL 查 3000 个可用券码 → RPUSH 到 Redis)
-4. 更新 MySQL 券码状态: AVAILABLE → BOOKING
-5. 同步更新 inventory 表: booking_stock += quantity
-6. 发送 Kafka 事件异步记录日志
+1. 空标志与 Redis LIST 只用于候选读取和准入，不展示卡密或承诺券码归属
+2. 候选不足时按版本读取权威可用码 ID；补货受控，不直接把历史缓存当事实
+3. 权威本地事务建立唯一 operation_id，条件迁移候选码 AVAILABLE → BOOKING
+4. 确认全部所需码迁移成功，再更新数量汇总、写预占/流水与 Outbox；否则整体回滚
+5. 返回 reservation_id；参数冲突拒绝，重复请求查询同一预占
+6. Outbox 驱动缓存/事件投影；只有履约条件成立才受控展示卡密
 ```
 
-**Lua 脚本（原子性保证）**：
+**Lua 脚本（仅原子领取候选 ID，不提供权威预占）**：
 
 ```lua
-local result = redis.call('LRANGE', KEYS[1], 0, ARGV[1] - 1)
-redis.call('LTRIM', KEYS[1], ARGV[1], -1)
+local quantity = tonumber(ARGV[1])
+if not quantity or quantity <= 0 or quantity % 1 ~= 0 then
+    return redis.error_reply('invalid quantity')
+end
+local result = redis.call('LRANGE', KEYS[1], 0, quantity - 1)
+if #result ~= quantity then return {} end
+redis.call('LTRIM', KEYS[1], quantity, -1)
 return result
 ```
 
 **关键设计**：
 - **Lazy Loading**：按需补货，避免一次性加载全量券码到 Redis（节省内存）。
-- **分布式锁**：补货时加锁，防止并发补货导致重复。
-- **库存空标志**：DB 无库存后，1小时内拦截所有请求，避免反复查 DB。
+- **补货协调**：锁只能协调候选缓存，券码最终唯一归属仍由数据库状态条件与操作键保护。
+- **库存空标志**：短时负缓存降低回源；补货/释放事件与版本推进时失效，不能长期掩盖新增可售资源。
 
 ---
 
@@ -495,10 +500,17 @@ Fields:
   "{promotionID}": 500        # 营销活动独立库存（动态字段）
 ```
 
-**预订 Lua 脚本（支持营销库存）**：
+**热层准入 Lua 示意（营销与普通配额互斥，不是正式预订）**：
 
 ```lua
--- 1. 获取普通库存和营销库存
+local key = KEYS[1]
+local promotion_id = ARGV[1]
+local book_num = tonumber(ARGV[2])
+if not book_num or book_num <= 0 or book_num % 1 ~= 0 then
+    return redis.error_reply('invalid quantity')
+end
+
+-- 1. 读取两个互不重叠的准入配额
 local available = tonumber(redis.call('HGET', key, 'available') or 0)
 local promo = tonumber(redis.call('HGET', key, promotion_id) or 0)
 local total = available + promo
@@ -514,11 +526,12 @@ else
     redis.call('HINCRBY', key, 'available', -(book_num - promo))
 end
 
--- 4. 增加预订数
+-- 4. 记录热层暂态量；权威 Reserve 提交后才能返回预占成功
 redis.call('HINCRBY', key, 'booking', book_num)
+return 1
 ```
 
-**亮点**：动态字段设计，无需提前建表，营销活动 ID 直接作为 HASH field。
+**边界**：动态字段可以表达热视图，但活动配额的来源、划拨流水和守恒必须在权威层定义。Lua 成功只表示通过准入；随后执行与 Q2 相同的权威 Reserve 及查询恢复，不能靠缓存中的 `booking` 证明真实预占。
 
 ---
 
@@ -558,36 +571,28 @@ func CheckStock() {
 
 #### Q5：如何保证 Redis 与 MySQL 库存数据一致性？
 
-**双写策略**：
+**事实提交与投影策略**：
 
-| 操作 | Redis | MySQL | 一致性 |
+| 操作 | Redis | MySQL | 对外承诺 |
 |------|-------|-------|--------|
-| 预订 (Book) | 同步扣减（Lua） | Kafka 异步更新 | 最终一致 |
-| 支付 (Sell) | 同步更新 | Kafka 异步更新 | 最终一致 |
-| 营销锁定 (Lock) | 同步 | 同步（DB 事务） | 强一致 |
+| 预订 (Book) | 准入或暂态候选，随后异步投影 | 本地事务建立权威预占、流水和 Outbox | 只有权威预占提交才正式成功 |
+| 支付确认 (Sell) | 异步更新展示 | 条件迁移预占状态并提交流水 | 未完成则处理中或恢复，不回补未知结果 |
+| 营销划拨 (Lock) | 版本化投影 | 配额划拨、唯一操作与流水同一事务 | 只证明本地资源边界，不构成 DB/Redis 全局强一致 |
 
 **核心原则**：
-- **Redis 是热路径**：所有高频操作走 Redis（毫秒级响应）。
-- **MySQL 是权威数据源**：故障恢复时以 MySQL 为准。
-- **Kafka 异步持久化**：不阻塞主流程。
+- **Redis 是准入/热视图**：原子更新不自动具备可恢复的销售承诺；复制与 `WAIT` 也不自动形成强一致系统。[1]
+- **MySQL 保存权威资源事实**：余额、预占和流水同一原子边界提交，不能只是滞后备份。
+- **Kafka 异步传播**：基于已提交 Outbox 更新投影，不替代权威预占持久化。
 
-**定时对账（每小时）**：
+**对账与恢复控制流**（时限与阈值按业务设定）：
 
-```go
-redisStock := getRedisAvailable(itemID)
-mysqlStock := getMySQLAvailable(itemID)
-diff := redisStock - mysqlStock
-
-// 校验库存恒等式: total = available + booking + locked + sold
-if mysqlTotal != mysqlAvailable + mysqlBooking + mysqlLocked + mysqlSold {
-    alert("MySQL 数据不一致")
-}
-
-// Redis vs MySQL 差异
-if abs(diff) > 100 || abs(diff) > mysqlStock*0.1 {
-    alert("库存差异过大")
-    syncRedisFromMySQL(itemID)  // 自动修复
-}
+```text
+先核对权威流水守恒、有效预占和未决操作
+按投影版本水位区分正常延迟与确定差异
+异常时冻结或隔离相关准入，按 operation_id 反查未知请求
+从一致基线构建新 epoch 的热视图，并追平后续权威事件
+验证余额、预占及投影水位后受控切流；旧 epoch 禁止继续准入
+不在仍有并发写入和未知请求时直接覆盖在线 Redis 余额
 ```
 
 ---
@@ -599,21 +604,21 @@ if abs(diff) > 100 || abs(diff) > mysqlStock*0.1 {
 ```text
 Redis 可用
   ↓
-正常走 Redis（< 10ms）
+Redis 准入/热视图 + 权威预占
 
 Redis 不可用
   ↓
-降级到 MySQL 直接操作（~100ms，性能下降但业务不中断）
+限额绕过准入缓存，调用同一个权威预占接口；容量不足则明确排队或拒绝
   ↓
 券码制: SELECT ... FOR UPDATE + UPDATE status
 数量制: UPDATE available_stock = available_stock - ? WHERE available_stock >= ?
   ↓
-记录降级日志，Redis 恢复后从 MySQL 全量同步
+保存操作证据，Redis 重建完成、版本验证通过后受控恢复
 ```
 
 **注意**：
-- 降级期间性能下降约 10 倍，需配合限流。
-- MySQL 需提前规划好容量，支持降级时的流量。
+- 降级容量和延迟必须压测，不能把 10 倍性能差当通用事实。
+- 结果未知时按操作号查询，不允许双路径重复扣减；MySQL 不可用时停止正式承诺。
 
 ---
 
@@ -684,30 +689,35 @@ TTL: 7天（历史日期自动过期，节省内存）
 
 **场景**：运营配置秒杀活动，需从总库存中锁定 1000 件，活动结束释放。
 
-**Lua 脚本（营销锁定）**：
+**营销划拨顺序**：先在权威事务中校验可用量并写唯一划拨操作与流水，再异步更新缓存。下列 Lua 仅示意热层算术，事件处理还必须先校验版本和去重，不能作为独立权威锁定。
 
 ```lua
+local key = KEYS[1]
+local promotion_id = ARGV[1]
+local lock_num = tonumber(ARGV[2])
+if not lock_num or lock_num <= 0 or lock_num % 1 ~= 0 then
+    return redis.error_reply('invalid quantity')
+end
 local available = tonumber(redis.call('HGET', key, 'available') or 0)
-local promo_stock = tonumber(redis.call('HGET', key, promotion_id) or 0)
 
 -- 检查库存
 if lock_num > available then return -1 end
 
 -- 从普通库存转移到营销库存
 redis.call('HINCRBY', key, 'available', -lock_num)
-redis.call('HSET', key, promotion_id, lock_num)
+redis.call('HINCRBY', key, promotion_id, lock_num)
 ```
 
-**数据库同步**：
+**权威事务内的条件更新示意**（操作流水唯一约束与此更新同事务）：
 
 ```sql
 UPDATE inventory 
 SET available_stock = available_stock - ?,
     locked_stock = locked_stock + ?
-WHERE item_id = ?
+WHERE item_id = ? AND available_stock >= ?
 ```
 
-**活动结束解锁**：反向操作，营销库存 → 普通库存。
+**活动结束解锁**：先核对剩余配额、有效预占和未决确认，只回收未占用配额；重复回收命中同一操作结果，不能把已售或未决资源直接加回普通库存。
 
 ---
 
@@ -746,13 +756,13 @@ inventoryManager.BookStock(ctx, &BookStockReq{
 
 **Q：库存对账发现 Redis 比 MySQL 多 500 个，怎么办？**
 - **可能原因**：
-  - Kafka 消息积压，MySQL 异步更新延迟。
-  - Redis 补货后，MySQL 更新失败。
+  - 权威事件积压，Redis 投影仍是旧版本。
+  - 缓存重建与后续写入未正确交接。
   - 存在未完成的预订订单（booking 状态）。
 - **处理**：
-  - 检查 Kafka 消费 lag。
-  - 以 **MySQL 为准**，用 MySQL 数据覆盖 Redis（权威数据源原则）。
-  - 人工核查异常订单。
+  - 检查事件水位、Kafka 消费 lag 与权威流水，先隔离风险准入。
+  - 查询未决操作和有效预占，按一致基线及新 epoch 重建，不直接覆盖正在服务的旧余额。
+  - 验证恢复后开放流量；差异无法解释时冻结并人工处理。
 
 **Q：多平台（Shopee、ShopeePay）如何独立统计库存？**
 - Redis HASH 中增加 `booking_shopee`、`booking_shopeepay` 字段。
@@ -760,10 +770,9 @@ inventoryManager.BookStock(ctx, &BookStockReq{
 - DB 也冗余存储 `booking_stock` 和 `spp_booking_stock`。
 
 **Q：库存扣减后支付失败，如何归还库存？**
-- **订单超时未支付**：延迟队列（30min）→ 触发 UnbookStock。
-  - 券码制：code status BOOKING → AVAILABLE，RPUSH 回 Redis LIST。
-  - 数量制：Redis `HINCRBY booking -1, HINCRBY available +1`。
-- **支付明确失败**：立即同步释放。
+- **订单超时**：先按支付协议查单、确认可关闭，使用 Reservation 前置状态释放；延迟队列只是触发器，还需扫漏恢复。
+- **券码或数量资源**：权威事务迁移预占与余额、写释放流水和 Outbox，Redis 随版本事件更新；重复释放不再增加可售量。
+- **支付结果未知**：先查询或冻结，不能把超时当成失败立即释放。晚到成功回调依据事实退款或人工处理。
 
 ---
 
@@ -1895,7 +1904,7 @@ if result == 0 {
 | 购物车/结算 | 合并购物车 + 结算重算 | 下单前重算价格、库存、营销 |
 | 订单系统 | 状态机 + 幂等 + 超时 | 创单幂等，失败异步补偿 |
 | 支付/退款/对账 | 回调幂等 + 退款状态机 | 渠道回调不等于资金安全 |
-| 秒杀系统 | Redis Lua + MQ | 预热缓存 + 异步扣减 + 限流防刷 |
+| 秒杀系统 | Redis 准入 + 权威预占 + MQ | 正式承诺前持久化资源；查询未知结果、受控恢复与限流防刷 |
 | 分布式限流 | 令牌桶 + Redis Lua | 允许突发，分布式用 Redis |
 | 热点发现 | 本地缓存 + Key 分散 | 探测 → 拦截 → 分散 → 隔离 |
 | 40 亿去重 | Bitmap | 512MB 精确去重 |
@@ -1921,11 +1930,13 @@ if result == 0 {
 - {% post_link fundamentals/08-redis Redis 原理与实践 %}
 - {% post_link fundamentals/09-kafka 异步和消息队列 %}
 - {% post_link fundamentals/10-elasticsearch 搜索和 Elasticsearch %}
-- [电商系统设计](../part02/10-ecommerce-overview.md)
+- [电商系统设计](../../src/part02/10-ecommerce-overview.md)
 - {% post_link system-design/07-system-reliability-engineering 系统稳定性建设：方法论与实践 %}
-- [多品类统一库存系统设计](../part02/12-inventory-system.md)
+- [多品类统一库存系统设计](../../src/part02/12-inventory-system.md)
 - [System Design Primer 系统设计题库](system-design-questionbank.md)
 
 ### 外部参考
 
 - [大厂面试真题 - Fox爱分享](https://juejin.cn/column/7566818477114490926)
+
+[1] Redis，[Redis replication](https://redis.io/docs/latest/operate/oss_and_stack/management/replication/)，核验日期：2026-10-09。用于解释异步复制、故障切换与 `WAIT` 的保证边界；权威预占及恢复顺序详见第 12 章。

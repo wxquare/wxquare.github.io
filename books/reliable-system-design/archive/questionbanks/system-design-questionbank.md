@@ -1,6 +1,6 @@
 # 附录 D 系统设计题库
 
-本附录集中收录系统设计题库的训练方法、质量导向的规范题目、模拟面试脚本，以及重构前逐题详细参考材料。优先使用前半部分的核心案例、约束变体和快问快答；历史材料用于查阅未被独立保留的实现细节、追问与扩展案例，不作为统一作答模板。
+本附录收录训练方法、核心案例、模拟面试和专题详细材料。优先使用前半部分的核心案例、约束变体和快问快答；详细材料按原题号提供实现分析与追问，不能替代当前正文的机制边界，也不是统一作答模板。
 
 ## 基础面试题与追问
 
@@ -95,18 +95,19 @@
 
 每次训练只记录一个可验证改进动作，例如“下次先定义支付超时后的未知状态”，或“下次说明索引版本落后时的重建入口”。下次练习选择同一核心案例的约束变体，验证这个动作是否真的改变了决策。
 
-原有题号、题目和迁移去向见[迁移覆盖索引](#迁移覆盖索引)。索引用于保证主题覆盖，不代表每个旧题都应继续作为独立的长时面试题。
+按题号查找题目及对应核心案例时，使用[题号覆盖索引](#迁移覆盖索引)。索引服务于选题与查阅，不代表每个专题都需要独立练习一场长时面试。
 
-## 原有训练方法保留与覆盖审计
+<a id="原有训练方法保留与覆盖审计"></a>
+## 训练材料与阅读入口
 
-本附录合并了原题库的使用说明、通用题库、电商专项题库与模拟面试。重构时不以“每题一张同格式题卡”为目标，而以是否保留可训练的设计判断、可查阅的答案细节和可追问的故障情境为准。
+按练习目标选择入口，不需要对每道快问快答都套用完整设计模板。
 
-| 原有材料 | 保留位置 | 审计结论 |
+| 材料 | 阅读位置 | 使用方式 |
 | --- | --- | --- |
-| 使用说明、训练路线与候选人/面试官模式 | 本附录的“使用与训练路线”“三种练习”“候选人训练”“面试官评估” | 保留，并改为按训练目标选择题型 |
-| 220 道通用与电商题 | “迁移覆盖索引”与“历史详细参考材料” | 每个旧题号出现一次；逐题答案、追问、代码和复盘材料保留 |
-| 30、45、60 分钟模拟面试 | “模拟面试” | 保留，并改用核心案例和单变量追问组织 |
-| 系统设计综合、中间件可靠性、白板与容量估算方法 | 本节后续小节 | 保留其方法论内容，避免只留下题号映射 |
+| 训练路线与候选人/面试官模式 | 使用与训练路线、三种练习、候选人训练、面试官评估 | 先选能力和时间，再选题型 |
+| 通用与电商专题 | 题号覆盖索引与历史详细参考材料 | 按稳定题号查阅分析、示例与追问 |
+| 30、45、60 分钟练习 | 模拟面试 | 先完成基线设计，再接受单变量追问 |
+| 白板与容量估算 | 本节后续小节 | 先建立口径，再展开主链路与权衡 |
 
 ### 系统设计面试在考什么
 
@@ -138,12 +139,13 @@
 容量估算以数量级正确和能够改变设计为目标。先从业务行为推导入口、读写、重试、异步和外部依赖压力，再把结论落到缓存、队列、数据库、网络与隔离预算。
 
 ```text
-峰值下单 QPS = 高峰活跃用户 x 下单转化率 / 峰值时间窗口
-真实写压力 = 下单 + 库存校验 + 幂等校验 + 支付回调 + 重试
+窗口平均下单 QPS = 高峰窗口活跃用户 x 窗口下单转化率 / 窗口秒数
+设计秒级峰值 = 实测峰值，或窗口平均 x 有依据的突发系数假设
+各下游写压力 = 对应业务到达速率 x 单次写入次数 x 该路径的重试放大
 异步压力 = 业务事件 + 消费重试 + 索引同步 + 对账与补偿
 ```
 
-大促、秒杀等场景不能按全天均匀流量估算。除入口 QPS 外，必须估算热点商品、消息积压、存储增长、带宽、第三方限额以及恢复期间的补偿流量。
+大促、秒杀等场景不能按全天均匀流量估算，窗口平均也不等于秒级峰值。除入口 QPS 外，必须分别估算热点商品、消息积压、存储增长、带宽、第三方限额以及恢复期间的补偿流量；只有单位与资源对象一致时才能相加。复算示例见[第 1 章数量级估算](../../src/part01/01-system-design-guide-methodology.md#用数量级建立共同现实)。
 
 ### 存储、中间件与可靠性的答题边界
 
@@ -180,10 +182,10 @@
 
 | `source_repo` | 主要覆盖 | `source_license` | 本地映射 | 处理策略 |
 | --- | --- | --- | --- | --- |
-| [`Hamzaa6296/system-design-interview-question`](https://github.com/Hamzaa6296/system-design-interview-question) | 基础概念、缓存、数据库、分片、一致性、消息队列、微服务、安全、限流、搜索、通知、可观测性、HLD、LLD 和 Staff+ 题目 | 仓库含 `LICENSE`，具体授权范围待逐项核验 | 第 1-9 章、第 10-22 章、规范题库和快问快答 | 作为第一轮覆盖扫描源，重点发现本书尚未覆盖的领域和题型 |
+| [`Hamzaa6296/system-design-interview-question`](https://github.com/Hamzaa6296/system-design-interview-question) | 基础概念、缓存、数据库、分片、一致性、消息队列、微服务、安全、限流、搜索、通知、可观测性、HLD、LLD 和 Staff+ 题目 | 仓库含 `LICENSE`，具体授权范围待逐项核验 | 第 1–9 章通用方法、第 10–15 章电商案例、附录核心题与快问快答 | 按能力与约束匹配；安全等尚未系统展开的主题保留为外部阅读线索 |
 | [`donnemartin/reliable-system-design`](https://github.com/donnemartin/reliable-system-design) | 系统设计主题索引、容量估算、经典设计题、样例解法、架构图、面向对象设计和 Anki 练习 | CC BY 4.0；保留署名并标明修改 | 第 1 章、第 7-9 章、第 10-15 章、规范题库和复盘材料 | 用于补经典题、标准术语和可对照的解题结构，不复制完整答案 |
 | [`karanpratapsingh/system-design`](https://github.com/karanpratapsingh/system-design) | 可扩展性、分布式系统、微服务、缓存、数据库、消息和系统设计面试基础 | 仓库声明 CC BY-NC-ND 4.0；不直接改编或复制正文 | 第 1 章、第 3-9 章和第 10-15 章 | 用于补通用架构概念、取舍清单和术语索引 |
-| [`ByteByteGoHq/system-design-101`](https://github.com/ByteByteGoHq/system-design-101) | API、HTTP、负载均衡、数据库、缓存、云架构和分布式系统的图解材料 | 许可证待核验；图片和文字分别审查 | 第 1 章、第 8 章和第 10-18 章 | 只记录图解主题和外部链接，除非确认授权，不复制图片或重绘原图 |
+| [`ByteByteGoHq/system-design-101`](https://github.com/ByteByteGoHq/system-design-101) | API、HTTP、负载均衡、数据库、缓存、云架构和分布式系统的图解材料 | 许可证待核验；图片和文字分别审查 | 第 1 章架构表达、第 8 章复杂读、第 10 章电商全景及第 11–15 章具体领域 | 按图解实际主题定位，未覆盖的主题只保留外部链接；不擅自复制图片或重绘原图 |
 | [`jguamie/system-design`](https://github.com/jguamie/system-design) | Google 风格系统设计答题流程、需求澄清、规模判断、取舍表达、模拟面试和分布式系统阅读路线 | CC BY 4.0；保留署名并标明修改 | 候选人训练、面试官评估、模拟面试和第 1 章 | 用于补面试过程、评估标准和答题节奏，不把其流程当作唯一模板 |
 
 ### 记录模板
@@ -793,7 +795,7 @@
 
 ## 历史详细参考材料
 
-以下材料保留重构前通用与电商题库中的逐题分析、方案、代码示例、追问与复盘清单。它们用于覆盖查阅和二次审校；日常训练以本附录前部的规范题库为准。
+以下材料按稳定题号提供通用与电商专题的分析、示意实现、追问与复盘。日常训练以本附录前部核心案例为入口；遇到专题细节再查阅本节。历史来源用于识别题目身份，不表示该旧章号仍是当前导航。
 
 ### 原第 38 章：通用系统设计题库
 
@@ -828,7 +830,7 @@
 #### 常见失分点
 把系统设计说成算法题的放大版；直接罗列中间件；遗漏非目标。
 #### 关联正文
-[第 1 章 系统设计与架构](../part01/01-system-design-guide-methodology.md)、[第 3 章 生产系统治理](../part01/03-production-resilience-safeguards.md)
+[第 1 章 系统设计与架构](../../src/part01/01-system-design-guide-methodology.md)、[第 3 章 生产系统治理](../../src/part01/03-production-resilience-safeguards.md)
 #### 复盘清单
 - 我是否先说明了目标、约束和非目标？
 - 我是否把澄清结果连到后续决策？
@@ -859,7 +861,7 @@
 #### 常见失分点
 把平均流量当峰值；只谈 Redis；没有问库存释放和重复提交。
 #### 关联正文
-[第 7 章 高准确性与强一致性设计](../part01/07-high-accuracy-strong-consistency-methodology.md)、[第 9 章 高并发写入与热点治理](../part01/09-high-write-throughput-hotspot-methodology.md)、[第 12 章 库存系统](../part02/12-inventory-system.md)
+[第 7 章 高准确性与强一致性设计](../../src/part01/07-high-accuracy-strong-consistency-methodology.md)、[第 9 章 高并发写入与热点治理](../../src/part01/09-high-write-throughput-hotspot-methodology.md)、[第 12 章 库存系统](../../src/part02/12-inventory-system.md)
 #### 复盘清单
 - 我是否区分了活动瞬时峰值与平均流量？
 - 我是否说明了库存和订单的权威状态？
@@ -892,7 +894,7 @@
 #### 常见失分点
 只报一个 QPS；忽略重试和回调；估算后没有落到架构选择。
 #### 关联正文
-[第 1 章 系统设计与架构](../part01/01-system-design-guide-methodology.md)、[第 8 章 低延迟复杂读](../part01/08-low-latency-complex-read-methodology.md)、[第 9 章 高并发写入与热点治理](../part01/09-high-write-throughput-hotspot-methodology.md)
+[第 1 章 系统设计与架构](../../src/part01/01-system-design-guide-methodology.md)、[第 8 章 低延迟复杂读](../../src/part01/08-low-latency-complex-read-methodology.md)、[第 9 章 高并发写入与热点治理](../../src/part01/09-high-write-throughput-hotspot-methodology.md)
 #### 复盘清单
 - 我是否明确了峰值和容量余量的口径？
 - 我是否把每个数量级结论转化为设计选择？
@@ -925,7 +927,7 @@
 #### 常见失分点
 宣称缓存天然强一致；没有对账；把最终一致当作不处理失败。
 #### 关联正文
-[第 4 章 大事务处理](../part01/04-large-transaction-orchestration.md)、[第 7 章 高准确性与强一致性设计](../part01/07-high-accuracy-strong-consistency-methodology.md)、[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)
+[第 4 章 大事务处理](../../src/part01/04-large-transaction-orchestration.md)、[第 7 章 高准确性与强一致性设计](../../src/part01/07-high-accuracy-strong-consistency-methodology.md)、[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)
 #### 复盘清单
 - 我是否明确了每类状态的权威来源？
 - 我是否说明了发现和修复偏差的闭环？
@@ -956,7 +958,7 @@
 #### 常见失分点
 所有链路都强一致；所有异步都最终一致；没有时间边界和修复责任。
 #### 关联正文
-[第 4 章 大事务处理](../part01/04-large-transaction-orchestration.md)、[第 7 章 高准确性与强一致性设计](../part01/07-high-accuracy-strong-consistency-methodology.md)、[第 14 章 商品发现与交易准备](../part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)
+[第 4 章 大事务处理](../../src/part01/04-large-transaction-orchestration.md)、[第 7 章 高准确性与强一致性设计](../../src/part01/07-high-accuracy-strong-consistency-methodology.md)、[第 14 章 商品发现与交易准备](../../src/part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)
 #### 复盘清单
 - 我是否说明了一致性的对象和可接受时限？
 - 我是否给出了失败后的补偿和对账路径？
@@ -987,7 +989,7 @@
 #### 常见失分点
 把 MySQL 说成所有数据的唯一选择；忽略读写分离、分片和归档；把消息当存储替代品。
 #### 关联正文
-[第 7 章 高准确性与强一致性设计](../part01/07-high-accuracy-strong-consistency-methodology.md)、[第 12 章 库存系统](../part02/12-inventory-system.md)、[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)
+[第 7 章 高准确性与强一致性设计](../../src/part01/07-high-accuracy-strong-consistency-methodology.md)、[第 12 章 库存系统](../../src/part02/12-inventory-system.md)、[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)
 #### 复盘清单
 - 我是否说清了权威状态需要的能力？
 - 我是否说明了缓存和消息不承担什么职责？
@@ -1018,7 +1020,7 @@
 #### 常见失分点
 只用分布式锁；没有库存流水；支付失败后不释放；没有幂等键。
 #### 关联正文
-[第 7 章 高准确性与强一致性设计](../part01/07-high-accuracy-strong-consistency-methodology.md)、[第 9 章 高并发写入与热点治理](../part01/09-high-write-throughput-hotspot-methodology.md)、[第 12 章 库存系统](../part02/12-inventory-system.md)
+[第 7 章 高准确性与强一致性设计](../../src/part01/07-high-accuracy-strong-consistency-methodology.md)、[第 9 章 高并发写入与热点治理](../../src/part01/09-high-write-throughput-hotspot-methodology.md)、[第 12 章 库存系统](../../src/part02/12-inventory-system.md)
 #### 复盘清单
 - 我是否覆盖了预占、确认、释放和对账？
 - 我是否说明了并发与重复下的状态机约束？
@@ -1049,7 +1051,7 @@
 #### 常见失分点
 先删缓存再写库且不处理失败；读写都强制同步更新缓存；没有过期和补偿。
 #### 关联正文
-[第 3 章 生产系统治理](../part01/03-production-resilience-safeguards.md)、[第 8 章 低延迟复杂读](../part01/08-low-latency-complex-read-methodology.md)、[第 14 章 商品发现与交易准备](../part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)
+[第 3 章 生产系统治理](../../src/part01/03-production-resilience-safeguards.md)、[第 8 章 低延迟复杂读](../../src/part01/08-low-latency-complex-read-methodology.md)、[第 14 章 商品发现与交易准备](../../src/part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)
 #### 复盘清单
 - 我是否先判断陈旧数据的业务后果？
 - 我是否说明了缓存刷新失败后的恢复闭环？
@@ -1080,7 +1082,7 @@
 #### 常见失分点
 把锁当事务；不设置业务幂等；只讨论获取锁，不讨论失锁和释放。
 #### 关联正文
-[第 5 章 长生命周期业务流程](../part01/05-long-lifecycle-business-process-methodology.md)、[第 7 章 高准确性与强一致性设计](../part01/07-high-accuracy-strong-consistency-methodology.md)、[第 12 章 库存系统](../part02/12-inventory-system.md)
+[第 5 章 长生命周期业务流程](../../src/part01/05-long-lifecycle-business-process-methodology.md)、[第 7 章 高准确性与强一致性设计](../../src/part01/07-high-accuracy-strong-consistency-methodology.md)、[第 12 章 库存系统](../../src/part02/12-inventory-system.md)
 #### 复盘清单
 - 我是否区分了并发优化和最终正确性保护？
 - 我是否覆盖了锁失效后的业务行为？
@@ -1113,7 +1115,7 @@
 #### 常见失分点
 只说多机房；所有功能同等保护；没有监控和演练。
 #### 关联正文
-[第 3 章 生产系统治理](../part01/03-production-resilience-safeguards.md)、[第 9 章 高并发写入与热点治理](../part01/09-high-write-throughput-hotspot-methodology.md)、[第 14 章 商品发现与交易准备](../part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)
+[第 3 章 生产系统治理](../../src/part01/03-production-resilience-safeguards.md)、[第 9 章 高并发写入与热点治理](../../src/part01/09-high-write-throughput-hotspot-methodology.md)、[第 14 章 商品发现与交易准备](../../src/part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)
 #### 复盘清单
 - 我是否先定义了必须保护的核心业务？
 - 我是否覆盖了预防、发现、恢复三个阶段？
@@ -1144,7 +1146,7 @@
 #### 常见失分点
 所有异常都重试；只在客户端做幂等；没有重试上限和观测。
 #### 关联正文
-[第 3 章 生产系统治理](../part01/03-production-resilience-safeguards.md)、[第 4 章 大事务处理](../part01/04-large-transaction-orchestration.md)、[第 14 章 商品发现与交易准备](../part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)
+[第 3 章 生产系统治理](../../src/part01/03-production-resilience-safeguards.md)、[第 4 章 大事务处理](../../src/part01/04-large-transaction-orchestration.md)、[第 14 章 商品发现与交易准备](../../src/part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)
 #### 复盘清单
 - 我是否区分了失败、超时和结果未知？
 - 我是否说明了幂等键与最终状态查询？
@@ -1175,7 +1177,7 @@
 #### 常见失分点
 把熔断等同于服务下线；对支付直接返回成功；没有恢复和补偿策略。
 #### 关联正文
-[第 3 章 生产系统治理](../part01/03-production-resilience-safeguards.md)、[第 14 章 商品发现与交易准备](../part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)
+[第 3 章 生产系统治理](../../src/part01/03-production-resilience-safeguards.md)、[第 14 章 商品发现与交易准备](../../src/part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)
 #### 复盘清单
 - 我是否按核心程度定义降级结果？
 - 我是否说明熔断后的恢复探测和补偿？
@@ -1208,7 +1210,7 @@
 #### 常见失分点
 事务内同步发送消息且无补偿；以为消息顺序等于业务正确；忽略积压和死信。
 #### 关联正文
-[第 4 章 大事务处理](../part01/04-large-transaction-orchestration.md)、[第 6 章 任务处理](../part01/06-task-processing-methodology.md)、[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)
+[第 4 章 大事务处理](../../src/part01/04-large-transaction-orchestration.md)、[第 6 章 任务处理](../../src/part01/06-task-processing-methodology.md)、[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)
 #### 复盘清单
 - 我是否说明了消息队列不承担的职责？
 - 我是否覆盖投递、消费、积压和补偿？
@@ -1239,7 +1241,7 @@
 #### 常见失分点
 把 Elasticsearch 当权威事务库；只谈性能；忽略运维和索引重建成本。
 #### 关联正文
-[第 8 章 低延迟复杂读](../part01/08-low-latency-complex-read-methodology.md)、[第 11 章 商品中心](../part02/11-product-center-supply-lifecycle.md)、[第 14 章 商品发现与交易准备](../part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)
+[第 8 章 低延迟复杂读](../../src/part01/08-low-latency-complex-read-methodology.md)、[第 11 章 商品中心](../../src/part02/11-product-center-supply-lifecycle.md)、[第 14 章 商品发现与交易准备](../../src/part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)
 #### 复盘清单
 - 我是否先按查询模式判断？
 - 我是否说明了搜索索引不是权威数据？
@@ -1270,7 +1272,7 @@
 #### 常见失分点
 只配置确认；先提交位点；把生产者幂等误当业务幂等。
 #### 关联正文
-[第 4 章 大事务处理](../part01/04-large-transaction-orchestration.md)、[第 6 章 任务处理](../part01/06-task-processing-methodology.md)、[第 3 章 生产系统治理](../part01/03-production-resilience-safeguards.md)
+[第 4 章 大事务处理](../../src/part01/04-large-transaction-orchestration.md)、[第 6 章 任务处理](../../src/part01/06-task-processing-methodology.md)、[第 3 章 生产系统治理](../../src/part01/03-production-resilience-safeguards.md)
 #### 复盘清单
 - 我是否按生产、存储、消费和业务四段回答？
 - 我是否说明了可靠事件与业务恢复？
@@ -1301,7 +1303,7 @@
 #### 常见失分点
 仅依赖消息 ID 的内存去重；没有持久化约束；混淆投递幂等和业务幂等。
 #### 关联正文
-[第 4 章 大事务处理](../part01/04-large-transaction-orchestration.md)、[第 5 章 长生命周期业务流程](../part01/05-long-lifecycle-business-process-methodology.md)、[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)
+[第 4 章 大事务处理](../../src/part01/04-large-transaction-orchestration.md)、[第 5 章 长生命周期业务流程](../../src/part01/05-long-lifecycle-business-process-methodology.md)、[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)
 #### 复盘清单
 - 我是否明确了幂等键对应的业务语义？
 - 我是否说明了重复与崩溃后的恢复？
@@ -1332,7 +1334,7 @@
 #### 常见失分点
 所有查询上搜索系统；同步写主库和索引；让订单直接信任索引字段。
 #### 关联正文
-[第 8 章 低延迟复杂读](../part01/08-low-latency-complex-read-methodology.md)、[第 11 章 商品中心](../part02/11-product-center-supply-lifecycle.md)、[第 14 章 商品发现与交易准备](../part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)
+[第 8 章 低延迟复杂读](../../src/part01/08-low-latency-complex-read-methodology.md)、[第 11 章 商品中心](../../src/part02/11-product-center-supply-lifecycle.md)、[第 14 章 商品发现与交易准备](../../src/part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)
 #### 复盘清单
 - 我是否说明了选择搜索系统的具体门槛？
 - 我是否保留了交易对权威状态的校验？
@@ -1365,7 +1367,7 @@
 #### 常见失分点
 只按组件分类；把所有题归为缓存或消息队列；没有权威状态和失败恢复。
 #### 关联正文
-[第 1 章 系统设计与架构](../part01/01-system-design-guide-methodology.md)、[第 4 章 大事务处理](../part01/04-large-transaction-orchestration.md)、[第 9 章 高并发写入与热点治理](../part01/09-high-write-throughput-hotspot-methodology.md)
+[第 1 章 系统设计与架构](../../src/part01/01-system-design-guide-methodology.md)、[第 4 章 大事务处理](../../src/part01/04-large-transaction-orchestration.md)、[第 9 章 高并发写入与热点治理](../../src/part01/09-high-write-throughput-hotspot-methodology.md)
 #### 复盘清单
 - 我是否先识别题目的主矛盾？
 - 我是否能为每种模式说明边界和失败处理？
@@ -1396,7 +1398,7 @@
 #### 常见失分点
 只看答案对错；只背更多题；没有记录假设和被追问的边界。
 #### 关联正文
-[第 1 章 系统设计与架构](../part01/01-system-design-guide-methodology.md)、[第 3 章 生产系统治理](../part01/03-production-resilience-safeguards.md)
+[第 1 章 系统设计与架构](../../src/part01/01-system-design-guide-methodology.md)、[第 3 章 生产系统治理](../../src/part01/03-production-resilience-safeguards.md)
 #### 复盘清单
 - 我是否能列出本次最影响结果的三项遗漏？
 - 我是否把每项遗漏转化为下一次可验证动作？
@@ -1654,7 +1656,7 @@ github.com/shopspring/decimal
 
 迁移来源：`books/reliable-system-design/src/part03/07-ecommerce-basics-interview.md:11`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[电商系统全景图](../part02/10-ecommerce-overview.md)。
+相关章节：[电商系统全景图](../../src/part02/10-ecommerce-overview.md)。
 
 #### 复盘清单
 
@@ -1818,7 +1820,7 @@ github.com/shopspring/decimal
 
 迁移来源：`books/reliable-system-design/src/part03/07-ecommerce-basics-interview.md:111`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[电商系统全景图](../part02/10-ecommerce-overview.md)。
+相关章节：[电商系统全景图](../../src/part02/10-ecommerce-overview.md)。
 
 #### 复盘清单
 
@@ -1993,7 +1995,7 @@ github.com/shopspring/decimal
 
 迁移来源：`books/reliable-system-design/src/part03/07-ecommerce-basics-interview.md:430`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[电商系统全景图](../part02/10-ecommerce-overview.md)。
+相关章节：[电商系统全景图](../../src/part02/10-ecommerce-overview.md)。
 
 #### 复盘清单
 
@@ -2176,7 +2178,7 @@ github.com/shopspring/decimal
 
 迁移来源：`books/reliable-system-design/src/part03/07-ecommerce-basics-interview.md:545`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[电商系统全景图](../part02/10-ecommerce-overview.md)。
+相关章节：[电商系统全景图](../../src/part02/10-ecommerce-overview.md)。
 
 #### 复盘清单
 
@@ -2362,7 +2364,7 @@ github.com/shopspring/decimal
 
 迁移来源：`books/reliable-system-design/src/part03/07-ecommerce-basics-interview.md:668`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[电商系统全景图](../part02/10-ecommerce-overview.md)。
+相关章节：[电商系统全景图](../../src/part02/10-ecommerce-overview.md)。
 
 #### 复盘清单
 
@@ -2561,7 +2563,7 @@ github.com/shopspring/decimal
 
 迁移来源：`books/reliable-system-design/src/part03/07-ecommerce-basics-interview.md:794`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[电商系统全景图](../part02/10-ecommerce-overview.md)。
+相关章节：[电商系统全景图](../../src/part02/10-ecommerce-overview.md)。
 
 #### 复盘清单
 
@@ -2786,7 +2788,7 @@ order/
 
 迁移来源：`books/reliable-system-design/src/part03/07-ecommerce-basics-interview.md:933`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[电商系统全景图](../part02/10-ecommerce-overview.md)。
+相关章节：[电商系统全景图](../../src/part02/10-ecommerce-overview.md)。
 
 #### 复盘清单
 
@@ -2962,7 +2964,7 @@ order/
 
 迁移来源：`books/reliable-system-design/src/part03/07-ecommerce-basics-interview.md:1268`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[电商系统全景图](../part02/10-ecommerce-overview.md)。
+相关章节：[电商系统全景图](../../src/part02/10-ecommerce-overview.md)。
 
 #### 复盘清单
 
@@ -3207,7 +3209,7 @@ OrderPaid事件 →
 
 迁移来源：`books/reliable-system-design/src/part03/07-ecommerce-basics-interview.md:1384`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[电商系统全景图](../part02/10-ecommerce-overview.md)。
+相关章节：[电商系统全景图](../../src/part02/10-ecommerce-overview.md)。
 
 #### 复盘清单
 
@@ -3402,7 +3404,7 @@ OrderPaid事件 →
 
 迁移来源：`books/reliable-system-design/src/part03/07-ecommerce-basics-interview.md:1569`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[电商系统全景图](../part02/10-ecommerce-overview.md)。
+相关章节：[电商系统全景图](../../src/part02/10-ecommerce-overview.md)。
 
 #### 复盘清单
 
@@ -3644,7 +3646,7 @@ T4失败 → C3: 返还积分 → C2: 释放库存 → C1: 取消订单
 
 迁移来源：`books/reliable-system-design/src/part03/07-ecommerce-basics-interview.md:1704`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[电商系统全景图](../part02/10-ecommerce-overview.md)。
+相关章节：[电商系统全景图](../../src/part02/10-ecommerce-overview.md)。
 
 #### 复盘清单
 
@@ -3920,7 +3922,7 @@ OrderCompleted {
 
 迁移来源：`books/reliable-system-design/src/part03/07-ecommerce-basics-interview.md:1886`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[电商系统全景图](../part02/10-ecommerce-overview.md)。
+相关章节：[电商系统全景图](../../src/part02/10-ecommerce-overview.md)。
 
 #### 复盘清单
 
@@ -3974,7 +3976,7 @@ OrderCompleted {
 **方案一：At Least Once（至少一次）**
 
 核心思想：
-保证消息至少被消费一次，可能重复但不会丢失。
+在投递、保留与恢复前提满足时，未确认的消息能够重投，处理尝试可能重复；它不等于任意故障下消息永不丢失。生产端仍需要可靠交接，消费者停滞不能超过可恢复的保留窗口。[1]
 
 实现：
 ```text
@@ -3984,18 +3986,18 @@ OrderCompleted {
 3. 如果超时或失败，重试发送
 
 MQ端：
-1. 消息写入磁盘后返回ACK
-2. 多副本复制（至少2个副本确认）
+1. 按所选 Broker 的复制确认与持久化配置接收消息
+2. Kafka 的 acks=all 等待当前 ISR；结合 min.insync.replicas 限制最低同步副本数
 
 消费端：
 1. 消费消息
-2. 处理业务逻辑
-3. 手动提交offset
-4. 如果处理失败，不提交offset，下次重新消费
+2. 在本地事务中幂等提交业务状态与处理记录
+3. 只提交连续处理完成的 offset
+4. 失败时暂停该分区并从失败位点恢复，不越过失败记录提交更大的 offset
 ```
 
 优点：
-- 消息不丢失
+- 在配置、保留与故障模型内可重投未确认处理
 - 实现相对简单
 
 缺点：
@@ -4009,7 +4011,7 @@ MQ端：
 **方案二：At Most Once（至多一次）**
 
 核心思想：
-消息可能丢失，但不会重复。
+先确认消费位点再处理，当前消费路径可能遗漏已确认记录，不重做它们；生产端重发或不同消息 ID 仍可能代表同一业务意图，不能据此宣称整个系统无重复。
 
 实现：
 ```text
@@ -4024,8 +4026,7 @@ MQ端：
 ```
 
 优点：
-- 不会重复
-- 性能高
+- 当前消费路径不重做已确认记录，协议负担较小
 
 缺点：
 - 可能丢消息
@@ -4038,132 +4039,97 @@ MQ端：
 **方案三：Exactly Once（精确一次）**
 
 核心思想：
-消息既不丢失也不重复，精确消费一次。
+先说明“哪一个边界内的结果只提交一次”。Kafka 内部读、处理、写可以把输出记录与输入 offset 纳入同一 Kafka 事务；普通数据库、支付和邮件等外部副作用不会自动加入这个事务。[1]
 
-实现（基于Kafka事务）：
+**Kafka 内部读写示例（控制流示意，不是完整客户端程序）：**
+
 ```text
-生产端：
-producer.initTransactions()
-try {
-  producer.beginTransaction()
-  producer.send(record1)
-  producer.send(record2)
-  // 更新本地数据库
-  db.update(...)
-  producer.commitTransaction()
-} catch (Exception e) {
-  producer.abortTransaction()
-}
+消费者：enable.auto.commit=false，isolation.level=read_committed
+生产者：配置稳定且唯一的 transactional.id，初始化事务
 
-消费端：
-consumer.subscribe(topic)
-consumer.setIsolationLevel(READ_COMMITTED) // 只读已提交
-while (true) {
-  records = consumer.poll()
-  for (record in records) {
-    // 幂等处理
-    if (isProcessed(record.key)) {
-      continue
-    }
-    process(record)
-    markProcessed(record.key)
-  }
-  consumer.commitSync()
-}
+读取本批输入 records
+开始 Kafka 事务
+  纯计算输出，发送至 Kafka 输出 topic，等待发送结果
+  sendOffsetsToTransaction(本批连续处理完成后的下一 offset, consumer group metadata)
+提交 Kafka 事务
+
+若事务中止：中止事务并显式恢复消费者至已提交 offset，重新处理
+若事务已提交：输出与 offset 一起生效，不另做 commitSync
+生产者 fencing、分区重分配和未知提交结果按客户端协议处理，不能盲目继续
 ```
 
-实现（基于业务幂等）：
-```text
-消息设计：
-{
-  "messageId": "uuid",   // 全局唯一ID
-  "orderId": "123",
-  "payload": {...}
-}
+`abortTransaction()` 不会回滚外部数据库；`read_committed` 仅限制 Kafka 中未提交事务记录的可见性，不为数据库副作用提供隔离。
 
-消费端：
-1. 检查messageId是否已处理（查Redis/DB）
-2. 如果已处理，直接返回成功
-3. 执行业务逻辑 + 记录messageId（同一事务）
-4. 提交offset
+**外部数据库示例：至少一次投递 + 本地事务幂等。**
+
+```text
+对每条消息选择稳定业务操作键 operation_id，并保存参数摘要：
+BEGIN 数据库本地事务
+  INSERT processed_operation(operation_id, payload_hash)
+    -- operation_id 唯一；冲突时按数据库事务语义回滚并查询已提交结果
+  UPDATE 业务状态，校验前置状态与不变量
+  保存 operation_id 对应的结果
+COMMIT 数据库事务
+
+只有数据库提交成功，或重复键已对应同参数的成功结果，才确认这条消息
+同键不同参数：拒绝并隔离，不吞掉冲突
+批量消费只确认连续完成的位点；失败记录必须重新 seek 或进入受控重试
 ```
 
-优点：
-- 不丢不重
-- 语义最强
+唯一处理记录与业务更新在同一事务中建立，不能使用“查 Redis 没处理过 → 写业务 → 再标记”的非原子顺序。消息若因不同 ID 重投同一业务意图，去重键仍要识别这个业务意图。
 
-缺点：
-- 实现复杂
-- 性能开销大
-- 需要事务支持
+| 故障窗口 | 恢复结果 |
+| --- | --- |
+| 数据库提交前崩溃 | 状态与处理记录一起回滚，重投后重新处理 |
+| 数据库提交后、offset 确认前崩溃 | 重投命中已提交操作记录，不重复更新业务 |
+| Kafka 事务中止 | Kafka 输出与 offset 不形成已提交结果；不能据此推断外部库已回滚 |
+| 数据库事务中直接调用支付，响应丢失 | 仍有未知外部副作用；先按渠道请求号查询，不能靠数据库去重宣称恰好一次 |
 
-适用场景：
-- 金融交易
-- 支付扣款
-- 对准确性要求极高的场景
+涉及外部资金、邮件或第三方写入时，应通过本地 Outbox 交接意图，或使用下游稳定幂等键、状态查询与对账。业务幂等不是消息物理上只投递一次，幂等记录保留期也必须覆盖合法重放窗口。
 
 **方案对比**：
 
-| 语义 | 是否丢失 | 是否重复 | 性能 | 复杂度 | 适用场景 |
-|------|---------|---------|------|--------|----------|
-| At Least Once | 不丢失 | 可能重复 | ★★★★☆ | ★★★☆☆ | 大部分场景 |
-| At Most Once | 可能丢失 | 不重复 | ★★★★★ | ★★★★☆ | 日志、监控 |
-| Exactly Once | 不丢失 | 不重复 | ★★☆☆☆ | ★★☆☆☆ | 金融、支付 |
+| 方案 | 保证边界 | 仍可能发生 | 必须具备的恢复机制 |
+| --- | --- | --- | --- |
+| 至少一次投递 | 未确认消息在保留与恢复前提内可重投 | 重复处理尝试、积压超出保留期 | 幂等、失败位点恢复与对账 |
+| 至多一次处理 | 该消费路径不重做已确认的处理 | 确认后崩溃造成业务遗漏 | 业务允许丢失或另有恢复来源 |
+| Kafka 内部事务 | Kafka 输出与输入 offset 原子提交 | 中止后重新计算、外部副作用不受保护 | 事务配置、位点恢复与异常处理 |
+| 数据库本地事务幂等 | 指定业务操作键对应的数据库效果不重复提交 | Kafka 重投、未知第三方动作 | 唯一约束、参数摘要、Outbox 或下游查单 |
 
 **推荐方案**：
-对于电商系统，推荐**At Least Once + 业务幂等**。
+本题默认的电商副作用链路采用**至少一次投递 + 权威库本地事务幂等 + 受控重试/对账**；纯 Kafka 流处理另按 Kafka 内部事务边界设计。
 
 实施要点：
 
 1. **生产端可靠性**：
-   ```java
-   // 同步发送（等待确认）
-   producer.send(record).get(3, TimeUnit.SECONDS)
-
-   // 配置
-   acks=all              // 所有副本确认
-   retries=3            // 重试3次
-   max.in.flight.requests.per.connection=1  // 保证顺序
+   ```text
+   业务事实与待发事件先在同一数据库事务中持久化
+   Relay 发送并等待 Broker 确认；超时结果未知时保留意图并安全重试
+   acks=all：等待当前 ISR，而不是所有配置副本或每次都已刷盘
+   enable.idempotence=true：吸收协议范围内的生产者重试
+   delivery.timeout.ms：按业务恢复目标设置总发送预算
    ```
 
 2. **MQ端可靠性**：
-   ```
-   Kafka配置：
-   - replication.factor=3     // 3副本
-   - min.insync.replicas=2    // 至少2个副本确认
-   - unclean.leader.election.enable=false  // 禁止非ISR副本成为leader
+   ```text
+   Kafka 配置假设：
+   - replication.factor=3
+   - min.insync.replicas=2，且生产者使用 acks=all
+   - unclean.leader.election.enable=false
+   ISR 不足时拒绝写入，接受局部不可用换取耐久性前提
+   仍需容量、保留期、磁盘/副本故障与恢复演练，不能保证任意故障都不丢失
 
-   RocketMQ配置：
-   - flushDiskType=SYNC_FLUSH  // 同步刷盘
+   RocketMQ 的刷盘、主从确认和故障切换应按实际部署版本单独核验
    ```
 
 3. **消费端可靠性**：
-   ```java
-   // 手动提交offset
-   while (true) {
-     records = consumer.poll()
-     try {
-       for (record in records) {
-         // 幂等处理
-         if (!isProcessed(record.messageId)) {
-           process(record)
-           markProcessed(record.messageId)
-         }
-       }
-       // 处理成功后提交offset
-       consumer.commitSync()
-     } catch (Exception e) {
-       // 处理失败，不提交offset，下次重新消费
-       log.error("Process failed", e)
-     }
-   }
-   ```
+   按上面的数据库本地事务示例处理业务与去重记录，之后才确认连续完成的 offset。只是不提交 offset 不会自动倒退当前进程已经推进的读取位置；失败时应暂停、反查并从失败位点恢复，不能继续消费后把更大的 offset 提交掉。
 
 4. **幂等性设计**：
-   ```
+   ```text
    方案1：基于唯一键
    - 消息包含messageId
-   - 消费端用messageId去重（Redis/DB）
+   - 在权威库建立唯一处理记录；与业务更新同一事务提交
 
    方案2：基于业务唯一键
    - 订单号、支付流水号等
@@ -4175,14 +4141,14 @@ while (true) {
    ```
 
 5. **顺序性保证**：
-   ```
+   ```text
    发送端：
    - 同一订单的消息发到同一分区（按orderId hash）
-   - max.in.flight.requests=1（保证分区内有序）
+   - 重试有序性取决于幂等配置与客户端协议，不能只写一个并发参数
 
    消费端：
    - 单线程消费同一分区
-   - 或使用版本号检查顺序
+   - 状态投影可按版本拒绝旧值；不可交换的业务动作需补齐顺序或反查，不直接丢弃
    ```
 
 **延伸思考**：
@@ -4214,7 +4180,7 @@ while (true) {
 
 迁移来源：`books/reliable-system-design/src/part03/07-ecommerce-basics-interview.md:2102`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[电商系统全景图](../part02/10-ecommerce-overview.md)。
+相关章节：[电商系统全景图](../../src/part02/10-ecommerce-overview.md)。
 
 #### 复盘清单
 
@@ -4512,7 +4478,7 @@ public void payOrder(String orderId) {
 
 迁移来源：`books/reliable-system-design/src/part03/07-ecommerce-basics-interview.md:2336`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[电商系统全景图](../part02/10-ecommerce-overview.md)。
+相关章节：[电商系统全景图](../../src/part02/10-ecommerce-overview.md)。
 
 #### 复盘清单
 
@@ -4817,7 +4783,7 @@ CREATE TABLE domain_events (
 
 迁移来源：`books/reliable-system-design/src/part03/07-ecommerce-basics-interview.md:2574`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[电商系统全景图](../part02/10-ecommerce-overview.md)。
+相关章节：[电商系统全景图](../../src/part02/10-ecommerce-overview.md)。
 
 #### 复盘清单
 
@@ -5090,7 +5056,7 @@ HLC = (physicalTime, logicalCounter)
 
 迁移来源：`books/reliable-system-design/src/part03/07-ecommerce-basics-interview.md:2819`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[电商系统全景图](../part02/10-ecommerce-overview.md)。
+相关章节：[电商系统全景图](../../src/part02/10-ecommerce-overview.md)。
 
 #### 复盘清单
 
@@ -5431,7 +5397,7 @@ public class Order {
 
 迁移来源：`books/reliable-system-design/src/part03/07-ecommerce-basics-interview.md:3032`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[电商系统全景图](../part02/10-ecommerce-overview.md)。
+相关章节：[电商系统全景图](../../src/part02/10-ecommerce-overview.md)。
 
 #### 复盘清单
 
@@ -5738,7 +5704,7 @@ sku
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:19`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -6032,7 +5998,7 @@ ProductDetail detail = new ProductDetail(
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:157`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -6304,7 +6270,7 @@ ProductDetail detail = new ProductDetail(
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:391`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -6716,7 +6682,7 @@ else:
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:603`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -7019,7 +6985,7 @@ category_attr_group（属性分组）
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:955`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -7276,7 +7242,7 @@ URL参数控制：
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:1198`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -7535,7 +7501,7 @@ if (orderItem.productType == PHYSICAL) {
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:1395`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -7817,7 +7783,7 @@ public class WorkflowEngine {
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:1594`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -8072,7 +8038,7 @@ SKU生成逻辑：
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:1816`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -8336,7 +8302,7 @@ order_item
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2011`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -8599,7 +8565,7 @@ Flink计算逻辑：
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2215`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -8891,7 +8857,7 @@ ik_smart：[小米, 手机, 13, Ultra, 5G, 智能手机]
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2418`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -9147,7 +9113,7 @@ product_changelog（变更日志）
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2650`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -9401,7 +9367,7 @@ if (isVIPTenant(tenantId)) {
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2846`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -9652,7 +9618,7 @@ import_detail（导入明细，可选）
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3040`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -9922,7 +9888,7 @@ import_detail（导入明细，可选）
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3231`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -10052,7 +10018,7 @@ idempotency_key：防重复创建
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3443`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[库存系统](../part02/12-inventory-system.md)。
+相关章节：[库存系统](../../src/part02/12-inventory-system.md)。
 
 #### 复盘清单
 
@@ -10201,7 +10167,7 @@ Sellable =
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3513`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -10256,22 +10222,25 @@ Sellable =
 **方案一：数据库悲观锁**
 
 核心思想：
-使用数据库行锁保证原子性。
+在短本地事务中通过行锁保护库存检查与扣减；请求数量必须是正整数。业务操作键、预占和流水与余额一起提交，锁本身不提供请求幂等或跨域原子性。
 
-实现：
-```sql
+实现（SQL 与控制流示意）：
+```text
+BEGIN;
+-- 唯一 operation_id 与参数摘要在此事务建立，重复操作查询已提交结果
 -- 查询并锁定
 SELECT stock FROM inventory
 WHERE sku_id='123'
 FOR UPDATE;
 
--- 检查库存
+-- 没有对应库存行时拒绝；下面 stock 为锁定行的当前值
 if (stock >= quantity) {
   -- 扣减库存
   UPDATE inventory
   SET stock = stock - quantity
   WHERE sku_id='123';
 
+  -- 同事务写预占、库存流水和 Outbox
   COMMIT;
 } else {
   ROLLBACK;
@@ -10280,9 +10249,8 @@ if (stock >= quantity) {
 ```
 
 优点：
-- 强一致性
-- 不会超卖
-- 实现简单
+- 在正确使用事务、锁与唯一操作记录的本地范围内保护不超卖和防重复
+- 检查与更新顺序直观
 
 缺点：
 - 性能差（锁冲突）
@@ -10290,16 +10258,16 @@ if (stock >= quantity) {
 - 可能死锁
 
 适用场景：
-- 并发不高（QPS<1000）
-- 小规模系统
+- 热点竞争与锁等待能在业务事务预算内完成的系统
+- 实际容量和死锁恢复由压测与故障演练判断，不使用固定 QPS 门槛
 
 **方案二：数据库乐观锁**
 
 核心思想：
-使用版本号，更新失败时重试。
+使用版本号与余额条件识别竞争，区分库存不足、版本冲突与未知提交结果。
 
-实现：
-```sql
+实现（仍在操作记录、预占与流水的本地事务内）：
+```text
 -- 查询库存和版本号
 SELECT stock, version FROM inventory WHERE sku_id='123';
 
@@ -10309,139 +10277,72 @@ SET stock = stock - quantity, version = version + 1
 WHERE sku_id='123' AND version = {oldVersion} AND stock >= quantity;
 
 if (affected == 0) {
-  // 更新失败，重试
-  retry();
+  读取权威状态；
+  库存不足或资源不存在：拒绝并回滚；
+  版本冲突：在总预算内重读后有限重试；
 }
+更新成功：同事务提交预占、流水和 Outbox；
+提交结果未知：按 operation_id 查询，不换新键再次扣减；
 ```
 
 优点：
-- 无锁，性能好
-- 不会超卖
+- 避免应用侧长期占有悲观锁，但数据库更新仍可能使用行锁，不是无锁算法
+- 在数量合法、条件更新成功且操作流水同事务提交时保护本地库存不变量
 
 缺点：
 - 高并发时重试多
 - 用户体验差（重试慢）
 
 适用场景：
-- 中等并发（QPS 1000-5000）
-- 普通商品
+- 可用条件更新保护资源，且冲突率与重试成本可控的场景
+- 单热点压力高时先治理准入，不把 QPS 1000–5000 写成通用适用区间
 
-**方案三：Redis原子操作（推荐）**
+**方案三：Redis 准入 + 权威预占（热点场景）**
 
 核心思想：
-使用Redis的DECR原子操作扣减库存。
+Redis 的原子操作用于准入和热视图，不直接构成销售承诺。只有权威库存服务在本地事务中建立有效预占后，才能向订单返回资源凭证。Lua 原子性、复制耐久性和业务不超卖是三个不同问题；Redis 复制和 `WAIT` 也不自动提供强一致保证。[2]
 
-实现：
-```lua
--- Lua脚本（原子执行）
-local stock = redis.call('GET', KEYS[1])
-if tonumber(stock) >= tonumber(ARGV[1]) then
-  redis.call('DECRBY', KEYS[1], ARGV[1])
-  return 1
-else
-  return 0
-end
+**恢复反例：**数据库还是 100 件，Redis 已扣减 20 件并对外承诺，但尚未同步持久化。Redis 丢失这些写入后，从数据库加载 100 件继续销售，可能又承诺相同资源。每 10 秒同步和事后对账都不能消除此前已发出的重复承诺。
 
-调用：
-String key = "stock:sku:123";
-Long result = redis.eval(luaScript,
-                         Collections.singletonList(key),
-                         Collections.singletonList(quantity));
+本题默认选择下面的控制流，完整模型见[第 12 章库存系统](../../src/part02/12-inventory-system.md)：
 
-if (result == 1) {
-  // 扣减成功，异步同步到DB
-  createOrder();
-} else {
-  // 库存不足
-  throw new OutOfStockException();
-}
+```text
+数量为正整数、入口限流、资格检查、Redis 准入
+  -> 返回“排队/受理”，不是库存预占成功
+  -> 使用稳定 operation_id 请求权威 Reserve
 
-异步同步DB：
-定时任务（每10秒）：
-1. 收集Redis库存变更
-2. 批量更新MySQL
-3. 对账纠偏
+BEGIN 权威库存本地事务
+  插入 operation_id + 参数摘要，唯一约束吸收并发重复
+  条件更新可用量：available >= quantity，校验资源范围与版本
+  写 Reservation、库存动作流水及 Outbox
+COMMIT
+
+只有拿到已提交的 reservation_id、数量、版本和有效期，才返回正式资源承诺
+超时结果未知：按 operation_id 反查，不生成新操作键盲扣或回补
+支付确认 / 取消：按 Reservation 前置状态幂等 Confirm / Release
+Outbox 驱动 Redis 投影更新；投影失败不撤销权威事实
 ```
 
-优点：
-- 性能极高（Redis内存操作）
-- 支持高并发（10万+ QPS）
-- 不会超卖
+唯一键冲突时先按数据库事务语义结束当前事务，再查询已提交操作及参数摘要；参数不同应拒绝。余额更新、预占和流水任一失败必须一起回滚，不能先持久化一个“已处理”标记再单独扣减。
 
-缺点：
-- Redis和DB最终一致性
-- Redis故障风险
-- 需要对账
+| 方案 | 适用前提 | 保证来自哪里 | 仍需处理 |
+| --- | --- | --- | --- |
+| 权威库行锁 | 事务短、竞争可承受 | 条件校验和本地事务 | 锁等待、死锁、请求幂等 |
+| 权威库条件更新/CAS | 资源与版本明确 | 条件更新、预占流水和唯一操作键 | 热点重试、结果未知 |
+| Redis 准入 + 权威预占 | 入口洪峰远高于可售量 | 准入削峰；正式承诺仍由权威预占建立 | 准入误差、积压、投影恢复 |
+| 有审计的库存令牌预分配 | 能先在权威层划拨互斥配额 | 配额守恒、令牌归属、epoch 与占用流水 | 故障隔离、未决占用和配额回收 |
 
-**方案对比**：
+令牌预分配是另一种有明确条件的变体，不等于“将 Redis 余额定时同步到数据库”。它必须证明分配总量没有重复、旧 epoch 无法继续售卖、未决令牌不会被重新发放，才允许在自己的保证边界内异步建单。
 
-| 方案 | 性能 | 一致性 | 并发度 | 适用场景 |
-|------|------|--------|--------|----------|
-| 悲观锁 | ★★☆☆☆ | 强一致 | ★★☆☆☆ | 低并发 |
-| 乐观锁 | ★★★☆☆ | 强一致 | ★★★☆☆ | 中并发 |
-| Redis原子 | ★★★★★ | 最终一致 | ★★★★★ | 高并发 |
+**恢复与降级：**
 
-**推荐方案**：
-采用**Redis原子操作+异步同步DB**。
+1. Redis 故障或库存差异异常时先停止或限额隔离相关准入，不用旧缓存继续承诺。
+2. 按权威余额、有效预占、库存流水和已提交操作重建热视图；未知写入先查询，不按错误码直接认定未执行。
+3. 重建使用版本或 epoch 水位，与并发事实更新协调；验证完成后再开放流量。
+4. 如降级直达权威库，必须使用同一预占接口并限制流量至压测容量，不能切成第二条独立扣减路径。
+5. Confirm 与 Release 竞争时只允许合法状态迁移获胜；重复释放不得增加余额。对账用于发现并修复偏差，不负责事后证明当初没有超卖。
 
-实施要点：
-
-1. **双层库存设计**：
-   ```
-   Redis（实时库存）：
-   - 用于扣减判断
-   - 高性能
-   - 可能丢失
-
-   MySQL（权威库存）：
-   - 定期同步Redis
-   - 数据持久化
-   - 对账基准
-   ```
-
-2. **库存同步**：
-   ```
-   Redis → MySQL：
-   - 定时任务（每10秒）
-   - 批量更新（减少DB压力）
-   - 增量同步（只同步变更的SKU）
-
-   MySQL → Redis：
-   - 商品上架时初始化Redis
-   - 运营调整库存时更新Redis
-   - Redis故障恢复时从MySQL加载
-   ```
-
-3. **库存预热**：
-   ```
-   大促前：
-   1. 识别热门商品（预测销量）
-   2. 提前加载到Redis
-   3. 设置永不过期
-   4. 多副本（主从）
-   ```
-
-4. **降级方案**：
-   ```
-   Redis故障：
-   - 降级到MySQL悲观锁
-   - 限流（降低并发度）
-   - 提示用户（商品火爆）
-   ```
-
-5. **监控告警**：
-   ```
-   指标：
-   - Redis和MySQL库存差异
-   - 库存扣减QPS
-   - 库存不足次数
-   - 超卖告警（库存为负）
-
-   告警：
-   - 库存差异 > 100
-   - 超卖发生
-   - Redis同步延迟 > 1分钟
-   ```
+观测预占成功率、最老未决操作年龄、流水守恒、热视图水位、重建冻结时长和补偿积压。吞吐、同步周期和告警阈值由实际负载确定，不能把单次 Redis 压测数字当作端到端交易容量。
 
 **延伸思考**：
 1. 秒杀场景如何进一步优化（如库存分段、令牌桶）？
@@ -10472,7 +10373,7 @@ if (result == 1) {
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3602`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[库存系统](../part02/12-inventory-system.md)。
+相关章节：[库存系统](../../src/part02/12-inventory-system.md)。
 
 #### 复盘清单
 
@@ -10774,7 +10675,7 @@ score = w1 * distance_score + w2 * stock_score + w3 * cost_score
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3813`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[库存系统](../part02/12-inventory-system.md)。
+相关章节：[库存系统](../../src/part02/12-inventory-system.md)。
 
 #### 复盘清单
 
@@ -11047,7 +10948,7 @@ if (available_stock < 10% * total_stock) {
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4264`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[库存系统](../part02/12-inventory-system.md)。
+相关章节：[库存系统](../../src/part02/12-inventory-system.md)。
 
 #### 复盘清单
 
@@ -11290,7 +11191,7 @@ available_stock = physical_stock - sum(active_occupations)
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4477`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[库存系统](../part02/12-inventory-system.md)。
+相关章节：[库存系统](../../src/part02/12-inventory-system.md)。
 
 #### 复盘清单
 
@@ -11547,7 +11448,7 @@ public void deductInventory(String skuId, int quantity) {
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4660`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[库存系统](../part02/12-inventory-system.md)。
+相关章节：[库存系统](../../src/part02/12-inventory-system.md)。
 
 #### 复盘清单
 
@@ -11808,7 +11709,7 @@ C类（低价值，50%）：每年盘点
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4857`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[库存系统](../part02/12-inventory-system.md)。
+相关章节：[库存系统](../../src/part02/12-inventory-system.md)。
 
 #### 复盘清单
 
@@ -12040,7 +11941,7 @@ if (result == 1) {
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5058`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[库存系统](../part02/12-inventory-system.md)。
+相关章节：[库存系统](../../src/part02/12-inventory-system.md)。
 
 #### 复盘清单
 
@@ -12335,7 +12236,7 @@ supplier_quota（供应商配额）
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5230`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[库存系统](../part02/12-inventory-system.md)。
+相关章节：[库存系统](../../src/part02/12-inventory-system.md)。
 
 #### 复盘清单
 
@@ -12606,7 +12507,7 @@ score = w1 * distance_score +
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5465`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[库存系统](../part02/12-inventory-system.md)。
+相关章节：[库存系统](../../src/part02/12-inventory-system.md)。
 
 #### 复盘清单
 
@@ -12883,7 +12784,7 @@ C类商品（50%商品，5%销售额）：
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5676`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[库存系统](../part02/12-inventory-system.md)。
+相关章节：[库存系统](../../src/part02/12-inventory-system.md)。
 
 #### 复盘清单
 
@@ -13161,7 +13062,7 @@ inventory_change_log（增量日志）
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5893`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[库存系统](../part02/12-inventory-system.md)。
+相关章节：[库存系统](../../src/part02/12-inventory-system.md)。
 
 #### 复盘清单
 
@@ -13428,7 +13329,7 @@ if (product.type == HIGH_VALUE) {
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:6111`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[库存系统](../part02/12-inventory-system.md)。
+相关章节：[库存系统](../../src/part02/12-inventory-system.md)。
 
 #### 复盘清单
 
@@ -13710,7 +13611,7 @@ if (affected_rows == 1) {
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:6318`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[库存系统](../part02/12-inventory-system.md)。
+相关章节：[库存系统](../../src/part02/12-inventory-system.md)。
 
 #### 复盘清单
 
@@ -13976,7 +13877,7 @@ regional_inventory
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:6540`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[库存系统](../part02/12-inventory-system.md)。
+相关章节：[库存系统](../../src/part02/12-inventory-system.md)。
 
 #### 复盘清单
 
@@ -14337,7 +14238,7 @@ public BigDecimal calculate(Order order) {
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:6748`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[营销与计价系统](../part02/13-marketing-pricing-system.md)。
+相关章节：[营销与计价系统](../../src/part02/13-marketing-pricing-system.md)。
 
 #### 复盘清单
 
@@ -14628,7 +14529,7 @@ coupon_code
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7049`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[营销与计价系统](../part02/13-marketing-pricing-system.md)。
+相关章节：[营销与计价系统](../../src/part02/13-marketing-pricing-system.md)。
 
 #### 复盘清单
 
@@ -14902,7 +14803,7 @@ tier_3: >¥5000, 减¥500
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7280`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -15164,7 +15065,7 @@ member_subscription
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7494`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -15421,7 +15322,7 @@ member_subscription
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7905`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[营销与计价系统](../part02/13-marketing-pricing-system.md)。
+相关章节：[营销与计价系统](../../src/part02/13-marketing-pricing-system.md)。
 
 #### 复盘清单
 
@@ -15683,7 +15584,7 @@ exchange_rate（汇率表）
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:8102`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -15979,7 +15880,7 @@ public BigDecimal calculateBestPrice(Order order) {
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:8304`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[营销与计价系统](../part02/13-marketing-pricing-system.md)。
+相关章节：[营销与计价系统](../../src/part02/13-marketing-pricing-system.md)。
 
 #### 复盘清单
 
@@ -16250,7 +16151,7 @@ order_payment（支付记录）
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:8540`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -16506,7 +16407,7 @@ price = getPriceByUser(skuId, userId);
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:8751`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[营销与计价系统](../part02/13-marketing-pricing-system.md)。
+相关章节：[营销与计价系统](../../src/part02/13-marketing-pricing-system.md)。
 
 #### 复盘清单
 
@@ -16570,7 +16471,7 @@ price = getPriceByUser(skuId, userId);
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:173`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -16634,7 +16535,7 @@ price = getPriceByUser(skuId, userId);
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:177`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -16698,7 +16599,7 @@ price = getPriceByUser(skuId, userId);
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:181`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -16762,7 +16663,7 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:185`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -16826,7 +16727,7 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:189`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -16890,7 +16791,7 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:193`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -16954,7 +16855,7 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:197`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[库存系统](../part02/12-inventory-system.md)。
+相关章节：[库存系统](../../src/part02/12-inventory-system.md)。
 
 #### 复盘清单
 
@@ -17018,7 +16919,7 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:201`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -17082,7 +16983,7 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:205`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -17146,7 +17047,7 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:209`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -17210,7 +17111,7 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:213`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -17276,7 +17177,7 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:217`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -17340,7 +17241,7 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:255`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -17404,7 +17305,7 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:259`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -17543,7 +17444,7 @@ supplier_sync_dead_letter
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:263`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -17607,7 +17508,7 @@ supplier_sync_dead_letter
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:342`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -17671,7 +17572,7 @@ supplier_sync_dead_letter
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:348`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -17735,7 +17636,7 @@ supplier_sync_dead_letter
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:352`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -17799,7 +17700,7 @@ supplier_sync_dead_letter
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:356`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -17863,7 +17764,7 @@ supplier_sync_dead_letter
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:360`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -17927,7 +17828,7 @@ Pending 阶段发现内容填错，还能直接编辑吗？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:364`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -17991,7 +17892,7 @@ Pending 阶段发现内容填错，还能直接编辑吗？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:370`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -18055,7 +17956,7 @@ Pending 阶段发现内容填错，还能直接编辑吗？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:374`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -18119,7 +18020,7 @@ Pending 阶段发现内容填错，还能直接编辑吗？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:378`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -18183,7 +18084,7 @@ Publish 背后的实际流程是什么？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:382`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -18247,7 +18148,7 @@ Publish 背后的实际流程是什么？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:386`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -18311,7 +18212,7 @@ Publish 背后的实际流程是什么？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:390`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -18375,7 +18276,7 @@ Publish 背后的实际流程是什么？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:396`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -18439,7 +18340,7 @@ Parser Worker 和 Item Worker 为什么要拆开？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:400`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -18503,7 +18404,7 @@ Parser Worker 和 Item Worker 为什么要拆开？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:404`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -18567,7 +18468,7 @@ Parser Worker 和 Item Worker 为什么要拆开？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:408`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -18631,7 +18532,7 @@ Parser Worker 和 Item Worker 为什么要拆开？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:414`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -18695,7 +18596,7 @@ Parser Worker 和 Item Worker 为什么要拆开？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:418`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -18761,7 +18662,7 @@ Parser Worker 和 Item Worker 为什么要拆开？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:422`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -18825,7 +18726,7 @@ Parser Worker 和 Item Worker 为什么要拆开？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:440`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -18889,7 +18790,7 @@ Task 和 Batch 有什么区别？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:444`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -18953,7 +18854,7 @@ Checkpoint 是什么，什么时候更新？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:448`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -19017,7 +18918,7 @@ worker 如何抢占任务？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:454`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -19081,7 +18982,7 @@ worker 如何抢占任务？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:458`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -19145,7 +19046,7 @@ worker 如何抢占任务？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:462`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -19209,7 +19110,7 @@ worker 如何抢占任务？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:466`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -19273,7 +19174,7 @@ worker 如何抢占任务？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:470`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -19337,7 +19238,7 @@ worker 如何抢占任务？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:476`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -19401,7 +19302,7 @@ worker 如何抢占任务？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:480`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -19465,7 +19366,7 @@ checkpoint 更新失败怎么办？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:484`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -19529,7 +19430,7 @@ checkpoint 更新失败怎么办？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:488`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -19593,7 +19494,7 @@ Raw Snapshot 的价值是什么？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:494`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -19657,7 +19558,7 @@ Raw Snapshot 的价值是什么？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:498`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -19721,7 +19622,7 @@ DLQ 为什么建议用 MySQL，而不是只用消息队列？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:502`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -19785,7 +19686,7 @@ worker 可以从 Redis 中抢占任务吗？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:512`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -19849,7 +19750,7 @@ worker 可以从 Redis 中抢占任务吗？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:530`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -19913,7 +19814,7 @@ worker 可以从 Redis 中抢占任务吗？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:534`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -19977,7 +19878,7 @@ worker 可以从 Redis 中抢占任务吗？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:538`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -20041,7 +19942,7 @@ worker 可以从 Redis 中抢占任务吗？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:542`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -20105,7 +20006,7 @@ worker 可以从 Redis 中抢占任务吗？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:546`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -20169,7 +20070,7 @@ worker 可以从 Redis 中抢占任务吗？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:550`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -20233,7 +20134,7 @@ worker 可以从 Redis 中抢占任务吗？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:554`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -20297,7 +20198,7 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:558`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -20361,7 +20262,7 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:562`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -20425,7 +20326,7 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:566`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -20489,7 +20390,7 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:570`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -20553,7 +20454,7 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:574`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -20617,7 +20518,7 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:578`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -20681,7 +20582,7 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:582`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -20745,7 +20646,7 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:586`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -20809,7 +20710,7 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:590`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -20873,7 +20774,7 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:594`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[营销与计价系统](../part02/13-marketing-pricing-system.md)。
+相关章节：[营销与计价系统](../../src/part02/13-marketing-pricing-system.md)。
 
 #### 复盘清单
 
@@ -20937,7 +20838,7 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:598`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -21001,7 +20902,7 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:602`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -21065,7 +20966,7 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:606`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -21129,7 +21030,7 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:610`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -21193,7 +21094,7 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:614`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -21257,7 +21158,7 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:618`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -21321,7 +21222,7 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:622`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -21385,7 +21286,7 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:626`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -21449,7 +21350,7 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:630`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品供给、运营与生命周期治理](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品供给、运营与生命周期治理](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -21513,7 +21414,7 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:634`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -21933,7 +21834,7 @@ ES负责搜索，MySQL负责详情查询。
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:20`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 14 章 商品发现与交易准备](../part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 14 章 商品发现与交易准备](../../src/part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -22258,7 +22159,7 @@ ES实现：
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:257`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 14 章 商品发现与交易准备](../part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 14 章 商品发现与交易准备](../../src/part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -22556,7 +22457,7 @@ public List<String> suggest(String prefix) {
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:522`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 14 章 商品发现与交易准备](../part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 14 章 商品发现与交易准备](../../src/part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -22868,7 +22769,7 @@ category_id=10, filter_name="价格", filter_value="5000-10000", product_count=3
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:760`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 14 章 商品发现与交易准备](../part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 14 章 商品发现与交易准备](../../src/part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -23154,7 +23055,7 @@ ES实现：
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:1012`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 14 章 商品发现与交易准备](../part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 14 章 商品发现与交易准备](../../src/part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -23306,7 +23207,7 @@ search_log
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:1238`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 14 章 商品发现与交易准备](../part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 14 章 商品发现与交易准备](../../src/part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -23428,7 +23329,7 @@ search_log
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:1330`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 14 章 商品发现与交易准备](../part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 14 章 商品发现与交易准备](../../src/part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -23548,7 +23449,7 @@ search_log
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:1392`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 14 章 商品发现与交易准备](../part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 14 章 商品发现与交易准备](../../src/part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -23649,7 +23550,7 @@ search_log
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:1452`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 14 章 商品发现与交易准备](../part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 14 章 商品发现与交易准备](../../src/part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -23761,7 +23662,7 @@ search_log
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:1493`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 14 章 商品发现与交易准备](../part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 14 章 商品发现与交易准备](../../src/part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -23985,7 +23886,7 @@ Redis提供高性能，MySQL保证持久化。
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:1547`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 14 章 购物车与结算](../part02/14-ecommerce-customer-lifecycle.md)。
+相关章节：[第 14 章 购物车与结算](../../src/part02/14-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -24119,7 +24020,7 @@ public CartPrice calculateCart(Cart cart) {
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:1711`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 14 章 购物车与结算](../part02/14-ecommerce-customer-lifecycle.md)。
+相关章节：[第 14 章 购物车与结算](../../src/part02/14-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -24217,7 +24118,7 @@ public CartPrice calculateCart(Cart cart) {
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:1785`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 14 章 购物车与结算](../part02/14-ecommerce-customer-lifecycle.md)。
+相关章节：[第 14 章 购物车与结算](../../src/part02/14-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -24315,7 +24216,7 @@ public CartPrice calculateCart(Cart cart) {
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:1823`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 14 章 购物车与结算](../part02/14-ecommerce-customer-lifecycle.md)。
+相关章节：[第 14 章 购物车与结算](../../src/part02/14-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -24432,7 +24333,7 @@ public CartPrice calculateCart(Cart cart) {
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:1861`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 14 章 购物车与结算](../part02/14-ecommerce-customer-lifecycle.md)。
+相关章节：[第 14 章 购物车与结算](../../src/part02/14-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -24681,7 +24582,7 @@ iPhone 15 Pro 256GB
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:1918`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 14 章 购物车与结算](../part02/14-ecommerce-customer-lifecycle.md)。
+相关章节：[第 14 章 购物车与结算](../../src/part02/14-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -24994,7 +24895,7 @@ function longPoll() {
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:2107`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 14 章 购物车与结算](../part02/14-ecommerce-customer-lifecycle.md)。
+相关章节：[第 14 章 购物车与结算](../../src/part02/14-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -25182,7 +25083,7 @@ function longPoll() {
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:2360`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 14 章 购物车与结算](../part02/14-ecommerce-customer-lifecycle.md)。
+相关章节：[第 14 章 购物车与结算](../../src/part02/14-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -25433,7 +25334,7 @@ PC端使用**单页结算**，移动端使用**分步结算**。
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:2488`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 14 章 购物车与结算](../part02/14-ecommerce-customer-lifecycle.md)。
+相关章节：[第 14 章 购物车与结算](../../src/part02/14-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -25683,7 +25584,7 @@ shared_cart
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:2679`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 14 章 购物车与结算](../part02/14-ecommerce-customer-lifecycle.md)。
+相关章节：[第 14 章 购物车与结算](../../src/part02/14-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -25804,7 +25705,7 @@ shared_cart
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:2869`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 14 章 购物车与结算](../part02/14-ecommerce-customer-lifecycle.md)。
+相关章节：[第 14 章 购物车与结算](../../src/part02/14-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -25931,7 +25832,7 @@ shared_cart
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:2930`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 14 章 购物车与结算](../part02/14-ecommerce-customer-lifecycle.md)。
+相关章节：[第 14 章 购物车与结算](../../src/part02/14-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -26039,7 +25940,7 @@ shared_cart
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:2997`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 14 章 购物车与结算](../part02/14-ecommerce-customer-lifecycle.md)。
+相关章节：[第 14 章 购物车与结算](../../src/part02/14-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -26151,7 +26052,7 @@ shared_cart
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:3045`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 14 章 购物车与结算](../part02/14-ecommerce-customer-lifecycle.md)。
+相关章节：[第 14 章 购物车与结算](../../src/part02/14-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -26290,7 +26191,7 @@ shared_cart
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:3097`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 14 章 购物车与结算](../part02/14-ecommerce-customer-lifecycle.md)。
+相关章节：[第 14 章 购物车与结算](../../src/part02/14-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -26475,7 +26376,7 @@ PENDING_PAYMENT ──┬─┴─> PAID ───> SHIPPED ───> RECEIVED 
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:3178`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -26686,7 +26587,7 @@ public String generateOrderNo() {
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:3303`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -26978,7 +26879,7 @@ public void createOrder(Order order) {
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:3454`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -27268,7 +27169,7 @@ shipment（发货单）
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:3686`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -27592,7 +27493,7 @@ public Order createOrder(OrderRequest request, String token) {
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:3916`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -27816,7 +27717,7 @@ func CreateOrderSaga(orderReq *CreateOrderRequest) error {
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:4180`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -28195,7 +28096,7 @@ order_routing
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:4344`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -28403,7 +28304,7 @@ func (o *FulfillmentOrchestrator) UpdateStatus(ctx context.Context,
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:4663`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -28636,7 +28537,7 @@ func (s *RefundService) shouldAutoApprove(refund *Refund) bool {
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:4811`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -28766,7 +28667,7 @@ func (s *RefundService) shouldAutoApprove(refund *Refund) bool {
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:4984`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -28952,7 +28853,7 @@ func (r *OrderRepository) SearchOrders(ctx context.Context,
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:5054`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -29164,7 +29065,7 @@ func (s *NotificationService) shouldSendSMS(status OrderStatus) bool {
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:5180`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -29304,7 +29205,7 @@ func (s *OrderArchiveService) FindByID(ctx context.Context, orderID int64) (*Ord
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:5332`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -29445,7 +29346,7 @@ func GetRealTimeMetrics(ctx context.Context) (*OrderMetrics, error) {
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:5520`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -29726,7 +29627,7 @@ func (a *AlipayAdapter) VerifyCallback(callback *CallbackData) error {
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:5603`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -29872,7 +29773,7 @@ func (r *PaymentRepository) UpdateStatusWithVersion(ctx context.Context,
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:5824`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -30116,7 +30017,7 @@ type ReconciliationReport struct {
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:5910`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -30305,7 +30206,7 @@ func (h *CallbackHandler) retryCallback(ctx context.Context,
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:6094`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -30483,7 +30384,7 @@ T+30：月结算（新商家）
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:6223`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -30687,7 +30588,7 @@ func (s *PaymentSecurityService) RiskCheck(ctx context.Context,
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:6341`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -30912,7 +30813,7 @@ func (s *RefundService) PartialRefund(ctx context.Context,
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:6599`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -31098,7 +30999,7 @@ func (s *PreAuthService) Cancel(ctx context.Context, preAuthID string) error {
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:6887`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -31277,7 +31178,7 @@ func (s *PreAuthService) Cancel(ctx context.Context, preAuthID string) error {
 
 迁移来源：`books/reliable-system-design/src/part03/07-ecommerce-basics-interview.md:215`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
+相关章节：[生产韧性与稳定性保障](../../src/part01/03-production-resilience-safeguards.md)。
 
 #### 复盘清单
 
@@ -31442,7 +31343,7 @@ func (s *PreAuthService) Cancel(ctx context.Context, preAuthID string) error {
 
 迁移来源：`books/reliable-system-design/src/part03/07-ecommerce-basics-interview.md:325`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
+相关章节：[生产韧性与稳定性保障](../../src/part01/03-production-resilience-safeguards.md)。
 
 #### 复盘清单
 
@@ -31670,7 +31571,7 @@ func (s *PreAuthService) Cancel(ctx context.Context, preAuthID string) error {
 
 迁移来源：`books/reliable-system-design/src/part03/07-ecommerce-basics-interview.md:1098`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
+相关章节：[生产韧性与稳定性保障](../../src/part01/03-production-resilience-safeguards.md)。
 
 #### 复盘清单
 
@@ -31939,7 +31840,7 @@ if (local_stock < 10) {
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4055`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
+相关章节：[生产韧性与稳定性保障](../../src/part01/03-production-resilience-safeguards.md)。
 
 #### 复盘清单
 
@@ -32208,7 +32109,7 @@ if (product.is_seckill && isInSeckillTime()) {
 
 迁移来源：`books/reliable-system-design/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7696`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
+相关章节：[生产韧性与稳定性保障](../../src/part01/03-production-resilience-safeguards.md)。
 
 #### 复盘清单
 
@@ -32376,7 +32277,7 @@ func (s *UserCreditService) UpdateCredit(ctx context.Context, userID int64, beha
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:5412`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
+相关章节：[生产韧性与稳定性保障](../../src/part01/03-production-resilience-safeguards.md)。
 
 #### 复盘清单
 
@@ -32550,7 +32451,7 @@ func NewRoutingConfig() *RoutingConfig {
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:6485`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
+相关章节：[生产韧性与稳定性保障](../../src/part01/03-production-resilience-safeguards.md)。
 
 #### 复盘清单
 
@@ -32733,7 +32634,7 @@ func (cb *CircuitBreaker) onSuccess() {
 
 迁移来源：`books/reliable-system-design/src/part03/09-search-cart-order-payment-questionbank.md:6764`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
+相关章节：[生产韧性与稳定性保障](../../src/part01/03-production-resilience-safeguards.md)。
 
 #### 复盘清单
 
@@ -32797,7 +32698,7 @@ func (cb *CircuitBreaker) onSuccess() {
 
 迁移来源：`books/reliable-system-design/src/part03/03-ecommerce-architecture-interview.md:506`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
+相关章节：[生产韧性与稳定性保障](../../src/part01/03-production-resilience-safeguards.md)。
 
 #### 复盘清单
 
@@ -33031,7 +32932,7 @@ QPS：100万
 
 迁移来源：`books/reliable-system-design/src/part03/10-ecommerce-case-studies-interview.md:13`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[商品中心](../part02/11-product-center-supply-lifecycle.md)。
+相关章节：[商品中心](../../src/part02/11-product-center-supply-lifecycle.md)。
 
 #### 复盘清单
 
@@ -33076,7 +32977,9 @@ QPS：100万
 
 **答案**：
 
-**架构设计**（Go实现）：
+**反例走读**（Go 示意，不能作为生产实现）：
+
+下面这段代码展示“Redis 先扣、直接发 MQ、按错误回补”的常见缺陷：没有权威预占与持久化受理事实；MQ 超时可能已投递，立即回补会重复承诺；缓存去重不能吸收并发建单，取消后也缺少确认竞争门禁。Lua 只证明热层操作原子，不证明恢复后仍不超卖。[2] 保留此片段用于识别故障窗口，推荐控制流见后文。
 
 ```go
 package seckill
@@ -33261,12 +33164,22 @@ func (s *SeckillService) CancelUnpaidOrders() {
 }
 ```
 
-**架构要点**：
-1. **前端限流**：按钮置灰、验证码、排队页
-2. **网关限流**：Nginx限流（10万QPS）
-3. **Redis预扣库存**：Lua脚本原子操作
-4. **异步下单**：MQ削峰，提升吞吐
-5. **超时取消**：15分钟未支付自动取消+回补库存
+**推荐控制流与架构要点**：
+
+```text
+资格与流量准入 -> 权威受理记录（请求键、用户、活动、参数摘要）
+  -> 有限队列/Outbox 交接 -> 按同一 operation_id 建立权威库存预占
+  -> 预占与库存流水成功后幂等建单 -> 订单进入待支付
+  -> 确定支付事实后 Confirm，确定可关闭后 Release
+```
+
+准入或排队响应不等于成功购买。队列交接结果未知时查询已提交意图，不能因 MQ 返回错误立即回补；订单创建结果未知时按请求键反查，不能生成新键重复下单。取消和支付确认竞争通过权威预占前置状态裁决，重复释放不改变余额。Redis 失效时先隔离准入，从权威记录与有效预占重建，版本验证后再开放流量。
+
+1. **前端与网关保护**：按钮防抖、限流、验证码降低无效流量，不构成业务唯一性保证。
+2. **公平性契约**：先定义资格、排队规则和同一用户重试位置，不把网络到达顺序默认当公平。
+3. **权威受理与预占**：入口 10 万 QPS 是题目假设，库存只有 100 件；通过有限准入保护实际权威写容量，不能承诺全部同步落库。
+4. **异步下单**：以持久化操作键、预占凭证、Outbox 和订单唯一键吸收重投。
+5. **超时与恢复**：15 分钟仅为案例时限；查单、关闭、释放和扫漏共同推进终态，不能按定时器直接改 Redis 余额。
 
 **延伸思考**：
 1. 秒杀如何防止黄牛？
@@ -33296,7 +33209,7 @@ func (s *SeckillService) CancelUnpaidOrders() {
 
 迁移来源：`books/reliable-system-design/src/part03/10-ecommerce-case-studies-interview.md:182`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[营销与计价系统](../part02/13-marketing-pricing-system.md)。
+相关章节：[营销与计价系统](../../src/part02/13-marketing-pricing-system.md)。
 
 #### 复盘清单
 
@@ -33486,7 +33399,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *CreateOrderRequest)
 
 迁移来源：`books/reliable-system-design/src/part03/10-ecommerce-case-studies-interview.md:387`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -33735,7 +33648,7 @@ func TestOrderCreate() {
 
 迁移来源：`books/reliable-system-design/src/part03/10-ecommerce-case-studies-interview.md:517`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
+相关章节：[生产韧性与稳定性保障](../../src/part01/03-production-resilience-safeguards.md)。
 
 #### 复盘清单
 
@@ -33974,7 +33887,7 @@ func (s *SettlementService) Settle(ctx context.Context,
 
 迁移来源：`books/reliable-system-design/src/part03/10-ecommerce-case-studies-interview.md:706`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -34214,7 +34127,7 @@ func (ltr *LearningToRank) extractFeatures(ctx context.Context,
 
 迁移来源：`books/reliable-system-design/src/part03/10-ecommerce-case-studies-interview.md:885`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 14 章 商品发现与交易准备](../part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 14 章 商品发现与交易准备](../../src/part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -34449,7 +34362,7 @@ var alertRules = []AlertRule{
 
 迁移来源：`books/reliable-system-design/src/part03/10-ecommerce-case-studies-interview.md:1065`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
+相关章节：[生产韧性与稳定性保障](../../src/part01/03-production-resilience-safeguards.md)。
 
 #### 复盘清单
 
@@ -34682,7 +34595,7 @@ func (c *InventoryConsumer) Consume(ctx context.Context, msg *OrderCreatedEvent)
 
 迁移来源：`books/reliable-system-design/src/part03/10-ecommerce-case-studies-interview.md:1240`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -34886,7 +34799,7 @@ func (s *UserProfileService) calculateConsumptionLevel(
 
 迁移来源：`books/reliable-system-design/src/part03/10-ecommerce-case-studies-interview.md:1413`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[第 14 章 商品发现与交易准备](../part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../part02/15-ecommerce-order-fulfillment.md)。
+相关章节：[第 14 章 商品发现与交易准备](../../src/part02/14-ecommerce-customer-lifecycle.md)、[第 15 章 订单与履约](../../src/part02/15-ecommerce-order-fulfillment.md)。
 
 #### 复盘清单
 
@@ -35037,10 +34950,16 @@ func GenerateReviewReport(ctx context.Context,
 
 迁移来源：`books/reliable-system-design/src/part03/10-ecommerce-case-studies-interview.md:1557`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
+相关章节：[生产韧性与稳定性保障](../../src/part01/03-production-resilience-safeguards.md)。
 
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
 - 我是否解释了失败、重试、对账和补偿如何闭环？
 - 我是否给出了与业务规模相匹配的性能与可靠性取舍？
+
+## 参考资料
+
+[1] Apache Kafka，[Design: Message Delivery Semantics / Using Transactions](https://kafka.apache.org/41/design/design/)，4.1 版本文档，核验日期：2026-10-09。用于 Q-ECOM-ARCH-013 的事务、外部系统协作与副本确认边界。
+
+[2] Redis，[Redis replication](https://redis.io/docs/latest/operate/oss_and_stack/management/replication/)，核验日期：2026-10-09。用于库存专题的异步复制和故障切换风险，不将原子脚本推导为端到端不超卖保证。

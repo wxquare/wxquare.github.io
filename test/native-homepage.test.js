@@ -22,11 +22,18 @@ test('native homepage contains the curated reader entry points', () => {
     '/reliable-system-design/',
     '/archives/',
     '/categories/',
-    '/reliable-system-design/appendix/system-design-interview-50.html',
+    '/ai-book/appendix/ai-agent-development-interview-50.html',
     '/2026/04/03/AI/00-vibe-coding-vs-spec-coding/',
     '/2026/09/23/system-design/45-ddd-principles-and-pricing-practice/',
     '/2026/05/08/other/open-source-ai-content-to-video-workflow/',
     '/2026/04/05/AI/02-karpathy-evolving-knowledge-base/'
   ];
   for (const link of links) assert.ok(homepage.includes(link), `missing ${link}`);
+  for (const filename of [
+    'system-design-interview-50.html',
+    'system-design-questionbank.html',
+    'interview-basic-question-bank.html',
+  ]) {
+    assert.ok(!homepage.includes(`/reliable-system-design/appendix/${filename}`));
+  }
 });

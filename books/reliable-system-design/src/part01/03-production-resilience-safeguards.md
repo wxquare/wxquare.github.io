@@ -57,7 +57,7 @@
 | 31–60 天：可控 | 建立超时、限流、幂等、告警、回滚、DLQ 和对账最小闭环 | 保护矩阵、燃烧率告警、一次演练、一次差异收敛 |
 | 61–90 天：可演进 | 将错误预算、变更评审、复盘行动项和还债预算纳入交付节奏 | ADR、灰度指标、行动项关闭率、DORA 趋势 |
 
-DORA 的交付频率、变更前置时间、变更失败率和恢复时间适合观察交付系统的速度与稳定性，但它们是组织级反馈指标，不能直接替代某个业务 SLO。[2]
+DORA 的历史 Four Keys 已演进为五项交付指标：部署频率、变更前置时间、失败部署恢复时间、变更失败率和部署返工率。失败部署恢复时间只衡量需要立即干预的失败部署恢复，不等于全部线上事故的通用 MTTR；部署返工率关注由生产事故引发的非计划部署。应围绕同一应用或服务观察趋势，不能把不同上下文的团队指标直接混合排名，也不能替代业务 SLO。[2]
 
 ## 3.2 技术债务治理：管理摩擦而不是追求零负债
 
@@ -407,7 +407,7 @@ DLQ 不是垃圾桶。可以进入 DLQ 的是暂时无法自动处理、但仍�
 
 事故协作应把角色和决策分开。事故指挥者负责优先级、风险和对外节奏，不亲自执行所有命令；执行负责人负责回滚、限流、切流或补偿；通信负责人负责影响范围、用户公告和内部时间线；记录负责人保存证据、命令和假设；领域 owner 负责判断业务不变量是否恢复。小事故可以一人兼任多个角色，但必须显式记录。任何高风险动作都要先说清“预期改变什么、如果没有改变怎么办、如何撤销”，避免多人凭直觉同时改动生产。
 
-行动项按风险排序，而不是按会议上谁发言最积极排序。立即项修复正在扩大损失的护栏缺口；短期项补齐幂等、告警、回滚和对账；长期项减少架构耦合或替换高风险流程。每一项都要有验收查询或演练证据，连续两个周期没有进展就重新升级。DORA 的变更失败率和恢复时间可以作为组织层趋势指标，但它们不能替代订单、金额、库存等领域正确性指标；指标改善若伴随人工调账增加，不能判定治理成功。[3]
+行动项按风险排序，而不是按会议上谁发言最积极排序。立即项修复正在扩大损失的护栏缺口；短期项补齐幂等、告警、回滚和对账；长期项减少架构耦合或替换高风险流程。每一项都要有验收查询或演练证据，连续两个周期没有进展就重新升级。DORA 的变更失败率、失败部署恢复时间和部署返工率可以帮助观察同一服务的交付改进，但不能替代订单、金额、库存等领域正确性指标；指标改善若伴随人工调账增加，不能判定治理成功。[2]
 
 ### 3.6.2 生产环境五条红线
 
@@ -435,7 +435,7 @@ DLQ 不是垃圾桶。可以进入 DLQ 的是暂时无法自动处理、但仍�
 
 [1] Beyer B, Jones C, Petoff J, Murphy N R, eds. [*Site Reliability Engineering*：Service Level Objectives](https://sre.google/sre-book/service-level-objectives/)；[Service Best Practices](https://sre.google/sre-book/service-best-practices/). O’Reilly Media, 2016.
 
-[2] Google Cloud. [Use Four Keys metrics like change failure rate to measure your DevOps performance](https://cloud.google.com/blog/products/devops-sre/using-the-four-keys-to-measure-your-devops-performance). 2020. DORA 指标的工程化说明；不将行业分层阈值直接当作团队目标。
+[2] DORA, Nathen Harvey. [DORA's software delivery performance metrics](https://dora.dev/guides/dora-metrics/). 更新日期：2026-01-05；核验日期：2026-10-09。采用五项交付指标的定义，区分历史 Four Keys 与当前口径，不将行业分层阈值直接当作团队目标。
 
 [3] Fowler M. [Technical Debt Quadrant](https://martinfowler.com/bliki/TechnicalDebtQuadrant.html). 2009.
 

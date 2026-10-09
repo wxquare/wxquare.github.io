@@ -247,9 +247,10 @@ Seata 中文文档将 Saga 定义为先提交本地事务，失败后补偿前�
 
 它的代价是协调者本身会成为复杂系统：需要高可用、状态持久化、调度、并发控制、版本升级、补偿队列和可观测性。只有内存状态会丢失“哪些步骤已经成功”的事实，盲目重试又会把不确定性变成重复副作用。
 
+<a id="tcc-resource-model"></a>
 ### 4.4.4 TCC / 预留、确认、取消
 
-TCC 把资源操作拆成 `Try / Confirm / Cancel`：`Try` 检查并预留资源，`Confirm` 确认业务操作，`Cancel` 释放预留资源。Oracle 的 MicroTx 文档把 TCC 描述为让资源处于预留状态，随后对全部参与者确认或取消；这种模型尤其适合库存、座位、额度和余额等可以被明确预留的资源。[6]
+TCC 把资源操作拆成 `Try / Confirm / Cancel`：`Try` 检查并预留资源，`Confirm` 确认业务操作，`Cancel` 释放预留资源。Apache Seata 的 TCC 文档将这三个阶段定义为由业务代码实现的资源管理操作，而不是自动套用数据库事务。基于这种预留语义，本书在库存、座位、额度和余额等资源能够稳定预留、参与方能够改造的场景中评估 TCC；它不只适用于金融系统。[6]
 
 TCC 的能力边界比普通补偿更严格：参与方必须理解预留状态，能够处理重复的 `Confirm` / `Cancel`，还要处理空回滚、悬挂和超时。它不是把普通接口改名为三个接口：
 
@@ -615,7 +616,7 @@ event_id
 
 [5] Malcolm Featonby, [“Making retries safe with idempotent APIs”](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/), Amazon Builders’ Library, 2021。
 
-[6] Apache Seata，[“Seata TCC 模式”](https://seata.apache.org/zh-cn/docs/next/user/mode/tcc/)。
+[6] Apache Seata，[“Seata TCC Mode”](https://seata.apache.org/docs/user/mode/tcc/)，v2.6 文档，核验日期：2026-10-09。用于 Try、Confirm、Cancel 的业务资源语义；具体实现仍需处理幂等、空回滚和悬挂。
 
 [7] 周志明，《凤凰架构》“分布式事务”章节，[在线阅读](https://icyfenix.cn/architect-perspective/general-architecture/transaction/distributed.html)。
 

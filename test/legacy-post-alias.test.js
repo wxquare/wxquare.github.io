@@ -59,7 +59,7 @@ const expectedMergedDddAliases = [
 
 const expectedBookAliases = [
   ['/system-design/00-system-design-overview/', '/reliable-system-design/'],
-  ['/2025/06/25/system-design/08-system-design-interview/', '/reliable-system-design/appendix/system-design-interview-50.html'],
+  ['/2025/06/25/system-design/08-system-design-interview/', '/reliable-system-design/'],
   ['/system-design/34-ecommerce-long-transactions/', '/reliable-system-design/part01/04-large-transaction-orchestration.html'],
   ['/2026/06/09/system-design/34-ecommerce-long-transactions/', '/reliable-system-design/part01/04-large-transaction-orchestration.html'],
   ['/system-design/30-ecommerce-product-lifecycle-management/', '/reliable-system-design/part02/11-product-center-supply-lifecycle.html'],
@@ -168,6 +168,11 @@ test('legacy post alias generator emits all compatibility redirects', () => {
     assert.match(redirect.data, /rel="canonical"/);
     assert.match(redirect.data, /\/reliable-system-design\/part03\/01-ecommerce-overview\.html/);
     assert.match(redirect.data, /location\.replace/);
+
+    const interviewRedirect = generated.find((item) =>
+      item.path === '2025/06/25/system-design/08-system-design-interview/index.html');
+    assert.match(interviewRedirect.data, /href="\/reliable-system-design\/"/);
+    assert.doesNotMatch(interviewRedirect.data, /system-design-interview-50\.html/);
   } finally {
     delete require.cache[aliasScript];
     if (previousHexo === undefined) delete global.hexo;

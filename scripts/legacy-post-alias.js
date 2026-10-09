@@ -4,7 +4,7 @@ const { url_for } = require('hexo-util');
 
 const aliases = [
   { path: '/2025/05/15/system-design/14-system-reliability/', slug: 'system-design/07-system-reliability-engineering' },
-  { path: '/2025/06/25/system-design/08-system-design-interview/', target: '/reliable-system-design/appendix/system-design-interview-50.html' },
+  { path: '/2025/06/25/system-design/08-system-design-interview/', target: '/reliable-system-design/' },
   { path: '/2026/04/02/01-claude-code-practices/', target: '/archives/' },
   { path: '/2026/04/03/00-vibe-coding-vs-spec-coding/', slug: 'AI/00-vibe-coding-vs-spec-coding' },
   { path: '/2026/04/03/02-agent-system-design-guid/', target: '/archives/' },
