@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-04a43adf.js";
+            window.path_to_searchindex_js = "../searchindex-f82dae72.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-47c28d00.js"></script>
+        <script src="../toc-aa07260a.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -239,7 +239,7 @@
 </tbody>
 </table>
 </div>
-<p>DORA 的交付频率、变更前置时间、变更失败率和恢复时间适合观察交付系统的速度与稳定性，但它们是组织级反馈指标，不能直接替代某个业务 SLO。[2]</p>
+<p>DORA 的历史 Four Keys 已演进为五项交付指标：部署频率、变更前置时间、失败部署恢复时间、变更失败率和部署返工率。失败部署恢复时间只衡量需要立即干预的失败部署恢复，不等于全部线上事故的通用 MTTR；部署返工率关注由生产事故引发的非计划部署。应围绕同一应用或服务观察趋势，不能把不同上下文的团队指标直接混合排名，也不能替代业务 SLO。[2]</p>
 <h2 id="32-技术债务治理管理摩擦而不是追求零负债"><a class="header" href="#32-技术债务治理管理摩擦而不是追求零负债">3.2 技术债务治理：管理摩擦而不是追求零负债</a></h2>
 <h3 id="321-债务分类与利息"><a class="header" href="#321-债务分类与利息">3.2.1 债务分类与利息</a></h3>
 <p>技术债务不是所有“不漂亮的代码”，而是为了当前收益接受了未来摩擦的设计或实现选择。Fowler 用“有意/无意 × 明智/鲁莽”描述债务的性质；该模型的价值不在贴标签，而在于帮助团队讨论偿还成本、收益和时机。[3] Kruchten、Nord 和 Ozkaya 则强调要识别债务项、评估影响、决定消除/降低/缓解，并把管理动作纳入发布计划。[4]</p>
@@ -622,7 +622,7 @@ def backoff_seconds(attempt, base=0.1, cap=3.0):
 </div>
 <p>行动项不能只写“加强监控”。应写成“为 <code>payment_id</code> 建立唯一约束和重复率告警，灰度验证重复事件不产生第二次订单推进，owner 为 X，截止日期为 Y”。复盘结束不等于治理完成，只有护栏上线并验证，经验才算进入系统。</p>
 <p>事故协作应把角色和决策分开。事故指挥者负责优先级、风险和对外节奏，不亲自执行所有命令；执行负责人负责回滚、限流、切流或补偿；通信负责人负责影响范围、用户公告和内部时间线；记录负责人保存证据、命令和假设；领域 owner 负责判断业务不变量是否恢复。小事故可以一人兼任多个角色，但必须显式记录。任何高风险动作都要先说清“预期改变什么、如果没有改变怎么办、如何撤销”，避免多人凭直觉同时改动生产。</p>
-<p>行动项按风险排序，而不是按会议上谁发言最积极排序。立即项修复正在扩大损失的护栏缺口；短期项补齐幂等、告警、回滚和对账；长期项减少架构耦合或替换高风险流程。每一项都要有验收查询或演练证据，连续两个周期没有进展就重新升级。DORA 的变更失败率和恢复时间可以作为组织层趋势指标，但它们不能替代订单、金额、库存等领域正确性指标；指标改善若伴随人工调账增加，不能判定治理成功。[3]</p>
+<p>行动项按风险排序，而不是按会议上谁发言最积极排序。立即项修复正在扩大损失的护栏缺口；短期项补齐幂等、告警、回滚和对账；长期项减少架构耦合或替换高风险流程。每一项都要有验收查询或演练证据，连续两个周期没有进展就重新升级。DORA 的变更失败率、失败部署恢复时间和部署返工率可以帮助观察同一服务的交付改进，但不能替代订单、金额、库存等领域正确性指标；指标改善若伴随人工调账增加，不能判定治理成功。[2]</p>
 <h3 id="362-生产环境五条红线"><a class="header" href="#362-生产环境五条红线">3.6.2 生产环境五条红线</a></h3>
 <ol>
 <li>不允许没有超时、幂等语义和回滚/查询路径的远程写调用进入核心链路。</li>
@@ -644,7 +644,7 @@ def backoff_seconds(attempt, base=0.1, cap=3.0):
 <p>延伸思考：当业务规模扩大十倍时，最先失效的是哪个假设？如果不能使用消息队列，如何用本地事务、扫描和对账保持收敛？如果错误预算持续耗尽，应该降低目标、增加容量，还是停止某类功能？</p>
 <h3 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h3>
 <p>[1] Beyer B, Jones C, Petoff J, Murphy N R, eds. <a href="https://sre.google/sre-book/service-level-objectives/"><em>Site Reliability Engineering</em>：Service Level Objectives</a>；<a href="https://sre.google/sre-book/service-best-practices/">Service Best Practices</a>. O’Reilly Media, 2016.</p>
-<p>[2] Google Cloud. <a href="https://cloud.google.com/blog/products/devops-sre/using-the-four-keys-to-measure-your-devops-performance">Use Four Keys metrics like change failure rate to measure your DevOps performance</a>. 2020. DORA 指标的工程化说明；不将行业分层阈值直接当作团队目标。</p>
+<p>[2] DORA, Nathen Harvey. <a href="https://dora.dev/guides/dora-metrics/">DORA’s software delivery performance metrics</a>. 更新日期：2026-01-05；核验日期：2026-10-09。采用五项交付指标的定义，区分历史 Four Keys 与当前口径，不将行业分层阈值直接当作团队目标。</p>
 <p>[3] Fowler M. <a href="https://martinfowler.com/bliki/TechnicalDebtQuadrant.html">Technical Debt Quadrant</a>. 2009.</p>
 <p>[4] Kruchten P, Nord R, Ozkaya I. <a href="https://www.sei.cmu.edu/library/managing-technical-debt-reducing-friction-in-software-development/"><em>Managing Technical Debt: Reducing Friction in Software Development</em></a>. Addison-Wesley Professional, 2019.</p>
 <p>[5] Nygard M T. <a href="https://www.pragmatic.org/titles/mnee2/release-it-second-edition/"><em>Release It! Second Edition: Design and Deploy Production-Ready Software</em></a>. Pragmatic Bookshelf, 2018.</p>

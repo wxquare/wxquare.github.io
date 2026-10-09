@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-04a43adf.js";
+            window.path_to_searchindex_js = "../searchindex-f82dae72.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-47c28d00.js"></script>
+        <script src="../toc-aa07260a.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -257,7 +257,7 @@
 <li>为什么购物车允许展示价滞后，但结算必须实时试算。</li>
 </ul>
 <h3 id="1414-结算校验与提交订单"><a class="header" href="#1414-结算校验与提交订单">14.1.4 结算、校验与提交订单</a></h3>
-<p>结算页是整条 C 端链路第一次真正进入 <strong>强一致交易编排</strong> 的地方。</p>
+<p>结算页开始组织有业务约束的交易准备：各权威域在本地保护价格、库存和权益事实，跨域预占通过持久化编排、查询与补偿恢复。严格校验不等于所有服务形成一个全局强一致事务。</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -1651,6 +1651,27 @@ sequenceDiagram
 <h2 id="145-搜索读链路的可靠性与治理"><a class="header" href="#145-搜索读链路的可靠性与治理">14.5 搜索读链路的可靠性与治理</a></h2>
 <p>搜索读链路需要一组独立于交易写链路的观测面板：索引事件延迟和版本差异、Query 归一化失败率、各路召回贡献、零结果率、Rank P99、<code>search_after</code> 游标失效率、Hydrate 端到端成功率、各依赖超时比例、热点缓存命中率、实验分桶差异以及用户从搜索到详情的价格投诉率。指标必须按 <code>scene</code>、站点、类目、索引版本和实验版本切分，否则总体平均值会掩盖某个热门类目或某个排序版本的故障。分布式系统监控应同时关注技术信号和用户可感知结果，并让告警对应明确的恢复动作。[20]</p>
 <p>搜索问题的告警也应关联可行动的恢复入口：索引延迟升高触发消费者扩容或重放，版本差异触发对账队列，ES 慢查询触发高成本 DSL 限制，Hydrate 依赖超时触发字段级降级，零结果异常触发词典和过滤规则检查。把指标、用户语义和恢复动作绑定起来，才能避免“搜索接口成功率 99.9%”却已经让大批用户找不到可售商品的假健康状态。</p>
+<p><a id="搜索读链路的故障矩阵"></a>
+<strong>搜索读链路的故障矩阵</strong></p>
+<p>搜索故障通常表现为找不到商品、排序异常或页面变慢。下面是本章根据版本化投影、隔离和可观测性原则设计的恢复矩阵，不是 Elasticsearch 自动提供的全套业务保证。[5][11][20]</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>故障点</th><th>用户语义</th><th>恢复动作</th><th>不可越过的边界</th></tr>
+</thead>
+<tbody>
+<tr><td>索引事件积压</td><td>结果可能滞后</td><td>在下游预算内扩容或重放，按聚合版本追平并告警</td><td>不把旧索引当正式商品状态</td></tr>
+<tr><td>旧事件乱序</td><td>单个商品短暂陈旧</td><td>对状态投影做版本条件更新；缺失事实另行反查</td><td>不让旧文档覆盖新版本</td></tr>
+<tr><td>重建索引失败</td><td>保留可用旧索引</td><td>重试构建、校验水位，保留旧别名并受控切换</td><td>不让半成品索引接管读流量</td></tr>
+<tr><td>ES 慢查询或不可用</td><td>受控缓存、缩小召回或稍后重试</td><td>限制高成本查询、熔断、回退排序</td><td>缓存结果仍受合规、权限与下架约束</td></tr>
+<tr><td>Hydrate 部分超时</td><td>参考价或库存确认中</td><td>按字段局部降级、标识来源和时间，记录依赖超时</td><td>旧价格不是实时成交价</td></tr>
+<tr><td>热点 query / suggest 洪峰</td><td>延迟或限流</td><td>独立配额、本地缓存、热点资源隔离</td><td>不挤占结算与支付资源</td></tr>
+<tr><td>零结果率异常</td><td>纠错或类目浏览</td><td>检查索引版本、词典、过滤条件及事件管道</td><td>不为扩大召回放宽合规约束</td></tr>
+<tr><td>实验排序异常</td><td>回退稳定排序</td><td>按实验版本停止流量并处理对应缓存</td><td>不只看 CTR，忽略成交、投诉与权限</td></tr>
+</tbody>
+</table>
+</div>
+<p>索引对账至少抽样比较主数据版本、可搜索状态、类目和删除事实；查询治理保留归一化 query、scene、rank 版本和超时分支。详情与结算要重新校验成交所需事实，索引修复不能替代价格确认、库存预占或订单状态推进。以上动作应有速率预算、可暂停开关和恢复后验证，避免重放流量再次拖垮交易链路。</p>
 <h2 id="146-本章总结搜索-adr-与评审清单"><a class="header" href="#146-本章总结搜索-adr-与评审清单">14.6 本章总结、搜索 ADR 与评审清单</a></h2>
 <p>本章从商品发现一直走到结算凭证形成，建议记住三个判断：</p>
 <ol>
@@ -1658,6 +1679,7 @@ sequenceDiagram
 <li>购物车保存的是购买意愿，不代表库存或营销资源已被占用。</li>
 <li>结算将价格、库存、营销和履约约束收敛为有期限、可校验的提交凭证。</li>
 </ol>
+<p><a id="search-read-adr"></a></p>
 <h3 id="1461-adr-搜索采用异步版本化索引--受控实时-hydrate"><a class="header" href="#1461-adr-搜索采用异步版本化索引--受控实时-hydrate">14.6.1 ADR-搜索：采用“异步版本化索引 + 受控实时 Hydrate”</a></h3>
 <ul>
 <li><strong>背景与问题</strong>：搜索和导购需要承受远高于交易写路径的读流量，索引字段又存在异步延迟；价格、库存、营销和履约摘要随用户和时间变化，不能全部固化在 ES，也不能每次列表请求都串行访问所有权威系统。</li>
@@ -1685,7 +1707,7 @@ sequenceDiagram
 <p>[4] Martin Kleppmann, “Designing Data-Intensive Applications”, author resources, 2017, https://martin.kleppmann.com/2017/03/27/designing-data-intensive-applications.html</p>
 <p>[5] Google SRE, “Handling Overload”, Google SRE Book, https://sre.google/sre-book/handling-overload/</p>
 <p>[6] Jeffrey Dean, Luiz André Barroso, “The Tail at Scale”, Communications of the ACM, 2013, https://research.google/pubs/the-tail-at-scale/</p>
-<p>[7] Apache Kafka, “Design: Message Delivery Semantics”, official documentation, https://kafka.apache.org/08/design/design/</p>
+<p>[7] Apache Kafka, “Design: Message Delivery Semantics / Using Transactions”, 4.1 版本文档, https://kafka.apache.org/41/design/design/，核验日期：2026-10-09。</p>
 <p>[8] Apache Kafka, “Upgrade Notes: Idempotent and Transactional Producers”, official documentation, https://kafka.apache.org/38/getting-started/upgrade/</p>
 <p>[9] Redis, “Hashes”, official documentation, https://redis.io/docs/latest/develop/data-types/hashes/</p>
 <p>[10] Redis, “EXPIRE command”, official documentation, https://redis.io/docs/latest/commands/expire/</p>

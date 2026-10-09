@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-04a43adf.js";
+            window.path_to_searchindex_js = "../searchindex-f82dae72.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-47c28d00.js"></script>
+        <script src="../toc-aa07260a.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -242,7 +242,7 @@ consumer  -&gt; idempotent state transition
 reconciler -&gt; query status and compensate
 </code></pre>
 <p>Outbox 记录和订单事实必须在同一个本地事务提交，否则会出现“订单已经创建但没有事件”或“事件已发送但订单并不存在”的裂缝。[18] 发布器允许重复发送，因此事件消费者要以 <code>event_id</code> 或业务聚合版本去重；不能把“发布器没有收到确认”误判成“业务没有执行”。当发布器连续失败时，要有积压指标、重试退避、死信和人工重放入口。</p>
-<p>MySQL InnoDB 的事务模型可以为本地订单事实提供行级锁和隔离保证，但数据库事务只覆盖同一个资源边界，不能自动把外部支付和库存纳入同一个可靠提交。[13] 本章选择短本地事务加异步补偿，牺牲跨服务瞬时强一致，换取较低锁持有时间、较高吞吐和可独立扩展的下游边界；这个牺牲必须在 ADR 中明确，而不能包装成“系统已经一致”。</p>
+<p>MySQL InnoDB 的事务模型可以为本地订单事实提供行级锁和隔离保证，但数据库事务只覆盖同一个资源边界，不能自动把外部支付和库存纳入同一个可靠提交。[13] 本章选择短本地事务加异步恢复，主动放弃跨服务瞬时原子可见，缩短本地锁持有窗口并减少跨域同步等待；实际吞吐仍需压测。这个牺牲必须在 ADR 中明确，不能包装成“系统已经一致”。</p>
 <h3 id="1516-主单子单与合并支付"><a class="header" href="#1516-主单子单与合并支付">15.1.6 主单、子单与合并支付</a></h3>
 <p>当一次提交包含多个店铺、仓库或履约类型时，主单只是用户视角的聚合，真正可独立履约的单位是子单。设计时要明确三组映射：</p>
 <div class="table-wrapper">
@@ -457,7 +457,7 @@ reconciler -&gt; query status and compensate
 </tbody>
 </table>
 </div>
-<p>最稳妥的提交流程通常是：</p>
+<p>本案例采用以下提交流程：</p>
 <ol>
 <li>用户进入确认订单页；</li>
 <li>结算服务预生成 <code>order_no</code>；</li>
@@ -590,7 +590,7 @@ reconciler -&gt; query status and compensate
 <li>用户无法再次下单</li>
 <li>商家可售资源被无故锁住</li>
 </ul>
-<p>这里不能靠 Seata / XA 这类强一致事务硬拉平，因为它们会把高并发交易主链路拖得过重。更可落地的做法是：</p>
+<p>本案例的外部支付不能加入 XA，且创单、支付与资源释放跨越不同时间窗口，因此不选择跨全链路的 XA 提交。Seata 支持不同事务模式，不能把整个框架等同于 XA；具体选择取决于参与方协议、资源预留能力和恢复成本。本章采用的做法是：</p>
 <ul>
 <li><strong>主链路快速失败</strong></li>
 <li><strong>异步补偿兜底</strong></li>
@@ -629,7 +629,7 @@ reconciler -&gt; query status and compensate
 <p><strong>价格防篡改应该重新计算一遍，还是依赖价格签名 / 版本核销</strong></p>
 <p>创单链路里还有一个非常关键的安全问题：<strong>前端提交的价格到底能不能信</strong>。</p>
 <p>如果黑客通过抓包改包，把前端传给 <code>SubmitOrder</code> 的金额从 5999 改成 0.01，而后端又没有做价格防篡改校验，就会直接造成巨大资损。</p>
-<p>这类防护一般有两种主流方案：</p>
+<p>本例比较两种防护方案：</p>
 <ul>
 <li><strong>方案 A：无状态签名校验</strong>
 <ul>
@@ -664,7 +664,7 @@ reconciler -&gt; query status and compensate
 </tbody>
 </table>
 </div>
-<p>工业界更常见的落地方式，往往是：</p>
+<p>在价格结果能够固化为有期限凭证的本案例中，默认采用：</p>
 <ul>
 <li>以 <strong>无状态签名</strong> 作为主防线，防止前端改价</li>
 <li>再加上 <strong>时间窗口 + nonce 防重放</strong></li>
@@ -980,7 +980,7 @@ sequenceDiagram
 <ul>
 <li>基础交易状态仍保持简单：<code>PENDING -&gt; PAID -&gt; FULFILLING -&gt; COMPLETED</code></li>
 <li>业务差异通过 <code>order_type</code> 和专属扩展字段表达</li>
-<li>营销核销、库存确认、风控补偿都依赖 Outbox 和重试机制保证最终一致性</li>
+<li>营销核销、库存确认、风控补偿通过 Outbox 交接已提交意图，再依靠幂等状态机、查询、有限重试和对账推进终态；Outbox 本身不保证每项动作最终成功</li>
 <li>关键峰值场景仍要靠 Redis + 幂等 + 唯一索引兜底</li>
 </ul>
 <p>一句话总结：</p>
@@ -988,23 +988,23 @@ sequenceDiagram
 <p>0 元购不是“省掉支付就结束了”，而是把支付简化成了营销补贴问题，同时把风控和最终一致性的要求提高到了更高优先级。</p>
 </blockquote>
 <h3 id="15115-结算服务中的预占凭证--本地事务--异步确认saga-编排"><a class="header" href="#15115-结算服务中的预占凭证--本地事务--异步确认saga-编排">15.1.15 结算服务中的“预占凭证 + 本地事务 + 异步确认”Saga 编排</a></h3>
-<p>在标准电商创单链路里，结算服务最核心的一点，不是自己去做最终扣减，而是把整条交易链路组织成：</p>
+<p>在本章默认的“支付前可预占、支付后确认、失败可释放”交易场景中，结算服务不是自己执行所有最终扣减，而是把交易链路组织成：</p>
 <ul>
 <li><strong>创单前只做预占（Reserve）</strong></li>
 <li><strong>创单成功后保存订单事实</strong></li>
 <li><strong>支付成功后再做确认（Confirm）</strong></li>
 <li><strong>创单失败、支付失败、超时取消后再做取消（Cancel）</strong></li>
 </ul>
-<p>这本质上是一种非常典型的 <strong>Saga 编排模式</strong>。它的核心思想是：</p>
+<p>本例将这些步骤组织为持久化的 <strong>Saga 编排</strong>。它的核心思想是：</p>
 <blockquote>
-<p><strong>所有下游都采用“预占（Reserve）+ 确认（Confirm）/ 取消（Cancel）”模式；结算服务只做预占校验，不做最终扣减；订单中心创建订单成功后，作为交易事实协调点，再通过本地消息表 / Outbox 异步完成最终确认或取消。</strong></p>
+<p><strong>库存和有限权益提供可查询的预占、确认与释放能力；结算服务组织预占并校验报价凭证；订单中心保存交易事实与后续动作意图，由持久化编排通过 Outbox 交接确认或取消。支付渠道不被假定为可参与同一资源预占协议。</strong></p>
 </blockquote>
 <p>这样设计的原因很直接：</p>
 <ul>
 <li>结算服务面对的是商品、库存、营销、价格等多个下游域；</li>
 <li>如果在提交订单时就要求所有域同步做最终扣减，主链路会非常重；</li>
-<li>一旦订单落库失败，还会面临极其难看的跨域回滚问题；</li>
-<li>因此更稳妥的工业级做法，是让每个下游先给出一个“可确认、可取消”的资源凭证。</li>
+<li>订单落库失败时，需要明确查询与释放已占资源的跨域恢复责任；</li>
+<li>在这些资源确实可预留的前提下，先建立可查询、可确认、可释放的资源凭证，可以把临时占用与最终消耗分开。</li>
 </ul>
 <p>这个模式通常会落成三段：</p>
 <div class="table-wrapper">
@@ -1057,144 +1057,50 @@ sequenceDiagram
 <li>让订单中心先拿到一笔清晰、可解释的交易事实；</li>
 <li>把真正不可逆的资源消耗动作，推迟到“支付成功”这个更强的业务事实之后。</li>
 </ul>
-<p>所以本章推荐的主流方案就是：</p>
+<p>所以本案例的选择是：</p>
 <blockquote>
-<p><strong>“预占凭证 + 本地事务落订单 + Outbox 异步确认 / 取消”的 Saga 模式。</strong></p>
+<p><strong>预占资源的持久化编排式 Saga + 订单本地事务 + Outbox。</strong></p>
 </blockquote>
 <p>也就是说：</p>
 <ul>
 <li><strong>创单时做资源预占</strong></li>
 <li><strong>支付成功后 Confirm 库存和权益</strong></li>
 <li><strong>创单失败、支付失败或超时后 Cancel 资源</strong></li>
-<li><strong>通过本地消息表 / Outbox 保证最终一致性</strong></li>
+<li><strong>通过 Outbox 可靠交接本地已提交事实，后续状态由幂等、查询、补偿与对账收敛</strong></li>
 </ul>
 <p>它的优势在于：</p>
 <ul>
-<li>主请求足够轻，不需要 XA / Seata 这种重型运行时强一致；</li>
+<li>不要求所有资源加入一次跨整个支付生命周期的 XA 提交；</li>
 <li>下游域边界清楚，各自只负责自己的资源预占、确认和释放；</li>
-<li>即使出现网络抖动或部分失败，也可以依赖消息补偿和延迟反查完成自愈。</li>
+<li>网络抖动或部分失败时有可查询的恢复入口，但补偿也可能失败，需要冻结或人工接管。</li>
 </ul>
-<p><strong>为什么核心交易长事务一定要做方案选型</strong></p>
-<p>“用户点击下单 -&gt; 校验商品 -&gt; 预占库存 -&gt; 占用优惠 -&gt; 请求支付” 这条链路，本质上是一个跨订单、库存、营销、支付多个服务的分布式长事务。单机时代的本地事务在这里已经失效，系统必须在下面几个目标之间做权衡：</p>
-<ul>
-<li>数据一致性</li>
-<li>高并发吞吐</li>
-<li>外部支付网关可接入性</li>
-<li>失败后的补偿成本</li>
-</ul>
-<p>因此，创单链路不能只问“能不能保证一致”，而要问：</p>
-<blockquote>
-<p><strong>在高并发电商场景下，系统要用什么代价去换一致性。</strong></p>
-</blockquote>
-<p><strong>四种典型方案的核心差异</strong></p>
-<p><strong>方案一：2PC / XA</strong></p>
-<p>2PC 依赖全局协调器和底层数据库 XA 协议。所有参与方先进入 <code>Prepare</code>，锁住本地资源但不提交；只有全部成功后，协调器才下发 <code>Commit</code>。</p>
-<p>它的问题非常直接：</p>
-<ul>
-<li>底层数据库锁会跟着整个长事务一起悬挂</li>
-<li>高并发下吞吐量会被严重拖死</li>
-<li>外部支付网关根本不支持 XA 协议</li>
-</ul>
-<p>所以在电商创单支付链路里，2PC 基本等于一条走不通的死路。</p>
-<p><strong>方案二：经典 Saga</strong></p>
-<p>经典 Saga 把长事务拆成一串本地子事务，每个服务先执行正向动作并立刻提交；如果后续失败，再逆向执行补偿。</p>
-<p>它的优点是吞吐高、没有数据库全局锁，但缺点也很致命：</p>
-<ul>
-<li>缺少隔离性，容易出现“先真扣库存，后又补回来”的僵尸占位</li>
-<li>容易被网络乱序拖进悬挂、空补偿和重复补偿问题</li>
-<li>防悬挂、防乱序的代码会越来越重</li>
-</ul>
-<p><strong>方案三：标准 TCC</strong></p>
-<p>TCC 把两阶段提交抬升到业务层，要求每个下游都实现：</p>
-<ul>
-<li><code>Try</code></li>
-<li><code>Confirm</code></li>
-<li><code>Cancel</code></li>
-</ul>
-<p>库存中心在 <code>Try</code> 阶段不是直接扣库存，而是冻结一部分资源；支付成功后走 <code>Confirm</code>，失败时走 <code>Cancel</code>。</p>
-<p>它的优点是隔离性很强，特别适合资金类、账户类系统；但代价也很高：</p>
-<ul>
-<li>每个下游都要手写三套接口和状态机</li>
-<li>编排器一般依赖同步 RPC，链路长时容易拖垮线程池</li>
-<li>对研发规范和团队成熟度要求非常高</li>
-</ul>
-<p><strong>方案四：工业级改良 Saga</strong></p>
-<p>这也是本章一直在推荐的方案：把 TCC 的“预留资源思想”和 Saga 的“异步最终一致性”结合起来。</p>
-<p>它的典型形态就是：</p>
-<ul>
-<li>创单时只做 <code>Reserve</code></li>
-<li>订单中心先落本地交易事实</li>
-<li>支付成功后再异步 <code>Confirm</code></li>
-<li>支付失败、超时关闭后异步 <code>Cancel</code></li>
-<li>整个过程依赖 <code>Outbox + Worker + 幂等状态机</code></li>
-</ul>
-<p>这也是为什么本章一直强调：</p>
-<blockquote>
-<p><strong>“预占凭证 + 本地事务落订单 + Outbox 异步确认 / 取消”</strong> 才是标准电商创单支付链路的主流工业实现。</p>
-</blockquote>
-<p><strong>四种方案综合对比</strong></p>
+<p><strong>按参与方能力比较，而不是按方案名称排名</strong></p>
+<p>第 4 章定义提交协议、流程编排、资源预留和可靠事件的不同边界。本节只比较它们在本案例中的作用，详细机制见<a href="../part01/04-large-transaction-orchestration.html#tcc-resource-model">第 4 章资源预留模型</a>；完整决策保留在 <a href="#transaction-create-adr">15.6.2 ADR-01</a>。</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>对比维度</th><th>2PC / XA</th><th>经典 Saga</th><th>标准 TCC</th><th>改良版 Saga（推荐）</th></tr>
+<tr><th>路线</th><th>参与方前提</th><th>保证范围与隔离手段</th><th>失败恢复和主要成本</th><th>本案例的判断</th></tr>
 </thead>
 <tbody>
-<tr><td>一致性级别</td><td>强一致</td><td>最终一致</td><td>业务层强一致</td><td>最终一致</td></tr>
-<tr><td>并发吞吐</td><td>极低</td><td>高</td><td>中</td><td>高</td></tr>
-<tr><td>资源隔离性</td><td>高，但依赖数据库锁</td><td>差</td><td>高</td><td>高</td></tr>
-<tr><td>对外部支付友好度</td><td>极差</td><td>较好</td><td>一般</td><td>极好</td></tr>
-<tr><td>开发成本</td><td>中</td><td>中</td><td>极高</td><td>中</td></tr>
-<tr><td>高并发电商适配度</td><td>很差</td><td>一般</td><td>有限适配</td><td>最优</td></tr>
+<tr><td>XA 资源上的 2PC</td><td>纳入提交的资源支持协议；事务能在短窗口结束</td><td>协议范围内的统一提交决定；隔离级别另由资源管理器实现</td><td>in-doubt 恢复、协调器与资源占用；不能仅凭协议名断言线性一致</td><td>外部支付不加入该协议，因此不覆盖整条生命周期；不排除独立短内部事务使用</td></tr>
+<tr><td>编排式或协同式 Saga</td><td>各步骤有本地事务、可查询结果、业务恢复路径</td><td>不自动提供跨域隔离；可结合预占、版本和语义锁保护竞争</td><td>持久化步骤、重试与补偿，处理不可逆动作与未知结果</td><td>使用编排式，便于集中解释订单状态与恢复责任</td></tr>
+<tr><td>TCC</td><td>参与方能实现可靠 Try/Confirm/Cancel 及共同决策恢复</td><td>预留保护指定资源；不由三段式接口名自动获得全局原子可见</td><td>幂等、空回滚、悬挂和确认/取消恢复；资源占用及参与方改造</td><td>对需要共同确认决定的可预留资源另行评估，不限于金融场景</td></tr>
+<tr><td>Outbox</td><td>业务事实与事件意图能在同一数据库事务写入</td><td>本地事实与待发事件原子提交；不决定下游是否成功</td><td>Relay 重投、消费幂等、积压与清理</td><td>作为所选编排的事件基座，不与 Saga/TCC 当作互斥事务路线</td></tr>
 </tbody>
 </table>
 </div>
-<p>把它翻译成更贴近业务的话就是：</p>
+<p>Saga 的正向步骤可以是“预占”，不必先执行不可逆的真实消耗；TCC 的确认也不必被解释成一条永不重试的同步 RPC 链。Seata 的不同模式或工作流运行时是实现选择，不是额外一致性级别。[20][21][22] 本书把“预占 + 编排 + Outbox”作为本案例组合，不另造“工业级改良 Saga”标准。</p>
+<p><strong>资源预占必须兑现哪些条件</strong></p>
 <ul>
-<li>2PC 太重，锁不起</li>
-<li>经典 Saga 太莽，容易伤库存和权益</li>
-<li>标准 TCC 太贵，不适合所有链路都重做三段式</li>
-<li>改良版 Saga 在复杂度、性能和一致性之间最平衡</li>
+<li>Reserve 在权威库通过条件更新建立唯一预占，返回资源范围、数量、版本、有效期和幂等结果；缓存令牌不自动代替这个事实。</li>
+<li>Confirm 和 Cancel 使用同一预占身份及合法前置状态，终态只能被合法迁移推进；重复命令不产生第二次消耗或释放。</li>
+<li>取消先于迟到 Reserve 到达时，应有取消凭证或等价版本门禁拒绝旧意图，防止资源重新悬挂。</li>
+<li>TTL 到期不等于渠道一定没扣款。支付结果未知时先查单并冻结后续危险动作，按业务协议续占或终止；资源已释放但随后查明成功时保留资金事实，按规则退款或人工处理，不抢回已承诺给他人的资源。</li>
+<li>Outbox 只证明本地意图已提交。确认迟迟无法完成时，要能查询、重试、隔离、对账和人工接管；成功、取消或有证据的人工处置都是恢复终态，不把消息最终送达当成业务一定成功。</li>
 </ul>
-<p><strong>本章的选型结论</strong></p>
-<p>因此，对标准的电商创单支付链路，推荐结论非常明确：</p>
-<ul>
-<li><strong>坚决不选 2PC / XA</strong></li>
-<li><strong>不建议在核心交易主链路直接使用经典 Saga</strong></li>
-<li><strong>只有金融级资管、账务划转这类场景才值得咬牙做标准 TCC</strong></li>
-<li><strong>普通电商创单支付链路优先使用改良版 Saga</strong></li>
-</ul>
-<p>这也是为什么结算服务在本章里的角色不是“硬拉所有服务做一次全局提交”，而是：</p>
-<ul>
-<li>组织预占</li>
-<li>快速确立订单事实</li>
-<li>把最终确认和取消交给订单中心异步编排</li>
-</ul>
-<p>一句话总结：</p>
-<blockquote>
-<p><strong>在电商结算场景中，我们追求的不是运行时强一致，而是“资源先预占、订单先落地、后续异步确认、失败可靠补偿”的高吞吐最终一致。</strong></p>
-</blockquote>
-<p><strong>落地建议</strong></p>
-<p>如果团队自己维护状态机和消息补偿能力，改良版 Saga 完全可以直接落地为：</p>
-<ul>
-<li>下游三段式接口：<code>Reserve / Confirm / Cancel</code></li>
-<li>订单中心本地事务：订单事实 + <code>outbox</code></li>
-<li>Worker 异步扫描 + 幂等重试</li>
-</ul>
-<p>如果后续链路继续拉长，比如：</p>
-<ul>
-<li>跨境履约</li>
-<li>多段商旅履约</li>
-<li>超长时间预约 / 改签 / 多次补偿</li>
-</ul>
-<p>那么也可以再演进到更成熟的工作流 / Saga 引擎，例如：</p>
-<ul>
-<li>Seata 的 Saga 模式</li>
-<li>Temporal / Cadence 这一类代码化工作流引擎</li>
-</ul>
-<p>但无论是否引入框架，原则都不变：</p>
-<blockquote>
-<p><strong>先把交易链路拆成可预占、可确认、可取消的资源状态机，再谈框架选型。</strong></p>
-</blockquote>
+<p><strong>本案例的选择与重评</strong></p>
+<p>在外部支付不能加入 XA、库存和有限权益可形成有效预占、业务允许后续状态异步收敛的前提下，选择持久化编排式 Saga。订单本地事务保存订单、快照和待执行意图；Worker 交接与反查，库存和营销各自提交 Confirm/Cancel。获得短本地事务与明确恢复边界，主动接受跨域可见性延迟、预占占用成本及长期补偿治理。</p>
+<p>如果可预留资源不能兑现上述条件，先调整承诺时机或拒绝风险交易，不能因使用 Saga 名称就放行。若共同确认决定、补偿成本或等待跨度改变，再评估 TCC、局部 XA 或持久化工作流，依据资源协议和测量结果重做 ADR，不用“金融级”“最优”代替约束分析。</p>
 <hr>
 <h2 id="152-支付交易编排与最终一致性"><a class="header" href="#152-支付交易编排与最终一致性">15.2 支付、交易编排与最终一致性</a></h2>
 <h3 id="1521-支付不是一个按钮而是两条事实链"><a class="header" href="#1521-支付不是一个按钮而是两条事实链">15.2.1 支付不是一个按钮，而是两条事实链</a></h3>
@@ -1544,7 +1450,7 @@ sequenceDiagram
 <li>如果调用库存中心时网络超时、响应丢失，怎么继续重试；</li>
 <li>如果系统重启、进程崩溃，怎么保证这条确认任务不会消失。</li>
 </ul>
-<p>这里最稳妥的工业级做法就是 <strong>Outbox Pattern（本地消息表模式）</strong>。</p>
+<p>当订单事实与待执行意图能够在同一个数据库事务中提交时，本案例采用 <strong>Outbox Pattern（本地消息表模式）</strong>；它可靠交接本地意图，下游确认仍依赖幂等、查询与恢复。[18]</p>
 <p>核心思想是：</p>
 <blockquote>
 <p><strong>把“订单状态更新”和“待确认库存消息写入”放进同一个本地事务里，先把消息落到订单库自己的 <code>outbox</code> 表，再由异步 Worker 扫描并可靠投递。</strong></p>
@@ -1932,26 +1838,7 @@ sequenceDiagram
 <li>退款渠道异常时，应保持退款中并展示预计处理状态，不能为了降低失败率重复扣减可退余额。</li>
 </ul>
 <p>因此支付服务的核心 SLO 不应只有接口可用率，还应包含成功事实不重复率、未知状态闭合时延、退款累计金额不变量、回调积压时间和对账差异关闭时延。Google SRE 关于过载处理的观点可以支撑“先保护关键事实，再降低非关键体验”的排序；本章进一步将其推导到支付场景，即宁可让用户暂时看见处理中，也不能为了即时返回而制造重复资金动作。[4]</p>
-<p><strong>搜索读链路的故障矩阵</strong></p>
-<p>搜索故障的用户影响通常先表现为“找不到、排得不对或页面变慢”，但处理方式不能只看搜索接口是否返回 200。应把索引投影、查询引擎和 Hydrate 下游分开判定：</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>故障点</th><th>用户语义</th><th>自动动作</th><th>不能做什么</th></tr>
-</thead>
-<tbody>
-<tr><td>索引事件积压</td><td>允许部分结果滞后</td><td>扩容消费者、按聚合版本追平、告警</td><td>不能把旧索引当商品正式状态</td></tr>
-<tr><td>旧事件乱序到达</td><td>单个商品可能短暂旧</td><td>版本条件更新或丢弃旧写入</td><td>不能让旧文档覆盖新文档</td></tr>
-<tr><td>重建索引失败</td><td>继续使用旧读别名</td><td>重试构建、保留旧索引、人工切换</td><td>不能半成品切读流量</td></tr>
-<tr><td>ES 慢查询或不可用</td><td>返回缓存、缩小召回或明确稍后重试</td><td>熔断高成本查询、限流、回滚排序</td><td>不能用无约束深分页拖垮集群</td></tr>
-<tr><td>Hydrate 部分超时</td><td>卡片显示参考价或库存确认中</td><td>按字段局部降级、记录依赖超时</td><td>不能把旧价格当实时成交价</td></tr>
-<tr><td>热点 query / suggest 洪峰</td><td>结果可能延迟或被限流</td><td>独立配额、本地缓存、热点隔离</td><td>不能挤占结算和支付资源</td></tr>
-<tr><td>零结果率异常升高</td><td>引导纠错或类目浏览</td><td>检查索引版本、词典、过滤互斥和事件链路</td><td>不能放宽合规和上下架过滤</td></tr>
-<tr><td>实验排序异常</td><td>回退稳定排序版本</td><td>按 <code>exp_id</code> 停止实验、清理版本缓存</td><td>不能只看 CTR 忽略投诉和成交口径</td></tr>
-</tbody>
-</table>
-</div>
-<p>索引对账应至少抽样比较主数据版本、文档可搜索状态、关键类目和删除事件；查询治理则要保留归一化 query、scene、rank 版本和超时分支。这样搜索的恢复动作才有证据，而不是“重启服务看看”。搜索可以在故障时降低体验，但不能越过商品合规、交易价格和库存事实边界；这与支付故障时保留资金事实的原则一致，都是先保护权威事实，再保护非关键体验。</p>
+<p>商品发现的索引、Query/Rank、Hydrate 和搜索实验故障由<a href="14-ecommerce-customer-lifecycle.html#搜索读链路的故障矩阵">第 14 章搜索治理矩阵</a>统一展开。本章只保留其交易影响：旧列表价或库存摘要不能成为成交依据，交易准备必须重新核验权威事实；无法校验时返回明确拒绝或可查询的处理中状态，不静默放行。</p>
 <h3 id="1554-可观测性从技术指标到业务不变量"><a class="header" href="#1554-可观测性从技术指标到业务不变量">15.5.4 可观测性：从技术指标到业务不变量</a></h3>
 <p>常规的 CPU、内存和接口 RT 不足以判断交易系统是否健康。至少需要四类指标：</p>
 <ol>
@@ -2005,25 +1892,31 @@ orders        = checkouts × c_p
 <li><strong>验证指标</strong>：重复扣款率、支付尝试未知状态闭合时间、支付与渠道流水匹配率、部分退款超限数、渠道路由切换后的成功率和对账差异关闭时间。</li>
 <li><strong>重新评估条件</strong>：出现新的资金来源、跨境币种或监管要求，导致当前三级模型无法表达资金归属时，新增明确的事实对象，不把新字段继续堆到支付主表。</li>
 </ul>
+<p><a id="transaction-create-adr"></a></p>
 <h3 id="1562-adr-01采用结算凭证--订单本地事务--异步补偿"><a class="header" href="#1562-adr-01采用结算凭证--订单本地事务--异步补偿">15.6.2 ADR-01：采用“结算凭证 + 订单本地事务 + 异步补偿”</a></h3>
 <ul>
-<li><strong>背景与问题</strong>：结算需要同时接入商品、价格、库存、营销和履约规则；如果把所有调用放入全局强一致事务，会导致锁持有时间长、尾延迟放大，并且无法可靠覆盖外部支付渠道。</li>
+<li><strong>背景与问题</strong>：结算需要接入商品、价格、库存、营销和履约规则。若让支付等待窗口也占用跨资源 prepare 状态，会扩大资源占用与恢复成本；本案例的外部支付又不能加入 XA，不能把整条生命周期包装成一个全局提交。</li>
 <li><strong>决策驱动因素</strong>：吞吐、尾延迟、资源隔离、补偿能力、团队可运维性和外部系统可控程度。</li>
-<li><strong>候选方案</strong>：XA / 2PC、经典 Saga、TCC、预占资源加改良 Saga。</li>
-<li><strong>最终决策</strong>：结算阶段产生带 TTL 的价格、库存和权益凭证；订单中心用短本地事务保存订单事实和快照；通过 Outbox 发布事件，由下游幂等执行 Confirm / Cancel，使用对账任务处理长期未知状态。</li>
-<li><strong>获得的能力</strong>：较短的数据库事务、较高吞吐、明确的资源释放入口、对外部支付友好、能够按域独立扩容。</li>
+<li><strong>候选方案</strong>：在协议兼容的短资源边界使用 XA/2PC；同步调用加恢复；持久化编排式 Saga；资源参与者采用 TCC。Outbox 是可靠事件基座，不是另一种互斥提交协议。</li>
+<li><strong>最终决策</strong>：在外部支付不能加入 XA、库存和有限权益可预留、后续状态允许异步收敛的本案例中，采用预占资源的持久化编排式 Saga。结算产生带身份、版本和 TTL 的报价及资源凭证；订单本地事务保存订单、快照和待发意图；下游按权威预占状态幂等 Confirm/Cancel，长期未知结果由查单、对账和人工处理推进。</li>
+<li><strong>获得的能力</strong>：短本地事务、较少的跨域同步等待、明确的资源释放入口，以及按域治理容量与恢复的边界；不承诺未经压测的固定吞吐。</li>
 <li><strong>主动牺牲的能力</strong>：不保证跨所有域的瞬时强一致；用户可能短暂看到“处理中”；补偿和对账系统必须长期运行。</li>
-<li><strong>已接受的风险</strong>：重复消息、乱序事件和补偿延迟会增加状态机复杂度；通过版本、幂等、审计和人工接管控制风险。</li>
+<li><strong>已接受的风险</strong>：重复消息、乱序事件、预占过期和迟到支付事实增加状态机复杂度；Confirm/Cancel 需要条件更新，未知支付不能直接释放或再次扣款，补偿失败可能转为人工处置。</li>
 <li><strong>验证指标</strong>：结算成功率、凭证失效率、预占超时量、补偿成功率、Outbox 延迟、支付成功后履约创建时延和对账差异率。</li>
-<li><strong>重新评估条件</strong>：出现高比例资金级强一致需求、跨域补偿成本持续高于收益，或业务需要法律上不可拆分的原子转移时，再评估 TCC 或专用工作流。Seata 官方资料对 AT、TCC、SAGA 等模式的边界有明确说明；它们可以作为实现选项，但不能替代业务状态机设计。[20][21][22]</li>
+<li><strong>重新评估条件</strong>：参与资源需要共同确认决定、当前预占无法保护业务不变量、补偿成本持续高于收益或等待跨度明显增长时，重新评估 TCC、协议兼容的局部 XA 与持久化工作流。Seata 官方资料区分 AT、TCC、Saga 等模式；框架选择不能替代业务保证，也不由“金融级”标签决定。[20][21][22]</li>
 </ul>
-<h3 id="1563-adr-02订单保存不可变快照搜索与详情使用分层读模型"><a class="header" href="#1563-adr-02订单保存不可变快照搜索与详情使用分层读模型">15.6.3 ADR-02：订单保存不可变快照，搜索与详情使用分层读模型</a></h3>
+<p><a id="1563-adr-02订单保存不可变快照搜索与详情使用分层读模型"></a></p>
+<h3 id="1563-adr-02订单保存不可变交易快照"><a class="header" href="#1563-adr-02订单保存不可变交易快照">15.6.3 ADR-02：订单保存不可变交易快照</a></h3>
 <ul>
-<li><strong>背景与问题</strong>：搜索需要吞吐和排序，详情需要解释当前商品，订单和售后需要解释历史成交事实。</li>
-<li><strong>最终决策</strong>：搜索索引只保存可容忍滞后的召回与排序字段；详情和结算通过批量 Hydrate 获取当前正式契约；订单保存商品、价格和履约快照；快照版本不可被商品更新覆盖。</li>
-<li><strong>获得的能力</strong>：读写隔离、搜索可扩展、历史订单可解释、交易前可以重新校验关键字段。</li>
-<li><strong>主动牺牲的能力</strong>：搜索列表可能短暂落后；详情聚合多一次或多次调用；快照和索引需要额外存储及重建机制。</li>
-<li><strong>验证指标</strong>：索引延迟、Hydrate 成功率、列表与结算价格差异率、快照完整率、订单争议可解释率。Elasticsearch 的乐观并发控制用于防止版本覆盖，分片请求缓存用于降低重复查询压力；这些能力只解决读模型和版本问题，不会替代库存或订单事实。[11][12]</li>
+<li><strong>背景与问题</strong>：订单和售后需要解释当时的成交事实，不能依赖不断变化的商品、价格或搜索投影。</li>
+<li><strong>决策驱动因素</strong>：快照完整性、版本身份、退款复算、客服解释、审计与存储成本。</li>
+<li><strong>候选方案</strong>：仅保存当前商品引用；只保存外部快照引用；保存交易必需的本地不可变快照并关联来源版本。</li>
+<li><strong>最终决策</strong>：订单本地事务保存商品、价格组件、分摊、资源凭证与履约规则的必要快照及来源版本。后续商品或规则更新不覆盖它；纠错产生受控新事实，不改写原成交解释。</li>
+<li><strong>获得的能力</strong>：历史订单可解释，部分退款可按原分摊复算，跨域故障时仍能查询当时承诺。</li>
+<li><strong>主动牺牲的能力</strong>：增加快照存储、版本治理和数据保留成本；交易前必须校验，快照不能证明外部资源当前仍可用。</li>
+<li><strong>已接受的风险</strong>：提交时来源变化、字段遗漏或保存过多敏感数据；通过凭证有效期、必填字段、访问控制与审计约束处理。</li>
+<li><strong>验证指标</strong>：快照完整率、版本绑定错误数、退款复算差异和订单争议可解释率。</li>
+<li><strong>重新评估条件</strong>：新品类承诺、售后规则或保留要求变化时复核快照字段。搜索与详情读模型选型由<a href="14-ecommerce-customer-lifecycle.html#search-read-adr">第 14 章搜索 ADR</a>负责，Elasticsearch 并发控制和缓存只承担读模型职责，不能证明交易事实。[11][12]</li>
 </ul>
 <h3 id="1564-adr-03状态机由订单域拥有支付与履约通过标准事实事件驱动"><a class="header" href="#1564-adr-03状态机由订单域拥有支付与履约通过标准事实事件驱动">15.6.4 ADR-03：状态机由订单域拥有，支付与履约通过标准事实事件驱动</a></h3>
 <ul>
@@ -2056,11 +1949,11 @@ orders        = checkouts × c_p
 <p>[6] Google SRE, “Practical Alerting from Time-Series Data”, Google SRE Book, https://sre.google/sre-book/practical-alerting/</p>
 <p>[7] Amazon Web Services, “Making Retries Safe with Idempotent APIs”, Builders’ Library, https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/</p>
 <p>[8] Amazon Web Services, “Limit Retries”, Well-Architected Framework, https://docs.aws.amazon.com/wellarchitected/latest/framework/rel_mitigate_interaction_failure_limit_retries.html</p>
-<p>[9] Apache Kafka, “Design: Message Delivery Semantics”, official documentation, https://kafka.apache.org/08/design/design/</p>
+<p>[9] Apache Kafka, “Design: Message Delivery Semantics / Using Transactions”, 4.1 版本文档, https://kafka.apache.org/41/design/design/，核验日期：2026-10-09。</p>
 <p>[10] Apache Kafka, “Upgrade Notes: Idempotent and Transactional Producers”, official documentation, https://kafka.apache.org/38/getting-started/upgrade/</p>
 <p>[11] Elastic, “Optimistic Concurrency Control”, Elasticsearch Reference, https://www.elastic.co/docs/reference/elasticsearch/rest-apis/optimistic-concurrency-control</p>
 <p>[12] Elastic, “Shard Request Cache”, Elasticsearch Reference, https://www.elastic.co/docs/reference/elasticsearch/rest-apis/shard-request-cache</p>
-<p>[13] Oracle, “InnoDB Transaction Model”, MySQL Reference Manual, https://dev.mysql.com/doc/refman/26.7/en/innodb-transaction-model.html</p>
+<p>[13] Oracle, “InnoDB Transaction Model”, MySQL 8.4 Reference Manual, https://dev.mysql.com/doc/refman/8.4/en/innodb-transaction-model.html，核验日期：2026-10-09。</p>
 <p>[14] World Wide Web Consortium, “Trace Context”, W3C Recommendation, https://www.w3.org/TR/trace-context/</p>
 <p>[15] OpenTelemetry, “General Semantic Conventions”, official specification, https://opentelemetry.io/docs/specs/semconv/general/</p>
 <p>[16] IETF, “HTTP Semantics”, RFC 9110, 2022, https://datatracker.ietf.org/doc/rfc9110/</p>
@@ -2069,7 +1962,7 @@ orders        = checkouts × c_p
 <p>[19] PCI Security Standards Council, “Document Library”, official standards library, https://www.pcisecuritystandards.org/document_library/</p>
 <p>[20] Apache Seata, “What is Seata?”, 中文官方文档, https://seata.apache.org/zh-cn/docs/overview/what-is-seata/</p>
 <p>[21] Apache Seata, “Saga 模式”, 中文官方文档, https://seata.apache.org/zh-cn/docs/user/mode/saga/</p>
-<p>[22] Alibaba Cloud, “分布式事务参与者模式”, 中文官方文档, https://help.aliyun.com/zh/document_detail/132909.html</p>
+<p>[22] Apache Seata, “Seata TCC Mode”, v2.6 官方文档, https://seata.apache.org/docs/user/mode/tcc/，核验日期：2026-10-09。</p>
 <p>[23] Stripe, “Idempotent requests”, official API documentation, https://docs.stripe.com/api/idempotent_requests</p>
 <p>[24] Adyen, “Handle webhook events”, official documentation, https://docs.adyen.com/development-resources/webhooks/handle-webhook-events</p>
 
