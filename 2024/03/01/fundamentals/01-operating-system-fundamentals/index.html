@@ -21,7 +21,7 @@
 
     <meta name="description" content="以面试和工程实践为线索，梳理进程、线程、内存、文件系统和 I&#x2F;O 等操作系统核心概念。">
 <meta property="og:type" content="article">
-<meta property="og:title" content="计算机基础：操作系统面试与工程实践">
+<meta property="og:title" content="操作系统：面试与工程实践">
 <meta property="og:url" content="https://wxquare.github.io/2024/03/01/fundamentals/01-operating-system-fundamentals/index.html">
 <meta property="og:site_name" content="wxquare&#39;s Blogs">
 <meta property="og:description" content="以面试和工程实践为线索，梳理进程、线程、内存、文件系统和 I&#x2F;O 等操作系统核心概念。">
@@ -42,10 +42,10 @@
 
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"https://wxquare.github.io/2024/03/01/fundamentals/01-operating-system-fundamentals/","path":"2024/03/01/fundamentals/01-operating-system-fundamentals/","title":"计算机基础：操作系统面试与工程实践"}</script>
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"https://wxquare.github.io/2024/03/01/fundamentals/01-operating-system-fundamentals/","path":"2024/03/01/fundamentals/01-operating-system-fundamentals/","title":"操作系统：面试与工程实践"}</script>
 
 <script class="next-config" data-name="calendar" type="application/json">""</script>
-<title>计算机基础：操作系统面试与工程实践 | wxquare's Blogs</title>
+<title>操作系统：面试与工程实践 | wxquare's Blogs</title>
   
 
 
@@ -233,12 +233,12 @@
     </span>
 
     <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="计算机基础：操作系统面试与工程实践 | wxquare's Blogs">
+      <meta itemprop="name" content="操作系统：面试与工程实践 | wxquare's Blogs">
       <meta itemprop="description" content="以面试和工程实践为线索，梳理进程、线程、内存、文件系统和 I/O 等操作系统核心概念。">
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          计算机基础：操作系统面试与工程实践
+          操作系统：面试与工程实践
         </h1>
 
         <div class="post-meta-container">
@@ -288,14 +288,14 @@
 </ul>
 <p>本文保留原有面试题和知识点，但将它们按照“资源边界 → 工作机制 → 工程判断 → 故障排查”的顺序重新组织。文中的 Linux 行为以常见的现代 Linux 实现为背景；如果是内核实现细节，会明确说明适用范围。</p>
 <h2 id="速查导航"><a href="#速查导航" class="headerlink" title="速查导航"></a>速查导航</h2><ul>
-<li><a href="#%E8%BF%9B%E7%A8%8B%E7%BA%BF%E7%A8%8B%E4%B8%8E%E5%8D%8F%E7%A8%8B">进程、线程与协程</a></li>
+<li><a href="#%E8%BF%9B%E7%A8%8B%E3%80%81%E7%BA%BF%E7%A8%8B%E4%B8%8E%E5%8D%8F%E7%A8%8B">进程、线程与协程</a></li>
 <li><a href="#%E8%B0%83%E5%BA%A6%E4%B8%8E%E4%B8%8A%E4%B8%8B%E6%96%87%E5%88%87%E6%8D%A2">调度与上下文切换</a></li>
 <li><a href="#%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98%E4%B8%8E%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86">虚拟内存与内存管理</a></li>
-<li><a href="#forkexec-%E4%B8%8E%E5%86%99%E6%97%B6%E5%A4%8D%E5%88%B6"><code>fork</code>、<code>exec</code> 与写时复制</a></li>
+<li><a href="#fork%E3%80%81exec-%E4%B8%8E%E5%86%99%E6%97%B6%E5%A4%8D%E5%88%B6"><code>fork</code>、<code>exec</code> 与写时复制</a></li>
 <li><a href="#%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E4%B8%8E%E6%96%87%E4%BB%B6%E6%8F%8F%E8%BF%B0%E7%AC%A6">文件系统与文件描述符</a></li>
-<li><a href="#%E7%94%A8%E6%88%B7%E6%80%81%E5%86%85%E6%A0%B8%E6%80%81%E4%B8%8E%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8">用户态、内核态与系统调用</a></li>
-<li><a href="#io-%E6%A8%A1%E5%9E%8B%E4%B8%8E-epoll">I&#x2F;O 模型与 <code>epoll</code></a></li>
-<li><a href="#%E8%BF%9B%E7%A8%8B%E9%97%B4%E9%80%9A%E4%BF%A1%E5%90%8C%E6%AD%A5%E4%B8%8E%E6%AD%BB%E9%94%81">进程间通信、同步与死锁</a></li>
+<li><a href="#%E7%94%A8%E6%88%B7%E6%80%81%E3%80%81%E5%86%85%E6%A0%B8%E6%80%81%E4%B8%8E%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8">用户态、内核态与系统调用</a></li>
+<li><a href="#I-O-%E6%A8%A1%E5%9E%8B%E4%B8%8E-epoll">I&#x2F;O 模型与 <code>epoll</code></a></li>
+<li><a href="#%E8%BF%9B%E7%A8%8B%E9%97%B4%E9%80%9A%E4%BF%A1%E3%80%81%E5%90%8C%E6%AD%A5%E4%B8%8E%E6%AD%BB%E9%94%81">进程间通信、同步与死锁</a></li>
 <li><a href="#%E7%BA%BF%E4%B8%8A%E6%8E%92%E9%9A%9C%E4%B8%8E%E9%9D%A2%E8%AF%95%E8%BF%BD%E9%97%AE">线上排障与面试追问</a></li>
 <li><a href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99">参考资料</a></li>
 </ul>
@@ -494,8 +494,8 @@
                 </a>
             </div>
             <div class="post-nav-item">
-                <a href="/2024/03/02/fundamentals/02-computer-network-fundamentals/" rel="next" title="计算机基础：计算机网络面试与工程实践">
-                  计算机基础：计算机网络面试与工程实践 <i class="fa fa-angle-right"></i>
+                <a href="/2024/03/02/fundamentals/02-computer-network-fundamentals/" rel="next" title="计算机网络：面试与工程实践">
+                  计算机网络：面试与工程实践 <i class="fa fa-angle-right"></i>
                 </a>
             </div>
           </div>
