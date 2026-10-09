@@ -27,7 +27,7 @@ tags:
 
 如果没有独立脚本仓库，这篇文章只能作为流程记录；要做成可复现教程，需要同时公开生成脚本、最小输入样例和固定版本。
 
-## 一、目标：把文章变成可发布的视频资产
+## 目标：把文章变成可发布的视频资产
 
 这次的目标不是做一个炫技 demo，而是跑通一个可以重复使用的内容生产流程：
 
@@ -64,7 +64,7 @@ AI 配音：Piper TTS
 质量验证：ffprobe + volumedetect + 抽帧检查
 ```
 
-## 二、为什么不用直接 AI 生成整条视频
+## 为什么不用直接 AI 生成整条视频
 
 直接让 AI 生成视频当然很方便，但技术教程类内容有一个核心问题：文字必须准确。
 
@@ -87,7 +87,7 @@ AI 配音：Piper TTS
 
 这条路线不一定是最快的，但它非常适合做系列化技术内容。
 
-## 三、第一步：把书稿改成三分钟视频脚本
+## 第一步：把书稿改成三分钟视频脚本
 
 不要直接把书稿塞进视频工具。书稿适合阅读，短视频适合节奏、钩子和分镜。
 
@@ -122,7 +122,7 @@ AI 配音：Piper TTS
 
 本次 3 分钟成片的口播字数应由实际音频时长倒推。以 240—280 字/分钟估算，纯口播约为 720—840 字；停顿、片头和片尾会进一步减少可用字数，因此不要把 800—900 字当作固定标准。
 
-## 四、第二步：用 SVG 生成 10 张竖屏图文页
+## 第二步：用 SVG 生成 10 张竖屏图文页
 
 图文页我没有交给图片模型直接生成，而是用 Node.js 生成 SVG，再转换成 PNG。
 
@@ -158,7 +158,7 @@ video-assets/01-llm-boundaries-3min/llm-boundaries-image-only.kdenlive
 file video-assets/01-llm-boundaries-3min/png/*.png
 ```
 
-## 五、第三步：用 Piper 生成开源 AI 配音
+## 第三步：用 Piper 生成开源 AI 配音
 
 配音这一步，我先选了 Piper TTS。它的优点是轻量、本地、开源，适合快速跑通流程；缺点是中文自然度不如 GPT-SoVITS、F5-TTS 这类更复杂的方案。
 
@@ -199,7 +199,7 @@ curl -L "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/zh/zh_CN/hua
 "$PIPER_VENV/bin/piper" --help
 ```
 
-## 六、第四步：从 Markdown 抽出口播稿
+## 第四步：从 Markdown 抽出口播稿
 
 我把视频脚本中的“完整口播稿”单独保存为：
 
@@ -215,7 +215,7 @@ video-assets/01-llm-boundaries-3min/voiceover/voiceover.txt
 - 尽量避免连续英文缩写，否则中文 TTS 容易读得生硬；
 - 技术词可以适当改写成口语，比如把“LLM”读作“大语言模型”。
 
-## 七、第五步：生成第一版配音
+## 第五步：生成第一版配音
 
 基础版命令如下：
 
@@ -254,7 +254,7 @@ python3 -c "import wave; p='video-assets/01-llm-boundaries-3min/voiceover/voiceo
 声道：mono
 ```
 
-## 八、第六步：生成 Kdenlive 工程
+## 第六步：生成 Kdenlive 工程
 
 有了图文页和配音之后，就可以生成带音频轨的 MLT / Kdenlive 工程：
 
@@ -287,7 +287,7 @@ open -a /Applications/kdenlive.app \
 - 封面页；
 - 片尾页。
 
-## 九、第七步：用 melt 渲染视频
+## 第七步：用 melt 渲染视频
 
 Kdenlive 的 macOS 应用通常自带 `melt`、`ffmpeg` 和 `ffprobe`。不同安装方式路径不同，先设置三个变量，再执行后续命令：
 
@@ -324,7 +324,7 @@ Current Frame:       2704, percentage:         50
 Current Frame:       5399, percentage:         99
 ```
 
-## 十、第八步：修复 MLT 混音静音问题
+## 第八步：修复 MLT 混音静音问题
 
 这次遇到一个实际问题：`melt` 成功生成了 MP4，但音频几乎是静音。
 
@@ -367,7 +367,7 @@ video-assets/01-llm-boundaries-3min/output/llm-boundaries-3min.mp4
 
 它的视频正常，但音频有问题。
 
-## 十一、第九步：验证最终成片
+## 第九步：验证最终成片
 
 视频生成之后，不要只靠播放器看一眼。最好用命令行做几项验证。
 
@@ -436,9 +436,9 @@ PNG image data, 1080 x 1920
 
 除了检查总时长，还应抽查片头、转场、重点术语和片尾：口播进入下一段时，画面是否已经切换；字幕是否超出安全区；最后一页是否被音频截断。总时长一致不能证明每个分镜都同步。
 
-## 十二、常见问题
+## 常见问题
 
-### 1. Kdenlive 打开项目但没有声音
+### Kdenlive 打开项目但没有声音
 
 先确认 `voiceover-180s.wav` 文件存在：
 
@@ -453,7 +453,7 @@ node video-scripts/render-llm-boundaries-assets.mjs \
   --audio video-assets/01-llm-boundaries-3min/voiceover/voiceover-180s.wav
 ```
 
-### 2. `kdenlive --render` 卡住
+### `kdenlive --render` 卡住
 
 可以改用 `melt`：
 
@@ -465,11 +465,11 @@ node video-scripts/render-llm-boundaries-assets.mjs \
   real_time=-1
 ```
 
-### 3. MP4 有音轨但几乎静音
+### MP4 有音轨但几乎静音
 
 用 `volumedetect` 检查。如果是 `-91 dB` 这类结果，可以重新用 `ffmpeg` 把 WAV 封装进去。
 
-### 4. 中文读音不自然
+### 中文读音不自然
 
 Piper 适合先跑通链路。如果后续要提高中文自然度，可以考虑：
 
@@ -477,7 +477,7 @@ Piper 适合先跑通链路。如果后续要提高中文自然度，可以考�
 - F5-TTS：自然度更好，但预训练模型许可需要单独确认；
 - ChatTTS：对话感强，但也需要确认许可和用途。
 
-### 5. 图文页文字需要修改
+### 图文页文字需要修改
 
 可以直接编辑 SVG：
 
@@ -498,7 +498,7 @@ node video-scripts/render-llm-boundaries-assets.mjs \
   --audio video-assets/01-llm-boundaries-3min/voiceover/voiceover-180s.wav
 ```
 
-## 十三、下一条视频如何复用
+## 下一条视频如何复用
 
 下一条视频可以复用这套结构：
 

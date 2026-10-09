@@ -1,5 +1,5 @@
 ---
-title: 计算机基础：计算机网络面试与工程实践
+title: 计算机网络：面试与工程实践
 date: 2024-03-02
 description: 以面试和工程问题为线索，解释 TCP/IP、HTTP、DNS、连接管理与网络性能的关键概念。
 updated: 2026-09-23
@@ -292,7 +292,7 @@ POST /anotheroperation
   "data":"anId";
   "anotherdata": "another value"
 }
-```text
+```
 
 RPC 专注于暴露方法。RPC 通常用于处理内部通讯的性能问题，这样你可以手动处理本地调用以更好的适应你的情况。
 
@@ -331,7 +331,7 @@ GET /someresources/anId
 
 PUT /someresources/anId
 {"anotherdata": "another value"}
-```http
+```
 
 REST 关注于暴露数据。它减少了客户端／服务端的耦合程度，经常用于公共 HTTP API 接口设计。REST 使用更通常与规范化的方法来通过 URI 暴露资源，[通过 header 来表述](https://github.com/for-GET/know-your-http-well/blob/master/headers.md)并通过 GET、POST、PUT、DELETE 和 PATCH 这些动作来进行操作。因为无状态的特性，REST 易于横向扩展和隔离。
 

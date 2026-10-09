@@ -1,5 +1,5 @@
 ---
-title: 编程语言：Go 实践
+title: Go：语言与工程实践
 date: 2024-03-06
 description: 从语言基础、并发模型、网络编程到工程组织，整理 Go 在后端开发中的常用实践。
 updated: 2026-09-23
@@ -38,7 +38,7 @@ Overall, the choice of programming language depends on the project requirements,
 - [string 与 []byte的类型转换](https://www.cnblogs.com/shuiyuejiangnan/p/9707066.html)
 - 标准库strings提供了许多字符串操作的函数,例如Split、HasPrefix,Trim。
 
-### array 
+### array
 - 数组array: [3]int{1,2,3}
 - **数组是值类型**，数组传参发生拷贝
 - 定长
@@ -167,7 +167,7 @@ Overall, the choice of programming language depends on the project requirements,
 			logger.LogErrorf("%s\n", string(stk[:stkLen]))
 		}
 	}()
- ```go
+ ```
 
 ## Go channel通道
 ### channel
@@ -236,7 +236,7 @@ Overall, the choice of programming language depends on the project requirements,
 		    	<-(chan struct{})(nil)
 		    }
 
-```go
+```
 
 ## Go并发模型  (Goroutine/channel/GMP)
 ### what's CSP?
@@ -415,7 +415,7 @@ func main() {
     fmt.Println(c()) // Output: 3
 }
 
-```go
+```
 
 ### Implementing Callbacks
 ```Go
@@ -441,7 +441,7 @@ func main() {
     forEach(numbers, callback)
 }
 
-```go
+```
 
 ### Fibonacci
 
@@ -475,7 +475,7 @@ func main() {
         fmt.Println(fib(i))
     }
 }
-```go
+```
 
 
 ### Factorial
@@ -495,7 +495,7 @@ func main() {
     fmt.Println(factorial(5)) // Output: 120
 }
 
-```go
+```
 
 
 ### Event Handling
@@ -541,7 +541,7 @@ func main() {
 	fmt.Scanln()
 }
 
-```bash
+```
 
 
 
@@ -607,7 +607,7 @@ client.go
 产生的原因：body实际上是一个嵌套了多层的net.TCPConn，当body没有被完全读取，也没有被关闭是，那么这次的http事物就没有完成，除非连接因为超时终止了，否则相关资源无法被回收。
 从实现上看只要body被读完，连接就能被回收，只有需要抛弃body时才需要close，似乎不关闭也可以。但那些正常情况能读完的body，即第一种情况，在出现错误时就不会被读完，即转为第二种情况。而分情况处理则增加了维护者的心智负担，所以始终close body是最佳选择。
 
-## Go sync.Pool 
+## Go sync.Pool
 ### 基本使用
 [https://golang.org/pkg/sync/](https://golang.org/pkg/sync/)  
 sync.Pool的使用非常简单，它具有以下几个特点：
@@ -644,8 +644,8 @@ sync.Pool的使用非常简单，定义一个Pool对象池时，需要提供一�
 		b := p.Get().(int)
 		fmt.Println(a, b)
 	}
-```go
-###  sync.Pool 如何支持多协程共享？
+```
+### sync.Pool 如何支持多协程共享？
 sync.Pool支持多协程共享，为了尽量减少竞争和加锁的操作，golang在设计的时候为每个P（核）都分配了一个子池，每个子池包含一个私有对象和共享列表。 私有对象只有对应的和核P能够访问，而共享列表是与其它P共享的。  
 
 在golang的GMP调度模型中，我们知道协程G最终会被调度到某个固定的核P上。当一个协程在执行Pool的get或者put方法时，首先对改核P上的子池进行操作，然后对其它核的子池进行操作。因为一个P同一时间只能执行一个goroutine，所以对私有对象存取操作是不需要加锁的，而共享列表是和其他P分享的，因此需要加锁操作。  
@@ -665,7 +665,7 @@ sync.Pool支持多协程共享，为了尽量减少竞争和加锁的操作，go
 		Mutex                 // Protects shared.
 	}
 更加细致的sync.Pool源码分析，可参考[http://jack-nie.github.io/go/golang-sync-pool.html](http://jack-nie.github.io/go/golang-sync-pool.html)
-###  为什么不使用sync.pool实现连接池？
+### 为什么不使用sync.pool实现连接池？
 刚开始接触到sync.pool时，很容易让人联想到连接池的概念，但是经过仔细分析后发现sync.pool并不是适合作为连接池，主要有以下两个原因： 
  
 - 连接池的大小通常是固定且受限制的，而sync.Pool是无法控制缓存对象的数量，只受限于内存大小，不符合连接池的目标  
@@ -813,7 +813,7 @@ golang中连接池通常利用channel的缓存特性实现。当需要连接时�
 		p.Unlock()
 		return nil
 	}
-```text
+```
 
 
 
@@ -854,7 +854,7 @@ golang中连接池通常利用channel的缓存特性实现。当需要连接时�
     	fmt.Println(*px, *pf32, *pi32)
     
     }
-```text
+```
 ### nil
 引用类型声明而没有初始化赋值时，其值为nil。golang需要经常判断nil,防止出现panic错误。  
 ```go
@@ -895,7 +895,7 @@ golang中连接池通常利用channel的缓存特性实现。当需要连接时�
     	// var c chan int
     	// close(c)  panic
     }
-```text
+```
 
 
 ## 编译器优化和逃逸分析
@@ -921,7 +921,7 @@ golang中连接池通常利用channel的缓存特性实现。当需要连接时�
 		answer := Sum()
 		fmt.Println(answer)
 	}
-```text
+```
 
 	```text
 		$ go build -gcflags=-m test_esc.go 
@@ -929,7 +929,7 @@ golang中连接池通常利用channel的缓存特性实现。当需要连接时�
 		./test_esc.go:9:17: Sum make([]int, count) does not escape
 		./test_esc.go:23:13: answer escapes to heap
 		./test_esc.go:23:13: main ... argument does not escape
-	```text
+	```
 
 ### 内敛（Inlining）
    了解C/C++的应该知道内敛，golang编译器同样支持函数内敛，对于较短且重复调用的函数可以考虑使用内敛
@@ -950,7 +950,7 @@ golang中连接池通常利用channel的缓存特性实现。当需要连接时�
 			panic(b)
 		}
 	}
-```text
+```
 常用的编译器选项： go build -gcflags="-lN" xxx.go
 - "-S",编译时查看汇编代码
 - "-l",关闭内敛优化
@@ -1006,7 +1006,7 @@ Breakpoint 1 at 0x452110: file /usr/local/go/src/runtime/rt0_linux_amd64.s, line
 	CALL	runtime·newproc(SB)
 
 	CALL	runtime·mstart(SB)
-```go
+```
 
 ### 特殊的init函数
 1. init函数先于main函数自动执行，不能被其他函数调用
@@ -1069,7 +1069,7 @@ func stackinit() {
 	}
 }
 
-```text
+```
 
 ### newproc 需要一个初始的stack
 ```Go
@@ -1079,7 +1079,7 @@ func stackinit() {
 			gp.stack = stackalloc(startingStackSize)
 		})
 		gp.stackguard0 = gp.stack.lo + _StackGuard
-```go
+```
 goroutine 运行时需要把stack 地址传给m
 
 ### 
@@ -1145,7 +1145,7 @@ Showing top 5 nodes out of 46
 - flat：仅当前函数，不包括它调用的其它函数
 - cum： 当前函数调用堆栈的累计
 - sum： 列表前几行所占百分比的总和
-```go
+```
 ### 实际操作
 - 登录容器，查看pprof监听的端口,例如
 - curl -o cpu.out http://localhost:6606/debug/pprof/profile。获取pprof文件数据
@@ -1222,7 +1222,7 @@ Showing top 5 nodes out of 46
     	sync3()
     	time.Sleep(10 * time.Second)
     }
-```go
+```
 
 
 
@@ -1310,7 +1310,7 @@ func main() {
 	produce()
 	fmt.Printf("%d,%d\n", consumer(), atomic.LoadInt32(&AtomicSum))
 }
-```go
+```
 
 
 ## Go 实践：interface/base/derive
@@ -1368,7 +1368,7 @@ func main() {
 	s := NewAService("AService", b)
 	foo(s)
 }
-```text
+```
 ## Go实践：设计模式的实现
 <https://refactoringguru.cn/design-patterns/chain-of-responsibility/go/example>
 
@@ -1401,7 +1401,7 @@ func main() {
 - [一次 go 服务大量连接 time_wait 问题排查](http://km.oa.com/group/35228/articles/show/461981?kmref=discovery).一般解决思路：TIME_WAIT排查是不是短链接，即频繁create and close socket CLOSE_WAIT排查自己代码BUG，socket没有close
 - [为什么要使用 Go 语言？Go 语言的优势在哪里？](https://www.zhihu.com/question/21409296/answer/1040884859)
 
-## 参考  
+## 参考
 <a id="ref-1"></a>
 - 1. [https://my.oschina.net/hebaodan/blog/1609245](https://my.oschina.net/hebaodan/blog/1609245)
 <a id="ref-2"></a>

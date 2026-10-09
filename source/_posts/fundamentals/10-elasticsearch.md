@@ -1,5 +1,5 @@
 ---
-title: 中间件 - 搜索和 Elasticsearch
+title: Elasticsearch：搜索原理与实践
 date: 2024-03-07
 description: 介绍 Elasticsearch 的索引、倒排检索、分片、副本和查询优化，帮助建立搜索系统的基础认知。
 updated: 2026-09-23
@@ -19,7 +19,7 @@ toc: true
 
 **核心考点速查**:
 - [基本使用](#基本使用) - Index 创建、Mapping 设计、Query DSL
-- [倒排索引原理](#倒排索引深度解析面试必问) - 倒排索引结构、Analyzer 工作流程、评分算法
+- [倒排索引原理](#倒排索引深度解析（面试必问）) - 倒排索引结构、Analyzer 工作流程、评分算法
 - [深分页问题](#深分页问题与解决方案) - scroll、search_after、分页优化
 - [高可用与脑裂](#高可用与脑裂问题) - 脑裂原因、quorum 机制、解决方案
 - [性能优化](#性能优化) - 写入性能、查询性能、索引优化
@@ -31,7 +31,7 @@ toc: true
 ### 创建index，setting和mapping
 ```bash
 curl -XPUT -H'Content-Type: application/json'  host/index_name?pretty=true -d@index_mapping.json 
-```text
+```
 
 <details>
   <summary>es index example</summary>
@@ -196,34 +196,34 @@ curl -XPUT -H'Content-Type: application/json'  host/index_name?pretty=true -d@in
         }
     }
 }
-  ```text
+  ```
 </details>
 
 ### 查看index,_cat 基本信息
 ```bash
 curl -XGET 'host/_cat/indices/*hotel_basic_info_v2_live*(支持正则表达式）?v=true&pretty=true'
-```text
+```
 
 ### 查看索引mapping信息
 ```bash
 curl -XGET 'host/index_name/_mapping?pretty=true'
-```text
+```
 
 ### 查看索引的setting信息
 ```bash
 curl -XGET 'host/index_name/_settings?pretty=true'
-```text
+```
 
 ### 通过doc id 正向查询
 ```bash
 curl -XGET  'host/index/_doc/doc_id?pretty=true'
-```text
+```
 
 ### query,search，倒排查询
 ```bash
 curl -XPOST -H'Content-Type: application/json' 'host/index_name/_search?pretty=true' -d '{
 "query":{}}'
-```text
+```
 
 
 ### update
@@ -233,7 +233,7 @@ curl -XPOST  -H'Content-Type: application/json' 'host/index/_doc/doc_id/_update'
     "price": "6500000001"
 }
 }'
-```text
+```
 
 ### 聚合count查询
 ```bash
@@ -244,7 +244,7 @@ curl -XPOST -H'Content-Type: application/json' 'host/index_name/_count' -d '{
         }
     }
 }'
-```text
+```
 
 ### 增加字段
 ```bash
@@ -256,7 +256,7 @@ curl -XPOST -H'Content-Type: application/json' 'host/index_name/_doc/_mapping' -
     }
 }'
 
-```text
+```
 
 
 ### analyzer
@@ -275,9 +275,9 @@ curl -XPOST -H'Content-Type: application/json' 'host/index_name/_doc/_mapping' -
 
 二哈分词器：
 [武汉, 市长, 江大桥, 欢迎, 您]
-```text
+```
 
-### normalizer 
+### normalizer
 - 参考：https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-index-search-time.html
 
 
@@ -291,11 +291,11 @@ POST /_aliases
     {"add": {"index": "l1", "alias": "a2"}}
   ]
 }
-```text
+```
 
 ```bash
 curl -XPUT  host/index_nane/_alias/index_alias_name
-```text
+```
 ### query DSL
 - term level queries
 	- keyword term
@@ -456,7 +456,7 @@ curl -XPUT  host/index_nane/_alias/index_alias_name
         }
     ]
 }
-```text
+```
 </details>
 
 ## 原理
@@ -516,7 +516,7 @@ query节点知道了要获取哪些信息，但是没有具体的数据，fetch�
 {"id": 1, "content": "Elasticsearch is a search engine"}
 {"id": 2, "content": "Lucene is a search library"}
 {"id": 3, "content": "Elasticsearch is built on Lucene"}
-```text
+```
 
 **倒排索引表**：
 
@@ -558,7 +558,7 @@ query节点知道了要获取哪些信息，但是没有具体的数据，fetch�
 
 // Token Filter: 小写 + 去停用词(is, a)
 ["elasticsearch", "search", "engine"]
-```text
+```
 
 **常用 Analyzer**：
 
@@ -578,7 +578,7 @@ Elasticsearch 使用 **BM25 算法**（Best Matching 25）计算相关性得分�
 
 ```text
 score(D, Q) = Σ IDF(qi) × TF(qi, D)
-```text
+```
 
 - **TF（Term Frequency）**：词频，词在文档中出现次数
 - **IDF（Inverse Document Frequency）**：逆文档频率，词的稀有程度
@@ -612,7 +612,7 @@ GET /index/_search
   "from": 10000,  // 第 1000 页
   "size": 10
 }
-```sql
+```
 
 **问题**：
 - 5 个分片，每个分片需查询 10010 条数据
@@ -647,7 +647,7 @@ DELETE /_search/scroll
 {
   "scroll_id": "DXF1ZXJ5QW5kRmV0Y2gBAAAAAAAAAD4WYm9laVYtZndUQlNsdDcwakFMNjU1QQ=="
 }
-```text
+```
 
 **缺点**：
 - 占用大量内存（保持查询上下文）
@@ -691,7 +691,7 @@ GET /index/_search
     {"_id": "asc"}
   ]
 }
-```text
+```
 
 **优势**：
 - 内存占用小（无需保持上下文）
@@ -731,7 +731,7 @@ Node1 (Master) - Node2 - Node3
   写入数据A               写入数据B
      ↓                      ↓
    数据不一致！
-```text
+```
 
 ### 解决方案：quorum 机制
 
@@ -739,7 +739,7 @@ Node1 (Master) - Node2 - Node3
 
 ```yaml
 discovery.zen.minimum_master_nodes: (N/2 + 1)  // N 为 Master 候选节点数
-```text
+```
 
 **示例**：
 - 3 个 Master 候选节点：`minimum_master_nodes = 2`
@@ -759,7 +759,7 @@ discovery.zen.minimum_master_nodes: (N/2 + 1)  // N 为 Master 候选节点数
    ↓           ↓
  只有1个节点   有2个节点
  无法选举     可以选举新Master
-```text
+```
 
 ### 其他高可用措施
 
@@ -986,7 +986,7 @@ Analyzer 是分词器，包含 3 个组件：
     }
 }
 
-```text
+```
 
 ### mapping 数据模型优化
 - 不要使用默认的mapping.默认Mapping的字段类型是系统自动识别的。其中：string类型默认分成：text和keyword两种类型。如果你的业务中不需要分词、检索，仅需要精确匹配，仅设置为keyword即可。根据业务需要选择合适的类型，有利于节省空间和提升精度，如：浮点型的选择.
@@ -1080,7 +1080,7 @@ Analyzer 是分词器，包含 3 个组件：
         }
     }
 }
-```text
+```
 
 
 

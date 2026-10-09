@@ -24,7 +24,7 @@ description: 基于 Android、OpenCV UMat 与 OpenCL，记录 KCF 目标追踪�
 
 需要特别说明的是，OpenCV 的 `UMat` 是 Transparent API 的抽象，并不保证每个算子都在 GPU 上执行；OpenCL 运行时可能根据算子、数据类型和设备能力回退到 CPU [[7]](#ref-7)[[8]](#ref-8)。同样，编译 OpenCV 时打开 `WITH_OpenCL=ON`，也不等于设备上一定存在可用的 OpenCL 驱动。
 
-## 一、测试环境与方法
+## 测试环境与方法
 
 原始实验使用的主要环境如下：
 
@@ -56,7 +56,7 @@ T_gpu = T_init + T_upload + T_kernel + T_download + T_sync
 
 如果只测 `T_kernel`，就不能直接把结果解释为完整算法的加速比。建议使用单调时钟测量主机端总耗时，并在开启 `CL_QUEUE_PROFILING_ENABLE` 后通过 Event profiling 获取设备端时间 [[5]](#ref-5)。Android 级别的调度、频率和热状态，则应结合 Perfetto 或 Simpleperf 观察 [[14]](#ref-14)[[15]](#ref-15)。
 
-## 二、OpenCL 基本执行模型
+## OpenCL 基本执行模型
 
 OpenCL 的基本执行路径可以概括为：
 
@@ -79,7 +79,7 @@ Platform → Device → Context → Command Queue
 
 `clEnqueueNDRangeKernel` 的 global work size 和 local work size 需要结合设备上限、Kernel 资源使用和内存访问模式选择，不能简单认为 work-item 越多越快 [[1]](#ref-1)[[3]](#ref-3)[[4]](#ref-4)。如果要研究 work-group 调优，应固定数据规模，同时独立比较不同的 global work size、local work size 和向量化方式。
 
-### 2.1 内存地址空间与数据驻留
+### 内存地址空间与数据驻留
 
 OpenCL Kernel 中常见的地址空间包括 global、constant、local 和 private。它们首先是编程模型中的访问范围，不应简单等同于某一种固定的物理存储：具体映射由设备和驱动决定，但不同地址空间的可见范围、生命周期和同步规则不同 [[1]](#ref-1)[[2]](#ref-2)。
 
@@ -92,7 +92,7 @@ OpenCL Kernel 中常见的地址空间包括 global、constant、local 和 priva
 
 同步也有层次差异。`barrier()` 只能协调同一个 work-group 中的 work-item，不能让不同 work-group 在 Kernel 内安全地交换数据；主机侧的 Event wait list 则用于安排不同命令之间的依赖。`clFlush` 负责推动已提交命令进入设备，`clFinish` 则等待队列中所有命令完成，二者都不应被随意混作性能计时点 [[1]](#ref-1)[[3]](#ref-3)[[5]](#ref-5)。因此，性能代码应尽量使用精确的 Event 依赖，避免用过多全局同步把本可重叠的阶段串行化。
 
-## 三、编译带 OpenCL 的 OpenCV SDK
+## 编译带 OpenCL 的 OpenCV SDK
 
 KCF 使用了不少 OpenCV 函数，因此最初的方案是编译一个启用 OpenCL 的 OpenCV SDK。原始构建命令如下，路径参数需要根据本地环境调整：
 
@@ -127,9 +127,9 @@ cmake \
 
 当前 Android 项目更建议参考 NDK 的 CMake 集成文档 [[12]](#ref-12)，并使用仍受支持的 C++ 运行时配置。上面的命令保留在本文中，是为了说明原始实验环境，而不是推荐当前项目直接复制使用。
 
-## 四、OpenCV UMat 与数据传输测试
+## OpenCV UMat 与数据传输测试
 
-### 4.1 运行时确认是否使用 OpenCL
+### 运行时确认是否使用 OpenCL
 
 在测试 `UMat` 之前，应先确认 OpenCL 运行时和设备状态：
 
@@ -155,7 +155,7 @@ bool prepareOpenCL() {
 
 `UMat` 和 `cv::ocl` 的具体 API 见 OpenCV 文档 [[7]](#ref-7)[[8]](#ref-8)[[9]](#ref-9)。实际工程还应记录设备名称、驱动版本和算子是否发生 CPU fallback。否则，即使代码使用了 `UMat`，也不能仅凭 API 名称判断 GPU 一定参与了计算。
 
-### 4.2 Mat 与 UMat 的拷贝
+### Mat 与 UMat 的拷贝
 
 原始测试使用 `image.copyTo(u_img)` 和 `u_img.copyTo(out)` 测量 CPU 与设备内存之间的拷贝耗时。这个测试有参考价值，但需要区分以下情况：
 
@@ -177,7 +177,7 @@ bool prepareOpenCL() {
 
 这些数据缺少采样次数、统计分布、温度和内存复用策略，因此适合用于观察趋势，不宜作为设备之间的严格排名。
 
-### 4.3 `cvtColor` 测试
+### `cvtColor` 测试
 
 原始代码的 CPU 版本在计时前完成了图像读取，OpenCL 版本则在进入计时循环前完成了 `Mat → UMat` 拷贝，计时循环主要覆盖 `cvtColor`。因此，下面的 OpenCL 平均值更接近“已经完成数据准备后的算子稳态时间”，不是完整的端到端时间。
 
@@ -194,7 +194,7 @@ bool prepareOpenCL() {
 
 从原始记录看，OpenCL 首次运行有明显的初始化或 Kernel 准备开销，稳态算子时间较低。但如果每一帧都需要上传和下载，最终是否有收益必须使用同一条端到端流水线重新测量。OpenCV 的 OpenCL 优化说明也强调，数据驻留和算子支持情况会影响实际收益 [[10]](#ref-10)。
 
-### 4.4 让移动端基准测试可复现
+### 让移动端基准测试可复现
 
 移动端性能测试最容易出现的问题，不是不会调用计时函数，而是测试协议没有把影响因素固定下来。一次更可靠的测试至少应包含以下步骤：
 
@@ -209,7 +209,7 @@ bool prepareOpenCL() {
 
 在工具选择上，主机端可以用单调时钟测量完整流程，OpenCL 设备端使用 Event profiling 拆分命令区间，Android 系统层则用 Perfetto 观察线程、频率和调度轨迹 [[5]](#ref-5)[[14]](#ref-14)。Simpleperf 更适合回答 CPU 热点在哪里、线程是否被调度，以及 CPU 版本是否已经受到缓存或频率影响 [[15]](#ref-15)。三层数据结合起来，才能把“感觉 GPU 更快”转化为可解释的性能证据。
 
-## 五、OpenCL 核心 API 性能测试
+## OpenCL 核心 API 性能测试
 
 原始 API 测试结果如下。这里的数值是单次测试记录，文章没有保存完整的重复次数、平均值、P95 和热状态，因此不应把它们当作稳定基线。
 
@@ -224,9 +224,9 @@ bool prepareOpenCL() {
 
 需要区分“提交命令的主机开销”和“设备执行 Kernel 的时间”。`clEnqueueNDRangeKernel` 返回得快，不代表 Kernel 已经执行完成；只有等待 Event 或使用设备端 profiling，才能获得更可靠的执行时间 [[3]](#ref-3)[[5]](#ref-5)。
 
-## 六、global work size 与内存拷贝效率
+## global work size 与内存拷贝效率
 
-### 6.1 CPU 循环拷贝与 `memcpy`
+### CPU 循环拷贝与 `memcpy`
 
 测试图像大小为：
 
@@ -253,7 +253,7 @@ memcpy(out, bmp_data, bmp_size);
 
 CPU 循环与 `memcpy` 的比较还需要说明缓存状态、编译优化级别和输出是否被后续使用；重复读取同一块数据可能得到明显不同于冷缓存的结果。
 
-### 6.2 修正后的 OpenCL 拷贝 Kernel
+### 修正后的 OpenCL 拷贝 Kernel
 
 原始 Kernel 存在全角逗号、参数数量不一致、可能遗漏尾部数据和重复写入等问题。下面给出一个只表达“每个 work-item 处理一个字节”的简化示例；它用于说明边界和访问语义，不能直接替代针对具体 GPU 的最优实现。
 
@@ -293,7 +293,7 @@ event.wait();
 
 `local_size` 不是一个对所有 GPU 都适用的固定常数，应结合 `CL_DEVICE_MAX_WORK_GROUP_SIZE`、Kernel 资源占用、内存对齐和设备厂商建议值测试。OpenCL 的 NDRange 和 work-group 约束见 [[1]](#ref-1)[[2]](#ref-2)[[4]](#ref-4)。
 
-### 6.3 原始 work-item 测试结果
+### 原始 work-item 测试结果
 
 原始测试使用一张 3840×2160 的图像，在小米 MIX 2S 上观察不同 global work size 的结果：
 
@@ -328,13 +328,13 @@ event.wait();
 
 因此，本文只能得出“global work size 需要实测调优”的结论，不能得出某个固定值适用于其他设备。建议使用 Event profiling、多次运行、中位数/P95 和正确性校验重新确认。
 
-## 七、Command Queue 与并发测试
+## Command Queue 与并发测试
 
 原始问题是：如果有 `n` 个任务，每个任务包括 CPU→GPU 拷贝、Kernel 执行和 GPU→CPU 拷贝，使用一个 Queue 和多个 Queue 是否存在差异？
 
 答案取决于 Queue 的顺序属性、设备是否支持重叠执行、内存传输路径和驱动调度策略。多个 Queue 并不自动意味着多个任务会并行；如果设备或驱动最终把操作串行化，Queue 数量增加只会带来额外管理开销。Queue 属性和异步命令模型见 [[1]](#ref-1)[[6]](#ref-6)。
 
-### 7.1 正确的比较方式
+### 正确的比较方式
 
 单 Queue 和多 Queue 必须满足相同的条件：
 
@@ -364,13 +364,13 @@ auto end = monotonic_time_ns();
 
 多 Queue 测试则为每个任务建立自己的 Queue、Buffer 和 Event，但仍然以所有任务完成后的总时间作为端到端指标。不能只测 Queue 创建时间，也不能只测其中一个 Kernel 的等待时间。
 
-### 7.2 对原始结论的重新表述
+### 对原始结论的重新表述
 
 原始实验观察到多个 Queue 的总耗时略低于单 Queue，部分 work-item 设置下可能有约 15% 的差异，并观察到 GPU 利用率曲线形态不同。这可以作为“该设备驱动在特定任务布局下可能存在调度差异”的线索，但还不足以证明多个 Queue 普遍更快。
 
 要把这个观察变成可靠结论，还需要补充 Queue 属性、任务总耗时、Event 时间线、重复次数、温度和 GPU 利用率采集方式。Android 设备长时间运行时还可能发生热降频，热状态会显著影响结果 [[16]](#ref-16)[[17]](#ref-17)。
 
-### 7.3 从单 Kernel 调优到设备侧流水线
+### 从单 Kernel 调优到设备侧流水线
 
 简单的字节拷贝 Kernel 主要受内存带宽和调度开销影响，不一定能代表 KCF 中包含 FFT、逐元素运算或相关计算的 Kernel。优化时应先确认热点属于计算受限、内存受限还是同步受限，再选择方向。
 
@@ -380,7 +380,7 @@ local memory 也不是默认的性能加速器。只有当数据会被同一 wor
 
 对于多个连续阶段，更有价值的方向通常是双缓冲或多缓冲流水线：缓冲区 A 在执行 Kernel 时，缓冲区 B 可以准备下一批输入；当设备支持并且依赖关系正确时，上传、计算和下载才可能出现重叠。每一个阶段都应通过 Event wait list 表达依赖，不要用无差别的 `clFinish` 把所有队列重新串起来 [[1]](#ref-1)[[5]](#ref-5)[[6]](#ref-6)。最终比较的也不是“创建了几个 Queue”，而是固定吞吐目标下的总耗时、峰值内存、错误率和功耗。
 
-## 八、对 KCF 移动端优化的启示
+## 对 KCF 移动端优化的启示
 
 本文的 UMat、内存拷贝和简单 Kernel 测试，最终都应该服务于 KCF 的端到端优化。OpenCV 也提供了 KCF 跟踪器接口，可作为算法实现和 API 行为的补充参考 [[20]](#ref-20)。建议对 KCF 的每个阶段单独测量：
 
@@ -402,7 +402,7 @@ local memory 也不是默认的性能加速器。只有当数据会被同一 wor
 
 如果 KCF 只把一个很小的算子单独搬到 GPU，`T_upload + T_download + T_sync` 很可能超过 Kernel 本身的收益。更合理的优化方向通常是把一组连续算子放在同一设备侧流水线中，再以单帧端到端延迟、吞吐量、功耗和稳定性共同评价。
 
-### 8.1 KCF 算子迁移的决策流程
+### KCF 算子迁移的决策流程
 
 KCF 优化不应从“把所有 OpenCV 调用都改成 UMat”开始，而应从 CPU baseline 的热点分析开始。可以采用以下流程：
 
@@ -414,7 +414,7 @@ KCF 优化不应从“把所有 OpenCV 调用都改成 UMat”开始，而应从
 
 对于 KCF，频域计算和大规模逐元素运算通常比很小的控制逻辑更值得分析，但这只是候选方向，不是对某个实现的性能承诺。实际选择还取决于 ROI 尺寸、特征通道数、FFT 实现、调用频率和数据是否能长期驻留设备端 [[18]](#ref-18)[[19]](#ref-19)。
 
-### 8.2 上线前检查清单
+### 上线前检查清单
 
 在将 OpenCL 优化合入移动端算法前，可以用下面的清单做一次复核：
 
@@ -430,7 +430,7 @@ KCF 优化不应从“把所有 OpenCV 调用都改成 UMat”开始，而应从
 
 这份清单的核心是确保性能收益能在真实输入、温度和生命周期中稳定复现。
 
-## 九、结论
+## 结论
 
 这次实验得到的主要经验可以总结为：
 

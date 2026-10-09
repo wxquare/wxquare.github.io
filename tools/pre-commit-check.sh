@@ -83,6 +83,10 @@ if [[ -n "$STAGED_MD_FILES" ]]; then
         ERRORS=$((ERRORS + 1))
       fi
 
+      if ! node tools/check-post-headings.js "$file"; then
+        ERRORS=$((ERRORS + 1))
+      fi
+
       untagged_blocks="$(grep -n '^```$' "$file" | head -n 3 || true)"
       if [[ -n "$untagged_blocks" ]]; then
         echo "⚠️  警告: $file 存在未标注语言的代码块"

@@ -70,7 +70,7 @@ Karpathy 的知识系统可以分为五个核心模块：
 数据摄入 → 知识编译 → Q&A检索 → 输出生成 → 健康检查
 ```
 
-### 1. 数据摄入层（Information Capture）
+### 数据摄入层（Information Capture）
 
 **输入源**：
 - 学术论文
@@ -97,7 +97,7 @@ raw/
 
 **原则**：只收集高信噪比信息。
 
-### 2. 知识编译层（Knowledge Compilation）
+### 知识编译层（Knowledge Compilation）
 
 这是系统的核心创新：**LLM 作为知识编译器**。
 
@@ -159,7 +159,7 @@ Wiki 结构：
 
 **关键点**：Wiki 由 LLM 写入和维护，人类很少直接编辑。
 
-### 3. 前端展示层：Obsidian
+### 前端展示层：Obsidian
 
 使用 Obsidian 作为知识 IDE：
 
@@ -173,7 +173,7 @@ Wiki 结构：
 - **Graph View**：知识图谱可视化
 - **Canvas**：概念地图
 
-### 4. 检索问答层（Q&A Retrieval）
+### 检索问答层（Q&A Retrieval）
 
 当 Wiki 足够大（例如 100 篇文章，~40 万字），可以对它提问。
 
@@ -204,7 +204,7 @@ def answer_question(question):
 - 对现代 LLM（如 Claude、GPT-4）完全可处理
 - 简单的索引文件 + 摘要就够了
 
-### 5. 输出生成层（Knowledge Output）
+### 输出生成层（Knowledge Output）
 
 回答不只是文本，而是多种格式：
 
@@ -231,7 +231,7 @@ Insights
 Research Log
 ```
 
-### 6. 健康检查层（System Maintenance）
+### 健康检查层（System Maintenance）
 
 LLM 可以对 Wiki 进行"代码审查"：
 
@@ -330,7 +330,7 @@ knowledge-base/
 
 ## 核心原则
 
-### 1. 知识必须压缩
+### 知识必须压缩
 
 好的理解是简洁的：
 
@@ -343,7 +343,7 @@ Gradient Descent = 沿着梯度方向下降
 Backpropagation = 链式法则的应用
 ```
 
-### 2. 知识必须连接
+### 知识必须连接
 
 不是树状结构，而是图结构：
 
@@ -355,7 +355,7 @@ Deep Learning
    └─ Optimization ────┘
 ```
 
-### 3. 知识必须模块化
+### 知识必须模块化
 
 不要写长笔记：
 
@@ -370,7 +370,7 @@ Deep Learning
    note: attention-mechanism.md
 ```
 
-### 4. 让 AI 做 AI 擅长的事
+### 让 AI 做 AI 擅长的事
 
 ```
 人类擅长：
@@ -389,7 +389,7 @@ AI 擅长：
 
 ## 为什么这个方法有效
 
-### 1. 知识不再碎片化
+### 知识不再碎片化
 
 **传统笔记的问题**：
 - 写了就忘了
@@ -402,7 +402,7 @@ AI 擅长：
 - 自动建立概念关系
 - 动态生长
 
-### 2. 检索成本极低
+### 检索成本极低
 
 不需要：
 - 复杂的标签系统
@@ -413,7 +413,7 @@ AI 擅长：
 - 直接问 LLM
 - 它会找到相关内容
 
-### 3. 知识会"生长"
+### 知识会"生长"
 
 ```
 每次提问 → 每次探索 → 沉淀回 Wiki
@@ -426,7 +426,7 @@ AI 擅长：
 Knowledge(t+1) = Knowledge(t) + New_Insights
 ```
 
-### 4. 减少手动操作
+### 减少手动操作
 
 ```
 人类：不擅长整理笔记
@@ -611,7 +611,7 @@ def generate_knowledge_graph(wiki_dir):
 
 ## 局限性与挑战
 
-### 1. 规模限制
+### 规模限制
 
 **问题**：当 Wiki 超过一定规模（如 100 万字），简单索引可能不够。
 
@@ -620,7 +620,7 @@ def generate_knowledge_graph(wiki_dir):
 - 实现分层索引
 - 使用更复杂的 RAG 架构
 
-### 2. LLM 成本
+### LLM 成本
 
 **问题**：频繁调用 LLM 产生 token 成本。
 
@@ -630,7 +630,7 @@ def generate_knowledge_graph(wiki_dir):
 - 使用更便宜的模型处理简单任务
 - 考虑本地模型（Llama 3.1）
 
-### 3. 工具依赖
+### 工具依赖
 
 **问题**：需要一些脚本和工具链。
 
@@ -639,7 +639,7 @@ def generate_knowledge_graph(wiki_dir):
 - 先用现成工具
 - 慢慢自动化
 
-### 4. 学习曲线
+### 学习曲线
 
 **问题**：需要时间调优工作流。
 

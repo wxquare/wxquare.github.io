@@ -36,9 +36,9 @@ toc: true
 
 ---
 
-## 一、AI 编程工具的演进
+## AI 编程工具的演进
 
-### 1.1 从代码补全到自主 Agent
+### 从代码补全到自主 Agent
 
 AI 编程工具的发展经历了三个阶段：
 
@@ -77,7 +77,7 @@ Cursor 和 Claude Code 等工具将 AI 提升到 Agent 级别，能够：
 - 自主执行测试和验证
 - 持续学习项目规范
 
-### 1.2 工具能力提升了，但方法论跟上了吗？
+### 工具能力提升了，但方法论跟上了吗？
 
 工具的能力从"补全一行代码"进化到"实现一个完整功能"，但大多数开发者的使用方式还停留在"即兴式 prompt"阶段：
 
@@ -103,16 +103,16 @@ AI：[又改一遍]
 
 ---
 
-## 二、Vibe Coding：第一代 AI 编程范式
+## Vibe Coding：第一代 AI 编程范式
 
-### 2.1 什么是 Vibe Coding
+### 什么是 Vibe Coding
 
 **Vibe Coding**（氛围编程、即兴编程）是指通过即兴的、逐步迭代的 prompt 与 AI 交互，"感觉对了就继续"的编程方式。
 
 这个名词来源于开发者社区的自嘲：
 > "I'm not following a plan, I'm just vibing with the AI." （我没有计划，就是跟着感觉和 AI 聊）
 
-### 2.2 Vibe Coding 的典型流程
+### Vibe Coding 的典型流程
 
 让我们看一个真实的例子：用 Vibe Coding 实现一个简单的用户列表 API。
 
@@ -192,7 +192,7 @@ func GetUsers(w http.ResponseWriter, r *http.Request) {
 - ❌ 没有数据库查询（只是模拟数据）
 - ❌ 没有单元测试
 
-### 2.3 Vibe Coding 的价值
+### Vibe Coding 的价值
 
 尽管有这些问题，Vibe Coding 在某些场景下非常有价值：
 
@@ -221,9 +221,9 @@ AI：[生成代码 + 解释]
 
 ---
 
-## 三、Vibe Coding 的天花板
+## Vibe Coding 的天花板
 
-### 3.1 场景一：订单状态机实现
+### 场景一：订单状态机实现
 
 **需求**：实现一个电商订单的状态机。
 
@@ -300,7 +300,7 @@ func (o *Order) UpdateStatus(newStatus OrderStatus) error {
 
 **根本原因**：缺少整体规划，逐步添加功能导致架构混乱。
 
-### 3.2 场景二：支付接口集成
+### 场景二：支付接口集成
 
 **需求**：集成支付宝支付。
 
@@ -352,7 +352,7 @@ AI 生成了基本的支付请求代码。
 
 **根本原因**：支付是安全敏感场景，需要在设计阶段就考虑所有安全要求，而不是事后补充。
 
-### 3.3 场景三：数据库设计
+### 场景三：数据库设计
 
 **需求**：设计商品库存表。
 
@@ -403,7 +403,7 @@ CREATE TABLE inventory (
 
 **根本原因**：数据库设计需要前期规划，频繁修改表结构会带来巨大的迁移成本。
 
-### 3.4 Vibe Coding 与 Spec Coding 的定性比较
+### Vibe Coding 与 Spec Coding 的定性比较
 
 | 维度 | Vibe Coding | Spec Coding |
 |------|-------------|-------------|
@@ -414,9 +414,9 @@ CREATE TABLE inventory (
 
 ---
 
-## 四、Spec Coding：规范驱动的 AI 编程
+## Spec Coding：规范驱动的 AI 编程
 
-### 4.1 理论基础
+### 理论基础
 
 #### Sean Grove 的 "The New Code"
 
@@ -445,7 +445,7 @@ Grove 认为：
 
 在 AI 时代，这句话被重新激活：**规范就是代码，代码只是规范的实现产物。**
 
-### 4.2 Spec Coding 的三层规范结构
+### Spec Coding 的三层规范结构
 
 Spec Coding 将规范分为三个层次：
 
@@ -498,7 +498,7 @@ Spec Coding 将规范分为三个层次：
 扣减库存
 
 **请求：**
-```json
+```
 {
   "product_id": 12345,
   "quantity": 2,
@@ -507,7 +507,7 @@ Spec Coding 将规范分为三个层次：
 ```
 
 **响应（成功）：**
-```json
+```
 {
   "data": {
     "product_id": 12345,
@@ -517,7 +517,7 @@ Spec Coding 将规范分为三个层次：
 ```
 
 **响应（库存不足）：**
-```json
+```
 {
   "error": {
     "code": "E2001",
@@ -566,7 +566,7 @@ Spec Coding 将规范分为三个层次：
 - 幂等性测试：同一请求调用 10 次，只扣减一次
 ```
 
-### 4.3 Spec Coding 的核心工作流
+### Spec Coding 的核心工作流
 
 ```mermaid
 flowchart TD
@@ -596,7 +596,7 @@ flowchart TD
 
 **Verify（验证）**：运行测试，确保符合规范
 
-### 4.4 为什么 Spec Coding 更适合生产环境
+### 为什么 Spec Coding 更适合生产环境
 
 **1. 验收边界更清晰**
 
@@ -620,11 +620,11 @@ flowchart TD
 
 ---
 
-## 五、完整案例对比：电商库存扣减服务
+## 完整案例对比：电商库存扣减服务
 
 让我们通过一个完整的案例，对比 Vibe Coding 和 Spec Coding 的差异。
 
-### 5.1 需求说明
+### 需求说明
 
 **功能需求：**
 - 下单时扣减库存
@@ -638,7 +638,7 @@ flowchart TD
 - 延迟：P99 < 100ms
 - 可用性：99.9%
 
-### 5.2 Vibe Coding 实现过程
+### Vibe Coding 实现过程
 
 **第 1 轮：实现基本扣减逻辑**
 ```
@@ -712,7 +712,7 @@ func DeductInventory(productID int64, quantity int) error {
 - 🐛 遗留 Bug：3 个（边界情况未处理）
 - 📚 文档：无
 
-### 5.3 Spec Coding 实现过程
+### Spec Coding 实现过程
 
 #### 步骤 1：编写规范文档（15 分钟）
 
@@ -738,7 +738,7 @@ func DeductInventory(productID int64, quantity int) error {
 ## 数据模型
 
 ### inventory 表
-```sql
+```
 CREATE TABLE inventory (
     id BIGSERIAL PRIMARY KEY,
     product_id BIGINT NOT NULL UNIQUE,
@@ -752,7 +752,7 @@ CREATE INDEX idx_inventory_product_id ON inventory(product_id);
 ```
 
 ### inventory_log 表
-```sql
+```
 CREATE TABLE inventory_log (
     id BIGSERIAL PRIMARY KEY,
     product_id BIGINT NOT NULL,
@@ -774,7 +774,7 @@ CREATE INDEX idx_inventory_log_product_id ON inventory_log(product_id);
 扣减库存
 
 **请求：**
-```json
+```
 {
   "product_id": 12345,
   "quantity": 2,
@@ -783,7 +783,7 @@ CREATE INDEX idx_inventory_log_product_id ON inventory_log(product_id);
 ```
 
 **响应（成功 200）：**
-```json
+```
 {
   "data": {
     "product_id": 12345,
@@ -793,7 +793,7 @@ CREATE INDEX idx_inventory_log_product_id ON inventory_log(product_id);
 ```
 
 **响应（库存不足 409）：**
-```json
+```
 {
   "error": {
     "code": "E2001",
@@ -807,7 +807,7 @@ CREATE INDEX idx_inventory_log_product_id ON inventory_log(product_id);
 ```
 
 **响应（重复请求 200）：**
-```json
+```
 {
   "data": {
     "product_id": 12345,
@@ -821,7 +821,7 @@ CREATE INDEX idx_inventory_log_product_id ON inventory_log(product_id);
 恢复库存（订单取消时调用）
 
 **请求：**
-```json
+```
 {
   "product_id": 12345,
   "quantity": 2,
@@ -1044,7 +1044,7 @@ func (s *InventoryService) DeductInventory(ctx context.Context, req *DeductReque
 }
 ```
 
-### 5.4 对比总结
+### 对比总结
 
 | 维度 | Vibe Coding | Spec Coding | 提升 |
 |------|-------------|-------------|------|
@@ -1066,13 +1066,13 @@ func (s *InventoryService) DeductInventory(ctx context.Context, req *DeductReque
 
 ---
 
-## 六、Spec Coding 工具链实践
+## Spec Coding 工具链实践
 
 理解了 Spec Coding 的理念后，让我们看看如何在实际工具中落地。本节分别介绍 Cursor IDE 和 Claude Code 的实践方法。
 
-### 6.1 Cursor IDE 中的 Spec Coding 实践
+### Cursor IDE 中的 Spec Coding 实践
 
-#### 6.1.1 Cursor 的配置文件体系
+#### Cursor 的配置文件体系
 
 Cursor 使用两种配置文件来管理规范：
 
@@ -1141,7 +1141,7 @@ Cursor 使用两种配置文件来管理规范：
 - 使用 pkg/errors 包装错误，保留堆栈信息
 - 业务错误定义在 internal/errors/ 目录
 - HTTP 错误响应格式：
-  ```json
+  ```
   {
     "error": {
       "code": "E1001",
@@ -1225,7 +1225,7 @@ globs:
 ## 请求/响应格式
 
 ### 成功响应（2xx）
-```json
+```
 {
   "data": {
     "id": 12345,
@@ -1241,7 +1241,7 @@ globs:
 ```
 
 ### 错误响应（4xx, 5xx）
-```json
+```
 {
   "error": {
     "code": "E1001",
@@ -1271,7 +1271,7 @@ globs:
 - `page_size`：每页数量（默认 20，最大 100）
 
 ### 响应
-```json
+```
 {
   "data": [...],
   "pagination": {
@@ -1301,7 +1301,7 @@ globs:
 - POST 需要使用幂等键（Idempotency-Key）
 
 ### 幂等键实现
-```go
+```
 // 请求头
 Idempotency-Key: uuid-xxxx-xxxx
 
@@ -1405,7 +1405,7 @@ globs:
 - 使用乐观锁处理并发（version 字段）
 
 ### GORM 事务示例
-```go
+```
 func CreateOrder(ctx context.Context, order *Order) error {
     return db.Transaction(func(tx *gorm.DB) error {
         // 1. 创建订单
@@ -1431,7 +1431,7 @@ func CreateOrder(ctx context.Context, order *Order) error {
 ## 乐观锁
 
 ### 实现方式
-```sql
+```
 CREATE TABLE orders (
     id BIGSERIAL PRIMARY KEY,
     version INT NOT NULL DEFAULT 0,
@@ -1439,7 +1439,7 @@ CREATE TABLE orders (
 );
 ```
 
-```go
+```
 // 更新时检查 version
 result := db.Model(&Order{}).
     Where("id = ? AND version = ?", orderID, oldVersion).
@@ -1456,7 +1456,7 @@ if result.RowsAffected == 0 {
 ## 查询优化
 
 ### 避免 N+1 查询
-```go
+```
 // ❌ 错误：N+1 查询
 orders := []Order{}
 db.Find(&orders)
@@ -1470,7 +1470,7 @@ db.Preload("Items").Find(&orders)
 ```
 
 ### 使用索引
-```go
+```
 // ❌ 错误：全表扫描
 db.Where("name LIKE ?", "%keyword%").Find(&users)
 
@@ -1479,7 +1479,7 @@ db.Where("name = ?", "Alice").Find(&users)
 ```
 
 ### 分页查询
-```go
+```
 // ✅ 使用 Limit + Offset
 db.Limit(pageSize).Offset((page - 1) * pageSize).Find(&orders)
 ```
@@ -1487,12 +1487,12 @@ db.Limit(pageSize).Offset((page - 1) * pageSize).Find(&orders)
 ## 软删除
 
 ### 实现
-```sql
+```
 ALTER TABLE orders ADD COLUMN deleted_at TIMESTAMP;
 CREATE INDEX idx_orders_deleted_at ON orders(deleted_at);
 ```
 
-```go
+```
 // GORM 自动支持软删除
 type Order struct {
     ID        uint
@@ -1512,19 +1512,19 @@ db.Unscoped().Find(&orders)
 ## 数据迁移
 
 ### 使用 migrate 工具
-```bash
-# 创建迁移文件
+```
+## 创建迁移文件
 migrate create -ext sql -dir migrations -seq create_orders_table
 
-# 执行迁移
+## 执行迁移
 migrate -path migrations -database "postgres://..." up
 
-# 回滚
+## 回滚
 migrate -path migrations -database "postgres://..." down 1
 ```
 
 ### 迁移文件示例
-```sql
+```
 -- 000001_create_orders_table.up.sql
 CREATE TABLE orders (
     id BIGSERIAL PRIMARY KEY,
@@ -1554,7 +1554,7 @@ DROP TABLE IF EXISTS orders;
 - [ ] 使用 migrate 工具管理数据库迁移
 ```
 
-#### 6.1.2 Cursor 工作流实战
+### Cursor 工作流实战
 
 完整的 Spec Coding 工作流包含 4 个步骤：
 
@@ -1616,7 +1616,7 @@ Cursor 会同时在多个文件中生成代码，并且每个文件都会遵循�
 
 Cursor 会逐项检查，并给出改进建议。
 
-#### 6.1.3 Cursor 常见陷阱
+#### Cursor 常见陷阱
 
 **陷阱 1：忘记引用规范文件**
 
@@ -1688,9 +1688,9 @@ Cursor 会逐项检查，并给出改进建议。
 
 ---
 
-### 6.2 Claude Code 中的 Spec Coding 实践
+### Claude Code 中的 Spec Coding 实践
 
-#### 6.2.1 Claude Code 的配置文件体系
+#### Claude Code 的配置文件体系
 
 Claude Code 是 Anthropic 开发的终端工具，使用不同的配置文件体系。
 
@@ -1803,7 +1803,7 @@ your-project/
     └── ...
 ```
 
-#### 6.2.2 Claude Code 工作流实战
+#### Claude Code 工作流实战
 
 **步骤 1：创建功能规范**
 
@@ -1971,7 +1971,7 @@ Claude Code 生成代码后，你可以：
 > 请逐条检查，列出符合和不符合的部分
 ```
 
-#### 6.2.3 Claude Code 特色功能
+#### Claude Code 特色功能
 
 **功能 1：规范验证**
 
@@ -2019,7 +2019,7 @@ Claude Code 适合批量生成代码：
 
 ---
 
-### 6.3 Cursor vs Claude Code：工具选择指南
+### Cursor vs Claude Code：工具选择指南
 
 | 维度 | Cursor IDE | Claude Code |
 |------|-----------|-------------|
@@ -2115,9 +2115,9 @@ your-project/
 
 ---
 
-## 七、混合策略与行动建议
+## 混合策略与行动建议
 
-### 7.1 渐进式工作流：从 Vibe 到 Spec
+### 渐进式工作流：从 Vibe 到 Spec
 
 最实用的方式不是"非此即彼"，而是**渐进式过渡**：
 
@@ -2183,7 +2183,7 @@ AI 会生成一份完整的规范文档。
 - 用 Spec 的质量交付产品（1 小时）
 - 总耗时比直接用 Vibe Coding 开发生产代码（2+ 小时）还要少
 
-### 7.2 决策框架：什么时候用什么方法
+### 决策框架：什么时候用什么方法
 
 ```mermaid
 flowchart TD
@@ -2272,7 +2272,7 @@ AI：[生成脚本]
 - 代码和文档同步
 - 易于交接
 
-### 7.3 行动建议
+### 行动建议
 
 #### 个人开发者
 
@@ -2367,7 +2367,7 @@ PR 检查清单：
 - 补充遗漏的规范
 - 分享最佳实践
 
-### 7.4 关键原则
+### 关键原则
 
 **原则 1：规范是 source of truth**
 
@@ -2385,7 +2385,7 @@ PR 检查清单：
 
 需求变更时，先更新规范，再更新代码。规范是活的，不是死的。
 
-### 7.5 常见问题
+### 常见问题
 
 **Q1：Spec Coding 会不会太慢了？**
 
@@ -2426,7 +2426,7 @@ PR 检查清单：
 
 ---
 
-## 八、总结
+## 总结
 
 从 Vibe Coding 到 Spec Coding，不是一次革命，而是一次进化。
 

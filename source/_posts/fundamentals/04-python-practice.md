@@ -27,7 +27,7 @@ toc: true
 
 ## 速查导航
 
-- [Python/CPython 为什么慢](#python-cpython-为什么慢)
+- [Python/CPython 为什么慢](#Python-CPython-为什么慢)
 - [性能优化的正确顺序](#性能优化的正确顺序)
 - [C/C++ 扩展与 SWIG 案例](#cc-扩展与-swig-案例)
 - [并发模型：线程、进程与协程](#并发模型线程进程与协程)
@@ -299,7 +299,7 @@ void TemplateTracker::say_hello(){
 　　python调用C++的方法有很多，例如ctypes、PyObject、Boost.python,采用了swig方法，使用之后感觉确挺方便的。为了给追踪功能提供numpy参数的输入和输出，这里需要引入numpy.i文件。
 参考：[SWIG Python 文档](https://www.swig.org/Doc4.2/Python.html)
 
-#### 1. 定义接口文件：visp.i
+#### 定义接口文件：visp.i
 ```cpp
 /* File: visp.i */
 %module visp
@@ -322,16 +322,16 @@ void TemplateTracker::say_hello(){
 
 %include "visp.h"
 ```
-#### 2. swig 编译visp.i 文件生成C++和py代码，生成visp_wrap.cxx,visp.py
+#### swig 编译visp.i 文件生成C++和py代码，生成visp_wrap.cxx,visp.py
 ```bash
 swig -c++ -python -py3 visp.i //python3
 ```
-#### 3. 分别编译visp.cc和visp_wrap.cxx代码
+#### 分别编译visp.cc和visp_wrap.cxx代码
 ```bash
 g++  -O2 -fPIC  -c visp.cc -I/home/terse/code/terse-visp/VispSource/build/include
 g++ -O2 -fPIC -c visp_wrap.cxx -I/home/terse/anaconda3/include/python3.6m -I/home/terse/code/terse-visp/VispSource/build/include -I//home/terse/anaconda3/lib/python3.6/site-packages/numpy/core/include/
 ```
-#### 4. 链接生成_visp.so文件
+#### 链接生成_visp.so文件
 ```bash
 g++ -shared visp_wrap.o visp.o -L/home/terse/code/terse-visp/VispSource/build/lib -lvisp_ar -lvisp_blob -lvisp_core -lvisp_detection -lvisp_core -lvisp_gui -lvisp_imgproc -lvisp_io -lvisp_klt -lvisp_mbt -lvisp_me -lvisp_robot -lvisp_sensor -lvisp_tt -lvisp_tt_mi -lvisp_vision -lvisp_visual_features -lvisp_vs -lvisp_tt  -lvisp_ar -lvisp_blob -lvisp_core -lvisp_detection -lvisp_core -lvisp_gui -lvisp_imgproc -lvisp_io -lvisp_klt -lvisp_mbt -lvisp_me -lvisp_robot -lvisp_sensor -lvisp_tt -lvisp_tt_mi -lvisp_vision -lvisp_visual_features -lvisp_vs -Wl,-Bstatic -L/home/terse/code/terse-visp/opencv-3.4.6/build/lib -lopencv_dnn -lopencv_ml -lopencv_objdetect -lopencv_shape -lopencv_stitching -lopencv_superres -lopencv_videostab -lopencv_calib3d -lopencv_features2d -lopencv_highgui -lopencv_videoio -lopencv_imgcodecs -lopencv_video -lopencv_photo -lopencv_imgproc -lopencv_flann -lopencv_core -Wl,-Bstatic -L/home/terse/code/terse-visp/opencv-3.4.6/build/share/OpenCV/3rdparty/lib -littnotify -llibprotobuf -llibjasper -lquirc -lippiw -lippicv -Wl,-Bdynamic -lpython3.7m -Wl,-Bdynamic  -llapack  -fopenmp -ldl  -lz -lrt -ltiff -o _visp.so
 

@@ -9,6 +9,7 @@ const { test } = require('node:test');
 
 const repoRoot = path.resolve(__dirname, '..');
 const sourceScript = path.join(repoRoot, 'tools', 'pre-commit-check.sh');
+const headingChecker = path.join(repoRoot, 'tools', 'check-post-headings.js');
 
 function runGit(cwd, args) {
   const result = spawnSync('git', args, { cwd, encoding: 'utf8' });
@@ -19,6 +20,7 @@ function copyPreCommitScript(tempRoot) {
   const tempScript = path.join(tempRoot, 'tools', 'pre-commit-check.sh');
   fs.mkdirSync(path.dirname(tempScript), { recursive: true });
   fs.copyFileSync(sourceScript, tempScript);
+  fs.copyFileSync(headingChecker, path.join(path.dirname(tempScript), 'check-post-headings.js'));
   fs.chmodSync(tempScript, 0o755);
   return tempScript;
 }
@@ -149,6 +151,44 @@ test('pre-commit check still rejects a blog Markdown file without Front Matter',
 
     assert.equal(result.status, 1, `${result.stdout}\n${result.stderr}`);
     assert.match(result.stdout, /缺少 Front Matter/);
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test('pre-commit check rejects staged blog posts with a body H1 before building', () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'wxquare-precommit-heading-'));
+
+  try {
+    runGit(tempRoot, ['init', '-q']);
+    const stagedPost = path.join(tempRoot, 'source/_posts/duplicate-title.md');
+    fs.mkdirSync(path.dirname(stagedPost), { recursive: true });
+    fs.writeFileSync(
+      stagedPost,
+      '---\ntitle: Duplicate title\ndate: 2026-09-03\n---\n\n# Duplicate title\n'
+    );
+    runGit(tempRoot, ['add', stagedPost]);
+
+    const tempBin = path.join(tempRoot, 'fake-bin');
+    fs.mkdirSync(tempBin);
+    const npmLog = path.join(tempRoot, 'npm-calls.log');
+    const fakeNpm = path.join(tempBin, 'npm');
+    fs.writeFileSync(fakeNpm, '#!/bin/sh\nprintf "%s\\n" "$*" >> "$NPM_CALL_LOG"\n');
+    fs.chmodSync(fakeNpm, 0o755);
+
+    const result = spawnSync('bash', [copyPreCommitScript(tempRoot)], {
+      cwd: tempRoot,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        NPM_CALL_LOG: npmLog,
+        PATH: `${tempBin}:${process.env.PATH}`
+      }
+    });
+
+    assert.equal(result.status, 1, `${result.stdout}\n${result.stderr}`);
+    assert.match(`${result.stdout}\n${result.stderr}`, /正文不得使用 H1/);
+    assert.equal(fs.existsSync(npmLog), false, 'build commands must not run after heading errors');
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   }

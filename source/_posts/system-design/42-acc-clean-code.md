@@ -18,9 +18,9 @@ toc: true
 
 书籍：[实现领域驱动设计.pdf](https://github.com/wxquare/effective-resourses/blob/master/%E5%AE%9E%E7%8E%B0%E9%A2%86%E5%9F%9F%E9%A9%B1%E5%8A%A8%E8%AE%BE%E8%AE%A1.pdf)
 
-## 一、复杂业务代码的"痛点画像"
+## 复杂业务代码的"痛点画像"
 
-### 1.1 为什么复杂业务的代码容易变烂？
+### 为什么复杂业务的代码容易变烂？
 
 在电商、金融、社交等复杂业务场景中，代码腐化几乎是必然趋势。根本原因包括：
 
@@ -34,9 +34,9 @@ toc: true
 
 ---
 
-### 1.2 典型的"烂代码"症状
+### 典型的"烂代码"症状
 
-#### 1.2.1 千行函数的噩梦
+#### 千行函数的噩梦
 
 ```go
 // ❌ 反例：1500行的下单函数
@@ -122,7 +122,7 @@ func CreateOrder(req *CreateOrderRequest) (*Order, error) {
 
 ---
 
-#### 1.2.2 if-else 地狱
+#### if-else 地狱
 
 ```go
 // ❌ 反例：嵌套6层的条件判断
@@ -181,7 +181,7 @@ func CalculatePrice(order *Order) (int64, error) {
 
 ---
 
-#### 1.2.3 上下文爆炸（参数传递链）
+#### 上下文爆炸（参数传递链）
 
 ```go
 // ❌ 反例：15个参数的函数
@@ -234,7 +234,7 @@ price, err := CalculatePrice(
 
 ---
 
-#### 1.2.4 改一处动全身
+#### 改一处动全身
 
 ```go
 // 场景：修改优惠券抵扣规则
@@ -264,7 +264,7 @@ price, err := CalculatePrice(
 
 ---
 
-#### 1.2.5 无法单元测试
+#### 无法单元测试
 
 ```go
 // ❌ 反例：无法测试的函数
@@ -305,9 +305,9 @@ func ProcessOrder(orderID int64) error {
 
 ---
 
-### 1.3 代码腐化的根本原因
+### 代码腐化的根本原因
 
-#### 1.3.1 职责不清（违反单一职责原则）
+#### 职责不清（违反单一职责原则）
 
 ```go
 // ❌ 一个 Service 做了太多事情
@@ -323,7 +323,7 @@ type OrderService struct {
 }
 ```
 
-#### 1.3.2 耦合过高（模块间相互依赖）
+#### 耦合过高（模块间相互依赖）
 
 ```
 OrderService → PriceService → PromotionService → ItemService → OrderService
@@ -332,7 +332,7 @@ OrderService → PriceService → PromotionService → ItemService → OrderServ
                                   (循环依赖)
 ```
 
-#### 1.3.3 抽象缺失（直接调用底层实现）
+#### 抽象缺失（直接调用底层实现）
 
 ```go
 // ❌ Controller 直接调用 Repository
@@ -343,7 +343,7 @@ func CreateOrderHandler(ctx *gin.Context) {
 }
 ```
 
-#### 1.3.4 缺乏约束（没有统一规范）
+#### 缺乏约束（没有统一规范）
 
 - 每个人的错误处理方式不同
 - 日志格式不统一
@@ -352,13 +352,13 @@ func CreateOrderHandler(ctx *gin.Context) {
 
 ---
 
-## 二、Clean Code 的判断标准
+## Clean Code 的判断标准
 
-### 2.1 可读性：代码即文档
+### 可读性：代码即文档
 
 **目标**：新人在不依赖文档的情况下，能够快速理解代码逻辑。
 
-#### 2.1.1 命名清晰
+#### 命名清晰
 
 ```go
 // ❌ 反例：晦涩的命名
@@ -374,7 +374,7 @@ var isNewUser bool
 var tempOrderNumber string
 ```
 
-#### 2.1.2 结构简单
+#### 结构简单
 
 ```go
 // ✅ 正例：一个函数只做一件事
@@ -399,7 +399,7 @@ func GetUserOrder(userID, orderID int64) (*Order, error) {
 }
 ```
 
-#### 2.1.3 注释恰当
+#### 注释恰当
 
 ```go
 // ❌ 反例：无用的注释
@@ -419,11 +419,11 @@ for i := 0; i < 3; i++ {
 
 ---
 
-### 2.2 可测试性：单元测试覆盖率
+### 可测试性：单元测试覆盖率
 
 **目标**：核心业务逻辑单元测试覆盖率 > 70%。
 
-#### 2.2.1 依赖可注入
+#### 依赖可注入
 
 ```go
 // ✅ 正例：通过接口注入依赖
@@ -448,7 +448,7 @@ func TestCreateOrder(t *testing.T) {
 }
 ```
 
-#### 2.2.2 职责单一
+#### 职责单一
 
 ```go
 // ✅ 正例：每个函数只做一件事
@@ -462,7 +462,7 @@ func TestCalculatePrice(t *testing.T) { /* ... */ }
 func TestSaveOrder(t *testing.T) { /* ... */ }
 ```
 
-#### 2.2.3 无副作用
+#### 无副作用
 
 ```go
 // ✅ 正例：纯函数，相同输入产生相同输出
@@ -479,11 +479,11 @@ func TestCalculateDiscount(t *testing.T) {
 
 ---
 
-### 2.3 可维护性：修改成本低
+### 可维护性：修改成本低
 
 **目标**：修改一个功能，平均只需要改动 1-2 个文件。
 
-#### 2.3.1 低耦合
+#### 低耦合
 
 ```go
 // ✅ 正例：模块间通过接口通信
@@ -499,7 +499,7 @@ type OrderService struct {
 // OrderService 不需要改动
 ```
 
-#### 2.3.2 高内聚
+#### 高内聚
 
 ```go
 // ✅ 正例：相关逻辑聚合在一起
@@ -515,7 +515,7 @@ func (c *Calculator) CalculateFinalPrice() {}
 // 修改价格计算只需要修改这个包
 ```
 
-#### 2.3.3 可追溯
+#### 可追溯
 
 ```go
 // ✅ 正例：完整的日志和监控
@@ -543,11 +543,11 @@ func CreateOrder(ctx context.Context, req *Req) (*Order, error) {
 
 ---
 
-### 2.4 可扩展性：新增功能不改老代码
+### 可扩展性：新增功能不改老代码
 
 **目标**：符合开闭原则（对扩展开放，对修改封闭）。
 
-#### 2.4.1 开闭原则
+#### 开闭原则
 
 ```go
 // ✅ 正例：通过接口实现扩展
@@ -575,7 +575,7 @@ func GetCalculator(categoryID int64) PriceCalculator {
 }
 ```
 
-#### 2.4.2 插件化
+#### 插件化
 
 ```go
 // ✅ 正例：Pipeline 支持插件式扩展
@@ -590,7 +590,7 @@ pipeline := NewPipeline().
 // 不需要修改 Pipeline 本身的代码
 ```
 
-#### 2.4.3 配置驱动
+#### 配置驱动
 
 ```yaml
 # 通过配置控制行为
@@ -625,11 +625,11 @@ func ProcessOrder(order *Order) error {
 
 ---
 
-## 三、核心设计原则
+## 核心设计原则
 
-### 3.1 SOLID 原则在复杂业务中的应用
+### SOLID 原则在复杂业务中的应用
 
-#### 3.1.1 单一职责原则 (Single Responsibility Principle)
+#### 单一职责原则 (Single Responsibility Principle)
 
 **定义**：一个类/函数应该只有一个引起它变化的原因。
 
@@ -722,7 +722,7 @@ func ProcessOrder(order *Order) error {
 
 ---
 
-#### 3.1.2 开闭原则 (Open/Closed Principle)
+#### 开闭原则 (Open/Closed Principle)
 
 **定义**：软件实体应该对扩展开放，对修改封闭。
 
@@ -822,7 +822,7 @@ price, err := calculator.Calculate(ctx, order)
 
 ---
 
-#### 3.1.3 里氏替换原则 (Liskov Substitution Principle)
+#### 里氏替换原则 (Liskov Substitution Principle)
 
 **定义**：子类应该能够替换父类并出现在父类能够出现的任何地方。
 
@@ -877,7 +877,7 @@ ProcessPayment(&EWalletPayment{}, order)     // ✅
 
 ---
 
-#### 3.1.4 接口隔离原则 (Interface Segregation Principle)
+#### 接口隔离原则 (Interface Segregation Principle)
 
 **定义**：客户端不应该依赖它不需要的接口。
 
@@ -932,7 +932,7 @@ type OrderCheckoutService struct {
 
 ---
 
-#### 3.1.5 依赖倒置原则 (Dependency Inversion Principle)
+#### 依赖倒置原则 (Dependency Inversion Principle)
 
 **定义**：高层模块不应该依赖低层模块，两者都应该依赖抽象。
 
@@ -1033,9 +1033,9 @@ func TestGetOrder(t *testing.T) {
 
 ---
 
-### 3.2 分层架构：职责清晰的代码组织
+### 分层架构：职责清晰的代码组织
 
-#### 3.2.1 经典三层架构
+#### 经典三层架构
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -1194,7 +1194,7 @@ func (r *orderRepository) Update(ctx context.Context, order *Order) error {
 
 ---
 
-#### 3.2.2 DDD 四层架构（参考 nsf-lotto 项目）
+#### DDD 四层架构（参考 nsf-lotto 项目）
 
 DDD（Domain-Driven Design，领域驱动设计）在三层架构基础上，进一步强调**领域模型**的重要性，并将基础设施与领域逻辑解耦。
 
@@ -1432,11 +1432,11 @@ type LotteryPO struct {
 
 ---
 
-## 四、Pipeline 架构模式（深度实践）
+## Pipeline 架构模式（深度实践）
 
-### 4.1 为什么选择 Pipeline？
+### 为什么选择 Pipeline？
 
-#### 4.1.1 Pipeline 解决的核心问题
+#### Pipeline 解决的核心问题
 
 在复杂业务中，一个完整的流程往往包含多个步骤：
 
@@ -1478,7 +1478,7 @@ type LotteryPO struct {
 
 ---
 
-#### 4.1.2 适用场景
+#### 适用场景
 
 ✅ **适合使用 Pipeline 的场景**：
 
@@ -1520,7 +1520,7 @@ type LotteryPO struct {
 
 ---
 
-### 4.2 Pipeline 架构层次详解
+### Pipeline 架构层次详解
 
 Pipeline 架构分为 4 层：
 
@@ -1555,7 +1555,7 @@ Pipeline 架构分为 4 层：
 
 ---
 
-#### 4.2.1 Layer 1: Controller Layer (控制层)
+#### Layer 1: Controller Layer (控制层)
 
 **职责**：处理 HTTP 请求，委托给 Service 层。
 
@@ -1594,7 +1594,7 @@ func (c *FlashSaleController) FlashSaleListV2(ctx *gin.Context) {
 
 ---
 
-#### 4.2.2 Layer 2: Service Layer (服务层)
+#### Layer 2: Service Layer (服务层)
 
 **职责**：创建 Context，执行 Pipeline，构建响应。
 
@@ -1657,7 +1657,7 @@ func (s *flashSaleService) buildResponse(fsCtx *FlashSaleContext) *FlashSaleList
 
 ---
 
-#### 4.2.3 Layer 3: Pipeline Layer (管道层)
+#### Layer 3: Pipeline Layer (管道层)
 
 **职责**：管理 Processor 的执行顺序，统一错误处理。
 
@@ -1709,7 +1709,7 @@ func (p *flashSalePipeline) Execute(ctx context.Context, fsCtx *FlashSaleContext
 
 ---
 
-#### 4.2.4 Layer 4: Processor Layer (处理器层)
+#### Layer 4: Processor Layer (处理器层)
 
 **职责**：实现具体的处理逻辑。
 
@@ -1847,9 +1847,9 @@ func (p *AssemblyProcessor) Process(ctx context.Context, fsCtx *FlashSaleContext
 
 ---
 
-### 4.3 Pipeline 初始化与配置
+### Pipeline 初始化与配置
 
-#### 4.3.1 构建器模式（推荐）
+#### 构建器模式（推荐）
 
 ```go
 func NewFlashSaleService() FlashSaleService {
@@ -1880,7 +1880,7 @@ func NewFlashSaleService() FlashSaleService {
 
 ---
 
-#### 4.3.2 配置驱动（高级，适合大型项目）
+#### 配置驱动（高级，适合大型项目）
 
 ```yaml
 # config/pipeline.yaml
@@ -1964,9 +1964,9 @@ func NewFlashSaleServiceFromConfig(configPath string) (FlashSaleService, error) 
 
 ---
 
-### 4.4 高级特性
+### 高级特性
 
-#### 4.4.1 并行 Pipeline
+#### 并行 Pipeline
 
 某些 Processor 之间没有依赖关系，可以并行执行以提升性能。
 
@@ -2023,7 +2023,7 @@ pipeline.AddSequential(NewAssemblyProcessor())    // 串行
 
 ---
 
-#### 4.4.2 条件执行 Pipeline
+#### 条件执行 Pipeline
 
 某些 Processor 只在特定条件下执行。
 
@@ -2069,7 +2069,7 @@ pipeline := NewFlashSalePipeline().
 
 ---
 
-#### 4.4.3 重试 Pipeline
+#### 重试 Pipeline
 
 某些 Processor 可能失败（如网络抖动），支持自动重试。
 
@@ -2123,7 +2123,7 @@ pipeline := NewFlashSalePipeline().
 
 ---
 
-#### 4.4.4 超时控制 Pipeline
+#### 超时控制 Pipeline
 
 为每个 Processor 设置超时时间。
 
@@ -2174,9 +2174,9 @@ pipeline := NewFlashSalePipeline().
 
 ---
 
-### 4.5 Pipeline 最佳实践
+### Pipeline 最佳实践
 
-#### 4.5.1 Processor 设计原则
+#### Processor 设计原则
 
 1. **无状态**：Processor 应该是无状态的
 
@@ -2253,7 +2253,7 @@ type PriceAssemblyProcessor struct{}   // 组装价格信息
 
 ---
 
-#### 4.5.2 Context 设计原则
+#### Context 设计原则
 
 1. **分区管理**：Input/Intermediate/Output 明确区分（详见第五章）
 
@@ -2275,7 +2275,7 @@ type GoodContext struct {
 
 ---
 
-#### 4.5.3 Pipeline 设计原则
+#### Pipeline 设计原则
 
 1. **顺序重要**：Processor 的顺序要有逻辑意义
 
@@ -2328,11 +2328,11 @@ func (p *ResourceProcessor) Process(ctx context.Context, fsCtx *FlashSaleContext
 
 ---
 
-## 五、Context Pattern（上下文模式）
+## Context Pattern（上下文模式）
 
-### 5.1 为什么需要 Context？
+### 为什么需要 Context？
 
-#### 5.1.1 解决的核心问题
+#### 解决的核心问题
 
 1. **参数传递地狱**
 
@@ -2405,9 +2405,9 @@ type Context struct {
 
 ---
 
-### 5.2 Context 设计原则
+### Context 设计原则
 
-#### 5.2.1 标准 Context 结构
+#### 标准 Context 结构
 
 ```go
 type FlashSaleContext struct {
@@ -2456,7 +2456,7 @@ type ProcessorLog struct {
 
 ---
 
-#### 5.2.2 Context 最佳实践
+#### Context 最佳实践
 
 1. **分区管理**：Input/Intermediate/Output 明确区分
 
@@ -2556,7 +2556,7 @@ type GoodContext struct {
 
 ---
 
-### 5.3 Context 的生命周期管理
+### Context 的生命周期管理
 
 ```go
 // ═══════════════════════════════════════════════════
@@ -2650,9 +2650,9 @@ func (p *AssemblyProcessor) Process(ctx context.Context, fsCtx *FlashSaleContext
 
 ---
 
-### 5.4 Context 的高级用法
+### Context 的高级用法
 
-#### 5.4.1 Context 快照（用于调试）
+#### Context 快照（用于调试）
 
 ```go
 type ContextSnapshot struct {
@@ -2693,7 +2693,7 @@ for _, snapshot := range fsCtx.Snapshots {
 
 ---
 
-#### 5.4.2 Context 验证器
+#### Context 验证器
 
 ```go
 func (fsCtx *FlashSaleContext) Validate() error {
@@ -2727,7 +2727,7 @@ func (s *flashSaleService) GetFlashSaleList(ctx context.Context, req *Req) (*Res
 
 ---
 
-#### 5.4.3 Context 池化（性能优化）
+#### Context 池化（性能优化）
 
 对于高并发场景，可以使用 `sync.Pool` 复用 Context 对象。
 
@@ -2773,13 +2773,13 @@ func (fsCtx *FlashSaleContext) Reset() {
 
 ---
 
-## 六、设计模式实战应用
+## 设计模式实战应用
 
 设计模式不是银弹，但在复杂业务场景中，合理使用设计模式能显著提升代码质量。本章将介绍 6 个在电商、金融等复杂业务中最常用的设计模式。
 
-### 6.1 策略模式 (Strategy Pattern)
+### 策略模式 (Strategy Pattern)
 
-#### 6.1.1 场景：不同的价格计算策略
+#### 场景：不同的价格计算策略
 
 在电商系统中，不同品类的价格计算逻辑完全不同：
 
@@ -2839,7 +2839,7 @@ func CalculatePrice(categoryID int64, order *Order) (*Price, error) {
 
 ---
 
-#### 6.1.2 实现：Calculator 接口 + 品类计算器
+#### 实现：Calculator 接口 + 品类计算器
 
 使用策略模式重构：
 
@@ -3094,7 +3094,7 @@ func (c *DefaultCalculator) Calculate(ctx context.Context, order *Order) (*Price
 
 ---
 
-#### 6.1.3 策略工厂 + 注册表模式
+#### 策略工厂 + 注册表模式
 
 ```go
 // ═══════════════════════════════════════════════════
@@ -3182,9 +3182,9 @@ func AddNewCategory() {
 
 ---
 
-### 6.2 责任链模式 (Chain of Responsibility)
+### 责任链模式 (Chain of Responsibility)
 
-#### 6.2.1 场景：多级审批流程
+#### 场景：多级审批流程
 
 订单创建前需要经过多个检查环节：
 
@@ -3196,7 +3196,7 @@ func AddNewCategory() {
 
 ---
 
-#### 6.2.2 实现：Handler 链式调用
+#### 实现：Handler 链式调用
 
 ```go
 // ═══════════════════════════════════════════════════
@@ -3354,15 +3354,15 @@ func CreateOrder(ctx context.Context, order *Order) error {
 
 ---
 
-### 6.3 装饰器模式 (Decorator Pattern)
+### 装饰器模式 (Decorator Pattern)
 
-#### 6.3.1 场景：为 Processor 添加通用能力
+#### 场景：为 Processor 添加通用能力
 
 在 Pipeline 中，我们希望为 Processor 添加日志、监控、缓存、重试等通用能力，但又不想修改每个 Processor 的代码。
 
 ---
 
-#### 6.3.2 实现：装饰器包装 Processor
+#### 实现：装饰器包装 Processor
 
 ```go
 // ═══════════════════════════════════════════════════
@@ -3623,9 +3623,9 @@ func NewFlashSaleService() FlashSaleService {
 
 ---
 
-### 6.4 工厂模式 (Factory Pattern)
+### 工厂模式 (Factory Pattern)
 
-#### 6.4.1 场景：创建不同类型的 Processor
+#### 场景：创建不同类型的 Processor
 
 ```go
 // ═══════════════════════════════════════════════════
@@ -3730,9 +3730,9 @@ func NewFlashSaleServiceWithFactory(factory *ProcessorFactory) (FlashSaleService
 
 ---
 
-### 6.5 建造者模式 (Builder Pattern)
+### 建造者模式 (Builder Pattern)
 
-#### 6.5.1 场景：构建复杂的 Pipeline
+#### 场景：构建复杂的 Pipeline
 
 ```go
 // ═══════════════════════════════════════════════════
@@ -3869,9 +3869,9 @@ func NewFlashSaleService() FlashSaleService {
 
 ---
 
-### 6.6 模板方法模式 (Template Method)
+### 模板方法模式 (Template Method)
 
-#### 6.6.1 场景：标准化 Processor 的执行流程
+#### 场景：标准化 Processor 的执行流程
 
 所有 Processor 都有相同的执行流程：前置处理 → 主要逻辑 → 后置处理。
 
@@ -3975,9 +3975,9 @@ func (p *PromotionDataProcessor) preProcess(ctx context.Context, fsCtx *FlashSal
 
 ---
 
-## 七、规则引擎模式
+## 规则引擎模式
 
-### 7.1 为什么需要规则引擎?
+### 为什么需要规则引擎?
 
 在电商/金融等业务中，存在大量**频繁变化的业务规则**：
 
@@ -4028,7 +4028,7 @@ func ApplyDiscount(user *User, order *Order) int64 {
 
 ---
 
-### 7.2 规则引擎架构
+### 规则引擎架构
 
 规则引擎的核心思想：**将业务规则从代码中分离出来，存储为数据（配置），由引擎动态解析执行**。
 
@@ -4082,13 +4082,13 @@ func ApplyDiscount(user *User, order *Order) int64 {
 
 ---
 
-### 7.3 规则引擎实战案例
+### 规则引擎实战案例
 
-#### 7.3.1 方案一：配置驱动的轻量级规则引擎
+#### 方案一：配置驱动的轻量级规则引擎
 
 适用于**规则数量少（< 100 个）、逻辑简单**的场景。
 
-##### Step 1: 定义规则结构
+#### Step 1: 定义规则结构
 
 ```go
 // ═══════════════════════════════════════════════════
@@ -4128,7 +4128,7 @@ type Action struct {
 }
 ```
 
-##### Step 2: 规则配置示例（YAML）
+#### Step 2: 规则配置示例（YAML）
 
 ```yaml
 # rules.yaml
@@ -4214,7 +4214,7 @@ rules:
     mutex_rules: []
 ```
 
-##### Step 3: 规则引擎实现
+#### Step 3: 规则引擎实现
 
 ```go
 // ═══════════════════════════════════════════════════
@@ -4585,7 +4585,7 @@ type Order struct {
 }
 ```
 
-##### Step 4: 使用规则引擎
+#### Step 4: 使用规则引擎
 
 ```go
 func main() {
@@ -4651,17 +4651,17 @@ Final price: 10000  # 120.00 - 20.00 = 100.00 元
 
 ---
 
-#### 7.3.2 方案二：集成开源规则引擎（gengine）
+#### 方案二：集成开源规则引擎（gengine）
 
 适用于**规则数量多（> 100 个）、逻辑复杂**的场景。
 
-##### 安装 gengine
+#### 安装 gengine
 
 ```bash
 go get github.com/bilibili/gengine@latest
 ```
 
-##### 使用 gengine
+#### 使用 gengine
 
 ```go
 package main
@@ -4776,7 +4776,7 @@ func main() {
 
 ---
 
-### 7.4 规则引擎的优势
+### 规则引擎的优势
 
 | 维度 | 硬编码 | 规则引擎 |
 |------|--------|---------|
@@ -4789,9 +4789,9 @@ func main() {
 
 ---
 
-### 7.5 规则引擎最佳实践
+### 规则引擎最佳实践
 
-#### 7.5.1 什么时候使用规则引擎？
+#### 什么时候使用规则引擎？
 
 **适合使用规则引擎的场景**：
 - ✅ 规则频繁变化（每周都有新活动）
@@ -4804,7 +4804,7 @@ func main() {
 - ❌ 规则逻辑简单（1-2 个 if 判断）
 - ❌ 规则需要调用复杂的外部服务
 
-#### 7.5.2 规则引擎 vs 代码的边界
+#### 规则引擎 vs 代码的边界
 
 ```
 ┌───────────────────────────────────────────────┐
@@ -4828,7 +4828,7 @@ func main() {
 - 规则引擎只负责**纯计算逻辑**
 - **数据加载、RPC 调用**应该在应用层完成
 
-#### 7.5.3 规则引擎的监控与告警
+#### 规则引擎的监控与告警
 
 ```go
 // 监控规则执行情况
@@ -4867,7 +4867,7 @@ func (e *RuleEngine) recordMetrics(rule *Rule, duration time.Duration, matched b
 
 ---
 
-### 7.6 开源规则引擎推荐
+### 开源规则引擎推荐
 
 | 规则引擎 | 语言 | 特点 | 适用场景 |
 |---------|------|------|---------|
@@ -4883,13 +4883,13 @@ func (e *RuleEngine) recordMetrics(rule *Rule, duration time.Duration, matched b
 
 ---
 
-## 八、代码组织最佳实践
+## 代码组织最佳实践
 
 好的代码组织能让项目结构清晰、职责分明，降低理解成本。本章将介绍 Go 项目的标准组织方式。
 
-### 8.1 项目结构模板（参考 nsf-lotto）
+### 项目结构模板（参考 nsf-lotto）
 
-#### 8.1.1 标准 Go 项目结构（DDD 四层架构）
+#### 标准 Go 项目结构（DDD 四层架构）
 
 ```
 nsf-lotto/
@@ -5026,9 +5026,9 @@ nsf-lotto/
 
 ---
 
-#### 8.1.2 DDD 四层架构详解
+#### DDD 四层架构详解
 
-##### 1. **接口层 (Interfaces Layer)**
+#### **接口层 (Interfaces Layer)**
 
 **职责**：适配外部请求，转换为应用层可处理的格式。
 
@@ -5083,7 +5083,7 @@ func (h *LottoHandler) DrawLotto(c *gin.Context) {
 
 ---
 
-##### 2. **应用层 (Application Layer)**
+#### **应用层 (Application Layer)**
 
 **职责**：编排业务流程，协调多个领域服务。
 
@@ -5173,7 +5173,7 @@ func (s *lottoServiceImpl) DrawLotto(ctx context.Context, dto *dto.DrawLottoDTO)
 
 ---
 
-##### 3. **领域层 (Domain Layer)**
+#### **领域层 (Domain Layer)**
 
 **职责**：核心业务逻辑，领域模型。
 
@@ -5285,7 +5285,7 @@ func (s *lottoDomainServiceImpl) drawByProbability(prizes []*Prize) *Prize {
 
 ---
 
-##### 4. **基础设施层 (Infrastructure Layer)**
+#### **基础设施层 (Infrastructure Layer)**
 
 **职责**：实现技术细节（数据库、缓存、RPC、MQ）。
 
@@ -5353,7 +5353,7 @@ func (ActivityPO) TableName() string {
 
 ---
 
-#### 8.1.3 Pipeline 在 DDD 中的位置
+#### Pipeline 在 DDD 中的位置
 
 Pipeline 是**跨层的编排机制**，可以放在 `internal/processor/` 和 `internal/pipeline/` 目录。
 
@@ -5398,9 +5398,9 @@ func (p *LottoPipeline) Execute(ctx context.Context, lottoCtx *LottoContext) err
 
 ---
 
-### 8.2 文件命名规范
+### 文件命名规范
 
-#### 8.2.1 Go 文件命名规范
+#### Go 文件命名规范
 
 | 类型 | 命名规范 | 示例 |
 |------|---------|------|
@@ -5414,7 +5414,7 @@ func (p *LottoPipeline) Execute(ctx context.Context, lottoCtx *LottoContext) err
 | **Processor** | `{purpose}_processor.go` | `validation_processor.go` |
 | **测试文件** | `{file}_test.go` | `lotto_service_test.go` |
 
-#### 8.2.2 包命名规范
+#### 包命名规范
 
 - ✅ 全小写，不使用下划线或驼峰
 - ✅ 简短且有意义（`handler` 而非 `http_handler`）
@@ -5431,9 +5431,9 @@ package http_handler
 
 ---
 
-### 8.3 包设计原则
+### 包设计原则
 
-#### 8.3.1 依赖方向原则
+#### 依赖方向原则
 
 DDD 四层架构的依赖方向：
 
@@ -5451,7 +5451,7 @@ Infrastructure Layer┘
 - ✅ **基础设施层** 依赖 **领域层**（实现仓储接口）
 - ❌ **领域层** 不依赖任何其他层（纯业务逻辑）
 
-#### 8.3.2 接口反转原则（依赖倒置）
+#### 接口反转原则（依赖倒置）
 
 ```go
 // ✅ 正确：领域层定义接口，基础设施层实现
@@ -5483,7 +5483,7 @@ func (s *lottoDomainServiceImpl) Draw() {
 }
 ```
 
-#### 8.3.3 包的职责边界
+#### 包的职责边界
 
 每个包应该有**明确的职责**，避免"上帝包"（God Package）。
 
@@ -5512,7 +5512,7 @@ func CalculateDiscount() {}
 
 ---
 
-### 8.4 常见反模式
+### 常见反模式
 
 #### 反模式 1：循环依赖
 
@@ -5587,7 +5587,7 @@ func (s *LottoService) DrawLotto(activity *Activity) error {
 
 ---
 
-### 8.5 项目结构演进路径
+### 项目结构演进路径
 
 | 项目规模 | 推荐结构 |
 |---------|---------|
@@ -5602,17 +5602,17 @@ func (s *LottoService) DrawLotto(activity *Activity) error {
 
 ---
 
-## 九、其他 Clean Code 实践
+## 其他 Clean Code 实践
 
 除了架构模式、设计模式，日常编码中的命名、函数设计、错误处理、注释等细节也至关重要。
 
-### 9.1 命名的艺术
+### 命名的艺术
 
 **命名是编程中最重要的技能之一**，好的命名能让代码自解释，减少注释需求。
 
-#### 9.1.1 变量命名原则
+#### 变量命名原则
 
-##### 原则 1: 见名知意
+#### 见名知意
 
 ```go
 // ❌ 反例：缩写、单字母
@@ -5633,7 +5633,7 @@ func CalculateFinalPrice(user *User, order *Order, discountAmount int64) (int64,
 }
 ```
 
-##### 原则 2: 使用领域术语
+#### 使用领域术语
 
 ```go
 // ❌ 反例：技术术语
@@ -5643,7 +5643,7 @@ func GetData(id int64) (*Entity, error) {}
 func GetFlashSaleActivity(activityID int64) (*FlashSaleActivity, error) {}
 ```
 
-##### 原则 3: 变量作用域越大，名称越详细
+#### 变量作用域越大，名称越详细
 
 ```go
 // ✅ 正例：循环变量可以简写
@@ -5659,7 +5659,7 @@ func ProcessOrder(userID int64, orderID int64, calculationContext *PriceCalculat
 }
 ```
 
-##### 原则 4: 避免误导性命名
+#### 避免误导性命名
 
 ```go
 // ❌ 反例：名称暗示是列表，实际是单个对象
@@ -5676,9 +5676,9 @@ var isValid bool
 
 ---
 
-#### 9.1.2 函数命名原则
+#### 函数命名原则
 
-##### 原则 1: 动词 + 名词
+#### 动词 + 名词
 
 ```go
 // ✅ 正例：动词开头
@@ -5690,7 +5690,7 @@ func UpdateInventory() {}
 func DeleteCache() {}
 ```
 
-##### 原则 2: 布尔函数用 `Is/Has/Can/Should` 开头
+#### 布尔函数用 `Is/Has/Can/Should` 开头
 
 ```go
 // ✅ 正例
@@ -5700,7 +5700,7 @@ func CanRefund(order *Order) bool {}
 func ShouldRetry(err error) bool {}
 ```
 
-##### 原则 3: 查询函数用 `Get/Find/Query/Fetch`
+#### 查询函数用 `Get/Find/Query/Fetch`
 
 ```go
 // ✅ 正例
@@ -5710,7 +5710,7 @@ func QueryOrdersByUser(userID int64) ([]*Order, error) {}  // 查询列表
 func FetchPriceFromSupplier(itemID int64) (int64, error) {} // 从外部获取
 ```
 
-##### 原则 4: 命名反映函数的副作用
+#### 命名反映函数的副作用
 
 ```go
 // ❌ 反例：GetUser 暗示只读，但实际会修改数据库
@@ -5732,7 +5732,7 @@ func GetUserAndUpdateAccessTime(userID int64) (*User, error) {
 
 ---
 
-#### 9.1.3 常量/枚举命名
+#### 常量/枚举命名
 
 ```go
 // ✅ 正例：常量用大写 + 下划线
@@ -5764,9 +5764,9 @@ const (
 
 ---
 
-### 9.2 函数设计的黄金法则
+### 函数设计的黄金法则
 
-#### 9.2.1 单一职责原则（函数级别）
+#### 单一职责原则（函数级别）
 
 **一个函数只做一件事**。
 
@@ -5836,7 +5836,7 @@ func SaveOrder(order *Order) error {
 
 ---
 
-#### 9.2.2 参数数量限制
+#### 参数数量限制
 
 **函数参数不超过 3 个**，超过则使用结构体。
 
@@ -5874,7 +5874,7 @@ func CreateOrder(req *CreateOrderRequest) (*Order, error) {
 
 ---
 
-#### 9.2.3 函数长度限制
+#### 函数长度限制
 
 **函数不超过 50 行**，超过则拆分。
 
@@ -5908,7 +5908,7 @@ func ProcessFlashSaleOrder(ctx context.Context, order *Order) error {
 
 ---
 
-#### 9.2.4 避免标志参数（Flag Argument）
+#### 避免标志参数（Flag Argument）
 
 **不要用布尔值控制函数行为**，应该拆分为两个函数。
 
@@ -5942,9 +5942,9 @@ func SaveOrderAsync(order *Order) error {
 
 ---
 
-#### 9.2.5 函数返回值原则
+#### 函数返回值原则
 
-##### 原则 1: 错误处理用多返回值
+#### 错误处理用多返回值
 
 ```go
 // ✅ 正例：Go 标准做法
@@ -5959,7 +5959,7 @@ if err != nil {
 }
 ```
 
-##### 原则 2: 避免返回 `nil` + `nil`
+#### 避免返回 `nil` + `nil`
 
 ```go
 // ❌ 反例：同时返回 nil
@@ -5981,7 +5981,7 @@ func FindUser(email string) (*User, error) {
 }
 ```
 
-##### 原则 3: 布尔函数避免返回 `error`
+#### 布尔函数避免返回 `error`
 
 ```go
 // ❌ 反例：布尔函数返回 error
@@ -6005,9 +6005,9 @@ if activity != nil && IsActive(activity) {
 
 ---
 
-### 9.3 错误处理的统一范式
+### 错误处理的统一范式
 
-#### 9.3.1 定义业务错误码
+#### 定义业务错误码
 
 ```go
 // pkg/errors/error_code.go
@@ -6058,7 +6058,7 @@ func (e ErrorCode) Message() string {
 
 ---
 
-#### 9.3.2 自定义业务错误
+#### 自定义业务错误
 
 ```go
 // pkg/errors/business_error.go
@@ -6109,9 +6109,9 @@ var (
 
 ---
 
-#### 9.3.3 错误处理最佳实践
+#### 错误处理最佳实践
 
-##### 实践 1: 及早返回（Early Return）
+#### 及早返回（Early Return）
 
 ```go
 // ❌ 反例：嵌套 if
@@ -6151,7 +6151,7 @@ func ProcessOrder(order *Order) error {
 }
 ```
 
-##### 实践 2: 错误包装（Error Wrapping）
+#### 错误包装（Error Wrapping）
 
 ```go
 // ✅ 正例：使用 fmt.Errorf + %w 包装错误
@@ -6170,7 +6170,7 @@ if errors.Is(err, sql.ErrNoRows) {
 }
 ```
 
-##### 实践 3: 统一错误响应
+#### 统一错误响应
 
 ```go
 // HTTP Handler 统一错误响应
@@ -6205,13 +6205,13 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 
 ---
 
-### 9.4 注释的正确打开方式
+### 注释的正确打开方式
 
-#### 9.4.1 注释原则
+#### 注释原则
 
 > **好的代码 > 好的注释 > 坏的注释 > 没有注释**
 
-##### 原则 1: 代码即文档（优先用命名表达意图）
+#### 代码即文档（优先用命名表达意图）
 
 ```go
 // ❌ 反例：用注释解释代码
@@ -6227,7 +6227,7 @@ if user.IsNewUser && user.OrderCount == 0 {
 }
 ```
 
-##### 原则 2: 只注释"为什么"，不注释"是什么"
+#### 只注释"为什么"，不注释"是什么"
 
 ```go
 // ❌ 反例：注释只是重复代码
@@ -6242,7 +6242,7 @@ cache.WarmUp(popularItemIDs)
 price := calculatePriceV1(order)
 ```
 
-##### 原则 3: 注释复杂算法
+#### 注释复杂算法
 
 ```go
 // ✅ 正例：注释复杂算法的思路
@@ -6265,7 +6265,7 @@ func drawPrize(prizes []*Prize) *Prize {
 
 ---
 
-#### 9.4.2 函数注释（godoc 风格）
+#### 函数注释（godoc 风格）
 
 ```go
 // GetUser 根据用户 ID 获取用户信息
@@ -6292,7 +6292,7 @@ func GetUser(userID int64) (*User, error) {
 
 ---
 
-#### 9.4.3 TODO/FIXME/HACK 注释
+#### TODO/FIXME/HACK 注释
 
 ```go
 // TODO: 优化查询性能，考虑添加索引
@@ -6318,7 +6318,7 @@ func GetPriceWithFallback(itemID int64) (int64, error) {
 
 ---
 
-#### 9.4.4 不要留下被注释掉的代码
+#### 不要留下被注释掉的代码
 
 ```go
 // ❌ 反例：留下被注释的代码
@@ -6337,7 +6337,7 @@ func CalculatePrice(order *Order) int64 {
 
 ---
 
-### 9.5 代码审查 Checklist
+### 代码审查 Checklist
 
 在 Code Review 时，可以参考以下 Checklist：
 
@@ -6373,11 +6373,11 @@ func CalculatePrice(order *Order) int64 {
 
 ---
 
-## 十、重构实战案例
+## 重构实战案例
 
 下面三个案例均来自电商域（下单、计价、库存），用 Go 示意「如何从坏味道走向可测、可扩展的结构」。代码为教学浓缩版，重点在思路而非生产完备性。
 
-### 10.1 案例 1：千行函数重构为 Pipeline
+### 案例 1：千行函数重构为 Pipeline
 
 #### 重构前
 
@@ -6522,7 +6522,7 @@ func (p *Pipeline) Run(ctx context.Context, oc *OrderContext) error {
 | 新增业务步骤成本 | 改千行函数、牵一发而动全身 | **新增 1 个文件（Processor）+ Pipeline 注册 1 行** |
 | 认知负荷 | 读懂整个 `CreateOrder` | **读懂单个 Processor** 即可安全修改 |
 
-### 10.2 案例 2：if-else 地狱重构为策略模式
+### 案例 2：if-else 地狱重构为策略模式
 
 #### 重构前
 
@@ -6622,7 +6622,7 @@ func (s *PricingService) CalculatePrice(ctx context.Context, order *Order) (Mone
 
 **新增品类 = 1 个新文件（实现 `PriceCalculator`）+ 注册表处增加 1 行**（例如 `calcs[CatNewThing] = NewThingCalculator(...)`）。`CalculatePrice` 本身不再随品类膨胀，符合对扩展开放、对修改关闭。
 
-### 10.3 案例 3：上下文爆炸重构为 Context Pattern
+### 案例 3：上下文爆炸重构为 Context Pattern
 
 #### 重构前
 
@@ -6715,13 +6715,13 @@ func (o *Orchestrator) reserveInventory(ctx context.Context, pc *ProcessContext)
 
 ---
 
-## 十一、性能优化与监控
+## 性能优化与监控
 
 Pipeline 与 Context Pattern 把业务拆清楚之后，下一关是**在高 QPS 下仍保持稳定延迟**，以及**出问题能秒级定位**。本节从「减分配、提并行、控超时、批写」到指标、链路、日志与告警，给出一套可落地的 Go 侧做法。
 
-### 11.1 性能优化策略
+### 性能优化策略
 
-#### 1. sync.Pool 复用 ProcessContext
+#### sync.Pool 复用 ProcessContext
 
 高频路径里若每次 `Run` 都 `new(ProcessContext)`，小对象会推高 **allocation rate** 与 **GC 压力**。`sync.Pool` 适合**生命周期短、可重置**的缓冲区或上下文载体：在 `Get` 后清零字段，在 `Put` 前再次归零，避免脏数据泄漏。
 
@@ -6768,7 +6768,7 @@ func (p *Pipeline) RunPooled(ctx context.Context, seed *ProcessContext) error {
 
 要点：**Pool 不保证对象存活**；只用于性能优化，不能当缓存存业务唯一态。重置用值赋值 `*pc = ProcessContext{}` 比逐字段置零更不容易漏字段。
 
-#### 2. 并行 Stage：errgroup 扇出 / 扇入
+#### 并行 Stage：errgroup 扇出 / 扇入
 
 当多个 Processor **彼此无数据依赖**（例如并行读用户、优惠券、库存快照），可用 `errgroup` 限制并发并统一错误处理。下面示意三个独立处理器并行执行，再合并结果到共享的 `*OrderContext`（与上文 Pipeline 示例一致；若你使用 `ProcessContext`，替换类型即可）。
 
@@ -6804,7 +6804,7 @@ func (b *ParallelBundle) Process(ctx context.Context, pc *OrderContext) error {
 
 `errgroup.WithContext` 在任一 `Go` 返回错误时会取消 `ctx`，避免其余 goroutine 白跑；若某步**不应因兄弟失败而取消**，应使用独立 `context` 或拆阶段设计。
 
-#### 3. 超时：按 Stage 包裹与优雅降级
+#### 超时：按 Stage 包裹与优雅降级
 
 对外 SLA 常体现为「整链 P99」，对内则需要**每一跳的预算**。用 `context.WithTimeout`（或 `WithDeadline`）包住单个 `Process`，超时后返回 `context.DeadlineExceeded`，上层可选择重试、熔断或返回降级结果。
 
@@ -6834,7 +6834,7 @@ func (p *Pipeline) RunWithTimeout(ctx context.Context, pc *ProcessContext, perSt
 
 优雅降级示例：计价超时则使用缓存价或默认折扣（业务允许的前提下），并打标 `pc.Degraded = true` 供监控与对账。
 
-#### 4. 批处理写库：聚合再 Flush
+#### 批处理写库：聚合再 Flush
 
 N 次单行 `INSERT` 会放大 RTT 与事务开销。Repository 层可做**按条数或时间窗口**批量 `INSERT`，用 `sync.Mutex` 或 channel 单协程刷盘，避免竞态。
 
@@ -6903,9 +6903,9 @@ func (r *BatchedOrderRepo) Flush(ctx context.Context) error {
 
 生产环境还需：**定时 Flush**、`Flush` 失败重试、背压（队列满则阻塞或拒绝）以及与优雅关停（`drain`）结合。
 
-### 11.2 监控与可观测性
+### 监控与可观测性
 
-#### 1. Metrics：Stage 耗时与成功 / 失败计数
+#### Metrics：Stage 耗时与成功 / 失败计数
 
 Prometheus 侧用 **Histogram** 看 P50/P99，用 **Counter** 看吞吐与错误率。下面在 Pipeline 外包一层中间件，统一注册与打点。
 
@@ -6954,7 +6954,7 @@ func (m MetricsProcessor) Process(ctx context.Context, pc *OrderContext) error {
 }
 ```
 
-#### 2. 分布式追踪：每 Stage 一个 Span
+#### 分布式追踪：每 Stage 一个 Span
 
 OpenTelemetry 将「Pipeline 第几步」映射为 span，便于在 Jaeger / Tempo 里看瀑布图。`tracer.Start` 务必 `defer span.End()`，并用 `span.RecordError` 记录错误。
 
@@ -6988,7 +6988,7 @@ func (t TraceProcessor) Process(ctx context.Context, pc *OrderContext) error {
 }
 ```
 
-#### 3. 结构化日志：trace_id、stage、duration
+#### 结构化日志：trace_id、stage、duration
 
 `slog` 与 `context` 中的 `trace_id`（由 OTel 或网关注入）结合，可在日志平台按链路检索。中间件统一打一条「阶段结束」日志。
 
@@ -7027,7 +7027,7 @@ func resultString(err error) string {
 }
 ```
 
-#### 4. 告警规则（示例）
+#### 告警规则（示例）
 
 | 告警项 | 条件（示例） | 含义 |
 |--------|----------------|------|
@@ -7039,11 +7039,11 @@ func resultString(err error) string {
 
 ---
 
-## 十二、团队落地建议
+## 团队落地建议
 
 Clean Code 与 Pipeline 重构不仅是个人习惯，更是**团队契约**：Review 标准、说服资源、控制风险，三者缺一就容易「一次热情、长期回潮」。
 
-### 12.1 Code Review Checklist
+### Code Review Checklist
 
 下面是一份**紧凑版**清单，适合贴在 MR 模板或团队 Wiki；完整维度（架构边界、聚合、CQRS 等）见专文。
 
@@ -7065,7 +7065,7 @@ Clean Code 与 Pipeline 重构不仅是个人习惯，更是**团队契约**：R
 
 完整版检查清单见 {% post_link system-design/44-acc-code-review 架构与整洁代码（四）：架构与编码 Code Review Checklist %}。
 
-### 12.2 如何说服团队重构
+### 如何说服团队重构
 
 #### ROI 量化
 
@@ -7092,7 +7092,7 @@ Clean Code 与 Pipeline 重构不仅是个人习惯，更是**团队契约**：R
 | 中等需求从开发到上线的平均人日 | 9 | 6 |
 | 新人读懂下单主路径所需时间 | 10 天 | 4 天 |
 
-### 12.3 重构的风险控制
+### 重构的风险控制
 
 #### Feature flag：按配置切换实现
 
@@ -7151,9 +7151,9 @@ func (s *PricingService) Quote(ctx context.Context, req *QuoteRequest) (Money, e
 
 ---
 
-## 十三、总结与展望
+## 总结与展望
 
-### 13.1 核心要点回顾
+### 核心要点回顾
 
 | 章 | 一句话带走 |
 |----|------------|
@@ -7170,7 +7170,7 @@ func (s *PricingService) Quote(ctx context.Context, req *QuoteRequest) (Money, e
 | 十一、性能与可观测 | 池化、并行、超时、批写 + 指标追踪日志告警，闭环运维。 |
 | 十二、团队落地 | Review 清单、ROI 叙事与 flag / canary / 覆盖率 / 回滚控风险。 |
 
-### 13.2 学习路径建议
+### 学习路径建议
 
 - **Junior（0–2 年）**  
   顺序建议：**命名 → 函数分解 → 错误处理与边界**。  
@@ -7190,7 +7190,7 @@ flowchart LR
   M --> S[Senior<br/>DDD / Clean Arch / CQRS]
 ```
 
-### 13.3 与本专题其他篇目的衔接
+### 与本专题其他篇目的衔接
 
 认知升级可以概括为三层：**代码级**（函数与命名）、**模块级**（边界、依赖方向、聚合）、**系统级**（上下文映射、限界上下文、读写分离与演进式架构）。Clean Code 解决「这一行好不好懂」；Clean Architecture 与 DDD 回答「这一块该不该存在、跟谁说话、如何独立演进」。
 

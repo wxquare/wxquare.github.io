@@ -1,5 +1,5 @@
 ---
-title: 编程语言：bash shell 实践
+title: Bash：Shell 基础与实践
 date: 2024-03-03
 description: 面向日常开发和运维，整理 Bash Shell 的语法、文本处理、脚本组织与常见实践。
 updated: 2026-09-23
@@ -13,7 +13,7 @@ tags:
 toc: true
 ---
 
-## 1、linux基础命令
+## linux基础命令
 - 帮助命令：man、info
 - 查找命令路径：which、whereis
 - 查看文件文件个数：find ./ | wc -l
@@ -34,10 +34,10 @@ toc: true
 
 ```bash
 cat Temp\ Query\ 1_20230914-171937.csv | grep  "\"sop_v3_user" | grep -v "xxxx" | awk -F ',' '{print $2,$5,$6}' | sort | uniq -c | sort -rk 2
-```bash
+```
 
 
-## 2、系统信息查看工具
+## 系统信息查看工具
 - 查看操作系统发行版：lsb_release -a
 - 查看内核版本信息：uname -a
 - 查看cpu信息：cat /proc/cpuinfo
@@ -49,7 +49,7 @@ cat Temp\ Query\ 1_20230914-171937.csv | grep  "\"sop_v3_user" | grep -v "xxxx" 
 - 对生成的core文件的大小不进行限制：ulimit -c unlimited
 
 
-## 3、系统资源管理和监控
+## 系统资源管理和监控
 - 查询正在运行的进程信息：ps -ef 或者 ps -ajx
 - 查询某用户的进程： ps -ef | grep username 或者 ps -lu username
 - 实时显示进程信息： top linux下的任务管理器，内存VIRT和RES
@@ -67,7 +67,7 @@ cat Temp\ Query\ 1_20230914-171937.csv | grep  "\"sop_v3_user" | grep -v "xxxx" 
 设置 ENABLED=”true”
 启动这个工具来收集系统性能数据： /etc/init.d/sysstat start. 
 
-## 4、网络工具
+## 网络工具
 - 查看网络流量信息iftop
 - netstat命令用于显示各种网络相关信息
 - 查询某端口port被某个进程占用：netstat -antp | grep port，然后使用ps pid查询进程名称
@@ -82,20 +82,20 @@ cat Temp\ Query\ 1_20230914-171937.csv | grep  "\"sop_v3_user" | grep -v "xxxx" 
 
 
 
-## 5、环境变量
+## 环境变量
 - 全局/etc/profile->/etc/profile.d;
 - 读取当前用户下面的：~/.bash_profile->~/.bash_login->~/.profile
 - 读取当前用户目录下面的：~/.bashrc
 - export环境变量，退出失效
 
 
-## 6、查看GPU信息
+## 查看GPU信息
 - 查看gpu信息 nvidia-smi
 - 查看gpu驱动版本信息 cat /proc/driver/nvidia/version
 - [pkgconfig?](https://blog.csdn.net/luotuo44/article/details/24836901) PKG_CONFIG_PATH环境变量
 
 
-## 7、测试系统磁盘的性能
+## 测试系统磁盘的性能
 dd是Linux/UNIX 下的一个非常有用的命令，作用是用指定大小的块拷贝一个文件，并在拷贝的同时进行指定的转换。另外在linux中，有两个特殊的设备：/dev/null：回收站、无底洞，经常作为写端，不会产生IO，/dev/zero产生字符，经常作为读端，也不会产生IO。
 （1）测试磁盘写能力
     dd if=/dev/zero of=/test1.img bs=4k count=10000
@@ -108,7 +108,7 @@ dd是Linux/UNIX 下的一个非常有用的命令，作用是用指定大小的�
     在这个命令下，一个是物理分区，一个是实际的文件，对它们的读写都会产生IO（对/dev/sda是读，对/test.img是写），假设它们都在一个磁盘中，这个命令就相当于测试磁盘的同时读写能力。
 
 
-## 8、使用dd和nc命令测试网络性能
+## 使用dd和nc命令测试网络性能
 nc是netcat的简写，有着网络界的瑞士军刀美誉。因为它短小精悍、功能实用，被设计为一个简单、可靠的网络工具
 （1）实现任意TCP/UDP端口的侦听，nc可以作为server以TCP或UDP方式侦听指定端口
 （2）端口的扫描，nc可以作为client发起TCP或UDP连接
@@ -124,4 +124,3 @@ time nc 192.168.0.11 5001 > /dev/null
 
 
 参考：https://linuxtools-rst.readthedocs.io/zh_CN/latest/tool/index.html
-

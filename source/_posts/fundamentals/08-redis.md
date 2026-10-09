@@ -1,5 +1,5 @@
 ---
-title: 中间件 - Redis 原理与实践
+title: Redis：原理与实践
 date: 2024-03-06
 updated: 2026-01-08
 categories:
@@ -18,11 +18,11 @@ toc: true
 **阅读时间**: 50 分钟 | **难度**: ⭐⭐⭐⭐⭐ | **面试频率**: 极高
 
 **核心考点速查**:
-- [Redis 核心特性](#redis-核心特性与使用场景) - 为什么快？使用场景
+- [Redis 核心特性](#Redis-核心特性与使用场景) - 为什么快？使用场景
 - [数据结构底层实现](#数据结构底层实现) - SDS/ziplist/跳表/intset
-- [持久化机制](#持久化机制) - RDB/AOF/混合持久化
-- [分布式锁](#分布式锁) - SET NX EX/Redlock/可重入锁
-- [缓存问题](#缓存问题) - 穿透/击穿/雪崩解决方案
+- [持久化机制](#持久化机制（RDB、AOF）) - RDB/AOF/混合持久化
+- [分布式锁](#分布式锁实现) - SET NX EX/Redlock/可重入锁
+- [缓存问题](#三大缓存问题) - 穿透/击穿/雪崩解决方案
 - [集群方案](#集群方案) - 主从复制/Sentinel/Cluster
 - [面试高频题](#面试高频-20-题) - 标准答案 + 追问应对
 
@@ -30,48 +30,6 @@ toc: true
 
 > 本文以 Redis 6.x 及更早版本的实现和配置命名为主要背景，深入剖析核心原理、数据结构底层实现和电商场景实践。Redis 7.x 已将 ziplist 配置逐步迁移为 listpack；文中的 `hash-max-ziplist-*`、`list-max-ziplist-*` 等参数应按目标 Redis 版本对照官方文档调整，不能直接视为当前版本的默认配置。
 
-## 📋 目录导航
-
-### 一、基础篇
-1. [Redis 核心特性与使用场景](#redis-核心特性与使用场景)
-2. [五种数据类型与底层实现](#redis-5种数据类型和底层数据结构)
-3. [常用命令与时间复杂度](#redis-常用命令)
-
-### 二、数据结构深度剖析
-1. [Hash 底层实现详解](#hash-底层实现原理详解)（⭐ 核心重点）
-   - ziplist 压缩列表（字节级分析）
-   - hashtable 哈希表（渐进式 rehash）
-   - 实战案例：`{name: "iPhone", price: 5999}`
-2. [String/SDS 实现](#string-底层实现)
-3. [List 实现（ziplist/linkedlist/quicklist）](#list-底层实现)
-4. [Set 实现（intset/hashtable）](#set-底层实现)
-5. [ZSet 实现（ziplist/skiplist）](#zset-底层实现)
-
-### 三、缓存设计与实践
-1. [缓存使用场景](#redis-使用场景)（计数器、限流、队列）
-2. [缓存与DB一致性](#怎么考虑缓存和db数据一致性的问题)
-3. [缓存异常处理](#缓存异常与对应的解决办法)（雪崩、穿透、击穿）
-4. [本地缓存 vs 远程缓存](#选择local-remote-multilevel-cache)
-
-### 四、高级特性
-1. [内存管理](#计算所需的缓存的容量当容量超过限制时的淘汰策略)（淘汰策略、过期键删除）
-2. [持久化机制](#redis-两种数据持久化的原理以及优缺点)（RDB、AOF）
-3. [分布式方案](#redis分布式方案)（主从、哨兵、集群）
-4. [Lua 脚本](#redis--lua)
-
-### 五、性能优化
-1. [为什么 Redis 这么快](#redis-为什么这么快)
-2. [单线程模型](#redis-为什么使用单线程模型)
-3. [性能调优实践](#性能调优与监控)
-4. [大 Key、热 Key 问题](#大key和热key问题)
-
-### 六、实战案例
-1. [分布式锁实现](#redis实现分布式锁)
-2. [BloomFilter 应用](#bloomfilter-实践)
-3. [秒杀系统设计](#秒杀系统设计)
-4. [排行榜实现](#排行榜实现)
-
----
 
 ## Redis 核心特性与使用场景
 
@@ -116,7 +74,7 @@ rdb.Set(ctx, "user:123", `{"name":"alice","age":25}`, 0)
 // 存储计数器
 rdb.Set(ctx, "visit:count", 0, 0)
 
-```text
+```
 
 **性能提升**：DB 查询 100ms → Redis 查询 1ms（提升 100 倍）
 
@@ -152,7 +110,7 @@ end
 
 return normal_stock - book_num
 `
-```text
+```
 
 ### ZSet 使用场景
 
@@ -172,7 +130,7 @@ return normal_stock - book_num
   pipe.LPush(ctx, "user:history:123", "new_product_id")
   pipe.LTrim(ctx, "user:history:123", 0, 9) // 只保留最新的10个
   pipe.Exec(ctx)
-```text
+```
 
 1. 缓存数据（db，service) 的数据，提高访问效率
      - 缓存容量评估
@@ -210,12 +168,12 @@ return normal_stock - book_num
    p 是预期的误判率，例如 0.001。
    m 是位数组的大小。
    k 是哈希函数的数量。
-   ```text
+   ```
 
 
 ---
 
-## 二、数据结构深度剖析
+## 数据结构深度剖析
 
 > 深入理解 Redis 五种数据类型的底层实现原理，掌握内存优化技巧。
 
@@ -238,7 +196,7 @@ return normal_stock - book_num
 
 Redis Hash 采用**两种编码方式**，根据数据特征自动选择：
 
-#### 1. 编码选择策略
+#### 编码选择策略
 
 ```mermaid
 graph LR
@@ -249,28 +207,28 @@ graph LR
     
     style C fill:#e8f5e9
     style D fill:#e1f5fe
-```text
+```
 
 **配置参数（redis.conf）：**
 ```conf
 hash-max-ziplist-entries 512   # 最大元素个数
 hash-max-ziplist-value 64       # 单个value最大长度（字节）
-```text
+```
 
-#### 2. ziplist（压缩列表）- 内存优化
+#### ziplist（压缩列表）- 内存优化
 
 **适用场景**：小对象存储（如商品详情、Session、小型 List）
 
 ziplist 是 Redis 为节省内存设计的**紧凑型数据结构**，所有数据存储在**一块连续的内存**中。
 
-##### 2.1 整体结构
+#### 整体结构
 
 ```text
 +----------+----------+--------+---------+---------+-----+---------+--------+
 | zlbytes  | zltail   | zllen  | entry1  | entry2  | ... | entryN  | zlend  |
 +----------+----------+--------+---------+---------+-----+---------+--------+
   4字节      4字节      2字节    变长      变长            变长      1字节
-```text
+```
 
 | 字段 | 长度 | 说明 |
 |------|------|------|
@@ -280,7 +238,7 @@ ziplist 是 Redis 为节省内存设计的**紧凑型数据结构**，所有数�
 | **entry** | 变长 | 实际数据节点，每个节点长度不固定 |
 | **zlend** | 1 字节 | 固定为 `0xFF`，标记 ziplist 结束 |
 
-##### 2.2 Entry 节点详细结构（三部分）
+#### Entry 节点详细结构（三部分）
 
 每个 entry 由三部分组成：
 
@@ -289,9 +247,9 @@ ziplist 是 Redis 为节省内存设计的**紧凑型数据结构**，所有数�
 | prevlen  | encoding | content  |
 +----------+----------+----------+
   1或5字节   1-5字节    变长
-```text
+```
 
-###### **Part 1: prevlen（前一节点长度）**
+#### **Part 1: prevlen（前一节点长度）**
 
 记录**前一个节点的长度**，用于**从后向前遍历**。
 
@@ -302,13 +260,13 @@ if (前一节点长度 < 254 字节) {
 } else {
     prevlen = 5 字节      // 第1字节=0xFE，后4字节存实际长度
 }
-```text
+```
 
 **示例**：
 - 前一节点 10 字节 → `prevlen = 0x0A`（1字节）
 - 前一节点 300 字节 → `prevlen = 0xFE 0x00 0x00 0x01 0x2C`（5字节）
 
-###### **Part 2: encoding（编码类型）**
+#### **Part 2: encoding（编码类型）**
 
 记录 **content 的数据类型和长度**，Redis 使用变长编码节省空间。
 
@@ -331,13 +289,13 @@ if (前一节点长度 < 254 字节) {
 | `11111110` | 8 位整数 | 1 字节 |
 | `1111xxxx` | 0-12 的整数直接编码在后4位 | **0 字节**（无 content） |
 
-###### **Part 3: content（实际数据）**
+#### **Part 3: content（实际数据）**
 
 存储实际的数据内容，根据 `encoding` 字段解析：
 - **字符串**：原始字节数组
 - **整数**：二进制整数（小端序）
 
-##### 2.3 实际内存布局示例
+#### 实际内存布局示例
 
 存储 Hash：`{name: "iPhone", price: 5999}`
 
@@ -369,11 +327,11 @@ if (前一节点长度 < 254 字节) {
      | (共 4 字节)
 
 35   | zlend      | 0xFF                | 结束标记
-```text
+```
 
 **内存计算**：10（头）+ 6 + 8 + 7 + 4 + 1（尾）= **36 字节**
 
-##### 2.4 遍历机制
+#### 遍历机制
 
 **正向遍历（从头到尾）**：
 ```c
@@ -383,7 +341,7 @@ while (*ptr != 0xFF) {
     node_len = prevlen_size + encoding_size + content_size;
     ptr += node_len;  // 跳到下一个节点
 }
-```text
+```
 
 **反向遍历（从尾到头）**：
 ```c
@@ -392,9 +350,9 @@ while (ptr > ziplist + 10) {
     prevlen = parse_prevlen(ptr);  // 读取 prevlen
     ptr -= prevlen;  // 跳到前一个节点
 }
-```text
+```
 
-##### 2.5 连锁更新问题（Cascade Update）
+#### 连锁更新问题（Cascade Update）
 
 **问题**：插入/删除节点可能导致后续节点的 `prevlen` 字段长度变化。
 
@@ -409,7 +367,7 @@ while (ptr > ziplist + 10) {
           当前节点的 prevlen 需从 1 字节扩展为 5 字节
           当前节点长度从 253 → 257 字节
           下一个节点的 prevlen 也需扩展...
-```text
+```
 
 **影响**：
 - **最坏时间复杂度**：O(n²)（所有节点连锁更新）
@@ -420,7 +378,7 @@ while (ptr > ziplist + 10) {
 - 预先检查是否会触发连锁更新
 - 一次性分配足够内存，减少 `realloc` 次数
 
-##### 2.6 编码示例（Go 代码）
+#### 编码示例（Go 代码）
 
 ```go
 // 示例：字符串 "hello" 的 encoding
@@ -436,9 +394,9 @@ content := []byte{0x64, 0x00}  // 小端序 100
 // 0-12 直接编码在 encoding 中
 encoding := 0b11111100  // 0xFC，后4位 1100 = 12
 // 无需 content 字段！
-```text
+```
 
-##### 2.7 优势与限制
+#### 优势与限制
 
 **✅ 优势**：
 - **内存高效**：无指针开销，紧凑存储
@@ -456,7 +414,7 @@ encoding := 0b11111100  // 0xFC，后4位 1100 = 12
   - List: 512 entries
   - ZSet: 128 entries
 
-##### 2.8 应用场景总结
+#### 应用场景总结
 
 | 数据类型 | 使用 ziplist 条件 | 典型场景 |
 |----------|-------------------|----------|
@@ -477,9 +435,9 @@ redis> MEMORY USAGE mykey
 # 查看 ziplist 详细信息（DEBUG 命令）
 redis> DEBUG OBJECT mykey
 Value at:0x7f8a9c0a0a00 refcount:1 encoding:ziplist serializedlength:48
-```text
+```
 
-#### 3. hashtable（哈希表）- 性能优化
+#### hashtable（哈希表）- 性能优化
 
 **适用场景**：大量字段或需要快速查找
 
@@ -505,7 +463,7 @@ typedef struct dictEntry {
     void *value;         // 值
     struct dictEntry *next;  // 链表指针（解决冲突）
 } dictEntry;
-```text
+```
 
 
 ```text
@@ -517,9 +475,9 @@ dict
 │   └── ...
 └── ht[1] (rehash用)
     └── NULL (未使用)
-```text
+```
 
-#### 4. 渐进式 Rehash 机制（核心）
+#### 渐进式 Rehash 机制（核心）
 
 **触发条件**：
 ```c
@@ -529,7 +487,7 @@ dict
 
 // 缩容
 负载因子 < 0.1
-```text
+```
 
 **渐进式 Rehash 流程**：
 1. 为 `ht[1]` 分配空间（扩容为 `used * 2` 的最小 2^n）
@@ -543,21 +501,21 @@ dict
 查找：先查 ht[0]，未找到再查 ht[1]
 新增：直接写入 ht[1]（新数据不进旧表）
 删除/更新：在 ht[0] 或 ht[1] 中找到后操作
-```text
+```
 
 **为什么用渐进式？**
 - 避免一次性 rehash 大量数据导致 Redis 阻塞（毫秒级→微秒级）
 - 分摊到每次操作中，对单次请求影响极小
 
-#### 5. 哈希函数
+#### 哈希函数
 
 ```c
 // Redis 使用 MurmurHash2（速度快、分布均匀）
 hash = MurmurHash2(key, len);
 index = hash & dict->ht[x].sizemask;  // 位运算代替取模，性能优
-```text
+```
 
-#### 6. 性能对比
+#### 性能对比
 
 | 操作 | ziplist | hashtable |
 |------|---------|-----------|
@@ -569,7 +527,7 @@ index = hash & dict->ht[x].sizemask;  // 位运算代替取模，性能优
 | CPU缓存 | **友好**（连续） | 一般（随机访问） |
 | 适用场景 | < 512字段小对象 | 大量字段快速查找 |
 
-#### 7. 电商场景最佳实践
+#### 电商场景最佳实践
 
 ```go
 // ✅ 推荐：商品详情缓存（字段适中，频繁部分更新）
@@ -591,9 +549,9 @@ rdb.Expire(ctx, "session:abc123", 30*time.Minute)
 // ❌ 避免：大 Hash（> 10000 字段）
 // 问题：HGETALL 阻塞、集群数据倾斜、持久化慢
 // 解决：拆分为多个小 Hash，如 product:1001:base、product:1001:detail
-```bash
+```
 
-#### 8. Hash vs String(JSON)
+#### Hash vs String(JSON)
 
 | 维度 | Hash | String (JSON) |
 |------|------|---------------|
@@ -607,7 +565,7 @@ rdb.Expire(ctx, "session:abc123", 30*time.Minute)
 - **用 Hash**：对象字段 < 1000，需要单独读写某些字段（如库存）
 - **用 String**：对象结构复杂嵌套（JSON），整体读写居多
 
-#### 9. 监控与调优
+#### 监控与调优
 
 ```bash
 # 1. 查找大 key
@@ -624,7 +582,7 @@ redis-cli> MEMORY USAGE product:1001
 # 4. 调整编码阈值（根据业务调整）
 CONFIG SET hash-max-ziplist-entries 1024
 CONFIG SET hash-max-ziplist-value 128
-```text
+```
 
 ---
 
@@ -642,7 +600,7 @@ struct sdshdr {
     int free;       // 剩余可用空间
     char buf[];     // 实际数据
 };
-```text
+```
 
 #### 优势对比
 
@@ -669,7 +627,7 @@ OBJECT ENCODING short  # "embstr"
 # 3. raw 编码（长字符串 > 44 字节）
 SET long "very long string..."
 OBJECT ENCODING long  # "raw"
-```text
+```
 
 **embstr vs raw**：
 - **embstr**：SDS 和 redisObject 在连续内存（一次分配）
@@ -695,7 +653,7 @@ if count > 100 {
 
 // 4. Session 存储
 rdb.Set(ctx, "session:token_abc", userJSON, 30*time.Minute)
-```text
+```
 
 ---
 
@@ -711,7 +669,7 @@ quicklist = ziplist 链表
 [ziplist1] ⇄ [ziplist2] ⇄ [ziplist3] ⇄ [ziplist4]
     ↓             ↓             ↓             ↓
   [a,b,c]      [d,e,f]      [g,h,i]      [j,k,l]
-```text
+```
 
 **设计思想**：
 - **ziplist**：内存紧凑，但大量数据时性能差
@@ -726,7 +684,7 @@ list-max-ziplist-size -2  # -2 表示 8KB
 
 # 两端不压缩的节点数（LZF 压缩）
 list-compress-depth 0  # 0 表示不压缩
-```text
+```
 
 #### 应用场景
 
@@ -745,7 +703,7 @@ posts := rdb.LRange(ctx, "timeline:user:123", 0, 19)  // 最新 20 条
 
 // 4. 阻塞队列（BRPOP）
 task := rdb.BRPop(ctx, 5*time.Second, "queue:tasks")  // 阻塞等待
-```text
+```
 
 #### 性能对比
 
@@ -776,7 +734,7 @@ typedef struct intset {
     uint32_t length;    // 元素数量
     int8_t contents[];  // 有序数组
 };
-```text
+```
 
 **特点**：
 - ✅ 有序存储，二分查找 O(log n)
@@ -803,7 +761,7 @@ winner := rdb.SPop(ctx, "lottery:pool")  // 随机抽取
 rdb.SAdd(ctx, "post:1001:likes", "user:123")
 isLiked := rdb.SIsMember(ctx, "post:1001:likes", "user:123")
 likeCount := rdb.SCard(ctx, "post:1001:likes")
-```text
+```
 
 ---
 
@@ -821,7 +779,7 @@ ZSet 使用 **ziplist** 或 **skiplist + hashtable** 编码。
 ```text
 [member1, score1, member2, score2, ...]
 按 score 有序存储
-```text
+```
 
 #### skiplist + hashtable 编码
 
@@ -835,7 +793,7 @@ Level 3:  1 --------------------------------> 100
 Level 2:  1 -------> 50 -------------------> 100
 Level 1:  1 --> 25 > 50 --> 75 ------------> 100
 Level 0:  1 > 10 > 25 > 50 > 75 > 90 > 100
-```text
+```
 
 平均查找复杂度：O(log n)
 
@@ -868,11 +826,11 @@ recommended := rdb.ZRevRangeByScore(ctx, "recommend:user:123", &redis.ZRangeBy{
 // 4. 微信步数排行榜
 rdb.ZAdd(ctx, "steps:2026-01-08", &redis.Z{Score: 10000, Member: "user:123"})
 myRank := rdb.ZRevRank(ctx, "steps:2026-01-08", "user:123")  // 我的排名
-```text
+```
 
 ---
 
-## 三、缓存设计与实践
+## 缓存设计与实践
 
 > 掌握缓存使用模式、一致性方案、异常处理策略，构建高可用缓存系统。
 
@@ -890,7 +848,7 @@ myRank := rdb.ZRevRank(ctx, "steps:2026-01-08", "user:123")  // 我的排名
 - volatile-ttl：在设置了过期时间的key中，根据key的过期时间进行淘汰，越早过期的越优先被淘汰
 LFU算法是Redis4.0里面新加的一种淘汰策略。它的全称是Least Frequently Used
 
-```text
+```
 [redis 内存淘汰策略解析](https://juejin.cn/post/6844903927037558792)
 
 ### 过期键删除策略
@@ -904,7 +862,7 @@ LFU算法是Redis4.0里面新加的一种淘汰策略。它的全称是Least Fre
 
 ---
 
-## 四、高级特性
+## 高级特性
 
 > 掌握持久化、分布式架构、Lua 脚本等高级特性，构建生产级 Redis 系统。
 
@@ -1003,7 +961,7 @@ Redis 提供两种持久化方案：
 
 ---
 
-## 五、性能优化
+## 性能优化
 
 > 理解 Redis 高性能原理，掌握性能调优技巧，解决大Key/热Key问题。
 
@@ -1048,7 +1006,7 @@ Redis 提供两种持久化方案：
 # 什么是大 Key？
 - String: value > 10KB
 - Hash/List/Set/ZSet: 元素数量 > 10000
-```sql
+```
 
 ---
 
@@ -1156,7 +1114,7 @@ SELECT 0
 
 # 测试连接
 PING  # 返回 PONG
-```text
+```
 
 ### 基础命令
 
@@ -1195,7 +1153,7 @@ PING  # 返回 PONG
 3. 主从同步慢，导致从库延迟
 4. 持久化慢（RDB/AOF）
 5. 集群数据倾斜
-```bash
+```
 
 #### 发现大 Key
 
@@ -1212,7 +1170,7 @@ redis-rdb-tools dump.rdb --command memory --bytes 10240
 # 4. 使用 MEMORY USAGE 命令
 redis> MEMORY USAGE mykey
 (integer) 1048576
-```text
+```
 
 #### 解决方案
 
@@ -1235,7 +1193,7 @@ rdb.Set(ctx, key, value, 1*time.Hour)
 
 // 4. 异步删除大 Key
 rdb.Unlink(ctx, largeKey)  // 非阻塞删除
-```text
+```
 
 #### 热 Key 危害
 
@@ -1248,7 +1206,7 @@ QPS > 10000 的 Key（如秒杀商品）
 2. CPU 占用过高
 3. 网络带宽打满
 4. 集群节点负载不均
-```go
+```
 
 #### 解决方案
 
@@ -1283,7 +1241,7 @@ limiter := rate.NewLimiter(10000, 20000)  // 10000 QPS, burst 20000
 if !limiter.Allow() {
     return ErrTooManyRequests
 }
-```text
+```
 
 ---
 
@@ -1328,7 +1286,7 @@ redis> SLOWLOG GET 10
    3) (integer) 50000              # 耗时 50ms
    4) 1) "KEYS"
       2) "*"
-```text
+```
 
 #### 监控告警
 
@@ -1356,11 +1314,11 @@ groups:
       - alert: RedisReplLag
         expr: redis_master_repl_offset - redis_slave_repl_offset > 10000000
         for: 5m
-```go
+```
 
 ---
 
-## 六、实战案例
+## 实战案例
 
 > 基于真实业务场景，掌握分布式锁、BloomFilter、秒杀、排行榜等高级应用。
 
@@ -1389,7 +1347,7 @@ func Unlock(key string, value string) error {
     `
     return rdb.Eval(ctx, script, []string{key}, value).Err()
 }
-```text
+```
 
 **详细实现**：[Redis 分布式锁](https://juejin.cn/post/6936956908007850014)
 
@@ -1403,7 +1361,7 @@ BloomFilter 用于快速判断元素是否存在，**允许误判（False Positi
 
 ```text
 判断结果 = 一定不存在 or 可能存在
-```text
+```
 
 ### 公式
 
@@ -1413,7 +1371,7 @@ k = m/n * ln2            # 哈希函数数量
 
 n = 预期元素数量
 p = 误判率
-```text
+```
 
 **示例**：
 ```text
@@ -1422,7 +1380,7 @@ p = 0.01（1% 误判率）
 
 m = 9,585,059 bits ≈ 1.15 MB
 k = 7 个哈希函数
-```text
+```
 
 ### Redis 实现
 
@@ -1448,7 +1406,7 @@ rdb.Set(ctx, "bloomfilter:users", data, 0)
 data, _ := rdb.Get(ctx, "bloomfilter:users").Bytes()
 bf := bloom.New(1, 1)
 bf.GobDecode(data)
-```go
+```
 
 ### 应用场景
 
@@ -1484,7 +1442,7 @@ func FilterRecommendations(userID string, items []string) []string {
     }
     return result
 }
-```go
+```
 
 ---
 
@@ -1572,7 +1530,7 @@ func ProcessOrders() {
         db.CreateOrder(&order)
     }
 }
-```go
+```
 
 ---
 
@@ -1637,7 +1595,7 @@ func GetNearbyRank(userID string) ([]User, error) {
     
     return rdb.ZRevRangeWithScores(ctx, "rank:realtime", start, end).Result()
 }
-```go
+```
 
 ### 每日排行榜（自动过期）
 
@@ -1652,7 +1610,7 @@ func UpdateDailyScore(userID string, score int64, date time.Time) error {
     _, err := pipe.Exec(ctx)
     return err
 }
-```text
+```
 
 ---
 
@@ -1682,7 +1640,7 @@ pool := &redis.Pool{
         return redis.Dial("tcp", "localhost:6379")
     },
 }
-```text
+```
 
 ---
 
@@ -1714,7 +1672,7 @@ pool := &redis.Pool{
 │  ├─ 消息队列 → List（quicklist）
 │  ├─ 去重集合 → Set（intset/hashtable）
 │  └─ 有序集合 → ZSet（ziplist/skiplist）
-```text
+```
 
 ### 缓存设计检查清单
 
@@ -1750,7 +1708,7 @@ pool := &redis.Pool{
 6. 频繁创建连接（性能差）
 7. 无监控告警（问题发现慢）
 8. 不做持久化（数据丢失）
-```text
+```
 
 ---
 

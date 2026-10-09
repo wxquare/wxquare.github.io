@@ -72,11 +72,11 @@ flowchart LR
 
 ---
 
-## 一、架构评审阶段 — 设计期
+## 架构评审阶段 — 设计期
 
 **适用时机**：立项、新服务、新子域或大规模模块拆分。目标是在写大量代码之前，把**分层、边界、一致性、读写特征与技术选型**对齐。
 
-### 1. 分层结构
+### 分层结构
 
 **标准**：是否明确定义 **Domain / Application / Adapter / Infrastructure**（或等价四层）？源代码依赖是否**一律指向内层**（Domain 为最内），外层通过接口向内依赖？
 
@@ -121,7 +121,7 @@ func (h *PlaceOrderHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 ---
 
-### 2. Bounded Context 划分
+### Bounded Context 划分
 
 **标准**：是否识别 **核心域、支撑域、通用域**？每个 BC 是否有清晰的 **Ubiquitous Language** 与对外契约（API / 事件），避免「一个大而全的领域模型」?
 
@@ -161,7 +161,7 @@ type inventory.StockUnit struct {
 
 ---
 
-### 3. 聚合边界
+### 聚合边界
 
 **标准**：**一致性边界**是否以聚合为单位设计？是否避免在单个事务中强行修改多个聚合根，除非有显式的领域规则与补偿策略？
 
@@ -182,7 +182,7 @@ func SaveOrderAndDeductStock(ctx context.Context, tx *sql.Tx, o *Order, inv *Inv
 
 ---
 
-### 4. 读写路径评估
+### 读写路径评估
 
 **标准**：是否量化 **读写比**、延迟与一致性要求？读路径若存在重 JOIN、宽表、复杂筛选，是否考虑 **独立读模型 / 投影**，而不是全部堆在写模型上？
 
@@ -214,7 +214,7 @@ func (s *OrderService) PlaceOrder(ctx context.Context, cmd PlaceOrderCommand) er
 
 ---
 
-### 5. 技术选型
+### 技术选型
 
 **标准**：存储与中间件是否与 **访问模式** 匹配（点查、范围扫、全文检索、图关系、流处理）？是否记录选型假设与回退方案？
 
@@ -226,7 +226,7 @@ func (s *OrderService) PlaceOrder(ctx context.Context, cmd PlaceOrderCommand) er
 
 ---
 
-### 6. 过度设计检查（YAGNI）
+### 过度设计检查（YAGNI）
 
 **标准**：是否仅为**已确认**的变更点引入抽象？能否用更简单的模型先交付，再演化？
 
@@ -240,11 +240,11 @@ func (s *OrderService) PlaceOrder(ctx context.Context, cmd PlaceOrderCommand) er
 
 ---
 
-## 二、设计评审阶段 — 详设期
+## 设计评审阶段 — 详设期
 
 **适用时机**：接口评审、领域模型评审、用例与事件清单冻结前。目标是让 **战术设计**（聚合、Repo、Command/Query、事件）与战略分层一致。
 
-### 1. 聚合根识别
+### 聚合根识别
 
 **标准**：**聚合根**是否是外部访问聚合内对象的**唯一入口**？外部代码是否禁止绕过根直接改内部实体状态？
 
@@ -286,7 +286,7 @@ func (o *Order) ChangeLineQty(sku string, qty int) error {
 
 ---
 
-### 2. 实体 vs 值对象
+### 实体 vs 值对象
 
 **标准**：**实体**是否有稳定标识且可变（通过受控方法）？**值对象**是否**不可变**、按值语义相等（而非仅按指针）？
 
@@ -332,7 +332,7 @@ func NewMoney(currency string, amount int64) (Money, error) {
 
 ---
 
-### 3. Repository 接口
+### Repository 接口
 
 **标准**：**Repository 接口**是否定义在**领域层**（或由内层拥有的端口包）？方法名是否表达 **业务需要**（`FindActiveByCustomer`）而非表驱动（`SelectFromOrdersJoin`）？
 
@@ -363,7 +363,7 @@ type OrderRepository interface {
 
 ---
 
-### 4. Command 设计
+### Command 设计
 
 **标准**：命令是否表达 **业务意图**（如 `PlaceOrder`、`CancelSubscription`），而不是贫血 CRUD（`CreateOrder` 仅映射 HTTP POST）？
 
@@ -392,7 +392,7 @@ type PlaceOrderCommand struct {
 
 ---
 
-### 5. Query 设计
+### Query 设计
 
 **标准**：查询是否**直接返回 DTO / 读模型**，**不强行加载完整领域图**？是否避免在查询路径上触发写模型副作用？
 
@@ -419,7 +419,7 @@ type OrderSummaryDTO struct {
 
 ---
 
-### 6. 领域事件
+### 领域事件
 
 **标准**：关键业务状态变更是否发布 **领域事件**？命名是否使用 **过去式**（`OrderPlaced`、`PaymentCaptured`）并携带必要上下文（版本、发生时间）？
 
@@ -441,7 +441,7 @@ type OrderPlaced struct {
 
 ---
 
-### 7. 模式选型（决策表）
+### 模式选型（决策表）
 
 详设阶段可快速对照下表，避免「每个地方都 if-else」或「每个地方都上框架」。
 
@@ -460,11 +460,11 @@ type OrderPlaced struct {
 
 ---
 
-## 三、代码评审阶段 — PR 期
+## 代码评审阶段 — PR 期
 
 **适用时机**：每次合并请求。本节是清单中最细的部分：把设计约束落到 **Go 代码**的可观察性质上。
 
-### 3.1 SOLID 原则
+### SOLID 原则
 
 对每一项，用「一句检查问句」+「违规 vs 合规」最小代码对照。
 
@@ -608,7 +608,7 @@ func main() {
 
 ---
 
-### 3.2 函数质量
+### 函数质量
 
 1. **函数长度 < 80 行**  
    **检查**：单函数是否可在一屏内理解？超长函数是否可拆为私有步骤函数或 Pipeline 阶段？
@@ -721,7 +721,7 @@ func NewClient(host string, port int, opts ...clientOption) *Client {
 
 ---
 
-### 3.3 命名与通用语言
+### 命名与通用语言
 
 1. **变量 / 函数名反映业务术语**  
    **检查**：名称是否来自 **Ubiquitous Language**，而非数据库列名的机械翻译？
@@ -749,7 +749,7 @@ func (o *Order) MarkShipped(at time.Time) error {
 
 ---
 
-### 3.4 错误处理
+### 错误处理
 
 1. **禁止静默忽略错误**  
    **检查**：是否存在 `_ = xxx` 或空白 `if err != nil { }`？
@@ -791,7 +791,7 @@ func (s *InventoryService) Reserve(ctx context.Context, sku string, qty int) err
 
 ---
 
-### 3.5 依赖方向
+### 依赖方向
 
 1. **domain 包不 import adapter / infra**  
    **检查**：`go list -deps` 或 IDE 依赖图是否显示内层干净？
@@ -813,7 +813,7 @@ go build ./...
 
 ---
 
-### 3.6 DDD 战术模式
+### DDD 战术模式
 
 1. **聚合根方法保护不变量**  
    **检查**：状态变更是否集中在根上，并在方法内校验规则？
@@ -862,11 +862,11 @@ func (o *Order) Lines() []OrderLine {
 
 ---
 
-## 四、上线前检查 — 合并期
+## 上线前检查 — 合并期
 
 **适用时机**：发布分支、灰度前、重大重构合并前。与功能完成度无关的「生产就绪」项在此收敛。
 
-### 1. 性能
+### 性能
 
 **标准**：关键路径是否有 **benchmark**（或等价的压测脚本与基线）？是否排查 **goroutine / channel 泄漏**（长时间运行测试、阻塞 send、未关闭的 worker）？
 
@@ -885,7 +885,7 @@ func BenchmarkPlaceOrder(b *testing.B) {
 
 ---
 
-### 2. 并发安全
+### 并发安全
 
 **标准**：共享可变状态是否由 **mutex**、**channel 编排**或 **单 goroutine 所有权**保护？map 并发读写是否禁止？
 
@@ -916,7 +916,7 @@ func (c *SafeCache) Set(k string, v int) {
 
 ---
 
-### 3. 可观测性
+### 可观测性
 
 **标准**：是否具备 **metrics**（RED/USE）、**trace**（关键 span）、**结构化日志**（带 `request_id`、`order_id` 等关联字段）？
 
@@ -933,7 +933,7 @@ logger.Info("order_placed",
 
 ---
 
-### 4. 测试覆盖
+### 测试覆盖
 
 **标准**：核心业务规则覆盖率是否 **> 80%**（按团队约定工具统计）？是否有 **集成测试** 覆盖仓储、消息、外部 HTTP 的 fake / 容器测试？
 
@@ -948,7 +948,7 @@ func TestPlaceOrder_OutOfStock(t *testing.T) {
 
 ---
 
-### 5. 回滚方案
+### 回滚方案
 
 **标准**：是否有 **feature flag** 或配置开关？**数据库迁移**是否可回滚或具备向前兼容的双写/双读阶段？
 
@@ -956,7 +956,7 @@ func TestPlaceOrder_OutOfStock(t *testing.T) {
 
 ---
 
-### 6. 文档更新
+### 文档更新
 
 **标准**：架构变更（新 BC、事件契约、SLA）是否同步到 **README / ADR / 运维手册**？Review 链接是否可追溯到决策记录？
 

@@ -1,5 +1,5 @@
 ---
-title: 互联网基础设施：Kubernetes 与 Docker 实践
+title: Docker 与 Kubernetes：基础原理与实践
 date: 2024-12-20
 description: 从容器基础到 Kubernetes 编排，整理后端工程中常见的部署、服务发现、资源管理与运维实践。
 updated: 2026-09-23
@@ -18,19 +18,19 @@ toc: true
 **阅读时间**: 50 分钟 | **难度**: ⭐⭐⭐⭐⭐ | **面试频率**: 极高
 
 **核心考点速查**:
-- [一、Docker 核心原理](#一docker-核心原理面试必问) - Docker vs VM / 镜像分层 / namespace / cgroup
-- [二、Kubernetes 核心概念](#二kubernetes-核心概念5-分钟速记) - Pod / Deployment / Service / Ingress
-- [三、K8s 网络原理](#三k8s-网络原理深度解析) - Pod 网络 / Service 网络 / Ingress 网络
-- [四、Pod 生命周期与故障排查](#四pod-生命周期与故障排查) - OOMKilled / CrashLoopBackOff / ImagePullBackOff
-- [五、实用 YAML 配置](#五实用-yaml-配置模板) - Deployment / Service / Ingress / ConfigMap / Secret
-- [六、监控与告警](#六监控与告警) - Prometheus / Grafana / 常见指标
-- [七、面试高频 20 题](#七面试高频-20-题) - 标准答案 + 追问应对
+- [Docker 核心原理](#Docker-核心原理（面试必问）) - Docker vs VM / 镜像分层 / namespace / cgroup
+- [Kubernetes 核心概念](#Kubernetes-核心概念（5-分钟速记）) - Pod / Deployment / Service / Ingress
+- [K8s 网络原理](#K8s-网络原理（深度解析）) - Pod 网络 / Service 网络 / Ingress 网络
+- [Pod 生命周期与故障排查](#Pod-生命周期与故障排查) - OOMKilled / CrashLoopBackOff / ImagePullBackOff
+- [实用 YAML 配置](#实用-YAML-配置模板) - Deployment / Service / Ingress / ConfigMap / Secret
+- [监控与告警](#监控与告警) - Prometheus / Grafana / 常见指标
+- [面试高频 20 题](#面试高频-20-题) - 标准答案 + 追问应对
 
 ---
 
-## 一、Docker 核心原理（面试必问）
+## Docker 核心原理（面试必问）
 
-### 1.1 Docker vs 虚拟机
+### Docker vs 虚拟机
 
 **对比表格**：
 
@@ -62,12 +62,12 @@ toc: true
                               ├─────────────────────┤
                               │    Infrastructure   │
                               └─────────────────────┘
-```text
+```
 
 **面试标准答案**（30 秒）：
 > Docker 容器通过 namespace 实现资源隔离，通过 cgroup 实现资源限制，共享宿主机内核，启动快、资源占用少。VM 通过 Hypervisor 虚拟化完整操作系统，隔离性更强但开销大。
 
-### 1.2 Docker 镜像分层机制
+### Docker 镜像分层机制
 
 **分层原理**：
 - 每个 Docker 镜像由多层只读层（Read-Only Layer）叠加而成
@@ -82,7 +82,7 @@ RUN apt-get update       # 第 2 层：更新软件源
 RUN apt-get install -y nginx  # 第 3 层：安装 nginx
 COPY app.conf /etc/nginx/  # 第 4 层：复制配置文件
 CMD ["nginx", "-g", "daemon off;"]  # 第 5 层：启动命令
-```text
+```
 
 **分层存储结构**：
 
@@ -99,14 +99,14 @@ CMD ["nginx", "-g", "daemon off;"]  # 第 5 层：启动命令
 ├─────────────────┤
 │ FROM ubuntu     │ ← Layer 1（只读）
 └─────────────────┘
-```bash
+```
 
 **面试追问：为什么要分层？**
 1. **共享存储**：多个镜像可以共享相同的层（如 ubuntu:20.04 基础层）
 2. **快速构建**：修改某一层时，只需重新构建该层及以上层
 3. **快速分发**：只传输变化的层，不需要传输整个镜像
 
-### 1.3 Namespace 隔离
+### Namespace 隔离
 
 **Docker 使用 Linux Namespace 实现资源隔离**：
 
@@ -131,9 +131,9 @@ sudo ls -l /proc/12345/ns/
 # 输出：
 # net -> 'net:[4026532123]'
 # pid -> 'pid:[4026532124]'
-```bash
+```
 
-### 1.4 Cgroup 资源限制
+### Cgroup 资源限制
 
 **Cgroup（Control Groups）用于限制容器的资源使用**：
 
@@ -149,7 +149,7 @@ sudo ls -l /proc/12345/ns/
 ```bash
 # 限制容器使用 1 核 CPU 和 512MB 内存
 docker run -d --cpus=1 --memory=512m nginx
-```text
+```
 
 **面试追问：如果容器内存超限会发生什么？**
 - 容器会被 OOM Killer 杀死
@@ -158,9 +158,9 @@ docker run -d --cpus=1 --memory=512m nginx
 
 ---
 
-## 二、Kubernetes 核心概念（5 分钟速记）
+## Kubernetes 核心概念（5 分钟速记）
 
-### 2.1 核心组件
+### 核心组件
 
 | 组件 | 职责 | 面试话术 |
 |------|------|---------|
@@ -171,7 +171,7 @@ docker run -d --cpus=1 --memory=512m nginx
 | **Service** | 为 Pod 提供固定 IP 和负载均衡 | Pod 的"门牌号" |
 | **Ingress** | HTTP/HTTPS 路由，七层负载均衡 | 集群的"网关" |
 
-### 2.2 Master 组件
+### Master 组件
 
 | 组件 | 职责 |
 |------|------|
@@ -180,7 +180,7 @@ docker run -d --cpus=1 --memory=512m nginx
 | **Controller Manager** | 管理各种控制器（Deployment、ReplicaSet 等） |
 | **etcd** | 分布式 KV 存储，保存集群状态 |
 
-### 2.3 Node 组件
+### Node 组件
 
 | 组件 | 职责 |
 |------|------|
@@ -188,7 +188,7 @@ docker run -d --cpus=1 --memory=512m nginx
 | **kube-proxy** | 负责 Service 的网络代理和负载均衡 |
 | **Container Runtime** | 容器运行时（Docker、containerd、CRI-O） |
 
-### 2.4 Pod 生命周期
+### Pod 生命周期
 
 **Pod 状态**：
 
@@ -209,9 +209,9 @@ docker run -d --cpus=1 --memory=512m nginx
 
 ---
 
-## 三、K8s 网络原理（深度解析）
+## K8s 网络原理（深度解析）
 
-### 3.1 Linux 虚拟网络基础
+### Linux 虚拟网络基础
 
 **Veth Pair + Bridge 实现跨 namespace 通信**：
 
@@ -229,7 +229,7 @@ docker run -d --cpus=1 --memory=512m nginx
          │ docker0 │ (Bridge)
          │ 192.168.1.1
          └─────────┘
-```text
+```
 
 **实战练习**：
 
@@ -253,9 +253,9 @@ sudo ip -n ns1 link set veth-ns1 up
 
 # 测试连通性
 sudo ip netns exec ns1 ping 192.168.1.1
-```bash
+```
 
-### 3.2 Docker 网络
+### Docker 网络
 
 **docker0 网桥**：
 - Docker 默认创建 `docker0` 网桥（类似交换机）
@@ -283,9 +283,9 @@ docker exec <container-id> route -n
 sudo iptables -t nat -S | grep docker
 # 输出：
 # -A POSTROUTING -s 172.17.0.0/16 ! -o docker0 -j MASQUERADE
-```bash
+```
 
-### 3.3 Pod 网络
+### Pod 网络
 
 **Pause 容器**：
 - 每个 Pod 有一个 Pause 容器（`registry.k8s.io/pause`）
@@ -305,7 +305,7 @@ docker ps | grep etcd
 docker inspect 8fd1337b0bf2 | grep NetworkMode
 # 输出：
 # "NetworkMode": "container:1202ef34af2b..."
-```text
+```
 
 **CNI（Container Network Interface）**：
 - Kubernetes 通过 CNI 插件实现 Pod 网络
@@ -318,9 +318,9 @@ ls -l /opt/cni/bin/
 # -rwxr-xr-x bridge
 # -rwxr-xr-x host-local
 # -rwxr-xr-x loopback
-```text
+```
 
-### 3.4 Service 网络
+### Service 网络
 
 **Service 的作用**：
 1. **服务发现**：为 Pod 提供固定的 ClusterIP
@@ -351,7 +351,7 @@ ls -l /opt/cni/bin/
         │ (Service IP → │
         │  Pod IP 转发) │
         └───────────────┘
-```text
+```
 
 **Service 类型**：
 
@@ -370,7 +370,7 @@ ls -l /opt/cni/bin/
 | **iptables** | 内核态转发（默认） | 中等 |
 | **ipvs** | LVS 负载均衡 | 高（推荐） |
 
-### 3.5 Ingress 网络
+### Ingress 网络
 
 **Ingress 的作用**：
 - 七层（HTTP/HTTPS）负载均衡
@@ -395,7 +395,7 @@ ls -l /opt/cni/bin/
       ┌───────┴───────┬───────────┐
       │  Pod A1       │  Pod A2   │
       └───────────────┴───────────┘
-```yaml
+```
 
 **Ingress 路由规则**：
 
@@ -423,13 +423,13 @@ spec:
             name: service-b
             port:
               number: 80
-```text
+```
 
 ---
 
-## 四、Pod 生命周期与故障排查
+## Pod 生命周期与故障排查
 
-### 4.1 Pod 状态速查表
+### Pod 状态速查表
 
 | 状态 | 原因 | 排查方法 |
 |------|------|---------|
@@ -439,7 +439,7 @@ spec:
 | **OOMKilled** | 内存超限 | 增加 `resources.limits.memory` |
 | **Error** | 容器异常退出 | 查看退出码 `kubectl describe pod` |
 
-### 4.2 常见故障排查
+### 常见故障排查
 
 #### 故障1：ImagePullBackOff
 
@@ -449,7 +449,7 @@ spec:
 $ kubectl get pods
 NAME                     READY   STATUS             RESTARTS   AGE
 myapp-5d4b7c8f9-xyz      0/1     ImagePullBackOff   0          2m
-```bash
+```
 
 **原因**：
 1. 镜像名称错误（拼写错误、标签不存在）
@@ -473,7 +473,7 @@ kubectl create secret docker-registry regcred \
   --docker-username=user \
   --docker-password=pass \
   --docker-email=user@example.com
-```text
+```
 
 #### 故障2：CrashLoopBackOff
 
@@ -483,7 +483,7 @@ kubectl create secret docker-registry regcred \
 $ kubectl get pods
 NAME                     READY   STATUS             RESTARTS   AGE
 myapp-5d4b7c8f9-xyz      0/1     CrashLoopBackOff   5          5m
-```bash
+```
 
 **原因**：
 1. 应用启动失败（配置错误、依赖服务不可用）
@@ -503,7 +503,7 @@ kubectl logs myapp-5d4b7c8f9-xyz --previous
 
 # 解决方案：修复配置
 kubectl edit deployment myapp
-```text
+```
 
 #### 故障3：OOMKilled
 
@@ -515,7 +515,7 @@ $ kubectl describe pod myapp-5d4b7c8f9-xyz
 State:          Terminated
   Reason:       OOMKilled
   Exit Code:    137
-```bash
+```
 
 **原因**：
 - 容器内存使用超过 `resources.limits.memory`
@@ -538,9 +538,9 @@ kubectl edit deployment myapp
 # resources:
 #   limits:
 #     memory: 512Mi
-```yaml
+```
 
-### 4.3 健康检查
+### 健康检查
 
 **Liveness Probe（存活探针）**：
 - 检测容器是否存活
@@ -577,13 +577,13 @@ spec:
         port: 8080
       initialDelaySeconds: 5
       periodSeconds: 5
-```yaml
+```
 
 ---
 
-## 五、实用 YAML 配置模板
+## 实用 YAML 配置模板
 
-### 5.1 Deployment（无状态应用）
+### Deployment（无状态应用）
 
 ```yaml
 apiVersion: apps/v1
@@ -626,9 +626,9 @@ spec:
             port: 80
           initialDelaySeconds: 5
           periodSeconds: 3
-```yaml
+```
 
-### 5.2 Service（ClusterIP）
+### Service（ClusterIP）
 
 ```yaml
 apiVersion: v1
@@ -643,9 +643,9 @@ spec:
   - protocol: TCP
     port: 80        # Service 端口
     targetPort: 80  # Pod 端口
-```yaml
+```
 
-### 5.3 Service（NodePort）
+### Service（NodePort）
 
 ```yaml
 apiVersion: v1
@@ -661,9 +661,9 @@ spec:
     port: 80
     targetPort: 80
     nodePort: 30080  # Node 上的端口（30000-32767）
-```yaml
+```
 
-### 5.4 Ingress
+### Ingress
 
 ```yaml
 apiVersion: networking.k8s.io/v1
@@ -695,9 +695,9 @@ spec:
   - hosts:
     - example.com
     secretName: example-tls
-```yaml
+```
 
-### 5.5 ConfigMap（配置文件）
+### ConfigMap（配置文件）
 
 ```yaml
 apiVersion: v1
@@ -720,9 +720,9 @@ spec:
     envFrom:
     - configMapRef:
         name: app-config  # 所有 key-value 都作为环境变量
-```yaml
+```
 
-### 5.6 Secret（敏感信息）
+### Secret（敏感信息）
 
 ```yaml
 apiVersion: v1
@@ -754,13 +754,13 @@ spec:
         secretKeyRef:
           name: db-secret
           key: password
-```bash
+```
 
 ---
 
-## 六、监控与告警
+## 监控与告警
 
-### 6.1 核心指标
+### 核心指标
 
 | 维度 | 指标 | 含义 |
 |------|------|------|
@@ -773,7 +773,7 @@ spec:
 | **容器** | OOMKilled 次数 | 内存超限次数 |
 |         | 退出码 | 容器退出码（0 正常，非 0 异常） |
 
-### 6.2 常用命令
+### 常用命令
 
 ```bash
 # 查看 Node 资源使用情况
@@ -794,11 +794,11 @@ kubectl exec -it <pod-name> -- /bin/bash
 
 # 查看 Pod 事件
 kubectl get events --sort-by='.metadata.creationTimestamp'
-```text
+```
 
 ---
 
-## 七、面试高频 20 题
+## 面试高频 20 题
 
 ### 1. Docker 和虚拟机有什么区别？
 
@@ -848,7 +848,7 @@ Deployment（管理更新）
 ReplicaSet（管理副本数）
     ↓
 Pod（运行容器）
-```yaml
+```
 
 ### 6. Service 是如何实现负载均衡的？
 
@@ -961,7 +961,7 @@ spec:
       target:
         type: Utilization
         averageUtilization: 80  # CPU 使用率超过 80% 时扩容
-```bash
+```
 
 ### 16. StatefulSet 和 Deployment 有什么区别？
 
@@ -1041,7 +1041,7 @@ kubectl top pods
 # 调试
 kubectl describe pod <pod-name>
 kubectl get events --sort-by='.metadata.creationTimestamp'
-```text
+```
 
 ---
 
