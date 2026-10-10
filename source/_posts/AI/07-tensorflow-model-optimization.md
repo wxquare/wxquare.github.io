@@ -1,5 +1,5 @@
 ---
-title: TensorFlow 模型压缩与推理优化实战：格式转换、基准测试、量化与剪枝
+title: TensorFlow 1.x 模型优化：格式转换、量化与剪枝实验
 date: 2026-09-22
 permalink: /2026/09/22/AI/04-tensorflow-model-optimization/
 categories:

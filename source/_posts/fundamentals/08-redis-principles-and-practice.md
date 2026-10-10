@@ -1,5 +1,5 @@
 ---
-title: Redis：原理与实践
+title: Redis：数据结构、缓存一致性与高可用设计
 date: 2024-03-06
 permalink: /2024/03/06/fundamentals/08-redis/
 updated: 2026-01-08

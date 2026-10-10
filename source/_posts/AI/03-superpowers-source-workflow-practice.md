@@ -1,5 +1,5 @@
 ---
-title: Superpowers 深度解析：从技能发现、工程流程到 Agent 实战
+title: Superpowers 源码解析：技能发现机制与开发流程约束
 date: 2026-09-24
 permalink: /2026/09/24/AI/03-superpowers-source-workflow-practice/
 categories:

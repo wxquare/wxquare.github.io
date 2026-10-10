@@ -1,5 +1,5 @@
 ---
-title: 互联网系统稳定性建设：方法论与实践
+title: 系统稳定性建设：监控告警、容量规划与大促保障
 date: 2025-05-15
 permalink: /2025/05/15/system-design/07-system-reliability-engineering/
 description: 从 SLO、故障治理、容量、降级、演练和复盘出发，整理互联网系统稳定性建设的方法论与实践。

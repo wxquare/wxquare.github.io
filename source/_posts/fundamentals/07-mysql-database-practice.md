@@ -1,5 +1,5 @@
 ---
-title: MySQL：存储原理与数据库实践
+title: MySQL：索引、事务并发控制与数据库扩展
 date: 2024-03-04
 permalink: /2024/03/04/fundamentals/07-mysql-database/
 description: 系统整理 MySQL 存储引擎、索引、事务、锁、日志和性能优化，连接数据库原理与生产实践。

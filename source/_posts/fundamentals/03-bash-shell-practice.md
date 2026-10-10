@@ -1,5 +1,5 @@
 ---
-title: Bash：Shell 基础与实践
+title: Linux 命令速查：文件处理、资源监控与网络排查
 date: 2024-03-03
 permalink: /2024/03/03/fundamentals/03-bash-shell-practice/
 description: 面向日常开发和运维，整理 Bash Shell 的语法、文本处理、脚本组织与常见实践。

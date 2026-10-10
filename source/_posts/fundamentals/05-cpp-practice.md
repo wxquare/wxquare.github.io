@@ -1,5 +1,5 @@
 ---
-title: C/C++：语言基础与实践
+title: C++：对象模型、STL 与编译调试
 date: 2024-03-05
 permalink: /2024/03/05/fundamentals/05-cpp-practice/
 description: 汇总 C/C++ 的对象模型、内存管理、并发、性能和工程实践，兼顾基础理解与面试准备。

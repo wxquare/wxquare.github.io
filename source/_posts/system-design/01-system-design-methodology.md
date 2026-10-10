@@ -1,5 +1,5 @@
 ---
-title: 系统设计：概述与技术方案写作
+title: 系统设计：技术方案写作、架构选型与设计评审
 date: 2025-04-01
 permalink: /2025/04/01/system-design/06-tech-design-methodology/
 description: 从问题定义、容量估算、方案比较到风险和发布计划，整理一份可评审、可执行的互联网系统技术方案写作方法。

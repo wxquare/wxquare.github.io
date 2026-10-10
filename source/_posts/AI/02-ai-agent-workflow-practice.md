@@ -1,5 +1,5 @@
 ---
-title: AI Agent 工作流实践：从 Claude Code、Codex 到 OpenClaw、Hermes 与 DeepSeek
+title: AI Agent 工作流：工具选型、模型路由与验证闭环
 date: 2026-09-23
 permalink: /2026/09/23/AI/01-ai-agent-workflow-practice/
 categories:

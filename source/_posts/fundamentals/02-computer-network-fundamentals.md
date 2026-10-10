@@ -1,5 +1,5 @@
 ---
-title: 计算机网络：面试与工程实践
+title: 计算机网络：TCP、HTTP 与服务调用排障
 date: 2024-03-02
 permalink: /2024/03/02/fundamentals/02-computer-network-fundamentals/
 description: 以面试和工程问题为线索，解释 TCP/IP、HTTP、DNS、连接管理与网络性能的关键概念。

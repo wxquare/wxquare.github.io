@@ -1,5 +1,5 @@
 ---
-title: Kafka：异步消息与队列实践
+title: Kafka：消息可靠性、消费重平衡与积压排查
 date: 2024-03-10
 permalink: /2024/03/10/fundamentals/09-kafka/
 description: 梳理 Kafka 的消息模型、分区、副本、消费语义和可靠性设计，说明它在异步系统中的适用边界。
