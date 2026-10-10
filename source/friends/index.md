@@ -35,6 +35,9 @@ date: 2022-11-07 22:33:15
 - [Andrej Karpathy](https://karpathy.ai/)：深度学习、LLM 教学、AI 研究与工程直觉。
 - [Simon Willison](https://simonwillison.net/)：LLM 工具、AI 辅助编程、Prompt Injection 与开放模型观察。
 - [Dive into Deep Learning](https://d2l.ai/)：李沐等人参与的开源深度学习教材。
+- [Pine AI](https://pine.im/)：个人 AI 助理，可代办电话、邮件、网页操作与后续跟进。
+- [DiffuSpace Research](https://diffuspace.ai/research)：扩散语言模型及相关研究论文。
+- [Xiao Tan (@tvytlx)](https://x.com/tvytlx)：AI 工程与开发工具实践。
 
 ## 候选关注：工程成长与系统设计
 

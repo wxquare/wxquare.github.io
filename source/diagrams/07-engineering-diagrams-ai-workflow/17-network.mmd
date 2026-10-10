@@ -1,0 +1,14 @@
+flowchart LR
+  U["Internet"] -->|HTTPS 443| W["WAF / 公网 LB"]
+  subgraph V["VPC"]
+    subgraph App["应用子网"]
+      A["订单应用"]
+    end
+    subgraph Data["数据子网 · 无公网入口"]
+      D[("MySQL")]
+      R[("Redis")]
+    end
+    A -->|TCP 3306 · 仅应用安全组| D
+    A -->|TCP 6379 · 仅应用安全组| R
+  end
+  W -->|内部 HTTP| A

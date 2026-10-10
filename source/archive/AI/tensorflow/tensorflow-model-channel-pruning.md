@@ -14,7 +14,7 @@ mathjax: true
 ### 1. 什么是通道剪枝
 　　虽然论文末尾谈到channel pruning可以应用到模型训练中，但是文章的核心内容还是对训练好的模型进行channel pruning，也就是文章中说的inference time。通道剪枝正如其名字channel pruning核心思想是移除一些冗余的channel简化模型。下图是从论文中截取的通道剪枝的示意图，它表示的网络模型中某一层的channel pruning。**B**表示输入feature map，**C**表示输出的feature map；c表示输入B的通道数量，n表示输出C的通道数量；**W**表示卷积核，卷积核的数量是n，每个卷积核的维度是c*kh*kw，kh和kw表示卷积核的size。通道剪枝的目的就是要把**B**中的某些通道剪掉，但是剪掉后的**B**和**W**的卷积结果能尽可能和**C**接近。当删减**B**中的某些通道时，同时也裁剪了**W**中与这些通道的对应的卷积核，因此通过通过剪枝能减小卷积的运算量。  
   
-![channel-pruning示意图](/images/channel_pruning.jpg)
+![channel-pruning示意图](/diagrams/tensorflow-model-channel-pruning/01-channel-pruning.jpg)
 
 
 ### 2. 通道剪枝数学描述
@@ -22,7 +22,7 @@ mathjax: true
 
 　　接下来通过数学表达式描述了通道剪枝。Ｘ($N\*c\* k_h\*k_w$)表示输入feature map，W($n \* c \* k_h \* k_w$)表示卷积核，Y($N\*n$)表示输出feature map。$\beta_i$表示通道系数，如果等于0，表示该通道可以被删除。我们期望将输入feature map的channel从c压缩为c'($0<=c'<= c$)，同时要使得构造误差(reconstruction error)尽可能的小。通过下面的优化表达式，就可以选择哪些通道被删除。文章中详细介绍了怎么用算法解决下面的数据问题，这里就不赘述了。另外文章还考虑分支情况下的通道剪枝，例如ResNet和GoogleNet，感兴趣的可以仔细研读该论文【3】。
 
-![channel-pruning示意图](/images/channel_pruning2.jpg)
+![channel-pruning示意图](/diagrams/tensorflow-model-channel-pruning/02-channel-pruning-2.jpg)
 
 ## 三、PocketFlow
 　　PocketFlow是腾讯AI Lab开源的自动化深度学习模型压缩框架，它集成了腾讯自己研发的和来自其他同行的主流的模型压缩与训练算法，还引入了自研的超参数优化组件，实现了自动托管式模型压缩与加速。PocketFlow能够自动选择模型压缩的超参，极大的方便了算法人员的调参。这里主要使用里面的channel pruning算法（learner）进行通道剪枝。【4】
@@ -74,7 +74,7 @@ $ bazel-bin/tensorflow/tools/benchmark/benchmark_model \
 --num_threads=1
 
 ```
-![channel-pruning 1x1 convolution](/images/channel_pruning3.jpg)
+![channel-pruning 1x1 convolution](/diagrams/tensorflow-model-channel-pruning/03-channel-pruning-3.jpg)
 
 
 

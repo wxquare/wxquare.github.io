@@ -1,7 +1,7 @@
 ---
 title: 系统稳定性建设：监控告警、容量规划与大促保障
 date: 2025-05-15
-permalink: /2025/05/15/system-design/07-system-reliability-engineering/
+permalink: /2025/05/15/system-design/06-system-reliability-engineering/
 description: 从 SLO、故障治理、容量、降级、演练和复盘出发，整理互联网系统稳定性建设的方法论与实践。
 categories:
   - 系统设计基础
@@ -37,7 +37,7 @@ toc: true
 Google SRE中(SRE三部曲[[1]](#ref-1))有一个层级模型来描述系统可靠性基础和高层次需求(Dickerson's Hierarchy of Service Reliability)，如下图：
 
 <p align="center">
-  <img src="/images/service-reliability-hierarchy.png" width=600 height=500>
+  <img src="/diagrams/06-system-reliability-engineering/01-service-reliability-hierarchy.png" width=600 height=500>
   <br/>
 </p>
 
@@ -53,7 +53,7 @@ Google SRE中(SRE三部曲[[1]](#ref-1))有一个层级模型来描述系统可�
 
 ### 系统稳定性建设概述
 <p align="center">
-  <img src="/images/system-stability.png" width=800 height=800>
+  <img src="/diagrams/06-system-reliability-engineering/02-system-stability.png" width=800 height=800>
   <br/>
 </p>
 
@@ -71,7 +71,7 @@ Google SRE中(SRE三部曲[[1]](#ref-1))有一个层级模型来描述系统可�
 - 性能优化
 
 <p align="center">
-  <img src="/images/6-reliability-steps.png" width=600 height=500>
+  <img src="/diagrams/06-system-reliability-engineering/03-6-reliability-steps.png" width=600 height=500>
   <br/>
 </p>
 
@@ -83,7 +83,7 @@ Google SRE中(SRE三部曲[[1]](#ref-1))有一个层级模型来描述系统可�
 监控系统一般有四项黄金指标：延时（Latency）, 错误（Error）,流量（Traffic）, 饱和度（Situation），各层的关键性监控同样也可以按照这四项指标来进行归类，具体如下：
 
 <p align="center">
-  <img src="/images/how-to-monitor.png" width=900 height=500>
+  <img src="/diagrams/06-system-reliability-engineering/04-how-to-monitor.png" width=900 height=500>
   <br/>
 </p>
 
@@ -700,7 +700,7 @@ func ProcessPayment(orderID string) error {
 #### 实时对账系统
 
 <p align="center">
-  <img src="/images/realtime-verify.webp" width=800 height=600>
+  <img src="/diagrams/06-system-reliability-engineering/05-realtime-verification.webp" width=800 height=600>
   <br/>
   <strong><a href="https://segmentfault.com/a/1190000040286146">【得物技术】浅谈资损防控</a></strong>
 </p>
@@ -1024,7 +1024,7 @@ func RecordLogin(userID string) {
 性能优化是稳定性建设的重要组成部分。高性能不仅带来更好的用户体验，也能在流量高峰时提供更大的容量 Buffer，降低系统压力。
 
 <p align="center">
-  <img src="/images/performance.png" width=800 height=800>
+  <img src="/diagrams/06-system-reliability-engineering/06-performance.png" width=800 height=800>
 </p>
 
 ### 性能优化方法论

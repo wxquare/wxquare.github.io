@@ -1,7 +1,7 @@
 ---
 title: Clean Architecture、DDD 与 CQRS：职责边界与组合设计
 date: 2026-04-01
-permalink: /2026/04/01/system-design/41-acc-clean-arch-ddd-cqrs/
+permalink: /2026/04/01/system-design/02-clean-architecture-ddd-cqrs/
 description: 解释 Clean Architecture、DDD 与 CQRS 的关系、适用条件和落地方式，建立复杂业务系统的设计判断框架。
 categories:
   - 系统设计基础

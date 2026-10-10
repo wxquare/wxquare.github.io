@@ -71,7 +71,7 @@ mathjax: true
 ## 代码生成的流程
 　　通过上面两个例子我们知道tvm代码生成接口上是IRModule到运行时module的转换，它完成tir或者relay ir到目标target代码的编译，例如c或者llvm IR等。下面的流程图描述整个代码的编译流程，深色表示C++代码，浅色表示python代码。算子编译时会首先进行tir的优化，分离出host和device部分，之后会调用注册的target.build.target函数进行编译。relay图编译相比算子稍微复杂一点，核心代码采用C++开发。它会通过relayBuildModule.Optimize进行relay图优化，之后针对module中的每个lower_funcs进行编译之前，合成最终的运行时module，其后部分的编译流程和算子编译相似。
 
-![TVM代码生成流程](/images/tvm_code_generation.jpg)
+![TVM代码生成流程](/diagrams/tvm-code-generation/01-tvm-code-generation.png)
 
 ##  Codegen的实现
  TVM针对不同的target实现了许多的codgen，它完成了tir到目标代码的翻译工作，例如c,llvm ir等。我们也可以根据需求实现自己的codegen，官网提供了一个[教程](https://tvm.apache.org/docs/dev/relay_bring_your_own_codegen.html)。

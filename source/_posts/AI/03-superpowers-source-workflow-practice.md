@@ -96,7 +96,7 @@ superpowers/
 
 第一类是**分发与适配文件**：告诉宿主在哪里找到技能，以及是否注册生命周期钩子。第二类是**技能内容**：以 `SKILL.md` 为入口，说明触发条件、阶段产物、决策规则和常见错误。第三类是**执行辅助材料**：包括 prompt 模板、参考文件和脚本，把重复的交接或检查做成可复用资源。第四类是**验证与演进记录**：帮助判断行为约定是否有测试、何时发生过变化。[[1]](#ref-1)[[2]](#ref-2)[[3]](#ref-3)[[17]](#ref-17)[[18]](#ref-18)
 
-![Superpowers 的组件职责：宿主读取技能、调用工具并产生可核查产物](/diagrams/superpowers/components.svg)
+![Superpowers 的组件职责：宿主读取技能、调用工具并产生可核查产物](/diagrams/03-superpowers-source-workflow-practice/01-components.svg)
 
 图中分层是本文对源码职责的归纳。箭头表示信息与调用关系，不意味着仓库里存在一个同名的中央调度服务。
 
@@ -172,7 +172,7 @@ Agent Skills 规范和 Codex 文档都将这种方式描述为渐进披露：先
 
 OpenAI 官方文档说明 Codex 先看到技能名称和描述，选中技能后加载 `SKILL.md`，再按需读取参考文件或执行脚本。结合 manifest，可以理解当前项目在 Codex 中依赖原生技能发现的接入方式。不能因为 Claude 的路径中有 SessionStart，就推断当前 Codex 也必须启动相同脚本。[[3]](#ref-3)[[20]](#ref-20)
 
-![Claude Code 与 Codex 的技能接入双路径时序](/diagrams/superpowers/discovery.svg)
+![Claude Code 与 Codex 的技能接入双路径时序](/diagrams/03-superpowers-source-workflow-practice/02-discovery.svg)
 
 这张图只概括接入路径和阅读顺序，不承诺原生发现一定在第一条消息触发某个技能。显式请求、描述匹配、宿主提供的元数据以及模型判断共同影响实际选择。
 
@@ -258,7 +258,7 @@ Native 在没有子 Agent 工具时允许执行者进行独立阶段的自审，
 
 最后，`finishing-a-development-branch` 在运行完整测试套件后识别环境，再处理合并、PR 或保留分支。当前版本的默认选项不包含随手丢弃工作；删除分支或工作区也不应变成清理步骤中的隐含动作。[[14]](#ref-14)[[18]](#ref-18)
 
-![从设计到执行、反馈与交付的解释性流程图](/diagrams/superpowers/lifecycle.svg)
+![从设计到执行、反馈与交付的解释性流程图](/diagrams/03-superpowers-source-workflow-practice/03-lifecycle.svg)
 
 图中只展开需要书面设计和计划的路径。小型有限修改和探索任务使用前述轻量产物，不需要为了匹配图形而补齐所有文档。这个流程由技能、模型和宿主协作维持，不是图里每条边都有一个程序在强制调度。
 
@@ -571,6 +571,21 @@ export SUPERPOWERS_DISABLE_TELEMETRY=1
 
 这张表是本文根据指令结构做的归纳，不是维护方共同定义的分类，也不证明某个项目更快或更省 Token。Superpowers 当前已有有限修改和探索路径；Matt 的某些技能包含 worktree、并行派发和 PR 操作。因此，不能简单把两者分别贴成“重型”和“轻型”。[[5]](#ref-5)[[7]](#ref-7)[[8]](#ref-8)[[23]](#ref-23)[[24]](#ref-24)[[27]](#ref-27)[[28]](#ref-28)[[31]](#ref-31)
 
+### 维护者是谁：项目方法往往带着作者的工程背景
+
+这四个项目的共同点是个人方法论色彩很强，并不是由同一个基金会统一设计的标准。比较它们时，除了看技能正文，也应该知道谁在持续维护，以及这些人的长期工程经验来自哪里。
+
+| 项目 | 主要维护者 | 背景与项目气质 |
+|---|---|---|
+| Superpowers v6.4.1 | Jesse Vincent（GitHub 用户 `obra`）和 Prime Radiant 团队 | Jesse Vincent 是资深 Perl 程序员和创业者，做过 Request Tracker（RT），参与过 Perl 生态，并与 Kaia Dekker 共同创办 Keyboardio；目前通过 Prime Radiant 推进 AI agent 工具。Superpowers 因此更像一套完整的软件工程方法论：需求澄清、设计、计划、TDD、子 Agent、Code Review 和交付验证彼此衔接。[[1]](#ref-1)[[36]](#ref-36) |
+| Waza | Tw93（[tw93/Waza](https://github.com/tw93/Waza)） | Tw93 将自己定位为 Product Engineer，长期做易用的开源工具和独立产品，代表项目包括 Kaku、Pake、Mole、Kami；技术栈横跨 Rust、Swift、Shell 和 TypeScript。Waza 的气质是轻量、直接、可组合，把工程习惯拆成 `think`、`hunt`、`check`、`ui` 等各自只有一个主要职责的技能。[[37]](#ref-37)[[23]](#ref-23)[[24]](#ref-24) |
+| Matt Pocock Skills | Matt Pocock（[mattpocock/skills](https://github.com/mattpocock/skills)） | Matt Pocock 是 TypeScript 教育者和工程师，创建了 Total TypeScript，曾参与 XState 等 TypeScript 生态项目，也有 Vercel 和 Stately 相关经历。他的技能库重点不是替用户接管流程，而是把需求访谈、领域语言、架构、TDD、Debug、Code Review 和 issue/ticket 工作流整理成可组合的工程实践。[[38]](#ref-38)[[39]](#ref-39) |
+| Ponytail | Dietrich Gebert（[DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail)） | 公开资料显示，Dietrich Gebert 是 Trimble Transportation 的 Lead GenAI Engineer，也是 Ponytail 的作者。项目把企业软件、DevOps、安全和生成式 AI 工程经验浓缩成“像一个懒但资深的工程师”这一规则：优先复用现有能力，减少不必要代码，但不省略测试、安全、错误处理和可访问性。[[40]](#ref-40)[[31]](#ref-31) |
+
+因此，四者可以粗略地这样理解：Superpowers 偏完整流程和团队交付纪律；Waza 偏独立开发者的轻量工程习惯；Matt Pocock Skills 偏 TypeScript 工程教育与软件设计；Ponytail 偏 YAGNI、最小改动和避免过度工程。这些归纳是基于仓库说明和公开履历的分析，不代表维护者对彼此项目的共同分类，也不等于效果排名。
+
+这里的 Waza 特指 `tw93/Waza`。另有一个同名的 [Microsoft Waza](https://github.com/microsoft/waza)，它是用于评估 AI agent skills 的 Go CLI/framework，并不是本文比较的 coding skills 集合；同名项目不能直接合并判断维护背景。
+
 ### `think`：约束方案质量与实现交接
 
 Waza 的 `think` 面向架构设计、方案对齐、头脑风暴，以及缺少可执行计划的实现请求。它排除常规 bug 修复和小改动；没有实施授权时，停在规划阶段，已经获得明确授权时，不重复索要批准。关键指令可以提炼为：
@@ -757,3 +772,8 @@ Superpowers 最值得学习的地方，是将原本隐含的工程习惯变成�
 33. <a id="ref-33"></a> Anthropic, [Skills](https://github.com/anthropics/skills)。官方技能示例库及其与工具、宿主的边界。
 34. <a id="ref-34"></a> Anthropic, [官方 code-review 插件指令](https://github.com/anthropics/claude-plugins-official/blob/main/plugins/code-review/commands/code-review.md)。GitHub PR、多 Agent 审查、置信度筛选和不承担的检查范围。
 35. <a id="ref-35"></a> Vercel, [skills.sh](https://skills.sh)。技能发现、安装与分发生态；榜单不作为工程质量或效率证明。
+36. <a id="ref-36"></a> Jesse Vincent / obra 与 Prime Radiant, [Superpowers README 与 Jesse Vincent 公开资料](https://github.com/obra/superpowers)。项目维护者、Prime Radiant、Request Tracker、Perl 与 Keyboardio 背景；职业经历的交叉核验见 [Keyboardio About Us](https://shop.keyboard.io/pages/about) 与 [Jesse Vincent GitHub profile](https://github.com/obra)。
+37. <a id="ref-37"></a> Tw93, [GitHub profile 与 Waza README](https://github.com/tw93)。Product Engineer 自述、Kaku/Pake/Mole/Kami 等项目及 Waza 的技能定位。
+38. <a id="ref-38"></a> Matt Pocock, [Total TypeScript](https://www.totaltypescript.com) 与 [Matt Pocock GitHub profile](https://github.com/mattpocock)。TypeScript 教育者、工程师和 Total TypeScript 作者背景。
+39. <a id="ref-39"></a> Matt Pocock, [Skills for Real Engineers](https://github.com/mattpocock/skills)。技能库的定位、工程经验来源和技能分类；项目履历的补充核验见 [LinkedIn profile](https://www.linkedin.com/in/mapocock)。
+40. <a id="ref-40"></a> Dietrich Gebert, [Ponytail GitHub profile](https://github.com/DietrichGebert) 与 [公开职业资料](https://www.linkedin.com/in/dietrich-gebert)。Ponytail 作者身份及 Lead GenAI Engineer 经历；职业信息以公开搜索结果和个人职业页面为准。

@@ -1,0 +1,15 @@
+flowchart TB
+  LB["生产入口 · Load Balancer"]
+  subgraph A["AZ-A · 故障域"]
+    OA["订单实例 A"]
+    MA[("数据库主节点")]
+  end
+  subgraph B["AZ-B · 故障域"]
+    OB["订单实例 B"]
+    MB[("同步副本 · 需故障切换")]
+  end
+  LB -->|HTTP| OA
+  LB -->|HTTP| OB
+  OA -->|SQL 写入| MA
+  OB -->|SQL 写入| MA
+  MA -->|同步复制| MB

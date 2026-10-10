@@ -1,7 +1,7 @@
 ---
 title: Android OpenCL 性能测试：UMat 数据传输、Kernel 调度与并发开销
 date: 2020-08-13
-permalink: /2020/08/13/AI/03-opencl-mobile-performance-testing/
+permalink: /2020/08/13/AI/06-opencl-mobile-performance-testing/
 categories:
   - AI 与 Agent
   - AI

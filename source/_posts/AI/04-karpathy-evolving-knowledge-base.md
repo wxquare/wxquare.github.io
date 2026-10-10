@@ -1,7 +1,7 @@
 ---
 title: LLM 个人知识库：知识编译、检索问答与持续维护
 date: 2026-04-05
-permalink: /2026/04/05/AI/02-karpathy-evolving-knowledge-base/
+permalink: /2026/04/05/AI/04-karpathy-evolving-knowledge-base/
 description: 从 Karpathy 的自我进化知识库实践出发，讨论 LLM 时代个人知识采集、整理、检索与持续更新的方法。
 categories:
   - AI 与 Agent

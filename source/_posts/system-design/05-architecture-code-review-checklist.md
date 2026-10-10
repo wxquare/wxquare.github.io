@@ -1,7 +1,7 @@
 ---
 title: 工程评审清单：架构、设计、代码与上线检查
 date: 2026-04-04
-permalink: /2026/04/04/system-design/44-acc-code-review/
+permalink: /2026/04/04/system-design/05-architecture-code-review-checklist/
 description: 提供一套面向架构与整洁代码的 Code Review 清单，帮助识别边界混乱、依赖倒置和可演进性风险。
 categories:
   - 系统设计基础

@@ -1,7 +1,7 @@
 ---
 title: Hexo 与 GitHub Pages：博客搭建、双分支部署与维护
 date: 2023-08-13
-permalink: /2023/08/13/other/github-dual-branch-hexo-blog-setup/
+permalink: /2023/08/13/other/01-hexo-github-pages-blog-setup/
 description: 介绍 Hexo 博客使用 GitHub Pages 双分支部署的目录约定、发布流程和日常维护方法。
 categories:
   - other

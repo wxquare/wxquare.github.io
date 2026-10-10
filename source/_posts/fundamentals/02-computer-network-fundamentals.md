@@ -80,7 +80,7 @@ TCP/UDP 边界
 	- 在累积确认时通过接收窗口进行流量控制	
 	
 9. **tcp拥塞控制和拥塞窗口？**
-   ![TCP拥塞控制](/images/tcp-network-congestion.jpg)
+   ![TCP拥塞控制](/diagrams/02-computer-network-fundamentals/01-tcp-network-congestion.jpg)
 	- tcp在数据发送时会结合整个网络环境调整数据发送的速率
 	- 发送者如何判断拥塞已经发生的？发送超时，或者说TCP重传定时器溢出；接收到重复的确认报文段
 	- 快重传算法（接收端到失序的报文段立即重传、发送端一旦接收三个重复的确认报文段，立即重传，不用等定时器）
@@ -171,7 +171,7 @@ TCP/UDP 边界
 
 
 <p align="center">
-  <img src="/images/5KeocQs.jpg">
+  <img src="/diagrams/02-computer-network-fundamentals/02-osi-seven-layer-model.jpg">
   <br/>
   <strong><a href=http://www.escotal.com/osilayer.html>资料来源：OSI 7层模型</a></strong>
 </p>
@@ -192,7 +192,7 @@ HTTP 是一种在客户端和服务器之间编码和传输数据的方法。它
 
 
 <p align="center">
-  <img src="/images/http.png" width=500 height=100>
+  <img src="/diagrams/02-computer-network-fundamentals/03-http.png" width=500 height=100>
 </p>
 
 - HTTPS 是基于 HTTP 的安全版本，通过使用 SSL 或 TLS 加密和身份验证通信。
@@ -215,7 +215,7 @@ HTTP 是依赖于较低级协议（如 **TCP** 和 **UDP**）的应用层协议�
 ### 传输控制协议（TCP）
 
 <p align="center">
-  <img src="/images/JdAsdvG.jpg">
+  <img src="/diagrams/02-computer-network-fundamentals/04-tcp-retransmission-example.jpg">
   <br/>
   <strong><a href="http://www.wildbunny.co.uk/blog/2012/10/09/how-to-make-a-multi-player-game-part-1/">资料来源：如何制作多人游戏</a></strong>
 </p>
@@ -239,7 +239,7 @@ TCP  对于需要高可靠性但时间紧迫的应用程序很有用。比如包
 ### 用户数据报协议（UDP）
 
 <p align="center">
-  <img src="/images/yzDrJtA.jpg">
+  <img src="/diagrams/02-computer-network-fundamentals/05-udp-transport-example.jpg">
   <br/>
   <strong><a href="http://www.wildbunny.co.uk/blog/2012/10/09/how-to-make-a-multi-player-game-part-1">资料来源：如何制作多人游戏</a></strong>
 </p>
@@ -268,7 +268,7 @@ UDP 可靠性更低但适合用在网络电话、视频聊天，流媒体和实�
 ### 远程过程调用协议（RPC）
 
 <p align="center">
-  <img src="/images/iF4Mkb5.png">
+  <img src="/diagrams/02-computer-network-fundamentals/06-rpc-request-response-flow.png">
   <br/>
   <strong><a href="http://www.puncsky.com/blog/2016/02/14/crack-the-system-design-interview">Source: Crack the system design interview</a></strong>
 </p>
@@ -362,7 +362,7 @@ REST 关注于暴露数据。它减少了客户端／服务端的耦合程度，
 ## 网络通讯协议
 ### OSI 七层网络模型
 <p align="center">
-  <img src="/images/5KeocQs.jpg",width=500 height=500>
+  <img src="/diagrams/02-computer-network-fundamentals/02-osi-seven-layer-model.jpg",width=500 height=500>
   <br/>
   <strong><a href=http://www.escotal.com/osilayer.html>资料来源：OSI 7层模型</a></strong>
 </p>
@@ -401,12 +401,12 @@ REST 关注于暴露数据。它减少了客户端／服务端的耦合程度，
 
 ### 超文本传输协议
 <p align="center">
-  <img src="/images/http.png" width=600 height=150>
+  <img src="/diagrams/02-computer-network-fundamentals/03-http.png" width=600 height=150>
 </p>
 
 
 <p align="center">
-  <img src="/images/http_compare.png" width=600 height=300>
+  <img src="/diagrams/02-computer-network-fundamentals/07-http-comparison.png" width=600 height=300>
 </p>
 
 - [aws http 选择介绍](https://aws.amazon.com/cn/compare/the-difference-between-https-and-http/)

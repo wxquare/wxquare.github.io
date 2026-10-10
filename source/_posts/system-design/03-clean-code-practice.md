@@ -1,7 +1,7 @@
 ---
 title: Clean Code：用 Pipeline、策略模式与规则引擎重构复杂业务
 date: 2026-04-02
-permalink: /2026/04/02/system-design/42-acc-clean-code/
+permalink: /2026/04/02/system-design/03-clean-code-practice/
 description: 面向复杂业务代码，讨论命名、边界、依赖、抽象和重构节奏，给出可持续演进的 Clean Code 实践方法。
 categories:
   - 系统设计基础

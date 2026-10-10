@@ -1,7 +1,7 @@
 ---
 title: 系统设计：技术方案写作、架构选型与设计评审
 date: 2025-04-01
-permalink: /2025/04/01/system-design/06-tech-design-methodology/
+permalink: /2025/04/01/system-design/01-system-design-methodology/
 description: 从问题定义、容量估算、方案比较到风险和发布计划，整理一份可评审、可执行的互联网系统技术方案写作方法。
 categories:
   - 系统设计基础
@@ -31,7 +31,7 @@ toc: true
 ## 前言
 ### 为什么要做设计方案
 <p align="center">
-  <img src="/images/why-tech-desgin.png" width=600 height=400>
+  <img src="/diagrams/01-system-design-methodology/01-why-technical-design.png" width=600 height=400>
 </p>
 
 - 设计是系统实现的蓝图
@@ -45,7 +45,7 @@ toc: true
 
 ### 技术方案应该包含哪些内容
 <p align="center">
-  <img src="/images/what-tech-design-contain.png" width=600 height=400>
+  <img src="/diagrams/01-system-design-methodology/02-what-tech-design-contain.png" width=600 height=400>
   <br/>
 </p>
 
@@ -104,7 +104,7 @@ toc: true
 
 ### 如何评估技术方案的质量
 <p align="center">
-  <img src="/images/what-tech-design-contain.png" width=600 height=400>
+  <img src="/diagrams/01-system-design-methodology/02-what-tech-design-contain.png" width=600 height=400>
   <br/>
 </p>
 
@@ -298,13 +298,13 @@ SLA 目标是什么？如何监控？如何保证？
 ### 如何量化系统指标(SLA指标)
 #### reliable
 <p align="center">
-  <img src="/images/MTPF.png" width=600 height=300>
+  <img src="/diagrams/01-system-design-methodology/03-mean-time-between-failures.png" width=600 height=300>
   <br/>
 </p>
 
 #### available
 <p align="center">
-  <img src="/images/available-metric.png" width=600 height=300>
+  <img src="/diagrams/01-system-design-methodology/04-available-metric.png" width=600 height=300>
   <br/>
 </p>
 
@@ -312,7 +312,7 @@ SLA 目标是什么？如何监控？如何保证？
 #### latency and throughput
 #### manageability
 <p align="center">
-  <img src="/images/manageability.png" width=600 height=300>
+  <img src="/diagrams/01-system-design-methodology/05-manageability.png" width=600 height=300>
   <br/>
 </p>
 
@@ -358,7 +358,7 @@ SOLID 原则是一套比较经典且流行的架构原则（主要还是名字�
 
 ### 互联网系统八大谬论
 <p align="center">
-  <img src="/images/8-fallacies.png" width=600 height=400>
+  <img src="/diagrams/01-system-design-methodology/06-8-fallacies.png" width=600 height=400>
   <br/>
 </p>
 
@@ -405,7 +405,7 @@ Send packet CA->Netherlands->CA    150,000,000   ns  150,000 us  150 ms
 
 #### traffic estimates
 <p align="center">
-  <img src="/images/traffic_estimate.png" width=600 height=300>
+  <img src="/diagrams/01-system-design-methodology/07-traffic-estimate.png" width=600 height=300>
   <br/>
 </p>
 
@@ -413,21 +413,21 @@ Send packet CA->Netherlands->CA    150,000,000   ns  150,000 us  150 ms
 #### memory estimates
 
 <p align="center">
-  <img src="/images/memory.png" width=600 height=300>
+  <img src="/diagrams/01-system-design-methodology/08-memory.png" width=600 height=300>
   <br/>
 </p>
 
 
 #### bandwidth estimates
 <p align="center">
-  <img src="/images/bandwidth.png" width=600 height=300>
+  <img src="/diagrams/01-system-design-methodology/09-bandwidth.png" width=600 height=300>
   <br/>
 </p>
 
 
 #### storage estimates
 <p align="center">
-  <img src="/images/storage.png" width=600 height=300>
+  <img src="/diagrams/01-system-design-methodology/10-storage.png" width=600 height=300>
   <br/>
 </p>
 
@@ -511,35 +511,35 @@ Send packet CA->Netherlands->CA    150,000,000   ns  150,000 us  150 ms
 ### 架构 EA+4A
 #### 什么是架构 EA+4A
 <p align="center">
-  <img src="/images/what-is-architecture.png" width=600 height=400>
+  <img src="/diagrams/01-system-design-methodology/11-what-is-architecture.png" width=600 height=400>
 </p>
 
 #### 业务架构
 <p align="center">
-  <img src="/images/business-architecture.png" width=600 height=400>
+  <img src="/diagrams/01-system-design-methodology/12-business-architecture.png" width=600 height=400>
 </p>
 
 #### 应用架构
 <p align="center">
-  <img src="/images/application-architecture.png" width=600 height=400>
+  <img src="/diagrams/01-system-design-methodology/13-application-architecture.png" width=600 height=400>
 </p>
 
 
 #### 技术架构
 <p align="center">
-  <img src="/images/technical-architecture.png" width=600 height=400>
+  <img src="/diagrams/01-system-design-methodology/14-technical-architecture.png" width=600 height=400>
 </p>
 
 #### 数据架构
 
 <p align="center">
-  <img src="/images/data-architecture.png" width=600 height=400>
+  <img src="/diagrams/01-system-design-methodology/15-data-architecture.png" width=600 height=400>
 </p>
 
 #### 架构设计原则
 
 <p align="center">
-  <img src="/images/tech-design-principles.png" width=600 height=400>
+  <img src="/diagrams/01-system-design-methodology/16-tech-design-principles.png" width=600 height=400>
 </p>
 
 #### 扩展阅读
@@ -554,7 +554,7 @@ Send packet CA->Netherlands->CA    150,000,000   ns  150,000 us  150 ms
 ### 微服务架构
 ### 单体服务、微服务、Service Mesh
 <p align="center">
-  <img src="/images/rpc_to_service_mesh.png" width=600 height=350>
+  <img src="/diagrams/01-system-design-methodology/17-rpc-to-service-mesh.png" width=600 height=350>
   <br/>
   <strong><a href="https://www.zhihu.com/question/56125281">什么是服务治理</a></strong>
 </p>
@@ -568,7 +568,7 @@ Send packet CA->Netherlands->CA    150,000,000   ns  150,000 us  150 ms
 
 ### 微服务
 <p align="center">
-  <img src="/images/landing-2.svg" width=600 height=350>
+  <img src="/diagrams/01-system-design-methodology/18-grpc-overview.svg" width=600 height=350>
   <br/>
   <strong><a href="https://grpc.io/docs/what-is-grpc/introduction">gRPC 概述</a></strong>
 </p>
@@ -597,14 +597,14 @@ Send packet CA->Netherlands->CA    150,000,000   ns  150,000 us  150 ms
 
 ### Service Mesh
 <p align="center">
-  <img src="/images/istio_service_mesh.svg" width=600 height=600>
+  <img src="/diagrams/01-system-design-methodology/19-istio-service-mesh.svg" width=600 height=600>
   <br/>
   <strong><a href="https://istio.io/latest/about/service-mesh/">service Mesh 是怎么工作的</a></strong>
 </p>
 
 ### 远程过程调用协议（RPC）
 <p align="center">
-  <img src="/images/iF4Mkb5.png" width=700 height=400>
+  <img src="/diagrams/01-system-design-methodology/20-rpc-request-response-flow.png" width=700 height=400>
   <br/>
   <strong><a href="http://www.puncsky.com/blog/2016/02/14/crack-the-system-design-interview">Source: Crack the system design interview</a></strong>
 </p>
@@ -624,13 +624,13 @@ RPC 是一个“请求-响应”协议：
 ### 域名系统
 #### Amazon Route 53域名系统
 <p align="center">
-  <img src="/images/aws_route_53.png" width=600 height=400>
+  <img src="/diagrams/01-system-design-methodology/21-aws-route-53.png" width=600 height=400>
   <br/>
   <strong><a href="https://aws.amazon.com/cn/route53">Amazon Route 53 工作原理</a></strong>
 </p>
 ### 域名解析的过程
 <p align="center">
-  <img src="/images/IOyLj4i.jpg" width=400 height=400>
+  <img src="/diagrams/01-system-design-methodology/22-dns-resolution-process.jpg" width=400 height=400>
   <br/>
   <strong><a href="http://www.slideshare.net/srikrupa5/dns-security-presentation-issa">来源：DNS 安全介绍</a></strong>
 </p>
@@ -660,23 +660,23 @@ RPC 是一个“请求-响应”协议：
 #### 正向forward proxy
 #### 反向reverse proxy
 <p align="center">
-  <img src="/images/proxy_server.png" width=800 height=500>
+  <img src="/diagrams/01-system-design-methodology/23-proxy-server.png" width=800 height=500>
   <br/>
 </p>
 
 #### 负载均衡器和反向代理
 
 <p align="center">
-  <img src="/images/lvs-ngnix-load-balancer.png" width=800 height=800>
+  <img src="/diagrams/01-system-design-methodology/24-lvs-nginx-load-balancer.png" width=800 height=800>
 </p>
 
 <p align="center">
-  <img src="/images/load_balancer.png" width=800 height=400>
+  <img src="/diagrams/01-system-design-methodology/25-load-balancer.png" width=800 height=400>
   <br/>
 </p>
 
 <p align="center">
-  <img src="/images/h81n9iK.png" width=600 height=400>
+  <img src="/diagrams/01-system-design-methodology/26-scalable-system-design-patterns.png" width=600 height=400>
   <br/>
   <strong><a href="http://horicky.blogspot.com/2010/10/scalable-system-design-patterns.html">来源：可扩展的系统设计模式</a></strong>
 </p>
@@ -727,7 +727,7 @@ RPC 是一个“请求-响应”协议：
 
 #### 反向代理（web 服务器）
 <p align="center">
-  <img src="/images/n41Azff.png">
+  <img src="/diagrams/01-system-design-methodology/27-reverse-proxy-architecture.png">
   <br/>
   <strong><a href="https://upload.wikimedia.org/wikipedia/commons/6/67/Reverse_proxy_h2g2bob.svg">资料来源：维基百科</a></strong>
   <br/>
@@ -773,7 +773,7 @@ RPC 是一个“请求-响应”协议：
 
 ## 应用层web网关设计
 <p align="center">
-  <img src="/images/meituan_gateway.png" width=600 height=400>
+  <img src="/diagrams/01-system-design-methodology/28-meituan-gateway.png" width=600 height=400>
   <br/>
   <strong><a href="https://tech.meituan.com/2021/05/20/shepherd-api-gateway.html">百亿规模API网关服务Shepherd的设计与实现</a></strong>
 </p>
@@ -917,7 +917,7 @@ HTTP/1.1 400
 ### 接口幂等性设计
 
 <p align="center">
-  <img src="/images/api-idempotence.png">
+  <img src="/diagrams/01-system-design-methodology/29-api-idempotence.png">
 </p>
 
 #### 幂等性的重要性
@@ -933,7 +933,7 @@ HTTP/1.1 400
 ## 中间件和存储
 ### 如何选择存储组件
 <p align="center">
-  <img src="/images/how-to-choose-storage.png" width=600 height=400>
+  <img src="/diagrams/01-system-design-methodology/30-how-to-choose-storage.png" width=600 height=400>
 </p>
 
 ### 各中间件详细专题

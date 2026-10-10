@@ -1,0 +1,18 @@
+sequenceDiagram
+  actor B as 买家
+  participant O as 订单服务
+  participant I as 库存服务
+  participant P as 支付服务
+  B->>O: 提交订单(idempotencyKey, quoteId)
+  O->>I: 预留库存(reservationId)
+  I-->>O: 预留成功
+  O->>O: 保存待支付订单和成交快照
+  O-->>B: orderId
+  B->>P: 发起支付(orderId)
+  alt 渠道成功已确认
+    P->>O: 支付成功通知(eventId)
+    O->>O: 去重并原子推进订单状态
+  else 结果未知或回调延迟
+    P->>P: 查询渠道并对账
+    Note over O,P: 不把未知状态当作确定失败
+  end

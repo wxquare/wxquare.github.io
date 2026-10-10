@@ -15,7 +15,7 @@ mathjax: true
 　　**RPN(region proposal subnetwork)候选区域生成网络**：它包括的分类(classification)和回归(regression)两个分支。这里有个重要的锚点(anchor),就是通过RPN对每个锚点上的k个不同宽度和高度的矩形分类和回归，得到感兴趣区域。每个anhcor box要分前景和背景，所以cls=2k；而每个anchor box都有[x, y, w, h]对应4个偏移量，所以reg=4k。
 
 
-![SiameseRPN模型](/images/Siamese-RPN.jpg)
+![SiameseRPN模型](/diagrams/dasiamrpn/01-siamese-rpn-model.jpg)
 
 　　因此设模板分支输入为$z$维度为(127,127,3)，首先通过Siamese网络特征提取得到$ψ(z)$维度为(6,6,256)，然后再经历卷积分别的到$[ψ(z)]_{cls}$和$[ψ(z)]_{res}$。检测分支输入为$x$，$ψ(x)$为Siamese特征提取网路的输出，以$[ψ(z)]_{cls}$和$[ψ(z)]_{res}$为核卷积得到最终的SiameseRPN的输出，$\*$表示卷积运算。
 $$A_{w×h×2k}^{cls} = [ψ(x)]_{cls} \* [ψ(z)]_{cls}$$

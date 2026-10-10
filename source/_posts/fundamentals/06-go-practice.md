@@ -316,9 +316,9 @@ In summary, the lifetime of a Goroutine in Go starts when it is created and ends
 3. 线程级的tread local cache能够减少竞争和加锁操作，提高效率。中央center cache为所有线程共享。
 4. 小对象直接从本地cache获取，大对象从center heap获取，提高内存利用率
 5. 每一级内存不足时，尝试从下一级内存获取
-![内存三级管理](/images/threelayer.jpg)
-![线程cache](/images/threadheap.gif)
-![大对象span管理](/images/pageheap.gif)
+![内存三级管理](/diagrams/06-go-practice/01-go-memory-three-layer-model.jpg)
+![线程cache](/diagrams/06-go-practice/02-go-thread-heap.gif)
+![大对象span管理](/diagrams/06-go-practice/03-go-page-heap.gif)
 - **多级缓存**：内存分配器不仅会区别对待大小不同的对象，还会将内存分成不同的级别分别管理，TCMalloc 和 Go 运行时分配器都会引入线程缓存（Thread Cache）、中心缓存（Central Cache）和页堆（Page Heap）三个组件分级管理内存
 - **对象大小**：Go 语言的内存分配器会根据申请分配的内存大小选择不同的处理逻辑，运行时根据对象的大小将对象分成微对象、小对象和大对象三种，tiny,small,large
 - mspan、mcache、mcentral、mheap
@@ -381,7 +381,7 @@ tips：
 　　**写屏障**使得扫描操作和回收操作都可以和用户程序并发。我们试想一下，刚把一个对象标记为白色，用户程序突然又引用了它，这种扫描操作就比较麻烦，于是引入了屏障技术。内存扫描和用户逻辑也可以并发执行，用户新建的对象认为是黑色的，已经扫描过的对象有可能因为用户逻辑造成对象状态发生改变。所以**对扫描过后的对象使用操作系统写屏障功能用来监控用户逻辑这段内存，一旦这段内存发生变化写屏障会发生一个信号，gc捕获到这个信号会重新扫描改对象，查看它的引用或者被引用是否发生改变，从而判断该对象是否应该被清理。因此通过写屏障技术，是的扫描操作也可以合用户程序并发执行。
 
 　　**gc控制器**：gc算法并不万能的，针对不同的场景可能需要适当的设置。例如大数据密集计算可能不在乎内存使用量，甚至可以将gc关闭。golang 通过百分比来控制gc触发的时机，设置的百分比指的是程序新分配的内存与上一次gc之后剩余的内存量，例如上次gc之后程序占有2MB，那么下一次gc触发的时机是程序又新分配了2MB的内存。我们可以通过*SetGCPercent*函数动态设置，默认值为100，当百分比设置为负数时例如-1，表明关闭gc。
-![SetGCPercent](/images/gc_setGCPercent.jpg)
+![SetGCPercent](/diagrams/06-go-practice/04-gc-set-gc-percent.jpg)
 
 ### golang gc调优实例
 gc 是golang程序性能优化非常重要的一部分，建议依照下面两个实例实践golang程序优化。
@@ -977,7 +977,7 @@ At a high level, the Go runtime is responsible for several core tasks:
 The Go runtime is an essential component of the Go programming language, and it is responsible for many of the language's unique features and capabilities. By providing a consistent, efficient environment for Go code to run in, the runtime enables developers to write high-performance, scalable software that can run on a wide range of platforms and architectures.
 
 <div align='center'>
-<img src="https://github.com/wxquare/wxquare.github.io/raw/hexo/source/images/runtime.png" width="500" height="500">
+<img src="/diagrams/06-go-practice/05-go-runtime.png" width="500" height="500">
 </div >
 
 ### 程序启动流程

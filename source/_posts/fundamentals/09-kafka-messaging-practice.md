@@ -1,7 +1,7 @@
 ---
 title: Kafka：消息可靠性、消费重平衡与积压排查
 date: 2024-03-10
-permalink: /2024/03/10/fundamentals/09-kafka/
+permalink: /2024/03/10/fundamentals/09-kafka-messaging-practice/
 description: 梳理 Kafka 的消息模型、分区、副本、消费语义和可靠性设计，说明它在异步系统中的适用边界。
 updated: 2026-09-23
 categories:

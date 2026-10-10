@@ -30,6 +30,7 @@ wxquare 的技术知识库，聚焦可靠系统设计、复杂业务架构与 AI
 - {% post_link system-design/03-clean-code-practice %}
 - {% post_link system-design/05-architecture-code-review-checklist %}
 - {% post_link system-design/06-system-reliability-engineering %}
+- {% post_link system-design/07-engineering-diagrams-ai-workflow %}
 
 ## 持续编写的书稿
 

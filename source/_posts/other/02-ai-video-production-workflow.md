@@ -1,7 +1,7 @@
 ---
 title: '文章转短视频：Piper 配音与 Kdenlive 制作流程复盘'
 date: '2026-05-08'
-permalink: /2026/05/08/other/open-source-ai-content-to-video-workflow/
+permalink: /2026/05/08/other/02-ai-video-production-workflow/
 description: 记录如何使用开源工具把技术内容整理为脚本、配音、画面和成片，形成可复用的 AI 教程视频工作流。
 categories:
   - AI

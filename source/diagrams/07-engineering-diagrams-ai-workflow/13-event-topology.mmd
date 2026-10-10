@@ -1,0 +1,7 @@
+flowchart LR
+  O["订单服务"] -->|本地事务写入| DB[("Orders + Outbox")]
+  DB -->|读取未投递事件| R["Outbox Relay"]
+  R -.->|OrderCreated / orderId 为键| T["orders.events"]
+  T -.->|消费组 inventory| I["库存消费者 · 去重"]
+  T -.->|消费组 notification| N["通知消费者 · 去重"]
+  I -.->|失败重试耗尽| D["死信队列 + 人工处理"]

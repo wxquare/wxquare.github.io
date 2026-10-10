@@ -1,7 +1,7 @@
 ---
 title: Elasticsearch：倒排索引、深分页与性能调优
 date: 2024-03-07
-permalink: /2024/03/07/fundamentals/10-elasticsearch/
+permalink: /2024/03/07/fundamentals/10-elasticsearch-search-practice/
 description: 介绍 Elasticsearch 的索引、倒排检索、分片、副本和查询优化，帮助建立搜索系统的基础认知。
 updated: 2026-09-23
 categories:

@@ -1,7 +1,7 @@
 ---
 title: Redis：数据结构、缓存一致性与高可用设计
 date: 2024-03-06
-permalink: /2024/03/06/fundamentals/08-redis/
+permalink: /2024/03/06/fundamentals/08-redis-principles-and-practice/
 updated: 2026-01-08
 categories:
   - 系统设计基础
@@ -879,16 +879,16 @@ Redis 提供两种持久化方案：
 ### 本地缓存 vs 远程缓存
 
 <p align="center">
-  <img src="/images/cache-remote-local-multilevel.png" width=600 height=360>
+  <img src="/diagrams/08-redis-principles-and-practice/01-cache-remote-local-multilevel.png" width=600 height=360>
 </p>
 
 #### 双buffer vs LRU/LFU
 <p align="center">
-  <img src="/images/double-buffer-lru.png" width=550 height=600>
+  <img src="/diagrams/08-redis-principles-and-practice/02-double-buffer-lru.png" width=550 height=600>
 </p>
 
 <p align="center">
-  <img src="/images/cache-double-buffer-lru.png" width=600 height=400>
+  <img src="/diagrams/08-redis-principles-and-practice/03-cache-double-buffer-lru.png" width=600 height=400>
 </p>
 
 本地缓存的双缓冲机制和本地LRU（Least Recently Used）算法都是常见的缓存优化技术，它们具有不同的优点和缺点。
@@ -921,12 +921,12 @@ Redis 提供两种持久化方案：
 - 对于缓存和db一致性要求较高的场合，通常采用的是先更新db，再删除或者更新redis，考虑到并发性和两个操作的原子性（删除或者更新可能会失败），可以增加重试机制（双删除），如果考虑主从延时，可以引入mq做延时双删
 - http://kaito-kidd.com/2021/09/08/how-to-keep-cache-and-consistency-of-db/
 <p align="center">
-  <img src="/images/cache-refesh.png" width=600 height=800>
+  <img src="/diagrams/08-redis-principles-and-practice/04-cache-refresh.png" width=600 height=800>
 </p>
 
 
 <p align="center">
-  <img src="/images/cache-read-write-mode.png" width=600 height=400>
+  <img src="/diagrams/08-redis-principles-and-practice/05-cache-read-write-mode.png" width=600 height=400>
 </p>
 
 

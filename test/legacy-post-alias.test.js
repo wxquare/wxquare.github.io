@@ -6,7 +6,7 @@ const test = require('node:test');
 
 const aliasScript = path.join(__dirname, '..', 'scripts/legacy-post-alias.js');
 
-const expectedAliases = [
+const existingPostAliases = [
   ['/2025/05/15/system-design/14-system-reliability/', 'system-design/06-system-reliability-engineering'],
   ['/2026/04/03/00-vibe-coding-vs-spec-coding/', 'AI/01-vibe-coding-vs-spec-coding'],
   ['/2026/04/05/AI/04-karpathy-evolving-knowledge-base/', 'AI/04-karpathy-evolving-knowledge-base'],
@@ -46,15 +46,42 @@ const expectedAliases = [
   ['/system-design/44-acc-code-review/', 'system-design/05-architecture-code-review-checklist']
 ];
 
+const retiredPostSlugs = new Set([
+  'AI/01-vibe-coding-vs-spec-coding',
+  'AI/02-ai-agent-workflow-practice',
+  'AI/04-karpathy-evolving-knowledge-base',
+  'AI/05-video-object-tracking-practice',
+  'AI/06-opencl-mobile-performance-testing',
+  'AI/07-tensorflow-model-optimization',
+  'AI/08-tvm-operator-optimization-practice',
+  'fundamentals/07-mysql-database-practice',
+  'fundamentals/08-redis-principles-and-practice',
+  'fundamentals/09-kafka-messaging-practice',
+  'fundamentals/10-elasticsearch-search-practice',
+  'fundamentals/11-docker-kubernetes-practice',
+  'other/01-hexo-github-pages-blog-setup',
+  'other/02-ai-video-production-workflow',
+  'other/03-ecommerce-agent-research-report',
+  'system-design/01-system-design-methodology',
+  'system-design/02-clean-architecture-ddd-cqrs',
+  'system-design/03-clean-code-practice',
+  'system-design/05-architecture-code-review-checklist',
+  'system-design/06-system-reliability-engineering',
+  'system-design/07-engineering-diagrams-ai-workflow'
+]);
+const expectedAliases = existingPostAliases.filter(([, slug]) => !retiredPostSlugs.has(slug));
+const retiredPostAliases = existingPostAliases.filter(([, slug]) => retiredPostSlugs.has(slug));
+
 const expectedUnavailableAliases = [
   ['/2026/04/02/01-claude-code-practices/', '/archives/'],
   ['/2026/04/03/02-agent-system-design-guid/', '/archives/'],
   ['/2026/04/03/03-dod-agent-design/', '/archives/']
 ];
 
-const expectedMergedDddAliases = [
-  ['/system-design/25-ecommerce-pricing-ddd/', '/2026/09/23/system-design/45-ddd-principles-and-pricing-practice/'],
-  ['/system-design/43-acc-ddd-notes/', '/2026/09/23/system-design/45-ddd-principles-and-pricing-practice/']
+const retiredDddRoutes = [
+  'system-design/25-ecommerce-pricing-ddd/index.html',
+  'system-design/43-acc-ddd-notes/index.html',
+  '2026/09/23/system-design/45-ddd-principles-and-pricing-practice/index.html'
 ];
 
 const expectedBookAliases = [
@@ -83,7 +110,7 @@ const expectedBookAliases = [
   ['/system-design/32-ecommerce-cart-checkout/', '/reliable-system-design/part03/08-cart-checkout.html']
 ];
 
-const expectedArchivedTvmAliases = [
+const retiredArchivedTvmAliases = [
   ['/2020/08/13/AI/tvm/TVM-GEMM-CPU/', '/2026/09/22/AI/05-tvm-operator-optimization-practice/'],
   ['/2020/08/13/AI/tvm/TVM-Graph-optimization/', '/2026/09/22/AI/05-tvm-operator-optimization-practice/'],
   ['/2020/08/13/AI/tvm/TVM-code-generation/', '/2026/09/22/AI/05-tvm-operator-optimization-practice/'],
@@ -92,7 +119,7 @@ const expectedArchivedTvmAliases = [
   ['/2020/08/13/AI/tvm/TVM-tutorial/', '/2026/09/22/AI/05-tvm-operator-optimization-practice/']
 ];
 
-const expectedArchivedTrackingAliases = [
+const retiredArchivedTrackingAliases = [
   ['/2020/08/13/AI/computer-vision/video-object-tracking/', '/2020/08/13/AI/06-video-object-tracking/'],
   ['/2020/08/13/AI/computer-vision/初始OpenCL及在的移动端的一些测试数据/', '/2020/08/13/AI/03-opencl-mobile-performance-testing/'],
   ['/2020/08/13/AI/computer-vision/DaSiamRPN/', '/2020/08/13/AI/06-video-object-tracking/'],
@@ -137,7 +164,7 @@ test('legacy post alias generator emits all compatibility redirects', () => {
       ['AI/03-superpowers-source-workflow-practice', '2026/09/24/AI/03-superpowers-source-workflow-practice/'],
       ['AI/05-video-object-tracking-practice', '2020/08/13/AI/06-video-object-tracking/']
     ]);
-    const posts = expectedAliases.map(([, slug]) => ({
+    const posts = existingPostAliases.map(([, slug]) => ({
       slug,
       path: currentPostPaths.get(slug) || `2026/04/01/${slug}/`
     }));
@@ -147,22 +174,27 @@ test('legacy post alias generator emits all compatibility redirects', () => {
     };
     const generated = registrations[0].fn.call(context);
 
+    for (const route of retiredDddRoutes) {
+      assert.ok(!generated.some((item) => item.path === route), `retired DDD redirect still generated: ${route}`);
+    }
+
+    for (const [route] of [...retiredPostAliases, ...retiredArchivedTvmAliases, ...retiredArchivedTrackingAliases]) {
+      assert.ok(
+        !generated.some((item) => item.path === `${route.slice(1)}index.html`),
+        `retired post redirect still generated: ${route}`
+      );
+    }
+
     assert.equal(
       generated.length,
-      expectedAliases.length + expectedMergedDddAliases.length + expectedUnavailableAliases.length + expectedBookAliases.length + expectedArchivedTvmAliases.length + expectedArchivedTrackingAliases.length
+      expectedAliases.length + expectedUnavailableAliases.length + expectedBookAliases.length
     );
     assert.deepEqual(
       generated.map((item) => item.path).sort(),
-      [...expectedAliases, ...expectedMergedDddAliases, ...expectedUnavailableAliases, ...expectedBookAliases, ...expectedArchivedTvmAliases, ...expectedArchivedTrackingAliases]
+      [...expectedAliases, ...expectedUnavailableAliases, ...expectedBookAliases]
         .map(([route]) => `${route.slice(1)}index.html`)
         .sort()
     );
-
-    for (const [route, target] of expectedMergedDddAliases) {
-      const redirect = generated.find((item) => item.path === `${route.slice(1)}index.html`);
-      assert.ok(redirect, `missing redirect for ${route}`);
-      assert.match(redirect.data, new RegExp(target.replaceAll('/', '\\/')));
-    }
 
     const redirect = generated.find((item) => item.path === 'system-design/13-e-commerce/index.html');
     assert.match(redirect.data, /rel="canonical"/);
@@ -198,7 +230,7 @@ test('legacy post alias generator fails when a target post is missing', () => {
     delete require.cache[aliasScript];
     require(aliasScript);
 
-    const posts = expectedAliases.filter(([, slug]) => slug !== 'system-design/06-system-reliability-engineering').map(([, slug]) => ({
+    const posts = existingPostAliases.filter(([, slug]) => slug !== 'AI/03-superpowers-source-workflow-practice').map(([, slug]) => ({
       slug,
       path: `2026/04/01/${slug}/`
     }));
@@ -209,7 +241,7 @@ test('legacy post alias generator fails when a target post is missing', () => {
 
     assert.throws(
       () => registrations[0].fn.call(context),
-      /Missing post for legacy alias: system-design\/06-system-reliability-engineering/
+      /Missing post for legacy alias: AI\/03-superpowers-source-workflow-practice/
     );
   } finally {
     delete require.cache[aliasScript];
