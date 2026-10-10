@@ -19,21 +19,21 @@
 
 <script class="next-config" data-name="main" type="application/json">{"hostname":"wxquare.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
 
-    <meta name="description" content="基于 Superpowers v6.4.1 源码，系统解释技能发现、宿主适配、Native 与子 Agent 执行、进度恢复和验证机制，并用幂等接口案例串起日常实践。">
+    <meta name="description" content="基于 Superpowers v6.4.1 源码，解释技能发现、执行与验证机制，用幂等接口案例串起实践，并比较 Waza、Matt Pocock Skills 和 Ponytail 的关键指令与适用边界。">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Superpowers 源码解析：技能发现机制与开发流程约束">
 <meta property="og:url" content="https://wxquare.github.io/2026/09/24/AI/03-superpowers-source-workflow-practice/index.html">
 <meta property="og:site_name" content="wxquare&#39;s Blogs">
-<meta property="og:description" content="基于 Superpowers v6.4.1 源码，系统解释技能发现、宿主适配、Native 与子 Agent 执行、进度恢复和验证机制，并用幂等接口案例串起日常实践。">
+<meta property="og:description" content="基于 Superpowers v6.4.1 源码，解释技能发现、执行与验证机制，用幂等接口案例串起实践，并比较 Waza、Matt Pocock Skills 和 Ponytail 的关键指令与适用边界。">
 <meta property="og:locale">
 <meta property="og:image" content="https://wxquare.github.io/diagrams/superpowers/components.svg">
 <meta property="og:image" content="https://wxquare.github.io/diagrams/superpowers/discovery.svg">
 <meta property="og:image" content="https://wxquare.github.io/diagrams/superpowers/lifecycle.svg">
 <meta property="article:published_time" content="2026-09-24T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-10-10T02:45:35.635Z">
+<meta property="article:modified_time" content="2026-10-10T00:00:00.000Z">
 <meta property="article:author" content="wxquare">
-<meta property="article:tag" content="claude-code">
 <meta property="article:tag" content="agent-workflow">
+<meta property="article:tag" content="claude-code">
 <meta property="article:tag" content="codex">
 <meta property="article:tag" content="Superpowers">
 <meta property="article:tag" content="agent-skills">
@@ -120,7 +120,7 @@
       <div class="sidebar-panel-container">
         <!--noindex-->
         <div class="post-toc-wrap sidebar-panel">
-            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%88%E7%90%86%E8%A7%A3-Superpowers-%E8%A7%A3%E5%86%B3%E7%9A%84%E6%98%AF%E5%93%AA%E4%B8%80%E5%B1%82%E9%97%AE%E9%A2%98"><span class="nav-number">1.</span> <span class="nav-text">先理解 Superpowers 解决的是哪一层问题</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%83%BD%E5%86%99%E4%BB%A3%E7%A0%81%E4%B8%8E%E8%83%BD%E4%BA%A4%E4%BB%98%E6%98%AF%E4%B8%A4%E5%9B%9E%E4%BA%8B"><span class="nav-number">1.1.</span> <span class="nav-text">能写代码与能交付是两回事</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Skill%E3%80%81%E6%8F%92%E4%BB%B6%E3%80%81%E5%AE%BF%E4%B8%BB%E5%92%8C%E5%B7%A5%E5%85%B7%E5%88%86%E5%88%AB%E8%B4%9F%E8%B4%A3%E4%BB%80%E4%B9%88"><span class="nav-number">1.2.</span> <span class="nav-text">Skill、插件、宿主和工具分别负责什么</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AF%84%E4%BB%B7%E5%AE%83%E6%97%B6%EF%BC%8C%E5%85%88%E7%9C%8B%E4%BA%A4%E4%BB%98%E8%AF%81%E6%8D%AE"><span class="nav-number">1.3.</span> <span class="nav-text">评价它时，先看交付证据</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%89%93%E5%BC%80%E4%BB%93%E5%BA%93%EF%BC%9A%E7%BB%84%E4%BB%B6%E5%A6%82%E4%BD%95%E5%88%86%E5%B7%A5"><span class="nav-number">2.</span> <span class="nav-text">打开仓库：组件如何分工</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%8E%E5%9B%9B%E7%B1%BB%E6%96%87%E4%BB%B6%E5%BB%BA%E7%AB%8B%E5%9C%B0%E5%9B%BE"><span class="nav-number">2.1.</span> <span class="nav-text">从四类文件建立地图</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%AA%E6%8A%80%E8%83%BD%E4%B8%8D%E6%98%AF-15-%E4%B8%AA%E4%BA%92%E4%B8%8D%E7%9B%B8%E5%85%B3%E7%9A%84%E6%8F%90%E7%A4%BA%E8%AF%8D"><span class="nav-number">2.2.</span> <span class="nav-text">个技能不是 15 个互不相关的提示词</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%80%E4%B8%AA%E6%8A%80%E8%83%BD%E5%86%85%E9%83%A8%E4%B8%BA%E4%BB%80%E4%B9%88%E5%90%8C%E6%97%B6%E6%9C%89%E6%AD%A3%E6%96%87%E3%80%81%E5%8F%82%E8%80%83%E6%96%87%E4%BB%B6%E5%92%8C%E8%84%9A%E6%9C%AC"><span class="nav-number">2.3.</span> <span class="nav-text">一个技能内部为什么同时有正文、参考文件和脚本</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A6%82%E4%BD%95%E8%AF%BB%E9%A1%B9%E7%9B%AE%E6%B5%8B%E8%AF%95%E8%80%8C%E4%B8%8D%E9%AB%98%E4%BC%B0%E8%AF%81%E6%98%8E%E5%8A%9B"><span class="nav-number">2.4.</span> <span class="nav-text">如何读项目测试而不高估证明力</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E6%AC%A1%E8%AF%B7%E6%B1%82%E5%A6%82%E4%BD%95%E5%8A%A0%E8%BD%BD%E5%B9%B6%E8%A7%A6%E5%8F%91%E6%8A%80%E8%83%BD"><span class="nav-number">3.</span> <span class="nav-text">一次请求如何加载并触发技能</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Claude-Code%EF%BC%9A%E5%85%88%E6%B3%A8%E5%85%A5%E4%BD%BF%E7%94%A8%E6%8A%80%E8%83%BD%E7%9A%84%E6%96%B9%E6%B3%95"><span class="nav-number">3.1.</span> <span class="nav-text">Claude Code：先注入使用技能的方法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Codex%EF%BC%9A%E4%BB%8E%E5%8E%9F%E7%94%9F%E6%8A%80%E8%83%BD%E5%8F%91%E7%8E%B0%E5%BC%80%E5%A7%8B"><span class="nav-number">3.2.</span> <span class="nav-text">Codex：从原生技能发现开始</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8F%8F%E8%BF%B0%E5%AD%97%E6%AE%B5%E5%86%B3%E5%AE%9A%E2%80%9C%E8%83%BD%E5%90%A6%E8%A2%AB%E6%83%B3%E5%88%B0%E2%80%9D%EF%BC%8C%E6%AD%A3%E6%96%87%E5%86%B3%E5%AE%9A%E2%80%9C%E6%80%8E%E4%B9%88%E5%81%9A%E2%80%9D"><span class="nav-number">3.3.</span> <span class="nav-text">描述字段决定“能否被想到”，正文决定“怎么做”</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B7%A5%E5%85%B7%E9%80%82%E9%85%8D%E5%BF%85%E9%A1%BB%E4%BB%A5%E5%BD%93%E5%89%8D%E5%AE%BF%E4%B8%BB%E4%B8%BA%E5%87%86"><span class="nav-number">3.4.</span> <span class="nav-text">工具适配必须以当前宿主为准</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%8E%E9%9C%80%E6%B1%82%E5%88%B0%E4%BA%A4%E4%BB%98%EF%BC%9A%E6%8A%80%E8%83%BD%E5%A6%82%E4%BD%95%E8%A1%94%E6%8E%A5"><span class="nav-number">4.</span> <span class="nav-text">从需求到交付：技能如何衔接</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AE%BE%E8%AE%A1%E5%85%88%E8%A7%A3%E5%86%B3%E7%9B%AE%E6%A0%87%EF%BC%8C%E5%86%8D%E5%86%B3%E5%AE%9A%E9%9C%80%E8%A6%81%E5%A4%9A%E9%87%8D%E7%9A%84%E8%BF%87%E7%A8%8B"><span class="nav-number">4.1.</span> <span class="nav-text">设计先解决目标，再决定需要多重的过程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Spec-%E5%92%8C-plan-%E6%98%AF%E4%B8%A4%E7%A7%8D%E4%B8%8D%E5%90%8C%E7%9A%84%E4%BA%A4%E6%8E%A5"><span class="nav-number">4.2.</span> <span class="nav-text">Spec 和 plan 是两种不同的交接</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Native-%E4%B8%8E-SDD%EF%BC%9A%E9%80%89%E6%8B%A9%E4%B8%8A%E4%B8%8B%E6%96%87%E5%92%8C%E5%AE%A1%E6%9F%A5%E6%88%90%E6%9C%AC"><span class="nav-number">4.3.</span> <span class="nav-text">Native 与 SDD：选择上下文和审查成本</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#SDD-%E5%B9%B6%E4%B8%8D%E7%AD%89%E4%BA%8E%E6%8A%8A%E6%89%80%E6%9C%89%E5%AE%9E%E7%8E%B0%E4%BB%BB%E5%8A%A1%E5%90%8C%E6%97%B6%E8%B7%91%E8%B5%B7%E6%9D%A5"><span class="nav-number">4.4.</span> <span class="nav-text">SDD 并不等于把所有实现任务同时跑起来</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A4%B1%E8%B4%A5%E3%80%81%E5%AE%A1%E6%9F%A5%E4%B8%8E%E6%94%B6%E5%B0%BE%E6%98%AF%E6%B5%81%E7%A8%8B%E7%9A%84%E4%B8%80%E9%83%A8%E5%88%86"><span class="nav-number">4.5.</span> <span class="nav-text">失败、审查与收尾是流程的一部分</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8E%9F%E7%90%86%E6%B7%B1%E6%8C%96%EF%BC%9A%E6%96%87%E5%AD%97%E8%A7%84%E5%88%99%E5%A6%82%E4%BD%95%E5%8F%98%E6%88%90%E5%8F%AF%E6%A3%80%E6%9F%A5%E7%9A%84%E8%A1%8C%E4%B8%BA"><span class="nav-number">5.</span> <span class="nav-text">原理深挖：文字规则如何变成可检查的行为</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%89%E5%B1%82%E7%BA%A6%E6%9D%9F%E6%89%BF%E6%8B%85%E4%B8%8D%E5%90%8C%E8%B4%A3%E4%BB%BB"><span class="nav-number">5.1.</span> <span class="nav-text">三层约束承担不同责任</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E2%80%9C%E5%8F%8D%E5%90%88%E7%90%86%E5%8C%96%E8%A1%A8%E2%80%9D%E9%92%88%E5%AF%B9%E7%9A%84%E6%98%AF%E8%B7%B3%E6%AD%A5%E9%AA%A4%E7%9A%84%E7%90%86%E7%94%B1"><span class="nav-number">5.2.</span> <span class="nav-text">“反合理化表”针对的是跳步骤的理由</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Ledger-%E6%8A%8A%E8%BF%9B%E5%BA%A6%E4%BB%8E%E8%AE%B0%E5%BF%86%E5%8F%98%E6%88%90%E5%A4%96%E9%83%A8%E8%AE%B0%E5%BD%95"><span class="nav-number">5.3.</span> <span class="nav-text">Ledger 把进度从记忆变成外部记录</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Brief-%E5%92%8C-review-package-%E6%8E%A7%E5%88%B6%E4%BA%A4%E6%8E%A5%E4%BF%A1%E6%81%AF%E9%87%8F"><span class="nav-number">5.4.</span> <span class="nav-text">Brief 和 review package 控制交接信息量</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#task-done%EF%BC%9A%E4%B8%80%E4%B8%AA%E5%B0%8F%E8%84%9A%E6%9C%AC%E7%9A%84%E4%BF%9D%E8%AF%81%E4%B8%8E%E9%99%90%E5%88%B6"><span class="nav-number">5.5.</span> <span class="nav-text">task-done：一个小脚本的保证与限制</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BF%AE%E5%A4%8D%E5%BE%AA%E7%8E%AF%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81%E8%BE%B9%E7%95%8C"><span class="nav-number">5.6.</span> <span class="nav-text">修复循环为什么需要边界</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%B4%AF%E7%A9%BF%E5%AE%9E%E8%B7%B5%EF%BC%9A%E7%BB%99%E5%B7%B2%E6%9C%89%E8%AE%A2%E5%8D%95%E6%9C%8D%E5%8A%A1%E5%A2%9E%E5%8A%A0%E5%B9%82%E7%AD%89%E5%A4%84%E7%90%86"><span class="nav-number">6.</span> <span class="nav-text">贯穿实践：给已有订单服务增加幂等处理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%88%E7%BA%A6%E5%AE%9A%E6%A1%88%E4%BE%8B%E8%8C%83%E5%9B%B4"><span class="nav-number">6.1.</span> <span class="nav-text">先约定案例范围</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%B8%80%E6%AC%A1%E8%BE%93%E5%85%A5%EF%BC%9A%E8%AE%A9-Agent-%E7%90%86%E8%A7%A3%E4%BD%A0%E8%A6%81%E4%BF%9D%E6%8A%A4%E4%BB%80%E4%B9%88"><span class="nav-number">6.2.</span> <span class="nav-text">第一次输入：让 Agent 理解你要保护什么</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AE%BE%E8%AE%A1%E7%89%87%E6%AE%B5%EF%BC%9A%E6%8A%8A%E4%BA%8B%E5%8A%A1%E8%BE%B9%E7%95%8C%E5%86%99%E6%B8%85%E6%A5%9A"><span class="nav-number">6.3.</span> <span class="nav-text">设计片段：把事务边界写清楚</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AE%A1%E5%88%92%E7%89%87%E6%AE%B5%EF%BC%9A%E5%9B%B4%E7%BB%95%E5%8F%AF%E9%AA%8C%E8%AF%81%E4%BA%A4%E4%BB%98%E7%89%A9%E6%8B%86%E5%88%86"><span class="nav-number">6.4.</span> <span class="nav-text">计划片段：围绕可验证交付物拆分</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%89%A7%E8%A1%8C%E8%BE%93%E5%85%A5%EF%BC%9A%E4%BF%9D%E7%95%99%E8%87%AA%E4%B8%BB%E6%9D%83%EF%BC%8C%E4%B9%9F%E4%BF%9D%E7%95%99%E8%BE%B9%E7%95%8C"><span class="nav-number">6.5.</span> <span class="nav-text">执行输入：保留自主权，也保留边界</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B5%8B%E8%AF%95%E9%A6%96%E5%85%88%E8%AF%81%E6%98%8E%E2%80%9C%E7%9C%9F%E7%9A%84%E4%BC%9A%E9%94%99%E2%80%9D"><span class="nav-number">6.6.</span> <span class="nav-text">测试首先证明“真的会错”</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%81%87%E5%88%B0%E5%A4%B1%E8%B4%A5%E6%97%B6%EF%BC%8C%E6%8F%90%E4%BE%9B%E4%BA%8B%E5%AE%9E%E8%80%8C%E4%B8%8D%E6%98%AF%E6%8C%87%E5%AE%9A%E7%8C%9C%E6%B5%8B%E6%80%A7%E4%BF%AE%E5%A4%8D"><span class="nav-number">6.7.</span> <span class="nav-text">遇到失败时，提供事实而不是指定猜测性修复</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%8C%E6%88%90%E6%8A%A5%E5%91%8A%E8%A6%81%E8%83%BD%E9%80%90%E9%A1%B9%E5%AF%B9%E7%85%A7%E7%9B%AE%E6%A0%87"><span class="nav-number">6.8.</span> <span class="nav-text">完成报告要能逐项对照目标</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BB%8F%E5%B8%B8%E4%BD%BF%E7%94%A8%E6%97%B6%E6%9C%80%E5%AE%B9%E6%98%93%E8%B8%A9%E7%9A%84%E5%9D%91"><span class="nav-number">7.</span> <span class="nav-text">经常使用时最容易踩的坑</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9B%B4%E6%96%B0%E4%BA%86%E9%A1%B9%E7%9B%AE%EF%BC%8C%E4%B8%8D%E4%BB%A3%E8%A1%A8%E5%BD%93%E5%89%8D%E4%BC%9A%E8%AF%9D%E5%B7%B2%E7%BB%8F%E4%BD%BF%E7%94%A8%E6%96%B0%E8%A7%84%E5%88%99"><span class="nav-number">7.1.</span> <span class="nav-text">更新了项目，不代表当前会话已经使用新规则</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%89%E8%A3%85%E4%B9%8B%E5%90%8E%EF%BC%8C%E9%AA%8C%E8%AF%81%E4%B8%80%E6%9D%A1%E6%9C%80%E5%B0%8F%E8%B7%AF%E5%BE%84"><span class="nav-number">7.2.</span> <span class="nav-text">安装之后，验证一条最小路径</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B0%86%E7%97%87%E7%8A%B6%E6%98%A0%E5%B0%84%E5%88%B0%E8%AF%81%E6%8D%AE%EF%BC%8C%E6%AF%94%E5%8F%A0%E5%8A%A0%E8%A7%84%E5%88%99%E6%9B%B4%E6%9C%89%E6%95%88"><span class="nav-number">7.3.</span> <span class="nav-text">将症状映射到证据，比叠加规则更有效</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8E%92%E6%9F%A5-Superpowers-%E6%9C%AC%E8%BA%AB%EF%BC%8C%E4%B9%9F%E9%9C%80%E8%A6%81%E5%8F%AF%E6%A0%B8%E6%9F%A5%E7%9A%84%E8%AF%81%E6%8D%AE"><span class="nav-number">7.4.</span> <span class="nav-text">排查 Superpowers 本身，也需要可核查的证据</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%81%A5%E6%B5%8B%E8%8C%83%E5%9B%B4%E8%A6%81%E8%AF%BB%E5%AE%9E%E7%8E%B0%EF%BC%8C%E4%B8%8D%E8%A6%81%E6%89%A9%E5%A4%A7%E4%B9%9F%E4%B8%8D%E8%A6%81%E6%B7%A1%E5%8C%96"><span class="nav-number">7.5.</span> <span class="nav-text">遥测范围要读实现，不要扩大也不要淡化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%8D%E8%AE%A9%E6%96%B9%E6%B3%95%E8%AE%BA%E5%8F%98%E6%88%90%E9%A2%9D%E5%A4%96%E7%9A%84%E8%B4%9F%E6%8B%85"><span class="nav-number">7.6.</span> <span class="nav-text">不让方法论变成额外的负担</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A6%82%E4%BD%95%E6%89%A9%E5%B1%95%E4%B8%8E%E8%AF%84%E4%BB%B7%E8%87%AA%E5%B7%B1%E7%9A%84%E6%8A%80%E8%83%BD"><span class="nav-number">8.</span> <span class="nav-text">如何扩展与评价自己的技能</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%8E%E9%87%8D%E5%A4%8D%E5%87%BA%E7%8E%B0%E7%9A%84%E5%A4%B1%E8%B4%A5%E5%BC%80%E5%A7%8B"><span class="nav-number">8.1.</span> <span class="nav-text">从重复出现的失败开始</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8A%8A%E6%8A%80%E8%83%BD%E5%BC%80%E5%8F%91%E8%A7%86%E4%BD%9C%E8%A1%8C%E4%B8%BA%E6%B5%8B%E8%AF%95"><span class="nav-number">8.2.</span> <span class="nav-text">把技能开发视作行为测试</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%90%8C%E6%97%B6%E8%AF%84%E4%BB%B7%E6%AD%A3%E7%A1%AE%E6%80%A7%E4%B8%8E%E8%BF%87%E7%A8%8B%E6%88%90%E6%9C%AC"><span class="nav-number">8.3.</span> <span class="nav-text">同时评价正确性与过程成本</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%99%E9%95%BF%E6%9C%9F%E7%94%A8%E6%88%B7%E7%9A%84%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E8%B7%AF%E7%BA%BF"><span class="nav-number">8.4.</span> <span class="nav-text">给长期用户的源码阅读路线</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="nav-number">9.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%88%E7%90%86%E8%A7%A3-Superpowers-%E8%A7%A3%E5%86%B3%E7%9A%84%E6%98%AF%E5%93%AA%E4%B8%80%E5%B1%82%E9%97%AE%E9%A2%98"><span class="nav-number">1.</span> <span class="nav-text">先理解 Superpowers 解决的是哪一层问题</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%83%BD%E5%86%99%E4%BB%A3%E7%A0%81%E4%B8%8E%E8%83%BD%E4%BA%A4%E4%BB%98%E6%98%AF%E4%B8%A4%E5%9B%9E%E4%BA%8B"><span class="nav-number">1.1.</span> <span class="nav-text">能写代码与能交付是两回事</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Skill%E3%80%81%E6%8F%92%E4%BB%B6%E3%80%81%E5%AE%BF%E4%B8%BB%E5%92%8C%E5%B7%A5%E5%85%B7%E5%88%86%E5%88%AB%E8%B4%9F%E8%B4%A3%E4%BB%80%E4%B9%88"><span class="nav-number">1.2.</span> <span class="nav-text">Skill、插件、宿主和工具分别负责什么</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AF%84%E4%BB%B7%E5%AE%83%E6%97%B6%EF%BC%8C%E5%85%88%E7%9C%8B%E4%BA%A4%E4%BB%98%E8%AF%81%E6%8D%AE"><span class="nav-number">1.3.</span> <span class="nav-text">评价它时，先看交付证据</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%89%93%E5%BC%80%E4%BB%93%E5%BA%93%EF%BC%9A%E7%BB%84%E4%BB%B6%E5%A6%82%E4%BD%95%E5%88%86%E5%B7%A5"><span class="nav-number">2.</span> <span class="nav-text">打开仓库：组件如何分工</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%8E%E5%9B%9B%E7%B1%BB%E6%96%87%E4%BB%B6%E5%BB%BA%E7%AB%8B%E5%9C%B0%E5%9B%BE"><span class="nav-number">2.1.</span> <span class="nav-text">从四类文件建立地图</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8A%80%E8%83%BD%E5%BA%93%E4%B8%8D%E6%98%AF%E4%BA%92%E4%B8%8D%E7%9B%B8%E5%85%B3%E7%9A%84%E6%8F%90%E7%A4%BA%E8%AF%8D"><span class="nav-number">2.2.</span> <span class="nav-text">技能库不是互不相关的提示词</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%80%E4%B8%AA%E6%8A%80%E8%83%BD%E5%86%85%E9%83%A8%E4%B8%BA%E4%BB%80%E4%B9%88%E5%90%8C%E6%97%B6%E6%9C%89%E6%AD%A3%E6%96%87%E3%80%81%E5%8F%82%E8%80%83%E6%96%87%E4%BB%B6%E5%92%8C%E8%84%9A%E6%9C%AC"><span class="nav-number">2.3.</span> <span class="nav-text">一个技能内部为什么同时有正文、参考文件和脚本</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A6%82%E4%BD%95%E8%AF%BB%E9%A1%B9%E7%9B%AE%E6%B5%8B%E8%AF%95%E8%80%8C%E4%B8%8D%E9%AB%98%E4%BC%B0%E8%AF%81%E6%98%8E%E5%8A%9B"><span class="nav-number">2.4.</span> <span class="nav-text">如何读项目测试而不高估证明力</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E6%AC%A1%E8%AF%B7%E6%B1%82%E5%A6%82%E4%BD%95%E5%8A%A0%E8%BD%BD%E5%B9%B6%E8%A7%A6%E5%8F%91%E6%8A%80%E8%83%BD"><span class="nav-number">3.</span> <span class="nav-text">一次请求如何加载并触发技能</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Claude-Code%EF%BC%9A%E5%85%88%E6%B3%A8%E5%85%A5%E4%BD%BF%E7%94%A8%E6%8A%80%E8%83%BD%E7%9A%84%E6%96%B9%E6%B3%95"><span class="nav-number">3.1.</span> <span class="nav-text">Claude Code：先注入使用技能的方法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Codex%EF%BC%9A%E4%BB%8E%E5%8E%9F%E7%94%9F%E6%8A%80%E8%83%BD%E5%8F%91%E7%8E%B0%E5%BC%80%E5%A7%8B"><span class="nav-number">3.2.</span> <span class="nav-text">Codex：从原生技能发现开始</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8F%8F%E8%BF%B0%E5%AD%97%E6%AE%B5%E5%86%B3%E5%AE%9A%E2%80%9C%E8%83%BD%E5%90%A6%E8%A2%AB%E6%83%B3%E5%88%B0%E2%80%9D%EF%BC%8C%E6%AD%A3%E6%96%87%E5%86%B3%E5%AE%9A%E2%80%9C%E6%80%8E%E4%B9%88%E5%81%9A%E2%80%9D"><span class="nav-number">3.3.</span> <span class="nav-text">描述字段决定“能否被想到”，正文决定“怎么做”</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B7%A5%E5%85%B7%E9%80%82%E9%85%8D%E5%BF%85%E9%A1%BB%E4%BB%A5%E5%BD%93%E5%89%8D%E5%AE%BF%E4%B8%BB%E4%B8%BA%E5%87%86"><span class="nav-number">3.4.</span> <span class="nav-text">工具适配必须以当前宿主为准</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%8E%E9%9C%80%E6%B1%82%E5%88%B0%E4%BA%A4%E4%BB%98%EF%BC%9A%E6%8A%80%E8%83%BD%E5%A6%82%E4%BD%95%E8%A1%94%E6%8E%A5"><span class="nav-number">4.</span> <span class="nav-text">从需求到交付：技能如何衔接</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AE%BE%E8%AE%A1%E5%85%88%E8%A7%A3%E5%86%B3%E7%9B%AE%E6%A0%87%EF%BC%8C%E5%86%8D%E5%86%B3%E5%AE%9A%E9%9C%80%E8%A6%81%E5%A4%9A%E9%87%8D%E7%9A%84%E8%BF%87%E7%A8%8B"><span class="nav-number">4.1.</span> <span class="nav-text">设计先解决目标，再决定需要多重的过程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Spec-%E5%92%8C-plan-%E6%98%AF%E4%B8%A4%E7%A7%8D%E4%B8%8D%E5%90%8C%E7%9A%84%E4%BA%A4%E6%8E%A5"><span class="nav-number">4.2.</span> <span class="nav-text">Spec 和 plan 是两种不同的交接</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Native-%E4%B8%8E-SDD%EF%BC%9A%E9%80%89%E6%8B%A9%E4%B8%8A%E4%B8%8B%E6%96%87%E5%92%8C%E5%AE%A1%E6%9F%A5%E6%88%90%E6%9C%AC"><span class="nav-number">4.3.</span> <span class="nav-text">Native 与 SDD：选择上下文和审查成本</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#SDD-%E5%B9%B6%E4%B8%8D%E7%AD%89%E4%BA%8E%E6%8A%8A%E6%89%80%E6%9C%89%E5%AE%9E%E7%8E%B0%E4%BB%BB%E5%8A%A1%E5%90%8C%E6%97%B6%E8%B7%91%E8%B5%B7%E6%9D%A5"><span class="nav-number">4.4.</span> <span class="nav-text">SDD 并不等于把所有实现任务同时跑起来</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A4%B1%E8%B4%A5%E3%80%81%E5%AE%A1%E6%9F%A5%E4%B8%8E%E6%94%B6%E5%B0%BE%E6%98%AF%E6%B5%81%E7%A8%8B%E7%9A%84%E4%B8%80%E9%83%A8%E5%88%86"><span class="nav-number">4.5.</span> <span class="nav-text">失败、审查与收尾是流程的一部分</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8E%9F%E7%90%86%E6%B7%B1%E6%8C%96%EF%BC%9A%E6%96%87%E5%AD%97%E8%A7%84%E5%88%99%E5%A6%82%E4%BD%95%E5%8F%98%E6%88%90%E5%8F%AF%E6%A3%80%E6%9F%A5%E7%9A%84%E8%A1%8C%E4%B8%BA"><span class="nav-number">5.</span> <span class="nav-text">原理深挖：文字规则如何变成可检查的行为</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%89%E5%B1%82%E7%BA%A6%E6%9D%9F%E6%89%BF%E6%8B%85%E4%B8%8D%E5%90%8C%E8%B4%A3%E4%BB%BB"><span class="nav-number">5.1.</span> <span class="nav-text">三层约束承担不同责任</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E2%80%9C%E5%8F%8D%E5%90%88%E7%90%86%E5%8C%96%E8%A1%A8%E2%80%9D%E9%92%88%E5%AF%B9%E7%9A%84%E6%98%AF%E8%B7%B3%E6%AD%A5%E9%AA%A4%E7%9A%84%E7%90%86%E7%94%B1"><span class="nav-number">5.2.</span> <span class="nav-text">“反合理化表”针对的是跳步骤的理由</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Ledger-%E6%8A%8A%E8%BF%9B%E5%BA%A6%E4%BB%8E%E8%AE%B0%E5%BF%86%E5%8F%98%E6%88%90%E5%A4%96%E9%83%A8%E8%AE%B0%E5%BD%95"><span class="nav-number">5.3.</span> <span class="nav-text">Ledger 把进度从记忆变成外部记录</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Brief-%E5%92%8C-review-package-%E6%8E%A7%E5%88%B6%E4%BA%A4%E6%8E%A5%E4%BF%A1%E6%81%AF%E9%87%8F"><span class="nav-number">5.4.</span> <span class="nav-text">Brief 和 review package 控制交接信息量</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#task-done%EF%BC%9A%E4%B8%80%E4%B8%AA%E5%B0%8F%E8%84%9A%E6%9C%AC%E7%9A%84%E4%BF%9D%E8%AF%81%E4%B8%8E%E9%99%90%E5%88%B6"><span class="nav-number">5.5.</span> <span class="nav-text">task-done：一个小脚本的保证与限制</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BF%AE%E5%A4%8D%E5%BE%AA%E7%8E%AF%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81%E8%BE%B9%E7%95%8C"><span class="nav-number">5.6.</span> <span class="nav-text">修复循环为什么需要边界</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%B4%AF%E7%A9%BF%E5%AE%9E%E8%B7%B5%EF%BC%9A%E7%BB%99%E5%B7%B2%E6%9C%89%E8%AE%A2%E5%8D%95%E6%9C%8D%E5%8A%A1%E5%A2%9E%E5%8A%A0%E5%B9%82%E7%AD%89%E5%A4%84%E7%90%86"><span class="nav-number">6.</span> <span class="nav-text">贯穿实践：给已有订单服务增加幂等处理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%88%E7%BA%A6%E5%AE%9A%E6%A1%88%E4%BE%8B%E8%8C%83%E5%9B%B4"><span class="nav-number">6.1.</span> <span class="nav-text">先约定案例范围</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%B8%80%E6%AC%A1%E8%BE%93%E5%85%A5%EF%BC%9A%E8%AE%A9-Agent-%E7%90%86%E8%A7%A3%E4%BD%A0%E8%A6%81%E4%BF%9D%E6%8A%A4%E4%BB%80%E4%B9%88"><span class="nav-number">6.2.</span> <span class="nav-text">第一次输入：让 Agent 理解你要保护什么</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AE%BE%E8%AE%A1%E7%89%87%E6%AE%B5%EF%BC%9A%E6%8A%8A%E4%BA%8B%E5%8A%A1%E8%BE%B9%E7%95%8C%E5%86%99%E6%B8%85%E6%A5%9A"><span class="nav-number">6.3.</span> <span class="nav-text">设计片段：把事务边界写清楚</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AE%A1%E5%88%92%E7%89%87%E6%AE%B5%EF%BC%9A%E5%9B%B4%E7%BB%95%E5%8F%AF%E9%AA%8C%E8%AF%81%E4%BA%A4%E4%BB%98%E7%89%A9%E6%8B%86%E5%88%86"><span class="nav-number">6.4.</span> <span class="nav-text">计划片段：围绕可验证交付物拆分</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%89%A7%E8%A1%8C%E8%BE%93%E5%85%A5%EF%BC%9A%E4%BF%9D%E7%95%99%E8%87%AA%E4%B8%BB%E6%9D%83%EF%BC%8C%E4%B9%9F%E4%BF%9D%E7%95%99%E8%BE%B9%E7%95%8C"><span class="nav-number">6.5.</span> <span class="nav-text">执行输入：保留自主权，也保留边界</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B5%8B%E8%AF%95%E9%A6%96%E5%85%88%E8%AF%81%E6%98%8E%E2%80%9C%E7%9C%9F%E7%9A%84%E4%BC%9A%E9%94%99%E2%80%9D"><span class="nav-number">6.6.</span> <span class="nav-text">测试首先证明“真的会错”</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%81%87%E5%88%B0%E5%A4%B1%E8%B4%A5%E6%97%B6%EF%BC%8C%E6%8F%90%E4%BE%9B%E4%BA%8B%E5%AE%9E%E8%80%8C%E4%B8%8D%E6%98%AF%E6%8C%87%E5%AE%9A%E7%8C%9C%E6%B5%8B%E6%80%A7%E4%BF%AE%E5%A4%8D"><span class="nav-number">6.7.</span> <span class="nav-text">遇到失败时，提供事实而不是指定猜测性修复</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%8C%E6%88%90%E6%8A%A5%E5%91%8A%E8%A6%81%E8%83%BD%E9%80%90%E9%A1%B9%E5%AF%B9%E7%85%A7%E7%9B%AE%E6%A0%87"><span class="nav-number">6.8.</span> <span class="nav-text">完成报告要能逐项对照目标</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BB%8F%E5%B8%B8%E4%BD%BF%E7%94%A8%E6%97%B6%E6%9C%80%E5%AE%B9%E6%98%93%E8%B8%A9%E7%9A%84%E5%9D%91"><span class="nav-number">7.</span> <span class="nav-text">经常使用时最容易踩的坑</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9B%B4%E6%96%B0%E4%BA%86%E9%A1%B9%E7%9B%AE%EF%BC%8C%E4%B8%8D%E4%BB%A3%E8%A1%A8%E5%BD%93%E5%89%8D%E4%BC%9A%E8%AF%9D%E5%B7%B2%E7%BB%8F%E4%BD%BF%E7%94%A8%E6%96%B0%E8%A7%84%E5%88%99"><span class="nav-number">7.1.</span> <span class="nav-text">更新了项目，不代表当前会话已经使用新规则</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%89%E8%A3%85%E4%B9%8B%E5%90%8E%EF%BC%8C%E9%AA%8C%E8%AF%81%E4%B8%80%E6%9D%A1%E6%9C%80%E5%B0%8F%E8%B7%AF%E5%BE%84"><span class="nav-number">7.2.</span> <span class="nav-text">安装之后，验证一条最小路径</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B0%86%E7%97%87%E7%8A%B6%E6%98%A0%E5%B0%84%E5%88%B0%E8%AF%81%E6%8D%AE%EF%BC%8C%E6%AF%94%E5%8F%A0%E5%8A%A0%E8%A7%84%E5%88%99%E6%9B%B4%E6%9C%89%E6%95%88"><span class="nav-number">7.3.</span> <span class="nav-text">将症状映射到证据，比叠加规则更有效</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8E%92%E6%9F%A5-Superpowers-%E6%9C%AC%E8%BA%AB%EF%BC%8C%E4%B9%9F%E9%9C%80%E8%A6%81%E5%8F%AF%E6%A0%B8%E6%9F%A5%E7%9A%84%E8%AF%81%E6%8D%AE"><span class="nav-number">7.4.</span> <span class="nav-text">排查 Superpowers 本身，也需要可核查的证据</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%81%A5%E6%B5%8B%E8%8C%83%E5%9B%B4%E8%A6%81%E8%AF%BB%E5%AE%9E%E7%8E%B0%EF%BC%8C%E4%B8%8D%E8%A6%81%E6%89%A9%E5%A4%A7%E4%B9%9F%E4%B8%8D%E8%A6%81%E6%B7%A1%E5%8C%96"><span class="nav-number">7.5.</span> <span class="nav-text">遥测范围要读实现，不要扩大也不要淡化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%8D%E8%AE%A9%E6%96%B9%E6%B3%95%E8%AE%BA%E5%8F%98%E6%88%90%E9%A2%9D%E5%A4%96%E7%9A%84%E8%B4%9F%E6%8B%85"><span class="nav-number">7.6.</span> <span class="nav-text">不让方法论变成额外的负担</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%8E%E5%85%B6%E4%BB%96-AI-Coding-Skills-%E6%AF%94%E8%BE%83%EF%BC%9A%E5%93%AA%E4%BA%9B%E5%8F%AF%E4%BB%A5%E6%9B%BF%E4%BB%A3%EF%BC%8C%E5%93%AA%E4%BA%9B%E9%80%82%E5%90%88%E8%A1%A5%E5%85%85"><span class="nav-number">8.</span> <span class="nav-text">与其他 AI Coding Skills 比较：哪些可以替代，哪些适合补充</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%88%E6%A0%B8%E5%AE%9E%E5%90%8D%E5%AD%97%EF%BC%8C%E5%86%8D%E6%AF%94%E8%BE%83%E8%81%8C%E8%B4%A3"><span class="nav-number">8.1.</span> <span class="nav-text">先核实名字，再比较职责</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%80%BB%E4%BD%93%E5%B7%AE%E5%BC%82%EF%BC%9A%E5%AE%8C%E6%95%B4%E6%B5%81%E7%A8%8B%E4%B8%8E%E5%8D%95%E9%A1%B9%E7%BA%A6%E6%9D%9F%E4%B8%8D%E6%98%AF%E4%B8%80%E5%9B%9E%E4%BA%8B"><span class="nav-number">8.2.</span> <span class="nav-text">总体差异：完整流程与单项约束不是一回事</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#think%EF%BC%9A%E7%BA%A6%E6%9D%9F%E6%96%B9%E6%A1%88%E8%B4%A8%E9%87%8F%E4%B8%8E%E5%AE%9E%E7%8E%B0%E4%BA%A4%E6%8E%A5"><span class="nav-number">8.3.</span> <span class="nav-text">think：约束方案质量与实现交接</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#grilling%EF%BC%9A%E7%94%A8%E5%86%B3%E7%AD%96%E6%A0%91%E6%B6%88%E9%99%A4%E9%9A%90%E5%90%AB%E9%80%89%E6%8B%A9"><span class="nav-number">8.4.</span> <span class="nav-text">grilling：用决策树消除隐含选择</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#implement-%E4%B8%8E-implement-spec%EF%BC%9A%E6%89%A7%E8%A1%8C%E5%85%A5%E5%8F%A3%E5%92%8C%E5%B9%B6%E8%A1%8C%E8%B0%83%E5%BA%A6"><span class="nav-number">8.5.</span> <span class="nav-text">implement 与 implement-spec：执行入口和并行调度</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ponytail%EF%BC%9A%E5%B0%91%E5%86%99%E4%BB%A3%E7%A0%81%EF%BC%8C%E4%BD%86%E4%B8%8D%E8%83%BD%E5%B0%91%E4%BA%A4%E4%BB%98%E8%A1%8C%E4%B8%BA"><span class="nav-number">8.6.</span> <span class="nav-text">ponytail：少写代码，但不能少交付行为</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#check%E3%80%81code-review-%E4%B8%8E-handoff%EF%BC%9A%E6%A3%80%E6%9F%A5%E8%8C%83%E5%9B%B4%E5%92%8C%E4%BA%A4%E6%8E%A5%E8%AF%81%E6%8D%AE"><span class="nav-number">8.7.</span> <span class="nav-text">check、code-review 与 handoff：检查范围和交接证据</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Superpowers-%E7%9A%84%E5%85%B3%E9%94%AE%E6%8C%87%E4%BB%A4%E9%80%9F%E6%9F%A5"><span class="nav-number">8.8.</span> <span class="nav-text">Superpowers 的关键指令速查</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%98%E6%96%B9%E6%8A%80%E8%83%BD%E5%BA%93%E3%80%81%E5%AE%A1%E6%9F%A5%E6%8F%92%E4%BB%B6%E5%92%8C%E5%88%86%E5%8F%91%E5%B9%B3%E5%8F%B0%E5%A4%84%E4%BA%8E%E4%B8%8D%E5%90%8C%E5%B1%82"><span class="nav-number">8.9.</span> <span class="nav-text">官方技能库、审查插件和分发平台处于不同层</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%84%E5%90%88%E5%8E%9F%E5%88%99%EF%BC%9A%E4%BF%9D%E7%95%99%E4%B8%80%E4%B8%AA%E4%B8%BB%E6%B5%81%E7%A8%8B%EF%BC%8C%E8%A1%A5%E4%B8%8A%E7%BC%BA%E5%A4%B1%E8%83%BD%E5%8A%9B"><span class="nav-number">8.10.</span> <span class="nav-text">组合原则：保留一个主流程，补上缺失能力</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A6%82%E4%BD%95%E6%89%A9%E5%B1%95%E4%B8%8E%E8%AF%84%E4%BB%B7%E8%87%AA%E5%B7%B1%E7%9A%84%E6%8A%80%E8%83%BD"><span class="nav-number">9.</span> <span class="nav-text">如何扩展与评价自己的技能</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%8E%E9%87%8D%E5%A4%8D%E5%87%BA%E7%8E%B0%E7%9A%84%E5%A4%B1%E8%B4%A5%E5%BC%80%E5%A7%8B"><span class="nav-number">9.1.</span> <span class="nav-text">从重复出现的失败开始</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8A%8A%E6%8A%80%E8%83%BD%E5%BC%80%E5%8F%91%E8%A7%86%E4%BD%9C%E8%A1%8C%E4%B8%BA%E6%B5%8B%E8%AF%95"><span class="nav-number">9.2.</span> <span class="nav-text">把技能开发视作行为测试</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%90%8C%E6%97%B6%E8%AF%84%E4%BB%B7%E6%AD%A3%E7%A1%AE%E6%80%A7%E4%B8%8E%E8%BF%87%E7%A8%8B%E6%88%90%E6%9C%AC"><span class="nav-number">9.3.</span> <span class="nav-text">同时评价正确性与过程成本</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%99%E9%95%BF%E6%9C%9F%E7%94%A8%E6%88%B7%E7%9A%84%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E8%B7%AF%E7%BA%BF"><span class="nav-number">9.4.</span> <span class="nav-text">给长期用户的源码阅读路线</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="nav-number">10.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
         </div>
         <!--/noindex-->
 
@@ -237,7 +237,7 @@
 
     <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
       <meta itemprop="name" content="Superpowers 源码解析：技能发现机制与开发流程约束 | wxquare's Blogs">
-      <meta itemprop="description" content="基于 Superpowers v6.4.1 源码，系统解释技能发现、宿主适配、Native 与子 Agent 执行、进度恢复和验证机制，并用幂等接口案例串起日常实践。">
+      <meta itemprop="description" content="基于 Superpowers v6.4.1 源码，解释技能发现、执行与验证机制，用幂等接口案例串起实践，并比较 Waza、Matt Pocock Skills 和 Ponytail 的关键指令与适用边界。">
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
@@ -259,7 +259,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-10-10 02:45:35" itemprop="dateModified" datetime="2026-10-10T02:45:35+00:00">2026-10-10</time>
+      <time title="Modified: 2026-10-10 00:00:00" itemprop="dateModified" datetime="2026-10-10T00:00:00+00:00">2026-10-10</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -274,7 +274,7 @@
   
 </div>
 
-            <div class="post-description">基于 Superpowers v6.4.1 源码，系统解释技能发现、宿主适配、Native 与子 Agent 执行、进度恢复和验证机制，并用幂等接口案例串起日常实践。</div>
+            <div class="post-description">基于 Superpowers v6.4.1 源码，解释技能发现、执行与验证机制，用幂等接口案例串起实践，并比较 Waza、Matt Pocock Skills 和 Ponytail 的关键指令与适用边界。</div>
         </div>
       </header>
 
@@ -286,6 +286,9 @@
 <p>本文面向已经使用过编码 Agent、了解 Git 与自动化测试的开发者。先沿源码认识组成与机制，再通过一个明确标注的教学案例走完整个过程。如果还在比较不同 Agent 的定位，可以先读 <a href="/2026/09/23/AI/01-ai-agent-workflow-practice/" title="AI Agent 工作流：工具选型、模型路由与验证闭环">AI Agent 工作流实践</a>；这里集中讨论 Superpowers 本身。</p>
 <blockquote>
 <p><strong>研究基线</strong>：Superpowers <strong>v6.4.1</strong>，提交 <code>5bf4e78011075bcfc0dc295f0724994cd123ee71</code>，资料核验日期为 <strong>2026-09-24</strong>。源码结论对应这个固定快照，不自动代表你已安装的副本。案例是设计演示，不是线上经验或已运行实验；文中不给出未经测量的效率提升比例。</p>
+</blockquote>
+<blockquote>
+<p><strong>补充调研</strong>：其他 AI Coding Skills 的比较于 <strong>2026-10-10</strong> 加入，依据各维护方当日可访问的主分支指令和官方文档。这部分不是与 Superpowers 同日的固定版本对照，也不是效果基准测试；使用时应重新核对实际安装版本。</p>
 </blockquote>
 <span id="more"></span>
 
@@ -341,7 +344,7 @@
 <p>第一类是<strong>分发与适配文件</strong>：告诉宿主在哪里找到技能，以及是否注册生命周期钩子。第二类是<strong>技能内容</strong>：以 <code>SKILL.md</code> 为入口，说明触发条件、阶段产物、决策规则和常见错误。第三类是<strong>执行辅助材料</strong>：包括 prompt 模板、参考文件和脚本，把重复的交接或检查做成可复用资源。第四类是<strong>验证与演进记录</strong>：帮助判断行为约定是否有测试、何时发生过变化。<a href="#ref-1">[1]</a><a href="#ref-2">[2]</a><a href="#ref-3">[3]</a><a href="#ref-17">[17]</a><a href="#ref-18">[18]</a></p>
 <p><img src="/diagrams/superpowers/components.svg" alt="Superpowers 的组件职责：宿主读取技能、调用工具并产生可核查产物"></p>
 <p>图中分层是本文对源码职责的归纳。箭头表示信息与调用关系，不意味着仓库里存在一个同名的中央调度服务。</p>
-<h3 id="个技能不是-15-个互不相关的提示词"><a href="#个技能不是-15-个互不相关的提示词" class="headerlink" title="个技能不是 15 个互不相关的提示词"></a>个技能不是 15 个互不相关的提示词</h3><p>固定快照的 <code>skills/</code> 下有 15 个直接包含 <code>SKILL.md</code> 的技能目录。可以按任务中的职责阅读它们，而不必按字母顺序记忆。<a href="#ref-1">[1]</a></p>
+<h3 id="技能库不是互不相关的提示词"><a href="#技能库不是互不相关的提示词" class="headerlink" title="技能库不是互不相关的提示词"></a>技能库不是互不相关的提示词</h3><p>固定快照的 <code>skills/</code> 下有 15 个直接包含 <code>SKILL.md</code> 的技能目录。可以按任务中的职责阅读它们，而不必按字母顺序记忆。<a href="#ref-1">[1]</a></p>
 <table>
 <thead>
 <tr>
@@ -794,6 +797,194 @@
 <p>这只说明该视觉工具的品牌图片请求机制，不应写成“所有 Superpowers 会话都会上传内容”，也不能推导整个宿主不存在其他网络请求。环境变量还必须真的传入相关进程；在另一个终端设置，并不会自动修改已经启动的桌面应用环境。</p>
 <h3 id="不让方法论变成额外的负担"><a href="#不让方法论变成额外的负担" class="headerlink" title="不让方法论变成额外的负担"></a>不让方法论变成额外的负担</h3><p>高频使用者最需要管理的是适用范围。对只读解释、机械文档修正和探索问题，应选择相应的工作方式；对行为修改和高风险交付，则需要更强证据。不要为了让日志看起来完整，把所有任务都套成一次大型软件项目。<a href="#ref-5">[5]</a></p>
 <p>同样，不应把上游的每一条强制措辞原样提升为团队所有任务的最高规则。项目已有 CI、审批和发布流程时，技能应该帮助 Agent 遵循它们，而不是另起一套相互矛盾的要求。实际授权、宿主规则与项目规范的关系要清楚，例外要有具体理由，而不是让模型偷偷跳过。</p>
+<h2 id="与其他-AI-Coding-Skills-比较：哪些可以替代，哪些适合补充"><a href="#与其他-AI-Coding-Skills-比较：哪些可以替代，哪些适合补充" class="headerlink" title="与其他 AI Coding Skills 比较：哪些可以替代，哪些适合补充"></a>与其他 AI Coding Skills 比较：哪些可以替代，哪些适合补充</h2><h3 id="先核实名字，再比较职责"><a href="#先核实名字，再比较职责" class="headerlink" title="先核实名字，再比较职责"></a>先核实名字，再比较职责</h3><p>同样被叫作 Skill，可能分别指方法论、工作流入口、编码规则、浏览器工具或分发平台。把它们放在同一份“热门技能清单”里，容易误以为功能重复或互为替代。下面只将能够定位维护方和具体指令的项目作为比较对象，不以 GitHub 星数、安装量或名称相似性推断工程质量。</p>
+<table>
+<thead>
+<tr>
+<th>项目或名称</th>
+<th>已核实的来源</th>
+<th>更准确的定位</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>think</code>、<code>check</code></td>
+<td><code>tw93/Waza</code></td>
+<td>方案形成与交付检查的可组合工作流</td>
+</tr>
+<tr>
+<td><code>grill-me</code>、<code>grill-with-docs</code></td>
+<td><code>mattpocock/skills</code></td>
+<td>前者调用需求澄清，后者同时维护领域文档</td>
+</tr>
+<tr>
+<td><code>implement</code>、<code>implement-spec</code></td>
+<td><code>mattpocock/skills</code></td>
+<td>单项实施入口与基于依赖图的并行实施编排</td>
+</tr>
+<tr>
+<td><code>handoff</code></td>
+<td><code>mattpocock/skills</code></td>
+<td>面向下一会话的精简交接文档</td>
+</tr>
+<tr>
+<td><code>ponytail</code></td>
+<td><code>DietrichGebert/ponytail</code></td>
+<td>贯穿编码过程的最小改动规则</td>
+</tr>
+</tbody></table>
+<p>这些条目有明确实现，不必将 <code>ponytail</code> 只写成搜索关键词，也不必将 <code>handoff</code>、<code>check</code> 仅描述成通用自定义脚本。尤其是 Matt 的 <code>grill</code>，应区分用户入口 <code>grill-me</code>、<code>grill-with-docs</code> 与底层 <code>grilling</code>，否则容易忽略组合调用和环境调查要求。<a href="#ref-23">[23]</a><a href="#ref-24">[24]</a><a href="#ref-25">[25]</a><a href="#ref-26">[26]</a><a href="#ref-27">[27]</a><a href="#ref-30">[30]</a><a href="#ref-31">[31]</a></p>
+<h3 id="总体差异：完整流程与单项约束不是一回事"><a href="#总体差异：完整流程与单项约束不是一回事" class="headerlink" title="总体差异：完整流程与单项约束不是一回事"></a>总体差异：完整流程与单项约束不是一回事</h3><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>Superpowers v6.4.1</th>
+<th>Waza</th>
+<th>Matt Pocock Skills</th>
+<th>Ponytail</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>核心关注</td>
+<td>设计、实施、审查和交付的衔接</td>
+<td>独立工作流中的工程判断</td>
+<td>可组合的编排入口与基础技能</td>
+<td>用最少新增复杂度完整解决任务</td>
+</tr>
+<tr>
+<td>需求与方案</td>
+<td><code>brainstorming</code> 按任务规模形成设计</td>
+<td><code>think</code> 给出推荐方向与决策完备计划</td>
+<td><code>grilling</code> 消除决策分支，按需形成 Spec 或 Ticket</td>
+<td>质疑不必要功能与抽象</td>
+</tr>
+<tr>
+<td>实施方式</td>
+<td>Native 或逐任务 SDD</td>
+<td>由具体工作流与宿主能力决定</td>
+<td><code>implement</code> 直接实施，<code>implement-spec</code> 并行调度</td>
+<td>不提供完整任务编排</td>
+</tr>
+<tr>
+<td>测试约束</td>
+<td>先观察失败，再最小实现，绿色后重构</td>
+<td><code>check</code> 要求真实验证证据</td>
+<td>当前 <code>tdd</code> 先约定测试边界，逐测试实施</td>
+<td>非平凡新增逻辑保留小测试或自检</td>
+</tr>
+<tr>
+<td>主要取舍</td>
+<td>阶段衔接完整，也有交接与审查开销</td>
+<td>按需组合，需要明确授权边界</td>
+<td>灵活组合，但部分入口依赖其他技能或子 Agent</td>
+<td>简化实现，不能替代完整验收</td>
+</tr>
+</tbody></table>
+<p>这张表是本文根据指令结构做的归纳，不是维护方共同定义的分类，也不证明某个项目更快或更省 Token。Superpowers 当前已有有限修改和探索路径；Matt 的某些技能包含 worktree、并行派发和 PR 操作。因此，不能简单把两者分别贴成“重型”和“轻型”。<a href="#ref-5">[5]</a><a href="#ref-7">[7]</a><a href="#ref-8">[8]</a><a href="#ref-23">[23]</a><a href="#ref-24">[24]</a><a href="#ref-27">[27]</a><a href="#ref-28">[28]</a><a href="#ref-31">[31]</a></p>
+<h3 id="think：约束方案质量与实现交接"><a href="#think：约束方案质量与实现交接" class="headerlink" title="think：约束方案质量与实现交接"></a><code>think</code>：约束方案质量与实现交接</h3><p>Waza 的 <code>think</code> 面向架构设计、方案对齐、头脑风暴，以及缺少可执行计划的实现请求。它排除常规 bug 修复和小改动；没有实施授权时，停在规划阶段，已经获得明确授权时，不重复索要批准。关键指令可以提炼为：</p>
+<ul>
+<li>先读取项目规则、历史决策和真实配置；当前代码与文档优先于模型记忆。</li>
+<li>优先研究框架官方方案，困难问题进一步查成熟项目的实际实现。</li>
+<li>给出推荐方向与最小方案，说明成本、风险、收益和主动牺牲的能力。</li>
+<li>明确最脆弱的假设、失败方式，以及新增依赖、状态和抽象是否值得。</li>
+<li>交接计划不能留下未决方向或占位符，必须覆盖范围、接口、验证、回滚和交付。</li>
+</ul>
+<p>它更接近一次方案评审；Superpowers <code>brainstorming</code> 则先建立目标和成功标准的共同理解，再按任务规模决定产物。两者可以服务同一阶段，但重复执行两套完整问答未必增加有效信息。<a href="#ref-23">[23]</a><a href="#ref-5">[5]</a><a href="#ref-6">[6]</a></p>
+<h3 id="grilling：用决策树消除隐含选择"><a href="#grilling：用决策树消除隐含选择" class="headerlink" title="grilling：用决策树消除隐含选择"></a><code>grilling</code>：用决策树消除隐含选择</h3><p>Matt 的 <code>grill-me</code> 调用 <code>grilling</code>，<code>grill-with-docs</code> 则同时调用 <code>domain-modeling</code>，用于沉淀领域术语和 ADR。底层澄清流程的关键指令是：</p>
+<ul>
+<li>将需求组织成决策树，先解决前置决策，再询问后续分支。</li>
+<li>每轮只问当前已具备前提的问题，为每个问题给出推荐答案，回答后重算下一轮。</li>
+<li>能从环境获取的事实自行调查；方向性选择和需要用户判断的取舍不能擅自代答。</li>
+<li>所有分支明确、用户确认共同理解后，才开始行动。</li>
+</ul>
+<p><strong>当前原版要求通过 subagent 调查环境事实。</strong>因此，不能因为名字叫“追问”就认定它不需要子 Agent。单 Agent 使用者可以借鉴决策树方法，但需要明确采用适配后的流程，而不是声称原版已原样执行。与 Superpowers 的开放式目标澄清相比，它更强调系统地穷尽决策分支。<a href="#ref-25">[25]</a><a href="#ref-5">[5]</a></p>
+<h3 id="implement-与-implement-spec：执行入口和并行调度"><a href="#implement-与-implement-spec：执行入口和并行调度" class="headerlink" title="implement 与 implement-spec：执行入口和并行调度"></a><code>implement</code> 与 <code>implement-spec</code>：执行入口和并行调度</h3><p><code>implement</code> 从已明确的 Spec 或 Ticket 开始：引用不清楚就询问，调用 <code>tdd</code> 实施，经常运行类型检查与局部测试，结束时运行完整套件，再调用 <code>code-review</code> 并提交当前分支。这不是只负责写代码的提示词，也不能忽略它间接引入的审查和 Git 动作。<a href="#ref-26">[26]</a><a href="#ref-29">[29]</a></p>
+<p><code>implement-spec</code> 的核心约束则是：</p>
+<ul>
+<li>将 Ticket 视为有依赖的任务图，只启动前置工作已完成的任务。</li>
+<li>每个实现者使用独立分支和 worktree，以集成分支为共同基线。</li>
+<li>用 Spec、Ticket、研究材料和提交引用交接，而不是反复复制整段对话。</li>
+<li>已完成任务汇入集成分支后，启动新解锁的任务；最后整体审查并处理 PR、Ticket 与工作区。</li>
+</ul>
+<p>这与 Superpowers SDD 的差别不是“谁会使用子 Agent”，而是<strong>并行调度与逐任务审查的组织方式不同</strong>。本文固定版本的 SDD 明确禁止同时派发多个实现者；<code>implement-spec</code> 则将可并行任务的依赖调度作为核心。独立 worktree 也不会自动隔离数据库、端口和外部服务。<a href="#ref-27">[27]</a><a href="#ref-8">[8]</a><a href="#ref-22">[22]</a></p>
+<p>Matt 当前 <code>tdd</code> 还有一个容易被概括遗漏的差异：先与用户约定公共行为接口和测试边界，再按一个测试、一段最小实现的纵向切片推进；它明确将重构放到审查阶段。Superpowers 则允许在绿色阶段重构。两者都强调先观察有效失败，但不能仅凭共同的 TDD 标签认定全部指令相同。<a href="#ref-28">[28]</a><a href="#ref-11">[11]</a></p>
+<h3 id="ponytail：少写代码，但不能少交付行为"><a href="#ponytail：少写代码，但不能少交付行为" class="headerlink" title="ponytail：少写代码，但不能少交付行为"></a><code>ponytail</code>：少写代码，但不能少交付行为</h3><p>Ponytail 的 “Ladder of Laziness” 可以理解为解决方案的优先顺序：不必要就不做，先找仓库已有实现，再找标准库或平台能力、已安装依赖、易读的一行代码，最后才新增最小自定义实现。其他关键约束包括：</p>
+<ul>
+<li>不增加无人要求的抽象、包装层、配置项和未来可能用到的代码。</li>
+<li>修改前检查受影响的调用方、测试、配置与导出，不能只处理当前打开的函数。</li>
+<li>非平凡新增逻辑留下小测试或断言自检，结束时说明未检查项与风险。</li>
+<li>不能省掉安全校验、防数据丢失的错误处理、可访问性或用户明确要求。</li>
+<li>激活后持续影响会话，直到用户关闭。</li>
+</ul>
+<p>它适合补充任何实施流程，却不能替代需求澄清、并发验证或完整交付。“最小”应指满足行为约束的最小改动，不是把必要错误处理或测试删掉。<a href="#ref-31">[31]</a></p>
+<h3 id="check、code-review-与-handoff：检查范围和交接证据"><a href="#check、code-review-与-handoff：检查范围和交接证据" class="headerlink" title="check、code-review 与 handoff：检查范围和交接证据"></a><code>check</code>、<code>code-review</code> 与 <code>handoff</code>：检查范围和交接证据</h3><table>
+<thead>
+<tr>
+<th>技能</th>
+<th>关键指令</th>
+<th>与 Superpowers 的关系</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Waza <code>check</code></td>
+<td>先看工作区与项目规则，保护用户改动；审查默认只报告；检查范围偏移、过度设计与安全问题；发现要有位置和触发条件；没有本次证据不声称通过</td>
+<td>与审查、完成验证及收尾部分重叠</td>
+</tr>
+<tr>
+<td>Matt <code>code-review</code></td>
+<td>固定比较基线；两个独立 subagent 分别检查仓库规范和 Spec；结果按审查轴分别呈现；代码异味仅作启发式线索，项目规范优先</td>
+<td>不能套成 Superpowers v6.4.1 每任务固定双 reviewer</td>
+</tr>
+<tr>
+<td>Matt <code>handoff</code></td>
+<td>压缩为下一会话能继续工作的文档；引用已有 Spec、ADR、Issue 与 diff，不重复正文；按后续目标列出技能；脱敏后写入临时文件</td>
+<td>补充会话交接，不替代 ledger 与 Git 核对</td>
+</tr>
+</tbody></table>
+<p><code>handoff</code> 不是完整上下文的无损转储。它主动保留必要状态并引用权威材料；原版使用系统临时目录，项目另有工作目录规则时应适配。<code>check</code> 中包含发布相关检查，也不意味着用户请求“检查一下”便授权修复、提交或发布。<a href="#ref-24">[24]</a><a href="#ref-29">[29]</a><a href="#ref-30">[30]</a><a href="#ref-8">[8]</a><a href="#ref-12">[12]</a><a href="#ref-14">[14]</a></p>
+<h3 id="Superpowers-的关键指令速查"><a href="#Superpowers-的关键指令速查" class="headerlink" title="Superpowers 的关键指令速查"></a>Superpowers 的关键指令速查</h3><p>前文已经展开源码机制，这里只保留最影响执行选择的约束：</p>
+<table>
+<thead>
+<tr>
+<th>技能</th>
+<th>最关键的行为要求</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>using-superpowers</code></td>
+<td>回复或行动前检查适用技能；先读规则再行动；流程技能优先；当前用户与项目约束不能被通用模板覆盖</td>
+</tr>
+<tr>
+<td><code>brainstorming</code></td>
+<td>先理解目标和成功标准；复用用户已给出的信息；按任务规模选择产物，不机械制造长文档</td>
+</tr>
+<tr>
+<td><code>writing-plans</code></td>
+<td>写清具体文件、接口、输入输出、测试和预期结果；每个 task 是有独立验收意义的交付单元</td>
+</tr>
+<tr>
+<td><code>test-driven-development</code></td>
+<td>先看到测试因正确原因失败，再写最小实现；绿色后重构，结束前验证</td>
+</tr>
+<tr>
+<td><code>systematic-debugging</code></td>
+<td>先复现和收集根因证据，再单独验证假设；多次修复失败时重新检查架构假设</td>
+</tr>
+<tr>
+<td><code>verification-before-completion</code></td>
+<td>确定证明命令，实际运行并读完整输出；只对证据覆盖的范围声明通过</td>
+</tr>
+<tr>
+<td><code>executing-plans</code> &#x2F; SDD</td>
+<td>按计划实施并留下可恢复记录；SDD 保留逐任务独立审查，Native 减少任务级交接</td>
+</tr>
+</tbody></table>
+<p>这些是对固定版本指令的归纳，实际使用应阅读完整技能及其适用条件。Skill 中写了 “MUST” 不代表宿主权限、CI 或业务正确性已经由程序保证。<a href="#ref-4">[4]</a><a href="#ref-5">[5]</a><a href="#ref-6">[6]</a><a href="#ref-7">[7]</a><a href="#ref-8">[8]</a><a href="#ref-11">[11]</a><a href="#ref-12">[12]</a><a href="#ref-13">[13]</a></p>
+<h3 id="官方技能库、审查插件和分发平台处于不同层"><a href="#官方技能库、审查插件和分发平台处于不同层" class="headerlink" title="官方技能库、审查插件和分发平台处于不同层"></a>官方技能库、审查插件和分发平台处于不同层</h3><p>Vercel 的准确仓库地址是 <code>vercel-labs/agent-skills</code>，不只是组织首页；其技能提供 React、Next.js、组合模式和界面规范等领域知识。Anthropic 可确认的来源是 <code>anthropics/skills</code> 和官方插件目录，不应把尚未确认的 <code>anthropics/claude-code-community-skills</code> 当作官方仓库。<code>skills.sh</code> 是技能发现和安装生态，不能与完整开发方法论直接比较。<a href="#ref-32">[32]</a><a href="#ref-33">[33]</a><a href="#ref-35">[35]</a></p>
+<p>Anthropic 官方 <code>code-review</code> 插件以 GitHub PR 为对象，使用多 Agent 审查和置信度筛选，并把构建、类型检查交给其他流程。因此，<code>code-review</code> 这个名字本身不代表固定的“对抗性审查”机制，更不保证一定覆盖死锁、并发和所有边界行为。<a href="#ref-34">[34]</a></p>
+<p>原清单中的 <code>context-gatherer</code>、<code>repo-map</code>、<code>agile-spec</code>、<code>adr-writer</code>、<code>playwright-evaluator</code>、<code>e2e-runner</code> 和 <code>mcp-db-inspector</code>，在未绑定具体维护方与版本前，应视为待核实名称或能力类别，而非已确认的热门项目。浏览器执行、仓库索引和数据库查询可以补充流程，但工具能返回截图不等于数据已正确落库，只读意图也应由实际权限保障。</p>
+<h3 id="组合原则：保留一个主流程，补上缺失能力"><a href="#组合原则：保留一个主流程，补上缺失能力" class="headerlink" title="组合原则：保留一个主流程，补上缺失能力"></a>组合原则：保留一个主流程，补上缺失能力</h3><p>基于这些指令结构，本文建议先确定一个主流程，再添加领域知识或缺失检查，不将多套完整规划、执行和审查链全部叠加。否则可能重复澄清、产生不同的阶段产物，并在 Git 或工作目录处理上形成冲突。这是组合风险判断，不是性能实验结论。</p>
+<p>可以用 Superpowers 组织交付，吸收 Ponytail 的最小改动原则，并在跨会话时使用精简 handoff；也可以由开发者明确调度 Waza 和 Matt 的独立技能。但只要某个入口会继续调用其他技能，就需要顺着调用链确认子 Agent、测试、提交与发布要求，不能仅凭入口正文很短认定整体过程轻量。<a href="#ref-4">[4]</a><a href="#ref-26">[26]</a><a href="#ref-29">[29]</a><a href="#ref-30">[30]</a><a href="#ref-31">[31]</a></p>
+<p>不使用 subagent 时，Superpowers Native 有明确的能力降级说明；Matt 当前 <code>grilling</code>、<code>implement-spec</code> 和双轴 <code>code-review</code> 则不能未经适配原样执行。这里的选择应基于实际能力和风险，不应把“不使用子 Agent”当成永远更好或更差。<a href="#ref-7">[7]</a><a href="#ref-25">[25]</a><a href="#ref-27">[27]</a><a href="#ref-29">[29]</a></p>
 <h2 id="如何扩展与评价自己的技能"><a href="#如何扩展与评价自己的技能" class="headerlink" title="如何扩展与评价自己的技能"></a>如何扩展与评价自己的技能</h2><h3 id="从重复出现的失败开始"><a href="#从重复出现的失败开始" class="headerlink" title="从重复出现的失败开始"></a>从重复出现的失败开始</h3><p>值得写成技能的，通常不是“这次任务我做了什么”，而是“以后遇到同类条件时应该怎样做”。例如，团队反复在 API 修改中漏查向后兼容性，就可以形成一个读取接口定义、消费者和契约测试的检查流程；某次修复的日志则更适合留在问题记录里。<a href="#ref-16">[16]</a></p>
 <p>一个技能的最小结构是名称、描述和正文。脚本只有在需要重复执行机械工作时才加入；参考资料只有在正文不适合承载时才拆分。不要为了看起来像完整项目而预先建立大量空目录。<a href="#ref-19">[19]</a></p>
 <p>下面是描述字段的教学示例，不是一份已经完成测试的可安装技能：</p>
@@ -849,8 +1040,8 @@
 <p>第四遍读 <code>writing-skills</code>、测试说明与发布记录，理解规则为什么演进。阅读时应特别留意文档之间的版本差异：编写技巧中的历史案例未必描述当前执行模式。发生冲突时，具体行为以固定版本的对应技能和实现为依据，历史案例只用于解释经验来源。<a href="#ref-16">[16]</a><a href="#ref-17">[17]</a><a href="#ref-18">[18]</a></p>
 <p>最后，把学习结果应用到一个你熟悉的小项目：先写清交付目标，选择合适流程，检查真实产物。你不需要记住所有技能的每条规则，但应该能够识别什么时候缺了设计、什么时候计划不再可信、什么时候“已完成”还没有证据。</p>
 <p>Superpowers 最值得学习的地方，是将原本隐含的工程习惯变成能被读取、交接和检查的工作材料。用得成熟时，关注点会从“Agent 有没有调用技能”转向“这一步消除了什么不确定性，留下的证据是否足够支持下一步”。这也是从频繁使用走向真正理解的分界。</p>
-<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><p>项目资料作者为 <strong>Jesse Vincent &#x2F; Superpowers contributors</strong>，来源为 GitHub，统一固定于 <strong>v6.4.1 &#x2F; 5bf4e78011075bcfc0dc295f0724994cd123ee71（2026）</strong>。外部官方文档为滚动更新页面，不补写不明确的出版年份。全部访问日期为 <strong>2026-09-24</strong>。</p>
-<p>以下共 22 个核心参考组，其中 18 组是同一项目的一手实现证据，4 组来自外部官方文档。不同源码文件用于支持不同结论，不代表来自 18 个独立机构的交叉验证。每组附带的相关文件用于补全同一论点，不额外计数。</p>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><p>原始研究资料中的 Superpowers 项目作者为 <strong>Jesse Vincent &#x2F; Superpowers contributors</strong>，来源为 GitHub，固定于 <strong>v6.4.1 &#x2F; 5bf4e78011075bcfc0dc295f0724994cd123ee71（2026）</strong>。参考组 1–22 的访问日期为 <strong>2026-09-24</strong>；补充比较的参考组 23–35 作者见各条，访问日期为 <strong>2026-10-10</strong>，链接指向核验时的主分支或滚动页面，未来内容可能变化。外部文档不补写不明确的出版年份。</p>
+<p>以下共 35 个参考组：原有 22 组中，18 组是 Superpowers 的一手实现证据，4 组来自外部官方文档；新增 13 组用于其他 Skills 的比较。不同源码文件用于支持不同结论，不代表来自同等数量独立机构的交叉验证。每组附带的相关文件用于补全同一论点，不额外计数。</p>
 <ol>
 <li><a id="ref-1"></a> <a href="https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/README.md">README：定位、安装、遥测</a>。项目组成、各宿主入口与遥测声明；不能证明普遍提效。关联源码：<a href="https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/brainstorming/scripts/server.cjs">skills&#x2F;brainstorming&#x2F;scripts&#x2F;server.cjs</a>。</li>
 <li><a id="ref-2"></a> <a href="https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/hooks/session-start">SessionStart hook</a>。读取 bootstrap 与 JSON 输出；结合 hooks&#x2F;hooks.json 核验注册时机。关联源码：<a href="https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/hooks/hooks.json">hooks&#x2F;hooks.json</a>。</li>
@@ -874,6 +1065,19 @@
 <li><a id="ref-20"></a> <a href="https://learn.chatgpt.com/docs/customization/overview#skills">OpenAI — Customization &#x2F; Skills</a>。Codex 的元数据发现、按需加载及全局&#x2F;项目技能位置。</li>
 <li><a id="ref-21"></a> <a href="https://code.claude.com/docs/en/hooks">Anthropic — Hooks reference</a>。Claude Code SessionStart 与上下文输出协议；不能泛化到 Codex。</li>
 <li><a id="ref-22"></a> <a href="https://git-scm.com/docs/git-worktree">Git project — git-worktree</a>。linked worktree、共享仓库关系和清理语义；worktree 不等于权限沙箱。</li>
+<li><a id="ref-23"></a> tw93 &#x2F; Waza, <a href="https://github.com/tw93/Waza/blob/main/skills/think/SKILL.md">think</a>。方案授权、官方实现调查、最小方案、脆弱假设与决策完备交接。</li>
+<li><a id="ref-24"></a> tw93 &#x2F; Waza, <a href="https://github.com/tw93/Waza/blob/main/skills/check/SKILL.md">check</a>。工作区保护、范围与风险审查、验证证据和发布授权边界。</li>
+<li><a id="ref-25"></a> Matt Pocock, <a href="https://github.com/mattpocock/skills/blob/main/skills/productivity/grilling/SKILL.md">grilling</a>。决策树、依赖就绪问题、环境事实调查与行动确认。关联入口：<a href="https://github.com/mattpocock/skills/blob/main/skills/productivity/grill-me/SKILL.md">grill-me</a>；<a href="https://github.com/mattpocock/skills/blob/main/skills/engineering/grill-with-docs/SKILL.md">grill-with-docs</a>。</li>
+<li><a id="ref-26"></a> Matt Pocock, <a href="https://github.com/mattpocock/skills/blob/main/skills/engineering/implement/SKILL.md">implement</a>。Spec&#x2F;Ticket 获取、TDD、完整测试、审查和提交。</li>
+<li><a id="ref-27"></a> Matt Pocock, <a href="https://github.com/mattpocock/skills/blob/main/skills/engineering/implement-spec/SKILL.md">implement-spec</a>。依赖图、独立 worktree、并行实施、集成分支和收尾。</li>
+<li><a id="ref-28"></a> Matt Pocock, <a href="https://github.com/mattpocock/skills/blob/main/skills/engineering/tdd/SKILL.md">tdd</a>。公共接口测试边界、逐测试纵向切片与重构阶段；应区分具体指令和 README 简述。</li>
+<li><a id="ref-29"></a> Matt Pocock, <a href="https://github.com/mattpocock/skills/blob/main/skills/engineering/code-review/SKILL.md">code-review</a>。规范与 Spec 双轴独立审查、比较基线和项目规则优先。</li>
+<li><a id="ref-30"></a> Matt Pocock, <a href="https://github.com/mattpocock/skills/blob/main/skills/productivity/handoff/SKILL.md">handoff</a>。精简交接、已有材料引用、后续技能建议与脱敏。</li>
+<li><a id="ref-31"></a> Dietrich Gebert, <a href="https://github.com/DietrichGebert/ponytail/blob/main/skills/ponytail/SKILL.md">Ponytail</a>。Ladder of Laziness、影响范围、最小改动和不可省略的质量边界。</li>
+<li><a id="ref-32"></a> Vercel Labs, <a href="https://github.com/vercel-labs/agent-skills">Agent Skills</a>。领域技能目录及适用范围；不据此推断实际性能收益。</li>
+<li><a id="ref-33"></a> Anthropic, <a href="https://github.com/anthropics/skills">Skills</a>。官方技能示例库及其与工具、宿主的边界。</li>
+<li><a id="ref-34"></a> Anthropic, <a href="https://github.com/anthropics/claude-plugins-official/blob/main/plugins/code-review/commands/code-review.md">官方 code-review 插件指令</a>。GitHub PR、多 Agent 审查、置信度筛选和不承担的检查范围。</li>
+<li><a id="ref-35"></a> Vercel, <a href="https://skills.sh/">skills.sh</a>。技能发现、安装与分发生态；榜单不作为工程质量或效率证明。</li>
 </ol>
 
     </div>
@@ -884,8 +1088,8 @@
 
     <footer class="post-footer">
           <div class="post-tags">
-              <a href="/tags/claude-code/" rel="tag"># claude-code</a>
               <a href="/tags/agent-workflow/" rel="tag"># agent-workflow</a>
+              <a href="/tags/claude-code/" rel="tag"># claude-code</a>
               <a href="/tags/codex/" rel="tag"># codex</a>
               <a href="/tags/Superpowers/" rel="tag"># Superpowers</a>
               <a href="/tags/agent-skills/" rel="tag"># agent-skills</a>
