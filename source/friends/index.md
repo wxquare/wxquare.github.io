@@ -7,18 +7,19 @@ date: 2022-11-07 22:33:15
 
 ## 常看友链
 
+- [Bojie Li 李博杰](https://01.me/)：网络、系统与基础设施。
+- [tw93](https://tw93.fun/about.html)：个人技术博客与独立开发。
+- [indigox](https://www.indigox.me/)：个人技术博客。
 - [曹春晖 Xargin](https://xargin.com/)：Go、系统、AI 工程与工程师思考。
 - [东哥 IT 笔记](https://donggeitnote.com/)：系统设计、数据库、分布式与职场成长。
 - [清华无忌](https://jincheng9.github.io/)：个人技术博客。
 - [CatCoding](https://catcoding.me/)：编程、写作、开源与中年程序员视角。
-- [Bojie Li 李博杰](https://01.me/)：网络、系统与基础设施。
 - [陈皓 / 酷壳](https://coolshell.cn/)：工程师成长、架构与技术文化。
 - [元培 · 元视角](https://blog.yuanpei.me/)：个人技术与长期写作。
 - [田渊栋](https://yuandong-tian.com/)：个人技术博客。
 - [腾讯姚顺雨](https://ysymyth.github.io/)：个人技术博客。
 - [Yupaits Notes](https://yupaits.com/)：学习博客维护参考。
 - [技术摘抄](https://lianglianglee.com/)：技术文章摘录与资料索引。
-- [indigox](https://www.indigox.me/)：个人技术博客。
 - 吕聘：智能硬件方向，待补链接。
 - 齐俊元（Junyuan Qi）：此间无限（上海）智能科技有限公司，待补链接。
 - [高继扬](https://jiyanggao.github.io/)
@@ -54,6 +55,10 @@ date: 2022-11-07 22:33:15
 - [Elad Gil](https://blog.eladgil.com/)：高增长公司、创业融资、组织扩张与 AI 创业观察。
 - [Sahil Lavingia](https://sahillavingia.com/)：Gumroad、独立创业、精简团队与产品经营。
 - [Lenny's Newsletter](https://www.lennysnewsletter.com/)：产品、增长、创业访谈与 PM 方法论。
+
+## 候选关注：投资与理财
+
+- [富途资讯·投资技巧](https://news.futunn.com/news-topics/127/investment-tips)：投资技巧与市场相关内容。
 
 ## 团队技术博客
 
