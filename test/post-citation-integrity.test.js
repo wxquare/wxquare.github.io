@@ -114,9 +114,9 @@ test('Superpowers references render as one ordered list with each anchor inside 
   const items = [...html.matchAll(/<li>([\s\S]*?)<\/li>/g)];
   const anchoredItems = items.filter((match) => /<a id="ref-\d+"><\/a>/.test(match[1]));
 
-  assert.equal(lists.length, 1, 'all 22 references should share one ordered list');
-  assert.equal(items.length, 22, 'the reference list should contain 22 items');
-  assert.equal(anchoredItems.length, 22, 'each reference anchor should be inside its corresponding list item');
+  assert.equal(lists.length, 1, 'all 35 references should share one ordered list');
+  assert.equal(items.length, 35, 'the reference list should contain 35 items');
+  assert.equal(anchoredItems.length, 35, 'each reference anchor should be inside its corresponding list item');
 });
 
 test('Vibe Coding references render as one ordered list with matching anchors', () => {

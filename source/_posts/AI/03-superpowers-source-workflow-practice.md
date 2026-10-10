@@ -1,6 +1,7 @@
 ---
 title: Superpowers 源码解析：技能发现机制与开发流程约束
 date: 2026-09-24
+updated: 2026-10-10
 permalink: /2026/09/24/AI/03-superpowers-source-workflow-practice/
 categories:
   - AI 与 Agent
@@ -11,7 +12,7 @@ tags:
   - codex
   - claude-code
 toc: true
-description: 基于 Superpowers v6.4.1 源码，系统解释技能发现、宿主适配、Native 与子 Agent 执行、进度恢复和验证机制，并用幂等接口案例串起日常实践。
+description: 基于 Superpowers v6.4.1 源码，解释技能发现、执行与验证机制，用幂等接口案例串起实践，并比较 Waza、Matt Pocock Skills 和 Ponytail 的关键指令与适用边界。
 ---
 
 经常使用编码 Agent 后，真正让人疲惫的事情往往不是它不会写某段代码，而是它在需求还不明确时就开始实现，修改之后只运行最容易通过的测试，或者在长会话里重新做一遍已经完成的工作。模型有能力完成局部任务，并不意味着它会自动采用可靠的交付过程。
@@ -21,6 +22,8 @@ description: 基于 Superpowers v6.4.1 源码，系统解释技能发现、宿�
 本文面向已经使用过编码 Agent、了解 Git 与自动化测试的开发者。先沿源码认识组成与机制，再通过一个明确标注的教学案例走完整个过程。如果还在比较不同 Agent 的定位，可以先读 {% post_link AI/02-ai-agent-workflow-practice 'AI Agent 工作流实践' %}；这里集中讨论 Superpowers 本身。
 
 > **研究基线**：Superpowers **v6.4.1**，提交 `5bf4e78011075bcfc0dc295f0724994cd123ee71`，资料核验日期为 **2026-09-24**。源码结论对应这个固定快照，不自动代表你已安装的副本。案例是设计演示，不是线上经验或已运行实验；文中不给出未经测量的效率提升比例。
+
+> **补充调研**：其他 AI Coding Skills 的比较于 **2026-10-10** 加入，依据各维护方当日可访问的主分支指令和官方文档。这部分不是与 Superpowers 同日的固定版本对照，也不是效果基准测试；使用时应重新核对实际安装版本。
 
 <!-- more -->
 
@@ -97,7 +100,7 @@ superpowers/
 
 图中分层是本文对源码职责的归纳。箭头表示信息与调用关系，不意味着仓库里存在一个同名的中央调度服务。
 
-### 个技能不是 15 个互不相关的提示词
+### 技能库不是互不相关的提示词
 
 固定快照的 `skills/` 下有 15 个直接包含 `SKILL.md` 的技能目录。可以按任务中的职责阅读它们，而不必按字母顺序记忆。[[1]](#ref-1)
 
@@ -540,6 +543,126 @@ export SUPERPOWERS_DISABLE_TELEMETRY=1
 
 同样，不应把上游的每一条强制措辞原样提升为团队所有任务的最高规则。项目已有 CI、审批和发布流程时，技能应该帮助 Agent 遵循它们，而不是另起一套相互矛盾的要求。实际授权、宿主规则与项目规范的关系要清楚，例外要有具体理由，而不是让模型偷偷跳过。
 
+## 与其他 AI Coding Skills 比较：哪些可以替代，哪些适合补充
+
+### 先核实名字，再比较职责
+
+同样被叫作 Skill，可能分别指方法论、工作流入口、编码规则、浏览器工具或分发平台。把它们放在同一份“热门技能清单”里，容易误以为功能重复或互为替代。下面只将能够定位维护方和具体指令的项目作为比较对象，不以 GitHub 星数、安装量或名称相似性推断工程质量。
+
+| 项目或名称 | 已核实的来源 | 更准确的定位 |
+|---|---|---|
+| `think`、`check` | `tw93/Waza` | 方案形成与交付检查的可组合工作流 |
+| `grill-me`、`grill-with-docs` | `mattpocock/skills` | 前者调用需求澄清，后者同时维护领域文档 |
+| `implement`、`implement-spec` | `mattpocock/skills` | 单项实施入口与基于依赖图的并行实施编排 |
+| `handoff` | `mattpocock/skills` | 面向下一会话的精简交接文档 |
+| `ponytail` | `DietrichGebert/ponytail` | 贯穿编码过程的最小改动规则 |
+
+这些条目有明确实现，不必将 `ponytail` 只写成搜索关键词，也不必将 `handoff`、`check` 仅描述成通用自定义脚本。尤其是 Matt 的 `grill`，应区分用户入口 `grill-me`、`grill-with-docs` 与底层 `grilling`，否则容易忽略组合调用和环境调查要求。[[23]](#ref-23)[[24]](#ref-24)[[25]](#ref-25)[[26]](#ref-26)[[27]](#ref-27)[[30]](#ref-30)[[31]](#ref-31)
+
+### 总体差异：完整流程与单项约束不是一回事
+
+| 维度 | Superpowers v6.4.1 | Waza | Matt Pocock Skills | Ponytail |
+|---|---|---|---|---|
+| 核心关注 | 设计、实施、审查和交付的衔接 | 独立工作流中的工程判断 | 可组合的编排入口与基础技能 | 用最少新增复杂度完整解决任务 |
+| 需求与方案 | `brainstorming` 按任务规模形成设计 | `think` 给出推荐方向与决策完备计划 | `grilling` 消除决策分支，按需形成 Spec 或 Ticket | 质疑不必要功能与抽象 |
+| 实施方式 | Native 或逐任务 SDD | 由具体工作流与宿主能力决定 | `implement` 直接实施，`implement-spec` 并行调度 | 不提供完整任务编排 |
+| 测试约束 | 先观察失败，再最小实现，绿色后重构 | `check` 要求真实验证证据 | 当前 `tdd` 先约定测试边界，逐测试实施 | 非平凡新增逻辑保留小测试或自检 |
+| 主要取舍 | 阶段衔接完整，也有交接与审查开销 | 按需组合，需要明确授权边界 | 灵活组合，但部分入口依赖其他技能或子 Agent | 简化实现，不能替代完整验收 |
+
+这张表是本文根据指令结构做的归纳，不是维护方共同定义的分类，也不证明某个项目更快或更省 Token。Superpowers 当前已有有限修改和探索路径；Matt 的某些技能包含 worktree、并行派发和 PR 操作。因此，不能简单把两者分别贴成“重型”和“轻型”。[[5]](#ref-5)[[7]](#ref-7)[[8]](#ref-8)[[23]](#ref-23)[[24]](#ref-24)[[27]](#ref-27)[[28]](#ref-28)[[31]](#ref-31)
+
+### `think`：约束方案质量与实现交接
+
+Waza 的 `think` 面向架构设计、方案对齐、头脑风暴，以及缺少可执行计划的实现请求。它排除常规 bug 修复和小改动；没有实施授权时，停在规划阶段，已经获得明确授权时，不重复索要批准。关键指令可以提炼为：
+
+- 先读取项目规则、历史决策和真实配置；当前代码与文档优先于模型记忆。
+- 优先研究框架官方方案，困难问题进一步查成熟项目的实际实现。
+- 给出推荐方向与最小方案，说明成本、风险、收益和主动牺牲的能力。
+- 明确最脆弱的假设、失败方式，以及新增依赖、状态和抽象是否值得。
+- 交接计划不能留下未决方向或占位符，必须覆盖范围、接口、验证、回滚和交付。
+
+它更接近一次方案评审；Superpowers `brainstorming` 则先建立目标和成功标准的共同理解，再按任务规模决定产物。两者可以服务同一阶段，但重复执行两套完整问答未必增加有效信息。[[23]](#ref-23)[[5]](#ref-5)[[6]](#ref-6)
+
+### `grilling`：用决策树消除隐含选择
+
+Matt 的 `grill-me` 调用 `grilling`，`grill-with-docs` 则同时调用 `domain-modeling`，用于沉淀领域术语和 ADR。底层澄清流程的关键指令是：
+
+- 将需求组织成决策树，先解决前置决策，再询问后续分支。
+- 每轮只问当前已具备前提的问题，为每个问题给出推荐答案，回答后重算下一轮。
+- 能从环境获取的事实自行调查；方向性选择和需要用户判断的取舍不能擅自代答。
+- 所有分支明确、用户确认共同理解后，才开始行动。
+
+**当前原版要求通过 subagent 调查环境事实。**因此，不能因为名字叫“追问”就认定它不需要子 Agent。单 Agent 使用者可以借鉴决策树方法，但需要明确采用适配后的流程，而不是声称原版已原样执行。与 Superpowers 的开放式目标澄清相比，它更强调系统地穷尽决策分支。[[25]](#ref-25)[[5]](#ref-5)
+
+### `implement` 与 `implement-spec`：执行入口和并行调度
+
+`implement` 从已明确的 Spec 或 Ticket 开始：引用不清楚就询问，调用 `tdd` 实施，经常运行类型检查与局部测试，结束时运行完整套件，再调用 `code-review` 并提交当前分支。这不是只负责写代码的提示词，也不能忽略它间接引入的审查和 Git 动作。[[26]](#ref-26)[[29]](#ref-29)
+
+`implement-spec` 的核心约束则是：
+
+- 将 Ticket 视为有依赖的任务图，只启动前置工作已完成的任务。
+- 每个实现者使用独立分支和 worktree，以集成分支为共同基线。
+- 用 Spec、Ticket、研究材料和提交引用交接，而不是反复复制整段对话。
+- 已完成任务汇入集成分支后，启动新解锁的任务；最后整体审查并处理 PR、Ticket 与工作区。
+
+这与 Superpowers SDD 的差别不是“谁会使用子 Agent”，而是**并行调度与逐任务审查的组织方式不同**。本文固定版本的 SDD 明确禁止同时派发多个实现者；`implement-spec` 则将可并行任务的依赖调度作为核心。独立 worktree 也不会自动隔离数据库、端口和外部服务。[[27]](#ref-27)[[8]](#ref-8)[[22]](#ref-22)
+
+Matt 当前 `tdd` 还有一个容易被概括遗漏的差异：先与用户约定公共行为接口和测试边界，再按一个测试、一段最小实现的纵向切片推进；它明确将重构放到审查阶段。Superpowers 则允许在绿色阶段重构。两者都强调先观察有效失败，但不能仅凭共同的 TDD 标签认定全部指令相同。[[28]](#ref-28)[[11]](#ref-11)
+
+### `ponytail`：少写代码，但不能少交付行为
+
+Ponytail 的 “Ladder of Laziness” 可以理解为解决方案的优先顺序：不必要就不做，先找仓库已有实现，再找标准库或平台能力、已安装依赖、易读的一行代码，最后才新增最小自定义实现。其他关键约束包括：
+
+- 不增加无人要求的抽象、包装层、配置项和未来可能用到的代码。
+- 修改前检查受影响的调用方、测试、配置与导出，不能只处理当前打开的函数。
+- 非平凡新增逻辑留下小测试或断言自检，结束时说明未检查项与风险。
+- 不能省掉安全校验、防数据丢失的错误处理、可访问性或用户明确要求。
+- 激活后持续影响会话，直到用户关闭。
+
+它适合补充任何实施流程，却不能替代需求澄清、并发验证或完整交付。“最小”应指满足行为约束的最小改动，不是把必要错误处理或测试删掉。[[31]](#ref-31)
+
+### `check`、`code-review` 与 `handoff`：检查范围和交接证据
+
+| 技能 | 关键指令 | 与 Superpowers 的关系 |
+|---|---|---|
+| Waza `check` | 先看工作区与项目规则，保护用户改动；审查默认只报告；检查范围偏移、过度设计与安全问题；发现要有位置和触发条件；没有本次证据不声称通过 | 与审查、完成验证及收尾部分重叠 |
+| Matt `code-review` | 固定比较基线；两个独立 subagent 分别检查仓库规范和 Spec；结果按审查轴分别呈现；代码异味仅作启发式线索，项目规范优先 | 不能套成 Superpowers v6.4.1 每任务固定双 reviewer |
+| Matt `handoff` | 压缩为下一会话能继续工作的文档；引用已有 Spec、ADR、Issue 与 diff，不重复正文；按后续目标列出技能；脱敏后写入临时文件 | 补充会话交接，不替代 ledger 与 Git 核对 |
+
+`handoff` 不是完整上下文的无损转储。它主动保留必要状态并引用权威材料；原版使用系统临时目录，项目另有工作目录规则时应适配。`check` 中包含发布相关检查，也不意味着用户请求“检查一下”便授权修复、提交或发布。[[24]](#ref-24)[[29]](#ref-29)[[30]](#ref-30)[[8]](#ref-8)[[12]](#ref-12)[[14]](#ref-14)
+
+### Superpowers 的关键指令速查
+
+前文已经展开源码机制，这里只保留最影响执行选择的约束：
+
+| 技能 | 最关键的行为要求 |
+|---|---|
+| `using-superpowers` | 回复或行动前检查适用技能；先读规则再行动；流程技能优先；当前用户与项目约束不能被通用模板覆盖 |
+| `brainstorming` | 先理解目标和成功标准；复用用户已给出的信息；按任务规模选择产物，不机械制造长文档 |
+| `writing-plans` | 写清具体文件、接口、输入输出、测试和预期结果；每个 task 是有独立验收意义的交付单元 |
+| `test-driven-development` | 先看到测试因正确原因失败，再写最小实现；绿色后重构，结束前验证 |
+| `systematic-debugging` | 先复现和收集根因证据，再单独验证假设；多次修复失败时重新检查架构假设 |
+| `verification-before-completion` | 确定证明命令，实际运行并读完整输出；只对证据覆盖的范围声明通过 |
+| `executing-plans` / SDD | 按计划实施并留下可恢复记录；SDD 保留逐任务独立审查，Native 减少任务级交接 |
+
+这些是对固定版本指令的归纳，实际使用应阅读完整技能及其适用条件。Skill 中写了 “MUST” 不代表宿主权限、CI 或业务正确性已经由程序保证。[[4]](#ref-4)[[5]](#ref-5)[[6]](#ref-6)[[7]](#ref-7)[[8]](#ref-8)[[11]](#ref-11)[[12]](#ref-12)[[13]](#ref-13)
+
+### 官方技能库、审查插件和分发平台处于不同层
+
+Vercel 的准确仓库地址是 `vercel-labs/agent-skills`，不只是组织首页；其技能提供 React、Next.js、组合模式和界面规范等领域知识。Anthropic 可确认的来源是 `anthropics/skills` 和官方插件目录，不应把尚未确认的 `anthropics/claude-code-community-skills` 当作官方仓库。`skills.sh` 是技能发现和安装生态，不能与完整开发方法论直接比较。[[32]](#ref-32)[[33]](#ref-33)[[35]](#ref-35)
+
+Anthropic 官方 `code-review` 插件以 GitHub PR 为对象，使用多 Agent 审查和置信度筛选，并把构建、类型检查交给其他流程。因此，`code-review` 这个名字本身不代表固定的“对抗性审查”机制，更不保证一定覆盖死锁、并发和所有边界行为。[[34]](#ref-34)
+
+原清单中的 `context-gatherer`、`repo-map`、`agile-spec`、`adr-writer`、`playwright-evaluator`、`e2e-runner` 和 `mcp-db-inspector`，在未绑定具体维护方与版本前，应视为待核实名称或能力类别，而非已确认的热门项目。浏览器执行、仓库索引和数据库查询可以补充流程，但工具能返回截图不等于数据已正确落库，只读意图也应由实际权限保障。
+
+### 组合原则：保留一个主流程，补上缺失能力
+
+基于这些指令结构，本文建议先确定一个主流程，再添加领域知识或缺失检查，不将多套完整规划、执行和审查链全部叠加。否则可能重复澄清、产生不同的阶段产物，并在 Git 或工作目录处理上形成冲突。这是组合风险判断，不是性能实验结论。
+
+可以用 Superpowers 组织交付，吸收 Ponytail 的最小改动原则，并在跨会话时使用精简 handoff；也可以由开发者明确调度 Waza 和 Matt 的独立技能。但只要某个入口会继续调用其他技能，就需要顺着调用链确认子 Agent、测试、提交与发布要求，不能仅凭入口正文很短认定整体过程轻量。[[4]](#ref-4)[[26]](#ref-26)[[29]](#ref-29)[[30]](#ref-30)[[31]](#ref-31)
+
+不使用 subagent 时，Superpowers Native 有明确的能力降级说明；Matt 当前 `grilling`、`implement-spec` 和双轴 `code-review` 则不能未经适配原样执行。这里的选择应基于实际能力和风险，不应把“不使用子 Agent”当成永远更好或更差。[[7]](#ref-7)[[25]](#ref-25)[[27]](#ref-27)[[29]](#ref-29)
+
 ## 如何扩展与评价自己的技能
 
 ### 从重复出现的失败开始
@@ -595,9 +718,9 @@ Superpowers 最值得学习的地方，是将原本隐含的工程习惯变成�
 
 ## 参考资料
 
-项目资料作者为 **Jesse Vincent / Superpowers contributors**，来源为 GitHub，统一固定于 **v6.4.1 / 5bf4e78011075bcfc0dc295f0724994cd123ee71（2026）**。外部官方文档为滚动更新页面，不补写不明确的出版年份。全部访问日期为 **2026-09-24**。
+原始研究资料中的 Superpowers 项目作者为 **Jesse Vincent / Superpowers contributors**，来源为 GitHub，固定于 **v6.4.1 / 5bf4e78011075bcfc0dc295f0724994cd123ee71（2026）**。参考组 1–22 的访问日期为 **2026-09-24**；补充比较的参考组 23–35 作者见各条，访问日期为 **2026-10-10**，链接指向核验时的主分支或滚动页面，未来内容可能变化。外部文档不补写不明确的出版年份。
 
-以下共 22 个核心参考组，其中 18 组是同一项目的一手实现证据，4 组来自外部官方文档。不同源码文件用于支持不同结论，不代表来自 18 个独立机构的交叉验证。每组附带的相关文件用于补全同一论点，不额外计数。
+以下共 35 个参考组：原有 22 组中，18 组是 Superpowers 的一手实现证据，4 组来自外部官方文档；新增 13 组用于其他 Skills 的比较。不同源码文件用于支持不同结论，不代表来自同等数量独立机构的交叉验证。每组附带的相关文件用于补全同一论点，不额外计数。
 
 1. <a id="ref-1"></a> [README：定位、安装、遥测](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/README.md)。项目组成、各宿主入口与遥测声明；不能证明普遍提效。关联源码：[skills/brainstorming/scripts/server.cjs](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/brainstorming/scripts/server.cjs)。
 2. <a id="ref-2"></a> [SessionStart hook](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/hooks/session-start)。读取 bootstrap 与 JSON 输出；结合 hooks/hooks.json 核验注册时机。关联源码：[hooks/hooks.json](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/hooks/hooks.json)。
@@ -621,3 +744,16 @@ Superpowers 最值得学习的地方，是将原本隐含的工程习惯变成�
 20. <a id="ref-20"></a> [OpenAI — Customization / Skills](https://learn.chatgpt.com/docs/customization/overview#skills)。Codex 的元数据发现、按需加载及全局/项目技能位置。
 21. <a id="ref-21"></a> [Anthropic — Hooks reference](https://code.claude.com/docs/en/hooks)。Claude Code SessionStart 与上下文输出协议；不能泛化到 Codex。
 22. <a id="ref-22"></a> [Git project — git-worktree](https://git-scm.com/docs/git-worktree)。linked worktree、共享仓库关系和清理语义；worktree 不等于权限沙箱。
+23. <a id="ref-23"></a> tw93 / Waza, [think](https://github.com/tw93/Waza/blob/main/skills/think/SKILL.md)。方案授权、官方实现调查、最小方案、脆弱假设与决策完备交接。
+24. <a id="ref-24"></a> tw93 / Waza, [check](https://github.com/tw93/Waza/blob/main/skills/check/SKILL.md)。工作区保护、范围与风险审查、验证证据和发布授权边界。
+25. <a id="ref-25"></a> Matt Pocock, [grilling](https://github.com/mattpocock/skills/blob/main/skills/productivity/grilling/SKILL.md)。决策树、依赖就绪问题、环境事实调查与行动确认。关联入口：[grill-me](https://github.com/mattpocock/skills/blob/main/skills/productivity/grill-me/SKILL.md)；[grill-with-docs](https://github.com/mattpocock/skills/blob/main/skills/engineering/grill-with-docs/SKILL.md)。
+26. <a id="ref-26"></a> Matt Pocock, [implement](https://github.com/mattpocock/skills/blob/main/skills/engineering/implement/SKILL.md)。Spec/Ticket 获取、TDD、完整测试、审查和提交。
+27. <a id="ref-27"></a> Matt Pocock, [implement-spec](https://github.com/mattpocock/skills/blob/main/skills/engineering/implement-spec/SKILL.md)。依赖图、独立 worktree、并行实施、集成分支和收尾。
+28. <a id="ref-28"></a> Matt Pocock, [tdd](https://github.com/mattpocock/skills/blob/main/skills/engineering/tdd/SKILL.md)。公共接口测试边界、逐测试纵向切片与重构阶段；应区分具体指令和 README 简述。
+29. <a id="ref-29"></a> Matt Pocock, [code-review](https://github.com/mattpocock/skills/blob/main/skills/engineering/code-review/SKILL.md)。规范与 Spec 双轴独立审查、比较基线和项目规则优先。
+30. <a id="ref-30"></a> Matt Pocock, [handoff](https://github.com/mattpocock/skills/blob/main/skills/productivity/handoff/SKILL.md)。精简交接、已有材料引用、后续技能建议与脱敏。
+31. <a id="ref-31"></a> Dietrich Gebert, [Ponytail](https://github.com/DietrichGebert/ponytail/blob/main/skills/ponytail/SKILL.md)。Ladder of Laziness、影响范围、最小改动和不可省略的质量边界。
+32. <a id="ref-32"></a> Vercel Labs, [Agent Skills](https://github.com/vercel-labs/agent-skills)。领域技能目录及适用范围；不据此推断实际性能收益。
+33. <a id="ref-33"></a> Anthropic, [Skills](https://github.com/anthropics/skills)。官方技能示例库及其与工具、宿主的边界。
+34. <a id="ref-34"></a> Anthropic, [官方 code-review 插件指令](https://github.com/anthropics/claude-plugins-official/blob/main/plugins/code-review/commands/code-review.md)。GitHub PR、多 Agent 审查、置信度筛选和不承担的检查范围。
+35. <a id="ref-35"></a> Vercel, [skills.sh](https://skills.sh)。技能发现、安装与分发生态；榜单不作为工程质量或效率证明。
