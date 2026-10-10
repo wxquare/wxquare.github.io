@@ -180,16 +180,11 @@ return normal_stock - book_num
 
 **参考资料**：[[1]](#ref-1)、[[2]](#ref-2)、[[3]](#ref-3)、[[4]](#ref-4) 和 [[5]](#ref-5)
 
-<a id="ref-1"></a>
-1. [Redis 五种数据类型底层结构详解](https://juejin.cn/post/6844904192042074126)
-<a id="ref-2"></a>
-2. [Redis 设计与实现](http://redisbook.com/)
-<a id="ref-3"></a>
-3. [lmstfy 延时队列](https://github.com/bitleak/lmstfy)
-<a id="ref-4"></a>
-4. [Redis 分布式锁](https://juejin.cn/post/6936956908007850014)
-<a id="ref-5"></a>
-5. [BloomFilter 应用](https://juejin.cn/post/6844903862072000526)
+1. <a id="ref-1"></a> [Redis 五种数据类型底层结构详解](https://juejin.cn/post/6844904192042074126)
+2. <a id="ref-2"></a> [Redis 设计与实现](http://redisbook.com/)
+3. <a id="ref-3"></a> [lmstfy 延时队列](https://github.com/bitleak/lmstfy)
+4. <a id="ref-4"></a> [Redis 分布式锁](https://juejin.cn/post/6936956908007850014)
+5. <a id="ref-5"></a> [BloomFilter 应用](https://juejin.cn/post/6844903862072000526)
 
 ---
 
@@ -1075,10 +1070,8 @@ Redis 提供两种持久化方案：
 
 **参考资料**：[[6]](#ref-6) 和 [[7]](#ref-7)
 
-<a id="ref-6"></a>
-6. [Redis 分布式架构演进](https://blog.csdn.net/QQ1006207580/article/details/103243281)
-<a id="ref-7"></a>
-7. [Redis 集群化方案对比：Codis、Twemproxy、Redis Cluster](http://kaito-kidd.com/2020/07/07/redis-cluster-codis-twemproxy/)
+6. <a id="ref-6"></a> [Redis 分布式架构演进](https://blog.csdn.net/QQ1006207580/article/details/103243281)
+7. <a id="ref-7"></a> [Redis 集群化方案对比：Codis、Twemproxy、Redis Cluster](http://kaito-kidd.com/2020/07/07/redis-cluster-codis-twemproxy/)
 
 ---
 

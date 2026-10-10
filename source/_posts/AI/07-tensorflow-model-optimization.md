@@ -78,7 +78,8 @@ if __name__ == '__main__':
 
 
 ### 本节参考资料
-https://blog.metaflow.fr/tensorflow-how-to-freeze-a-model-and-serve-it-with-a-python-api-d4f3596b3adc
+
+模型冻结与 Python API 服务化的实践资料见 [[36]](#ref-36)。
 
 ## 模型基准测试：建立性能基线
 
@@ -299,14 +300,11 @@ $ bazel-bin/tensorflow/examples/label_image/label_image \
 
 
 ### 本节参考资料
-<a id="ref-1"></a>
-1. https://zhuanlan.zhihu.com/p/33535898
-<a id="ref-2"></a>
-2. https://arxiv.org/abs/1806.08342
-<a id="ref-3"></a>
-3. https://github.com/google/gemmlowp/blob/master/doc/quantization.md
-<a id="ref-4"></a>
-4. https://github.com/tensorflow/tensorflow/issues/2807
+
+1. <a id="ref-1"></a> [TensorFlow 模型量化参考（知乎）](https://zhuanlan.zhihu.com/p/33535898)
+2. <a id="ref-2"></a> [Quantizing deep convolutional networks for efficient inference](https://arxiv.org/abs/1806.08342)
+3. <a id="ref-3"></a> [gemmlowp Quantization](https://github.com/google/gemmlowp/blob/master/doc/quantization.md)
+4. <a id="ref-4"></a> [TensorFlow 量化算子讨论（Issue #2807）](https://github.com/tensorflow/tensorflow/issues/2807)
 
 
 
@@ -423,12 +421,10 @@ $bazel-out/k8-py2-opt/bin/tensorflow/contrib/model_pruning/strip_pruning_vars \
 
 
 ### 本节参考资料
-<a id="ref-5"></a>
-5. [https://github.com/tensorflow/tensorflow/tree/r2.0/tensorflow/contrib/model_pruning](https://github.com/tensorflow/tensorflow/tree/r2.0/tensorflow/contrib/model_pruning)
-<a id="ref-6"></a>
-6. [Michael Zhu and Suyog Gupta, “To prune, or not to prune: exploring the efficacy of pruning for model compression”, 2017 NIPS ](https://arxiv.org/pdf/1710.01878.pdf)
-<a id="ref-7"></a>
-7. https://zhuanlan.zhihu.com/p/48069799
+
+5. <a id="ref-5"></a> [TensorFlow model_pruning 源码](https://github.com/tensorflow/tensorflow/tree/r2.0/tensorflow/contrib/model_pruning)
+6. <a id="ref-6"></a> [Michael Zhu and Suyog Gupta, “To prune, or not to prune: exploring the efficacy of pruning for model compression”, 2017 NIPS ](https://arxiv.org/pdf/1710.01878.pdf)
+7. <a id="ref-7"></a> [TensorFlow 模型剪枝参考（知乎）](https://zhuanlan.zhihu.com/p/48069799)
 
 权重稀疏的实验说明，稀疏率提升并不会自动带来模型体积和推理速度的同步下降。为了在通用计算设备上更直接地减少计算量，下面继续尝试结构化的通道剪枝：它不只是把权重置零，而是删除网络中的部分通道，并同步调整相关卷积层。
 
@@ -506,12 +502,10 @@ $ bazel-bin/tensorflow/tools/benchmark/benchmark_model \
 
 
 #### 本节参考资料
-<a id="ref-8"></a>
-8. Channel Pruning for Accelerating Very Deep Neural Networks：https://arxiv.org/abs/1707.06168
-<a id="ref-9"></a>
-9. PocketFlow：https://github.com/Tencent/PocketFlow
-<a id="ref-10"></a>
-10. 1x1 卷积：https://www.zhihu.com/question/56024942
+
+8. <a id="ref-8"></a> [Channel Pruning for Accelerating Very Deep Neural Networks](https://arxiv.org/abs/1707.06168)
+9. <a id="ref-9"></a> [PocketFlow](https://github.com/Tencent/PocketFlow)
+10. <a id="ref-10"></a> [1x1 卷积](https://www.zhihu.com/question/56024942)
 
 ## 不同优化方法的工程比较
 
@@ -536,53 +530,29 @@ CKPT → PB / Frozen Graph → benchmark_model 建立基线 → 量化/稀疏/�
 
 下面列出本文使用的官方文档、工具资料和论文。
 
-<a id="ref-11"></a>
-11. TensorFlow SavedModel Guide：https://www.tensorflow.org/guide/saved_model
-<a id="ref-12"></a>
-12. TensorFlow Lite Post-training Quantization：https://www.tensorflow.org/lite/performance/post_training_quantization
-<a id="ref-13"></a>
-13. TensorFlow Lite Quantization Specification：https://www.tensorflow.org/lite/performance/quantization_spec
-<a id="ref-14"></a>
-14. TensorFlow Model Optimization：https://www.tensorflow.org/model_optimization
-<a id="ref-15"></a>
-15. TensorFlow Model Pruning Guide：https://www.tensorflow.org/model_optimization/guide/pruning
-<a id="ref-16"></a>
-16. TensorFlow Model Optimization Toolkit：https://github.com/tensorflow/model-optimization
-<a id="ref-17"></a>
-17. TensorFlow Benchmark Tool：https://github.com/tensorflow/tensorflow/tree/master/tensorflow/tools/benchmark
-<a id="ref-18"></a>
-18. TensorFlow Graph Transform Tools：https://github.com/tensorflow/tensorflow/tree/master/tensorflow/tools/graph_transforms
-<a id="ref-19"></a>
-19. Jacob et al., Quantization and Training of Neural Networks for Efficient Integer-Arithmetic-Only Inference, CVPR 2018.
-<a id="ref-20"></a>
-20. Krishnamoorthi, Quantizing deep convolutional networks for efficient inference, arXiv:1806.08342.
-<a id="ref-21"></a>
-21. Banner et al., Post Training 4-bit Quantization of Convolution Networks for Rapid-Deployment, NeurIPS 2019.
-<a id="ref-22"></a>
-22. Nagel et al., A White Paper on Neural Network Quantization, arXiv:2106.08295.
-<a id="ref-23"></a>
-23. Han et al., Learning both Weights and Connections for Efficient Neural Networks, NeurIPS 2015.
-<a id="ref-24"></a>
-24. Han et al., Deep Compression, ICLR 2016.
-<a id="ref-25"></a>
-25. Zhu and Gupta, To Prune, or Not to Prune, arXiv:1710.01878.
-<a id="ref-26"></a>
-26. Li et al., Pruning Filters for Efficient ConvNets, ICLR 2017 Workshop.
-<a id="ref-27"></a>
-27. He et al., Channel Pruning for Accelerating Very Deep Neural Networks, ICCV 2017.
-<a id="ref-28"></a>
-28. Luo et al., ThiNet, ICCV 2017.
-<a id="ref-29"></a>
-29. Liu et al., Network Slimming, ICCV 2017.
-<a id="ref-30"></a>
-30. Molchanov et al., Importance Estimation for Neural Network Pruning, CVPR 2019.
-<a id="ref-31"></a>
-31. PocketFlow：https://github.com/Tencent/PocketFlow
-<a id="ref-32"></a>
-32. NVIDIA TensorRT Documentation：https://docs.nvidia.com/deeplearning/tensorrt/
-<a id="ref-33"></a>
-33. Apache TVM Documentation：https://tvm.apache.org/docs/
-<a id="ref-34"></a>
-34. ONNX Runtime Performance Documentation：https://onnxruntime.ai/docs/performance/
-<a id="ref-35"></a>
-35. MLPerf Inference：https://mlcommons.org/benchmarks/inference/
+11. <a id="ref-11"></a> [TensorFlow SavedModel Guide](https://www.tensorflow.org/guide/saved_model)
+12. <a id="ref-12"></a> [TensorFlow Lite Post-training Quantization](https://www.tensorflow.org/lite/performance/post_training_quantization)
+13. <a id="ref-13"></a> [TensorFlow Lite Quantization Specification](https://www.tensorflow.org/lite/performance/quantization_spec)
+14. <a id="ref-14"></a> [TensorFlow Model Optimization](https://www.tensorflow.org/model_optimization)
+15. <a id="ref-15"></a> [TensorFlow Model Pruning Guide](https://www.tensorflow.org/model_optimization/guide/pruning)
+16. <a id="ref-16"></a> [TensorFlow Model Optimization Toolkit](https://github.com/tensorflow/model-optimization)
+17. <a id="ref-17"></a> [TensorFlow Benchmark Tool](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/tools/benchmark)
+18. <a id="ref-18"></a> [TensorFlow Graph Transform Tools](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/tools/graph_transforms)
+19. <a id="ref-19"></a> *Quantization and Training of Neural Networks for Efficient Integer-Arithmetic-Only Inference*；Jacob et al.，CVPR 2018。
+20. <a id="ref-20"></a> *Quantizing deep convolutional networks for efficient inference*；Krishnamoorthi，arXiv:1806.08342。
+21. <a id="ref-21"></a> *Post Training 4-bit Quantization of Convolution Networks for Rapid-Deployment*；Banner et al.，NeurIPS 2019。
+22. <a id="ref-22"></a> *A White Paper on Neural Network Quantization*；Nagel et al.，arXiv:2106.08295。
+23. <a id="ref-23"></a> *Learning both Weights and Connections for Efficient Neural Networks*；Han et al.，NeurIPS 2015。
+24. <a id="ref-24"></a> *Deep Compression*；Han et al.，ICLR 2016。
+25. <a id="ref-25"></a> *To Prune, or Not to Prune*；Zhu and Gupta，arXiv:1710.01878。
+26. <a id="ref-26"></a> *Pruning Filters for Efficient ConvNets*；Li et al.，ICLR 2017 Workshop。
+27. <a id="ref-27"></a> *Channel Pruning for Accelerating Very Deep Neural Networks*；He et al.，ICCV 2017。
+28. <a id="ref-28"></a> *ThiNet*；Luo et al.，ICCV 2017。
+29. <a id="ref-29"></a> *Network Slimming*；Liu et al.，ICCV 2017。
+30. <a id="ref-30"></a> *Importance Estimation for Neural Network Pruning*；Molchanov et al.，CVPR 2019。
+31. <a id="ref-31"></a> [PocketFlow](https://github.com/Tencent/PocketFlow)
+32. <a id="ref-32"></a> [NVIDIA TensorRT Documentation](https://docs.nvidia.com/deeplearning/tensorrt/)
+33. <a id="ref-33"></a> [Apache TVM Documentation](https://tvm.apache.org/docs/)
+34. <a id="ref-34"></a> [ONNX Runtime Performance Documentation](https://onnxruntime.ai/docs/performance/)
+35. <a id="ref-35"></a> [MLPerf Inference](https://mlcommons.org/benchmarks/inference/)
+36. <a id="ref-36"></a> [TensorFlow: How to freeze a model and serve it with a Python API](https://blog.metaflow.fr/tensorflow-how-to-freeze-a-model-and-serve-it-with-a-python-api-d4f3596b3adc)

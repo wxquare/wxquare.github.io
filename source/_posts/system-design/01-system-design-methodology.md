@@ -325,14 +325,11 @@ SLA 目标是什么？如何监控？如何保证？
 
 #### 参考阅读
 可进一步阅读以下资料：[[1]](#ref-1)、[[2]](#ref-2)、[[3]](#ref-3) 和 [[4]](#ref-4)。
-<a id="ref-1"></a>
-1. [架构权衡评估方法（ATAM）：如何评估一个系统的质量](https://juejin.cn/post/7027701112077549605)
-<a id="ref-2"></a>
-2. [架构 Trade-off（架构权衡）](https://juejin.cn/post/7248914499915235389)
-<a id="ref-3"></a>
-3. [系统架构图示例](https://haomo-tech.com/project-docs/%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3/assets/%E7%B3%BB%E4%B8%9A%E5%8A%A1%E6%9E%B6%E5%9B%BE.omnigraffle)
-<a id="ref-4"></a>
-4. [系统架构](https://book.douban.com/subject/26938710/)
+
+1. <a id="ref-1"></a> [架构权衡评估方法（ATAM）：如何评估一个系统的质量](https://juejin.cn/post/7027701112077549605)
+2. <a id="ref-2"></a> [架构 Trade-off（架构权衡）](https://juejin.cn/post/7248914499915235389)
+3. <a id="ref-3"></a> [系统架构图示例](https://haomo-tech.com/project-docs/%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3/assets/%E7%B3%BB%E4%B8%9A%E5%8A%A1%E6%9E%B6%E5%9B%BE.omnigraffle)
+4. <a id="ref-4"></a> [系统架构](https://book.douban.com/subject/26938710/)
 
 ### 面向对象系统设计的原则
 
@@ -357,8 +354,7 @@ SOLID 原则是一套比较经典且流行的架构原则（主要还是名字�
 
 可进一步阅读 [[5]](#ref-5)。
 
-<a id="ref-5"></a>
-5. [Clean Architecture（整洁架构）中文翻译](https://github.com/leewaiho/Clean-Architecture-zh/tree/master?tab=readme-ov-file)
+5. <a id="ref-5"></a> [Clean Architecture（整洁架构）中文翻译](https://github.com/leewaiho/Clean-Architecture-zh/tree/master?tab=readme-ov-file)
 
 ### 互联网系统八大谬论
 <p align="center">
@@ -375,8 +371,7 @@ SOLID 原则是一套比较经典且流行的架构原则（主要还是名字�
 - 传输成本为0；
 - 网络是同构的；[[6]](#ref-6)
 
-<a id="ref-6"></a>
-6. [Eight Fallacies of Distributed Computing](https://ably.com/blog/8-fallacies-of-distributed-computing)
+6. <a id="ref-6"></a> [Eight Fallacies of Distributed Computing](https://ably.com/blog/8-fallacies-of-distributed-computing)
 
 
 ### 数学估算
@@ -510,10 +505,8 @@ Send packet CA->Netherlands->CA    150,000,000   ns  150,000 us  150 ms
 #### 参考阅读：
 可进一步阅读 [[7]](#ref-7) 和 [[8]](#ref-8)。
 
-<a id="ref-7"></a>
-7. [软件架构：开发人员的软件架构模式](https://www.bilibili.com/video/BV1cr4y1a7iU/?p=3&spm_id_from=pageDriver&vd_source=04e82c25f6ff3d6a1a08a7f1c343987c)
-<a id="ref-8"></a>
-8. [什么是软件架构设计](https://hangzhouhot.com/architecturepicture/)
+7. <a id="ref-7"></a> [软件架构：开发人员的软件架构模式](https://www.bilibili.com/video/BV1cr4y1a7iU/?p=3&spm_id_from=pageDriver&vd_source=04e82c25f6ff3d6a1a08a7f1c343987c)
+8. <a id="ref-8"></a> [什么是软件架构设计](https://hangzhouhot.com/architecturepicture/)
 
 ### 架构 EA+4A
 #### 什么是架构 EA+4A

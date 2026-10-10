@@ -252,45 +252,26 @@ OWASP 对 LLM 应用的提示注入、敏感信息泄露和过度自主性风险
 
 ## 参考资料
 
-<a id="ref-1"></a>
-1. OpenAI. “Powering product discovery in ChatGPT.” March 24, 2026. https://openai.com/index/powering-product-discovery-in-chatgpt/
-<a id="ref-2"></a>
-2. OpenAI. “Walmart and ChatGPT.” 2026. https://openai.com/index/walmart-and-chatgpt/
-<a id="ref-3"></a>
-3. Shopify Help Center. “Agentic Storefronts.” Accessed September 11, 2026. https://help.shopify.com/en/manual/online-sales-channels/agentic-storefronts
-<a id="ref-4"></a>
-4. Amazon Staff. “Amazon introduces feeds to make it easier for merchants to reach more customers through AI-powered Shop Direct.” March 11, 2026. https://www.aboutamazon.com/news/retail/amazon-shop-direct-external-stores
-<a id="ref-5"></a>
-5. Shopify Help Center. “Sidekick.” Accessed September 11, 2026. https://help.shopify.com/en/manual/ai-powered-tools/sidekick
-<a id="ref-6"></a>
-6. Alibaba.com Seller Central. “Smart Assistant Agent.” Accessed September 11, 2026. https://seller.alibaba.com/pk/smart-assistant-agent
-<a id="ref-7"></a>
-7. 淘宝开放平台. “AI 生态实验室 / Q Lab.” Accessed September 11, 2026. https://developer.alibaba.com/docs/doc.htm?articleId=121802&docType=1&source=search&treeId=840
-<a id="ref-8"></a>
-8. Model Context Protocol. “Authorization.” Accessed September 11, 2026. https://modelcontextprotocol.io/specification/2025-06-18/basic/authorization
-<a id="ref-9"></a>
-9. Google Developers Blog. “Under the hood: Universal Commerce Protocol.” 2026. https://developers.googleblog.com/under-the-hood-universal-commerce-protocol-ucp/
-<a id="ref-10"></a>
-10. Agentic Commerce Protocol. “Get started.” Accessed September 11, 2026. https://agentic-commerce-protocol.com/docs/commerce/guides/get-started
-<a id="ref-11"></a>
-11. OWASP. “OWASP Top 10 for Large Language Model Applications.” 2025. https://genai.owasp.org/llmrisk/llm01-prompt-injection/
-<a id="ref-12"></a>
-12. Model Context Protocol. “Authorization Best Practices.” Accessed September 11, 2026. https://modelcontextprotocol.io/specification/draft/basic/authorization
-<a id="ref-13"></a>
-13. Nitin May. “e-commerce-agents.” GitHub repository. Accessed September 11, 2026. https://github.com/nitin27may/e-commerce-agents
-<a id="ref-14"></a>
-14. Felix Hu. “ecommerce-agent.” GitHub repository. Accessed September 11, 2026. https://github.com/felixhuhao/ecommerce-agent
-<a id="ref-15"></a>
-15. Maarmapa. “storefront-mcp.” GitHub repository. Accessed September 11, 2026. https://github.com/Maarmapa/storefront-mcp
-<a id="ref-16"></a>
-16. Yao et al. “WebShop: Towards Scalable Real-World Web Interaction with Grounded Language Agents.” NeurIPS 2022. https://arxiv.org/abs/2207.01206
-<a id="ref-17"></a>
-17. Checkout.com. “The State of Commerce 2026.” 2026. https://www.checkout.com/resources/reports/state-of-commerce-2026
-<a id="ref-18"></a>
-18. Visa. “The Trust Opportunity: A New Era of Commerce.” 2026. https://corporate.visa.com/content/dam/VCOM/global/run-your-business/documents/visa-the-trust-opportunity-a-new-era-of-commerce.pdf
-<a id="ref-19"></a>
-19. WooCommerce and IDC. “Agentic Commerce: How Open Architectures Will Shape the Future of Digital Commerce.” 2026. https://woocommerce.com/posts/agentic-commerce/
-<a id="ref-20"></a>
-20. Forrester. “Predictions 2026: Commerce.” 2026. https://www.forrester.com/blogs/predictions-2026-commerce/
-<a id="ref-21"></a>
-21. Visa. “How consumers are thinking about AI and agentic commerce.” 2026. https://corporate.visa.com/en/sites/visa-perspectives/innovation/agentic-commerce.html
+在线资料访问日期：2026-09-11（第 3、5 至 8、10、12 至 15 条）。
+
+1. <a id="ref-1"></a> [Powering product discovery in ChatGPT](https://openai.com/index/powering-product-discovery-in-chatgpt/)；OpenAI，2026-03-24。
+2. <a id="ref-2"></a> [Walmart and ChatGPT](https://openai.com/index/walmart-and-chatgpt/)；OpenAI，2026。
+3. <a id="ref-3"></a> [Agentic Storefronts](https://help.shopify.com/en/manual/online-sales-channels/agentic-storefronts)；Shopify Help Center。
+4. <a id="ref-4"></a> [Amazon introduces feeds to make it easier for merchants to reach more customers through AI-powered Shop Direct](https://www.aboutamazon.com/news/retail/amazon-shop-direct-external-stores)；Amazon Staff，2026-03-11。
+5. <a id="ref-5"></a> [Sidekick](https://help.shopify.com/en/manual/ai-powered-tools/sidekick)；Shopify Help Center。
+6. <a id="ref-6"></a> [Smart Assistant Agent](https://seller.alibaba.com/pk/smart-assistant-agent)；Alibaba.com Seller Central。
+7. <a id="ref-7"></a> [AI 生态实验室 / Q Lab](https://developer.alibaba.com/docs/doc.htm?articleId=121802&docType=1&source=search&treeId=840)；淘宝开放平台。
+8. <a id="ref-8"></a> [Authorization](https://modelcontextprotocol.io/specification/2025-06-18/basic/authorization)；Model Context Protocol。
+9. <a id="ref-9"></a> [Under the hood: Universal Commerce Protocol](https://developers.googleblog.com/under-the-hood-universal-commerce-protocol-ucp/)；Google Developers Blog，2026。
+10. <a id="ref-10"></a> [Get started](https://agentic-commerce-protocol.com/docs/commerce/guides/get-started)；Agentic Commerce Protocol。
+11. <a id="ref-11"></a> [OWASP Top 10 for Large Language Model Applications](https://genai.owasp.org/llmrisk/llm01-prompt-injection/)；OWASP，2025。
+12. <a id="ref-12"></a> [Authorization Best Practices](https://modelcontextprotocol.io/specification/draft/basic/authorization)；Model Context Protocol。
+13. <a id="ref-13"></a> [e-commerce-agents](https://github.com/nitin27may/e-commerce-agents)；Nitin May，GitHub 仓库。
+14. <a id="ref-14"></a> [ecommerce-agent](https://github.com/felixhuhao/ecommerce-agent)；Felix Hu，GitHub 仓库。
+15. <a id="ref-15"></a> [storefront-mcp](https://github.com/Maarmapa/storefront-mcp)；Maarmapa，GitHub 仓库。
+16. <a id="ref-16"></a> [WebShop: Towards Scalable Real-World Web Interaction with Grounded Language Agents](https://arxiv.org/abs/2207.01206)；Yao et al.，NeurIPS 2022。
+17. <a id="ref-17"></a> [The State of Commerce 2026](https://www.checkout.com/resources/reports/state-of-commerce-2026)；Checkout.com，2026。
+18. <a id="ref-18"></a> [The Trust Opportunity: A New Era of Commerce](https://corporate.visa.com/content/dam/VCOM/global/run-your-business/documents/visa-the-trust-opportunity-a-new-era-of-commerce.pdf)；Visa，2026。
+19. <a id="ref-19"></a> [Agentic Commerce: How Open Architectures Will Shape the Future of Digital Commerce](https://woocommerce.com/posts/agentic-commerce/)；WooCommerce and IDC，2026。
+20. <a id="ref-20"></a> [Predictions 2026: Commerce](https://www.forrester.com/blogs/predictions-2026-commerce/)；Forrester，2026。
+21. <a id="ref-21"></a> [How consumers are thinking about AI and agentic commerce](https://corporate.visa.com/en/sites/visa-perspectives/innovation/agentic-commerce.html)；Visa，2026。

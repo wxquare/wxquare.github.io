@@ -525,14 +525,14 @@ query节点知道了要获取哪些信息，但是没有具体的数据，fetch�
 |---------------|------------------------|-----------------|
 | elasticsearch | [1, 3] | 2 |
 | search | [1, 2] | 2 |
-| engine | [1] | 1 |
+| engine | `[1]` | 1 |
 | lucene | [2, 3] | 2 |
-| library | [2] | 1 |
-| built | [3] | 1 |
+| library | `[2]` | 1 |
+| built | `[3]` | 1 |
 
 **查询 "elasticsearch search"**：
 1. 查倒排索引表：`elasticsearch` → [1,3]，`search` → [1,2]
-2. 求交集：[1,3] ∩ [1,2] = [1]
+2. 求交集：`[1,3] ∩ [1,2] = [1]`
 3. 返回文档 ID=1
 
 ### Analyzer 工作流程
@@ -1121,24 +1121,27 @@ Analyzer 是分词器，包含 3 个组件：
 - https://github.com/medcl/esm
 - https://github.com/medcl/esm/tree/0.1.0
 
-## 拓展阅读
-- [普通搜索和向量搜索介绍](https://blog.csdn.net/weixin_40601534/article/details/122435858?spm=1001.2014.3001.5501)
-- [广告索引（定向）的布尔表达式](https://www.cnblogs.com/chenny7/p/14765412.html)
-- [official document](https://www.elastic.co/guide/en/elasticsearch/reference/8.3/index.html)
-- [scroll使用和Elasticsearch的深度翻页问题](https://www.jianshu.com/p/eb7f11e178b3)
-- [ES 更新并发控制问题](https://www.jianshu.com/p/d4da0182a67a)
-- [ES 读写流程](https://www.cnblogs.com/upupfeng/p/13488120.html)
-- [达观数据搜索引擎的Query自动纠错技术和架构](http://www.datagrand.com/blog/search-query.html)
-- [Elasticsearch基础之相关性介绍](https://donggeitnote.com/2021/09/19/elasticsearch-tfidf/)
-- [ElasticSearch进阶之拼写错误](https://donggeitnote.com/2022/01/02/elasticsearch-typo/)
-- [ElasticSearch进阶之输入匹配](https://donggeitnote.com/2021/11/06/elasticsearch-typematch/)
-- [ElasticSearch进阶之多域搜索](https://donggeitnote.com/2021/10/02/elasticsearch-multiplesearch/)
-- [ElasticSearch进阶之Shard/segment内部原理](https://donggeitnote.com/2021/09/29/elasticsearch-shard/)
-- analysizer,normalizer,常用分词器介绍和评估。https://blog.csdn.net/Q176782/article/details/119054132
-- [Kafka VS ElasticSearch 的相似性和比较](https://juejin.cn/post/6844904008432402440)
-- [理解ES的refresh、flush、merge](https://blog.csdn.net/weixin_37692493/article/details/108182161)
-  - 节点
-  - index/topic
-  - shard/partiion
-  - 副本机制
-- [让Elasticsearch飞起来!——性能优化实践干货](https://developer.aliyun.com/article/706990)
+<a id="拓展阅读"></a>
+
+## 参考资料
+
+1. <a id="ref-1"></a> [普通搜索和向量搜索介绍](https://blog.csdn.net/weixin_40601534/article/details/122435858?spm=1001.2014.3001.5501)
+2. <a id="ref-2"></a> [广告索引（定向）的布尔表达式](https://www.cnblogs.com/chenny7/p/14765412.html)
+3. <a id="ref-3"></a> [Elasticsearch 8.3 官方文档](https://www.elastic.co/guide/en/elasticsearch/reference/8.3/index.html)
+4. <a id="ref-4"></a> [Scroll 使用和 Elasticsearch 的深度翻页问题](https://www.jianshu.com/p/eb7f11e178b3)
+5. <a id="ref-5"></a> [ES 更新并发控制问题](https://www.jianshu.com/p/d4da0182a67a)
+6. <a id="ref-6"></a> [ES 读写流程](https://www.cnblogs.com/upupfeng/p/13488120.html)
+7. <a id="ref-7"></a> [达观数据搜索引擎的 Query 自动纠错技术和架构](http://www.datagrand.com/blog/search-query.html)
+8. <a id="ref-8"></a> [Elasticsearch 基础之相关性介绍](https://donggeitnote.com/2021/09/19/elasticsearch-tfidf/)
+9. <a id="ref-9"></a> [Elasticsearch 进阶之拼写错误](https://donggeitnote.com/2022/01/02/elasticsearch-typo/)
+10. <a id="ref-10"></a> [Elasticsearch 进阶之输入匹配](https://donggeitnote.com/2021/11/06/elasticsearch-typematch/)
+11. <a id="ref-11"></a> [Elasticsearch 进阶之多域搜索](https://donggeitnote.com/2021/10/02/elasticsearch-multiplesearch/)
+12. <a id="ref-12"></a> [Elasticsearch 进阶之 Shard/Segment 内部原理](https://donggeitnote.com/2021/09/29/elasticsearch-shard/)
+13. <a id="ref-13"></a> [Analyzer、Normalizer 与常用分词器介绍和评估](https://blog.csdn.net/Q176782/article/details/119054132)
+14. <a id="ref-14"></a> [Kafka VS Elasticsearch 的相似性和比较](https://juejin.cn/post/6844904008432402440)
+15. <a id="ref-15"></a> [理解 ES 的 Refresh、Flush、Merge](https://blog.csdn.net/weixin_37692493/article/details/108182161)
+    - 节点
+    - index/topic
+    - shard/partiion
+    - 副本机制
+16. <a id="ref-16"></a> [让 Elasticsearch 飞起来：性能优化实践干货](https://developer.aliyun.com/article/706990)

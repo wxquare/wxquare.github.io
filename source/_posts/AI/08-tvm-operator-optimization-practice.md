@@ -561,73 +561,38 @@ GPU 优化则更加依赖线程块、共享内存、全局内存合并访问、w
 
 ## 参考资料
 
-<a id="ref-1"></a>
-1. [Apache TVM Documentation](https://tvm.apache.org/docs/)
-<a id="ref-2"></a>
-2. [Relay: A High-Level Intermediate Representation for Deep Learning](https://tvm.apache.org/docs/arch/relay_intro.html)
-<a id="ref-3"></a>
-3. [Relay Python API](https://tvm.apache.org/docs/reference/api/python/relay.html)
-<a id="ref-4"></a>
-4. [TVM IRModule API](https://tvm.apache.org/docs/reference/api/python/ir.html)
-<a id="ref-5"></a>
-5. [TVM TensorIR Documentation](https://tvm.apache.org/docs/deep_dive/tensor_ir/index.html)
-<a id="ref-6"></a>
-6. [TVM Tensor Expression Language](https://tvm.apache.org/docs/arch/ir.html)
-<a id="ref-7"></a>
-7. [TVM Runtime Module API](https://tvm.apache.org/docs/reference/api/python/runtime.html)
-<a id="ref-8"></a>
-8. [TVM: An Automated End-to-End Optimizing Compiler for Deep Learning](https://arxiv.org/abs/1802.04799)
-<a id="ref-9"></a>
-9. [Ansor: Generating High-Performance Tensor Programs for Deep Learning](https://arxiv.org/abs/2006.06762)
-<a id="ref-10"></a>
-10. [TensorIR: An Abstraction for Automatic Tensorized Program Optimization](https://arxiv.org/abs/2207.04296)
-<a id="ref-11"></a>
-11. [Learning to Optimize Tensor Programs](https://arxiv.org/abs/2305.17380)
-<a id="ref-12"></a>
-12. [AutoTVM Documentation](https://tvm.apache.org/docs/v0.8.0/tutorial/auto_scheduler_matmul_x86.html)
-<a id="ref-13"></a>
-13. [MetaSchedule Documentation](https://tvm.apache.org/docs/deep_dive/meta_schedule/index.html)
-<a id="ref-14"></a>
-14. [TVM Quantization Documentation](https://tvm.apache.org/docs/v0.9.0/how_to/deploy_models/deploy_quantized.html)
-<a id="ref-15"></a>
-15. [TVM Build API](https://tvm.apache.org/docs/reference/api/python/driver.html)
-<a id="ref-16"></a>
-16. [LLVM Language Reference](https://llvm.org/docs/LangRef.html)
-<a id="ref-17"></a>
-17. [MLIR Linalg Dialect](https://mlir.llvm.org/docs/Dialects/Linalg/)
-<a id="ref-18"></a>
-18. [XLA Architecture](https://openxla.org/xla)
-<a id="ref-19"></a>
-19. [Halide Documentation](https://halide-lang.org/docs/)
-<a id="ref-20"></a>
-20. [Tensor Comprehensions](https://github.com/facebookresearch/TensorComprehensions)
-<a id="ref-21"></a>
-21. [BLAS Technical Forum Standard](https://www.netlib.org/blas/)
-<a id="ref-22"></a>
-22. [OpenBLAS Documentation](https://www.openmathlib.org/OpenBLAS/)
-<a id="ref-23"></a>
-23. [Intel oneMKL GEMM](https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2024-0/gemm.html)
-<a id="ref-24"></a>
-24. [ARM Compute Library](https://arm-software.github.io/ComputeLibrary/latest/)
-<a id="ref-25"></a>
-25. [CUDA C++ Programming Guide](https://docs.nvidia.com/cuda/cuda-c-programming-guide/)
-<a id="ref-26"></a>
-26. [CUDA C++ Best Practices Guide](https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/)
-<a id="ref-27"></a>
-27. [OpenCL Specification](https://registry.khronos.org/OpenCL/specs/3.0-unified/html/)
-<a id="ref-28"></a>
-28. [TensorFlow Lite 8-bit Quantization Specification](https://www.tensorflow.org/lite/performance/quantization_spec)
-<a id="ref-29"></a>
-29. [TensorFlow Lite Post-training Quantization](https://www.tensorflow.org/lite/performance/post_training_quantization)
-<a id="ref-30"></a>
-30. [ONNX Runtime Quantization](https://onnxruntime.ai/docs/performance/model-optimizations/quantization.html)
-<a id="ref-31"></a>
-31. [Quantizing deep convolutional networks for efficient inference](https://arxiv.org/abs/1806.08342)
-<a id="ref-32"></a>
-32. [Integer Quantization for Deep Learning Inference](https://arxiv.org/abs/2004.09602)
-<a id="ref-33"></a>
-33. [Efficient Processing of Deep Neural Networks](https://arxiv.org/abs/1608.06993)
-<a id="ref-34"></a>
-34. [Efficient GEMM-based convolution algorithms](https://arxiv.org/abs/1509.09308)
-<a id="ref-35"></a>
-35. [Anatomy of High-Performance Matrix Multiplication](https://www.cs.utexas.edu/~flame/pubs/GotoTOMS_rev.pdf)
+1. <a id="ref-1"></a> [Apache TVM Documentation](https://tvm.apache.org/docs/)
+2. <a id="ref-2"></a> [Relay: A High-Level Intermediate Representation for Deep Learning](https://tvm.apache.org/docs/arch/relay_intro.html)
+3. <a id="ref-3"></a> [Relay Python API](https://tvm.apache.org/docs/reference/api/python/relay.html)
+4. <a id="ref-4"></a> [TVM IRModule API](https://tvm.apache.org/docs/reference/api/python/ir.html)
+5. <a id="ref-5"></a> [TVM TensorIR Documentation](https://tvm.apache.org/docs/deep_dive/tensor_ir/index.html)
+6. <a id="ref-6"></a> [TVM Tensor Expression Language](https://tvm.apache.org/docs/arch/ir.html)
+7. <a id="ref-7"></a> [TVM Runtime Module API](https://tvm.apache.org/docs/reference/api/python/runtime.html)
+8. <a id="ref-8"></a> [TVM: An Automated End-to-End Optimizing Compiler for Deep Learning](https://arxiv.org/abs/1802.04799)
+9. <a id="ref-9"></a> [Ansor: Generating High-Performance Tensor Programs for Deep Learning](https://arxiv.org/abs/2006.06762)
+10. <a id="ref-10"></a> [TensorIR: An Abstraction for Automatic Tensorized Program Optimization](https://arxiv.org/abs/2207.04296)
+11. <a id="ref-11"></a> [Learning to Optimize Tensor Programs](https://arxiv.org/abs/2305.17380)
+12. <a id="ref-12"></a> [AutoTVM Documentation](https://tvm.apache.org/docs/v0.8.0/tutorial/auto_scheduler_matmul_x86.html)
+13. <a id="ref-13"></a> [MetaSchedule Documentation](https://tvm.apache.org/docs/deep_dive/meta_schedule/index.html)
+14. <a id="ref-14"></a> [TVM Quantization Documentation](https://tvm.apache.org/docs/v0.9.0/how_to/deploy_models/deploy_quantized.html)
+15. <a id="ref-15"></a> [TVM Build API](https://tvm.apache.org/docs/reference/api/python/driver.html)
+16. <a id="ref-16"></a> [LLVM Language Reference](https://llvm.org/docs/LangRef.html)
+17. <a id="ref-17"></a> [MLIR Linalg Dialect](https://mlir.llvm.org/docs/Dialects/Linalg/)
+18. <a id="ref-18"></a> [XLA Architecture](https://openxla.org/xla)
+19. <a id="ref-19"></a> [Halide Documentation](https://halide-lang.org/docs/)
+20. <a id="ref-20"></a> [Tensor Comprehensions](https://github.com/facebookresearch/TensorComprehensions)
+21. <a id="ref-21"></a> [BLAS Technical Forum Standard](https://www.netlib.org/blas/)
+22. <a id="ref-22"></a> [OpenBLAS Documentation](https://www.openmathlib.org/OpenBLAS/)
+23. <a id="ref-23"></a> [Intel oneMKL GEMM](https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2024-0/gemm.html)
+24. <a id="ref-24"></a> [ARM Compute Library](https://arm-software.github.io/ComputeLibrary/latest/)
+25. <a id="ref-25"></a> [CUDA C++ Programming Guide](https://docs.nvidia.com/cuda/cuda-c-programming-guide/)
+26. <a id="ref-26"></a> [CUDA C++ Best Practices Guide](https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/)
+27. <a id="ref-27"></a> [OpenCL Specification](https://registry.khronos.org/OpenCL/specs/3.0-unified/html/)
+28. <a id="ref-28"></a> [TensorFlow Lite 8-bit Quantization Specification](https://www.tensorflow.org/lite/performance/quantization_spec)
+29. <a id="ref-29"></a> [TensorFlow Lite Post-training Quantization](https://www.tensorflow.org/lite/performance/post_training_quantization)
+30. <a id="ref-30"></a> [ONNX Runtime Quantization](https://onnxruntime.ai/docs/performance/model-optimizations/quantization.html)
+31. <a id="ref-31"></a> [Quantizing deep convolutional networks for efficient inference](https://arxiv.org/abs/1806.08342)
+32. <a id="ref-32"></a> [Integer Quantization for Deep Learning Inference](https://arxiv.org/abs/2004.09602)
+33. <a id="ref-33"></a> [Efficient Processing of Deep Neural Networks](https://arxiv.org/abs/1608.06993)
+34. <a id="ref-34"></a> [Efficient GEMM-based convolution algorithms](https://arxiv.org/abs/1509.09308)
+35. <a id="ref-35"></a> [Anatomy of High-Performance Matrix Multiplication](https://www.cs.utexas.edu/~flame/pubs/GotoTOMS_rev.pdf)

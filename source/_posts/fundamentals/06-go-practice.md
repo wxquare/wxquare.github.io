@@ -1403,27 +1403,16 @@ func main() {
 - [为什么要使用 Go 语言？Go 语言的优势在哪里？](https://www.zhihu.com/question/21409296/answer/1040884859)
 
 ## 参考
-<a id="ref-1"></a>
-- 1. [https://my.oschina.net/hebaodan/blog/1609245](https://my.oschina.net/hebaodan/blog/1609245)
-<a id="ref-2"></a>
-- 2. [https://www.jianshu.com/p/407fada3cc9d](https://www.jianshu.com/p/407fada3cc9d)
-<a id="ref-3"></a>
-- 3. [https://serholiu.com/go-http-client-keepalive](https://serholiu.com/go-http-client-keepalive)
-<a id="ref-4"></a>
-- 4. [https://blog.csdn.net/yongjian_lian/article/details/42058893](https://blog.csdn.net/yongjian_lian/article/details/42058893)
-<a id="ref-5"></a>
-- 5. [https://segmentfault.com/a/1190000013089363](https://segmentfault.com/a/1190000013089363)
-<a id="ref-6"></a>
-- 6. [http://jack-nie.github.io/go/golang-sync-pool.html](http://jack-nie.github.io/go/golang-sync-pool.html)参考：
-<a id="ref-7"></a>
-- 7. http://legendtkl.com/2017/04/28/golang-gc/
-<a id="ref-8"></a>
-- 8. https://www.jianshu.com/p/9c8e56314164
-<a id="ref-9"></a>
-- 9. https://blog.golang.org/ismmkeynote
-<a id="ref-10"></a>
-- 10. http://goog-perftools.sourceforge.net/doc/tcmalloc.html
-<a id="ref-11"></a>
-- 11. https://zhuanlan.zhihu.com/p/29216091
-<a id="ref-12"></a>
-- 12. [《Go 语言设计和实现》](https://draveness.me/golang/)
+
+1. <a id="ref-1"></a> [Go 语言实践参考（OSChina 历史资料）](https://my.oschina.net/hebaodan/blog/1609245)
+2. <a id="ref-2"></a> [Go 语言实践参考（简书历史资料）](https://www.jianshu.com/p/407fada3cc9d)
+3. <a id="ref-3"></a> [Go HTTP Client Keep-Alive](https://serholiu.com/go-http-client-keepalive)
+4. <a id="ref-4"></a> [Go 工程实践参考（CSDN 历史资料）](https://blog.csdn.net/yongjian_lian/article/details/42058893)
+5. <a id="ref-5"></a> [Go 工程实践参考（SegmentFault 历史资料）](https://segmentfault.com/a/1190000013089363)
+6. <a id="ref-6"></a> [Golang sync.Pool](http://jack-nie.github.io/go/golang-sync-pool.html)
+7. <a id="ref-7"></a> [Golang GC](http://legendtkl.com/2017/04/28/golang-gc/)
+8. <a id="ref-8"></a> [Go 语言内存管理参考（简书历史资料）](https://www.jianshu.com/p/9c8e56314164)
+9. <a id="ref-9"></a> [Go 垃圾回收主题演讲](https://blog.golang.org/ismmkeynote)
+10. <a id="ref-10"></a> [TCMalloc 文档](http://goog-perftools.sourceforge.net/doc/tcmalloc.html)
+11. <a id="ref-11"></a> [Go 内存管理参考（知乎历史资料）](https://zhuanlan.zhihu.com/p/29216091)
+12. <a id="ref-12"></a> [《Go 语言设计和实现》](https://draveness.me/golang/)

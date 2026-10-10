@@ -446,52 +446,32 @@ KCF 优化不应从“把所有 OpenCV 调用都改成 UMat”开始，而应从
 
 ### OpenCL
 
-<a id="ref-1"></a>
-1. Khronos Group，[The OpenCL 3.0 Unified Specification](https://registry.khronos.org/OpenCL/specs/3.0-unified/html/)。
-<a id="ref-2"></a>
-2. Khronos Group，[The OpenCL C 3.0 Language Specification](https://registry.khronos.org/OpenCL/specs/3.0-unified/html/OpenCL_C.html)。
-<a id="ref-3"></a>
-3. Khronos Group，[OpenCL SDK Reference Pages](https://registry.khronos.org/OpenCL/sdk/3.0/docs/man/html/)。
-<a id="ref-4"></a>
-4. Khronos Group，[clEnqueueNDRangeKernel Reference](https://registry.khronos.org/OpenCL/sdk/3.0/docs/man/html/clEnqueueNDRangeKernel.html)。
-<a id="ref-5"></a>
-5. Khronos Group，[clGetEventProfilingInfo Reference](https://registry.khronos.org/OpenCL/sdk/3.0/docs/man/html/clGetEventProfilingInfo.html)。
-<a id="ref-6"></a>
-6. Khronos Group，[clCreateCommandQueueWithProperties Reference](https://registry.khronos.org/OpenCL/sdk/3.0/docs/man/html/clCreateCommandQueueWithProperties.html)。
+1. <a id="ref-1"></a> [The OpenCL 3.0 Unified Specification](https://registry.khronos.org/OpenCL/specs/3.0-unified/html/)；Khronos Group。
+2. <a id="ref-2"></a> [The OpenCL C 3.0 Language Specification](https://registry.khronos.org/OpenCL/specs/3.0-unified/html/OpenCL_C.html)；Khronos Group。
+3. <a id="ref-3"></a> [OpenCL SDK Reference Pages](https://registry.khronos.org/OpenCL/sdk/3.0/docs/man/html/)；Khronos Group。
+4. <a id="ref-4"></a> [clEnqueueNDRangeKernel Reference](https://registry.khronos.org/OpenCL/sdk/3.0/docs/man/html/clEnqueueNDRangeKernel.html)；Khronos Group。
+5. <a id="ref-5"></a> [clGetEventProfilingInfo Reference](https://registry.khronos.org/OpenCL/sdk/3.0/docs/man/html/clGetEventProfilingInfo.html)；Khronos Group。
+6. <a id="ref-6"></a> [clCreateCommandQueueWithProperties Reference](https://registry.khronos.org/OpenCL/sdk/3.0/docs/man/html/clCreateCommandQueueWithProperties.html)；Khronos Group。
 
 ### OpenCV
 
-<a id="ref-7"></a>
-7. OpenCV，[cv::UMat Class Reference](https://docs.opencv.org/4.x/d7/d1e/classcv_1_1UMat.html)。
-<a id="ref-8"></a>
-8. OpenCV，[OpenCL Support in OpenCV Core](https://docs.opencv.org/4.x/dc/d83/group__core__opencl.html)。
-<a id="ref-9"></a>
-9. OpenCV，[cv::ocl::Device Class Reference](https://docs.opencv.org/4.x/d8/d45/classcv_1_1ocl_1_1Device.html)。
-<a id="ref-10"></a>
-10. OpenCV，[OpenCL Optimizations](https://github.com/opencv/opencv/wiki/OpenCL-optimizations)。
-<a id="ref-11"></a>
-11. OpenCV，[OpenCV 3.4.6 Source Tree](https://github.com/opencv/opencv/tree/3.4.6)。
+7. <a id="ref-7"></a> [cv::UMat Class Reference](https://docs.opencv.org/4.x/d7/d1e/classcv_1_1UMat.html)；OpenCV。
+8. <a id="ref-8"></a> [OpenCL Support in OpenCV Core](https://docs.opencv.org/4.x/dc/d83/group__core__opencl.html)；OpenCV。
+9. <a id="ref-9"></a> [cv::ocl::Device Class Reference](https://docs.opencv.org/4.x/d8/d45/classcv_1_1ocl_1_1Device.html)；OpenCV。
+10. <a id="ref-10"></a> [OpenCL Optimizations](https://github.com/opencv/opencv/wiki/OpenCL-optimizations)；OpenCV。
+11. <a id="ref-11"></a> [OpenCV 3.4.6 Source Tree](https://github.com/opencv/opencv/tree/3.4.6)；OpenCV。
 
 ### Android 性能与构建
 
-<a id="ref-12"></a>
-12. Android Developers，[Use CMake with the NDK](https://developer.android.com/ndk/guides/cmake)。
-<a id="ref-13"></a>
-13. Android NDK，[Changelog r18](https://github.com/android/ndk/wiki/Changelog-r18)。
-<a id="ref-14"></a>
-14. Perfetto，[Documentation](https://perfetto.dev/docs/)。
-<a id="ref-15"></a>
-15. Android Developers，[Simpleperf](https://developer.android.com/ndk/guides/simpleperf)。
-<a id="ref-16"></a>
-16. Android Developers，[Thermal Management](https://developer.android.com/games/optimize/adpf/thermal)。
-<a id="ref-17"></a>
-17. Android Developers，[Performance](https://developer.android.com/topic/performance)。
+12. <a id="ref-12"></a> [Use CMake with the NDK](https://developer.android.com/ndk/guides/cmake)；Android Developers。
+13. <a id="ref-13"></a> [Changelog r18](https://github.com/android/ndk/wiki/Changelog-r18)；Android NDK。
+14. <a id="ref-14"></a> [Documentation](https://perfetto.dev/docs/)；Perfetto。
+15. <a id="ref-15"></a> [Simpleperf](https://developer.android.com/ndk/guides/simpleperf)；Android Developers。
+16. <a id="ref-16"></a> [Thermal Management](https://developer.android.com/games/optimize/adpf/thermal)；Android Developers。
+17. <a id="ref-17"></a> [Performance](https://developer.android.com/topic/performance)；Android Developers。
 
 ### KCF 与目标跟踪
 
-<a id="ref-18"></a>
-18. João F. Henriques, Rui Caseiro, Pedro Martins, Jorge Batista, [High-Speed Tracking with Kernelized Correlation Filters](https://ieeexplore.ieee.org/document/6870486), IEEE Transactions on Pattern Analysis and Machine Intelligence, 2015。
-<a id="ref-19"></a>
-19. João F. Henriques et al., [High-Speed Tracking with Kernelized Correlation Filters](https://arxiv.org/abs/1404.7584), arXiv:1404.7584。
-<a id="ref-20"></a>
-20. OpenCV，[Tracking API Reference](https://docs.opencv.org/4.x/dc/d6b/group__tracking.html)。
+18. <a id="ref-18"></a> [High-Speed Tracking with Kernelized Correlation Filters](https://ieeexplore.ieee.org/document/6870486)；João F. Henriques, Rui Caseiro, Pedro Martins, Jorge Batista，IEEE Transactions on Pattern Analysis and Machine Intelligence, 2015。
+19. <a id="ref-19"></a> [High-Speed Tracking with Kernelized Correlation Filters](https://arxiv.org/abs/1404.7584)；João F. Henriques et al.，arXiv:1404.7584。
+20. <a id="ref-20"></a> [Tracking API Reference](https://docs.opencv.org/4.x/dc/d6b/group__tracking.html)；OpenCV。

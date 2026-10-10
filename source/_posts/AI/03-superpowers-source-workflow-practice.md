@@ -599,68 +599,25 @@ Superpowers 最值得学习的地方，是将原本隐含的工程习惯变成�
 
 以下共 22 个核心参考组，其中 18 组是同一项目的一手实现证据，4 组来自外部官方文档。不同源码文件用于支持不同结论，不代表来自 18 个独立机构的交叉验证。每组附带的相关文件用于补全同一论点，不额外计数。
 
-<a id="ref-1"></a>
-- **[[1]](#ref-1)** [README：定位、安装、遥测](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/README.md)。项目组成、各宿主入口与遥测声明；不能证明普遍提效。关联源码：[skills/brainstorming/scripts/server.cjs](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/brainstorming/scripts/server.cjs)。
-
-<a id="ref-2"></a>
-- **[[2]](#ref-2)** [SessionStart hook](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/hooks/session-start)。读取 bootstrap 与 JSON 输出；结合 hooks/hooks.json 核验注册时机。关联源码：[hooks/hooks.json](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/hooks/hooks.json)。
-
-<a id="ref-3"></a>
-- **[[3]](#ref-3)** [Codex 插件 manifest](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/.codex-plugin/plugin.json)。skills 入口与显式空 hooks；不能代表本机安装版本。
-
-<a id="ref-4"></a>
-- **[[4]](#ref-4)** [using-superpowers](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/using-superpowers/SKILL.md)。技能选择、优先级、子任务 bootstrap 豁免。关联源码：[skills/using-superpowers/references/codex-tools.md](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/using-superpowers/references/codex-tools.md)。
-
-<a id="ref-5"></a>
-- **[[5]](#ref-5)** [brainstorming](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/brainstorming/SKILL.md)。三种任务路径与设计阶段产物、审批边界。
-
-<a id="ref-6"></a>
-- **[[6]](#ref-6)** [writing-plans](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/writing-plans/SKILL.md)。计划格式、接口契约、Review Focus 和执行交接。
-
-<a id="ref-7"></a>
-- **[[7]](#ref-7)** [executing-plans](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/executing-plans/SKILL.md)。Native 模式、任务完成条件与最终审查。
-
-<a id="ref-8"></a>
-- **[[8]](#ref-8)** [subagent-driven-development](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/subagent-driven-development/SKILL.md)。控制者、实现者、审查者、修复循环与断路处理。关联源码：[skills/dispatching-parallel-agents/SKILL.md](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/dispatching-parallel-agents/SKILL.md)；[skills/subagent-driven-development/scripts/task-brief](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/subagent-driven-development/scripts/task-brief)；[skills/subagent-driven-development/task-reviewer-prompt.md](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/subagent-driven-development/task-reviewer-prompt.md)。
-
-<a id="ref-9"></a>
-- **[[9]](#ref-9)** [计划工作区与审查包](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/subagent-driven-development/scripts/sdd-workspace)。计划身份、同名冲突隔离；结合 review-package 分析范围检查。关联源码：[skills/subagent-driven-development/scripts/review-package](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/subagent-driven-development/scripts/review-package)。
-
-<a id="ref-10"></a>
-- **[[10]](#ref-10)** [Native task-done](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/executing-plans/scripts/task-done)。运行传入命令、保留日志、成功后追加 ledger 的实现边界。关联源码：[skills/executing-plans/scripts/task-start](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/executing-plans/scripts/task-start)。
-
-<a id="ref-11"></a>
-- **[[11]](#ref-11)** [test-driven-development](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/test-driven-development/SKILL.md)。先观察失败，再最小实现，再运行验证；不能据此推断收益比例。关联源码：[writing-good-tests.md](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/test-driven-development/writing-good-tests.md)。
-
-<a id="ref-12"></a>
-- **[[12]](#ref-12)** [verification-before-completion](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/verification-before-completion/SKILL.md)。完成声明与新鲜证据的对应关系。
-
-<a id="ref-13"></a>
-- **[[13]](#ref-13)** [systematic-debugging](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/systematic-debugging/SKILL.md)。根因调查、模式分析、假设实验和实施。
-
-<a id="ref-14"></a>
-- **[[14]](#ref-14)** [审查、隔离与收尾技能组](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/requesting-code-review/SKILL.md)。审查请求与证据交接；关联 receiving-code-review、using-git-worktrees、finishing-a-development-branch。关联源码：[skills/receiving-code-review/SKILL.md](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/receiving-code-review/SKILL.md)；[skills/using-git-worktrees/SKILL.md](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/using-git-worktrees/SKILL.md)；[skills/finishing-a-development-branch/SKILL.md](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/finishing-a-development-branch/SKILL.md)。
-
-<a id="ref-15"></a>
-- **[[15]](#ref-15)** [diagnosing-superpowers](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/diagnosing-superpowers/SKILL.md)。基于 transcript 的 path:line 取证、报告与导出边界。
-
-<a id="ref-16"></a>
-- **[[16]](#ref-16)** [writing-skills](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/writing-skills/SKILL.md)。描述字段、压力场景、无技能基线与行为回归。
-
-<a id="ref-17"></a>
-- **[[17]](#ref-17)** [Testing Superpowers](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/docs/testing.md)。程序测试与行为评估分层、外部 eval lab 和运行边界。
-
-<a id="ref-18"></a>
-- **[[18]](#ref-18)** [Release Notes](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/RELEASE-NOTES.md)。版本变化；评估数字只作为维护者报告，不能冒称独立复现。
-
-<a id="ref-19"></a>
-- **[[19]](#ref-19)** [Agent Skills — Specification](https://agentskills.io/specification)。SKILL.md 格式与渐进披露；格式兼容不等于各宿主行为一致。
-
-<a id="ref-20"></a>
-- **[[20]](#ref-20)** [OpenAI — Customization / Skills](https://learn.chatgpt.com/docs/customization/overview#skills)。Codex 的元数据发现、按需加载及全局/项目技能位置。
-
-<a id="ref-21"></a>
-- **[[21]](#ref-21)** [Anthropic — Hooks reference](https://code.claude.com/docs/en/hooks)。Claude Code SessionStart 与上下文输出协议；不能泛化到 Codex。
-
-<a id="ref-22"></a>
-- **[[22]](#ref-22)** [Git project — git-worktree](https://git-scm.com/docs/git-worktree)。linked worktree、共享仓库关系和清理语义；worktree 不等于权限沙箱。
+1. <a id="ref-1"></a> [README：定位、安装、遥测](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/README.md)。项目组成、各宿主入口与遥测声明；不能证明普遍提效。关联源码：[skills/brainstorming/scripts/server.cjs](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/brainstorming/scripts/server.cjs)。
+2. <a id="ref-2"></a> [SessionStart hook](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/hooks/session-start)。读取 bootstrap 与 JSON 输出；结合 hooks/hooks.json 核验注册时机。关联源码：[hooks/hooks.json](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/hooks/hooks.json)。
+3. <a id="ref-3"></a> [Codex 插件 manifest](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/.codex-plugin/plugin.json)。skills 入口与显式空 hooks；不能代表本机安装版本。
+4. <a id="ref-4"></a> [using-superpowers](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/using-superpowers/SKILL.md)。技能选择、优先级、子任务 bootstrap 豁免。关联源码：[skills/using-superpowers/references/codex-tools.md](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/using-superpowers/references/codex-tools.md)。
+5. <a id="ref-5"></a> [brainstorming](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/brainstorming/SKILL.md)。三种任务路径与设计阶段产物、审批边界。
+6. <a id="ref-6"></a> [writing-plans](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/writing-plans/SKILL.md)。计划格式、接口契约、Review Focus 和执行交接。
+7. <a id="ref-7"></a> [executing-plans](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/executing-plans/SKILL.md)。Native 模式、任务完成条件与最终审查。
+8. <a id="ref-8"></a> [subagent-driven-development](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/subagent-driven-development/SKILL.md)。控制者、实现者、审查者、修复循环与断路处理。关联源码：[skills/dispatching-parallel-agents/SKILL.md](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/dispatching-parallel-agents/SKILL.md)；[skills/subagent-driven-development/scripts/task-brief](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/subagent-driven-development/scripts/task-brief)；[skills/subagent-driven-development/task-reviewer-prompt.md](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/subagent-driven-development/task-reviewer-prompt.md)。
+9. <a id="ref-9"></a> [计划工作区与审查包](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/subagent-driven-development/scripts/sdd-workspace)。计划身份、同名冲突隔离；结合 review-package 分析范围检查。关联源码：[skills/subagent-driven-development/scripts/review-package](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/subagent-driven-development/scripts/review-package)。
+10. <a id="ref-10"></a> [Native task-done](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/executing-plans/scripts/task-done)。运行传入命令、保留日志、成功后追加 ledger 的实现边界。关联源码：[skills/executing-plans/scripts/task-start](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/executing-plans/scripts/task-start)。
+11. <a id="ref-11"></a> [test-driven-development](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/test-driven-development/SKILL.md)。先观察失败，再最小实现，再运行验证；不能据此推断收益比例。关联源码：[writing-good-tests.md](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/test-driven-development/writing-good-tests.md)。
+12. <a id="ref-12"></a> [verification-before-completion](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/verification-before-completion/SKILL.md)。完成声明与新鲜证据的对应关系。
+13. <a id="ref-13"></a> [systematic-debugging](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/systematic-debugging/SKILL.md)。根因调查、模式分析、假设实验和实施。
+14. <a id="ref-14"></a> [审查、隔离与收尾技能组](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/requesting-code-review/SKILL.md)。审查请求与证据交接；关联 receiving-code-review、using-git-worktrees、finishing-a-development-branch。关联源码：[skills/receiving-code-review/SKILL.md](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/receiving-code-review/SKILL.md)；[skills/using-git-worktrees/SKILL.md](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/using-git-worktrees/SKILL.md)；[skills/finishing-a-development-branch/SKILL.md](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/finishing-a-development-branch/SKILL.md)。
+15. <a id="ref-15"></a> [diagnosing-superpowers](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/diagnosing-superpowers/SKILL.md)。基于 transcript 的 path:line 取证、报告与导出边界。
+16. <a id="ref-16"></a> [writing-skills](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/writing-skills/SKILL.md)。描述字段、压力场景、无技能基线与行为回归。
+17. <a id="ref-17"></a> [Testing Superpowers](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/docs/testing.md)。程序测试与行为评估分层、外部 eval lab 和运行边界。
+18. <a id="ref-18"></a> [Release Notes](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/RELEASE-NOTES.md)。版本变化；评估数字只作为维护者报告，不能冒称独立复现。
+19. <a id="ref-19"></a> [Agent Skills — Specification](https://agentskills.io/specification)。SKILL.md 格式与渐进披露；格式兼容不等于各宿主行为一致。
+20. <a id="ref-20"></a> [OpenAI — Customization / Skills](https://learn.chatgpt.com/docs/customization/overview#skills)。Codex 的元数据发现、按需加载及全局/项目技能位置。
+21. <a id="ref-21"></a> [Anthropic — Hooks reference](https://code.claude.com/docs/en/hooks)。Claude Code SessionStart 与上下文输出协议；不能泛化到 Codex。
+22. <a id="ref-22"></a> [Git project — git-worktree](https://git-scm.com/docs/git-worktree)。linked worktree、共享仓库关系和清理语义；worktree 不等于权限沙箱。

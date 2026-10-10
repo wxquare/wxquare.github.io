@@ -1645,17 +1645,20 @@ Cache Miss: 5-10ms (HDD), 0.1ms (SSD)  ❌
 	WHERE department = 'IT';
 	```
 
-## 推荐阅读:
-- [MySQL索引那些事](https://mp.weixin.qq.com/s?__biz=MzUxNTQyOTIxNA==&mid=2247484041&idx=1&sn=76d3bf1772f9e3c796ad3d8a089220fa&chksm=f9b784b8cec00dae3d52318f6cb2bdee39ad975bf79469b72a499ceca1c5d57db5cbbef914ea&token=2025456560&lang=zh_CN#rd)
-- [MySQL foreign key](https://draveness.me/whys-the-design-database-foreign-key/)
-- [mysql auto increment primary key](https://draveness.me/whys-the-design-mysql-auto-increment/)
-- [SQL语句执行过程详解](https://juejin.cn/post/6844903655439597582?hmsr=joyk.com&utm_source=joyk.com&utm_source=joyk.com&utm_medium=referral%3Fhmsr%3Djoyk.com&utm_medium=referral)
-- MySQL alter table的过程如下： 创建ALTER TABLE目的新表；将老表数据导入新表；删除老表。（https://blog.csdn.net/zhaiwx1987/article/details/6688970）
-- [Mysql on duplicate key update 用法以及优缺点](https://www.cnblogs.com/better-farther-world2099/articles/11737376.html)
-- [mysql upsert](https://stackoverflow.com/questions/6107752/how-to-perform-an-upsert-so-that-i-can-use-both-new-and-old-values-in-update-par)
-- [腾讯面试：一条SQL语句执行得很慢的原因有哪些？---不看后悔系列](https://www.cnblogs.com/kubidemanong/p/10734045.html)
-- [4种MySQL分页查询优化的方法](https://juejin.cn/post/6844903955470745614#heading-6)
-- [怎么处理线上DDL变更?](https://zhuanlan.zhihu.com/p/247939271)
-- [Redis和mysql数据怎么保持数据一致的？](https://coolshell.cn/articles/17416.html) 
-- [MySQL数据库面试题（2020最新版）](https://thinkwon.blog.csdn.net/article/details/104778621)
-- https://cyborg2077.github.io/2023/05/06/InQMySQL/
+<a id="推荐阅读"></a>
+
+## 参考资料
+
+1. <a id="ref-1"></a> [MySQL 索引那些事](https://mp.weixin.qq.com/s?__biz=MzUxNTQyOTIxNA==&mid=2247484041&idx=1&sn=76d3bf1772f9e3c796ad3d8a089220fa&chksm=f9b784b8cec00dae3d52318f6cb2bdee39ad975bf79469b72a499ceca1c5d57db5cbbef914ea&token=2025456560&lang=zh_CN#rd)
+2. <a id="ref-2"></a> [MySQL foreign key](https://draveness.me/whys-the-design-database-foreign-key/)
+3. <a id="ref-3"></a> [MySQL auto increment primary key](https://draveness.me/whys-the-design-mysql-auto-increment/)
+4. <a id="ref-4"></a> [SQL 语句执行过程详解](https://juejin.cn/post/6844903655439597582?hmsr=joyk.com&utm_source=joyk.com&utm_source=joyk.com&utm_medium=referral%3Fhmsr%3Djoyk.com&utm_medium=referral)
+5. <a id="ref-5"></a> [MySQL ALTER TABLE 的执行过程](https://blog.csdn.net/zhaiwx1987/article/details/6688970)：创建 ALTER TABLE 目的新表；将老表数据导入新表；删除老表。
+6. <a id="ref-6"></a> [MySQL ON DUPLICATE KEY UPDATE 用法以及优缺点](https://www.cnblogs.com/better-farther-world2099/articles/11737376.html)
+7. <a id="ref-7"></a> [MySQL UPSERT](https://stackoverflow.com/questions/6107752/how-to-perform-an-upsert-so-that-i-can-use-both-new-and-old-values-in-update-par)
+8. <a id="ref-8"></a> [腾讯面试：一条 SQL 语句执行得很慢的原因有哪些？](https://www.cnblogs.com/kubidemanong/p/10734045.html)
+9. <a id="ref-9"></a> [4 种 MySQL 分页查询优化的方法](https://juejin.cn/post/6844903955470745614#heading-6)
+10. <a id="ref-10"></a> [怎么处理线上 DDL 变更？](https://zhuanlan.zhihu.com/p/247939271)
+11. <a id="ref-11"></a> [Redis 和 MySQL 数据怎么保持一致？](https://coolshell.cn/articles/17416.html)
+12. <a id="ref-12"></a> [MySQL 数据库面试题（2020 最新版）](https://thinkwon.blog.csdn.net/article/details/104778621)
+13. <a id="ref-13"></a> [MySQL 问题与实践整理](https://cyborg2077.github.io/2023/05/06/InQMySQL/)

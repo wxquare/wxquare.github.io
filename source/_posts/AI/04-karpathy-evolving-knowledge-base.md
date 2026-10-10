@@ -923,38 +923,25 @@ Karpathy 的系统已经到了 **Level 3**，正在向 **Level 4** 演进。
 
 ### Karpathy 的相关项目
 
-<a id="ref-1"></a>
-- 1. [CS231n](http://cs231n.stanford.edu/)：Stanford 深度学习课程
-<a id="ref-2"></a>
-- 2. [nanoGPT](https://github.com/karpathy/nanoGPT)：最小化的 GPT 实现
-<a id="ref-3"></a>
-- 3. [minGPT](https://github.com/karpathy/minGPT)：教学用 GPT
-<a id="ref-4"></a>
-- 4. [llm.c](https://github.com/karpathy/llm.c)：纯 C 实现的 GPT-2
+1. <a id="ref-1"></a> [CS231n](http://cs231n.stanford.edu/)：Stanford 深度学习课程
+2. <a id="ref-2"></a> [nanoGPT](https://github.com/karpathy/nanoGPT)：最小化的 GPT 实现
+3. <a id="ref-3"></a> [minGPT](https://github.com/karpathy/minGPT)：教学用 GPT
+4. <a id="ref-4"></a> [llm.c](https://github.com/karpathy/llm.c)：纯 C 实现的 GPT-2
 
 ### 推荐工具
 
-<a id="ref-5"></a>
-- 5. [Obsidian](https://obsidian.md/)：本地优先的知识库
-<a id="ref-6"></a>
-- 6. [Obsidian Web Clipper](https://obsidian.md/clipper)：网页保存
-<a id="ref-7"></a>
-- 7. [Marp](https://marp.app/)：Markdown 转幻灯片
-<a id="ref-8"></a>
-- 8. [Anthropic Claude](https://www.anthropic.com/)：强大的 LLM
+5. <a id="ref-5"></a> [Obsidian](https://obsidian.md/)：本地优先的知识库
+6. <a id="ref-6"></a> [Obsidian Web Clipper](https://obsidian.md/clipper)：网页保存
+7. <a id="ref-7"></a> [Marp](https://marp.app/)：Markdown 转幻灯片
+8. <a id="ref-8"></a> [Anthropic Claude](https://www.anthropic.com/)：强大的 LLM
 
 ### 相关概念
 
-<a id="ref-9"></a>
-- 9. Personal Knowledge Management (PKM)
-<a id="ref-10"></a>
-- 10. Zettelkasten 方法
-<a id="ref-11"></a>
-- 11. Building a Second Brain
-<a id="ref-12"></a>
-- 12. RAG (Retrieval-Augmented Generation)
-<a id="ref-13"></a>
-- 13. Knowledge Graphs
+9. <a id="ref-9"></a> Personal Knowledge Management (PKM)
+10. <a id="ref-10"></a> Zettelkasten 方法
+11. <a id="ref-11"></a> Building a Second Brain
+12. <a id="ref-12"></a> RAG (Retrieval-Augmented Generation)
+13. <a id="ref-13"></a> Knowledge Graphs
 
 ---
 

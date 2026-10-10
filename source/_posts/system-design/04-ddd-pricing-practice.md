@@ -1006,64 +1006,38 @@ DDD 的主线是把业务知识变成共同语言、明确边界和可执行模�
 
 ### DDD 原典与模式
 
-<a id="ref-1"></a>
-1. Eric Evans；*Domain-Driven Design*（2003）— https://www.domainlanguage.com/ddd/
-<a id="ref-2"></a>
-2. Vaughn Vernon；*Implementing Domain-Driven Design*（2013）— https://vaughnvernon.com/
-<a id="ref-3"></a>
-3. Vaughn Vernon；*IDDD Samples*（持续维护）— https://github.com/VaughnVernon/IDDD_Samples
-<a id="ref-4"></a>
-4. Martin Fowler；*Patterns of Enterprise Application Architecture*（2002）— https://martinfowler.com/eaaCatalog.html
-<a id="ref-5"></a>
-5. Martin Fowler；Bounded Context（2014）— https://martinfowler.com/bliki/BoundedContext.html
-<a id="ref-6"></a>
-6. Martin Fowler；Domain-Driven Design（2006）— https://martinfowler.com/bliki/DomainDrivenDesign.html
-<a id="ref-7"></a>
-7. Martin Fowler；Domain Model（2003）— https://martinfowler.com/eaaDev/DomainModel.html
-<a id="ref-8"></a>
-8. Martin Fowler；Event Sourcing（2005）— https://martinfowler.com/eaaDev/EventSourcing.html
+1. <a id="ref-1"></a> [Domain-Driven Design](https://www.domainlanguage.com/ddd/)；Eric Evans，2003。
+2. <a id="ref-2"></a> [Implementing Domain-Driven Design](https://vaughnvernon.com/)；Vaughn Vernon，2013。
+3. <a id="ref-3"></a> [IDDD Samples](https://github.com/VaughnVernon/IDDD_Samples)；Vaughn Vernon，持续维护。
+4. <a id="ref-4"></a> [Patterns of Enterprise Application Architecture](https://martinfowler.com/eaaCatalog.html)；Martin Fowler，2002。
+5. <a id="ref-5"></a> [Bounded Context](https://martinfowler.com/bliki/BoundedContext.html)；Martin Fowler，2014。
+6. <a id="ref-6"></a> [Domain-Driven Design](https://martinfowler.com/bliki/DomainDrivenDesign.html)；Martin Fowler，2006。
+7. <a id="ref-7"></a> [Domain Model](https://martinfowler.com/eaaDev/DomainModel.html)；Martin Fowler，2003。
+8. <a id="ref-8"></a> [Event Sourcing](https://martinfowler.com/eaaDev/EventSourcing.html)；Martin Fowler，2005。
 
 ### 架构与集成
 
-<a id="ref-9"></a>
-9. Martin Fowler；Event-Driven Architecture（2017）— https://martinfowler.com/articles/201701-event-driven.html
-<a id="ref-10"></a>
-10. Martin Fowler；Event Storming（2018）— https://martinfowler.com/bliki/EventStorming.html
-<a id="ref-11"></a>
-11. Alberto Brandolini；EventStorming（持续维护）— https://www.eventstorming.com/
-<a id="ref-12"></a>
-12. Gregor Hohpe、Bobby Woolf；*Enterprise Integration Patterns*（2003）— https://www.enterpriseintegrationpatterns.com/
-<a id="ref-13"></a>
-13. Chris Richardson；*Microservices Patterns*（2018）— https://microservices.io/
-<a id="ref-14"></a>
-14. Chris Richardson；CQRS pattern（持续维护）— https://microservices.io/patterns/data/cqrs.html
-<a id="ref-15"></a>
-15. Chris Richardson；Transactional Outbox（持续维护）— https://microservices.io/patterns/data/transactional-outbox.html
-<a id="ref-16"></a>
-16. Martin Fowler；*Patterns of Distributed Systems*（持续维护）— https://martinfowler.com/articles/patterns-of-distributed-systems/
+9. <a id="ref-9"></a> [Event-Driven Architecture](https://martinfowler.com/articles/201701-event-driven.html)；Martin Fowler，2017。
+10. <a id="ref-10"></a> [Event Storming](https://martinfowler.com/bliki/EventStorming.html)；Martin Fowler，2018。
+11. <a id="ref-11"></a> [EventStorming](https://www.eventstorming.com/)；Alberto Brandolini，持续维护。
+12. <a id="ref-12"></a> [Enterprise Integration Patterns](https://www.enterpriseintegrationpatterns.com/)；Gregor Hohpe、Bobby Woolf，2003。
+13. <a id="ref-13"></a> [Microservices Patterns](https://microservices.io/)；Chris Richardson，2018。
+14. <a id="ref-14"></a> [CQRS pattern](https://microservices.io/patterns/data/cqrs.html)；Chris Richardson，持续维护。
+15. <a id="ref-15"></a> [Transactional Outbox](https://microservices.io/patterns/data/transactional-outbox.html)；Chris Richardson，持续维护。
+16. <a id="ref-16"></a> [Patterns of Distributed Systems](https://martinfowler.com/articles/patterns-of-distributed-systems/)；Martin Fowler，持续维护。
 
 ### 云原生与规范
 
-<a id="ref-17"></a>
-17. Microsoft Azure；Microservices architecture（持续维护）— https://learn.microsoft.com/en-us/azure/architecture/guide/architecture-styles/microservices
-<a id="ref-18"></a>
-18. Microsoft Azure；CQRS pattern（持续维护）— https://learn.microsoft.com/en-us/azure/architecture/patterns/cqrs
-<a id="ref-19"></a>
-19. Microsoft Azure；Domain analysis for microservices（持续维护）— https://learn.microsoft.com/en-us/azure/architecture/microservices/model/domain-analysis
-<a id="ref-20"></a>
-20. AWS；Builders’ Library（持续维护）— https://aws.amazon.com/builders-library/
-<a id="ref-21"></a>
-21. CloudEvents Community；CloudEvents Specification（1.0）— https://cloudevents.io/
-<a id="ref-22"></a>
-22. AsyncAPI Initiative；AsyncAPI Specification（3.0）— https://www.asyncapi.com/docs
-<a id="ref-23"></a>
-23. OpenAPI Initiative；OpenAPI Specification（3.1.0）— https://spec.openapis.org/oas/v3.1.0.html
-<a id="ref-24"></a>
-24. IETF；RFC 9457 Problem Details（2023）— https://www.rfc-editor.org/rfc/rfc9457.html
+17. <a id="ref-17"></a> [Microservices architecture](https://learn.microsoft.com/en-us/azure/architecture/guide/architecture-styles/microservices)；Microsoft Azure，持续维护。
+18. <a id="ref-18"></a> [CQRS pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/cqrs)；Microsoft Azure，持续维护。
+19. <a id="ref-19"></a> [Domain analysis for microservices](https://learn.microsoft.com/en-us/azure/architecture/microservices/model/domain-analysis)；Microsoft Azure，持续维护。
+20. <a id="ref-20"></a> [Builders’ Library](https://aws.amazon.com/builders-library/)；AWS，持续维护。
+21. <a id="ref-21"></a> [CloudEvents Specification](https://cloudevents.io/)；CloudEvents Community，1.0。
+22. <a id="ref-22"></a> [AsyncAPI Specification](https://www.asyncapi.com/docs)；AsyncAPI Initiative，3.0。
+23. <a id="ref-23"></a> [OpenAPI Specification](https://spec.openapis.org/oas/v3.1.0.html)；OpenAPI Initiative，3.1.0。
+24. <a id="ref-24"></a> [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457.html)；IETF，2023。
 
 ### 计价、货币与数据语义
 
-<a id="ref-25"></a>
-25. ISO；ISO 4217 currency codes（持续维护）— https://www.iso.org/iso-4217-currency-codes.html
-<a id="ref-26"></a>
-26. Martin Kleppmann；*Designing Data-Intensive Applications*（2017）— https://dataintensive.net/
+25. <a id="ref-25"></a> [ISO 4217 currency codes](https://www.iso.org/iso-4217-currency-codes.html)；ISO，持续维护。
+26. <a id="ref-26"></a> [Designing Data-Intensive Applications](https://dataintensive.net/)；Martin Kleppmann，2017。
