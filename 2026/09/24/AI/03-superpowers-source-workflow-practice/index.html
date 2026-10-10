@@ -21,7 +21,7 @@
 
     <meta name="description" content="基于 Superpowers v6.4.1 源码，系统解释技能发现、宿主适配、Native 与子 Agent 执行、进度恢复和验证机制，并用幂等接口案例串起日常实践。">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Superpowers 深度解析：从技能发现、工程流程到 Agent 实战">
+<meta property="og:title" content="Superpowers 源码解析：技能发现机制与开发流程约束">
 <meta property="og:url" content="https://wxquare.github.io/2026/09/24/AI/03-superpowers-source-workflow-practice/index.html">
 <meta property="og:site_name" content="wxquare&#39;s Blogs">
 <meta property="og:description" content="基于 Superpowers v6.4.1 源码，系统解释技能发现、宿主适配、Native 与子 Agent 执行、进度恢复和验证机制，并用幂等接口案例串起日常实践。">
@@ -30,7 +30,7 @@
 <meta property="og:image" content="https://wxquare.github.io/diagrams/superpowers/discovery.svg">
 <meta property="og:image" content="https://wxquare.github.io/diagrams/superpowers/lifecycle.svg">
 <meta property="article:published_time" content="2026-09-24T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-10-09T11:15:05.911Z">
+<meta property="article:modified_time" content="2026-10-10T01:54:54.689Z">
 <meta property="article:author" content="wxquare">
 <meta property="article:tag" content="claude-code">
 <meta property="article:tag" content="agent-workflow">
@@ -45,10 +45,10 @@
 
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"https://wxquare.github.io/2026/09/24/AI/03-superpowers-source-workflow-practice/","path":"/2026/09/24/AI/03-superpowers-source-workflow-practice/","title":"Superpowers 深度解析：从技能发现、工程流程到 Agent 实战"}</script>
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"https://wxquare.github.io/2026/09/24/AI/03-superpowers-source-workflow-practice/","path":"/2026/09/24/AI/03-superpowers-source-workflow-practice/","title":"Superpowers 源码解析：技能发现机制与开发流程约束"}</script>
 
 <script class="next-config" data-name="calendar" type="application/json">""</script>
-<title>Superpowers 深度解析：从技能发现、工程流程到 Agent 实战 | wxquare's Blogs</title>
+<title>Superpowers 源码解析：技能发现机制与开发流程约束 | wxquare's Blogs</title>
   
 
 
@@ -236,12 +236,12 @@
     </span>
 
     <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="Superpowers 深度解析：从技能发现、工程流程到 Agent 实战 | wxquare's Blogs">
+      <meta itemprop="name" content="Superpowers 源码解析：技能发现机制与开发流程约束 | wxquare's Blogs">
       <meta itemprop="description" content="基于 Superpowers v6.4.1 源码，系统解释技能发现、宿主适配、Native 与子 Agent 执行、进度恢复和验证机制，并用幂等接口案例串起日常实践。">
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          Superpowers 深度解析：从技能发现、工程流程到 Agent 实战
+          Superpowers 源码解析：技能发现机制与开发流程约束
         </h1>
 
         <div class="post-meta-container">
@@ -259,7 +259,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-10-09 11:15:05" itemprop="dateModified" datetime="2026-10-09T11:15:05+00:00">2026-10-09</time>
+      <time title="Modified: 2026-10-10 01:54:54" itemprop="dateModified" datetime="2026-10-10T01:54:54+00:00">2026-10-10</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -283,7 +283,7 @@
     
     <div class="post-body" itemprop="articleBody"><p>经常使用编码 Agent 后，真正让人疲惫的事情往往不是它不会写某段代码，而是它在需求还不明确时就开始实现，修改之后只运行最容易通过的测试，或者在长会话里重新做一遍已经完成的工作。模型有能力完成局部任务，并不意味着它会自动采用可靠的交付过程。</p>
 <p><a href="https://github.com/obra/superpowers">Superpowers</a> 把需求澄清、设计、计划、测试、审查和交付组织成一组可组合技能。要用好它，需要理解技能如何进入上下文、不同阶段靠什么产物衔接，以及哪些规则只是模型需要遵守的指令，哪些已经变成脚本中的检查。<a href="#ref-1">[1]</a></p>
-<p>本文面向已经使用过编码 Agent、了解 Git 与自动化测试的开发者。先沿源码认识组成与机制，再通过一个明确标注的教学案例走完整个过程。如果还在比较不同 Agent 的定位，可以先读 <a href="/2026/09/23/AI/01-ai-agent-workflow-practice/" title="AI Agent 工作流实践：从 Claude Code、Codex 到 OpenClaw、Hermes 与 DeepSeek">AI Agent 工作流实践</a>；这里集中讨论 Superpowers 本身。</p>
+<p>本文面向已经使用过编码 Agent、了解 Git 与自动化测试的开发者。先沿源码认识组成与机制，再通过一个明确标注的教学案例走完整个过程。如果还在比较不同 Agent 的定位，可以先读 <a href="/2026/09/23/AI/01-ai-agent-workflow-practice/" title="AI Agent 工作流：工具选型、模型路由与验证闭环">AI Agent 工作流实践</a>；这里集中讨论 Superpowers 本身。</p>
 <blockquote>
 <p><strong>研究基线</strong>：Superpowers <strong>v6.4.1</strong>，提交 <code>5bf4e78011075bcfc0dc295f0724994cd123ee71</code>，资料核验日期为 <strong>2026-09-24</strong>。源码结论对应这个固定快照，不自动代表你已安装的副本。案例是设计演示，不是线上经验或已运行实验；文中不给出未经测量的效率提升比例。</p>
 </blockquote>
@@ -959,8 +959,8 @@
 
           <div class="post-nav">
             <div class="post-nav-item">
-                <a href="/2026/09/23/AI/01-ai-agent-workflow-practice/" rel="prev" title="AI Agent 工作流实践：从 Claude Code、Codex 到 OpenClaw、Hermes 与 DeepSeek">
-                  <i class="fa fa-angle-left"></i> AI Agent 工作流实践：从 Claude Code、Codex 到 OpenClaw、Hermes 与 DeepSeek
+                <a href="/2026/09/23/AI/01-ai-agent-workflow-practice/" rel="prev" title="AI Agent 工作流：工具选型、模型路由与验证闭环">
+                  <i class="fa fa-angle-left"></i> AI Agent 工作流：工具选型、模型路由与验证闭环
                 </a>
             </div>
             <div class="post-nav-item">
