@@ -12,11 +12,17 @@ wxquare 的技术知识库，聚焦可靠系统设计、复杂业务架构与 AI
 
 ## 精选博客
 
+### 最近新增
+
+- {% post_link system-design/08-ddia-reading-data-systems %}
+- {% post_link other/04-future-predictions-career-opportunities %}
+- {% post_link system-design/07-engineering-diagrams-ai-workflow %}
+- {% post_link AI/03-superpowers-source-workflow-practice %}
+- {% post_link AI/02-ai-agent-workflow-practice %}
+
 ### AI 工程与 Agent
 
 - {% post_link AI/01-vibe-coding-vs-spec-coding %}
-- {% post_link AI/02-ai-agent-workflow-practice %}
-- {% post_link AI/03-superpowers-source-workflow-practice %}
 - {% post_link other/03-ecommerce-agent-research-report %}
 - {% post_link AI/07-tensorflow-model-optimization %}
 - {% post_link AI/08-tvm-operator-optimization-practice %}
@@ -30,7 +36,6 @@ wxquare 的技术知识库，聚焦可靠系统设计、复杂业务架构与 AI
 - {% post_link system-design/03-clean-code-practice %}
 - {% post_link system-design/05-architecture-code-review-checklist %}
 - {% post_link system-design/06-system-reliability-engineering %}
-- {% post_link system-design/07-engineering-diagrams-ai-workflow %}
 
 ## 持续编写的书稿
 
