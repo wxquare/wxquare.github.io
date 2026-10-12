@@ -11,7 +11,7 @@ tags:
   - 架构设计
   - checklist
   - clean-architecture
-  - ddd
+  - DDD
   - cqrs
   - clean-code
 toc: true
@@ -23,7 +23,7 @@ toc: true
 
 然而，「随便看看」式的评审往往流于表面：有人只看风格，有人只看有没有明显 bug，有人被 diff 的噪声淹没。结果是：架构层面的失误晚到无法廉价修正，设计层面的模糊在代码里被放大成技术债，上线前才发现性能或可观测性缺口。要对抗这种随机性，需要**分阶段、可重复的 Checklist**：在正确的时机问正确的问题。
 
-本文提供一套按评审阶段组织的清单，建议你**按顺序走完四个阶段**，而不是在单次 PR 里眉毛胡子一把抓：
+本文把架构、领域建模与读写职责的设计原则转换为评审问题；清单中的阶段划分和发布检查是本文整理的工程流程。建议按风险使用四个阶段，避免在单次 PR 中混合所有问题：
 
 1. **架构评审**：新项目或新模块启动时，先确认分层、边界、读写路径与技术选型是否站得住脚。
 2. **设计评审**：详设与接口冻结阶段，检查聚合、命令查询、事件与模式选型是否与领域一致。
@@ -79,6 +79,8 @@ flowchart LR
 
 ### 分层结构
 
+Clean Architecture 的依赖规则要求源码依赖指向内侧策略，运行时调用方向可以通过接口反转。[[1]](#ref-1)
+
 **标准**：是否明确定义 **Domain / Application / Adapter / Infrastructure**（或等价四层）？源代码依赖是否**一律指向内层**（Domain 为最内），外层通过接口向内依赖？
 
 **反例（违反依赖方向）**：HTTP Handler 直接 `import` 具体 MySQL 驱动或 ORM 包，绕过应用服务与领域端口。
@@ -123,6 +125,8 @@ func (h *PlaceOrderHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 ---
 
 ### Bounded Context 划分
+
+DDD 用统一语言与限界上下文限定模型的含义和适用范围；本节据此检查术语、规则所有权与跨边界契约。[[2]](#ref-2)
 
 **标准**：是否识别 **核心域、支撑域、通用域**？每个 BC 是否有清晰的 **Ubiquitous Language** 与对外契约（API / 事件），避免「一个大而全的领域模型」?
 
@@ -184,6 +188,8 @@ func SaveOrderAndDeductStock(ctx context.Context, tx *sql.Tx, o *Order, inv *Inv
 ---
 
 ### 读写路径评估
+
+Fowler 对 CQRS 的说明强调读写模型分离的收益和额外复杂度，应按具体领域与负载评估。[[3]](#ref-3) 本节据此要求提供读写优化与投影治理的证据。
 
 **标准**：是否量化 **读写比**、延迟与一致性要求？读路径若存在重 JOIN、宽表、复杂筛选，是否考虑 **独立读模型 / 投影**，而不是全部堆在写模型上？
 
@@ -1016,17 +1022,11 @@ func TestPlaceOrder_OutOfStock(t *testing.T) {
 
 ## 参考资料
 
-### 站内文章
+1. <a id="ref-1"></a> [The Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)；Robert C. Martin，2012；依赖规则与边界说明。
 
-1. <a id="ref-1"></a> {% post_link system-design/02-clean-architecture-ddd-cqrs %}
-2. <a id="ref-2"></a> {% post_link system-design/03-clean-code-practice %}
-3. <a id="ref-3"></a> {% post_link system-design/04-ddd-pricing-practice %}
+2. <a id="ref-2"></a> [Domain-Driven Design: Tackling Complexity in the Heart of Software](https://www.domainlanguage.com/ddd/)；Eric Evans，2003；作者机构的 DDD 资料入口。
 
-### 外部资料
-
-4. <a id="ref-4"></a> *Clean Architecture: A Craftsman's Guide to Software Structure and Design*；Robert C. Martin。
-5. <a id="ref-5"></a> *Domain-Driven Design: Tackling Complexity in the Heart of Software*；Eric Evans。
-6. <a id="ref-6"></a> [CQRS](https://martinfowler.com/bliki/CQRS.html)；Martin Fowler，（模式概述与适用边界）。
+3. <a id="ref-3"></a> [CQRS](https://martinfowler.com/bliki/CQRS.html)；Martin Fowler，2011；读写模型分离与适用边界。
 
 ---
 

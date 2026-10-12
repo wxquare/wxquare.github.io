@@ -7,7 +7,7 @@ categories:
   - 系统设计基础
 tags:
   - domain-driven-design
-  - ddd
+  - DDD
   - e-commerce
   - pricing
   - system-design
@@ -35,7 +35,7 @@ toc: true
 ## 为什么需要领域驱动设计
 
 
-DDD 处理的不是代码行数，而是业务知识在多人、多系统和长期变化中不断丢失的问题。[Eric Evans 的 Domain-Driven Design](https://www.domainlanguage.com/ddd/) 把模型、语言与实现放在同一条反馈回路里；[Fowler 对 Domain-Driven Design 的概述](https://martinfowler.com/bliki/DomainDrivenDesign.html) 也强调复杂领域与模型之间的联系。所谓“驱动”，指需求讨论、代码命名、边界划分和测试断言都接受领域模型约束，而不是建模结束后再把图放进文档。
+DDD 处理的不是代码行数，而是业务知识在多人、多系统和长期变化中不断丢失的问题。Eric Evans 的 Domain-Driven Design [[1]](#ref-1) 把模型、语言与实现放在同一条反馈回路里；Fowler 对 Domain-Driven Design 的概述 [[2]](#ref-2) 也强调复杂领域与模型之间的联系。所谓“驱动”，指需求讨论、代码命名、边界划分和测试断言都接受领域模型约束，而不是建模结束后再把图放进文档。
 
 ### 从变化成本识别真正的问题
 
@@ -53,7 +53,7 @@ DDD 处理的不是代码行数，而是业务知识在多人、多系统和长�
 
 战略设计回答哪里使用哪套模型、团队如何协作；战术设计回答边界内部如何表达身份、值、不变量和事实。只做战略设计会留下漂亮边界图，却没有代码约束；只做战术设计会出现大量实体和值对象，却继续共享数据库和模糊语言。本文先建立通用原则，再把每个原则映射到计价请求、规则、报价和订单衔接。
 
-DDD 不强制采用特定分布式架构。[Richardson 的 CQRS pattern](https://microservices.io/patterns/data/cqrs.html) 适用于读写模型确有不同需求的场景；[Fowler 对 Event Sourcing 的说明](https://martinfowler.com/eaaDev/EventSourcing.html) 讨论用事件重建状态的代价与能力；[Microsoft 的 Microservices architecture 指南](https://learn.microsoft.com/en-us/azure/architecture/guide/architecture-styles/microservices) 则描述独立部署边界。CQRS、事件溯源和微服务都不是 DDD 的必选项：模块化单体、普通状态存储和同一读写模型完全可以承载成熟的领域模型。
+DDD 不强制采用特定分布式架构。Richardson 的 CQRS pattern [[3]](#ref-3) 适用于读写模型确有不同需求的场景；Fowler 对 Event Sourcing 的说明 [[4]](#ref-4) 讨论用事件重建状态的代价与能力；Microsoft 的 Microservices architecture 指南 [[5]](#ref-5) 则描述独立部署边界。CQRS、事件溯源和微服务都不是 DDD 的必选项：模块化单体、普通状态存储和同一读写模型完全可以承载成熟的领域模型。
 
 ### 什么时候不应重投入
 
@@ -119,7 +119,7 @@ DDD 不强制采用特定分布式架构。[Richardson 的 CQRS pattern](https:/
 ## 领域驱动设计的核心概念
 
 
-领域模型需要一组分工清楚的构件，而不是一套类名清单。[Fowler 对 Bounded Context 的说明](https://martinfowler.com/bliki/BoundedContext.html) 指出模型只在明确边界内成立；[Fowler 对 Domain Model 的说明](https://martinfowler.com/eaaDev/DomainModel.html) 则解释了数据与行为共同表达业务规则的意义。下面每个概念都按定义、计价映射、边界和失败信号展开。
+领域模型需要一组分工清楚的构件，而不是一套类名清单。Fowler 对 Bounded Context 的说明 [[6]](#ref-6) 指出模型只在明确边界内成立；Fowler 对 Domain Model 的说明 [[7]](#ref-7) 则解释了数据与行为共同表达业务规则的意义。下面每个概念都按定义、计价映射、边界和失败信号展开。
 
 ### 统一语言先于类型设计
 
@@ -140,14 +140,14 @@ DDD 不强制采用特定分布式架构。[Richardson 的 CQRS pattern](https:/
 
 值对象由完整取值决定相等性，没有独立生命周期，适合设计为不可变。它在构造时校验合法性，让非法状态难以进入模型。
 
-在计价域中，Money、Currency、RulePeriod、Quantity 和 Percentage 都应在边界处拒绝非法值，并提供具有业务语义的运算。这个映射不是为了给旧代码换一组名词，而是为了回答“谁作决定、哪些状态必须一起成立、变化被限制在哪里”。[ISO 4217 currency codes](https://www.iso.org/iso-4217-currency-codes.html) 提供币种代码语义，但精度、舍入和现金最小单位仍需业务政策明确。
+在计价域中，Money、Currency、RulePeriod、Quantity 和 Percentage 都应在边界处拒绝非法值，并提供具有业务语义的运算。这个映射不是为了给旧代码换一组名词，而是为了回答“谁作决定、哪些状态必须一起成立、变化被限制在哪里”。ISO 4217 currency codes [[8]](#ref-8) 提供币种代码语义，但精度、舍入和现金最小单位仍需业务政策明确。
 
 评审时可以用一个反向问题检验模型：两个实例取值相同后，业务是否关心它们分别是谁。如果答案依赖调用顺序、共享表或某位同事的经验，模型仍然没有把知识说清楚。常见失败信号是：用 float64 表示钱、到处传裸字符串币种，或允许构造后任意修改内部字段。
 
 
 ### 聚合：定义一致性与修改入口
 
-聚合是一组需要共同守护不变量的对象，聚合根是外部修改它们的唯一入口。[Vernon 的聚合讨论与实现资料](https://vaughnvernon.com/) 强调小聚合和按业务规则划边界。
+聚合是一组需要共同守护不变量的对象，聚合根是外部修改它们的唯一入口。Vernon 的聚合讨论与实现资料 [[9]](#ref-9) 强调小聚合和按业务规则划边界。
 
 在计价域中，报价聚合维护输入版本、调整明细、应付总额与状态，保证分项之和等于总额、币种一致且已接受报价不可被重写。这个映射不是为了给旧代码换一组名词，而是为了回答“谁作决定、哪些状态必须一起成立、变化被限制在哪里”。聚合外只保存根的标识，跨聚合变化通过应用编排或事件完成，不能为了“方便一次保存”把商品、用户和订单装进报价。
 
@@ -165,7 +165,7 @@ DDD 不强制采用特定分布式架构。[Richardson 的 CQRS pattern](https:/
 
 ### 仓储：用集合语义隔离持久化
 
-仓储让应用以领域语言取得和保存聚合。[Fowler 的企业应用架构模式目录](https://martinfowler.com/eaaCatalog.html) 给出 Repository 与 Data Mapper 等模式的关系。
+仓储让应用以领域语言取得和保存聚合。Fowler 的企业应用架构模式目录 [[10]](#ref-10) 给出 Repository 与 Data Mapper 等模式的关系。
 
 在计价域中，QuoteRepository 按 quoteId 取得报价并以乐观版本保存，调用方无需知道使用 SQL、文档库还是缓存。这个映射不是为了给旧代码换一组名词，而是为了回答“谁作决定、哪些状态必须一起成立、变化被限制在哪里”。接口放在需要它的内层，查询条件围绕业务用例；跨聚合报表不必强迫仓储返回完整领域对象。
 
@@ -174,7 +174,7 @@ DDD 不强制采用特定分布式架构。[Richardson 的 CQRS pattern](https:/
 
 ### 领域事件：命名已经发生的事实
 
-领域事件记录模型中已经发生且其他参与者关心的事实。[Fowler 对事件驱动架构的分类](https://martinfowler.com/articles/201701-event-driven.html) 提醒团队区分通知、状态转移和事件携带状态。
+领域事件记录模型中已经发生且其他参与者关心的事实。Fowler 对事件驱动架构的分类 [[11]](#ref-11) 提醒团队区分通知、状态转移和事件携带状态。
 
 在计价域中，QuoteAccepted 表示订单已经接受某个报价，它可以触发订单快照、预算记账或分析投影，但事件本身不命令消费者必须怎样实现。这个映射不是为了给旧代码换一组名词，而是为了回答“谁作决定、哪些状态必须一起成立、变化被限制在哪里”。领域事件先服务边界内的表达；跨上下文发布前可转换为稳定、最小且版本化的集成事件。
 
@@ -232,11 +232,11 @@ DDD 不强制采用特定分布式架构。[Richardson 的 CQRS pattern](https:/
 ## 战略设计：划分业务边界
 
 
-战略设计的产物不是服务列表，而是业务能力、语言边界、数据所有权和协作关系。[Microsoft 的 DDD 领域分析指南](https://learn.microsoft.com/en-us/azure/architecture/microservices/model/domain-analysis) 提供从业务能力识别模型边界的工程视角。对计价来说，目标是避免“价格”成为所有上下文都能改写的共享概念。
+战略设计的产物不是服务列表，而是业务能力、语言边界、数据所有权和协作关系。Microsoft 的 DDD 领域分析指南 [[12]](#ref-12) 提供从业务能力识别模型边界的工程视角。对计价来说，目标是避免“价格”成为所有上下文都能改写的共享概念。
 
 ### 从事件时间线发现决策边界
 
-工作坊先让业务参与者按时间写出事实，再补充触发事实的命令、作出决定的角色、外部政策与热点问题。[Fowler 的 Event Storming 条目](https://martinfowler.com/bliki/EventStorming.html) 与 [Brandolini 的 EventStorming 官方站点](https://www.eventstorming.com/) 都把领域事件作为探索业务流程的入口。计价链路可从“商品已选定、候选优惠已取得、报价已计算、报价已接受、订单已创建、退款已完成”开始，而不是先画已有服务。
+工作坊先让业务参与者按时间写出事实，再补充触发事实的命令、作出决定的角色、外部政策与热点问题。Fowler 的 Event Storming 条目 [[13]](#ref-13) 与 Brandolini 的 EventStorming 官方站点 [[14]](#ref-14) 都把领域事件作为探索业务流程的入口。计价链路可从“商品已选定、候选优惠已取得、报价已计算、报价已接受、订单已创建、退款已完成”开始，而不是先画已有服务。
 
 事件之间的规则密集处往往是核心决策边界，语言突然变化处往往是上下文边界。例如“规则命中”属于营销与计价协作，“报价接受”把可变建议转成订单承诺，“支付扣款”则进入支付上下文。边界不是由一次会议永久确定；事故、组织调整和新业务都会提供修正证据。
 
@@ -330,7 +330,7 @@ DDD 不强制采用特定分布式架构。[Richardson 的 CQRS pattern](https:/
 ## 战术设计：构建领域模型
 
 
-战术设计把战略边界变成代码可以守护的约束。[Vernon 的 Implementing Domain-Driven Design](https://vaughnvernon.com/) 对聚合、领域事件和上下文集成给出系统化实践；可运行示例可参考 [Vaughn Vernon 维护的 IDDD Samples](https://github.com/VaughnVernon/IDDD_Samples)。下面不重复定义清单，而是沿一份报价从创建到接受的生命周期组织模型。
+战术设计把战略边界变成代码可以守护的约束。Vernon 的 Implementing Domain-Driven Design [[9]](#ref-9) 对聚合、领域事件和上下文集成给出系统化实践；可运行示例可参考 Vaughn Vernon 维护的 IDDD Samples [[15]](#ref-15)。下面不重复定义清单，而是沿一份报价从创建到接受的生命周期组织模型。
 
 ### 创建时就拒绝非法值
 
@@ -419,9 +419,9 @@ func (q *PriceQuote) Accept(now time.Time, cartVersion int64) error {
 
 ### 从领域事件到可靠集成
 
-聚合记录事件，应用层在业务数据保存成功后安排发布。数据库事务无法与消息代理天然原子提交时，可采用 [Transactional Outbox 模式](https://microservices.io/patterns/data/transactional-outbox.html)：业务记录与 outbox 同事务写入，后台发布器至少一次投递，消费者按 eventId 幂等。Outbox 解决丢消息窗口，不提供全局顺序或恰好一次语义。
+聚合记录事件，应用层在业务数据保存成功后安排发布。数据库事务无法与消息代理天然原子提交时，可采用 Transactional Outbox 模式 [[16]](#ref-16)：业务记录与 outbox 同事务写入，后台发布器至少一次投递，消费者按 eventId 幂等。Outbox 解决丢消息窗口，不提供全局顺序或恰好一次语义。
 
-领域事件转换为集成事件时应删除内部字段、补充模式版本和关联标识。[CloudEvents 1.0](https://cloudevents.io/) 可统一事件信封，[AsyncAPI 3.0 文档](https://www.asyncapi.com/docs) 可描述通道、消息和操作。契约兼容规则与消费方测试比“所有事件都放同一个 JSON”更能保护演进。
+领域事件转换为集成事件时应删除内部字段、补充模式版本和关联标识。CloudEvents 1.0 [[17]](#ref-17) 可统一事件信封，AsyncAPI 3.0 文档 [[18]](#ref-18) 可描述通道、消息和操作。契约兼容规则与消费方测试比“所有事件都放同一个 JSON”更能保护演进。
 
 ### 测试按责任分层
 
@@ -501,7 +501,7 @@ func (q *PriceQuote) Accept(now time.Time, cartVersion int64) error {
 
 ### Money 值对象与精度纪律
 
-Money 至少由金额最小单位与币种组成。金额使用整数可以避免二进制浮点误差，但不能因此忽略币种的小数位、无小数货币、舍入模式和现金支付最小面额。币种标识应使用 [ISO 的 ISO 4217 currency codes](https://www.iso.org/iso-4217-currency-codes.html) 维护的代码语义；模型还应拒绝不同币种直接相加，要求汇率换算产生新的、带证据的 Money。
+Money 至少由金额最小单位与币种组成。金额使用整数可以避免二进制浮点误差，但不能因此忽略币种的小数位、无小数货币、舍入模式和现金支付最小面额。币种标识应使用 ISO 的 ISO 4217 currency codes [[8]](#ref-8) 维护的代码语义；模型还应拒绝不同币种直接相加，要求汇率换算产生新的、带证据的 Money。
 
 舍入不是显示层细节。按行舍入后求和与先汇总再舍入可能产生差额；百分比优惠、税费和退款分摊都必须声明舍入阶段。一个可靠规则是：内部计算保留业务所需精度，在明确的业务边界舍入，并把无法整除的尾差按确定算法分配到具体订单行。算法必须稳定，例如按金额降序再按行号打破平局，这样重试和回放才会得到相同结果。
 
@@ -543,15 +543,15 @@ Money 至少由金额最小单位与币种组成。金额使用整数可以避�
 
 QuoteCalculated、QuoteAccepted 和 QuoteExpired 是已经发生的业务事实，名称使用过去式，并包含事件标识、聚合标识、发生时间、模式版本和最小必要载荷。不要把“发送短信”命名为领域事件，也不要把完整聚合序列化后广播给所有消费者。前者混淆事实与命令，后者泄漏内部模型并制造隐性耦合。
 
-数据库事务与消息发布之间存在双写窗口。计价或订单聚合在同一事务写入业务数据与 outbox 记录，再由独立发布器重试投递，是 [Richardson 对 Transactional Outbox 的模式说明](https://microservices.io/patterns/data/transactional-outbox.html) 所覆盖的典型做法。它不保证消费者只收到一次，所以消费者仍要按事件标识去重，并让处理逻辑可安全重放。
+数据库事务与消息发布之间存在双写窗口。计价或订单聚合在同一事务写入业务数据与 outbox 记录，再由独立发布器重试投递，是 Richardson 对 Transactional Outbox 的模式说明 [[16]](#ref-16) 所覆盖的典型做法。它不保证消费者只收到一次，所以消费者仍要按事件标识去重，并让处理逻辑可安全重放。
 
-跨团队事件需要机器可读契约。[AsyncAPI 3.0 文档](https://www.asyncapi.com/docs) 可描述异步通道与消息，[CloudEvents 1.0](https://cloudevents.io/) 可统一事件信封；二者解决的层次不同，可以组合使用。契约要声明必填字段、兼容规则、示例、所有者与弃用窗口，消费者契约测试则验证生产者变更没有破坏既有订阅者。
+跨团队事件需要机器可读契约。AsyncAPI 3.0 文档 [[18]](#ref-18) 可描述异步通道与消息，CloudEvents 1.0 [[17]](#ref-17) 可统一事件信封；二者解决的层次不同，可以组合使用。契约要声明必填字段、兼容规则、示例、所有者与弃用窗口，消费者契约测试则验证生产者变更没有破坏既有订阅者。
 
 ### 应用服务、仓储与错误协议
 
 应用服务负责用例编排：校验请求、加载外部事实、调用领域模型、保存聚合、提交事务并返回 DTO。它不应重新实现折扣公式，也不应把 transport 层错误码传入领域对象。仓储以领域概念暴露 Get、Save 等接口，基础设施层处理 SQL、缓存和乐观锁；保存失败时，应用层根据错误类型决定重试、冲突响应或告警。
 
-HTTP API 应把领域拒绝、输入错误、版本冲突和依赖不可用区分开。错误体可遵循 [IETF RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457.html)，使用稳定的 type 标识问题类别，并通过扩展字段携带 ruleId、quoteId 或可重试提示。不要把内部堆栈、SQL 或供应商响应原样暴露给调用方。
+HTTP API 应把领域拒绝、输入错误、版本冲突和依赖不可用区分开。错误体可遵循 IETF RFC 9457 Problem Details [[19]](#ref-19)，使用稳定的 type 标识问题类别，并通过扩展字段携带 ruleId、quoteId 或可重试提示。不要把内部堆栈、SQL 或供应商响应原样暴露给调用方。
 
 领域错误要面向业务表达，例如 CurrencyMismatch、RuleNotEligible、QuoteExpired、ConcurrentModification。适配器再把它们映射为 HTTP 状态、错误类型和本地化文案。这样同一用例通过 HTTP、消息或批处理调用时仍共享相同领域语义，协议差异停留在最外层。
 
@@ -709,7 +709,7 @@ func (s *QuoteApplicationService) Calculate(
 
 计价失败至少分四层：格式错误由协议层拒绝；领域拒绝说明请求合法但规则不允许，例如币种不一致或报价过期；版本冲突说明调用者基于陈旧事实；依赖失败说明当前无法取得必要证据。把所有失败都映射成 500 会让调用方盲目重试，把所有失败都返回 200 又会隐藏不可成交状态。
 
-HTTP 适配器可以采用 [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457.html)，以稳定 type 区分问题类别，用扩展字段携带 quoteId、ruleId、currentVersion 和 retryable。API 契约用固定的 [OpenAPI 3.1 规范](https://spec.openapis.org/oas/v3.1.0.html) 描述，不把 latest 链接写成某个固定版本。错误文案可以本地化，错误类型与字段语义必须保持稳定。
+HTTP 适配器可以采用 RFC 9457 Problem Details [[19]](#ref-19)，以稳定 type 区分问题类别，用扩展字段携带 quoteId、ruleId、currentVersion 和 retryable。API 契约用固定的 OpenAPI 3.1 规范 [[20]](#ref-20) 描述，不把 latest 链接写成某个固定版本。错误文案可以本地化，错误类型与字段语义必须保持稳定。
 
 降级报价必须显式标记。若自动推荐优惠超时但基础价可靠，服务可以返回 Degraded，并说明缺少哪类权益；提交订单是否接受该状态由用例政策决定。若基础价、税务或用户主动选择的券无法确认，宁可拒绝也不要悄悄替换为另一个金额。可用性策略必须与资损和用户承诺一起评审。
 
@@ -804,13 +804,13 @@ HTTP 适配器可以采用 [RFC 9457 Problem Details](https://www.rfc-editor.org
 
 同步调用把延迟和失败直接交给当前用户，适合必须即时确认的基础价与资格；异步投影降低运行时耦合，适合允许短暂陈旧的会员标签或规则索引。选择前先写一致性预算：数据最多陈旧多久、错误报价可否纠正、用户是否需要确认、失败能否补偿。没有预算的“最终一致”只是把责任推迟。
 
-[Hohpe 与 Woolf 的 Enterprise Integration Patterns](https://www.enterpriseintegrationpatterns.com/) 可用于明确消息通道、路由、端点和相关标识；[Kleppmann 的 Designing Data-Intensive Applications](https://dataintensive.net/) 有助于理解复制、流与一致性的工程取舍；[Fowler 的 Patterns of Distributed Systems](https://martinfowler.com/articles/patterns-of-distributed-systems/) 则提供可复用的分布式协调模式。模式只描述机制，计价团队仍需定义业务上允许的延迟和补偿。
+Hohpe 与 Woolf 的 Enterprise Integration Patterns [[21]](#ref-21) 可用于明确消息通道、路由、端点和相关标识；Kleppmann 的 Designing Data-Intensive Applications [[22]](#ref-22) 有助于理解复制、流与一致性的工程取舍；Fowler 的 Patterns of Distributed Systems [[23]](#ref-23) 则提供可复用的分布式协调模式。模式只描述机制，计价团队仍需定义业务上允许的延迟和补偿。
 
 ### CQRS 与服务拆分的采用门槛
 
-写模型需要守护报价不变量，客服和运营查询却可能需要按用户、规则、渠道和时间聚合。只有当直接查询写库已明显妨碍模型或性能时，再引入独立读模型。[Microsoft 的 CQRS pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/cqrs) 提醒读写分离会带来同步延迟和双模型治理；团队必须准备投影重建、版本迁移和陈旧数据提示。
+写模型需要守护报价不变量，客服和运营查询却可能需要按用户、规则、渠道和时间聚合。只有当直接查询写库已明显妨碍模型或性能时，再引入独立读模型。Microsoft 的 CQRS pattern [[24]](#ref-24) 提醒读写分离会带来同步延迟和双模型治理；团队必须准备投影重建、版本迁移和陈旧数据提示。
 
-微服务也应在模块边界稳定后采用。[Richardson 的 Microservices Patterns 入口](https://microservices.io/) 总结 Saga 等跨服务模式，但网络边界会新增超时、重试、观测和发布协调。若计价与营销仍共享大量表、术语和同步发布，先做模块化单体更诚实。部署边界可以晚于模型边界，反过来却很难用网络修复混乱模型。
+微服务也应在模块边界稳定后采用。Richardson 的 Microservices Patterns 入口 [[25]](#ref-25) 总结 Saga 等跨服务模式，但网络边界会新增超时、重试、观测和发布协调。若计价与营销仍共享大量表、术语和同步发布，先做模块化单体更诚实。部署边界可以晚于模型边界，反过来却很难用网络修复混乱模型。
 
 ### 可观测性必须解释业务决定
 
@@ -904,7 +904,7 @@ HTTP 适配器可以采用 [RFC 9457 Problem Details](https://www.rfc-editor.org
 
 ### 让生产韧性成为领域政策
 
-幂等、超时、重试和降级不是统一中间件参数，它们会改变用户承诺。[AWS Builders’ Library](https://aws.amazon.com/builders-library/) 对超时、重试和分布式系统实践提供了生产视角。计价团队应分别定义基础价、优惠、税和事件发布的失败政策，避免基础设施层用同一个默认值处理所有依赖。
+幂等、超时、重试和降级不是统一中间件参数，它们会改变用户承诺。AWS Builders’ Library [[26]](#ref-26) 对超时、重试和分布式系统实践提供了生产视角。计价团队应分别定义基础价、优惠、税和事件发布的失败政策，避免基础设施层用同一个默认值处理所有依赖。
 
 
 ### 可逐项勾选的误区检查清单
@@ -1006,40 +1006,56 @@ DDD 的主线是把业务知识变成共同语言、明确边界和可执行模�
 
 计价案例表明，困难从来不只是算术。币种与舍入、规则互斥、有效时间、输入版本、分摊、快照、幂等和错误协议共同定义了用户看到并最终支付的价格。实施应从实例和不变量开始，用影子计算、灰度、对账与事故反馈逐步验证。CQRS、事件溯源和微服务只有在收益证据充分时才加入。
 
-### DDD 原典与模式
+### 参考资料
 
 1. <a id="ref-1"></a> [Domain-Driven Design](https://www.domainlanguage.com/ddd/)；Eric Evans，2003。
-2. <a id="ref-2"></a> [Implementing Domain-Driven Design](https://vaughnvernon.com/)；Vaughn Vernon，2013。
-3. <a id="ref-3"></a> [IDDD Samples](https://github.com/VaughnVernon/IDDD_Samples)；Vaughn Vernon，持续维护。
-4. <a id="ref-4"></a> [Patterns of Enterprise Application Architecture](https://martinfowler.com/eaaCatalog.html)；Martin Fowler，2002。
-5. <a id="ref-5"></a> [Bounded Context](https://martinfowler.com/bliki/BoundedContext.html)；Martin Fowler，2014。
-6. <a id="ref-6"></a> [Domain-Driven Design](https://martinfowler.com/bliki/DomainDrivenDesign.html)；Martin Fowler，2006。
+
+2. <a id="ref-2"></a> [Domain-Driven Design](https://martinfowler.com/bliki/DomainDrivenDesign.html)；Martin Fowler，2006。
+
+3. <a id="ref-3"></a> [CQRS pattern](https://microservices.io/patterns/data/cqrs.html)；Chris Richardson，持续维护。
+
+4. <a id="ref-4"></a> [Event Sourcing](https://martinfowler.com/eaaDev/EventSourcing.html)；Martin Fowler，2005。
+
+5. <a id="ref-5"></a> [Microservices architecture](https://learn.microsoft.com/en-us/azure/architecture/guide/architecture-styles/microservices)；Microsoft Azure，持续维护。
+
+6. <a id="ref-6"></a> [Bounded Context](https://martinfowler.com/bliki/BoundedContext.html)；Martin Fowler，2014。
+
 7. <a id="ref-7"></a> [Domain Model](https://martinfowler.com/eaaDev/DomainModel.html)；Martin Fowler，2003。
-8. <a id="ref-8"></a> [Event Sourcing](https://martinfowler.com/eaaDev/EventSourcing.html)；Martin Fowler，2005。
 
-### 架构与集成
+8. <a id="ref-8"></a> [ISO 4217 currency codes](https://www.iso.org/iso-4217-currency-codes.html)；ISO，持续维护。
 
-9. <a id="ref-9"></a> [Event-Driven Architecture](https://martinfowler.com/articles/201701-event-driven.html)；Martin Fowler，2017。
-10. <a id="ref-10"></a> [Event Storming](https://martinfowler.com/bliki/EventStorming.html)；Martin Fowler，2018。
-11. <a id="ref-11"></a> [EventStorming](https://www.eventstorming.com/)；Alberto Brandolini，持续维护。
-12. <a id="ref-12"></a> [Enterprise Integration Patterns](https://www.enterpriseintegrationpatterns.com/)；Gregor Hohpe、Bobby Woolf，2003。
-13. <a id="ref-13"></a> [Microservices Patterns](https://microservices.io/)；Chris Richardson，2018。
-14. <a id="ref-14"></a> [CQRS pattern](https://microservices.io/patterns/data/cqrs.html)；Chris Richardson，持续维护。
-15. <a id="ref-15"></a> [Transactional Outbox](https://microservices.io/patterns/data/transactional-outbox.html)；Chris Richardson，持续维护。
-16. <a id="ref-16"></a> [Patterns of Distributed Systems](https://martinfowler.com/articles/patterns-of-distributed-systems/)；Martin Fowler，持续维护。
+9. <a id="ref-9"></a> [Implementing Domain-Driven Design](https://www.informit.com/store/implementing-domain-driven-design-9780321834577)；Vaughn Vernon，2013。
 
-### 云原生与规范
+10. <a id="ref-10"></a> [Patterns of Enterprise Application Architecture](https://martinfowler.com/eaaCatalog.html)；Martin Fowler，2002。
 
-17. <a id="ref-17"></a> [Microservices architecture](https://learn.microsoft.com/en-us/azure/architecture/guide/architecture-styles/microservices)；Microsoft Azure，持续维护。
-18. <a id="ref-18"></a> [CQRS pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/cqrs)；Microsoft Azure，持续维护。
-19. <a id="ref-19"></a> [Domain analysis for microservices](https://learn.microsoft.com/en-us/azure/architecture/microservices/model/domain-analysis)；Microsoft Azure，持续维护。
-20. <a id="ref-20"></a> [Builders’ Library](https://aws.amazon.com/builders-library/)；AWS，持续维护。
-21. <a id="ref-21"></a> [CloudEvents Specification](https://cloudevents.io/)；CloudEvents Community，1.0。
-22. <a id="ref-22"></a> [AsyncAPI Specification](https://www.asyncapi.com/docs)；AsyncAPI Initiative，3.0。
-23. <a id="ref-23"></a> [OpenAPI Specification](https://spec.openapis.org/oas/v3.1.0.html)；OpenAPI Initiative，3.1.0。
-24. <a id="ref-24"></a> [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457.html)；IETF，2023。
+11. <a id="ref-11"></a> [Event-Driven Architecture](https://martinfowler.com/articles/201701-event-driven.html)；Martin Fowler，2017。
 
-### 计价、货币与数据语义
+12. <a id="ref-12"></a> [Domain analysis for microservices](https://learn.microsoft.com/en-us/azure/architecture/microservices/model/domain-analysis)；Microsoft Azure，持续维护。
 
-25. <a id="ref-25"></a> [ISO 4217 currency codes](https://www.iso.org/iso-4217-currency-codes.html)；ISO，持续维护。
-26. <a id="ref-26"></a> [Designing Data-Intensive Applications](https://dataintensive.net/)；Martin Kleppmann，2017。
+13. <a id="ref-13"></a> [Event Storming](https://martinfowler.com/bliki/EventStorming.html)；Martin Fowler，2018。
+
+14. <a id="ref-14"></a> [EventStorming](https://www.eventstorming.com/)；Alberto Brandolini，持续维护。
+
+15. <a id="ref-15"></a> [IDDD Samples](https://github.com/VaughnVernon/IDDD_Samples)；Vaughn Vernon，持续维护。
+
+16. <a id="ref-16"></a> [Transactional Outbox](https://microservices.io/patterns/data/transactional-outbox.html)；Chris Richardson，持续维护。
+
+17. <a id="ref-17"></a> [CloudEvents Specification](https://cloudevents.io/)；CloudEvents Community，1.0。
+
+18. <a id="ref-18"></a> [AsyncAPI Specification](https://www.asyncapi.com/docs/reference/specification/v3.0.0)；AsyncAPI Initiative，3.0。
+
+19. <a id="ref-19"></a> [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457.html)；IETF，2023。
+
+20. <a id="ref-20"></a> [OpenAPI Specification](https://spec.openapis.org/oas/v3.1.0.html)；OpenAPI Initiative，3.1.0。
+
+21. <a id="ref-21"></a> [Enterprise Integration Patterns](https://www.enterpriseintegrationpatterns.com/)；Gregor Hohpe、Bobby Woolf，2003。
+
+22. <a id="ref-22"></a> [Designing Data-Intensive Applications](https://dataintensive.net/)；Martin Kleppmann，2017。
+
+23. <a id="ref-23"></a> [Patterns of Distributed Systems](https://martinfowler.com/articles/patterns-of-distributed-systems/)；Martin Fowler，持续维护。
+
+24. <a id="ref-24"></a> [CQRS pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/cqrs)；Microsoft Azure，持续维护。
+
+25. <a id="ref-25"></a> [Microservices Patterns](https://microservices.io/)；Chris Richardson，2018。
+
+26. <a id="ref-26"></a> [Builders’ Library](https://aws.amazon.com/builders-library/)；AWS，持续维护。

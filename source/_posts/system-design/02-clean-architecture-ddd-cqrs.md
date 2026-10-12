@@ -9,7 +9,7 @@ tags:
   - architecture-and-clean-code
   - 架构设计
   - clean-architecture
-  - ddd
+  - DDD
   - cqrs
   - 设计模式
 toc: true
@@ -1191,26 +1191,17 @@ graph LR
 
 **策略一：幂等消费**
 
-投影器可能收到重复事件（at-least-once delivery），必须做幂等处理：
+投影器可能收到重复事件（at-least-once delivery），必须做幂等处理。下面的事务适配器 `ReadModelTx` 同时实现事件领取与 `ReadModelRepository`，所有方法使用同一事务；事件映射复用后文的 `OrderReadModelProjector`：
 
 ```go
-func (p *OrderProjector) Project(ctx context.Context, event DomainEvent) error {
+func (p *OrderProjectionConsumer) Handle(ctx context.Context, event DomainEvent) error {
     // 契约示意：领取事件与更新投影共享一个数据库事务。
     return p.readDB.Within(ctx, func(tx ReadModelTx) error {
         claimed, err := tx.ClaimEvent(event.ID()) // event_id 唯一约束仲裁并发
         if err != nil { return err }
         if !claimed { return nil }
-        switch e := event.(type) {
-        case OrderPlacedEvent:
-            return tx.Upsert(OrderDetailDTO{
-                OrderID:    string(e.OrderID),
-                Status:     "placed",
-                TotalPrice: e.Total.String(),
-                CreatedAt:  e.At.Format(time.RFC3339),
-            })
-        default:
-            return fmt.Errorf("unsupported projection event: %T", event)
-        }
+        projector := &OrderReadModelProjector{readDB: tx}
+        return projector.Project(ctx, event) // 未知事件与写入错误向外传播，事务回滚
     })
 }
 ```
@@ -1254,13 +1245,13 @@ flowchart LR
     
     B --> D{事件类型路由}
     D -->|OrderPlaced| E[创建订单读模型]
-    D -->|ItemAdded| F[更新商品明细]
+    D -->|PaymentCompleted| F[标记支付完成]
     D -->|OrderCancelled| G[标记订单取消]
 ```
 
 #### 事件路由示意
 
-以下仅展示事件到读模型操作的映射；外围需实现前述原子去重、版本防乱序与消费确认。`Handles` 只列出本示例已实现的事件，收到未支持事件应报错而非静默确认。
+以下仅展示事件到读模型操作的映射；外围需实现前述原子去重、版本防乱序与消费确认。`Handles` 只列出本示例已实现的 `OrderPlaced`、`OrderCancelled` 与 `PaymentCompleted`。路由层可以按订阅过滤不相关事件，但已经送到此投影器的未支持事件应报错而非静默确认；契约不匹配需要记录、告警并按政策隔离，不能无限重试。
 
 ```go
 // adapter/projection/projector.go
@@ -1502,23 +1493,7 @@ func (h *PlaceOrderHandler) Handle(ctx context.Context, cmd PlaceOrderCommand) C
 }
 ```
 
-```go
-// ⑤ [Adapter 层 / Projection] Outbox Relay 发送事件 → Projector 更新读模型
-func (p *OrderProjector) Project(ctx context.Context, event DomainEvent) error {
-    switch e := event.(type) {
-    case domain.OrderPlacedEvent:
-        return p.readDB.Upsert(ctx, ReadOrderModel{
-            OrderID:      string(e.OrderID),
-            CustomerName: p.customerName(ctx, e.CustomerID),
-            Items:        p.buildItemList(ctx, e.Items),
-            TotalPrice:   e.Total.String(),
-            Status:       "placed",
-            CreatedAt:    e.At,
-        })
-    }
-    return nil
-}
-```
+**⑤ [Adapter 层 / Projection] Outbox Relay 发送事件，投影器更新读模型。** 此步骤复用上文 `OrderReadModelProjector` 的 `Handles`、事件类型和字段映射，不再维护另一份投影实现。消费者先校验事件契约，再在外围完成原子去重、版本防乱序与读模型更新；持久化成功后才能确认消费。`Project` 返回的仓储错误或未知事件错误必须向外传播，由消费策略决定重试或隔离。该最小读模型仅包含订单 ID、金额、币种、状态和创建时间，客户展示名等扩展字段需要另行定义来源与新鲜度。
 
 ```go
 // ⑥ [Application 层 / CQRS Query Path] 读请求绕过领域模型

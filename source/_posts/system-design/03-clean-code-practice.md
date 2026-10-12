@@ -17,7 +17,7 @@ toc: true
 
 <!-- toc -->
 
-领域建模参考《实现领域驱动设计》，书籍信息见 [[1]](#ref-1)。
+领域建模参考《实现领域驱动设计》对聚合与实现边界的讨论。[[1]](#ref-1) 《领域驱动设计》提供统一语言与模型的概念基础；本文的电商代码是围绕这些概念组织的教学示例。[[2]](#ref-2)
 
 ## 复杂业务代码的"痛点画像"
 
@@ -326,7 +326,7 @@ type OrderService struct {
 
 #### 耦合过高（模块间相互依赖）
 
-```
+```text
 OrderService → PriceService → PromotionService → ItemService → OrderService
                     ↑                                               ↓
                     └───────────────────────────────────────────────┘
@@ -354,6 +354,8 @@ func CreateOrderHandler(ctx *gin.Context) {
 ---
 
 ## Clean Code 的判断标准
+
+《Clean Code》的命名、函数和错误处理章节提供可读性与职责划分的基础。[[3]](#ref-3) 以下目标与示例是本文结合业务场景给出的评审建议。
 
 ### 可读性：代码即文档
 
@@ -1038,7 +1040,7 @@ func TestGetOrder(t *testing.T) {
 
 #### 经典三层架构
 
-```
+```text
 ┌─────────────────────────────────────────────────────┐
 │  Controller Layer (控制层 / 接口层)                  │
 │  ─────────────────────────────────────────────────  │
@@ -1199,7 +1201,7 @@ func (r *orderRepository) Update(ctx context.Context, order *Order) error {
 
 DDD（Domain-Driven Design，领域驱动设计）在三层架构基础上，进一步强调**领域模型**的重要性，并将基础设施与领域逻辑解耦。
 
-```
+```text
 项目结构示例（参考 nsf-lotto）:
 
 nsf-lotto/
@@ -1221,7 +1223,7 @@ nsf-lotto/
 
 **各层职责详解**：
 
-```
+```text
 ┌─────────────────────────────────────────────────────┐
 │  Processor Layer (处理器层 / 入口层)                 │
 │  ─────────────────────────────────────────────────  │
@@ -1441,7 +1443,7 @@ type LotteryPO struct {
 
 在复杂业务中，一个完整的流程往往包含多个步骤：
 
-```
+```text
 创建订单流程：
 参数校验 → 用户验证 → 库存检查 → 价格计算 → 营销活动 → 优惠券 → 积分 → 风控 → 保存订单 → 支付预创建 → 通知
 
@@ -1455,7 +1457,7 @@ type LotteryPO struct {
 
 **Pipeline 模式的价值**：
 
-```
+```text
 ┌────────────────────────────────────────────────────┐
 │  Pipeline 模式 = 责任链模式 + 管道模式              │
 │                                                     │
@@ -1525,7 +1527,7 @@ type LotteryPO struct {
 
 Pipeline 架构分为 4 层：
 
-```
+```text
 ┌──────────────────────────────────────────────────┐
 │  Layer 1: Controller (控制层)                    │
 │  • 接收 HTTP 请求                                 │
@@ -1971,7 +1973,7 @@ func NewFlashSaleServiceFromConfig(configPath string) (FlashSaleService, error) 
 
 某些 Processor 之间没有依赖关系，可以并行执行以提升性能。
 
-“业务步骤互不依赖”还不足以证明并发安全。下面的共享 `fsCtx` 只允许各 Processor 读取不可变输入并写入互不重叠的字段；不能共同追加 slice、修改同一个 map 或共享日志集合。更通用的做法是每个任务返回独立结果，等待全部退出后由单个 goroutine 合并。所有子任务退出前，不得重置或归还上下文到对象池。[[2]](#ref-2)
+“业务步骤互不依赖”还不足以证明并发安全。下面的共享 `fsCtx` 只允许各 Processor 读取不可变输入并写入互不重叠的字段；不能共同追加 slice、修改同一个 map 或共享日志集合。更通用的做法是每个任务返回独立结果，等待全部退出后由单个 goroutine 合并。所有子任务退出前，不得重置或归还上下文到对象池。[[4]](#ref-4)
 
 ```go
 type ParallelPipeline struct {
@@ -2076,7 +2078,7 @@ pipeline := NewFlashSalePipeline().
 
 某些 Processor 可能失败（如网络抖动），支持自动重试。
 
-只有无副作用读取，或已建立幂等契约且失败后不会留下污染中间状态的处理器，才适合包装重试。超时不代表远程操作未发生；参数错误、业务拒绝和取消应直接返回。下面仅重试显式标记为暂时故障的错误，并使用可取消、有上限的指数退避与抖动。业务适配器负责错误分类，系统还需控制总重试预算。[[3]](#ref-3)
+只有无副作用读取，或已建立幂等契约且失败后不会留下污染中间状态的处理器，才适合包装重试。超时不代表远程操作未发生；参数错误、业务拒绝和取消应直接返回。下面仅重试显式标记为暂时故障的错误，并使用可取消、有上限的指数退避与抖动。业务适配器负责错误分类，系统还需控制总重试预算。[[5]](#ref-5)
 
 ```go
 type RetryProcessor struct {
@@ -2156,7 +2158,7 @@ pipeline := NewFlashSalePipeline().
 
 为每个 Processor 设置超时时间。
 
-Go 的取消信号不会强制终止 goroutine。处理器及其 I/O 必须观察 `ctx.Done()` 或接收带截止时间的 Context，才会及时退出。[[2]](#ref-2) 此处同步等待处理器返回，避免超时后仍有后台任务修改 `fsCtx`；不配合取消的处理器仍可能超出预算，应在依赖层修复。超时也不能撤销已经完成的写入，结果未知时应查询或按幂等协议重试。
+Go 的取消信号不会强制终止 goroutine。处理器及其 I/O 必须观察 `ctx.Done()` 或接收带截止时间的 Context，才会及时退出。[[4]](#ref-4) 此处同步等待处理器返回，避免超时后仍有后台任务修改 `fsCtx`；不配合取消的处理器仍可能超出预算，应在依赖层修复。超时也不能撤销已经完成的写入，结果未知时应查询或按幂等协议重试。
 
 ```go
 type TimeoutProcessor struct {
@@ -2415,7 +2417,7 @@ func step3(ctx *ProcessContext) error {
 
 Pipeline 中各 Processor 需要共享数据：
 
-```
+```text
 Processor 1 产生数据 → Processor 2 读取并处理 → Processor 3 读取并组装
 ```
 
@@ -2760,7 +2762,7 @@ func (s *flashSaleService) GetFlashSaleList(ctx context.Context, req *Req) (*Res
 
 对于高并发场景，可以使用 `sync.Pool` 复用 Context 对象。
 
-先用 benchmark 与分配分析确认收益，再决定是否池化。对象只有在所有处理器和子任务退出、返回值不再引用其可变数据后才能归还；`buildResponse` 必须复制需要返回的 slice / map，不能让响应持有池中对象的别名。[[4]](#ref-4)
+先用 benchmark 与分配分析确认收益，再决定是否池化。对象只有在所有处理器和子任务退出、返回值不再引用其可变数据后才能归还；`buildResponse` 必须复制需要返回的 slice / map，不能让响应持有池中对象的别名。[[6]](#ref-6)
 
 ```go
 var contextPool = sync.Pool{
@@ -2804,7 +2806,7 @@ func (fsCtx *FlashSaleContext) Reset() {
 
 ## 设计模式实战应用
 
-设计模式不是银弹，但在复杂业务场景中，合理使用设计模式能显著提升代码质量。本章将介绍 6 个在电商、金融等复杂业务中最常用的设计模式。
+GoF《设计模式》给出了策略、责任链、装饰器、工厂方法、建造者和模板方法的意图与协作结构。[[7]](#ref-7) 本节把这些模式应用到电商案例中，具体选择仍需由变化原因、职责和成本决定。
 
 ### 策略模式 (Strategy Pattern)
 
@@ -3217,7 +3219,7 @@ func AddNewCategory() {
 
 订单创建前需要经过多个检查环节：
 
-```
+```text
 风控检查 → 库存检查 → 价格检查 → 用户额度检查 → 营销规则检查
 ```
 
@@ -4061,7 +4063,7 @@ func ApplyDiscount(user *User, order *Order) int64 {
 
 规则引擎的核心思想：**将业务规则从代码中分离出来，存储为数据（配置），由引擎动态解析执行**。
 
-```
+```text
 ┌─────────────────────────────────────────────────────┐
 │                   业务代码层                          │
 │  (调用规则引擎，传入上下文，获取执行结果)               │
@@ -4666,7 +4668,7 @@ func main() {
 
 **输出**：
 
-```
+```text
 Matched 2 rules:
 - 新用户首单立减20元 (priority=100)
 - 满100减15 (priority=80)  ← 因为互斥，实际不会应用
@@ -4835,7 +4837,7 @@ func main() {
 
 #### 规则引擎 vs 代码的边界
 
-```
+```text
 ┌───────────────────────────────────────────────┐
 │               应用代码层                       │
 │  - 数据加载（从 DB、RPC 获取数据）              │
@@ -4900,7 +4902,7 @@ func (e *RuleEngine) recordMetrics(rule *Rule, duration time.Duration, matched b
 
 | 规则引擎 | 语言 | 特点 | 适用场景 |
 |---------|------|------|---------|
-| **gengine** | Go | B 站开源，支持复杂规则 DSL | 复杂业务规则 |
+| **gengine** [[8]](#ref-8) | Go | B 站开源，支持规则 DSL | 规则表达与执行 |
 | **Drools** | Java | 老牌规则引擎，功能强大 | Java 生态 |
 | **Easy Rules** | Java | 轻量级，易于上手 | 简单规则场景 |
 | **自研配置驱动** | - | 灵活可控 | 简单到中等复杂度 |
@@ -4920,7 +4922,7 @@ func (e *RuleEngine) recordMetrics(rule *Rule, duration time.Duration, matched b
 
 #### 标准 Go 项目结构（DDD 四层架构）
 
-```
+```text
 nsf-lotto/
 ├── cmd/                              # 应用程序入口
 │   └── server/
@@ -5466,7 +5468,7 @@ package http_handler
 
 DDD 四层架构的依赖方向：
 
-```
+```text
 Interfaces Layer  ──┐
                     │
 Application Layer  ─┼──> Domain Layer
@@ -6406,7 +6408,7 @@ func CalculatePrice(order *Order) int64 {
 
 ## 重构实战案例
 
-下面三个案例均来自电商域（下单、计价、库存），用 Go 示意「如何从坏味道走向可测、可扩展的结构」。代码为教学浓缩版，重点在思路而非生产完备性。
+Fowler 将重构定义为在保持可观察行为的前提下改善内部结构。[[9]](#ref-9) 下面三个电商教学案例（下单、计价、库存）用 Go 示意如何从坏味道走向可测、可扩展的结构；验收应核对业务行为，而不只比较函数行数。
 
 ### 案例 1：千行函数重构为 Pipeline
 
@@ -6837,7 +6839,7 @@ func (b *ParallelBundle) Process(ctx context.Context, pc *OrderContext) error {
 
 #### 超时：按 Stage 包裹与优雅降级
 
-延迟 SLO 可用整链延迟阈值与达标比例表达，对内还需要每一跳的预算。`context.WithTimeout` 只发出取消信号，下面同步等待的 `Process` 必须支持取消才能及时返回；上层再按副作用与业务政策决定重试、熔断或降级。[[2]](#ref-2)
+延迟 SLO 可用整链延迟阈值与达标比例表达，对内还需要每一跳的预算。`context.WithTimeout` 只发出取消信号，下面同步等待的 `Process` 必须支持取消才能及时返回；上层再按副作用与业务政策决定重试、熔断或降级。[[4]](#ref-4)
 
 ```go
 import (
@@ -6870,48 +6872,66 @@ func (p *Pipeline) RunWithTimeout(ctx context.Context, pc *ProcessContext, perSt
 
 #### 批处理写库：聚合再 Flush
 
-N 次单行 `INSERT` 会放大 RTT 与事务开销。Repository 层可做**按条数或时间窗口**批量 `INSERT`，用 `sync.Mutex` 或 channel 单协程刷盘，避免竞态。
+把多条事件放进同一事务可以减少提交次数。下面以 MySQL 8.4 的 InnoDB 表为例，演示批次所有权、失败保留与重复提交处理；仍逐条执行 SQL，不是一次多行 `INSERT`，不能据此宣称减少了每条语句的网络往返。重复键处理依据数据库唯一约束。[[10]](#ref-10)
+
+事件 ID 必须在业务事件产生时确定，同一次事件的重试复用 ID、订单 ID 与原始载荷。这里要求表只有 `event_id` 这一项唯一约束；同 ID 的内容不同应报冲突，不能用覆盖旧内容来“去重”。
+
+```sql
+CREATE TABLE order_events (
+    event_id VARBINARY(128) NOT NULL PRIMARY KEY,
+    order_id BIGINT NOT NULL,
+    payload LONGBLOB NOT NULL
+) ENGINE=InnoDB;
+```
+
+`Add` 成功只表示事件进入当前进程的内存队列。`Flush` 成功表示本次取得的批次已经确认提交，不包含刷盘期间新加入的事件。两个锁分别保护队列和刷盘所有权，使追加操作可以继续进行，同时只有一个 `Flush` 推进队首。
 
 ```go
 import (
+	"bytes"
 	"context"
 	"database/sql"
+	"fmt"
 	"sync"
-	"time"
 )
 
 type OrderEvent struct {
+	EventID string
 	OrderID int64
 	Payload []byte
 }
 
 type BatchedOrderRepo struct {
-	db     *sql.DB
-	mu     sync.Mutex
-	buf    []OrderEvent
-	maxN   int
-	flushD time.Duration
+	db      *sql.DB
+	mu      sync.Mutex // 保护队列；不在持有此锁时访问数据库
+	flushMu sync.Mutex // 串行化 Flush，避免重复移除同一批次
+	buf     []OrderEvent
 }
 
 func (r *BatchedOrderRepo) Add(ctx context.Context, ev OrderEvent) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if len(ev.EventID) == 0 || len(ev.EventID) > 128 {
+		return fmt.Errorf("event ID must contain 1 to 128 bytes")
+	}
+	ev.Payload = append([]byte{}, ev.Payload...) // 队列拥有载荷副本
 	r.mu.Lock()
 	r.buf = append(r.buf, ev)
-	needFlush := len(r.buf) >= r.maxN
 	r.mu.Unlock()
-	if needFlush {
-		return r.Flush(ctx)
-	}
 	return nil
 }
 
 func (r *BatchedOrderRepo) Flush(ctx context.Context) error {
+	r.flushMu.Lock()
+	defer r.flushMu.Unlock()
+
 	r.mu.Lock()
 	if len(r.buf) == 0 {
 		r.mu.Unlock()
 		return nil
 	}
-	batch := r.buf
-	r.buf = nil
+	batch := append([]OrderEvent(nil), r.buf...) // 队首保留到提交确认成功
 	r.mu.Unlock()
 
 	tx, err := r.db.BeginTx(ctx, nil)
@@ -6920,22 +6940,47 @@ func (r *BatchedOrderRepo) Flush(ctx context.Context) error {
 	}
 	defer tx.Rollback()
 
-	stmt, err := tx.PrepareContext(ctx, `INSERT INTO order_events(order_id, payload) VALUES (?, ?)`)
+	stmt, err := tx.PrepareContext(ctx, `
+		INSERT INTO order_events(event_id, order_id, payload) VALUES (?, ?, ?)
+		ON DUPLICATE KEY UPDATE event_id = event_id`)
 	if err != nil {
 		return err
 	}
 	defer stmt.Close()
 
 	for _, ev := range batch {
-		if _, err := stmt.ExecContext(ctx, ev.OrderID, ev.Payload); err != nil {
+		if _, err := stmt.ExecContext(ctx, ev.EventID, ev.OrderID, ev.Payload); err != nil {
 			return err
 		}
+		// 插入或命中重复键后，核对已保存内容；事务内持有该行的写锁。
+		var orderID int64
+		var payload []byte
+		if err := tx.QueryRowContext(ctx,
+			`SELECT order_id, payload FROM order_events WHERE event_id = ? FOR UPDATE`,
+			ev.EventID).Scan(&orderID, &payload); err != nil {
+			return err
+		}
+		if orderID != ev.OrderID || !bytes.Equal(payload, ev.Payload) {
+			return fmt.Errorf("event ID conflict: %s", ev.EventID)
+		}
 	}
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return err // 包括结果未知：保留整批，使用原事件 ID 重试
+	}
+
+	r.mu.Lock()
+	for i := range batch {
+		r.buf[i] = OrderEvent{} // 释放已确认事件的载荷引用
+	}
+	r.buf = r.buf[len(batch):] // 仅移除本批，保留期间追加的事件
+	r.mu.Unlock()
+	return nil
 }
 ```
 
-生产环境还需：**定时 Flush**、`Flush` 失败重试、背压（队列满则阻塞或拒绝）以及与优雅关停（`drain`）结合。
+开启事务、准备语句、执行或提交报错，都不会移除内存中的批次。若数据库已经提交但确认响应丢失，再次 `Flush` 会按相同事件 ID 命中已有记录并核对内容；确认成功后才移除队首。不同内容复用 ID 属于永久冲突，应报警并人工核对或隔离，不应无限重试。这里的去重只覆盖事件表写入，不保证支付、发货等外部副作用只执行一次。
+
+这是内存批处理示例：进程崩溃仍可能丢失已入队但未持久化的事件。业务成功响应若承诺事件可恢复，应使用与业务数据同事务的 Outbox 或其他持久化队列，不能把 `Add` 的返回值当作持久化确认。生产实现还需由调度器按条数或时间触发 `Flush`，设置队列上限与背压、重试预算和优雅关停；关停期间先停止入队，再刷盘。批次大小、逐条校验的开销与吞吐量应在目标环境测量。
 
 ### 监控与可观测性
 
@@ -7249,34 +7294,23 @@ flowchart LR
 
 1. <a id="ref-1"></a> [Implementing Domain-Driven Design](https://www.informit.com/store/implementing-domain-driven-design-9780321834577)；Vaughn Vernon，2013；出版社书籍页面，核验于 2026-10-12。
 
-2. <a id="ref-2"></a> [context package](https://pkg.go.dev/context)；Go Authors，Go 标准库文档；核验于 2026-10-12。
+2. <a id="ref-2"></a> [Domain-Driven Design: Tackling Complexity in the Heart of Software](https://www.domainlanguage.com/ddd/)；Eric Evans，2003；作者机构的 DDD 资料入口。
 
-3. <a id="ref-3"></a> [Timeouts, retries, and backoff with jitter](https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/)；AWS Builders’ Library；核验于 2026-10-12。
+3. <a id="ref-3"></a> [Clean Code: A Handbook of Agile Software Craftsmanship](https://www.informit.com/store/clean-code-a-handbook-of-agile-software-craftsmanship-9780132350884)；Robert C. Martin，2008；出版社书籍页面，核验于 2026-10-12。
 
-4. <a id="ref-4"></a> [sync.Pool](https://pkg.go.dev/sync#Pool)；Go Authors，Go 标准库文档；核验于 2026-10-12。
+4. <a id="ref-4"></a> [context package](https://pkg.go.dev/context)；Go Authors，Go 标准库文档；核验于 2026-10-12。
 
-5. <a id="ref-5"></a> 《Clean Code》（Robert C. Martin）
+5. <a id="ref-5"></a> [Timeouts, retries, and backoff with jitter](https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/)；AWS Builders’ Library；核验于 2026-10-12。
 
-6. <a id="ref-6"></a> [Clean Code: A Handbook of Agile Software Craftsmanship](https://www.informit.com/store/clean-code-a-handbook-of-agile-software-craftsmanship-9780132350884)；Robert C. Martin，2008；出版社书籍页面，核验于 2026-10-12。
+6. <a id="ref-6"></a> [sync.Pool](https://pkg.go.dev/sync#Pool)；Go Authors，Go 标准库文档；核验于 2026-10-12。
 
-7. <a id="ref-7"></a> 《设计模式：可复用面向对象软件的基础》（GoF）
+7. <a id="ref-7"></a> [Design Patterns: Elements of Reusable Object-Oriented Software](https://www.informit.com/store/design-patterns-elements-of-reusable-object-oriented-9780201633610)；Erich Gamma、Richard Helm、Ralph Johnson、John Vlissides；Addison-Wesley，1994。
 
-8. <a id="ref-8"></a> 《领域驱动设计》（Eric Evans）
+8. <a id="ref-8"></a> [gengine](https://github.com/bilibili/gengine)；bilibili，项目仓库；规则 DSL 与执行机制说明；核验于 2026-10-12。
 
-9. <a id="ref-9"></a> 《重构：改善既有代码的设计》（Martin Fowler）
+9. <a id="ref-9"></a> [Refactoring](https://refactoring.com/)；Martin Fowler，作者维护的重构定义与书籍入口。
 
-10. <a id="ref-10"></a> 《企业应用架构模式》（Martin Fowler）
-
-11. <a id="ref-11"></a> **工作流引擎**：
-    - [s8sg/goflow](https://github.com/s8sg/goflow)
-    - [go-workflow/go-workflow](https://github.com/go-workflow/go-workflow)
-
-12. <a id="ref-12"></a> **规则引擎**：
-    - [bilibili/gengine](https://github.com/bilibili/gengine)
-
-13. <a id="ref-13"></a> **脚本引擎**：
-    - [d5/tengo](https://github.com/d5/tengo)
-    - [mattn/anko](https://github.com/mattn/anko)
+10. <a id="ref-10"></a> [INSERT ... ON DUPLICATE KEY UPDATE Statement](https://dev.mysql.com/doc/refman/8.4/en/insert-on-duplicate.html)；Oracle，MySQL 8.4 Reference Manual；核验于 2026-10-12。
 
 ---
 
