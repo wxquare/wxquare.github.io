@@ -108,7 +108,9 @@ layout: page
 - 类型：presentation
 - 主题：技术方案、整体架构、接口、存储、缓存、异步机制与非功能需求
 - 原始来源：作者提供的第一方演示资料《系统设计概要.pptx》，原分享日期为 2024-06-12；此处为 2026-10-12 整理的公开版
-- 本地路径：[system-design-overview-public.pptx](/library/presentations/system-design-overview-public.pptx)
+- 规范源（可编辑）：[system-design-overview-public.pptx](/library/presentations/system-design-overview-public.pptx)
+- 阅读导出（PDF）：[浏览器直接阅读](/library/presentations/system-design-overview-public.pdf)
+- PDF SHA-256：`1bb9cc744b3db24448dda0dd85abc8715c38023f131b383bb6dc3c58ccb04f32`
 - 配套文章：{% post_link system-design/01-system-design-methodology %}
 - SHA-256：`3409113af6d7d3d91882ee1fcb6b3168d6c2cc34d5c4d941e39209c3e503307e`
 - 再分发：本人创作，作者已明确确认内容可公开；公开版保留 38 页，采用个人课件版式，保留原有技术图表与参考链接。

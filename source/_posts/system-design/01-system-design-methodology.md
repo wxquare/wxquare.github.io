@@ -19,11 +19,11 @@ toc: true
 
 ## 配套课件与阅读路径
 
-[下载《系统设计：技术方案与架构设计》公开版课件（PPTX，38 页）](/library/presentations/system-design-overview-public.pptx) · [浏览器在线预览](https://view.officeapps.live.com/op/view.aspx?src=https%3A%2F%2Fwxquare.github.io%2Flibrary%2Fpresentations%2Fsystem-design-overview-public.pptx)
+[在线阅读《系统设计：技术方案与架构设计》公开版课件（PDF，38 页）](/library/presentations/system-design-overview-public.pdf) · [下载可编辑课件（PPTX）](/library/presentations/system-design-overview-public.pptx)
 
 ![《系统设计：技术方案与架构设计》公开版课件封面](/diagrams/01-system-design-methodology/31-public-deck-cover.png)
 
-课件署名为 wxquare，原分享日期为 2024-06-12，公开版于 2026-10-12 整理。PPTX 可在 WPS 演示或 PowerPoint 中继续编辑；在线预览由 Microsoft Office 网页查看器提供，若无法加载，可下载后阅读。正文持续维护，课件保留原分享时的组织方式。旧课件中的厂商 API 示例、数据库能力对比和经验阈值，需结合正文的修订说明与当前官方资料判断。
+课件署名为 wxquare，原分享日期为 2024-06-12，公开版于 2026-10-12 整理。PDF 由本站直接托管，点击课件链接即可在浏览器中阅读，也可使用浏览器的下载按钮保存。PPTX 为可编辑源文件，PDF 为对应的阅读导出版本。正文持续维护，课件保留原分享时的组织方式。旧课件中的厂商 API 示例、数据库能力对比和经验阈值，需结合正文的修订说明与当前官方资料判断。
 
 | 阅读任务 | 课件页码 | 正文入口与使用方法 |
 |---|---|---|
