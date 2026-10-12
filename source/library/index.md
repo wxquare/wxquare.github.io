@@ -102,15 +102,15 @@ layout: page
 
 ## Presentations
 
-### 系统设计概要：一起学学系统设计
+### 系统设计：技术方案与架构设计
 
-- 作者/机构：王贤桂（本人）
+- 作者/机构：wxquare（本人）
 - 类型：presentation
 - 主题：技术方案、整体架构、接口、存储、缓存、异步机制与非功能需求
 - 原始来源：作者提供的第一方演示资料《系统设计概要.pptx》，原分享日期为 2024-06-12；此处为 2026-10-12 整理的公开版
 - 本地路径：[system-design-overview-public.pptx](/library/presentations/system-design-overview-public.pptx)
 - 配套文章：{% post_link system-design/01-system-design-methodology %}
-- SHA-256：`a9dcc09c241f506f6eaeaed0d5bb734f7552b9c0910ab01822e3f1a1f1056837`
+- SHA-256：`3409113af6d7d3d91882ee1fcb6b3168d6c2cc34d5c4d941e39209c3e503307e`
 - 再分发：本人创作，作者已明确确认内容可公开；公开版保留 38 页，采用个人课件版式，保留原有技术图表与参考链接。
 - 加入日期：2026-10-12
 

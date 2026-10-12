@@ -2,7 +2,7 @@
 title: 系统设计：技术方案写作、架构选型与设计评审
 date: 2025-04-01
 permalink: /2025/04/01/system-design/01-system-design-methodology/
-description: 配合《系统设计概要》课件，从技术方案写作、架构选型、接口、存储、缓存与异步设计到评审，建立可执行的系统设计方法。
+description: 配合《系统设计：技术方案与架构设计》课件，从技术方案写作、架构选型、接口、存储、缓存与异步设计到评审，建立可执行的系统设计方法。
 categories:
   - 系统设计基础
 tags:
@@ -13,17 +13,17 @@ tags:
 toc: true
 ---
 
-技术方案需要说明解决什么问题、选择了什么方案、为什么这样选择，以及如何验证结果。本文配合《系统设计概要》课件使用：课件梳理设计步骤与常见选型，正文展开判断依据、实现约束和评审问题。
+技术方案需要说明解决什么问题、选择了什么方案、为什么这样选择，以及如何验证结果。本文配合《系统设计：技术方案与架构设计》课件使用：课件梳理设计步骤与常见选型，正文展开判断依据、实现约束和评审问题。
 
 适合正在编写后端技术方案、准备设计评审，或希望建立系统设计知识框架的工程师。建议先浏览课件，再按当前任务查阅正文；写方案时从目标、约束和验收条件开始，结合接口、存储与失败处理补全设计。
 
 ## 配套课件与阅读路径
 
-[下载《系统设计概要》公开版课件（PPTX，38 页）](/library/presentations/system-design-overview-public.pptx) · [浏览器在线预览](https://view.officeapps.live.com/op/view.aspx?src=https%3A%2F%2Fwxquare.github.io%2Flibrary%2Fpresentations%2Fsystem-design-overview-public.pptx)
+[下载《系统设计：技术方案与架构设计》公开版课件（PPTX，38 页）](/library/presentations/system-design-overview-public.pptx) · [浏览器在线预览](https://view.officeapps.live.com/op/view.aspx?src=https%3A%2F%2Fwxquare.github.io%2Flibrary%2Fpresentations%2Fsystem-design-overview-public.pptx)
 
-![《系统设计概要》公开版课件封面](/diagrams/01-system-design-methodology/31-public-deck-cover.png)
+![《系统设计：技术方案与架构设计》公开版课件封面](/diagrams/01-system-design-methodology/31-public-deck-cover.png)
 
-课件封面为“一起学学系统设计”，原分享日期为 2024-06-12，公开版于 2026-10-12 整理。PPTX 可在 WPS 演示或 PowerPoint 中继续编辑；在线预览由 Microsoft Office 网页查看器提供，若无法加载，可下载后阅读。正文持续维护，课件保留原分享时的组织方式。旧课件中的厂商 API 示例、数据库能力对比和经验阈值，需结合正文的修订说明与当前官方资料判断。
+课件署名为 wxquare，原分享日期为 2024-06-12，公开版于 2026-10-12 整理。PPTX 可在 WPS 演示或 PowerPoint 中继续编辑；在线预览由 Microsoft Office 网页查看器提供，若无法加载，可下载后阅读。正文持续维护，课件保留原分享时的组织方式。旧课件中的厂商 API 示例、数据库能力对比和经验阈值，需结合正文的修订说明与当前官方资料判断。
 
 | 阅读任务 | 课件页码 | 正文入口与使用方法 |
 |---|---|---|
