@@ -17,7 +17,7 @@ toc: true
 
 <!-- toc -->
 
-书籍：[实现领域驱动设计.pdf](https://github.com/wxquare/effective-resourses/blob/master/%E5%AE%9E%E7%8E%B0%E9%A2%86%E5%9F%9F%E9%A9%B1%E5%8A%A8%E8%AE%BE%E8%AE%A1.pdf)
+领域建模参考《实现领域驱动设计》，书籍信息见 [[1]](#ref-1)。
 
 ## 复杂业务代码的"痛点画像"
 
@@ -1971,6 +1971,8 @@ func NewFlashSaleServiceFromConfig(configPath string) (FlashSaleService, error) 
 
 某些 Processor 之间没有依赖关系，可以并行执行以提升性能。
 
+“业务步骤互不依赖”还不足以证明并发安全。下面的共享 `fsCtx` 只允许各 Processor 读取不可变输入并写入互不重叠的字段；不能共同追加 slice、修改同一个 map 或共享日志集合。更通用的做法是每个任务返回独立结果，等待全部退出后由单个 goroutine 合并。所有子任务退出前，不得重置或归还上下文到对象池。[[2]](#ref-2)
+
 ```go
 type ParallelPipeline struct {
     processors [][]Processor // 二维数组，支持并行
@@ -2074,6 +2076,8 @@ pipeline := NewFlashSalePipeline().
 
 某些 Processor 可能失败（如网络抖动），支持自动重试。
 
+只有无副作用读取，或已建立幂等契约且失败后不会留下污染中间状态的处理器，才适合包装重试。超时不代表远程操作未发生；参数错误、业务拒绝和取消应直接返回。下面仅重试显式标记为暂时故障的错误，并使用可取消、有上限的指数退避与抖动。业务适配器负责错误分类，系统还需控制总重试预算。[[3]](#ref-3)
+
 ```go
 type RetryProcessor struct {
     wrapped    Processor
@@ -2094,22 +2098,46 @@ func (p *RetryProcessor) Name() string {
 }
 
 func (p *RetryProcessor) Process(ctx context.Context, fsCtx *FlashSaleContext) error {
-    var lastErr error
-    
-    for i := 0; i <= p.maxRetries; i++ {
-        if i > 0 {
-            // 等待后重试
-            time.Sleep(p.backoff * time.Duration(i))
+    if p.maxRetries < 0 || p.backoff <= 0 {
+        return errors.New("invalid retry configuration")
+    }
+    const maxBackoff = 5 * time.Second // 教学假设；实际按端到端预算配置
+    delay := p.backoff
+    if delay > maxBackoff {
+        delay = maxBackoff
+    }
+    for attempt := 0; ; attempt++ {
+        if err := ctx.Err(); err != nil {
+            return err
         }
-        
-        if err := p.wrapped.Process(ctx, fsCtx); err == nil {
-            return nil // 成功
+        err := p.wrapped.Process(ctx, fsCtx)
+        if err == nil {
+            return nil
+        }
+        if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+            return err
+        }
+        var transient interface { Retryable() bool }
+        if !errors.As(err, &transient) || !transient.Retryable() {
+            return err
+        }
+        if attempt >= p.maxRetries {
+            return fmt.Errorf("retry exhausted after %d attempts: %w", attempt+1, err)
+        }
+        // 需要 context、errors、fmt、math/rand、time；全抖动区间 [0, delay)。
+        timer := time.NewTimer(time.Duration(rand.Int63n(int64(delay))))
+        select {
+        case <-ctx.Done():
+            timer.Stop()
+            return ctx.Err()
+        case <-timer.C:
+        }
+        if delay >= maxBackoff/2 {
+            delay = maxBackoff
         } else {
-            lastErr = err
+            delay *= 2
         }
     }
-    
-    return fmt.Errorf("retry failed after %d attempts: %w", p.maxRetries, lastErr)
 }
 
 // 使用
@@ -2118,7 +2146,7 @@ pipeline := NewFlashSalePipeline().
     AddProcessor(NewRetryProcessor(
         NewPromotionDataProcessor(),
         3,              // 最多重试 3 次
-        100*time.Millisecond,  // 每次等待 100ms, 200ms, 300ms
+        100*time.Millisecond,  // 抖动上界依次为 100ms、200ms、400ms
     ))
 ```
 
@@ -2127,6 +2155,8 @@ pipeline := NewFlashSalePipeline().
 #### 超时控制 Pipeline
 
 为每个 Processor 设置超时时间。
+
+Go 的取消信号不会强制终止 goroutine。处理器及其 I/O 必须观察 `ctx.Done()` 或接收带截止时间的 Context，才会及时退出。[[2]](#ref-2) 此处同步等待处理器返回，避免超时后仍有后台任务修改 `fsCtx`；不配合取消的处理器仍可能超出预算，应在依赖层修复。超时也不能撤销已经完成的写入，结果未知时应查询或按幂等协议重试。
 
 ```go
 type TimeoutProcessor struct {
@@ -2150,19 +2180,17 @@ func (p *TimeoutProcessor) Process(ctx context.Context, fsCtx *FlashSaleContext)
     timeoutCtx, cancel := context.WithTimeout(ctx, p.timeout)
     defer cancel()
     
-    // 在 goroutine 中执行
-    errChan := make(chan error, 1)
-    go func() {
-        errChan <- p.wrapped.Process(timeoutCtx, fsCtx)
-    }()
-    
-    // 等待结果或超时
-    select {
-    case err := <-errChan:
+    if err := timeoutCtx.Err(); err != nil {
         return err
-    case <-timeoutCtx.Done():
-        return fmt.Errorf("processor %s timeout after %v", p.wrapped.Name(), p.timeout)
     }
+    err := p.wrapped.Process(timeoutCtx, fsCtx)
+    if err != nil {
+        return fmt.Errorf("processor %s: %w", p.wrapped.Name(), err)
+    }
+    if err := timeoutCtx.Err(); err != nil {
+        return fmt.Errorf("processor %s exceeded budget: %w", p.wrapped.Name(), err)
+    }
+    return nil
 }
 
 // 使用
@@ -2732,6 +2760,8 @@ func (s *flashSaleService) GetFlashSaleList(ctx context.Context, req *Req) (*Res
 
 对于高并发场景，可以使用 `sync.Pool` 复用 Context 对象。
 
+先用 benchmark 与分配分析确认收益，再决定是否池化。对象只有在所有处理器和子任务退出、返回值不再引用其可变数据后才能归还；`buildResponse` 必须复制需要返回的 slice / map，不能让响应持有池中对象的别名。[[4]](#ref-4)
+
 ```go
 var contextPool = sync.Pool{
     New: func() interface{} {
@@ -2742,7 +2772,10 @@ var contextPool = sync.Pool{
 func (s *flashSaleService) GetFlashSaleList(ctx context.Context, req *Req) (*Resp, error) {
     // 从池中获取
     fsCtx := contextPool.Get().(*FlashSaleContext)
-    defer contextPool.Put(fsCtx)  // 用完放回池中
+    defer func() {
+        fsCtx.Reset() // 归还前清除所有引用，避免闲置对象保留请求数据
+        contextPool.Put(fsCtx)
+    }()
     
     // 重置 Context
     fsCtx.Reset()
@@ -2761,12 +2794,7 @@ func (s *flashSaleService) GetFlashSaleList(ctx context.Context, req *Req) (*Res
 }
 
 func (fsCtx *FlashSaleContext) Reset() {
-    fsCtx.Request = nil
-    fsCtx.OriginalPromotionItems = nil
-    fsCtx.FilteredPromotionItems = nil
-    fsCtx.LSItemList = nil
-    fsCtx.FlashSaleItems = nil
-    fsCtx.ProcessorLogs = fsCtx.ProcessorLogs[:0]
+    *fsCtx = FlashSaleContext{}
 }
 ```
 
@@ -5982,18 +6010,20 @@ func FindUser(email string) (*User, error) {
 }
 ```
 
-#### 布尔函数避免返回 `error`
+#### 区分布尔结果与判定失败
+
+纯内存谓词且输入契约已经保证有效时，可以只返回 `bool`。若判定可能因依赖失败或输入非法而无法完成，应返回 `(bool, error)`，避免把“无法判定”混成“条件不成立”。两种签名服务于不同契约，不能仅凭返回布尔值就禁止错误。
 
 ```go
-// ❌ 反例：布尔函数返回 error
-func IsActive(activity *Activity) (bool, error) {
+// 对不保证非空的输入，错误表示无法判定。
+func CheckActive(activity *Activity) (bool, error) {
     if activity == nil {
         return false, errors.New("activity is nil")
     }
     return activity.Status == StatusActive, nil
 }
 
-// ✅ 正例：输入保证非空，只返回布尔值
+// 纯谓词：调用方保证输入非空。
 func IsActive(activity *Activity) bool {
     return activity.Status == StatusActive
 }
@@ -6767,11 +6797,11 @@ func (p *Pipeline) RunPooled(ctx context.Context, seed *ProcessContext) error {
 }
 ```
 
-要点：**Pool 不保证对象存活**；只用于性能优化，不能当缓存存业务唯一态。重置用值赋值 `*pc = ProcessContext{}` 比逐字段置零更不容易漏字段。
+要点：**Pool 不保证保留任何已放入对象，也不保证 Get 返回某个指定对象**；只用于性能优化，不能当缓存存业务唯一态。重置用值赋值 `*pc = ProcessContext{}` 比逐字段置零更不容易漏字段。
 
 #### 并行 Stage：errgroup 扇出 / 扇入
 
-当多个 Processor **彼此无数据依赖**（例如并行读用户、优惠券、库存快照），可用 `errgroup` 限制并发并统一错误处理。下面示意三个独立处理器并行执行，再合并结果到共享的 `*OrderContext`（与上文 Pipeline 示例一致；若你使用 `ProcessContext`，替换类型即可）。
+当多个 Processor **彼此无数据依赖**（例如并行读用户、优惠券、库存快照），可用 `errgroup` 等待退出并统一错误处理；默认不限制并发，可通过 `SetLimit` 设置上限。下面的共享 `*OrderContext` 要求输入不可变，且各处理器仅写各自拥有的字段，不共享可变 map、slice 或日志集合。否则应改为任务返回独立结果，等待后串行合并。
 
 ```go
 import (
@@ -6803,11 +6833,11 @@ func (b *ParallelBundle) Process(ctx context.Context, pc *OrderContext) error {
 }
 ```
 
-`errgroup.WithContext` 在任一 `Go` 返回错误时会取消 `ctx`，避免其余 goroutine 白跑；若某步**不应因兄弟失败而取消**，应使用独立 `context` 或拆阶段设计。
+`errgroup.WithContext` 在首个任务返回错误或 `Wait` 返回时取消派生 Context，但不强制结束其他 goroutine；任务必须配合取消，`Wait` 才能及时完成。若某步不应因兄弟失败而取消，可用同一个父请求 Context 配合普通 `errgroup.Group`，或拆阶段设计；仍须保留请求取消和总预算。
 
 #### 超时：按 Stage 包裹与优雅降级
 
-对外 SLA 常体现为「整链 P99」，对内则需要**每一跳的预算**。用 `context.WithTimeout`（或 `WithDeadline`）包住单个 `Process`，超时后返回 `context.DeadlineExceeded`，上层可选择重试、熔断或返回降级结果。
+延迟 SLO 可用整链延迟阈值与达标比例表达，对内还需要每一跳的预算。`context.WithTimeout` 只发出取消信号，下面同步等待的 `Process` 必须支持取消才能及时返回；上层再按副作用与业务政策决定重试、熔断或降级。[[2]](#ref-2)
 
 ```go
 import (
@@ -6821,6 +6851,9 @@ func (p *Pipeline) RunWithTimeout(ctx context.Context, pc *ProcessContext, perSt
 	for _, proc := range p.processors {
 		stageCtx, cancel := context.WithTimeout(ctx, perStage)
 		err := proc.Process(stageCtx, pc)
+		if err == nil {
+			err = stageCtx.Err()
+		}
 		cancel()
 		if err != nil {
 			if errors.Is(err, context.DeadlineExceeded) {
@@ -7050,7 +7083,7 @@ Clean Code 与 Pipeline 重构不仅是个人习惯，更是**团队契约**：R
 
 **编码层（5 条）**
 
-1. 函数主体是否在 **80 行**以内（含分支），超过是否已拆分或有充分理由？  
+1. 函数职责与分支是否可理解？**80 行**可作为团队提醒值，不能代替复杂度和修改成本的判断。
 2. 命名是否**反映业务语义**（动词 + 领域对象），而非实现细节？  
 3. 错误是否**包装上下文**（`fmt.Errorf("...: %w", err)`），避免裸返回？  
 4. 修改是否违背 **SOLID** 中与本改动最相关的一条（尤其是 SRP、DIP）？  
@@ -7064,7 +7097,7 @@ Clean Code 与 Pipeline 重构不仅是个人习惯，更是**团队契约**：R
 4. 选用的模式（Pipeline、策略、规则引擎）是否**与复杂度匹配**，没有过度设计？  
 5. 是否**可测**：关键路径能否用 fake / mock 在单测覆盖，而不必起全栈？
 
-完整版检查清单见 {% post_link system-design/05-architecture-code-review-checklist 架构与整洁代码（四）：架构与编码 Code Review Checklist %}。
+完整版检查清单见 {% post_link system-design/05-architecture-code-review-checklist %}。
 
 ### 如何说服团队重构
 
@@ -7120,17 +7153,28 @@ func (s *CheckoutService) Run(ctx context.Context, pc *ProcessContext) error {
 
 #### Canary：双跑比对结果
 
-对关键输出（金额、库存预占结果）可同时跑旧逻辑与新逻辑，**以旧为准对外**，差异写日志或指标，用于发现语义漂移。
+影子计算应针对同一不可变输入快照运行新旧纯计算，保持旧结果对外，并记录差异。不能重复执行真实库存预占、扣款、发券或消息发布；需要验证这些环节时使用隔离环境或无副作用适配器。灰度切流则是在少量真实请求上只选择一条实现，两种验证方式不能混用。
 
 ```go
 func (s *PricingService) Quote(ctx context.Context, req *QuoteRequest) (Money, error) {
 	if !s.flags.CanaryNewPricing {
 		return s.legacy.Quote(ctx, req)
 	}
-	newVal, newErr := s.modern.Quote(ctx, req)
-	oldVal, oldErr := s.legacy.Quote(ctx, req)
-	// For decimal money, use tolerant compare instead of !=
-	if newVal != oldVal || (newErr == nil) != (oldErr == nil) {
+    // loadSnapshot 只加载事实，不预占或消耗权益；两个引擎不得修改快照。
+    snapshot, err := s.loadSnapshot(ctx, req)
+    if err != nil {
+        return Money{}, err
+    }
+    oldVal, oldErr := s.legacy.Calculate(ctx, snapshot)
+    // 影子预算从父请求派生；同步等待退出，不在后台保留请求对象。
+    shadowCtx, cancel := context.WithTimeout(ctx, s.shadowBudget)
+    defer cancel()
+    newVal, newErr := s.modern.Calculate(shadowCtx, snapshot)
+    if newErr == nil {
+        newErr = shadowCtx.Err()
+    }
+    // equalMoney 精确比较币种和规范化最小单位金额；errorKind 返回稳定业务错误类别。
+    if !equalMoney(newVal, oldVal) || errorKind(newErr) != errorKind(oldErr) {
 		s.log.Warn("pricing_canary_mismatch", "new", newVal, "old", oldVal)
 	}
 	// Still serve legacy until shadow period proves parity
@@ -7140,9 +7184,11 @@ func (s *PricingService) Quote(ctx context.Context, req *QuoteRequest) (Money, e
 
 （生产上可逐步改为新逻辑为主，此处强调**比对与观测**优先。）
 
+以上为接口契约示意，`Calculate` 必须是无副作用计算；同步影子执行仍会增加用户等待时间，预算应计入请求 SLO。高成本场景可用有界任务队列处理脱敏快照。金额应按统一币种、精度和舍入政策精确比较；生产验证还需比较行分摊、命中规则、输入版本和拒绝原因，不能只看总额或用浮点容差掩盖差异。
+
 #### 测试覆盖率门禁
 
-约定：**本轮重构触及的包**行覆盖率 **> 80%**（或与基线 + 增量策略），CI 失败则禁止合并；避免「结构漂亮了、行为悄悄变了」。
+教学示例可约定本轮重构触及的包行覆盖率 > 80%，也可采用基线与增量策略；具体门槛由团队按风险设定。覆盖率只说明代码被执行，不能证明断言充分。合并证据还应覆盖业务不变量、异常与取消、重复执行、并发冲突和新旧行为差异。
 
 #### 回滚程序（Checklist）
 
@@ -7195,32 +7241,40 @@ flowchart LR
 
 认知升级可以概括为三层：**代码级**（函数与命名）、**模块级**（边界、依赖方向、聚合）、**系统级**（上下文映射、限界上下文、读写分离与演进式架构）。Clean Code 解决「这一行好不好懂」；Clean Architecture 与 DDD 回答「这一块该不该存在、跟谁说话、如何独立演进」。
 
-本专题建议先读 **（一）** 建立分层与 CQRS 地图，再在 **（二）**（本文）打磨实现细节。接下来请阅读 {% post_link system-design/04-ddd-pricing-practice 架构与整洁代码（三）：领域驱动设计读书笔记——从概念到架构实践 %}，把战略 / 战术 DDD 与 **（一）** 中的架构视角对照起来。若尚未读过 **（一）**，请先阅读 {% post_link system-design/02-clean-architecture-ddd-cqrs 架构与整洁代码（一） %}。全系列阶段说明见 {% post_link system-design/05-architecture-code-review-checklist 架构与整洁代码（四） %}。
+建议先阅读 {% post_link system-design/02-clean-architecture-ddd-cqrs %} 建立分层与读写模型的判断框架，再用本文练习实现与重构。{% post_link system-design/04-ddd-pricing-practice %} 用电商案例展开战略与战术建模；{% post_link system-design/05-architecture-code-review-checklist %} 提供各阶段检查项。
 
 ---
 
 ## 参考资料
 
-### 书籍推荐
+1. <a id="ref-1"></a> [Implementing Domain-Driven Design](https://www.informit.com/store/implementing-domain-driven-design-9780321834577)；Vaughn Vernon，2013；出版社书籍页面，核验于 2026-10-12。
 
-1. <a id="ref-1"></a> 《Clean Code》（Robert C. Martin）
-2. <a id="ref-2"></a> [《代码整洁之道》PDF](https://awesome-programming-books.github.io/clean-code/%E4%BB%A3%E7%A0%81%E6%95%B4%E6%B4%81%E4%B9%8B%E9%81%93.pdf)
-3. <a id="ref-3"></a> 《设计模式：可复用面向对象软件的基础》（GoF）
-4. <a id="ref-4"></a> 《领域驱动设计》（Eric Evans）
-5. <a id="ref-5"></a> [《实现领域驱动设计》PDF](https://github.com/wxquare/effective-resourses/blob/master/%E5%AE%9E%E7%8E%B0%E9%A2%86%E5%9F%9F%E9%A9%B1%E5%8A%A8%E8%AE%BE%E8%AE%A1.pdf)
-6. <a id="ref-6"></a> 《重构：改善既有代码的设计》（Martin Fowler）
-7. <a id="ref-7"></a> 《企业应用架构模式》（Martin Fowler）
+2. <a id="ref-2"></a> [context package](https://pkg.go.dev/context)；Go Authors，Go 标准库文档；核验于 2026-10-12。
 
-### 开源项目推荐
+3. <a id="ref-3"></a> [Timeouts, retries, and backoff with jitter](https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/)；AWS Builders’ Library；核验于 2026-10-12。
 
-8. <a id="ref-8"></a> **工作流引擎**：
+4. <a id="ref-4"></a> [sync.Pool](https://pkg.go.dev/sync#Pool)；Go Authors，Go 标准库文档；核验于 2026-10-12。
+
+5. <a id="ref-5"></a> 《Clean Code》（Robert C. Martin）
+
+6. <a id="ref-6"></a> [Clean Code: A Handbook of Agile Software Craftsmanship](https://www.informit.com/store/clean-code-a-handbook-of-agile-software-craftsmanship-9780132350884)；Robert C. Martin，2008；出版社书籍页面，核验于 2026-10-12。
+
+7. <a id="ref-7"></a> 《设计模式：可复用面向对象软件的基础》（GoF）
+
+8. <a id="ref-8"></a> 《领域驱动设计》（Eric Evans）
+
+9. <a id="ref-9"></a> 《重构：改善既有代码的设计》（Martin Fowler）
+
+10. <a id="ref-10"></a> 《企业应用架构模式》（Martin Fowler）
+
+11. <a id="ref-11"></a> **工作流引擎**：
     - [s8sg/goflow](https://github.com/s8sg/goflow)
     - [go-workflow/go-workflow](https://github.com/go-workflow/go-workflow)
 
-9. <a id="ref-9"></a> **规则引擎**：
+12. <a id="ref-12"></a> **规则引擎**：
     - [bilibili/gengine](https://github.com/bilibili/gengine)
 
-10. <a id="ref-10"></a> **脚本引擎**：
+13. <a id="ref-13"></a> **脚本引擎**：
     - [d5/tengo](https://github.com/d5/tengo)
     - [mattn/anko](https://github.com/mattn/anko)
 

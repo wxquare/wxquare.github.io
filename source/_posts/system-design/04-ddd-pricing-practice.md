@@ -654,7 +654,7 @@ type CalculateQuoteCommand struct {
     CartID      string
     CartVersion int64
     Currency    string
-    EvaluatedAt time.Time
+    EvaluatedAt time.Time // 可信入口确定；正常交易不直接采用客户端时间
     Lines       []QuoteLineInput
 }
 
@@ -701,7 +701,9 @@ func (s *QuoteApplicationService) Calculate(
 }
 ```
 
-这段编排里有四个值得保留的决定。第一，EvaluatedAt 来自请求而不是领域内部读取系统时钟，使历史回放和边界测试可重复。第二，指纹覆盖 CartVersion 与规范化输入摘要；同一个幂等键若携带不同指纹，立即返回冲突。第三，Claim 依赖 request_id 唯一约束，并与报价、Outbox、Complete 放在同一数据库事务中：并发请求不能各自创建结果，事务回滚也不会留下“已占位但无报价”的记录。第四，Complete 的错误向外返回，不能在成功响应前静默丢失幂等结果。
+这段编排里有四个值得保留的决定。第一，EvaluatedAt 由可信入口确定后作为命令参数传入，而不是领域内部读取系统时钟，使历史回放和边界测试可重复。第二，指纹覆盖 CartVersion 与规范化输入摘要；同一个幂等键若携带不同指纹，立即返回冲突。第三，Claim 依赖 request_id 唯一约束，并与报价、Outbox、Complete 放在同一数据库事务中：并发请求不能各自创建结果，事务回滚也不会留下“已占位但无报价”的记录。第四，Complete 的错误向外返回，不能在成功响应前静默丢失幂等结果。
+
+正常交易不能直接信任客户端提供的评估时间、基础价或会员事实。入口应按服务端接收时间或可信业务凭证确定 EvaluatedAt，并在同一次业务意图的重试中复用已确定的时间；幂等键也应限定买家、租户与操作范围。历史回放属于独立授权用例，固定时间之外还必须加载原有价格、规则与资格版本，不能把历史时间与当前事实混算后当作可重放结果。
 
 ### 错误协议与用户可见承诺
 

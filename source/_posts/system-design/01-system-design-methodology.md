@@ -17,14 +17,11 @@ toc: true
 
 **阅读时间**: 35 分钟 | **难度**: ⭐⭐⭐⭐ | **面试频率**: 中高
 
-**核心考点速查**:
-- [技术方案写作](#前言) - 为什么要写技术方案？
-- [背景与目标](#背景) - 问题定义、业务目标
-- [容量评估](#容量评估) - QPS 计算、存储容量
-- [方案设计](#方案设计) - 架构图、技术选型、权衡
-- [API 设计](#API-设计规范和管理) - RESTful 规范、接口定义
-- [SOLID 原则](#SOLID-原则概述) - 面向对象设计原则
-- [分布式谬误](#分布式系统的-8-个谬误) - 网络可靠性、延迟、带宽
+**任务速查**：
+- [技术方案模板](#技术方案模板)：问题、目标、决策与发布准备。
+- [数学估算](#数学估算)：流量、内存、带宽和存储。
+- [API 错误码设计规范](#API-错误码设计规范)：协议状态与业务错误契约。
+
 
 ---
 
@@ -176,7 +173,7 @@ toc: true
 - 高可用性
 - 高可靠性 如果可能，解释是基于哪些方面的考虑将之作为非目标。如：
 - 可维护性： 本服务只是过渡方案，预计寿命三个月，待 XX 上线运行后即可下线
-设计不是试图达到完美，而是试图达到平衡。 显式地声明哪些是目标，哪些是非目标，有助于帮助读者理解下文中设
+设计不是试图达到完美，而是试图达到平衡。 显式地声明哪些是目标，哪些是非目标，有助于帮助读者理解下文中的设计取舍。
 
 #### 总体设计
 
@@ -184,17 +181,13 @@ toc: true
 
 用一页描述高层设计。说明系统的主要组成部分，以及一些关键设计决策。应该说明该系统的模块和决策如何满足前文所列出的目标。
 
-本设计文档的评审人应该能够根据该总体设计理解你的设计思路并做出评价。描述应该对一个新加入的、不在该项目工作的腾讯工程师而言是可以理解的。
+本设计文档的评审人应该能够根据该总体设计理解你的设计思路并做出评价。描述应该让新加入项目、不了解历史实现的工程师也能理解。
 
 推荐使用系统关系图描述设计。它可以使读者清晰地了解文中的新系统和已经熟悉的系统间的关系。它也可以包含新系统内部概要的组成模块。
 
 注意：不要只放一个图而不做任何说明，请根据上面小节的要求用文字描述设计思想。
 
-- 一个示例体统关系图
-
-- 自举的文档结构图
-
-- 可能不太好的顶层设计
+建议在总体设计中给出系统边界、核心模块职责与主要交互，并用文字解释关键取舍；具体绘图方法见 {% post_link system-design/07-engineering-diagrams-ai-workflow %}。
 不要在这里描述细节，放在下一章节中；不要在这里描述背景，放在上一章节中。
 
 #### 详细设计
@@ -295,7 +288,9 @@ SLA 目标是什么？如何监控？如何保证？
 
 
 ## 技术设计基础
-### 如何量化系统指标(SLA指标)
+### 如何量化系统指标：SLI、SLO 与 SLA
+
+SLI 是可观测指标，SLO 是在明确统计窗口与有效请求口径下设定的目标，SLA 是包含责任或后果约定的服务协议。内部性能目标不应一概称为 SLA；成功率、延迟达标比例和正确性需要分别定义。[[1]](#ref-1)
 #### reliable
 <p align="center">
   <img src="/diagrams/01-system-design-methodology/03-mean-time-between-failures.png" width=600 height=300>
@@ -324,12 +319,8 @@ SLA 目标是什么？如何监控？如何保证？
 - **安全性与用户体验的权衡**：强大的安全措施可能会增加用户的身份验证和授权过程，从而影响用户体验。
 
 #### 参考阅读
-可进一步阅读以下资料：[[1]](#ref-1)、[[2]](#ref-2)、[[3]](#ref-3) 和 [[4]](#ref-4)。
+可进一步阅读以下资料：[[2]](#ref-2)、[[3]](#ref-3)、[[4]](#ref-4) 和 [[5]](#ref-5)。
 
-1. <a id="ref-1"></a> [架构权衡评估方法（ATAM）：如何评估一个系统的质量](https://juejin.cn/post/7027701112077549605)
-2. <a id="ref-2"></a> [架构 Trade-off（架构权衡）](https://juejin.cn/post/7248914499915235389)
-3. <a id="ref-3"></a> [系统架构图示例](https://haomo-tech.com/project-docs/%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3/assets/%E7%B3%BB%E4%B8%9A%E5%8A%A1%E6%9E%B6%E5%9B%BE.omnigraffle)
-4. <a id="ref-4"></a> [系统架构](https://book.douban.com/subject/26938710/)
 
 ### 面向对象系统设计的原则
 
@@ -352,9 +343,8 @@ SOLID 原则是一套比较经典且流行的架构原则（主要还是名字�
 
 #### 参考阅读
 
-可进一步阅读 [[5]](#ref-5)。
+可进一步阅读 [[6]](#ref-6)。
 
-5. <a id="ref-5"></a> [Clean Architecture（整洁架构）中文翻译](https://github.com/leewaiho/Clean-Architecture-zh/tree/master?tab=readme-ov-file)
 
 ### 互联网系统八大谬论
 <p align="center">
@@ -369,14 +359,16 @@ SOLID 原则是一套比较经典且流行的架构原则（主要还是名字�
 - 拓扑不会改变；
 - 只有一个管理者；
 - 传输成本为0；
-- 网络是同构的；[[6]](#ref-6)
+- 网络是同构的；[[7]](#ref-7)
 
-6. <a id="ref-6"></a> [Eight Fallacies of Distributed Computing](https://ably.com/blog/8-fallacies-of-distributed-computing)
 
 
 ### 数学估算
 #### 延迟数
-```
+
+下面保留经典系统设计资料中的历史数量级示意，用于理解不同操作的相对成本。实际值会随硬件、负载、网络拓扑和缓存状态变化，不代表当前机器基准；容量与延迟预算应以目标环境测量为准。[[8]](#ref-8)
+
+```text
 Latency Comparison Numbers
 --------------------------
 L1 cache reference                           0.5 ns
@@ -400,7 +392,6 @@ Send packet CA->Netherlands->CA    150,000,000   ns  150,000 us  150 ms
 * 以 100 MB/s 从 1 Gbps 的以太网顺序读取
 * 从 SSD 以 1 GB/s 的速度读取
 * 以 4 GB/s 的速度从主存读取
-* 每秒能绕地球 6-7 圈
 * 数据中心内每秒有 2,000 次往返
 
 #### traffic estimates
@@ -503,10 +494,8 @@ Send packet CA->Netherlands->CA    150,000,000   ns  150,000 us  150 ms
 - MVC
 - MVP
 #### 参考阅读：
-可进一步阅读 [[7]](#ref-7) 和 [[8]](#ref-8)。
+可进一步阅读 [[9]](#ref-9) 和 [[10]](#ref-10)。
 
-7. <a id="ref-7"></a> [软件架构：开发人员的软件架构模式](https://www.bilibili.com/video/BV1cr4y1a7iU/?p=3&spm_id_from=pageDriver&vd_source=04e82c25f6ff3d6a1a08a7f1c343987c)
-8. <a id="ref-8"></a> [什么是软件架构设计](https://hangzhouhot.com/architecturepicture/)
 
 ### 架构 EA+4A
 #### 什么是架构 EA+4A
@@ -689,7 +678,7 @@ RPC 是一个“请求-响应”协议：
 * **SSL 终结** ─ 解密传入的请求并加密服务器响应，这样的话后端服务器就不必再执行这些潜在高消耗运算了。
 * 不需要再每台服务器上安装 [X.509 证书](https://en.wikipedia.org/wiki/X.509)。
 * **Session 留存** ─ 如果 Web 应用程序不追踪会话，发出 cookie 并将特定客户端的请求路由到同一实例。
-* 通常会设置采用[工作─备用](#工作到备用切换active-passive) 或 [双工作](#双工作切换active-active) 模式的多个负载均衡器，以免发生故障。
+* 多个负载均衡器可采用主备或双活方式部署；故障切换还需健康检查、连接处理与剩余容量验证，不能只靠增加实例保证可用。相关判断见 {% post_link system-design/06-system-reliability-engineering %}。
 
 负载均衡器能基于多种方式来路由流量:
 * 随机
@@ -701,7 +690,7 @@ RPC 是一个“请求-响应”协议：
 
 #### 四层负载均衡
 
-四层负载均衡根据监看[传输层](#通讯)的信息来决定如何分发请求。通常，这会涉及来源，目标 IP 地址和请求头中的端口，但不包括数据包（报文）内容。四层负载均衡执行[网络地址转换（NAT）](https://www.nginx.com/resources/glossary/layer-4-load-balancing/)来向上游服务器转发网络数据包。
+四层负载均衡通常按 IP、端口与协议等网络层和传输层信息分发连接，不依赖 HTTP 路径等应用层内容。转发可以采用 NAT、直接路由或代理等方式，不能把 NAT 视为所有四层负载均衡的必要实现。网络分层背景见 {% post_link fundamentals/02-computer-network-fundamentals %}。
 
 #### 七层负载均衡器
 
@@ -717,7 +706,7 @@ RPC 是一个“请求-响应”协议：
 #### 缺陷：水平扩展
 * 水平扩展引入了复杂度并涉及服务器复制
 * 服务器应该是无状态的:它们也不该包含像 session 或资料图片等与用户关联的数据。
-* session 可以集中存储在数据库或持久化[缓存](#缓存)（Redis、Memcached）的数据存储区中。
+* session 可以集中存储在数据库或缓存中；Redis 的持久化能力取决于配置，Memcached 本身不提供持久化。失效、丢失或驱逐后的处理应由会话政策决定，相关机制见 {% post_link fundamentals/08-redis-principles-and-practice %}。
 * 缓存和数据库等下游服务器需要随着上游服务器进行扩展，以处理更多的并发连接。
 
 #### 缺陷：负载均衡器
@@ -852,67 +841,36 @@ curl -X DELETE /orders/{order_id}
 
 
 ### API 错误码设计规范
-1. 不论请求成功或失败，始终返回 200 http status code，在 HTTP Body 中包含用户账号没有找到的错误信息:
 
-```
-如: Facebook API 的错误 Code 设计，始终返回 200 http status code：
+HTTP 状态码用于表达协议层面的结果，响应体提供稳定的业务错误类型和详情。不要将“所有失败都返回 200”写成通用规范，也不要把旧版厂商示例泛化为当前 API 行为。状态语义应以 HTTP 标准和实际接口契约为准。[[11]](#ref-11)
+
+| 状态码 | 典型语义 | 调用方处理 |
+|---|---|---|
+| 200 / 201 / 202 | 成功、创建成功、已接受但尚未完成 | 202 需有结果查询或通知机制 |
+| 400 | 请求格式或参数非法 | 修正请求后再提交 |
+| 401 / 403 | 未提供有效认证 / 拒绝访问 | 按认证或权限政策处理 |
+| 404 | 目标资源不存在，或服务端不披露其存在 | 核对资源与访问范围 |
+| 409 | 与当前资源状态冲突，例如版本冲突 | 刷新事实并重新决定业务意图 |
+| 422 | 内容格式可理解，但无法按请求语义处理 | 按稳定错误类型修正业务输入 |
+| 429 | 请求频率受到限制 | 遵守服务端退避要求与客户端预算 |
+| 500 / 502 / 503 / 504 | 服务端异常、网关响应无效、服务不可用、网关超时 | 是否重试取决于错误契约与副作用，不能一概重试 |
+
+可采用 RFC 9457 Problem Details，用 `type` 提供稳定问题类别，`title` 提供简述，`status` 与实际 HTTP 状态一致，`detail` 提供本次问题说明。业务错误码无需编码服务组织结构；数字或字符串均可，重点是唯一、稳定、文档化。[[12]](#ref-12)
+
+```http
+HTTP/1.1 409 Conflict
+Content-Type: application/problem+json
+
 {
-  "error": {
-    "message": "Syntax error \"Field picture specified more than once. This is only possible before version 2.1\" at character 23: id,name,picture,picture",
-    "type": "OAuthException",
-    "code": 2500,
-    "fbtrace_id": "xxxxxxxxxxx"
-  }
-}
-
-缺点:
-  对于每一次请求，我们都要去解析 HTTP Body，从中解析出错误码和错误信息
-
-```
-
-2. 返回 http 404 Not Found 错误码，并在 Body 中返回简单的错误信息:
-
-```
-如: Twitter API 的错误设计
-根据错误类型，返回合适的 HTTP Code，并在 Body 中返回错误信息和自定义业务 Code
-
-HTTP/1.1 400 Bad Request
-{"errors":[{"code":215,"message":"Bad Authentication data."}]}
-```
-
-3. 返回 http 404 Not Found 错误码，并在 Body 中返回详细的错误信息:
-
-```
-如: 微软 Bing API 的错误设计，会根据错误类型，返回合适的 HTTP Code，并在 Body 中返回详尽的错误信息
-HTTP/1.1 400
-{
-  "code": 100101,
-  "message": "Database error",
-  "reference": "https://github.com/xx/tree/master/docs/guide/faq/xxxx"
+  "type": "https://example.com/problems/cart-version-conflict",
+  "title": "Cart version conflict",
+  "status": 409,
+  "detail": "Refresh the cart before requesting a new quote.",
+  "currentVersion": 8
 }
 ```
 
-4. 业务 Code 码设计
-- 纯数字表示
-- 不同部位代表不同的服务
-- 不同的模块（品类）
-
-```
-如: 错误代码说明：100101
-10: 服务
-01: 某个服务下的某个模块
-01: 模块下的错误码序号，每个模块可以注册 100 个错误
-建议 http status code 不要太多:
-
-200 - 表示请求成功执行
-400 - 表示客户端出问题
-500 - 表示服务端出问题
-
-如果觉得这 3 个错误码不够用，可以加如下 3 个错误码:
-401 - 表示认证失败
-403 - 表示授权失败
-404 - 表示资源找不到，这里的资源可以是 URL 或者 RESTful 资源
-```
+上述 URL 和版本值均为教学示例。错误响应不应暴露堆栈、数据库详情或敏感数据；超时表示结果可能未知，应结合幂等键查询或安全重试，而不能据此认定写入失败。
 
 ### 接口幂等性设计
 
@@ -1015,7 +973,7 @@ HTTP/1.1 400
 
 ## 系统稳定性建设
 
-> 详见 {% post_link system-design/06-system-reliability-engineering 互联网系统稳定性建设：方法论与实践 %}
+> 详见 {% post_link system-design/06-system-reliability-engineering %}
 
 ## 系统设计实践
 - 设计类似于 Dropbox 的文件同步服务
@@ -1079,7 +1037,23 @@ HTTP/1.1 400
   - [washington.edu](http://courses.cs.washington.edu/courses/csep521/07wi/prj/rick.pdf)
 
 
-参考：
+## 参考资料
+
+1. <a id="ref-1"></a> [Implementing SLOs](https://sre.google/workbook/implementing-slos/)；Google SRE，2018。
+2. <a id="ref-2"></a> [架构权衡评估方法（ATAM）：如何评估一个系统的质量](https://juejin.cn/post/7027701112077549605)
+3. <a id="ref-3"></a> [架构 Trade-off（架构权衡）](https://juejin.cn/post/7248914499915235389)
+4. <a id="ref-4"></a> [系统架构图示例](https://haomo-tech.com/project-docs/%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3/assets/%E7%B3%BB%E4%B8%9A%E5%8A%A1%E6%9E%B6%E5%9B%BE.omnigraffle)
+5. <a id="ref-5"></a> [系统架构](https://book.douban.com/subject/26938710/)
+6. <a id="ref-6"></a> [Clean Architecture（整洁架构）中文翻译](https://github.com/leewaiho/Clean-Architecture-zh/tree/master?tab=readme-ov-file)
+7. <a id="ref-7"></a> [Eight Fallacies of Distributed Computing](https://ably.com/blog/8-fallacies-of-distributed-computing)
+8. <a id="ref-8"></a> [System Design Primer](https://github.com/donnemartin/system-design-primer)；Donne Martin，持续维护；历史延迟数字仅用于数量级参考。
+9. <a id="ref-9"></a> [软件架构：开发人员的软件架构模式](https://www.bilibili.com/video/BV1cr4y1a7iU/?p=3&spm_id_from=pageDriver&vd_source=04e82c25f6ff3d6a1a08a7f1c343987c)
+10. <a id="ref-10"></a> [什么是软件架构设计](https://hangzhouhot.com/architecturepicture/)
+11. <a id="ref-11"></a> [RFC 9110: HTTP Semantics](https://www.rfc-editor.org/rfc/rfc9110.html)；IETF，2022。
+12. <a id="ref-12"></a> [RFC 9457: Problem Details for HTTP APIs](https://www.rfc-editor.org/rfc/rfc9457.html)；IETF，2023。
+
+
+其他延伸阅读：
 - https://github.com/Vonng/ddia
 - https://github.com/leewaiho/Clean-Architecture-zh
 - https://github.com/donnemartin/system-design-primer

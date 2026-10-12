@@ -23,7 +23,7 @@ Clean Architecture、DDD 和 CQRS 这三个概念经常被一起提及，甚至�
 
 - **Clean Architecture** 关注分层与解耦
 - **DDD** 关注业务建模
-- **CQRS** 关注数据读写的路径优化
+- **CQRS** 关注命令与查询使用不同模型，按需优化读写路径
 
 如果把开发一套复杂的软件比作经营一家餐厅：
 
@@ -89,7 +89,7 @@ myapp/
 
 ### 核心价值
 
-当你决定从 MySQL 换到 MongoDB，或者把 Web 框架从 Gin 换到 Echo 时，核心的业务逻辑（Use Cases 和 Entities）**不需要改动一行代码**。
+当你更换 Web 框架或持久化实现时，依赖规则可以把技术细节的变化集中在适配器中，减少对用例与领域模型的影响。前提是新实现仍满足原有端口的行为契约；从 MySQL 迁移到 MongoDB 若改变了事务、唯一约束或查询语义，仍可能需要调整用例并重新验证业务不变量。接口隔离不等于存储语义可以无成本替换。[[1]](#ref-1)
 
 ```go
 // domain/repository.go — 内层只定义接口
@@ -388,7 +388,7 @@ DDD 的战略设计关注的是架构层面的决策：如何划分领域、如�
 
 #### 领域划分方法论
 
-**如何判断一个子域属于哪一类？** 下面提供一套可操作的评分框架。
+**如何判断一个子域属于哪一类？** 下面提供作者自拟的讨论框架，不是 DDD 原典规定的分类标准。核心域取决于当前业务战略中的差异化价值；变化频率与技术复杂度用于评估实施成本，不能单独证明一个子域是核心域。[[2]](#ref-2)
 
 #### 判断维度与评分模型
 
@@ -404,7 +404,7 @@ DDD 的战略设计关注的是架构层面的决策：如何划分领域、如�
 - 每个维度打分 1-10 分
 - 总分 = 四个维度分数相加（满分 40 分）
 
-**总分判断标准**：
+**教学示例中的候选分组**（仅用于讨论，不作为分类门禁）：
 
 - **32-40 分** → 核心域（Core Domain）
 - **16-31 分** → 支撑域（Supporting Domain）
@@ -412,9 +412,9 @@ DDD 的战略设计关注的是架构层面的决策：如何划分领域、如�
 
 **注意事项**：
 
-- 边界分数（如 31-32 分）需要结合公司战略、团队能力综合判断
-- 初创公司可以适当放宽核心域标准（28 分以上即可），聚焦资源
-- 成熟公司标准更严格，避免核心域过多导致资源分散
+- 所有分数和分组区间均为假设，不具有经验证的预测效力。
+- 总分只提示需要讨论的对象，最终分类要由业务战略与差异化证据决定；高复杂度的通用组件也可能应当采购或复用。
+- 团队能力与预算决定如何投入，不能因为暂时无力投入，就把核心域改判为支撑域。
 
 #### 决策流程图
 
@@ -440,7 +440,7 @@ flowchart TD
 
     E --> J{团队投入意愿高?}
     J -->|是| K[确认：核心域]
-    J -->|否| L[降级：支撑域]
+    J -->|否| L[保留核心域候选<br/>记录投入缺口与风险]
 
     style K fill:#ffcdd2,stroke:#c62828,stroke-width:3px
     style I fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
@@ -452,7 +452,7 @@ flowchart TD
 1. 从顶部"识别子域"开始
 2. 依次回答每个判断问题（是/否）
 3. 沿着路径走到终点得出初步结论
-4. 结合评分模型验证（两个工具互相补充）
+4. 结合业务专家与公司战略复核；评分和流程图只用于暴露分歧，不能代替分类判断。
 
 #### 常见误区与边界案例
 
@@ -517,13 +517,13 @@ flowchart TD
 
 #### 方法论应用：电商系统实战分析
 
-下面选择电商系统的 3 个典型域，应用评分模型进行深度分析。
+下面选择电商系统的 3 个典型域，展示一种假设业务战略下的讨论结果。评分、团队人数、迭代周期与可靠性目标均为教学假设；订单、商品和用户能力在其他平台可能属于不同类型，不能按系统名称固定分类。
 
 #### 订单域（核心域）
 
 | 维度 | 评分 | 详细分析 |
 |-----|------|---------|
-| **业务价值** | 10 | 订单流程直接影响 GMV（成交总额），每提升 1% 转化率就是百万级营收 |
+| **业务价值** | 10 | 本例假设差异化交易玩法直接影响 GMV（成交总额）；转化率收益还取决于流量、客单价与统计口径 |
 | **竞争差异化** | 9 | 拼团、秒杀、预售、分期等玩法是核心竞争力，竞品难以完全模仿 |
 | **变化频率** | 9 | 每个大促（618、双11）都会调整订单流程，支持新的营销玩法 |
 | **技术复杂度** | 9 | 分布式事务（Saga）、状态机、高并发、幂等性、最终一致性 |
@@ -588,7 +588,7 @@ flowchart TD
 
 - **团队配置**：外包或使用 SaaS 服务，内部只需 1 人对接
 - **技术选型**：采购（Auth0、Keycloak、AWS Cognito）
-- **质量要求**：依赖服务商 SLA（通常 99.95%+）
+- **质量要求**：核对实际合同 SLA、测量端到端 SLI，并设计供应商故障时的处理策略；不能将供应商 SLA 直接视为本系统可用性
 - **迭代策略**：按需对接新的认证方式（如生物识别），最小投入
 - **文档要求**：对接文档即可
 
@@ -812,10 +812,14 @@ func (m Money) Add(other Money) (Money, error) {
 
 聚合设计是 DDD 战术层面最难的部分。三条核心原则：
 
-#### 原则一：一个事务只修改一个聚合
+#### 原则一：通常以单个聚合作为事务边界
+
+聚合用于保护必须同时成立的业务不变量，通常让一次事务修改一个聚合，有助于控制竞争与耦合。[[3]](#ref-3) 若同一数据库中的业务规则确实要求多个聚合原子修改，应重新检查聚合边界，或明确记录跨聚合事务的理由、锁竞争与失败语义。跨服务事务则不能直接套用本地 ACID；异步协作需要可靠发布、幂等和补偿。
+
+下面的反例针对“没有评估一致性要求就把订单与库存绑在一起”，并不表示同库跨聚合事务必然错误。
 
 ```go
-// ❌ 反例：一个事务同时修改 Order 和 Inventory 两个聚合
+// 待评审：是否确需原子更新、是否同库、锁竞争是否可接受？
 func (s *OrderService) PlaceOrder(ctx context.Context, cmd PlaceOrderCmd) error {
     return s.txManager.RunInTx(ctx, func(tx *sql.Tx) error {
         order := domain.NewOrder(cmd.CustomerID)
@@ -829,7 +833,8 @@ func (s *OrderService) PlaceOrder(ctx context.Context, cmd PlaceOrderCmd) error 
 ```
 
 ```go
-// ✅ 正例：通过领域事件实现跨聚合协作
+// 异步方案示意：此用例返回的是待库存确认的订单。
+// orderRepo 与 outboxRepo 必须绑定到同一个本地事务。
 func (s *OrderService) PlaceOrder(ctx context.Context, cmd PlaceOrderCmd) error {
     order := domain.NewOrder(cmd.CustomerID)
     order.AddItem(cmd.ProductID, cmd.Qty)
@@ -837,18 +842,23 @@ func (s *OrderService) PlaceOrder(ctx context.Context, cmd PlaceOrderCmd) error 
     if err != nil {
         return err
     }
-    if err := s.orderRepo.Save(ctx, order); err != nil {
-        return err
-    }
-    s.eventBus.Publish(ctx, events...) // OrderPlacedEvent → Inventory 服务异步消费
-    return nil
+    return s.tx.Within(ctx, func(tx Tx) error {
+        if err := s.orderRepo.Save(tx, order); err != nil {
+            return err
+        }
+        return s.outboxRepo.Append(tx, events...)
+    })
 }
 
 // inventory 服务的事件处理器
 func (h *InventoryEventHandler) OnOrderPlaced(ctx context.Context, e OrderPlacedEvent) error {
-    return h.stock.Deduct(ctx, e.ProductID, e.Qty)
+    // 去重、库存条件扣减与结果事件写 Outbox，在本地事务内完成。
+    // 库存不足也要生成明确结果，使订单转为拒绝或取消状态。
+    return h.stock.TryDeductAndRecordOutcome(ctx, e.EventID, e.OrderID, e.ProductID, e.Qty)
 }
 ```
+
+库存确认前不能把订单当作已保证可履约。也可以先取得有期限的库存预留凭证再创单；库存拒绝、凭证过期或结果迟到，都必须有状态转换和补偿政策。业务数据与 Outbox 原子提交后，由 Relay 发送事件。[[4]](#ref-4)
 
 #### 原则二：小聚合优于大聚合
 
@@ -974,15 +984,18 @@ CREATE TABLE outbox (
     event_type  VARCHAR(128) NOT NULL,
     event_key   VARCHAR(128) NOT NULL,
     payload     JSON NOT NULL,
-    status      ENUM('pending', 'sent', 'failed') DEFAULT 'pending',
+    status      ENUM('pending', 'sent', 'dead') NOT NULL DEFAULT 'pending',
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     sent_at     TIMESTAMP NULL,
-    retry_count INT DEFAULT 0,
-    INDEX idx_status_created (status, created_at)
+    retry_count INT NOT NULL DEFAULT 0,
+    next_attempt_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_status_next (status, next_attempt_at, id)
 );
 ```
 
 #### Relay 实现
+
+以下是单 Relay 的教学示意，不承诺事件顺序。`FetchDuePending` 只读取到期的 pending 记录；`ScheduleRetryOrDead` 原子递增失败次数，未达配置上限时保持 pending 并设置退避后的时间，达到上限则转 dead、告警并等待修复后重放。多 Relay 还需要带租约的领取与崩溃接管机制。
 
 ```go
 func (r *OutboxRelay) Run(ctx context.Context) {
@@ -994,7 +1007,7 @@ func (r *OutboxRelay) Run(ctx context.Context) {
         case <-ctx.Done():
             return
         case <-ticker.C:
-            entries, err := r.outboxRepo.FetchPending(ctx, 100)
+            entries, err := r.outboxRepo.FetchDuePending(ctx, time.Now(), 100)
             if err != nil {
                 slog.Error("fetch outbox failed", "error", err)
                 continue
@@ -1002,10 +1015,15 @@ func (r *OutboxRelay) Run(ctx context.Context) {
             for _, entry := range entries {
                 if err := r.producer.Publish(ctx, entry.EventType, entry.EventKey, entry.Payload); err != nil {
                     slog.Error("publish event failed", "id", entry.ID, "error", err)
-                    r.outboxRepo.MarkFailed(ctx, entry.ID)
+                    if retryErr := r.outboxRepo.ScheduleRetryOrDead(ctx, entry.ID); retryErr != nil {
+                        slog.Error("schedule outbox retry failed", "id", entry.ID, "error", retryErr)
+                    }
                     continue
                 }
-                r.outboxRepo.MarkSent(ctx, entry.ID)
+                if err := r.outboxRepo.MarkSent(ctx, entry.ID); err != nil {
+                    // MQ 已接收但状态未落库，下轮可能重复发送。
+                    slog.Error("mark outbox sent failed", "id", entry.ID, "error", err)
+                }
             }
         }
     }
@@ -1013,15 +1031,15 @@ func (r *OutboxRelay) Run(ctx context.Context) {
 ```
 
 **关键保证**：
-- **At-least-once delivery**：Relay 崩溃后重启会重新发送 pending 的事件，消费者必须做幂等处理
-- **顺序保证**：按 `created_at` 顺序拉取，同一 `event_key` 的事件保持顺序
-- **死信处理**：`retry_count > 5` 的事件转入死信表，人工介入
+- **至少一次投递目标**：发布成功但标记失败会产生重复；消费者需要将去重与业务更新原子化。dead 事件必须被监控并恢复重放，有限重试本身不保证最终送达。[[4]](#ref-4)
+- **顺序需要额外设计**：`created_at` 排序不能保证同键顺序。需要可靠的聚合版本 / 序号、同键串行发布、失败时阻止后续事件越过，以及稳定的 MQ 分区键；消费者还需检测版本缺口。上面的示例没有实现这些条件。
+- **恢复策略**：失败次数上限和退避时间属于场景配置。修复 dead 事件后复用原 event ID 重放，避免绕过去重或丢失审计关联。
 
 ---
 
 ## CQRS（命令查询职责分离）— 核心是"读写分离"
 
-CQRS 的逻辑非常直白：处理"改变数据"（Command）的逻辑和处理"读取数据"（Query）的逻辑应该**完全分开**。
+CQRS 将修改状态的命令模型与读取数据的查询模型分开。它可以在同一进程、同一数据库中实现，并不必然需要两套存储、异步消息或事件溯源。是否进一步拆分部署与存储，要由一致性要求和读写需求决定。[[5]](#ref-5) [[6]](#ref-6)
 
 ### 为什么要分？
 
@@ -1030,10 +1048,10 @@ CQRS 的逻辑非常直白：处理"改变数据"（Command）的逻辑和处理
 | 维度 | 写（Command） | 读（Query） |
 |------|---------------|-------------|
 | 关注点 | 业务规则、校验、权限、事务 | 跨表关联、全文搜索、分页排序 |
-| 数据模型 | 范式化（3NF），保证一致性 | 反范式化（宽表），优化查询速度 |
-| 性能目标 | 保证正确性 > 速度 | 保证速度 > 实时性 |
-| 扩展方式 | 垂直扩展（事务安全） | 水平扩展（读副本、缓存） |
-| 典型存储 | MySQL, PostgreSQL | Elasticsearch, Redis, ClickHouse |
+| 数据模型 | 围绕业务不变量组织；范式本身不保证一致性 | 围绕查询需求组织；可按需反范式化 |
+| 性能目标 | 在正确性约束下满足写入 SLO | 同时明确延迟与可接受的数据陈旧窗口 |
+| 扩展方式 | 可纵向或横向扩展，取决于事务与分区设计 | 可用索引、读副本、缓存或独立投影 |
+| 存储选择 | 按事务与访问模式选择 | 可以共用写侧数据库，也可按需独立存储 |
 
 ### 架构全景
 
@@ -1043,7 +1061,9 @@ flowchart LR
         A[Client] -->|Command| B[Command Handler]
         B --> C[Domain Model / Aggregate]
         C --> D[(Write DB - MySQL)]
-        C -->|Domain Event| E[Event Bus]
+        B -->|同事务写事件| O[(Outbox)]
+        O --> R[Relay]
+        R -->|至少一次发布| E[Event Bus]
     end
 
     subgraph 读路径 Query Side
@@ -1057,7 +1077,7 @@ flowchart LR
 ### Command 与 Query 的设计
 
 ```go
-// Command — 表达意图，不返回业务数据
+// Command — 表达修改意图，可以返回 ID、版本或明确的执行结果
 type PlaceOrderCommand struct {
     CustomerID string
     Items      []OrderItemDTO
@@ -1081,16 +1101,21 @@ func (h *OrderCommandHandler) PlaceOrder(ctx context.Context, cmd PlaceOrderComm
     if err != nil {
         return CommandResult{Error: err}
     }
-    if err := h.repo.Save(ctx, order); err != nil {
+    // tx、repo、outbox 为契约示意；repo 与 outbox 使用同一事务。
+    if err := h.tx.Within(ctx, func(tx Tx) error {
+        if err := h.repo.Save(tx, order); err != nil {
+            return err
+        }
+        return h.outbox.Append(tx, events...)
+    }); err != nil {
         return CommandResult{Error: err}
     }
-    h.eventBus.Publish(ctx, events...)
     return CommandResult{Success: true, ID: string(order.ID())}
 }
 ```
 
 ```go
-// Query — 直接返回展示层需要的 DTO，不触发任何业务逻辑
+// Query — 返回查询 DTO，不改变业务状态；仍须执行读取权限等规则
 type OrderDetailQuery struct {
     OrderID string
 }
@@ -1112,7 +1137,7 @@ func (h *OrderQueryHandler) GetOrderDetail(ctx context.Context, q OrderDetailQue
 
 ### 核心价值
 
-**极致的性能优化**。你可以针对写操作使用关系型数据库（保证强一致性），针对读操作使用 Elasticsearch 或 Redis（保证高并发）。读写模型可以**独立扩展、独立优化**。
+命令与查询模型可以分别优化；进一步拆分存储与部署后，也可以分别扩展。数据库名称本身不保证强一致性或高并发，实际能力取决于事务、复制、分区、索引、负载与配置；独立投影还会引入同步延迟和恢复成本。[[6]](#ref-6)
 
 ### Event Sourcing：事件溯源
 
@@ -1160,7 +1185,7 @@ graph LR
 
 ### 最终一致性处理策略
 
-引入 CQRS 后，写模型和读模型之间存在**延迟**（通常毫秒到秒级）。这需要在架构层面和用户体验层面同时处理。
+采用异步投影时，写入提交与读模型可见之间存在延迟；积压或故障时可能持续更久，需要定义新鲜度目标并监控。CQRS 本身不必然产生异步延迟，同库同事务更新读模型也可实现。[[6]](#ref-6)
 
 #### 架构层面
 
@@ -1170,52 +1195,53 @@ graph LR
 
 ```go
 func (p *OrderProjector) Project(ctx context.Context, event DomainEvent) error {
-    exists, err := p.readDB.EventProcessed(ctx, event.ID())
-    if err != nil {
-        return err
-    }
-    if exists {
-        return nil // 幂等：已处理过，跳过
-    }
-
-    switch e := event.(type) {
-    case OrderPlacedEvent:
-        dto := OrderDetailDTO{
-            OrderID:    string(e.OrderID),
-            Status:     "placed",
-            TotalPrice: e.Total.String(),
-            CreatedAt:  e.At.Format(time.RFC3339),
+    // 契约示意：领取事件与更新投影共享一个数据库事务。
+    return p.readDB.Within(ctx, func(tx ReadModelTx) error {
+        claimed, err := tx.ClaimEvent(event.ID()) // event_id 唯一约束仲裁并发
+        if err != nil { return err }
+        if !claimed { return nil }
+        switch e := event.(type) {
+        case OrderPlacedEvent:
+            return tx.Upsert(OrderDetailDTO{
+                OrderID:    string(e.OrderID),
+                Status:     "placed",
+                TotalPrice: e.Total.String(),
+                CreatedAt:  e.At.Format(time.RFC3339),
+            })
+        default:
+            return fmt.Errorf("unsupported projection event: %T", event)
         }
-        if err := p.readDB.Upsert(ctx, dto); err != nil {
-            return err
-        }
-    }
-    return p.readDB.MarkEventProcessed(ctx, event.ID())
+    })
 }
 ```
 
+消费确认应发生在事务提交后。若投影在 Elasticsearch 等不能与去重记录共享事务的存储中，应使用事件版本条件写、稳定主键或可重建投影实现幂等；不能用“先查询是否处理，再写入”的非原子流程声称已经防重。重复事件与乱序事件是不同问题，后者还需版本检查。
+
 **策略二：补偿事务（Saga）**
 
-当跨服务操作中某一步失败，通过发布补偿事件回滚前面的步骤：
+Saga 处理跨服务业务流程，属于与 CQRS 独立的设计选择。失败后的补偿是新的业务操作，可能再次失败，无法像数据库回滚一样抹去已经发生的外部事实。
 
 ```text
 正向流程：CreateOrder → ReserveStock → ChargePayment
-补偿流程：                ReleaseStock ← RefundPayment ← PaymentFailed
+失败恢复：库存拒绝 → 取消待确认订单
+          支付结果未知 → 查询 / 对账确认，不能立即按失败退款
+          已扣款且后续失败 → RefundPayment → ReleaseStock / CancelOrder
+补偿动作需要幂等、可重试，并有长期失败时的人工接管机制。
 ```
 
 #### 用户体验层面
 
-**Optimistic UI（乐观更新）**：前端在发送 Command 后立即更新 UI，不等待读模型同步。
+**Optimistic UI（乐观更新）**：请求发出后可显示“正在提交”等临时状态，但订单创建成功必须以命令持久化成功的确认结果为准；失败时撤销临时状态，超时未知时按幂等键查询。
 
 ```text
 用户点击"下单" 
-  → 前端立即显示"订单已创建"（乐观更新）
+  → 前端显示"正在提交"，防止重复操作
   → 后端 Command 异步处理
-  → 读模型延迟 200ms 后更新
+  → 后端返回持久化确认与版本；异步投影在新鲜度目标内更新
   → 用户下次刷新时看到真实状态
 ```
 
-**Read-your-writes**：Command 成功后返回版本号，Query 时带上版本号，确保读到的是自己写入之后的数据。
+**Read-your-writes**：Command 成功后返回版本号，Query 时带上最低版本要求。查询端必须验证投影版本，未达要求时有界等待、回源或返回“尚未同步”；仅传入版本号不能保证读到自己的写入。
 
 ### 投影器（Projector）实现模式
 
@@ -1232,7 +1258,9 @@ flowchart LR
     D -->|OrderCancelled| G[标记订单取消]
 ```
 
-#### 完整实现
+#### 事件路由示意
+
+以下仅展示事件到读模型操作的映射；外围需实现前述原子去重、版本防乱序与消费确认。`Handles` 只列出本示例已实现的事件，收到未支持事件应报错而非静默确认。
 
 ```go
 // adapter/projection/projector.go
@@ -1247,7 +1275,7 @@ type OrderReadModelProjector struct {
 }
 
 func (p *OrderReadModelProjector) Handles() []string {
-    return []string{"OrderPlaced", "OrderCancelled", "ItemAdded", "PaymentCompleted"}
+    return []string{"OrderPlaced", "OrderCancelled", "PaymentCompleted"}
 }
 
 func (p *OrderReadModelProjector) Project(ctx context.Context, event DomainEvent) error {
@@ -1265,7 +1293,7 @@ func (p *OrderReadModelProjector) Project(ctx context.Context, event DomainEvent
     case PaymentCompletedEvent:
         return p.readDB.UpdateStatus(ctx, string(e.OrderID), "paid")
     default:
-        return nil
+        return fmt.Errorf("unsupported projection event: %T", event)
     }
 }
 ```
@@ -1274,8 +1302,8 @@ func (p *OrderReadModelProjector) Project(ctx context.Context, event DomainEvent
 
 | 模式 | 机制 | 延迟 | 适用场景 |
 |------|------|------|----------|
-| **同步投影** | Command Handler 执行完后同步调用 Projector | 零延迟 | 读写在同一进程、低吞吐 |
-| **异步投影** | 事件通过 MQ 传递，Projector 独立消费 | 毫秒~秒级 | 高吞吐、读写分离部署 |
+| **同步投影** | 同库事务内更新读模型，提交后返回确认 | 无异步积压，但增加命令耗时；读副本仍可能滞后 | 读写可共享事务边界 |
+| **异步投影** | 事件通过 MQ 传递，Projector 独立消费 | 由负载、积压和恢复进度决定，需设新鲜度目标 | 可接受有界陈旧、读写分离部署 |
 | **Catch-up 投影** | Projector 从事件存储按序号拉取事件 | 可控 | 重建读模型、新增投影视图 |
 
 ---
@@ -1377,6 +1405,7 @@ sequenceDiagram
     participant CMD as Command Handler<br/>(Use Case)
     participant AGG as Aggregate Root<br/>(Domain)
     participant WDB as Write DB<br/>(MySQL)
+    participant REL as Outbox Relay
     participant EB as Event Bus<br/>(Kafka)
     participant PRJ as Projector<br/>(Adapter)
     participant RDB as Read DB<br/>(ES/Redis)
@@ -1387,8 +1416,10 @@ sequenceDiagram
     H->>CMD: PlaceOrderCommand
     CMD->>AGG: NewOrder() + AddItem() + Place()
     AGG-->>CMD: DomainEvents
-    CMD->>WDB: Save(order)
-    CMD->>EB: Publish(OrderPlacedEvent)
+    CMD->>WDB: 同一事务保存 order + Outbox
+    WDB-->>CMD: COMMIT 成功
+    REL->>WDB: 领取到期 Outbox
+    REL->>EB: Publish(OrderPlacedEvent)
 
     Note over C,QRY: ── 读路径（Query）──
     EB->>PRJ: OrderPlacedEvent
@@ -1528,14 +1559,14 @@ flowchart TD
     A[项目复杂度评估] --> B{业务逻辑是否复杂？}
     B -->|简单 CRUD| C[标准三层架构即可]
     B -->|中等复杂度| D[Clean Architecture]
-    B -->|高复杂度| E{读写比例差异大？}
+    B -->|高复杂度| E{读写模型确有独立职责或优化需求？}
     E -->|是| F[Clean Architecture + DDD + CQRS]
     E -->|否| G[Clean Architecture + DDD]
 ```
 
 **适用场景（适合上三件套）：**
 - 业务规则复杂且频繁变化（电商、金融、保险）
-- 读写比例悬殊（读:写 > 10:1）
+- 读写模型有不同的职责、访问模式或扩展需求；读写比例只能作为分析输入，不能用固定比例作为采用门槛
 - 多团队协作，需要清晰的 Bounded Context 边界
 - 需要针对读写使用不同存储引擎
 
@@ -1552,9 +1583,9 @@ flowchart TD
 |------|------|------------|
 | 聚合根只有 CRUD 操作 | 没有真正的业务不变量需要保护 | 回退到简单的 Service + Repository |
 | 读模型和写模型完全一样 | 没有读写分离的必要 | 去掉 CQRS，用同一个模型 |
-| Bounded Context 只有一个实体 | 过度拆分，上下文太小 | 合并到相邻上下文 |
+| Bounded Context 只有一个实体 | 值得检查边界依据，但实体数量不决定边界合理性 | 按语言、规则所有权与变更原因复核，不能仅按数量合并 |
 | 领域事件没有消费者 | 为了 DDD 而 DDD | 去掉事件，直接方法调用 |
-| 接口只有一个实现 | 除非是为了测试或已知的未来扩展 | 考虑直接使用具体类型 |
+| 接口只有一个实现 | 不直接说明过度设计；端口也可用于隔离外部依赖 | 检查接口是否形成有意义的行为契约；无隔离收益时再考虑具体类型 |
 
 **经验法则**：如果你花在架构上的时间超过了写业务逻辑的时间，大概率过度设计了。
 
@@ -1722,7 +1753,7 @@ flowchart TD
 
 | 维度 | Clean Architecture | DDD | CQRS |
 |------|-------------------|-----|------|
-| **提出者** | Robert C. Martin | Eric Evans | Greg Young / Bertrand Meyer |
+| **概念来源** | Robert C. Martin | Eric Evans | CQRS 由 Greg Young 推广；其基础 CQS 原则来自 Bertrand Meyer |
 | **核心思想** | 依赖向内，业务逻辑独立于技术 | 代码反映业务，应对复杂性 | 读写分离，独立优化 |
 | **关注层面** | 代码组织与依赖方向 | 业务建模与团队沟通 | 数据流转与性能 |
 | **最小应用粒度** | 单个服务 / 模块 | 一个 Bounded Context | 一个 Use Case |
@@ -1730,12 +1761,18 @@ flowchart TD
 
 它们不是互相替代的关系，而是在不同维度上解决不同问题。在**真正复杂**的业务系统中，三者组合使用能发挥最大价值。
 
-**本专题下一篇**：{% post_link system-design/03-clean-code-practice 架构与整洁代码（二）：复杂业务中的 Clean Code 实践指南 %}（实现层的函数、Pipeline 与整洁习惯）。全系列阅读顺序与评审清单见 {% post_link system-design/05-architecture-code-review-checklist 架构与整洁代码（四） %}。
+**本专题下一篇**：{% post_link system-design/03-clean-code-practice %}（实现层的函数、Pipeline 与整洁习惯）。全系列阅读顺序与评审清单见 {% post_link system-design/05-architecture-code-review-checklist %}。
 
 ## 参考资料
 
 1. <a id="ref-1"></a> *Clean Architecture: A Craftsman's Guide to Software Structure and Design*；Robert C. Martin，2017。
+
 2. <a id="ref-2"></a> *Domain-Driven Design: Tackling Complexity in the Heart of Software*；Eric Evans，2003（中文版：《领域驱动设计：软件核心复杂性应对之道》，2006）。
+
 3. <a id="ref-3"></a> *Implementing Domain-Driven Design*；Vaughn Vernon，2013（中文版：《实现领域驱动设计》，2014）。
-4. <a id="ref-4"></a> [CQRS Pattern](https://martinfowler.com/bliki/CQRS.html)；Martin Fowler。
-5. <a id="ref-5"></a> [CQRS Pattern - Azure Architecture Center](https://learn.microsoft.com/en-us/azure/architecture/patterns/cqrs)；Microsoft。
+
+4. <a id="ref-4"></a> [Transactional Outbox](https://microservices.io/patterns/data/transactional-outbox.html)；Chris Richardson，Microservices.io；核验于 2026-10-12。
+
+5. <a id="ref-5"></a> [CQRS Pattern](https://martinfowler.com/bliki/CQRS.html)；Martin Fowler。
+
+6. <a id="ref-6"></a> [CQRS Pattern - Azure Architecture Center](https://learn.microsoft.com/en-us/azure/architecture/patterns/cqrs)；Microsoft。

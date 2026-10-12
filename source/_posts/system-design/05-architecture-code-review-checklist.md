@@ -32,23 +32,23 @@ toc: true
 
 ### 四篇文章如何配合使用
 
-**专题入口**：侧边栏「架构与整洁代码」或标签聚合页 [/tags/architecture-and-clean-code/](/tags/architecture-and-clean-code/) 可集中浏览本系列四篇。
+**专题入口**：首页“系统设计与复杂业务”列出相关文章；标签页 [/tags/architecture-and-clean-code/](/tags/architecture-and-clean-code/) 可浏览架构与编码文章，计价实践见下表。
 
 本仓库里与「架构 + 编码」相关的文章可以形成一条学习与实践链路：
 
 | 文章 | 角色 |
 |------|------|
-| {% post_link system-design/02-clean-architecture-ddd-cqrs 架构与整洁代码（一）：Clean Architecture、DDD 与 CQRS——三位一体的架构方法论 %}（41） | **怎么定架构**：分层、依赖方向、BC、聚合、CQRS、事件与反模式 |
-| {% post_link system-design/03-clean-code-practice 架构与整洁代码（二）：复杂业务中的 Clean Code 实践指南 %}（42） | **怎么写**：函数、Pipeline、策略、规则引擎等战术 |
-| {% post_link system-design/04-ddd-pricing-practice 架构与整洁代码（三）：领域驱动设计读书笔记——从概念到架构实践 %}（43） | **怎么建模**：战略 / 战术 DDD、通用语言；可与（一）对照阅读 |
-| **本文（44）** | **查什么**：各阶段 Review 要问什么、反例长什么样 |
+| {% post_link system-design/02-clean-architecture-ddd-cqrs %} | **怎么定架构**：分层、依赖方向、BC、聚合、CQRS、事件与反模式 |
+| {% post_link system-design/03-clean-code-practice %} | **怎么写**：函数、Pipeline、策略、规则引擎等战术 |
+| {% post_link system-design/04-ddd-pricing-practice %} | **怎么建模**：战略 / 战术 DDD、通用语言；可与架构组合文章对照阅读 |
+| **本文** | **查什么**：各阶段 Review 要问什么、反例长什么样 |
 
-建议顺序：**41** 建立地图 → **42** 练实现手法 → **43** 把领域语言与模型讲透（可与 41 穿插）→ **44** 在评审与上线前逐项打勾。四篇互为索引，而不是重复堆砌。
+建议顺序：架构组合建立地图 → 计价实践理解建模 → Clean Code 练实现手法 → 本文用于评审与上线检查。四篇按问题互相引用。
 
 从心理学角度，Checklist 的价值在于**降低认知负荷**：评审者在疲劳、时间压力或上下文切换时，仍有一个外部脚手架防止遗漏。它并不替代经验与判断力——遇到清单未覆盖的灰区，恰恰说明团队应该把新教训**反哺**进清单或 ADR。实践中建议：
 
 - **责任人明确**：架构项由 Tech Lead / 架构负责人主评；设计项由领域 Owner 主评；PR 项由作者与至少一名熟悉该域的审阅者共担；上线前项可与 SRE / On-call 对齐。
-- **粒度分层**：巨型 MR 可先要求作者附「自审清单」勾选说明，再在评论里对争议点逐条引用本文章节编号，避免无结构的「感觉不对」。
+- **粒度分层**：巨型 MR 可先要求作者附「自审清单」勾选说明，再在评论里对争议点引用具体小节标题，避免无结构的「感觉不对」。
 - **与工具链结合**：复杂度、静态检查、依赖图、覆盖率门槛应作为**门禁**，清单作为**人工语义层**补充（例如：覆盖率够了但测的是 happy path，仍需人眼过业务不变量）。
 
 ### 四阶段评审流程（Mermaid）
@@ -118,7 +118,7 @@ func (h *PlaceOrderHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 **评审追问**：若团队暂时未引入完整四层，是否至少在包级约定 **adapter 不得被 domain import**，并在 CI 用 `grep` / 自定义 linter 守护？
 
-**参考**：{% post_link system-design/02-clean-architecture-ddd-cqrs 架构与整洁代码（一） %} §1（分层与依赖规则）。
+**参考**：{% post_link system-design/02-clean-architecture-ddd-cqrs %} “依赖规则”与“四层模型”。
 
 ---
 
@@ -158,18 +158,18 @@ type inventory.StockUnit struct {
 
 **评审追问**：若两个 BC 必须共享标识符，是共享 **ID** 还是共享 **富模型**？前者常见且可接受，后者往往是边界溃缩的信号。
 
-**参考**：{% post_link system-design/02-clean-architecture-ddd-cqrs 41-架构方法论 %} §2.1（限界上下文）。
+**参考**：{% post_link system-design/02-clean-architecture-ddd-cqrs %} “Bounded Context（限界上下文）”。
 
 ---
 
 ### 聚合边界
 
-**标准**：**一致性边界**是否以聚合为单位设计？是否避免在单个事务中强行修改多个聚合根，除非有显式的领域规则与补偿策略？
+**标准**：聚合是否保护明确的业务不变量？通常以一个聚合作为事务边界；同库跨聚合事务应有原子性要求、锁竞争与失败语义的评估，不能仅凭涉及两个聚合就判定违规。跨服务协作需明确预留、事件可靠发布、幂等与补偿。
 
-**反例**：一个数据库事务内同时更新 `Order` 与 `Inventory` 聚合，绕过领域事件与最终一致性，导致锁竞争与模型腐化。
+**待评审案例**：一个数据库事务内同时更新 `Order` 与 `Inventory`。如果业务确需同库原子更新，它可能合理；若只是为了调用方便，则应检查锁竞争、耦合与聚合边界。不能为了形式上符合 DDD 而牺牲必需的一致性。
 
 ```go
-// BAD: one transaction mutates two aggregates directly
+// BAD: application glue bypasses stock validation and concurrency control
 func SaveOrderAndDeductStock(ctx context.Context, tx *sql.Tx, o *Order, inv *Inventory) error {
     if err := persistOrder(tx, o); err != nil {
         return err
@@ -179,7 +179,7 @@ func SaveOrderAndDeductStock(ctx context.Context, tx *sql.Tx, o *Order, inv *Inv
 }
 ```
 
-**参考**：{% post_link system-design/02-clean-architecture-ddd-cqrs 41-架构方法论 %} §2.5（聚合）。
+**参考**：{% post_link system-design/02-clean-architecture-ddd-cqrs %} “Aggregate 设计原则”。
 
 ---
 
@@ -209,9 +209,9 @@ func (s *OrderService) PlaceOrder(ctx context.Context, cmd PlaceOrderCommand) er
 }
 ```
 
-**评审追问**：是否测量过 **p99 写延迟** 与 **读 QPS**？若读是写的两个数量级以上，独立读模型往往是经济解。
+**评审追问**：是否测量过 **p99 写延迟** 与 **读 QPS**？读写比例只提供负载线索；是否引入独立读模型，还需比较访问模式、陈旧窗口、投影恢复与运维成本。
 
-**参考**：{% post_link system-design/02-clean-architecture-ddd-cqrs 41-架构方法论 %} §3（CQRS 与读写分离）。
+**参考**：{% post_link system-design/02-clean-architecture-ddd-cqrs %} “CQRS（命令查询职责分离）”。
 
 ---
 
@@ -233,11 +233,11 @@ func (s *OrderService) PlaceOrder(ctx context.Context, cmd PlaceOrderCommand) er
 
 **反例**：典型 CRUD 后台强行上 **DDD + CQRS + Event Sourcing** 全家桶，团队无力维护投影与版本化事件。
 
-**评审追问**：若去掉 Event Sourcing，业务是否仍成立？若答案是肯定的，则 ES 很可能是 **可选优化** 而非当前必需。同理，CQRS 是否由**观测到的读写不对称**驱动，而不是由「流行架构标签」驱动？
+**评审追问**：是否确需历史回放与事件事实源？即使业务可用状态存储实现，也应具体比较审计、重建与版本演进成本，再决定是否采用 Event Sourcing。同理，CQRS 是否由**观测到的读写不对称**驱动，而不是由「流行架构标签」驱动？
 
 **合规**：从 **Transaction Script + 清晰模块边界** 起步，在出现明确痛点时再引入战术模式；每引入一层，同步引入 **测试与运维** 能力。
 
-**参考**：{% post_link system-design/02-clean-architecture-ddd-cqrs 41-架构方法论 %} §5.3（反模式与 YAGNI）。
+**参考**：{% post_link system-design/02-clean-architecture-ddd-cqrs %} “过度设计的识别方法”。
 
 ---
 
@@ -387,7 +387,7 @@ type PlaceOrderCommand struct {
 }
 ```
 
-**参考**：{% post_link system-design/03-clean-code-practice 42-acc-clean-code %} 中与「意图命名」相关的章节（配合 §4 Pipeline 组织用例）。
+**参考**：{% post_link system-design/03-clean-code-practice %} 中与「意图命名」相关的章节（配合 “Pipeline 架构模式（深度实践）”）。
 
 **评审追问**：命令是否携带 **幂等键**、**版本/乐观锁**、**操作者身份** 等横切要素？失败时是否可映射为明确的业务结果（而非一律 500）？
 
@@ -438,7 +438,7 @@ type OrderPlaced struct {
 }
 ```
 
-**参考**：{% post_link system-design/02-clean-architecture-ddd-cqrs 41-架构方法论 %} §2.7（领域事件与集成）。
+**参考**：{% post_link system-design/02-clean-architecture-ddd-cqrs %} “领域事件异步化：Outbox Pattern”。
 
 ---
 
@@ -448,10 +448,10 @@ type OrderPlaced struct {
 
 | 场景特征 | 推荐模式 | 参考 |
 |----------|----------|------|
-| 多步骤顺序流程 | Pipeline（管道） | {% post_link system-design/03-clean-code-practice 42-acc-clean-code §4 %} |
-| 同一接口多种实现 | 策略模式 | {% post_link system-design/03-clean-code-practice 42-acc-clean-code §6.1 %} |
-| 频繁变化的业务规则 | 规则引擎 / 规则表驱动 | {% post_link system-design/03-clean-code-practice 42-acc-clean-code §7 %} |
-| 跨聚合协作 | 领域事件 + Outbox | {% post_link system-design/02-clean-architecture-ddd-cqrs 41-架构方法论 §2.7 %} |
+| 多步骤顺序流程 | Pipeline（管道） | {% post_link system-design/03-clean-code-practice %} |
+| 同一接口多种实现 | 策略模式 | {% post_link system-design/03-clean-code-practice %} |
+| 频繁变化的业务规则 | 规则引擎 / 规则表驱动 | {% post_link system-design/03-clean-code-practice %} |
+| 跨聚合协作 | 领域事件 + Outbox | {% post_link system-design/02-clean-architecture-ddd-cqrs %} |
 
 **标准**：选型是否写清 **触发条件、失败语义、测试策略**？是否避免把本应稳定的领域规则埋在 JSON 配置里却无人审核？
 
@@ -611,10 +611,10 @@ func main() {
 
 ### 函数质量
 
-1. **函数长度 < 80 行**  
-   **检查**：单函数是否可在一屏内理解？超长函数是否可拆为私有步骤函数或 Pipeline 阶段？
+1. **函数长度与认知复杂度**
+   **检查**：函数职责、分支与数据依赖是否可理解？80 行可作为团队自拟提醒值，不能当作通用质量标准，也不能为缩短行数制造过度跳转。
 
-**反例**：一个 `Handle` 内顺序完成：鉴权、解析、校验、调用下游、重试、日志、指标、错误映射——应拆为 **小函数** 或 **Pipeline 阶段**（参见 {% post_link system-design/03-clean-code-practice 42-acc-clean-code §4 %}）。
+**反例**：一个 `Handle` 内顺序完成：鉴权、解析、校验、调用下游、重试、日志、指标、错误映射——应拆为 **小函数** 或 **Pipeline 阶段**（参见 {% post_link system-design/03-clean-code-practice %}）。
 
 ```go
 // GOOD: named steps keep the orchestration readable
@@ -882,7 +882,7 @@ func BenchmarkPlaceOrder(b *testing.B) {
 
 **评审追问**：是否对比过 **alloc/op**？是否在负载下检查 **GC 停顿** 与 **锁竞争**（`mutex` profile）？异步路径是否避免 **无界队列** 导致内存膨胀？
 
-**泄漏排查 sketch**：对长期运行的集成测试使用 `runtime.NumGoroutine()` 采样，或 `go test -race` 暴露 data race 与可疑同步。
+**泄漏排查 sketch**：对长期运行的集成测试使用 `runtime.NumGoroutine()` 采样，；`go test -race` 用于检测已执行路径中的数据竞争，不能证明没有 goroutine 泄漏或死锁。
 
 ---
 
@@ -936,7 +936,7 @@ logger.Info("order_placed",
 
 ### 测试覆盖
 
-**标准**：核心业务规则覆盖率是否 **> 80%**（按团队约定工具统计）？是否有 **集成测试** 覆盖仓储、消息、外部 HTTP 的 fake / 容器测试？
+**标准**：核心业务不变量、错误与取消、重复执行、并发冲突和恢复路径是否有有效断言？覆盖率阈值由团队按风险设定，80% 仅是可选示例，不能证明业务正确。仓储与消息契约应有真实依赖集成测试；fake 测试不能替代这类验证。
 
 **评审追问**：表格驱动测试是否覆盖 **边界与错误路径**？是否用 **黄金文件** 或 **属性测试**（可选）补强复杂规则？ flaky 测试是否标记并修复，而不是 `t.Skip` 永久化？
 
@@ -973,8 +973,8 @@ func TestPlaceOrder_OutOfStock(t *testing.T) {
 |------|----|----|----|----|-----|
 | 架构评审 | 依赖向内 | BC 划分 | 聚合边界 | 读写评估 | YAGNI |
 | 设计评审 | 聚合根入口 | 值对象不可变 | Repo 在领域层 | Command 表达意图 | 领域事件 |
-| 代码评审 | SRP | 函数 < 80 行 | 业务命名 | 错误 wrap | 依赖方向 |
-| 上线前 | Benchmark | 并发安全 | 可观测性 | 测试 > 80% | 回滚方案 |
+| 代码评审 | SRP | 职责与复杂度 | 业务命名 | 错误 wrap | 依赖方向 |
+| 上线前 | Benchmark | 并发安全 | 可观测性 | 不变量与失败测试 | 回滚方案 |
 
 **用法**：打印或放进 MR 模板描述区；负责人对勾选结果负责，避免形式主义勾选。
 
@@ -984,12 +984,12 @@ func TestPlaceOrder_OutOfStock(t *testing.T) {
 
 ```markdown
 ## Self review (author)
-- [ ] 3.1 SOLID: no obvious SRP/OCP violations in new types
-- [ ] 3.2 Function size / complexity / nesting / arity
-- [ ] 3.3 Naming aligns with glossary
-- [ ] 3.4 Errors wrapped, no silent `_ = err`
-- [ ] 3.5 Dependency direction respected
-- [ ] 3.6 DDD tactical: aggregate invariants, VO immutability
+- [ ] SOLID: no obvious SRP/OCP violations in new types
+- [ ] Function size / complexity / nesting / arity
+- [ ] Naming aligns with glossary
+- [ ] Errors wrapped, no silent `_ = err`
+- [ ] Dependency direction respected
+- [ ] DDD tactical: aggregate invariants, VO immutability
 
 ## Release readiness (if applicable)
 - [ ] Benchmark or load evidence linked
@@ -1007,10 +1007,10 @@ func TestPlaceOrder_OutOfStock(t *testing.T) {
 
 | 角色 | 建议优先阅读 |
 |------|----------------|
-| 作者（提 PR） | 第三节全文 + 附录卡片 |
-| 审阅者（同域） | 3.3–3.6 + 第二节与本文冲突点 |
-| Tech Lead（新模块） | 第一、二节 + 第四节 |
-| SRE / On-call | 第四节 + 事件与迁移说明 |
+| 作者（提 PR） | “代码评审阶段” + 附录卡片 |
+| 审阅者（同域） | 命名、错误、依赖与 DDD 检查 + “设计评审阶段” |
+| Tech Lead（新模块） | 架构、设计与上线前检查 |
+| SRE / On-call | 上线前检查 + 事件与迁移说明 |
 
 ---
 
@@ -1018,9 +1018,9 @@ func TestPlaceOrder_OutOfStock(t *testing.T) {
 
 ### 站内文章
 
-1. <a id="ref-1"></a> {% post_link system-design/02-clean-architecture-ddd-cqrs 架构与整洁代码（一）：Clean Architecture、DDD 与 CQRS——三位一体的架构方法论 %}
-2. <a id="ref-2"></a> {% post_link system-design/03-clean-code-practice 架构与整洁代码（二）：复杂业务中的 Clean Code 实践指南 %}
-3. <a id="ref-3"></a> {% post_link system-design/04-ddd-pricing-practice 架构与整洁代码（三）：领域驱动设计读书笔记——从概念到架构实践 %}
+1. <a id="ref-1"></a> {% post_link system-design/02-clean-architecture-ddd-cqrs %}
+2. <a id="ref-2"></a> {% post_link system-design/03-clean-code-practice %}
+3. <a id="ref-3"></a> {% post_link system-design/04-ddd-pricing-practice %}
 
 ### 外部资料
 
@@ -1032,4 +1032,4 @@ func TestPlaceOrder_OutOfStock(t *testing.T) {
 
 ## 总结
 
-系统化的 Code Review 不是挑剔，而是**把重构前移到成本最低的阶段**。按 **架构 → 设计 → 代码 → 上线前** 四段清单推进，并与 {% post_link system-design/03-clean-code-practice 42-acc-clean-code %}、{% post_link system-design/04-ddd-pricing-practice 43-acc-ddd-notes %}、{% post_link system-design/02-clean-architecture-ddd-cqrs 41-架构方法论 %} 交叉引用，团队可以在一致的语言下讨论分层、边界与实现细节。建议把本文的「附录快速参考」嵌入 MR 模板，并在复盘时根据失效案例**增补你们自己的第 21 条**——最好的 Checklist 永远是活文档。
+系统化的 Code Review 不是挑剔，而是**把重构前移到成本最低的阶段**。按 **架构 → 设计 → 代码 → 上线前** 四段清单推进，并与 {% post_link system-design/03-clean-code-practice %}、{% post_link system-design/04-ddd-pricing-practice %}、{% post_link system-design/02-clean-architecture-ddd-cqrs %} 交叉引用，团队可以在一致的语言下讨论分层、边界与实现细节。建议把本文的「附录快速参考」嵌入 MR 模板，并在复盘时根据失效案例**增补你们自己的第 21 条**——最好的 Checklist 永远是活文档。

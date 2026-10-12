@@ -17,14 +17,11 @@ toc: true
 
 **阅读时间**: 45 分钟 | **难度**: ⭐⭐⭐⭐ | **面试频率**: 中高
 
-**核心考点速查**:
-- [SRE 层次结构](#前言：怎样的系统算是稳定高可用的) - Dickerson 层级模型
-- [监控与告警](#监控与告警) - 监控指标体系、告警策略
-- [高可用架构](#高可用架构设计) - 多活部署、异地容灾
-- [保护性机制](#保护性机制) - 熔断/降级/限流/重试
-- [容量规划](#业务策略-容量规划-Capacity-Planning-容量规划) - 容量评估、压测方案
-- [SLI/SLO/SLA](#SLI-SLO-SLA-体系) - 服务等级定义
-- [故障应急](#故障应急响应) - 故障等级、应急流程
+**任务速查**：
+- [监控与告警](#reliability-monitoring)：指标、阈值与响应责任。
+- [容量规划](#reliability-capacity)：流量模型、故障冗余与压测。
+- [服务目标](#reliability-slos)：SLI、SLO、SLA 与错误预算。
+- [大促保障](#大促保障)：预案、作战手册与演练。
 
 ---
 
@@ -34,7 +31,7 @@ toc: true
 
 首先回答另一个问题，怎样的系统算是稳定的？
 
-Google SRE中(SRE三部曲[[1]](#ref-1))有一个层级模型来描述系统可靠性基础和高层次需求(Dickerson's Hierarchy of Service Reliability)，如下图：
+Google SRE 用服务可靠性层级模型描述可靠性基础与高层次需求（Dickerson's Hierarchy of Service Reliability），如下图。[[1]](#ref-1)
 
 <p align="center">
   <img src="/diagrams/06-system-reliability-engineering/01-service-reliability-hierarchy.png" width=600 height=500>
@@ -76,11 +73,13 @@ Google SRE中(SRE三部曲[[1]](#ref-1))有一个层级模型来描述系统可�
 </p>
 
 
+<a id="reliability-monitoring"></a>
+
 ## 监控&告警梳理 -- Monitoring
-站在监控的角度看，我们的系统从上到下一般可以分为三层：业务（Biz）、应用（Application）、系统（System）。系统层为最下层基础，表示操作系统相关状态；应用层为JVM层，涵盖主应用进程与中间件运行状态；业务层为最上层，为业务视角下服务对外运行状态。因此进行大促稳定性监控梳理时，可以先脱离现有监控，先从核心、资损链路开始，按照业务、应用（中间件、JVM、DB）、系统三个层次梳理需要哪些监控，再从根据这些索引找到对应的监控告警，如果不存在，则相应补上；如果存在则检查阈值、时间、告警人是否合理。
+站在监控的角度看，我们的系统从上到下一般可以分为三层：业务（Biz）、应用（Application）、系统（System）。系统层为最下层基础，表示操作系统相关状态；应用层涵盖应用进程、运行时（如 JVM 或 Go runtime）与中间件运行状态；业务层为最上层，为业务视角下服务对外运行状态。因此进行大促稳定性监控梳理时，可以先脱离现有监控，先从核心、资损链路开始，按照业务、应用（中间件、JVM、DB）、系统三个层次梳理需要哪些监控，再从根据这些索引找到对应的监控告警，如果不存在，则相应补上；如果存在则检查阈值、时间、告警人是否合理。
 
 ### 监控
-监控系统一般有四项黄金指标：延时（Latency）, 错误（Error）,流量（Traffic）, 饱和度（Situation），各层的关键性监控同样也可以按照这四项指标来进行归类，具体如下：
+Google SRE 的四项黄金信号是延迟（Latency）、错误（Errors）、流量（Traffic）与饱和度（Saturation），可用于梳理服务监控。[[2]](#ref-2) 各层监控指标可以据此分类，具体如下：
 
 <p align="center">
   <img src="/diagrams/06-system-reliability-engineering/04-how-to-monitor.png" width=900 height=500>
@@ -445,6 +444,8 @@ func CallDownstream(ctx context.Context) error {
 
 
 
+<a id="reliability-capacity"></a>
+
 ## 业务策略&容量规划 Capacity Planning - 容量规划
 
 ### 业务策略
@@ -476,7 +477,7 @@ func CallDownstream(ctx context.Context) error {
   - 历史流量算法：该类算法假设当年大促增幅完全符合历史流量模型，根据当前&历年日常流量，计算整体业务体量同比增量模型；然后根据历年大促-日常对比，计算预估流量环比增量模型；最后二者拟合得到最终评估数据。
   - 由于计算时无需依赖任何业务信息输入，该类算法可用于保障工作初期业务尚未给出业务总量评估时使用，得到初估业务流量。
   - 业务量-流量转化算法(GMV\DAU\订单量)：该类算法一般以业务预估总量（GMV\DAU\订单量）为输入，根据历史大促&日常业务量-流量转化模型（比如经典漏洞模型）换算得到对应子域业务体量评估。- 该种方式强依赖业务总量预估，可在保障工作中后期使用，在初估业务流量基础上纳入业务评估因素考虑。
-- 非常规增量一般指前台业务营销策略变更或系统应急预案执行后流量模型变化造成的增量流量。例如，NA61机房故障时，流量100%切换到NA62后，带来的增量变化.考虑到成本最小化，非常规增量P计算时一般无需与常规业务流量W一起，全量纳入叠加入口流量K，一般会将非常规策略发生概率λ作为权重
+- 非常规增量包括营销策略变更、重试放大与容灾切流。例如，假设两个机房平分流量，一个故障后另一个承接全部流量，需要验证剩余机房能处理该故障场景下的实际峰值。故障概率可用于比较期望成本与风险，不能用概率加权后的平均流量证明故障发生时容量充足。若成本不允许全量承接，应提前明确限流或降级范围，并用演练验证。[[3]](#ref-3)
 
 2. 节点流量
 节点流量由入口流量根据流量分支模型，按比例转化而来。分支流量模型以系统链路为计算基础，遵循以下原则：
@@ -487,22 +488,26 @@ func CallDownstream(ctx context.Context) error {
 
 ### 容量转化
 
-节点容量是指一个节点在运行过程中，能够**同时处理的最大请求数**。它反映了系统的瞬时负载能力。
+容量评估需要区分吞吐能力、在途请求数与资源上限。应用节点的可用吞吐量，是在指定请求组合、数据分布、并发和依赖条件下，仍满足延迟与错误率目标的处理速率；不能只看“最大并发数”。
 
+1）Little’s Law：估算平均在途请求数
 
-1）Little Law衍生法则
-不同类型资源节点(应用容器、Tair、DB、HBASE等)流量-容量转化比各不相同，但都服从Little Law衍生法则，即：
-  节点容量=节点吞吐率×平均响应时间
+在稳定系统中，使用同一观察边界和足够长的窗口，Little’s Law 给出 `L = λ × W`：L 是平均在途请求数，λ 是平均到达率，W 是包含排队时间的平均逗留时间。[[4]](#ref-4) 不能把平均时间换成 P99，也不能把 L 解释为最大并发上限或单机容量。持续过载、队列不断增长时，不应以瞬时数据套用稳态关系。
+
+教学假设：λ = 1,000 请求/秒，W = 0.1 秒，则平均在途请求数约为 100。这个结果不证明节点能安全处理 100 个并发请求；仍需压测确定延迟、错误率与资源饱和边界。
 
 2）N + X 冗余原则
 
-在满足目标流量所需要的最小容量基础上，冗余保留X单位冗余能力
-X与目标成本与资源节点故障概率成正相关，不可用概率越高，X越高
-对于一般应用容器集群，可考虑X = 0.2N
+先压测得到满足 SLO 的单实例安全吞吐量 q，再初估 `N = ceil(目标峰值 QPS / q)`。这要求负载可均衡、实例近似同质且瓶颈未转移到数据库等共享依赖；分片与热点需要单独评估。
 
+冗余 X 要根据故障域损失、扩容延迟、流量突发和成本决定。若需要容忍 k 个实例同时不可用，应验证 `(N_total - k) × q ≥ 目标峰值 QPS`；若要容忍整个可用区失效，就按该区实例数和剩余依赖容量验算。固定增加 20% 只是可选教学假设，不能替代故障场景验证。
 
-### 全链路压测(TODO)
-- 上述法则只能用于容量初估(大促压测前&新依赖)，最终精准系统容量还是需要结合系统周期性压力测试得出。
+### 全链路压测与容量验证
+
+- 按业务请求比例、热点键、缓存命中率、数据规模和重试策略构造负载；记录流量注入速率与实际完成吞吐量，避免把压测工具能力当成系统能力。
+- 逐步加压并进行稳态观察，寻找满足目标延迟、错误率、队列长度和依赖水位的安全吞吐区间。
+- 单独验证冷缓存、扩容延迟、实例 / 可用区故障与依赖降级，检查流量转移和重试是否使剩余节点过载。
+- 保存压测环境、版本、负载模型、监控证据与通过条件；测试流量必须隔离真实扣款、发券等副作用。容量结论仅对已验证的条件成立。[[3]](#ref-3)
 
 ### 应产出数据
 - 基于模型评估的入口流量模型 & 集群自身容量转化结果（若为非入口应用，则为限流点梳理）。
@@ -538,7 +543,7 @@ X与目标成本与资源节点故障概率成正相关，不可用概率越高�
 **事前**
 1）前置检查事项清单
 - 大促前必须执行事项checklist,通常包含以下事项：
-- 集群机器重启 or 手动FGC
+- 按已验证的预案处理异常节点；重启或手动 Full GC 需要诊断依据、影响评估和恢复验证，不作为大促前必做动作
 - 影子表数据清理
 - 检查上下游机器权限
 - 检查限流值
@@ -603,7 +608,7 @@ X与目标成本与资源节点故障概率成正相关，不可用概率越高�
 - 切换：单元切流或者切换备份
 
 应对单库或某单元依赖因为自身原因（宿主机或网络），造成局部流量成功率下跌下跌。
-Google SRE中，对于紧急事故管理有以下几点要素：
+Google SRE 的事故管理强调职责分工与交接，下面据此整理应急协作要素。[[5]](#ref-5)
 - 嵌套式职责分离，即分确的职能分工安排
 - 控制中心\作战室
 - 实时事故状态文档
@@ -822,9 +827,7 @@ var orderPaymentRule = ReconcileRule{
 
 ### 参考学习
 
-1. <a id="ref-1"></a> [资损防控技术体系简介及实践](https://tech.dewu.com/article?id=73)
-2. <a id="ref-2"></a> [浅谈资损防控](https://segmentfault.com/a/1190000040286146)
-3. <a id="ref-3"></a> [美团配送资金安全治理实践](https://tech.meituan.com/2022/06/09/meituan-delivery-fund-security-governance.html)
+资损案例可参考 [[6]](#ref-6)、[[7]](#ref-7) 与 [[8]](#ref-8)。
 
 ## 风控体系
 
@@ -1282,8 +1285,8 @@ func buildString_After(items []string) string {
     return builder.String()
 }
 
-// 3. 避免 defer 在热路径
-// defer 有一定开销，在极端性能敏感场景可手动管理
+// 3. 先通过 benchmark / profile 确认热点；不要默认移除 defer。
+// 手动释放资源需覆盖所有返回路径，性能收益取决于 Go 版本与代码形态。
 ```
 
 ### 性能测试与监控
@@ -1338,6 +1341,8 @@ func buildString_After(items []string) string {
 
 ---
 
+<a id="reliability-slos"></a>
+
 ## SLI/SLO/SLA 体系
 
 ### 概念定义
@@ -1349,39 +1354,40 @@ func buildString_After(items []string) string {
 | **SLA** | Service Level Agreement | 服务等级协议，对外承诺 |
 
 ```
-关系：SLI（指标）→ SLO（目标）→ SLA（协议）
-      可用性     >99.9%      合同条款
+SLI：观测用户体验的指标
+SLO：在明确窗口与统计口径下设定的目标
+SLA：有责任与后果约定的服务协议，并非所有 SLO 都是 SLA
 ```
 
 ### 常用 SLI 指标
 
 | 指标类型 | SLI 定义 | SLO 示例 |
 |----------|----------|----------|
-| **可用性** | 成功请求数 / 总请求数 | > 99.9% |
-| **延迟** | 请求耗时分位值 | P99 < 200ms |
-| **吞吐量** | 单位时间处理请求数 | > 10000 QPS |
-| **正确性** | 返回正确结果的比例 | > 99.99% |
-| **新鲜度** | 数据更新延迟 | < 5 分钟 |
+| **可用性** | 成功有效请求数 / 全部有效请求数 | 30 天内 ≥ 99.9% |
+| **延迟** | 有效请求中耗时不超过阈值的比例 | 30 天内 ≥ 99% 的请求耗时 ≤ 200ms |
+| **处理及时性** | 记录在约定时限内处理完成的比例 | 30 天内 ≥ 99.9% 在 5 分钟内完成 |
+| **正确性** | 经核验结果正确的有效请求比例 | 30 天内 ≥ 99.99% |
+| **新鲜度** | 查询时数据年龄不超过阈值的比例 | 30 天内 ≥ 99.9% 不超过 5 分钟 |
+
+表中数字均为教学假设。有效请求、失败、超时、重试与缺失测量的口径必须明确。P99 可作诊断指标，延迟 SLO 用阈值达标比例更便于计算错误预算；吞吐量通常用于描述负载与容量，不能在用户需求不足时把低 QPS 当成服务失败。[[9]](#ref-9)
 
 ### Error Budget（错误预算）
 
-Error Budget 是 SRE 的核心概念，用于平衡可靠性与迭代速度。
+Error Budget 用于在明确可靠性目标下管理变更风险。[[9]](#ref-9)
 
+```text
+允许失败比例 = 1 - SLO
+请求型错误预算 = 窗口内有效请求总数 × 允许失败比例
+
+教学假设：30 天内 1,000 万次有效请求，SLO = 99.9%
+允许失败请求数 = 10,000 次
+
+只有按时间统计的可用性 SLI，才可换算不可用时长：
+30 天 × 24 小时 × 60 分钟 × 0.1% = 43.2 分钟
+请求型 SLI 的 0.1% 不能直接换算为 43.2 分钟停机。
 ```
-Error Budget = 1 - SLO
 
-示例：SLO = 99.9%
-Error Budget = 0.1% = 每月约 43 分钟停机时间
-
-如果本月已用 30 分钟：
-- 剩余 13 分钟，可以继续发布
-- 用完后应暂停非紧急发布，专注稳定性
-```
-
-**Error Budget 策略**：
-- Budget 充足：允许激进发布，快速迭代
-- Budget 紧张：减缓发布节奏，增加测试
-- Budget 耗尽：冻结发布，全力修复
+**Error Budget 策略**：先约定统计窗口、预算消耗速率与发布政策。预算充足仍需正常变更验证；快速消耗时及时排查并降低风险；预算耗尽可按团队政策暂停非紧急发布，保留修复与安全变更的例外。不能只凭“还有预算”宣布一次发布安全。
 
 ---
 
@@ -1542,21 +1548,32 @@ On-Call 是 SRE/运维团队的核心职责，负责生产环境的故障响应�
 
 ## 学习资料
 
-**书籍**：
+1. <a id="ref-1"></a> [Site Reliability Engineering](https://sre.google/sre-book/table-of-contents/)
 
-4. <a id="ref-4"></a> [Site Reliability Engineering](https://sre.google/sre-book/table-of-contents/)
-5. <a id="ref-5"></a> [The Site Reliability Workbook](https://sre.google/workbook/table-of-contents/)
-6. <a id="ref-6"></a> [Building Secure & Reliable Systems](https://sre.google/books/)
+2. <a id="ref-2"></a> [Monitoring Distributed Systems](https://sre.google/sre-book/monitoring-distributed-systems/)；Google SRE，2016。
 
-**文章**：
+3. <a id="ref-3"></a> [Handling Overload](https://sre.google/sre-book/handling-overload/)；Google SRE，2016。
 
-7. <a id="ref-7"></a> [阿里巴巴大规模应用 Flink 的实践](https://mp.weixin.qq.com/s/w2tOXR6rcTmUHGsJKJilzg)
-8. <a id="ref-8"></a> [美团技术年货：稳定性治理实践](https://tech.meituan.com/)
-9. <a id="ref-9"></a> 字节跳动 SRE 实践（原始链接已失效，可搜索"字节跳动 SRE"获取相关文章）
+4. <a id="ref-4"></a> [A Proof for the Queuing Formula: L = λW](https://pubsonline.informs.org/doi/10.1287/opre.9.3.383)；John D. C. Little，Operations Research，1961；核验于 2026-10-12。
 
-**工具**：
+5. <a id="ref-5"></a> [Managing Incidents](https://sre.google/sre-book/managing-incidents/)；Google SRE，2016。
 
-10. <a id="ref-10"></a> [Prometheus](https://prometheus.io/) - 监控系统
-11. <a id="ref-11"></a> [Grafana](https://grafana.com/) - 可视化
-12. <a id="ref-12"></a> [PagerDuty](https://www.pagerduty.com/) - 告警管理
-13. <a id="ref-13"></a> [ChaosBlade](https://chaosblade.io/) - 混沌工程
+6. <a id="ref-6"></a> [资损防控技术体系简介及实践](https://tech.dewu.com/article?id=73)
+
+7. <a id="ref-7"></a> [浅谈资损防控](https://segmentfault.com/a/1190000040286146)
+
+8. <a id="ref-8"></a> [美团配送资金安全治理实践](https://tech.meituan.com/2022/06/09/meituan-delivery-fund-security-governance.html)
+
+9. <a id="ref-9"></a> [Implementing SLOs](https://sre.google/workbook/implementing-slos/)；Google SRE，2018；核验于 2026-10-12。
+
+10. <a id="ref-10"></a> [The Site Reliability Workbook](https://sre.google/workbook/table-of-contents/)
+
+11. <a id="ref-11"></a> [Building Secure & Reliable Systems](https://sre.google/books/)
+
+12. <a id="ref-12"></a> [Prometheus](https://prometheus.io/) - 监控系统
+
+13. <a id="ref-13"></a> [Grafana](https://grafana.com/) - 可视化
+
+14. <a id="ref-14"></a> [PagerDuty](https://www.pagerduty.com/) - 告警管理
+
+15. <a id="ref-15"></a> [ChaosBlade](https://chaosblade.io/) - 混沌工程
