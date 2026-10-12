@@ -1,6 +1,7 @@
 ---
 title: 系统设计：技术方案写作、架构选型与设计评审
 date: 2025-04-01
+updated: 2026-10-12
 permalink: /2025/04/01/system-design/01-system-design-methodology/
 description: 配合《系统设计：技术方案与架构设计》课件，从技术方案写作、架构选型、接口、存储、缓存与异步设计到评审，建立可执行的系统设计方法。
 categories:
@@ -29,40 +30,38 @@ toc: true
 |---|---|---|
 | 明确方案内容与质量标准 | 第 2–5 页 | 从“技术方案应该包含哪些内容”到“技术方案模板”，填写目标、约束、风险与验收条件 |
 | 选择架构视图与职责边界 | 第 7–12 页 | 阅读“整体架构设计”，区分业务、应用、数据与技术视图；绘图方法见 {% post_link system-design/07-engineering-diagrams-ai-workflow %} |
-| 定义接口契约与失败语义 | 第 14–18 页 | 阅读“应用层web网关设计”中的 API、错误码与幂等性；明确超时、重试和结果未知时的处理 |
+| 定义接口契约与失败语义 | 第 14–18 页 | 阅读“接口与应用网关设计”中的 API、错误码与幂等性；明确超时、重试和结果未知时的处理 |
 | 根据访问模式选择存储 | 第 20–25 页 | 阅读“中间件和存储”，结合事务、一致性、查询、分片与副本条件评估选型 |
-| 设计缓存与回源保护 | 第 27–30 页 | 对照缓存位置、更新方式和失效政策；具体机制见 {% post_link fundamentals/08-redis-principles-and-practice %} |
-| 设计异步流程与故障恢复 | 第 32–33 页 | 阅读“框架和引擎”；可靠事件发布、去重与投影边界见 {% post_link system-design/02-clean-architecture-ddd-cqrs %} |
+| 设计缓存与回源保护 | 第 27–30 页 | 阅读“缓存设计：位置、更新与回源保护”，明确可接受的陈旧程度与缓存失效时的容量 |
+| 设计异步流程与故障恢复 | 第 32–33 页 | 阅读“异步设计：任务状态、重试与补偿”，区分请求受理、业务完成和结果通知 |
 | 评估非功能需求与方案取舍 | 第 35–36 页 | 阅读“如何评估技术方案的质量”与“系统设计的权衡”，再用 {% post_link system-design/05-architecture-code-review-checklist %} 检查发布准备 |
 
 课件中的建议应结合具体约束使用。例如，“文档数据库不支持事务”“关系数据库不能水平扩展”不能作为类别级结论；“单表超过 500 万行就拆分”也不是通用门槛。应核对具体产品与版本，依据访问模式、压测结果、数据增长和运维成本决定。接口错误的 HTTP 状态语义与业务错误类型，以本文的“API 错误码设计规范”为准。
 
 ## 速查导航
 
-**阅读时间**: 35 分钟 | **难度**: ⭐⭐⭐⭐ | **面试频率**: 中高
-
 **任务速查**：
+
 - [技术方案模板](#技术方案模板)：问题、目标、决策与发布准备。
 - [数学估算](#数学估算)：流量、内存、带宽和存储。
 - [API 错误码设计规范](#API-错误码设计规范)：协议状态与业务错误契约。
+- [缓存设计](#缓存设计：位置、更新与回源保护)：缓存位置、更新策略与源站保护。
+- [异步设计](#异步设计：任务状态、重试与补偿)：任务恢复、重复消费与顺序边界。
 
 
 ---
 
-## 前言
+## 技术方案的目标与写作方法
 ### 为什么要做设计方案
 <p align="center">
   <img src="/diagrams/01-system-design-methodology/01-why-technical-design.png" width=600 height=400>
 </p>
 
-- 设计是系统实现的蓝图
-- 设计是沟通协作的基础
-- 设计是思考的过程决定了产品的质量
-**理解对齐**：所有软件系统的目的都是为了实现用户需求，但实现的途径有无限种可能性（相比传统工程行业，软件的灵活性更大、知识迭代更快）。架构设计就是去选择其中一条最合适的实现途径，因此其中会涉及非常多关键的选路决策（为什么要这么拆分？为什么选择 A 技术而不是 B？）。这些重要的技术决策需要通过架构描述这种形式被记录和同步，才能让项目组所有成员对整个系统的理解对齐，形成共识。
-**工作量化**：项目管理最重要的步骤之一就是工时评估，它是确定项目排期和里程碑的直接依据。显然，只通过 PRD / 交互图是无法科学量化出项目工作量的，因为很难直观判断出一句简短需求或一个简单页面背后，究竟要写多少代码、实现起来难度有多大。有了清晰明确的架构之后，理论上绝大部分开发工作都能做到可见、可预测和可拆解，自然而然也就能够被更准确地量化。当然，精准的工作量评估在 IT 行业内也一直是个未解之谜，实际的工期会受太多未知因素影响，包括程序员的技能熟练度、心情好不好、有没有吃饱等。
-**标准术语**：编程作为一种具有创造力的工作，从某种角度看跟写科幻小说是类似的。好的科幻小说都喜欢造概念，比如三体中的智子，如果没看过小说肯定不知道这是个啥玩意儿。软件系统在造概念这一点上，相比科幻小说只有过之而无不及，毕竟小说里的世界通常还是以现实为背景，而软件中的世界就全凭造物者（程序员）的想象（建模）了。稍微复杂一点的软件系统，都会引入一些领域特定甚至全新创作的概念。为了避免在项目过程中出现鸡同鸭讲的沟通障碍和理解歧义，就必须对描述这些概念的术语进行统一。而架构的一个重要目的，就是定义和解释清楚系统中涉及的所有关键概念，并在整个架构设计和描述过程中使用标准和一致的术语，真正做到让大家的沟通都在一个频道上。
-**言之有物**：就跟讨论产品交互时需要对着原型图、讨论代码细节时需要直接看代码一样，架构是在讨论一些较高维技术问题时的必要实物（具体的实物化形式就是所谓架构描述）。否则，要么一堆人对着空气谈（纸上谈兵都说不上），要么每次沟通时都重新找块白板画一画（费时费力且容易遗落信息，显然不是长久之计）。
-**知识沉淀 & 新人培训**：架构应该被作为与代码同等重要的文档资产持续沉淀和维护，同时也是项目新人快速理解和上手系统的重要依据。不要让你的系统跟公司内某些祖传遗留系统一样 —— 只有代码遗留了下来，架构文档却没有；只能靠一些口口相传的残留设计记忆，苦苦维系着项目的生命延续。
+技术方案把业务目标转换成可讨论、可验证的设计决策。它需要让业务、研发、测试和运维对系统边界、关键规则及失败处理形成共同理解，也让后续维护者知道当初为什么这样选择。
+
+课件第 3 页强调沟通与协作。实际评审时，图表用于定位组件与流程，文字用于解释约束和取舍，两者需要互相对应。仅列技术栈不足以回答“为什么选择这个方案”，仅描述正常流程也不足以回答“出错后怎样恢复”。
+
+方案还能帮助拆分工作、发现依赖和安排验证，但不能消除估算中的不确定性。对尚未验证的容量、接口能力或迁移成本，应记录假设、验证责任人与未通过时的备选路径。重要决策可以随代码一起维护，避免文档和实现长期脱节。
 
 ### 技术方案应该包含哪些内容
 <p align="center">
@@ -124,59 +123,30 @@ toc: true
 
 
 ### 如何评估技术方案的质量
-<p align="center">
-  <img src="/diagrams/01-system-design-methodology/02-what-tech-design-contain.png" width=600 height=400>
-  <br/>
-</p>
 
-#### 功能性
-- 功能完整度
-- 功能正确性
-- 功能恰当性
-#### 稳定性（Dependability Criteria）：
-- 可靠性（Reliability）：系统处理错误和故障，保证数据完整性和可用性的能力
-- 兼容性，向前兼容性值
-- 可用性（Availability）：系统在投入使用时可操作和可访问的程度。
-- 安全性（Security）：系统保护用户数据和系统资源，防止未经授权的访问和恶意行为的能力
-#### 性能（Performance）：
-- 响应时间（Latency）：系统对请求的反应速度。
-- 吞吐量（Throughput）：系统处理的工作量
-#### 成本（Cost）：
-- 开发成本（Development Cost）：系统的构建和开发所需的费用。
-- 部署成本（Deployment Cost）：系统部署和运行所需的资源成本。
-- 升级成本（Upgrade Cost）：将数据从旧系统转换到新系统，以及满足向后兼容性要求的成本。
-- 维护成本（Maintenance Cost）：包括错误修复和未来功能增强的成本。
-- 运营成本（Administration Cost）：运行系统的成本。
-#### 维护性（Maintainability）
-- 可扩展性（Extensibility）：系统添加新功能的容易程度。
-- 可修改性（Modifiability）：系统更改功能的容易程度。
-- 适应性（Adaptability）：系统适应不同应用领域的能力。
-- 可移植性（Portability）：系统在不同计算机平台上运行的容易程度。
-- 可读性（Readability）：代码的理解难度。
-- 需求可追溯性（Traceability of Requirements）：代码与需求之间的映射关系。
-- 可测试性（Testability）：系统易于测试和验证的程度。
-#### 用户体验（User Experience）
-- 系统提供友好的用户界面和良好的用户交互，以提高用户满意度和使用效率。
+课件第 5、35 页分别从质量属性和利益相关者角度讨论设计质量。写方案时，应把“高性能”“高可用”“易维护”转换成可验证的场景，并说明指标由谁确认、如何测量。下表中的检查问题是本文整理的评审框架。
+
+| 质量维度 | 方案需要回答的问题 | 验证材料 |
+|---|---|---|
+| 功能与正确性 | 正常流程、边界条件、并发冲突与权限检查是否完整？ | 业务规则、状态机与验收用例 |
+| 可靠性与可用性 | 依赖失效时能提供什么服务？已确认的数据会不会丢失？ | 故障演练、恢复流程与数据核对 |
+| 性能与容量 | 在什么流量、数据量与请求分布下满足目标？ | 压测报告、尾延迟与资源使用率 |
+| 安全与隐私 | 谁能读写哪些数据？日志、缓存与导出是否泄露敏感信息？ | 威胁分析、授权矩阵与审计记录 |
+| 可维护性与演进 | 增加规则、扩容、迁移和回滚分别影响哪些模块？ | 职责边界、兼容策略与发布方案 |
+| 成本与体验 | 资源和运维成本能否接受？等待、失败与恢复是否可理解？ | 成本估算、交互契约与结果查询流程 |
+
+其中，可扩展性（scalability）关注负载增长时的容量，可扩充性（extensibility）关注增加功能的难度，两者应分别论证。SLI、SLO 和 SLA 的定义与统计口径见“技术设计基础”。[[1]](#ref-1)
 
 ### 技术方案模板
-**附录：设计文档模板**
-
 设计文档没有定式。即使如此，笔者参考谷歌设计文档的结构和格式，并结合实际工作经验加以完善。在此提供一个可供新手参考的设计文档模板，您可以使用此文档模板作为思考的基础。通常，无须事无巨细地填写每一部分，不相关的内容直接略过即可。
 
 设计文档应该体现设计决策的合理性，同时也有助于日后迭代设计时，检查最初的假设是否仍然成立。
 
-#### 背景
+#### 背景与问题
 
-#### 我们要解决的问题是什么
+用简短文字描述现状、需求动机、已有系统的局限和影响范围，让不了解历史的读者也能理解问题。可以链接需求或历史方案，但关键约束仍需在本文交代。
 
-为设计文档的目标读者提供理解详细设计所需的背景信息。按读者范围来提供背景。见上文关于目标读者的圈定。设计文档应该是“自足的”（self-contained），即应该为读者提供足够的背景知识，使其无需进一步的查阅资料即可理解后文的设计。保持简洁，通常以几段为宜，每段简要介绍即可。如果需要向读者提供进一步的信息，最好只提供链接。警惕知识的诅咒（知识的诅咒（Curse of knowledge）是一种认知偏差，指人在与他人交流的时候，下意识地假设对方拥有理解交流主题所需要的背景知识）
-
-背景通常可以包括：
-需求动机以及可能的例子。 如，“（tRPC) 微服务模式正在公司内变得流行，但是缺少一个通用的、封装了常用内部工具及服务接口的微服务框架”。 - 这是放置需求文档的链接的好地方。
-此前的版本以及它们的问题。 如，“(tRPC) Taf 是之前的应用框架， 有以下特点，…………， 但是有以下局限性及历史遗留问题”。
-其它已有方案， 如公司内其它方案或开源方案， “tRPC v.s. gRPC v.s. Arvo”
-相关的项目，如 “tRPC 框架中可能会对接的其它 PCG 系统”
-不要在背景中写你的设计，或对问题的解决思路。
+例如：订单创建接口在超时重试后可能生成重复订单，调用方不能确认第一次请求的结果。本次设计要明确同一次业务意图的识别方式、并发控制和结果查询；更换数据库不是预设目标。
 
 #### 难点和挑战
 
@@ -315,46 +285,66 @@ SLA 目标是什么？如何监控？如何保证？
 ### 如何量化系统指标：SLI、SLO 与 SLA
 
 SLI 是可观测指标，SLO 是在明确统计窗口与有效请求口径下设定的目标，SLA 是包含责任或后果约定的服务协议。内部性能目标不应一概称为 SLA；成功率、延迟达标比例和正确性需要分别定义。[[1]](#ref-1)
-#### reliable
+#### 可靠性与恢复
+
+分别定义“处理结果正确”“已确认写入不丢失”和“故障后能恢复”的要求。若使用 RPO（可接受的数据丢失窗口）与 RTO（恢复时间目标），应写明故障范围、计时起点和恢复验收方式；副本存在并不等于备份可恢复。
 <p align="center">
   <img src="/diagrams/01-system-design-methodology/03-mean-time-between-failures.png" width=600 height=300>
   <br/>
 </p>
 
-#### available
+#### 可用性
+
+优先按有效请求统计成功比例，并说明哪些业务拒绝属于正常结果。维护窗口、客户端取消与依赖超时是否计入，需要在指标契约中明确；仅统计进程存活不能代表用户能够完成业务。[[1]](#ref-1)
 <p align="center">
   <img src="/diagrams/01-system-design-methodology/04-available-metric.png" width=600 height=300>
   <br/>
 </p>
 
-#### efficiency
-#### latency and throughput
-#### manageability
+#### 延迟、吞吐与资源效率
+
+同时观察延迟分位数、吞吐量与资源使用率。平均延迟可能掩盖慢请求；脱离请求大小、读写比例、缓存命中率与并发量的 QPS 也不能直接比较。估算用于提出假设，压测用于检验假设。
+
+#### 可运维性
+
+说明告警触发后由谁处理、如何定位、如何降级或回滚，以及怎样证明恢复完成。可观测性应覆盖业务结果、依赖调用和积压状态。
 <p align="center">
   <img src="/diagrams/01-system-design-methodology/05-manageability.png" width=600 height=300>
   <br/>
 </p>
 
-### 系统设计的权衡（Top 15 Trade-off）
+### 系统设计的权衡
 
 - **性能与可扩展性的权衡**：提高性能可能需要牺牲一部分可扩展性，因为某些优化可能会引入复杂性或限制系统的扩展性。
 - **可维护性与性能的权衡**：某些优化措施可能会降低代码的可读性和可维护性，因此需要在维护性和性能之间进行权衡。
 - **时间与成本的权衡**：系统设计需要考虑开发时间和成本，以确保在给定资源限制下实现最佳的设计方案。
 - **安全性与用户体验的权衡**：强大的安全措施可能会增加用户的身份验证和授权过程，从而影响用户体验。
 
-#### 参考阅读
-可进一步阅读以下资料：[[2]](#ref-2)、[[3]](#ref-3)、[[4]](#ref-4) 和 [[5]](#ref-5)。
+#### 用质量属性场景开展评审
+
+课件第 36 页介绍 ATAM（Architecture Tradeoff Analysis Method）。它通过业务驱动、质量属性场景和架构策略识别风险、敏感点与权衡点，而不是给方案算出一个万能总分。正式方法还包括利益相关者参与和场景优先级分析；日常评审可借用这一思路，不能仅凭一张评分表就宣称完成 ATAM。[[2]](#ref-2)
+
+例如，假设电商商品详情允许短暂陈旧，但下单必须校验当前价格与可售库存。评审缓存方案时，就需要分别讨论详情展示和交易确认：前者可以用陈旧数据维持阅读体验，后者需要访问权威事实。缓存保留时间是敏感参数；增加保留时间可能减少回源，同时扩大陈旧窗口，形成需要业务确认的权衡。
+
+#### 用 ADR 留下决策依据
+
+重要选型可单独记录为 ADR（Architecture Decision Record）：写清背景、决策、状态和后果，包含接受的限制。后续替换方案时，保留旧记录并注明被哪项新决策取代。[[3]](#ref-3)
+
+针对上面的例子，一份简短决策可以说明：商品详情采用旁路缓存，结算查询权威数据；选择依据是访问模式和业务容忍度；代价是展示与结算可能存在价格差异，需要交互提示。重新评估的条件是缓存失效后的源站容量不足，或业务要求变为展示即承诺价格。方案比较表应支持这项判断，不能代替判断。
+
+架构取舍的更多背景可参考 [[4]](#ref-4)；图的层次组织见 [[5]](#ref-5)。
 
 
 ### 面向对象系统设计的原则
 
 #### SOLID 原则概述
-SOLID 原则是一套比较经典且流行的架构原则（主要还是名字起得好）：
-单一职责：与 Unix 哲学所倡导的“Do one thing and do it well”不谋而合；
-开闭原则：用新增（扩展）来取代修改（破坏现有封装），这与函数式的 immutable 思想也有异曲同工之妙；
-里式替换：父类能够出现的地方子类一定能够出现，这样它们之间才算是具备继承的“Is-A”关系；
-接口隔离：不要让一个类依赖另一个类中用不到的接口，简单说就是最小化组件之间的接口依赖和耦合；
-- **依赖反转（Dependency Inversion）**：依赖抽象类与接口，而不是具体实现；让低层次模块依赖高层次模块的稳定抽象，实现解耦。
+SOLID 用于检查代码职责与依赖关系，不能单独决定服务如何拆分：
+
+- **单一职责**：聚合由同一类变化驱动的职责，避免不同业务参与者的变化互相牵连。
+- **开闭原则**：为已识别的变化提供扩展点，保护稳定部分；不要求所有代码永远不能修改，也不等同于对象不可变。
+- **里式替换**：子类型应满足调用方依赖的行为契约，包括前置条件、后置条件与不变量；语法上可继承还不够。
+- **接口隔离**：按调用方需要组织接口，避免强迫它依赖无关能力。
+- **依赖反转**：高层策略与底层细节依赖合适的抽象，抽象不依赖具体实现；接口应表达策略需要，而不只是包装某个 SDK。[[6]](#ref-6)
 
 #### 其他架构设计原则
 
@@ -448,108 +438,79 @@ Send packet CA->Netherlands->CA    150,000,000   ns  150,000 us  150 ms
 
 
 ### 系统设计核心概念
-📌 𝐒𝐲𝐬𝐭𝐞𝐦 𝐃𝐞𝐬𝐢𝐠𝐧 𝐊𝐞𝐲 𝐂𝐨𝐧𝐜𝐞𝐩𝐭𝐬
-- Scalability: lnkd.in/gpge_z76
-- CAP Theorem: lnkd.in/g3hmVamx
-- ACID Transactions: lnkd.in/gMe2JqaF
-- Consistent Hashing: lnkd.in/gd3eAQKA
-- Rate Limiting: lnkd.in/gWsTDR3m
-- API Design: lnkd.in/ghYzrr8q
-- Strong vs Eventual Consistency: lnkd.in/gJ-uXQXZ
-- Synchronous vs. asynchronous communications: lnkd.in/g4EqcckR
-- REST vs RPC: lnkd.in/gN__zcAB
-- Batch Processing vs Stream Processing: lnkd.in/gaAnP_fT
-- Fault Tolerance: lnkd.in/dVJ6n3wA
-- Consensus Algorithms: lnkd.in/ggc3tFbr
-- Gossip Protocol: lnkd.in/gfPMtrJZ
-- Service Discovery: lnkd.in/gjnrYkyF
-- Disaster Recovery: lnkd.in/g8rnr3V3
-- Distributed Tracing: lnkd.in/d6r5RdXG
-- Top 15 Tradeoffs: lnkd.in/gnM8QC-z
 
-🛠️ 𝐒𝐲𝐬𝐭𝐞𝐦 𝐃𝐞𝐬𝐢𝐠𝐧 𝐁𝐮𝐢𝐥𝐝𝐢𝐧𝐠 𝐁𝐥𝐨𝐜𝐤𝐬
-- Horizontal vs Vertical Scaling: lnkd.in/gAH2e9du
-- Databases: lnkd.in/gti8gjpz
-- Content Delivery Network (CDN): lnkd.in/gjJrEJeH
-- Domain Name System (DNS): lnkd.in/gkMcZW8V
-- Caching: lnkd.in/gC9piQbJ
-- Distributed Caching: lnkd.in/g7WKydNg
-- Load Balancing: lnkd.in/gQaa8sXK
-- SQL vs NoSQL: lnkd.in/g3WC_yxn
-- Database Indexes: lnkd.in/dGnZiNmM
-- HeartBeats: lnkd.in/gfb9-hpN
-- Circuit Breaker: lnkd.in/gCxyFzKm
-- Idempotency: lnkd.in/gPm6EtKJ
-- Database Scaling: lnkd.in/gAXpSyWQ
-- Data Replication: lnkd.in/gVAJxTpS
-- Data Redundancy: lnkd.in/gNN7TF7n
-- Database Sharding: lnkd.in/gRHb-67m
-- Failover: lnkd.in/dihZ-cEG
-- Proxy Server: lnkd.in/gi8KnKS6
-- Message Queues: lnkd.in/gTzY6uk8
-- WebSockets: lnkd.in/g76Gv2KQ
-- Bloom Filters: lnkd.in/dt4QbSUz
-- API Gateway: lnkd.in/gnsJGJaM
-- Distributed Locking: lnkd.in/gRxNJwWE
-- Checksum: lnkd.in/gCTa4DrS
+阅读概念时，优先把它们映射到方案中的实际问题，而不是逐个收集中间件名称。[[8]](#ref-8)
 
-🖇️ 𝐒𝐲𝐬𝐭𝐞𝐦 𝐃𝐞𝐬𝐢𝐠𝐧 𝐀𝐫𝐜𝐡𝐢𝐭𝐞𝐜𝐭𝐮𝐫𝐚𝐥 𝐏𝐚𝐭𝐭𝐞𝐫𝐧𝐬
-- Client-Server Architecture: lnkd.in/dAARQYzq
-- Microservices Architecture: lnkd.in/gFXUrz_T
-- Serverless Architecture: lnkd.in/gQNAXKkb
-- Event-Driven Architecture: lnkd.in/dp8CPvey
-- Peer-to-Peer (P2P) Architecture: lnkd.in/di32HDu3
-
+| 设计问题 | 需要理解的概念 | 在方案中的落点 |
+|---|---|---|
+| 数据能否同时成功或失败？ | 事务、隔离级别、业务不变量 | 事务范围与并发约束 |
+| 超时后怎样确认结果？ | 幂等性、重试、状态查询 | 接口契约与恢复流程 |
+| 读到旧数据是否可接受？ | 一致性、复制、缓存 | 场景化的陈旧容忍度 |
+| 负载增加时哪里先到瓶颈？ | 扩容、分区、热点、背压 | 容量估算与压测 |
+| 组件失效后怎样恢复？ | 故障域、降级、备份、观测 | 发布与运维方案 |
 
 ## 整体架构设计
-### 软件架构模式（patterns）
-#### Application Landscape Patterns
-- Monolith （单体架构）
-- N-tiers,3-tier
-- 面向服务的架构 (service - orienterd)
-- [微服务架构 (microservices)](https://lnkd.in/gFXUrz_T)
-- [无服务架构 (serverless)](https://lnkd.in/gQNAXKkb)
-- [p2p 架构 (peer to peer)](https://lnkd.in/di32HDu3)
-#### Application structure Patterns
-- 分层架构 (Layerd architecture)
-- 微内核架构 (microkernel)
-- [事件驱动架构 (Event-driven)](https://lnkd.in/dp8CPvey)
-#### User Interface Patterns
-- MVC
-- MVP
-#### 参考阅读：
-可进一步阅读 [[9]](#ref-9) 和 [[10]](#ref-10)。
+### 架构模式与适用边界
 
+架构模式用于组织职责和交互，不应被当作复杂度或先进程度的排名。模块化单体、微服务、分层和事件驱动可以在不同范围内组合使用。[[8]](#ref-8)
+
+| 选择 | 适用判断 | 新增约束 |
+|---|---|---|
+| 模块化单体 | 业务边界仍在演进，团队希望集中部署 | 仍需约束模块依赖与数据访问 |
+| 微服务 | 边界稳定，确有独立发布或扩容需要 | 跨服务契约、观测、失败与数据协调 |
+| 分层结构 | 希望分离业务策略与实现细节 | 控制跨层依赖，避免业务规则散落 |
+| 事件驱动 | 允许处理延后，存在解耦或多订阅需求 | 发布可靠性、幂等、顺序与积压治理 |
+
+选型记录需说明当前约束与验证结果。不要因为采用微服务就省略模块设计，也不要因为采用单体就忽略容量和故障处理。
 
 ### 架构 EA+4A
 #### 什么是架构 EA+4A
+
+课件第 7–12 页用 EA（企业架构）及业务、应用、数据、技术四类视图组织说明。本文沿用这一教学分类，帮助读者分开回答不同问题；它不表示所有架构框架都采用相同名称或层级，也不等同于 C4 模型的系统上下文、容器、组件与代码层次。C4 更侧重软件系统的结构缩放，两者可配合使用。[[5]](#ref-5)
+
+| 视图 | 要回答的问题 | 电商订单示例 |
+|---|---|---|
+| 业务架构（BA） | 业务能力、参与者和规则是什么？ | 创建订单、确认支付、履约与取消的业务边界 |
+| 应用架构（AA） | 哪些应用负责这些能力，怎样协作？ | 订单、支付、库存服务的职责与接口 |
+| 数据架构（DA） | 哪些数据是权威事实，怎样组织和流转？ | 订单状态、支付记录、库存事实及分析投影 |
+| 技术架构（TA） | 系统怎样运行、扩容和恢复？ | 网关、数据库、消息系统与部署故障域 |
 <p align="center">
   <img src="/diagrams/01-system-design-methodology/11-what-is-architecture.png" width=600 height=400>
 </p>
 
 #### 业务架构
+
+从业务流程和能力边界出发，说明角色、输入、结果和关键规则。先确定“支付成功由谁确认”，再决定是否拆成独立服务；不要直接用数据库或中间件名称代替业务能力。
 <p align="center">
   <img src="/diagrams/01-system-design-methodology/12-business-architecture.png" width=600 height=400>
 </p>
 
 #### 应用架构
+
+明确模块职责、调用方向和跨应用契约。图区分同步调用与异步事件，并指出超时、失败或重复通知的处理方；服务数量多并不能证明边界合理。
 <p align="center">
   <img src="/diagrams/01-system-design-methodology/13-application-architecture.png" width=600 height=400>
 </p>
 
 
 #### 技术架构
+
+说明部署单元、网络边界、容量瓶颈和故障域。图上的“多副本”需要对应复制方式、切换机制与恢复验证，不能直接推导出高可用。
 <p align="center">
   <img src="/diagrams/01-system-design-methodology/14-technical-architecture.png" width=600 height=400>
 </p>
 
 #### 数据架构
 
+说明数据所有者、事务边界、读写模型与派生数据更新方式。课件的 ODS、DWD、DIM、APP 是数据仓库分层示例，不是每个在线交易系统都必须具备的层；订单服务首先要解决交易事实和一致性，分析链路再按需要建设。
+
 <p align="center">
   <img src="/diagrams/01-system-design-methodology/15-data-architecture.png" width=600 height=400>
 </p>
 
 #### 架构设计原则
+
+对每个模块检查职责是否完整、依赖是否必要、变化是否能局部处理。评审至少用一条正常流程和一条失败流程贯穿各视图，确保它们描述同一个系统。具体图型选择见 {% post_link system-design/07-engineering-diagrams-ai-workflow %}。
 
 <p align="center">
   <img src="/diagrams/01-system-design-methodology/16-tech-design-principles.png" width=600 height=400>
@@ -564,7 +525,6 @@ Send packet CA->Netherlands->CA    150,000,000   ns  150,000 us  150 ms
 
 
 
-### 微服务架构
 ### 单体服务、微服务、Service Mesh
 <p align="center">
   <img src="/diagrams/01-system-design-methodology/17-rpc-to-service-mesh.png" width=600 height=350>
@@ -718,7 +678,7 @@ RPC 是一个“请求-响应”协议：
 
 #### 七层负载均衡器
 
-七层负载均衡器根据监控[应用层](#应用层web网关设计)来决定怎样分发请求。这会涉及请求头的内容，消息和 cookie。七层负载均衡器终结网络流量，读取消息，做出负载均衡判定，然后传送给特定服务器。比如，一个七层负载均衡器能直接将视频流量连接到托管视频的服务器，同时将更敏感的用户账单流量引导到安全性更强的服务器。
+七层负载均衡器根据[应用层](#接口与应用网关设计)的协议信息决定怎样分发请求。这会涉及路径、请求头和 cookie。它在支持的协议与终止配置下解析请求，再转发给后端；例如根据路径将视频请求和账单请求路由到不同服务。
 
 以损失灵活性为代价，四层负载均衡比七层负载均衡花费更少时间和计算资源，虽然这对现代商用硬件的性能影响甚微。
 
@@ -784,7 +744,7 @@ RPC 是一个“请求-响应”协议：
 - [ELB 监听器配置](http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-listener-config.html)
 
 
-## 应用层web网关设计
+## 接口与应用网关设计
 <p align="center">
   <img src="/diagrams/01-system-design-methodology/28-meituan-gateway.png" width=600 height=400>
   <br/>
@@ -803,70 +763,48 @@ RPC 是一个“请求-响应”协议：
 - [百亿规模API网关服务Shepherd的设计与实现](https://tech.meituan.com/2021/05/20/shepherd-api-gateway.html)
 - [grpc-gateway](https://github.com/grpc-ecosystem/grpc-gateway)
 
-### API 设计规范和管理
 ### API 架构风格
-- RESTful API
-- GraphQL 
-- RPC
-- SOA
+
+根据调用方和交互方式选择资源式 HTTP API、GraphQL 或 RPC，并统一认证、版本、错误类型、超时和兼容策略。SOA 描述服务组织方式，不是与 REST、RPC 同一维度的接口协议选项。
 
 ### RESTful API
-- 路径名称避免动词
-```sh
-路径名称避免动词
-# Good
-curl -X GET /orders
-# Bad
-curl -X GET /getOrders
+
+课件第 14 页用资源名称和 HTTP 方法说明接口设计。路径使用名词、统一单复数与大小写，是便于协作的团队约定；HTTP 标准并没有禁止 URI 中出现动词或下划线。需要表达业务动作时，可以建立动作资源，例如订单取消请求，避免把复杂状态转换伪装成随意更新字段。
+
+| 方法 | 典型用途 | 重试与并发注意事项 |
+|---|---|---|
+| GET | 查询资源或集合 | 保持只读，定义分页与过滤 |
+| POST | 创建资源或提交处理请求 | 不天然幂等；重试需要业务幂等契约 |
+| PUT | 创建或完整替换指定资源 | 方法语义幂等；仍需处理权限与并发覆盖 |
+| PATCH | 按约定补丁格式修改资源 | 不天然幂等；递增等操作重复执行会改变结果 |
+| DELETE | 删除指定资源或解除其关联 | 方法语义幂等；重复调用的状态码可以不同 |
+
+HTTP 幂等性针对多次相同请求的预期效果，不要求每次响应相同。PATCH 的具体行为还取决于补丁媒体类型。[[9]](#ref-9)[[10]](#ref-10)
+
+下面是假设接口契约的示例：使用示例域名，PATCH 约定 `application/merge-patch+json`，`If-Match` 用于拒绝基于旧版本的覆盖。幂等键是应用契约，不能仅添加一个头就认为服务端实现了去重。JSON Merge Patch 的格式定义见 [[11]](#ref-11)。
+
+```bash
+# 查询订单
+curl 'https://api.example.com/v1/orders/order-123'
+
+# 创建订单；重试相同业务意图时复用该键
+curl -X POST 'https://api.example.com/v1/orders' \
+  -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: checkout-attempt-123' \
+  -d '{"cart_id":"cart-123","shipping_address_id":"addr-456"}'
+
+# 修改允许变更的配送备注；实际版本取自查询响应
+curl -X PATCH 'https://api.example.com/v1/orders/order-123' \
+  -H 'Content-Type: application/merge-patch+json' \
+  -H 'If-Match: "order-version-3"' \
+  -d '{"delivery_note":"工作日送达"}'
 ```
 
-- GET 获取指定 URI 的资源信息
-```sh
-# 代表获取当前系统的所有订单信息
-curl -X GET /orders
-
-curl -X GET /users/{user_id}/orders
-
-# 代表获取指定订单编号为订单详情信息
-curl -X GET /orders/{order_id}
-```
-
-- POST 通过指定的 URI 创建资源
-```sh
-curl -X POST /orders \
-  -d '{"name": "awesome", region: "A"}' \
-```
-
-- PUT 创建或全量替换指定 URI 上的资源
-```
-curl -X PUT http://httpbin.org/orders/1 \
-  -d '{"name": "new awesome", region: "B"}' \
-```
-
-- PATCH 执行一个资源的部分更新
-```sh
-# 代表将 id 为 1 的 order 中的 region 字段进行更改，其他数据保持不变
-curl -X PATCH /orders/{order_id} \
-  -d '{name: "nameB"}' \
-curl -X order/{order_id}/name (用来重命名)
-curl -X /order/{order_id}/status(用来更改用户状态)
-```
-
-- DELETE 通过指定的 URI 移除资源
-```sh
-# 代表将id的 order 删除
-curl -X DELETE /orders/{order_id}
-```
-
-其它规则：
-规则1：应使用连字符（ - ）来提高URI的可读性
-规则2：不得在URI中使用下划线（_）
-规则3：URI路径中全都使用小写字母
-
+对于“取消订单”，还需定义允许取消的状态、重复请求的结果，以及退款或释放库存是否同步完成；URI 命名不能替代业务契约。
 
 ### API 错误码设计规范
 
-HTTP 状态码用于表达协议层面的结果，响应体提供稳定的业务错误类型和详情。不要将“所有失败都返回 200”写成通用规范，也不要把旧版厂商示例泛化为当前 API 行为。状态语义应以 HTTP 标准和实际接口契约为准。[[11]](#ref-11)
+HTTP 状态码用于表达协议层面的结果，响应体提供稳定的业务错误类型和详情。不要将“所有失败都返回 200”写成通用规范，也不要把旧版厂商示例泛化为当前 API 行为。状态语义应以 HTTP 标准和实际接口契约为准。[[9]](#ref-9)
 
 | 状态码 | 典型语义 | 调用方处理 |
 |---|---|---|
@@ -907,8 +845,17 @@ Content-Type: application/problem+json
 - 简化客户端代码：客户端不需要担心重复请求的副作用，从而简化了错误处理逻辑。
 - 改善用户体验：确保用户操作的可预测性，避免因重复提交表单等操作导致的错误或重复数据。
 #### 怎么实现幂等性
-- 幂等键（Idempotency Key: 由客户端生成一个唯一标识请求的ID，并在请求头中包含此ID。服务器端会检查此ID是否已处理过，如果是，则返回之前的响应。
-- 幂等令牌（Idempotency Token）：在需要创建资源的请求中，通过幂等令牌保证幂等性。服务器端生成并验证令牌，确保同一令牌只能创建一个资源
+
+课件第 16 页从源头、请求处理和数据约束三个层面展开。按钮置灰能减少误操作，但网络重试、多实例并发与重复消息仍需服务端保障。
+
+以创建订单为例，本文建议检查以下契约：
+
+1. **识别同一次业务意图**：调用方在重试时复用幂等键，服务端按租户、操作与键限定作用域，并比较请求摘要；同一个键不能悄悄用于不同订单内容。
+2. **原子占用与业务写入**：通过唯一约束及事务或受控状态转换处理并发请求，避免“先查询不存在，再分别创建”的竞争。仅有内存去重不能保护多实例。
+3. **处理执行中和结果未知**：区分执行中、已成功、已失败与待核实。超时只表示调用方未及时拿到结果，不能据此断言订单或支付失败。带副作用的操作需要明确幂等契约后才适合重试。[[13]](#ref-13)
+4. **定义保存与清理策略**：说明键的保留范围、重复请求返回方式和到期后的行为；不能让过期去重记录绕过仍需保持的业务唯一约束。
+
+条件更新和版本号可以阻止不合法状态迁移，但使用锁本身不等于业务幂等。对于支付、发货等外部副作用，还需把业务操作标识传给下游，或通过查询与对账核实结果。
 
 
 
@@ -918,16 +865,104 @@ Content-Type: application/problem+json
   <img src="/diagrams/01-system-design-methodology/30-how-to-choose-storage.png" width=600 height=400>
 </p>
 
+课件第 20–25 页从存储类别、建模、分片和副本展开。选型顺序应从业务不变量和访问模式开始，再验证具体产品的能力。“SQL / NoSQL / NewSQL”只能帮助分类，不能直接推出事务、一致性和可用性结论。例如 MongoDB 支持多文档事务，但配置与代价需要单独评估。[[14]](#ref-14)
+
+| 设计问题 | 需要留下的判断依据 |
+|---|---|
+| 哪些写入必须同时成功？ | 事务边界、唯一约束、并发冲突与跨系统恢复方案 |
+| 数据怎样被读取？ | 查询条件、排序、分页、聚合、访问局部性与索引 |
+| 哪些副本或索引可以滞后？ | 权威源、允许陈旧的场景、更新链路与核对方法 |
+| 何时需要拆分数据？ | 工作集、读写负载、索引维护、备份恢复时间与增长趋势 |
+| 扩容或故障切换影响什么？ | 路由变化、数据迁移、复制延迟和应用兼容性 |
+
+建模可沿用“概念模型 → 逻辑模型 → 物理模型”的顺序：先定义订单、支付及库存事实的关系和规则，再落到表、文档、约束与索引。选择文档嵌套时，要考虑更新粒度和文档增长；选择关系模型时，要考虑关联查询与索引成本。
+
+#### 分区、分片与副本的边界
+
+“超过 500 万行就分表”只是课件中的经验提示，不是容量标准。先用查询计划与压测识别瓶颈，再比较索引优化、归档、扩容和数据拆分。以 PostgreSQL 为例，表分区用于将逻辑表拆成物理分区，是否受益依赖查询与维护方式；分区本身不等于跨节点分片。[[15]](#ref-15)
+
+分片键要同时考虑查询路由、数据倾斜、事务范围与迁移成本。一致性哈希有助于控制节点变化时的键迁移范围，但不能自动消除热点，也不能替代数据迁移协议。
+
+副本设计应回答：从哪里读、复制延迟是否可接受、何时确认写入、谁负责切换、切换后如何避免旧主继续写。不要仅凭“有多个副本”就承诺不丢数据；读写分离、跨区恢复与备份恢复应分别验证。
+
 ### 各中间件详细专题
 
-- {% post_link fundamentals/07-mysql-database-practice 存储与 MySQL 数据库 %} - 建表规范、索引优化、分库分表
-- {% post_link fundamentals/08-redis-principles-and-practice Redis 原理与实践 %} - 数据结构、缓存策略、分布式锁
-- {% post_link fundamentals/09-kafka-messaging-practice 异步和消息队列 %} - Kafka 架构、消息语义、性能调优
-- {% post_link fundamentals/10-elasticsearch-search-practice 搜索和 Elasticsearch %} - 索引设计、DSL 查询、性能优化
-- {% post_link fundamentals/11-docker-kubernetes-practice Kubernetes 与 Docker %} - 容器网络、Pod/Service、运维实践
+- {% post_link fundamentals/07-mysql-database-practice %}：建表规范、索引优化与数据拆分。
+- {% post_link fundamentals/08-redis-principles-and-practice %}：数据结构、缓存策略与锁的边界。
+- {% post_link fundamentals/09-kafka-messaging-practice %}：消息语义与性能调优。
+- {% post_link fundamentals/10-elasticsearch-search-practice %}：索引设计、查询与检索性能。
+- {% post_link fundamentals/11-docker-kubernetes-practice %}：容器网络、部署与运维。
+
+## 缓存设计：位置、更新与回源保护
+
+课件第 27–30 页关注缓存位置、组织方式、读写模式与失效保护。首先明确缓存中的数据能陈旧多久，以及哪些操作必须读取权威数据；再决定是否引入缓存。
+
+### 缓存放在哪里
+
+| 位置 | 适用前提 | 需要承担的代价 |
+|---|---|---|
+| 本地缓存 | 热点读多写少，能接受实例间短暂差异 | 实例内存、失效广播、冷启动与扩容回源 |
+| 共享远程缓存 | 多实例需要复用缓存，网络成本可接受 | 网络延迟、缓存集群故障与源站一致性 |
+| 多级缓存 | 已验证单层缓存无法满足需求 | 多层失效顺序、容量治理与更复杂的故障定位 |
+
+共享缓存减少实例间差异，并不保证与数据库一致；本地缓存还会在每个新实例启动时产生冷读。是否采用多级缓存，应结合负载验证。[[16]](#ref-16)
+
+课件中的“双 buffer”和 LRU 解决不同问题：前者用于准备新快照并切换读取版本，后者用于容量不足时选择淘汰对象，可以组合使用。LRU 不负责缓存失效通知，也不能保证数据新鲜。
+
+### 缓存怎样更新
+
+以 Cache-Aside（旁路缓存）为例：读请求先查缓存，未命中时读取数据库并回填；写请求先更新数据库，再使相关缓存失效。即使遵循这个顺序，并发读回填和失效失败仍可能留下旧值，因此旁路缓存不保证强一致性。[[17]](#ref-17)
+
+方案需说明失效失败如何重试、旧版本如何识别、TTL 如何兜底，以及关键业务如何核对事实。“延迟双删”不能脱离读写耗时和失败假设被当作通用一致性保证。对于商品详情，可以接受有界陈旧；对于库存扣减、支付确认，应在权威写入路径检查业务约束。
+
+Write-Through 将缓存更新与存储写入串在一条受控路径上，但仍需明确中途失败如何处理；Write-Behind 先接收写入再异步持久化，还需承担队列可靠性、顺序与恢复责任。选择读写模式之前，应先说明成功响应究竟确认了什么。
+
+### 缓存失效时怎样保护源站
+
+缓存会降低正常回源量，也可能让数据库容量被低估。应测试冷启动、批量过期和缓存不可用时的行为，并限制最大回源负载。[[16]](#ref-16)
+
+- **热点失效**：合并同一键的并发回源，必要时按业务允许的范围返回旧值。
+- **集中失效**：错开过期或刷新时间，配合限流与降级；随机 TTL 只能缓解同步过期。
+- **不存在的数据**：校验输入，按需要缓存短期空结果；布隆过滤器有误判，并需维护数据变化。
+- **热点键与大值**：分别检查访问频率和对象大小；增加分片不能自动拆开一个热点键。
+
+除命中率外，还应观察回源 QPS、回源错误与延迟、热点分布、缓存内存和淘汰情况。更完整的实现细节见 {% post_link fundamentals/08-redis-principles-and-practice %}。
+
+## 异步设计：任务状态、重试与补偿
+
+课件第 32–33 页介绍异步回调、任务队列、发布订阅及恢复机制。异步化能把工作移出同步响应路径，但不会自动增加下游处理能力；持续生产快于消费时，积压仍会增长。
+
+### 区分受理、完成与通知
+
+例如支付请求已经被受理，业务处理可能尚未完成；业务已经完成，回调也可能没有送达。接口、任务状态与用户展示应区分这些阶段。HTTP 202 只代表已接受处理，需要另行定义结果查询或通知契约。[[9]](#ref-9)
+
+外部调用超时或回调丢失时，先把结果记为待核实，再通过业务操作标识查询权威状态。只有确认失败且满足业务条件时，才能决定重试或补偿；不要因为“没收到成功”就重新支付。
+
+### 让任务可以恢复
+
+本文建议在任务设计中明确以下责任：
+
+| 失败位置 | 恢复措施 | 验证信号 |
+|---|---|---|
+| 业务提交后，消息未发布 | 将业务事实与待发布事件写入同一事务，再由发布器恢复发送 | 未发布事件的数量与最老等待时间 |
+| 消费结果已提交，确认失败 | 消费者用业务唯一约束或去重记录识别再次投递 | 重复处理次数与业务结果核对 |
+| 外部操作结果未知 | 查询权威状态、对账，必要时进入人工核实 | 待核实任务的年龄与处理记录 |
+| 永久业务错误 | 进入明确终态或人工处理流程 | 失败原因分布与人工处理进度 |
+
+第一种方式对应 Transactional Outbox：本地事务保证业务事实和待发布事件一起提交，不代表消息只投递一次；发布器仍可能重复发送，消费者仍需幂等。[[18]](#ref-18)
+
+### 控制重试、顺序与积压
+
+区分可恢复的暂时错误和需要修改输入的业务拒绝。重试应有超时、次数或总时限预算，使用退避和抖动，避免调用链各层同时重试放大流量。重试耗尽后的任务应有可审计的人工处理或补偿入口；跨系统补偿通常是新业务动作，不是数据库回滚。[[13]](#ref-13)
+
+Kafka 的分区日志提供分区内顺序，不等于所有业务消息全局有序。应用还需检查分区键、消费并发、重试路径与业务版本。Kafka 的事务处理语义也不能直接推导出外部支付、数据库和发货副作用都只执行一次。[[19]](#ref-19)
+
+监控除了消费 lag，还要覆盖最老任务年龄、处理速率、重试次数、失败终态和业务结果。只有记录异常日志，无法证明任务最终完成。可靠发布、投影和去重的进一步讨论见 {% post_link system-design/02-clean-architecture-ddd-cqrs %}。
 
 ## 框架和引擎
 ### 工作流引擎与任务编排
+
+引擎用于实现任务控制，不会自动提供业务正确性。选择前需核对持久化、崩溃恢复、版本兼容与运维能力；下面的项目作为调研入口，是否满足需求应以采用版本的官方文档与验证结果为准。
 
 #### goflow
 - **技术原理**：goflow 是基于数据流编程模型的工作流引擎，采用有向无环图（DAG）描述任务节点之间的依赖关系。每个节点可独立执行，节点间通过通道（channel）传递数据，充分利用 Go 的并发特性（goroutine、channel）实现高效的任务编排和并行处理。
@@ -999,90 +1034,47 @@ Content-Type: application/problem+json
 
 > 详见 {% post_link system-design/06-system-reliability-engineering %}
 
-## 系统设计实践
-- 设计类似于 Dropbox 的文件同步服务
-  - [youtube.com](https://www.youtube.com/watch?v=PE4gwstWhmc)
-- 设计类似于 Google 的搜索引擎
-  - [queue.acm.org](http://queue.acm.org/detail.cfm?id=988407)
-  - [stackexchange.com](http://programmers.stackexchange.com/questions/38324/interview-question-how-would-you-implement-google-search)
-  - [ardendertat.com](http://www.ardendertat.com/2012/01/11/implementing-search-engines/)
-  - [stanford.edu](http://infolab.stanford.edu/~backrub/google.html)
-- 设计类似于 Google 的可扩展网络爬虫 
-  - [quora.com](https://www.quora.com/How-can-I-build-a-web-crawler-from-scratch)
-- 设计 Google 文档
-  - [code.google.com](https://code.google.com/p/google-mobwrite/)
-  - [neil.fraser.name](https://neil.fraser.name/writing/sync/)
-- 设计类似 Redis 的键值存储
-  - [slideshare.net](http://www.slideshare.net/dvirsky/introduction-to-redis)
-- 设计类似 Memcached 的缓存系统
-  - [slideshare.net](http://www.slideshare.net/oemebamo/introduction-to-memcached)
-- 设计类似亚马逊的推荐系统
-  - [hulu.com](http://tech.hulu.com/blog/2011/09/19/recommendation-system.html)
-  - [ijcai13.org](http://ijcai13.org/files/tutorial_slides/td3.pdf)
-- 设计类似 Bitly 的短链接系统 
-  - [n00tc0d3r.blogspot.com](http://n00tc0d3r.blogspot.com/)
-- 设计类似 WhatsApp 的聊天应用
-  - [highscalability.com](http://highscalability.com/blog/2014/2/26/the-whatsapp-architecture-facebook-bought-for-19-billion.html)
-- 设计类似 Instagram 的图片分享系统
-  - [highscalability.com](http://highscalability.com/flickr-architecture)
-  - [highscalability.com](http://highscalability.com/blog/2011/12/6/instagram-architecture-14-million-users-terabytes-of-photos.html)
-- 设计 Facebook 的新闻推荐方法
-  - [quora.com](http://www.quora.com/What-are-best-practices-for-building-something-like-a-News-Feed)
-  - [quora.com](http://www.quora.com/Activity-Streams/What-are-the-scaling-issues-to-keep-in-mind-while-developing-a-social-network-feed)
-  - [slideshare.net](http://www.slideshare.net/danmckinley/etsy-activity-feeds-architecture)
-- 设计 Facebook 的时间线系统 
-  - [facebook.com](https://www.facebook.com/note.php?note_id=10150468255628920)
-  - [highscalability.com](http://highscalability.com/blog/2012/1/23/facebook-timeline-brought-to-you-by-the-power-of-denormaliza.html)
-- 设计 Facebook 的聊天系统
-  - [erlang-factory.com](http://www.erlang-factory.com/upload/presentations/31/EugeneLetuchy-ErlangatFacebook.pdf)
-  - [facebook.com](https://www.facebook.com/note.php?note_id=14218138919&id=9445547199&index=0)
-- 设计类似 Facebook 的图表搜索系统
-  - [facebook.com](https://www.facebook.com/notes/facebook-engineering/under-the-hood-building-out-the-infrastructure-for-graph-search/10151347573598920)
-  - [facebook.com](https://www.facebook.com/notes/facebook-engineering/under-the-hood-indexing-and-ranking-in-graph-search/10151361720763920)
-  - [facebook.com](https://www.facebook.com/notes/facebook-engineering/under-the-hood-the-natural-language-interface-of-graph-search/10151432733048920)
-- 设计类似 CloudFlare 的内容传递网络
-  - [cmu.edu](http://repository.cmu.edu/cgi/viewcontent.cgi?article=2112&context=compsci)
-- 设计类似 Twitter 的热门话题系统
-  - [michael-noll.com](http://www.michael-noll.com/blog/2013/01/18/implementing-real-time-trending-topics-in-storm/)
-  - [snikolov .wordpress.com](http://snikolov.wordpress.com/2012/11/14/early-detection-of-twitter-trends/)
-- 设计一个随机 ID 生成系统
-  - [blog.twitter.com](https://blog.twitter.com/2010/announcing-snowflake)
-  - [github.com](https://github.com/twitter/snowflake/)
-- 返回一定时间段内次数前 k 高的请求
-  - [ucsb.edu](https://icmi.cs.ucsb.edu/research/tech_reports/reports/2005-23.pdf)
-  - [wpi.edu](http://davis.wpi.edu/xmdv/docs/EDBT11-diyang.pdf)
-- 设计一个数据源于多个数据中心的服务系统
-  [highscalability.com](http://highscalability.com/blog/2009/8/24/how-google-serves-data-from-multiple-datacenters.html)
-- 设计一个多人网络卡牌游戏
-  - [indieflashblog.com](https://web.archive.org/web/20180929181117/http://www.indieflashblog.com/how-to-create-an-asynchronous-multiplayer-game.html)
-  - [buildnewgames.com](http://buildnewgames.com/real-time-multiplayer/)
-- 设计一个垃圾回收系统
-  - [stuffwithstuff.com](http://journal.stuffwithstuff.com/2013/12/08/babys-first-garbage-collector/)
-  - [washington.edu](http://courses.cs.washington.edu/courses/csep521/07wi/prj/rick.pdf)
+## 系统设计实践：把设计串成一份订单方案
 
+以下是本文构造的教学案例，不代表某个线上系统的既有实现。假设目标是支持商品浏览、创建订单和异步通知，详情展示允许短暂陈旧，订单金额与支付结果需要按权威事实确认。具体流量、陈旧窗口和恢复目标应由业务与压测共同确定。
+
+1. **明确目标与边界**：把浏览、下单、支付确认分别定义为业务场景，列出权限、重复请求、价格变化和订单取消的验收条件。
+2. **组织架构视图**：业务图表达状态变化，应用图表达职责和调用，数据图标明订单与支付事实，技术图标明部署与故障域。
+3. **定义接口与存储**：创单支持业务幂等键；本地约束防止重复创建；支付结果未知时进入核实流程，不直接重付。
+4. **选择缓存与异步边界**：详情按业务要求缓存，交易路径校验事实；通知失败不否定订单已创建，已提交事件可以恢复发布。
+5. **验证失败与发布方案**：覆盖缓存不可用、数据库切换、重复消息、回调丢失和发布回滚，记录预期状态及核对方式。
+
+评审时，先走通“订单创建并完成通知”，再走一遍“订单已创建但响应丢失、客户端重试、通知重复投递”的流程。检查每一步谁持有事实、谁负责恢复、如何观察结果，并把关键取舍记入 ADR。
+
+扩展练习可从短链接、文件同步和消息服务中选择一个，复用同样的输出要求；题目与历史案例线索见 System Design Primer。[[8]](#ref-8) 方案进入开发或发布前，可使用 {% post_link system-design/05-architecture-code-review-checklist %} 复核。
 
 ## 参考资料
 
 1. <a id="ref-1"></a> [Implementing SLOs](https://sre.google/workbook/implementing-slos/)；Google SRE，2018。
-2. <a id="ref-2"></a> [架构权衡评估方法（ATAM）：如何评估一个系统的质量](https://juejin.cn/post/7027701112077549605)
-3. <a id="ref-3"></a> [架构 Trade-off（架构权衡）](https://juejin.cn/post/7248914499915235389)
-4. <a id="ref-4"></a> [系统架构图示例](https://haomo-tech.com/project-docs/%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3/assets/%E7%B3%BB%E4%B8%9A%E5%8A%A1%E6%9E%B6%E5%9B%BE.omnigraffle)
-5. <a id="ref-5"></a> [系统架构](https://book.douban.com/subject/26938710/)
-6. <a id="ref-6"></a> [Clean Architecture（整洁架构）中文翻译](https://github.com/leewaiho/Clean-Architecture-zh/tree/master?tab=readme-ov-file)
+2. <a id="ref-2"></a> [ATAM: Method for Architecture Evaluation](https://www.sei.cmu.edu/library/atam-method-for-architecture-evaluation/)；Rick Kazman、Mark Klein、Paul Clements，CMU SEI，2000。
+3. <a id="ref-3"></a> [Documenting Architecture Decisions](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions)；Michael Nygard，Cognitect，2011。
+4. <a id="ref-4"></a> [系统架构](https://book.douban.com/subject/26938710/)
+5. <a id="ref-5"></a> [The C4 model for visualising software architecture](https://c4model.com/)；Simon Brown，官方文档。
+6. <a id="ref-6"></a> [The Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)；Robert C. Martin，Clean Coder Blog，2012。
 7. <a id="ref-7"></a> [Eight Fallacies of Distributed Computing](https://ably.com/blog/8-fallacies-of-distributed-computing)
 8. <a id="ref-8"></a> [System Design Primer](https://github.com/donnemartin/system-design-primer)；Donne Martin，持续维护；历史延迟数字仅用于数量级参考。
-9. <a id="ref-9"></a> [软件架构：开发人员的软件架构模式](https://www.bilibili.com/video/BV1cr4y1a7iU/?p=3&spm_id_from=pageDriver&vd_source=04e82c25f6ff3d6a1a08a7f1c343987c)
-10. <a id="ref-10"></a> [什么是软件架构设计](https://hangzhouhot.com/architecturepicture/)
-11. <a id="ref-11"></a> [RFC 9110: HTTP Semantics](https://www.rfc-editor.org/rfc/rfc9110.html)；IETF，2022。
+9. <a id="ref-9"></a> [RFC 9110: HTTP Semantics](https://www.rfc-editor.org/rfc/rfc9110.html)；IETF，2022。
+10. <a id="ref-10"></a> [RFC 5789: PATCH Method for HTTP](https://www.rfc-editor.org/rfc/rfc5789.html)；IETF，2010；访问日期：2026-10-12。
+11. <a id="ref-11"></a> [RFC 7396: JSON Merge Patch](https://www.rfc-editor.org/rfc/rfc7396.html)；IETF，2014；访问日期：2026-10-12。
 12. <a id="ref-12"></a> [RFC 9457: Problem Details for HTTP APIs](https://www.rfc-editor.org/rfc/rfc9457.html)；IETF，2023。
-
+13. <a id="ref-13"></a> [Timeouts, retries, and backoff with jitter](https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/)；Amazon，Builders’ Library；访问日期：2026-10-12。
+14. <a id="ref-14"></a> [Transactions](https://www.mongodb.com/docs/manual/core/transactions/)；MongoDB，官方文档；访问日期：2026-10-12。
+15. <a id="ref-15"></a> [Table Partitioning](https://www.postgresql.org/docs/18/ddl-partitioning.html)；PostgreSQL Global Development Group，PostgreSQL 18 文档；访问日期：2026-10-12。
+16. <a id="ref-16"></a> [Caching challenges and strategies](https://aws.amazon.com/builders-library/caching-challenges-and-strategies/)；Amazon，Builders’ Library；访问日期：2026-10-12。
+17. <a id="ref-17"></a> [Cache-Aside Pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/cache-aside)；Microsoft，Azure Architecture Center；访问日期：2026-10-12。
+18. <a id="ref-18"></a> [Transactional outbox pattern](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html)；AWS，Prescriptive Guidance；访问日期：2026-10-12。
+19. <a id="ref-19"></a> [Design: Message Delivery Semantics](https://kafka.apache.org/41/design/design/)；Apache Software Foundation，Kafka 4.1 文档；访问日期：2026-10-12。
 
 其他延伸阅读：
 - https://github.com/Vonng/ddia
 - https://github.com/leewaiho/Clean-Architecture-zh
 - https://github.com/donnemartin/system-design-primer
 - https://www.oreilly.com/library/view/system-design-on/9781098146887/
-- [设计系统 · 如何向你的主管和团队介绍 Design System 的重要性](https://www.thefivekey.com/how-to-prove-the-value-of-design-system-to-your-boss/)
 - [Building Secure & Reliable Systems](https://sre.google/books/)
 
 - [领域驱动设计DDD在B端营销系统的实践](https://tech.meituan.com/2024/05/27/ddd-in-business.html)
