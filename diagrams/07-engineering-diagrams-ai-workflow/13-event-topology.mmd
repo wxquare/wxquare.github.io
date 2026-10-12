@@ -1,0 +1,7 @@
+flowchart TB
+  O["订单服务"] -->|本地事务写入| DB[("Orders + Outbox")]
+  DB -->|读取未投递事件| R["Outbox Relay"]
+  R -.->|OrderCreated · 含 reservationId · orderId 为键| T["orders.events"]
+  T -.->|消费组 inventory| I["库存消费者 · 去重<br/>关联已有预留与订单，不重复扣减"]
+  T -.->|消费组 notification| N["通知消费者 · 去重"]
+  I -.->|重试耗尽或预留已失效| D["死信 / 核对恢复 + 人工处理"]

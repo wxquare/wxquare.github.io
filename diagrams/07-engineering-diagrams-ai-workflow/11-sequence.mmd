@@ -1,0 +1,32 @@
+sequenceDiagram
+  accTitle: 下单与支付确认关键时序
+  accDescr: 无优惠券主路径，省略转发层。支付结果确认后按订单可接受、已取消或重复冲突分支处理。
+  actor B as 买家
+  participant O as 订单服务
+  participant I as 库存服务
+  participant P as 支付服务
+  Note over B,P: 省略 BFF、计价及外部渠道的内部交互
+  B->>O: 提交订单(idempotencyKey, quoteId)
+  O->>O: 校验报价与创单幂等结果
+  O->>I: 预留库存(reservationId)
+  I-->>O: 预留成功
+  O->>O: 本地事务保存订单、成交快照和 Outbox
+  O->>P: 创建支付意图(orderId)
+  P-->>O: paymentId
+  O-->>B: orderId, paymentId
+  B->>P: 确认支付(paymentId)
+  Note over O,P: 意图创建失败不撤销订单，按 orderId 幂等恢复
+  alt 渠道成功已确认
+    P->>O: 成功通知(eventId, paymentId, orderId, 金额, 币种)
+    alt 待支付且金额币种匹配，订单仍可接受
+      O->>O: 去重并原子转为已支付，可靠触发履约
+    else 已取消且支付事实核对通过
+      O->>O: 保持取消，可靠记录核对与补偿任务
+    else 重复通知或其他冲突
+      O->>O: 重复幂等处理，冲突记录并核对
+    end
+    O-->>P: 确认已可靠受理
+  else 结果未知或回调延迟
+    P->>P: 查询渠道并对账
+    Note over O,P: 未知不等于失败；确认成功后走同一通知分支
+  end

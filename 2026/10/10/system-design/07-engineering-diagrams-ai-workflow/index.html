@@ -1,0 +1,1454 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"wxquare.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="以电商下单与支付为例，重点讲解边界、结构、时序、状态、数据和补偿六类高频视图，提供 24 类图速查，并介绍 AI 协作绘图与可编辑图源的维护流程。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="工程师绘图：用电商案例讲清选图、规范与 AI 协作">
+<meta property="og:url" content="https://wxquare.github.io/2026/10/10/system-design/07-engineering-diagrams-ai-workflow/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="以电商下单与支付为例，重点讲解边界、结构、时序、状态、数据和补偿六类高频视图，提供 24 类图速查，并介绍 AI 协作绘图与可编辑图源的维护流程。">
+<meta property="og:locale">
+<meta property="og:image" content="https://wxquare.github.io/diagrams/07-engineering-diagrams-ai-workflow/01-use-case.svg">
+<meta property="og:image" content="https://wxquare.github.io/diagrams/07-engineering-diagrams-ai-workflow/02-process.svg">
+<meta property="og:image" content="https://wxquare.github.io/diagrams/07-engineering-diagrams-ai-workflow/03-swimlane.svg">
+<meta property="og:image" content="https://wxquare.github.io/diagrams/07-engineering-diagrams-ai-workflow/04-eventstorming.svg">
+<meta property="og:image" content="https://wxquare.github.io/diagrams/07-engineering-diagrams-ai-workflow/05-system-context.svg">
+<meta property="og:image" content="https://wxquare.github.io/diagrams/07-engineering-diagrams-ai-workflow/06-ddd-context.svg">
+<meta property="og:image" content="https://wxquare.github.io/diagrams/07-engineering-diagrams-ai-workflow/07-container.svg">
+<meta property="og:image" content="https://wxquare.github.io/diagrams/07-engineering-diagrams-ai-workflow/08-component.svg">
+<meta property="og:image" content="https://wxquare.github.io/diagrams/07-engineering-diagrams-ai-workflow/09-domain-class.svg">
+<meta property="og:image" content="https://wxquare.github.io/diagrams/07-engineering-diagrams-ai-workflow/10-er.svg">
+<meta property="og:image" content="https://wxquare.github.io/diagrams/07-engineering-diagrams-ai-workflow/11-sequence.svg">
+<meta property="og:image" content="https://wxquare.github.io/diagrams/07-engineering-diagrams-ai-workflow/12-state.svg">
+<meta property="og:image" content="https://wxquare.github.io/diagrams/07-engineering-diagrams-ai-workflow/13-event-topology.svg">
+<meta property="og:image" content="https://wxquare.github.io/diagrams/07-engineering-diagrams-ai-workflow/14-saga.svg">
+<meta property="og:image" content="https://wxquare.github.io/diagrams/07-engineering-diagrams-ai-workflow/15-data-flow.svg">
+<meta property="og:image" content="https://wxquare.github.io/diagrams/07-engineering-diagrams-ai-workflow/16-deployment.svg">
+<meta property="og:image" content="https://wxquare.github.io/diagrams/07-engineering-diagrams-ai-workflow/17-network.svg">
+<meta property="og:image" content="https://wxquare.github.io/diagrams/07-engineering-diagrams-ai-workflow/18-threat.svg">
+<meta property="og:image" content="https://wxquare.github.io/diagrams/07-engineering-diagrams-ai-workflow/19-observability.svg">
+<meta property="og:image" content="https://wxquare.github.io/diagrams/07-engineering-diagrams-ai-workflow/20-migration.svg">
+<meta property="og:image" content="https://wxquare.github.io/diagrams/07-engineering-diagrams-ai-workflow/21-dependency.svg">
+<meta property="og:image" content="https://wxquare.github.io/diagrams/07-engineering-diagrams-ai-workflow/22-timeline.svg">
+<meta property="og:image" content="https://wxquare.github.io/diagrams/07-engineering-diagrams-ai-workflow/23-gantt.svg">
+<meta property="og:image" content="https://wxquare.github.io/diagrams/07-engineering-diagrams-ai-workflow/24-decision.svg">
+<meta property="article:published_time" content="2026-10-10T00:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-12T02:40:27.241Z">
+<meta property="article:author" content="wxquare">
+<meta property="article:tag" content="ai-agent">
+<meta property="article:tag" content="系统设计">
+<meta property="article:tag" content="架构图">
+<meta property="article:tag" content="PlantUML">
+<meta property="article:tag" content="Mermaid">
+<meta property="article:tag" content="documentation-as-code">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://wxquare.github.io/diagrams/07-engineering-diagrams-ai-workflow/01-use-case.svg">
+
+
+<link rel="canonical" href="https://wxquare.github.io/2026/10/10/system-design/07-engineering-diagrams-ai-workflow/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"https://wxquare.github.io/2026/10/10/system-design/07-engineering-diagrams-ai-workflow/","path":"/2026/10/10/system-design/07-engineering-diagrams-ai-workflow/","title":"工程师绘图：用电商案例讲清选图、规范与 AI 协作"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>工程师绘图：用电商案例讲清选图、规范与 AI 协作 | wxquare's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-book"><a href="/booklist/" rel="section"><i class="fa fa-book fa-fw"></i>Books</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%8D%E8%A6%81%E5%85%88%E9%97%AE%E7%94%A8%E4%BB%80%E4%B9%88%E5%B7%A5%E5%85%B7%EF%BC%8C%E5%85%88%E9%97%AE%E8%BF%99%E5%BC%A0%E5%9B%BE%E8%A6%81%E5%9B%9E%E7%AD%94%E4%BB%80%E4%B9%88"><span class="nav-number">1.</span> <span class="nav-text">不要先问用什么工具，先问这张图要回答什么</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9B%BE%E7%B1%BB%E5%9E%8B%E9%80%9F%E6%9F%A5%EF%BC%9A24-%E7%B1%BB%E5%9B%BE%E7%9A%84%E4%BD%BF%E7%94%A8%E5%9C%BA%E6%99%AF"><span class="nav-number">1.1.</span> <span class="nav-text">图类型速查：24 类图的使用场景</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%88%E7%BB%9F%E4%B8%80%E5%90%8D%E7%A7%B0%E3%80%81%E8%BE%B9%E7%95%8C%E5%92%8C%E7%AE%AD%E5%A4%B4%E5%90%AB%E4%B9%89"><span class="nav-number">2.</span> <span class="nav-text">先统一名称、边界和箭头含义</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9C%AC%E6%96%87%E7%9A%84%E7%94%B5%E5%95%86%E6%A1%88%E4%BE%8B"><span class="nav-number">2.1.</span> <span class="nav-text">本文的电商案例</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%AF%8F%E5%BC%A0%E5%9B%BE%E9%83%BD%E8%A6%81%E8%83%BD%E7%8B%AC%E7%AB%8B%E8%AF%BB%E6%87%82"><span class="nav-number">2.2.</span> <span class="nav-text">每张图都要能独立读懂</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%9A%E5%8A%A1%E4%B8%8E%E8%BE%B9%E7%95%8C%EF%BC%9A%E5%85%88%E6%8A%8A%E2%80%9C%E5%81%9A%E4%BB%80%E4%B9%88%E2%80%9D%E5%92%8C%E2%80%9C%E8%B0%81%E8%B4%9F%E8%B4%A3%E2%80%9D%E7%94%BB%E6%B8%85%E6%A5%9A"><span class="nav-number">3.</span> <span class="nav-text">业务与边界：先把“做什么”和“谁负责”画清楚</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%94%A8%E4%BE%8B%E5%9B%BE%EF%BC%9A%E8%B0%81%E9%80%9A%E8%BF%87%E7%B3%BB%E7%BB%9F%E5%AE%8C%E6%88%90%E4%BB%80%E4%B9%88%E7%9B%AE%E6%A0%87"><span class="nav-number">3.1.</span> <span class="nav-text">用例图：谁通过系统完成什么目标</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B5%81%E7%A8%8B%E5%9B%BE-%E6%B4%BB%E5%8A%A8%E5%9B%BE%EF%BC%9A%E8%A7%84%E5%88%99%E5%9C%A8%E5%93%AA%E9%87%8C%E5%88%86%E5%8F%89"><span class="nav-number">3.2.</span> <span class="nav-text">流程图 &#x2F; 活动图：规则在哪里分叉</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B3%B3%E9%81%93%E5%9B%BE-BPMN%EF%BC%9A%E8%B7%A8%E8%A7%92%E8%89%B2%E4%BA%A4%E6%8E%A5%E6%98%AF%E5%90%A6%E6%B8%85%E6%A5%9A"><span class="nav-number">3.3.</span> <span class="nav-text">泳道图 &#x2F; BPMN：跨角色交接是否清楚</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BA%8B%E4%BB%B6%E9%A3%8E%E6%9A%B4%EF%BC%9A%E5%8F%91%E7%8E%B0%E4%B8%9A%E5%8A%A1%E4%BA%8B%E5%AE%9E%E4%B8%8E%E8%A7%84%E5%88%99"><span class="nav-number">3.4.</span> <span class="nav-text">事件风暴：发现业务事实与规则</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%B3%BB%E7%BB%9F%E4%B8%8A%E4%B8%8B%E6%96%87%E5%9B%BE%EF%BC%9A%E7%B3%BB%E7%BB%9F%E5%9C%A8%E5%A4%96%E9%83%A8%E4%B8%96%E7%95%8C%E4%B8%AD%E7%9A%84%E4%BD%8D%E7%BD%AE"><span class="nav-number">3.5.</span> <span class="nav-text">系统上下文图：系统在外部世界中的位置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#DDD-%E4%B8%8A%E4%B8%8B%E6%96%87%E6%98%A0%E5%B0%84%E5%9B%BE%EF%BC%9A%E6%A8%A1%E5%9E%8B%E4%B8%8E%E8%A7%84%E5%88%99%E7%9A%84%E8%BE%B9%E7%95%8C"><span class="nav-number">3.6.</span> <span class="nav-text">DDD 上下文映射图：模型与规则的边界</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BB%93%E6%9E%84%E4%B8%8E%E6%95%B0%E6%8D%AE%EF%BC%9A%E6%8A%8A%E9%80%BB%E8%BE%91%E5%88%86%E8%A7%A3%E5%92%8C%E6%8C%81%E4%B9%85%E5%8C%96%E6%A8%A1%E5%9E%8B%E5%88%86%E5%BC%80"><span class="nav-number">4.</span> <span class="nav-text">结构与数据：把逻辑分解和持久化模型分开</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%B9%E5%99%A8%E5%9B%BE%EF%BC%9A%E5%BA%94%E7%94%A8%E4%B8%8E%E5%AD%98%E5%82%A8%E5%A6%82%E4%BD%95%E5%8D%8F%E4%BD%9C"><span class="nav-number">4.1.</span> <span class="nav-text">容器图：应用与存储如何协作</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%84%E4%BB%B6%E5%9B%BE%EF%BC%9A%E4%B8%80%E4%B8%AA%E5%BA%94%E7%94%A8%E5%86%85%E9%83%A8%E6%80%8E%E4%B9%88%E5%88%86%E9%85%8D%E8%81%8C%E8%B4%A3"><span class="nav-number">4.2.</span> <span class="nav-text">组件图：一个应用内部怎么分配职责</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%A2%86%E5%9F%9F%E6%A8%A1%E5%9E%8B-%E7%B1%BB%E5%9B%BE%EF%BC%9A%E5%AF%B9%E8%B1%A1%E4%B8%8E%E4%B8%8D%E5%8F%98%E9%87%8F"><span class="nav-number">4.3.</span> <span class="nav-text">领域模型 &#x2F; 类图：对象与不变量</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ER-Schema%EF%BC%9A%E6%8C%81%E4%B9%85%E5%8C%96%E4%BB%80%E4%B9%88%EF%BC%8C%E5%A6%82%E4%BD%95%E7%BA%A6%E6%9D%9F"><span class="nav-number">4.4.</span> <span class="nav-text">ER &#x2F; Schema：持久化什么，如何约束</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%A1%8C%E4%B8%BA%E4%B8%8E%E4%B8%80%E8%87%B4%E6%80%A7%EF%BC%9A%E6%AD%A3%E5%B8%B8%E8%B7%AF%E5%BE%84%E5%8F%AA%E6%98%AF%E5%BC%80%E5%A7%8B"><span class="nav-number">5.</span> <span class="nav-text">行为与一致性：正常路径只是开始</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%97%B6%E5%BA%8F%E5%9B%BE%EF%BC%9A%E6%97%B6%E9%97%B4%E9%A1%BA%E5%BA%8F%E5%92%8C%E4%BA%A4%E4%BA%92%E8%AF%AD%E4%B9%89"><span class="nav-number">5.1.</span> <span class="nav-text">时序图：时间顺序和交互语义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%8A%B6%E6%80%81%E6%9C%BA%EF%BC%9A%E4%B8%80%E4%B8%AA%E5%AE%9E%E4%BD%93%E5%85%81%E8%AE%B8%E6%80%8E%E6%A0%B7%E5%8F%98%E5%8C%96"><span class="nav-number">5.2.</span> <span class="nav-text">状态机：一个实体允许怎样变化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BA%8B%E4%BB%B6%E6%8B%93%E6%89%91%EF%BC%9A%E5%8F%AF%E9%9D%A0%E5%8F%91%E5%B8%83%E5%92%8C%E6%B6%88%E8%B4%B9%EF%BC%8C%E8%80%8C%E4%B8%8D%E5%8F%AA%E6%98%AF%E4%B8%80%E4%B8%AA-MQ"><span class="nav-number">5.3.</span> <span class="nav-text">事件拓扑：可靠发布和消费，而不只是一个 MQ</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Saga-%E8%A1%A5%E5%81%BF%E5%9B%BE%EF%BC%9A%E5%A4%B1%E8%B4%A5%E5%A6%82%E4%BD%95%E6%94%B6%E6%95%9B"><span class="nav-number">5.4.</span> <span class="nav-text">Saga &#x2F; 补偿图：失败如何收敛</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E6%B5%81-%E8%A1%80%E7%BC%98%E5%9B%BE%EF%BC%9A%E6%95%B0%E6%8D%AE%E6%80%8E%E6%A0%B7%E4%BA%A7%E7%94%9F%E5%92%8C%E5%8A%A0%E5%B7%A5"><span class="nav-number">5.5.</span> <span class="nav-text">数据流 &#x2F; 血缘图：数据怎样产生和加工</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%90%E8%A1%8C%E4%B8%8E%E6%BC%94%E8%BF%9B%EF%BC%9A%E6%8A%8A%E4%B8%8A%E7%BA%BF%E4%B9%8B%E5%90%8E%E7%9A%84%E9%97%AE%E9%A2%98%E7%94%BB%E5%87%BA%E6%9D%A5"><span class="nav-number">6.</span> <span class="nav-text">运行与演进：把上线之后的问题画出来</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%83%A8%E7%BD%B2%E5%9B%BE%EF%BC%9A%E5%AE%9E%E4%BE%8B%E4%B8%8E%E6%95%85%E9%9A%9C%E5%9F%9F"><span class="nav-number">6.1.</span> <span class="nav-text">部署图：实例与故障域</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BD%91%E7%BB%9C%E6%8B%93%E6%89%91%EF%BC%9A%E8%BF%9E%E9%80%9A%E6%80%A7%E4%B8%8E%E7%BD%91%E7%BB%9C%E9%9A%94%E7%A6%BB"><span class="nav-number">6.2.</span> <span class="nav-text">网络拓扑：连通性与网络隔离</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%89%E5%85%A8-DFD-%E4%BF%A1%E4%BB%BB%E8%BE%B9%E7%95%8C%EF%BC%9A%E4%B8%8D%E5%8F%AF%E4%BF%A1%E8%BE%93%E5%85%A5%E5%9C%A8%E5%93%AA%E9%87%8C%E8%BF%9B%E5%85%A5"><span class="nav-number">6.3.</span> <span class="nav-text">安全 DFD &#x2F; 信任边界：不可信输入在哪里进入</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%AF%E8%A7%82%E6%B5%8B%E6%80%A7%E5%9B%BE%EF%BC%9A%E6%95%85%E9%9A%9C%E6%80%8E%E4%B9%88%E8%A2%AB%E5%8F%91%E7%8E%B0%E4%B8%8E%E5%85%B3%E8%81%94"><span class="nav-number">6.4.</span> <span class="nav-text">可观测性图：故障怎么被发现与关联</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BF%81%E7%A7%BB-%E7%81%B0%E5%BA%A6-%E5%9B%9E%E6%BB%9A%E5%9B%BE%EF%BC%9A%E4%BD%95%E6%97%B6%E5%88%87%E6%8D%A2%E8%AF%BB%E5%86%99%EF%BC%8C%E5%A4%B1%E8%B4%A5%E5%90%8E%E6%80%8E%E4%B9%88%E9%80%80%E5%9B%9E"><span class="nav-number">6.5.</span> <span class="nav-text">迁移 &#x2F; 灰度 &#x2F; 回滚图：何时切换读写，失败后怎么退回</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%A1%A5%E5%85%85%E8%A7%86%E5%9B%BE%EF%BC%9A%E4%BB%A3%E7%A0%81%E6%B2%BB%E7%90%86%E3%80%81%E4%BA%8B%E6%95%85%E3%80%81%E8%AE%A1%E5%88%92%E4%B8%8E%E5%86%B3%E7%AD%96"><span class="nav-number">7.</span> <span class="nav-text">补充视图：代码治理、事故、计划与决策</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BE%9D%E8%B5%96%E5%9B%BE-%E5%8C%85%E5%9B%BE%EF%BC%9A%E6%BA%90%E7%A0%81%E4%BE%9D%E8%B5%96%E8%83%BD%E5%90%A6%E6%94%AF%E6%92%91%E8%BE%B9%E7%95%8C"><span class="nav-number">7.1.</span> <span class="nav-text">依赖图 &#x2F; 包图：源码依赖能否支撑边界</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%85%E9%9A%9C%E6%97%B6%E9%97%B4%E7%BA%BF%EF%BC%9A%E5%85%88%E8%BF%98%E5%8E%9F%E4%BA%8B%E5%AE%9E%EF%BC%8C%E5%86%8D%E8%AE%A8%E8%AE%BA%E5%8E%9F%E5%9B%A0"><span class="nav-number">7.2.</span> <span class="nav-text">故障时间线：先还原事实，再讨论原因</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%94%98%E7%89%B9%E5%9B%BE%EF%BC%9A%E4%BB%BB%E5%8A%A1%E4%BE%9D%E8%B5%96%E4%B8%8E%E4%BA%A4%E4%BB%98%E9%87%8C%E7%A8%8B%E7%A2%91"><span class="nav-number">7.3.</span> <span class="nav-text">甘特图：任务依赖与交付里程碑</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%86%B3%E7%AD%96%E7%9F%A9%E9%98%B5%EF%BC%9A%E5%90%8C%E4%B8%80%E7%BB%84%E7%BB%B4%E5%BA%A6%E6%AF%94%E8%BE%83%E6%96%B9%E6%A1%88"><span class="nav-number">7.4.</span> <span class="nav-text">决策矩阵：同一组维度比较方案</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B7%A5%E5%85%B7%E6%80%8E%E4%B9%88%E9%80%89%EF%BC%9A%E8%AE%A8%E8%AE%BA%E3%80%81%E7%BB%B4%E6%8A%A4%E5%92%8C%E5%8F%91%E5%B8%83%E5%90%84%E6%9C%89%E4%BE%A7%E9%87%8D"><span class="nav-number">8.</span> <span class="nav-text">工具怎么选：讨论、维护和发布各有侧重</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%8D%E5%90%8C%E5%B7%A5%E5%85%B7%E8%A7%A3%E5%86%B3%E4%B8%8D%E5%90%8C%E6%88%90%E6%9C%AC"><span class="nav-number">8.1.</span> <span class="nav-text">不同工具解决不同成本</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BD%A0%E7%9C%9F%E6%AD%A3%E8%A6%81%E4%BF%9D%E5%AD%98%E7%9A%84%E6%98%AF%E4%BB%80%E4%B9%88"><span class="nav-number">8.2.</span> <span class="nav-text">你真正要保存的是什么</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%89%E4%B8%AA%E5%8F%82%E8%80%83%E9%A1%B9%E7%9B%AE%E7%9A%84%E5%AE%9A%E4%BD%8D"><span class="nav-number">8.3.</span> <span class="nav-text">三个参考项目的定位</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#AI-Agent-%E7%BB%98%E5%9B%BE%EF%BC%9A%E4%BB%8E%E7%94%9F%E6%88%90%E5%88%9D%E7%A8%BF%E5%88%B0%E6%8C%81%E7%BB%AD%E7%BB%B4%E6%8A%A4"><span class="nav-number">9.</span> <span class="nav-text">AI Agent 绘图：从生成初稿到持续维护</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%88%E5%8C%BA%E5%88%86%E7%94%9F%E6%88%90%E5%9B%BE%E7%89%87%E5%92%8C%E7%94%9F%E6%88%90%E5%B7%A5%E7%A8%8B%E5%9B%BE"><span class="nav-number">9.1.</span> <span class="nav-text">先区分生成图片和生成工程图</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%AF%E4%BB%A5%E4%BD%BF%E7%94%A8%E5%93%AA%E4%BA%9B-GitHub-%E7%BB%98%E5%9B%BE-Skill-%E5%92%8C%E5%B7%A5%E5%85%B7"><span class="nav-number">9.2.</span> <span class="nav-text">可以使用哪些 GitHub 绘图 Skill 和工具</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86%EF%BC%9AAgent-%E6%93%8D%E4%BD%9C%E7%9A%84%E6%98%AF%E5%85%83%E7%B4%A0%EF%BC%8C%E4%B8%8D%E6%98%AF%E5%83%8F%E7%B4%A0"><span class="nav-number">9.3.</span> <span class="nav-text">工作原理：Agent 操作的是元素，不是像素</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%8E%E5%AE%89%E8%A3%85%E5%88%B0%E4%BA%A4%E4%BB%98%EF%BC%9A%E4%B8%80%E4%B8%AA%E6%9C%80%E5%B0%8F%E6%93%8D%E4%BD%9C%E7%A4%BA%E4%BE%8B"><span class="nav-number">9.4.</span> <span class="nav-text">从安装到交付：一个最小操作示例</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%94%9F%E6%88%90%E3%80%81%E8%A7%82%E5%AF%9F%E3%80%81%E4%BF%AE%E6%AD%A3%EF%BC%9A%E6%8A%8A%E4%B8%A4%E7%A7%8D%E9%AA%8C%E6%94%B6%E5%88%86%E5%BC%80"><span class="nav-number">9.5.</span> <span class="nav-text">生成、观察、修正：把两种验收分开</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%88%E7%94%9F%E6%88%90%E4%BA%8B%E5%AE%9E%E8%A1%A8%EF%BC%8C%E5%86%8D%E7%94%9F%E6%88%90%E5%9B%BE"><span class="nav-number">9.6.</span> <span class="nav-text">先生成事实表，再生成图</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%80%E4%BB%BD%E5%8F%AF%E4%BB%A5%E5%A4%8D%E7%94%A8%E7%9A%84%E6%8F%90%E7%A4%BA%E8%AF%8D"><span class="nav-number">9.7.</span> <span class="nav-text">一份可以复用的提示词</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A2%9E%E9%87%8F%E4%BF%AE%E6%94%B9%EF%BC%8C%E9%81%BF%E5%85%8D%E6%AF%8F%E8%BD%AE%E9%87%8D%E6%96%B0%E7%94%9F%E6%88%90"><span class="nav-number">9.8.</span> <span class="nav-text">增量修改，避免每轮重新生成</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9C%AC%E5%9C%B0%E7%BB%98%E5%9B%BE%E4%B8%8D%E7%AD%89%E4%BA%8E%E7%AB%AF%E5%88%B0%E7%AB%AF%E6%95%B0%E6%8D%AE%E7%95%99%E5%9C%A8%E6%9C%AC%E5%9C%B0"><span class="nav-number">9.9.</span> <span class="nav-text">本地绘图不等于端到端数据留在本地</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%8E%E4%B8%8B%E4%B8%80%E4%BB%BD%E6%96%B9%E6%A1%88%E5%BC%80%E5%A7%8B%EF%BC%8C%E6%8A%8A%E8%A7%84%E8%8C%83%E5%8F%98%E6%88%90%E4%B9%A0%E6%83%AF"><span class="nav-number">10.</span> <span class="nav-text">从下一份方案开始，把规范变成习惯</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="nav-number">11.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">29</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">6</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">118</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+<section class="site-series">
+  <div class="site-series-title">
+    <i class="fa fa-book"></i> 系列专题
+  </div>
+  <ul class="series-list">
+    <li class="series-item ecommerce">
+      <a href="/categories/电商系统设计/">
+        <i class="fa fa-shopping-cart"></i>
+        <span class="series-name">电商系统设计</span>
+        <span class="series-count">13篇</span>
+      </a>
+    </li>
+    <li class="series-item architecture-clean-code">
+      <a href="/tags/architecture-and-clean-code/">
+        <i class="fa fa-sitemap"></i>
+        <span class="series-name">架构与整洁代码</span>
+        <span class="series-count">4篇</span>
+      </a>
+    </li>
+    <li class="series-item ai">
+      <a href="/categories/AI-与-Agent/">
+        <i class="fa fa-robot"></i>
+        <span class="series-name">AI 与 Agent</span>
+        <span class="series-count">7篇</span>
+      </a>
+    </li>
+    <li class="series-item system-design">
+      <a href="/categories/系统设计基础/">
+        <i class="fa fa-cogs"></i>
+        <span class="series-name">系统设计基础</span>
+        <span class="series-count">15篇</span>
+      </a>
+    </li>
+    <li class="series-item fundamentals">
+      <a href="/categories/计算机基础/">
+        <i class="fa fa-laptop"></i>
+        <span class="series-name">计算机基础</span>
+        <span class="series-count">6篇</span>
+      </a>
+    </li>
+  </ul>
+</section>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://wxquare.github.io/2026/10/10/system-design/07-engineering-diagrams-ai-workflow/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="工程师绘图：用电商案例讲清选图、规范与 AI 协作 | wxquare's Blogs">
+      <meta itemprop="description" content="以电商下单与支付为例，重点讲解边界、结构、时序、状态、数据和补偿六类高频视图，提供 24 类图速查，并介绍 AI 协作绘图与可编辑图源的维护流程。">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          工程师绘图：用电商案例讲清选图、规范与 AI 协作
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2026-10-10 00:00:00" itemprop="dateCreated datePublished" datetime="2026-10-10T00:00:00+00:00">2026-10-10</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-10-12 02:40:27" itemprop="dateModified" datetime="2026-10-12T02:40:27+00:00">2026-10-12</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E5%9F%BA%E7%A1%80/" itemprop="url" rel="index"><span itemprop="name">系统设计基础</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+            <div class="post-description">以电商下单与支付为例，重点讲解边界、结构、时序、状态、数据和补偿六类高频视图，提供 24 类图速查，并介绍 AI 协作绘图与可编辑图源的维护流程。</div>
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>写了多年代码、做过不少技术方案，画图却未必形成了固定的方法。</p>
+<p>我们知道什么时候应该写接口、建表、补测试，却不一定知道什么时候该画上下文图，什么时候该画时序图。结果是，所有内容都被塞进一张“架构图”：前端、订单服务、数据库、机房、线程池、优惠券规则混在一起；箭头有时表示调用，有时表示数据流，有时只是表示“这两个东西有关”。</p>
+<p>这样的图看起来很完整，评审时却仍然需要作者逐一解释。更重要的是，它可能掩盖真正的设计问题：价格归谁管理？支付超时究竟是失败，还是尚未知道结果？订单取消之后，迟到的支付成功通知该怎么处理？</p>
+<p><strong>工程图的价值，在于让读者看清各部分的职责、协作关系，以及出错后如何处理。</strong></p>
+<p>本文以电商下单与支付为贯穿案例，介绍 24 类工程图和方案视图。其中，重点展开六类高频视图：<strong>边界、结构、时序、状态、数据和补偿</strong>，分别回答谁负责、系统如何组成、操作如何推进、状态如何变化、事实如何保存，以及失败如何恢复。</p>
+<p>其他视图保留简要介绍，帮助你在部署、迁移、安全评审和事故复盘等场景中按需选择。首次阅读可以重点关注这六类视图，其余内容作为速查资料。这是本文围绕交易案例安排的阅读重点，不是标准规定的完整分类，也不是所有系统都必须交齐的绘图清单。</p>
+<p>读完之后，希望你能解决三个实际问题：</p>
+<ul>
+<li>这份方案需要画哪些图，每张图要回答什么问题？</li>
+<li>怎样让不同图中的名称、职责、状态和关系保持一致？</li>
+<li>怎样借助 AI Agent 生成、检查和修改图，同时保留可维护的源文件？</li>
+</ul>
+<span id="more"></span>
+
+<h2 id="不要先问用什么工具，先问这张图要回答什么"><a href="#不要先问用什么工具，先问这张图要回答什么" class="headerlink" title="不要先问用什么工具，先问这张图要回答什么"></a>不要先问用什么工具，先问这张图要回答什么</h2><p>面对“介绍一下订单系统”这样的任务，工程师很容易立即打开画布。但这句话至少包含五个不同问题。</p>
+<table>
+<thead>
+<tr>
+<th>要回答的问题</th>
+<th>合适的视图</th>
+<th>不应该混进去的内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>谁使用系统，系统与外界怎样协作？</td>
+<td>用例图、系统上下文图</td>
+<td>内部 DAO、索引、Pod 副本</td>
+</tr>
+<tr>
+<td>谁拥有业务事实和规则？</td>
+<td>DDD 上下文映射图</td>
+<td>用部署节点代替业务边界</td>
+</tr>
+<tr>
+<td>软件由什么构成，职责如何分配？</td>
+<td>容器图、组件图、依赖图</td>
+<td>一次请求的完整时间顺序</td>
+</tr>
+<tr>
+<td>一次操作如何推进，失败后怎么办？</td>
+<td>时序图、状态机、补偿图</td>
+<td>全站所有服务和全部数据库</td>
+</tr>
+<tr>
+<td>系统如何部署、观测、迁移和恢复？</td>
+<td>部署图、网络图、可观测性图、迁移图</td>
+<td>未说明环境的抽象“高可用”</td>
+</tr>
+</tbody></table>
+<p>C4 的 Context、Container、Component、Code 是不同尺度的结构视图，不是要求每个项目必须交齐的四张图。官方也强调只使用有价值的层次；很多团队先做好系统上下文和容器视图即可。<a href="#ref-1">[1]</a></p>
+<p>arc42 则把静态构建块、运行时和部署等内容分开组织。这个划分对技术方案很有帮助：结构图解释“有什么”，运行时视图解释“如何协作”，部署视图解释“在哪里运行”。不要指望一张图同时回答所有问题。<a href="#ref-2">[2]</a></p>
+<p>这里还需要区分几组经常混用的概念。</p>
+<table>
+<thead>
+<tr>
+<th>层次</th>
+<th>例子</th>
+<th>解决的问题</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>图类型 &#x2F; 视图</td>
+<td>时序图、状态机、部署图</td>
+<td>选择表达哪个问题</td>
+</tr>
+<tr>
+<td>建模方法 &#x2F; 记法</td>
+<td>UML、BPMN、C4、DDD Context Map</td>
+<td>定义元素与关系的语义</td>
+</tr>
+<tr>
+<td>文本描述语言</td>
+<td>PlantUML、Mermaid、Structurizr DSL</td>
+<td>把模型写成可维护文本</td>
+</tr>
+<tr>
+<td>绘图工具 &#x2F; 引擎</td>
+<td>draw.io、Excalidraw、渲染器</td>
+<td>创建、布局、展示和编辑</td>
+</tr>
+<tr>
+<td>Agent Skill</td>
+<td>Diagram Design、Excalidraw Skill</td>
+<td>指导 Agent 选图、布局和检查</td>
+</tr>
+<tr>
+<td>工具调用接口</td>
+<td>CLI、MCP、REST API</td>
+<td>让 Agent 调用绘图工具</td>
+</tr>
+</tbody></table>
+<p>这些层次可以组合使用。例如，时序图是图类型，UML 是记法，PlantUML 是一种描述和渲染方式；Agent 可以按 Skill 中的方法编写 PlantUML，再调用渲染器出图。选型时要同时考虑表达是否准确、修改是否方便，以及源文件能否长期维护，而不只是“这个工具能不能画出来”。</p>
+<h3 id="图类型速查：24-类图的使用场景"><a href="#图类型速查：24-类图的使用场景" class="headerlink" title="图类型速查：24 类图的使用场景"></a>图类型速查：24 类图的使用场景</h3><p>下面按本文的五组主题整理 24 类图和方案视图。<strong>加粗的图类型是六类高频视图对应的重点小节</strong>；“六类”是六组表达问题，不是只画六张图。例如，边界需要区分系统外部关系和内部业务职责，数据需要区分领域对象和持久化结构。组件图作为结构视图的进一步展开，其余视图按场景查阅。</p>
+<table>
+<thead>
+<tr>
+<th>分类</th>
+<th>图类型</th>
+<th>使用场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>业务与边界</td>
+<td>用例图</td>
+<td>需求澄清时，确认买家、商家、客服各自通过系统完成什么目标</td>
+</tr>
+<tr>
+<td>业务与边界</td>
+<td>流程图 &#x2F; 活动图</td>
+<td>梳理业务步骤与条件分支，例如报价不满足、库存不足、支付结果未知时如何处理</td>
+</tr>
+<tr>
+<td>业务与边界</td>
+<td>泳道图 &#x2F; BPMN</td>
+<td>设计跨角色、跨系统流程，明确退款审核、渠道处理等步骤由谁负责、如何交接</td>
+</tr>
+<tr>
+<td>业务与边界</td>
+<td>事件风暴</td>
+<td>业务建模工作坊中，共同发现命令、事件和规则，例如订单关闭后何时释放库存</td>
+</tr>
+<tr>
+<td>业务与边界</td>
+<td><strong>系统上下文图</strong></td>
+<td>方案介绍或新人入门时，说明平台服务谁、依赖哪些外部系统，以及系统边界在哪里</td>
+</tr>
+<tr>
+<td>业务与边界</td>
+<td><strong>DDD 上下文映射图</strong></td>
+<td>划分业务模型和团队职责，明确商品、营销、计价、订单之间的上下游关系与契约</td>
+</tr>
+<tr>
+<td>结构与数据</td>
+<td><strong>容器图</strong></td>
+<td>评审整体软件结构，说明前端、BFF、业务应用和存储的职责及通信方式</td>
+</tr>
+<tr>
+<td>结构与数据</td>
+<td>组件图</td>
+<td>设计一个应用的内部结构，例如计价入口、规则引擎、金额分配器和仓储如何分工</td>
+</tr>
+<tr>
+<td>结构与数据</td>
+<td><strong>领域模型 &#x2F; 类图</strong></td>
+<td>讨论业务对象、聚合和约束，例如订单行、报价快照和金额值对象之间的关系</td>
+</tr>
+<tr>
+<td>结构与数据</td>
+<td><strong>ER &#x2F; Schema</strong></td>
+<td>设计持久化模型，讨论订单表、订单行、快照的键、字段和数量关系</td>
+</tr>
+<tr>
+<td>行为与一致性</td>
+<td><strong>时序图</strong></td>
+<td>评审一次具体操作的交互顺序、同步与异步调用、超时及异常分支</td>
+</tr>
+<tr>
+<td>行为与一致性</td>
+<td><strong>状态机</strong></td>
+<td>定义订单、支付或退款的生命周期，明确允许的转换、触发事件和冲突处理</td>
+</tr>
+<tr>
+<td>行为与一致性</td>
+<td>事件拓扑</td>
+<td>设计事件发布与消费链路，说明 Outbox、Topic、消费组、重试和死信处理</td>
+</tr>
+<tr>
+<td>行为与一致性</td>
+<td><strong>Saga &#x2F; 补偿图</strong></td>
+<td>设计跨服务事务，明确预留库存、锁券、保存订单失败后如何查询、补偿和恢复</td>
+</tr>
+<tr>
+<td>行为与一致性</td>
+<td>数据流 &#x2F; 血缘图</td>
+<td>设计数据加工链路，说明商品数据如何通过 CDC、清洗进入搜索索引和分析仓库</td>
+</tr>
+<tr>
+<td>运行与演进</td>
+<td>部署图</td>
+<td>上线与高可用评审时，说明应用实例、基础设施、可用区和故障域的分布</td>
+</tr>
+<tr>
+<td>运行与演进</td>
+<td>网络拓扑</td>
+<td>设计连通性与隔离，说明公网入口、子网、路由、安全组和数据库访问路径</td>
+</tr>
+<tr>
+<td>运行与演进</td>
+<td>安全 DFD &#x2F; 信任边界</td>
+<td>做威胁建模，识别支付通知等外部输入跨越哪些边界、需要哪些验证与控制</td>
+</tr>
+<tr>
+<td>运行与演进</td>
+<td>可观测性图</td>
+<td>设计故障发现与排查链路，说明日志、指标、trace 如何采集、关联和触发告警</td>
+</tr>
+<tr>
+<td>运行与演进</td>
+<td>迁移 &#x2F; 灰度 &#x2F; 回滚图</td>
+<td>拆库或系统替换时，说明回填、增量同步、读写切换、校验门槛和回滚条件</td>
+</tr>
+<tr>
+<td>治理与决策</td>
+<td>依赖图 &#x2F; 包图</td>
+<td>代码架构评审或重构时，检查模块分层、源码依赖方向、循环依赖和边界违规</td>
+</tr>
+<tr>
+<td>治理与决策</td>
+<td>故障时间线</td>
+<td>事故复盘时，按时间整理发布、异常、告警、处置和恢复，并对应证据</td>
+</tr>
+<tr>
+<td>治理与决策</td>
+<td>甘特图</td>
+<td>制订改造计划，展示任务持续时间、前后依赖和验收里程碑</td>
+</tr>
+<tr>
+<td>治理与决策</td>
+<td>决策矩阵</td>
+<td>比较候选方案，例如编排式与事件协同式 Saga 的责任、耦合和恢复成本</td>
+</tr>
+</tbody></table>
+<h2 id="先统一名称、边界和箭头含义"><a href="#先统一名称、边界和箭头含义" class="headerlink" title="先统一名称、边界和箭头含义"></a>先统一名称、边界和箭头含义</h2><h3 id="本文的电商案例"><a href="#本文的电商案例" class="headerlink" title="本文的电商案例"></a>本文的电商案例</h3><p>下面的图均为<strong>假设设计与教学范例</strong>，不是某个真实生产系统的逆向结果，也不是完整实现规格。配图可以点击打开 SVG 原图，便于查看较密集的标签；文末提供图源入口。</p>
+<p>案例包含买家、商家、客服，内部的商品、价格、营销、用户、计价、订单、库存、支付、履约和售后上下文，以及外部支付渠道和物流平台。每张图只展开与当前问题有关的部分。</p>
+<p>整个案例遵守几个约定：</p>
+<ul>
+<li>计价读取带版本号的商品、价格和优惠信息，生成报价，并记录金额如何分摊；订单接受报价后保存成交快照。</li>
+<li>订单、支付、退款、库存预留各自拥有生命周期，不混成一个巨型状态机。</li>
+<li>跨服务没有一个天然共享的 ACID 事务，预留、锁券和失败恢复需要显式设计。</li>
+<li>请求超时可能只是没有及时收到响应，不能直接认定操作失败。</li>
+<li>已取消订单不因迟到支付通知直接复活，必须进入核对和补偿流程。</li>
+</ul>
+<p>这些约定用于让不同视图相互对照，不意味着所有电商都应采用同样的服务拆分。业务上下文可以在模块化单体中实现；把计价认定为核心域，也取决于它是否承载当前业务的竞争优势。</p>
+<p>为避免每换一张图就换一套含义，后文统一使用以下约定：</p>
+<table>
+<thead>
+<tr>
+<th>约定</th>
+<th>本文含义</th>
+<th>跨图核对点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>名称与层级</td>
+<td>订单上下文是业务模型边界；订单应用是运行时应用；订单实例是其部署副本</td>
+<td>上下文、容器和部署视图不能把三者混成同一种节点</td>
+</tr>
+<tr>
+<td>创单标识</td>
+<td><code>idempotencyKey</code> 在同一买家、同一创单操作范围内标识一次业务意图；重试复用它，订单应用将它关联到处理结果与 <code>orderId</code></td>
+<td>结果未知时用同一幂等键查询；本例不另设 <code>requestId</code> 作为业务查询键，日志请求 ID 不能直接替代它</td>
+</tr>
+<tr>
+<td>关联标识</td>
+<td><code>quoteId</code> 标识报价，<code>reservationId</code> 标识库存预留，<code>paymentId</code> 标识支付单，<code>eventId</code> 标识通知事件</td>
+<td>事件去重还要结合业务状态和支付事实，不能只依赖消息 ID</td>
+</tr>
+<tr>
+<td>事件与动作</td>
+<td><code>OrderCreated</code> 在订单落库后发布；库存消费者关联已有预留与订单，不再次扣减可售库存</td>
+<td>创单前预留与创单后消费不是两次库存扣减；预留过期的冲突仍需核对和恢复</td>
+</tr>
+<tr>
+<td>金额与状态</td>
+<td>报价金额是提议，<code>order_amount</code> 是接受报价后的成交金额，实付金额来自支付事实</td>
+<td>本例假设单币种、一次足额支付；待支付不等于已经实付，已取消订单不因迟到成功复活</td>
+</tr>
+</tbody></table>
+<h3 id="每张图都要能独立读懂"><a href="#每张图都要能独立读懂" class="headerlink" title="每张图都要能独立读懂"></a>每张图都要能独立读懂</h3><p>C4 的记法建议包括标题、图例、元素类型与职责，以及有明确方向和含义的关系。容器间关系还应写清通信技术。可以把这些要求当作团队绘图规范的起点。<a href="#ref-3">[3]</a></p>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>推荐约定</th>
+<th>电商例子</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>标题</td>
+<td>业务 &#x2F; 系统 + 场景 + 视图类型</td>
+<td>订单创建与支付确认：关键时序</td>
+</tr>
+<tr>
+<td>范围</td>
+<td>明确现状或目标，以及环境与版本</td>
+<td>To-be；生产环境；对应设计稿版本</td>
+</tr>
+<tr>
+<td>节点</td>
+<td>名称、类型、职责；按视图补充技术或状态</td>
+<td>计价应用：生成可解释报价</td>
+</tr>
+<tr>
+<td>连线</td>
+<td>明确关系、方向，以及动作或传递的数据</td>
+<td>读取价格表版本；发布 OrderCreated</td>
+</tr>
+<tr>
+<td>图例</td>
+<td>解释颜色、线型、形状和缩写</td>
+<td>虚线表示异步事件，不表示“可选”</td>
+</tr>
+<tr>
+<td>证据</td>
+<td>区分已确认、推断和待确认</td>
+<td>接口契约支持；尚未确认回调重试</td>
+</tr>
+<tr>
+<td>维护</td>
+<td>记录责任人、图源位置和更新时机</td>
+<td>修改支付事件定义时同步更新图</td>
+</tr>
+</tbody></table>
+<p>线型不能全局一刀切。普通架构示意可以约定实线表示主连接、虚线表示事件，但 UML 的依赖、实现、返回消息等关系已有自己的记法；BPMN 也有顺序流和消息流。团队约定不应覆盖这些标准语义。</p>
+<p>图变得拥挤时，可以先让主图只保留关键节点，把内部细节拆成子图。是否需要拆分，取决于读者能否快速找到主要关系，而不是节点数量有没有达到某个固定上限。</p>
+<p>后文的容器图作为带标题、范围、职责和图例的样板；其他图是针对单个问题的局部示意。把局部图单独放入评审材料时，应补齐原本由正文提供的范围和假设。</p>
+<h2 id="业务与边界：先把“做什么”和“谁负责”画清楚"><a href="#业务与边界：先把“做什么”和“谁负责”画清楚" class="headerlink" title="业务与边界：先把“做什么”和“谁负责”画清楚"></a>业务与边界：先把“做什么”和“谁负责”画清楚</h2><h3 id="用例图：谁通过系统完成什么目标"><a href="#用例图：谁通过系统完成什么目标" class="headerlink" title="用例图：谁通过系统完成什么目标"></a>用例图：谁通过系统完成什么目标</h3><p>用例图适合需求澄清。它关注角色与功能目标，不描述执行顺序。PlantUML 可以用 actor、usecase 和系统边界表达这些关系。<a href="#ref-4">[4]</a></p>
+<p><a href="/diagrams/07-engineering-diagrams-ai-workflow/01-use-case.svg"><img src="/diagrams/07-engineering-diagrams-ai-workflow/01-use-case.svg" alt="电商角色与用例关系示意"></a></p>
+<p>图中买家提交订单、申请退款，商家确认发货，客服审核售后。角色关联不是“先浏览再下单”的步骤箭头。这个 Mermaid 范例<strong>不是完整的 UML 用例图形记法</strong>；另附一个 <a href="/diagrams/07-engineering-diagrams-ai-workflow/01-use-case.puml">PlantUML 最小用例示例</a>。讨论支付回调或数据库事务时，应转到时序图。</p>
+<h3 id="流程图-活动图：规则在哪里分叉"><a href="#流程图-活动图：规则在哪里分叉" class="headerlink" title="流程图 &#x2F; 活动图：规则在哪里分叉"></a>流程图 &#x2F; 活动图：规则在哪里分叉</h3><p><a href="/diagrams/07-engineering-diagrams-ai-workflow/02-process.svg"><img src="/diagrams/07-engineering-diagrams-ai-workflow/02-process.svg" alt="报价、库存与支付结果的业务流程"></a></p>
+<p>流程图强调动作与判断。这个例子要表达的是：报价与库存条件不满足时不能生成订单；支付结果有成功、失败、未知三种语义，未知结果需要查询和对账。</p>
+<p>画这种图时，判断分支要写清条件，拒绝路径要有终点。用户拒付、网络断开和渠道结果未知，需要采取的后续动作不同，不应都合并到一个“支付失败”节点中。</p>
+<h3 id="泳道图-BPMN：跨角色交接是否清楚"><a href="#泳道图-BPMN：跨角色交接是否清楚" class="headerlink" title="泳道图 &#x2F; BPMN：跨角色交接是否清楚"></a>泳道图 &#x2F; BPMN：跨角色交接是否清楚</h3><p><a href="/diagrams/07-engineering-diagrams-ai-workflow/03-swimlane.svg"><img src="/diagrams/07-engineering-diagrams-ai-workflow/03-swimlane.svg" alt="买家、售后团队与支付系统的退款责任分工"></a></p>
+<p>泳道图用于明确跨角色交接：买家申请退款，售后验证资格并审核，支付系统处理退款。上图是分组流程示意，并非严格 BPMN；正式 BPMN 还需遵循任务、事件、网关、池、泳道及不同流类型的记法。<a href="#ref-5">[5]</a></p>
+<p>人工流程尤其要补上：谁可以批准、拒绝后如何反馈、等待多久、超时由谁处理。这些通常比图标是否标准更早暴露问题。</p>
+<h3 id="事件风暴：发现业务事实与规则"><a href="#事件风暴：发现业务事实与规则" class="headerlink" title="事件风暴：发现业务事实与规则"></a>事件风暴：发现业务事实与规则</h3><p>EventStorming 是探索复杂业务领域的协作工作坊方法，而不是消息队列拓扑模板。<a href="#ref-6">[6]</a></p>
+<p><a href="/diagrams/07-engineering-diagrams-ai-workflow/04-eventstorming.svg"><img src="/diagrams/07-engineering-diagrams-ai-workflow/04-eventstorming.svg" alt="提交订单命令、业务事件和后续策略"></a></p>
+<p>图中，“提交订单”是希望执行的命令，“订单已创建”是已经发生的事件，“启动支付期限”是后续策略。标签本身要说明类型，不只靠颜色区分。讨论时继续追问：“订单已关闭”是否意味着库存已经释放，还是还需要异步处理？</p>
+<p>AI 可以整理清单，但不能替代订单、支付、运营等真实业务参与者确认，推演不等于团队共识。</p>
+<h3 id="系统上下文图：系统在外部世界中的位置"><a href="#系统上下文图：系统在外部世界中的位置" class="headerlink" title="系统上下文图：系统在外部世界中的位置"></a>系统上下文图：系统在外部世界中的位置</h3><p><a href="/diagrams/07-engineering-diagrams-ai-workflow/05-system-context.svg"><img src="/diagrams/07-engineering-diagrams-ai-workflow/05-system-context.svg" alt="电商平台与用户及外部系统的关系"></a></p>
+<p>C4 的系统上下文视图把电商平台看成一个整体，外围是人和外部软件系统。它适合在方案开头确认<strong>本次讨论的系统边界</strong>：买家、商家和客服是使用者，支付渠道与物流平台是外部依赖，而订单、计价等内部实现暂不展开。</p>
+<p>读图时先沿买家到平台的关系确认用户目标，再沿平台与支付渠道之间的双向关系区分“发起支付”和“接收结果”。即使渠道属于另一家公司，它的返回结果仍会影响平台内的订单处理，因此不能只画单向的“调用支付”。</p>
+<p>这张图能促成一个具体判断：支付渠道负责确认扣款事实，平台负责决定订单能否接受该结果。后面的时序图要解释通知如何进入，状态图要解释订单已取消时怎么办；系统上下文图本身不承担这两种细节。</p>
+<p>这一层不需要 Redis、订单表或 Pod。若把这些对象一起画进去，读者就无法判断哪些是平台内部实现，哪些是真正的外部依赖。</p>
+<h3 id="DDD-上下文映射图：模型与规则的边界"><a href="#DDD-上下文映射图：模型与规则的边界" class="headerlink" title="DDD 上下文映射图：模型与规则的边界"></a>DDD 上下文映射图：模型与规则的边界</h3><p>Context Map 描述限界上下文及其关系。上下游方向表达模型或契约的影响，不应直接从 HTTP 调用方向推导；反腐层 ACL 用于把外部模型转译成内部语言。<a href="#ref-7">[7]</a></p>
+<p><a href="/diagrams/07-engineering-diagrams-ai-workflow/06-ddd-context.svg"><img src="/diagrams/07-engineering-diagrams-ai-workflow/06-ddd-context.svg" alt="商品、价格、营销、用户、计价与订单的上下文关系"></a></p>
+<p>在本例中，计价使用商品分类、价格表版本、营销规则和会员信息生成报价；订单接收报价及其分摊明细，保存成交依据。</p>
+<p>这张图回答的不是“调用经过几个服务”，而是：</p>
+<ul>
+<li>谁拥有业务事实？</li>
+<li>谁负责价格组合、舍入和分摊，保证金额计算规则成立？</li>
+<li>谁接受报价并承担成交承诺？</li>
+<li>契约变化由哪一方影响另一方？</li>
+</ul>
+<p>U &#x2F; D 是相对某条关系的角色，不是一个上下文永久的全局身份。计价相对价格上下文是下游，相对订单又可以是上游。</p>
+<p>边界评审可以沿“报价能否直接成为成交事实”追问：计价给出候选金额和分摊证据，订单负责接受报价并保存快照。如果订单总是在展示或支付时重新读取最新价格，就没有守住成交事实的边界。这个判断应同时落到数据视图的快照和时序视图的报价校验步骤，而不是只在上下文图上增加一个“计价”方框。</p>
+<p>系统上下文图回答“平台与外界如何协作”，这里回答“平台内部哪些业务模型通过什么契约协作”。不要把这两个不同尺度的“上下文”当作同一张图。</p>
+<p>更多领域建模背景可结合 <a href="/2026/09/23/system-design/04-ddd-pricing-practice/" title="领域驱动设计：从方法论到电商计价实践">领域驱动设计：从方法论到电商计价实践</a> 阅读。图中只需保留本次讨论所需的边界和关系，详细规则放在正文或配套模型里。</p>
+<h2 id="结构与数据：把逻辑分解和持久化模型分开"><a href="#结构与数据：把逻辑分解和持久化模型分开" class="headerlink" title="结构与数据：把逻辑分解和持久化模型分开"></a>结构与数据：把逻辑分解和持久化模型分开</h2><h3 id="容器图：应用与存储如何协作"><a href="#容器图：应用与存储如何协作" class="headerlink" title="容器图：应用与存储如何协作"></a>容器图：应用与存储如何协作</h3><p>C4 中的 Container 是应用或数据存储，不等于 Docker 容器。容器视图说明职责分配、技术选择与通信方式；副本、故障域与切换策略属于部署视图。<a href="#ref-8">[8]</a></p>
+<p><a href="/diagrams/07-engineering-diagrams-ai-workflow/07-container.svg"><img src="/diagrams/07-engineering-diagrams-ai-workflow/07-container.svg" alt="下单与支付容器图：范围、应用职责、通信与图例"></a></p>
+<p>这张样板图限定了“下单与支付”的目标设计范围，省略履约、营销和外部渠道细节；节点说明类型、技术与职责，关系说明通信方式和动作，图例解释形状与线型。图中既保留订单应用创建支付意图的关系，也保留买家经 BFF 确认支付的入口，两者不是同一个动作。</p>
+<p>容器表示运行时应用或数据存储边界，不要求独占主机或 Docker 容器。若订单、计价只是同一应用内的模块，应放到组件或模块视图中，而不是仅按业务名称画成独立应用。具体副本和故障域仍由部署图说明。<a href="#ref-8">[8]</a></p>
+<p>评审时沿关系检查三件事：请求入口在哪里，谁可以改变业务状态，谁拥有数据写入权。这里支付应用只写支付库，通过通知让订单应用处理订单状态；如果支付应用还直接写订单库，就应明确画出来并解释这个例外。</p>
+<p>后面的时序图是这张结构图的局部展开：为便于阅读省略 BFF 等转发层，但关键服务关系不能凭空变化。库存预留、支付意图和结果通知都应能在两张图中找到对应位置。</p>
+<h3 id="组件图：一个应用内部怎么分配职责"><a href="#组件图：一个应用内部怎么分配职责" class="headerlink" title="组件图：一个应用内部怎么分配职责"></a>组件图：一个应用内部怎么分配职责</h3><p><a href="/diagrams/07-engineering-diagrams-ai-workflow/08-component.svg"><img src="/diagrams/07-engineering-diagrams-ai-workflow/08-component.svg" alt="计价应用内部的组件职责"></a></p>
+<p>组件图进一步展开计价应用的内部职责：入口适配请求协议，应用组件组织处理步骤，事实解析器读取带版本号的输入，规则引擎组合价格与优惠，金额分配器处理舍入与分摊，仓储保存计算结果及其依据。</p>
+<p>这一层用于评审职责与依赖，不是列出所有类。如果每个 DTO、Mapper、工具函数都拥有一个方框，结构就会被实现细节淹没。</p>
+<p>先写清一句话职责，再决定是否值得成为图上的节点。一个只有包名、没有职责的方框，很难支撑设计评审。</p>
+<p>它与容器图的对应点是“计价应用”这个边界；只有需要继续讨论内部职责时才展开，不必为其他每个应用复制一张组件图。</p>
+<h3 id="领域模型-类图：对象与不变量"><a href="#领域模型-类图：对象与不变量" class="headerlink" title="领域模型 &#x2F; 类图：对象与不变量"></a>领域模型 &#x2F; 类图：对象与不变量</h3><p><a href="/diagrams/07-engineering-diagrams-ai-workflow/09-domain-class.svg"><img src="/diagrams/07-engineering-diagrams-ai-workflow/09-domain-class.svg" alt="订单、订单行、报价快照与金额值对象"></a></p>
+<p>领域模型关注业务概念和约束。订单作为聚合根包含订单行与成交证据，金额带有币种，操作用 <code>acceptQuote()</code>、<code>confirmPayment()</code> 等业务意图命名。</p>
+<p>组合关系和数量约束描述的是业务模型，并不等于声明数据库外键。类图也不应该只是 <code>getX()</code>、<code>setX()</code> 的目录。它需要帮助读者回答：哪个对象负责保证哪些业务规则，哪些修改必须一起完成？</p>
+<p>订单、支付账本和退款不一定在一个聚合里。把它们都画成 Order 的组成部分，可能掩盖实际跨边界的一致性问题。</p>
+<p>以 <code>acceptQuote()</code> 为例，本例要求报价被接受后，订单保存成交依据，并保证订单行分摊金额之和等于订单成交金额、币种一致。类图中的组合关系只标出这些对象由谁管理；规则本身仍需在方法契约或相邻说明中写清。<code>confirmPayment()</code> 则要同时检查金额和当前订单状态，不能把它实现为无条件设置 <code>status</code>。</p>
+<p>因此，领域模型要与状态图核对“哪些操作合法”，与 ER 图核对“保证规则所需的事实是否留存”。它不是表结构的另一种画法。</p>
+<h3 id="ER-Schema：持久化什么，如何约束"><a href="#ER-Schema：持久化什么，如何约束" class="headerlink" title="ER &#x2F; Schema：持久化什么，如何约束"></a>ER &#x2F; Schema：持久化什么，如何约束</h3><p><a href="/diagrams/07-engineering-diagrams-ai-workflow/10-er.svg"><img src="/diagrams/07-engineering-diagrams-ai-workflow/10-er.svg" alt="订单表、订单行与报价快照的关系"></a></p>
+<p>同样是订单，ER 视图关注的是数据键、基数、字段和存储关系。Mermaid 支持 ER 图，可以把这类定义作为文本维护。<a href="#ref-9">[9]</a></p>
+<p>这个简化 Schema 表达：订单包含至少一个订单行，并保存一个报价快照。<code>order_amount</code> 与币种记录成交金额，订单行保存分摊金额；它们不是待支付订单已经收款的证明。实付金额及渠道交易事实由支付侧记录，通知核对通过后再推进订单状态。<code>buyer_id</code> 和 <code>sku_id</code> 是业务标识，不默认声明跨服务数据库外键。</p>
+<p>评审这张图时，可以拿一笔历史订单检验：商品调价或营销规则升级后，是否仍能解释当时的成交金额？若只有 <code>quote_id</code> 而没有可恢复的快照内容，就需要确认报价侧是否永久保留该版本；本例选择由订单保存成交证据，避免依赖实时价格。</p>
+<p>不能从这张图推出表已经可以上线。物理设计还需补充金额精度、索引、幂等唯一约束、状态并发控制与快照结构。订单、订单行和快照的写入，以及用于发布 <code>OrderCreated</code> 的 Outbox 记录，应在本例的本地事务中一起提交；简化 ER 图只展开业务表，Outbox 见后文事件拓扑。</p>
+<p>类图和 ER 图可以映射，但并非一一对应。一个值对象可能展开成多个列，一个聚合也可能持久化到多张表。</p>
+<h2 id="行为与一致性：正常路径只是开始"><a href="#行为与一致性：正常路径只是开始" class="headerlink" title="行为与一致性：正常路径只是开始"></a>行为与一致性：正常路径只是开始</h2><h3 id="时序图：时间顺序和交互语义"><a href="#时序图：时间顺序和交互语义" class="headerlink" title="时序图：时间顺序和交互语义"></a>时序图：时间顺序和交互语义</h3><p><a href="/diagrams/07-engineering-diagrams-ai-workflow/11-sequence.svg"><img src="/diagrams/07-engineering-diagrams-ai-workflow/11-sequence.svg" alt="下单、库存预留与支付结果确认时序"></a></p>
+<p>这张图把一次具体操作展开为：订单提交、报价校验、库存预留、订单保存、支付意图创建、买家确认支付与结果通知。图中省略 BFF、计价查询和支付渠道内部交互，直接突出订单、库存和支付的协作；无优惠券的主路径不展开锁券，带券路径由 Saga 图补充。</p>
+<p>读图时区分两个动作：订单应用请求创建支付意图，并不代表已经扣款；买家确认支付后，支付侧仍需核实渠道结果。创建支付意图失败时，已保存的待支付订单也不能被当成“创单未发生”，应按订单标识查询并幂等恢复支付入口。</p>
+<p>支付通知到达后，不是直接执行“更新为已支付”，而是按当前状态分支：订单可接受且金额币种匹配时原子推进；订单已取消时保留取消状态，并可靠记录核对和补偿任务。重复通知不应再次启动履约或创建同一笔退款。图中的实线箭头表示请求，虚线箭头表示响应；异步事件投递则在事件拓扑中单独表达。</p>
+<p>这张图可以用来提出明确的评审问题：通知去重与状态更新是否原子完成？调用超时后查哪个业务标识？失败恢复由谁持续推动？支付结果未知时先查询渠道并对账，不直接宣告失败；预留成功但订单保存失败时转到补偿视图。每个分支的状态结果还应与下一节的转换规则表一致。</p>
+<h3 id="状态机：一个实体允许怎样变化"><a href="#状态机：一个实体允许怎样变化" class="headerlink" title="状态机：一个实体允许怎样变化"></a>状态机：一个实体允许怎样变化</h3><p><a href="/diagrams/07-engineering-diagrams-ai-workflow/12-state.svg"><img src="/diagrams/07-engineering-diagrams-ai-workflow/12-state.svg" alt="订单待支付、已支付、履约、完成和取消状态"></a></p>
+<p>状态机描述一个实体的生命周期，而不是整个购买流程。每次状态转换都应说明触发事件、允许转换的条件，以及转换时执行的动作。</p>
+<p>本例禁止已取消订单因迟到支付成功通知直接回到已支付。实际处理可能要求发起退款、对账或人工核实，取决于已发生的外部事实。</p>
+<p>建议同时维护一张转换规则表：</p>
+<table>
+<thead>
+<tr>
+<th>当前状态</th>
+<th>事件</th>
+<th>转换条件</th>
+<th>结果</th>
+<th>重复 &#x2F; 冲突处理</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>待支付</td>
+<td>支付成功已确认</td>
+<td>订单仍可接受，金额币种一致</td>
+<td>已支付</td>
+<td>同一确认幂等</td>
+</tr>
+<tr>
+<td>待支付</td>
+<td>取消 &#x2F; 到期</td>
+<td>尚未完成支付确认</td>
+<td>已取消</td>
+<td>与支付确认竞争原子状态更新</td>
+</tr>
+<tr>
+<td>已取消</td>
+<td>迟到支付成功</td>
+<td>核对渠道成功事实</td>
+<td>保持已取消，进入补偿</td>
+<td>不复活订单</td>
+</tr>
+<tr>
+<td>已支付</td>
+<td>重复支付通知</td>
+<td>同一支付事实</td>
+<td>保持已支付</td>
+<td>去重；不重复启动履约</td>
+</tr>
+</tbody></table>
+<p>例如，支付确认和超时取消都读到了“待支付”，不能因此都认为自己可以成功更新。应以当前状态或版本为条件完成原子转换，失败的一方重新读取状态并走对应分支。状态机表达的是允许的结果，转换规则表则明确并发时仍须遵守的条件。</p>
+<p>“已取消”是订单生命周期的终态，不意味着所有后续工作已经结束。迟到支付核对、退款和人工恢复可以在独立任务或支付、退款状态机中继续推进。若时序图画出了 <code>Cancelled → Paid</code>，即使它看起来更短，也违反了本例已经确认的规则。</p>
+<p>订单、支付和退款分别维护自己的状态机，再用时序图解释它们如何协作。这样可以避免把多个生命周期组合成一个难以维护的巨型状态机，也更容易明确每种状态由谁管理。</p>
+<h3 id="事件拓扑：可靠发布和消费，而不只是一个-MQ"><a href="#事件拓扑：可靠发布和消费，而不只是一个-MQ" class="headerlink" title="事件拓扑：可靠发布和消费，而不只是一个 MQ"></a>事件拓扑：可靠发布和消费，而不只是一个 MQ</h3><p>Transactional Outbox 将业务更新和待发事件写入同一本地事务，再由 Relay 投递。Relay 可能重复发布，因此消费者仍然需要幂等。<a href="#ref-10">[10]</a></p>
+<p><a href="/diagrams/07-engineering-diagrams-ai-workflow/13-event-topology.svg"><img src="/diagrams/07-engineering-diagrams-ai-workflow/13-event-topology.svg" alt="订单 Outbox、事件 Topic、消费组与死信处理"></a></p>
+<p>本图用于检查事件名、Topic、消费组与失败去向。库存消费者根据 <code>OrderCreated</code> 中的 <code>orderId</code>、<code>reservationId</code> 关联已有预留，不再次扣减库存；预留过期的冲突进入核对恢复。实线表示本地写入或读取，虚线表示事件投递。</p>
+<p><code>orderId</code> 作为消息键不自动保证跨分区、跨 Topic 的处理顺序。图外还需约定重试、幂等存储、保留期、死信责任和积压恢复；消息队列本身不是 exactly-once 承诺。</p>
+<h3 id="Saga-补偿图：失败如何收敛"><a href="#Saga-补偿图：失败如何收敛" class="headerlink" title="Saga &#x2F; 补偿图：失败如何收敛"></a>Saga &#x2F; 补偿图：失败如何收敛</h3><p>Saga 由多个本地事务组成，通过显式补偿应对跨服务失败。补偿不是数据库事务的自动回滚。<a href="#ref-11">[11]</a></p>
+<p><a href="/diagrams/07-engineering-diagrams-ai-workflow/14-saga.svg"><img src="/diagrams/07-engineering-diagrams-ai-workflow/14-saga.svg" alt="库存预留、优惠券锁定、订单保存及补偿"></a></p>
+<p>这张图展开带优惠券的创单路径：库存预留成功后锁券，再保存订单。锁券确定失败时释放库存；订单保存确定失败时依次解锁优惠券、释放库存；结果未知时先用同一 <code>idempotencyKey</code> 查询订单处理结果。图聚焦预留成功之后，预留自身的失败与未知处理见下表。</p>
+<p>这里最重要的判断是：<strong>查询暂未找到订单，不等于订单最终不会创建成功。</strong> 请求可能仍在执行，或查询读到了滞后副本。本例只有确认创单处理已终止、且不会再提交订单时才进入释放流程；否则继续核对或转人工，不把“没查到”直接改写成“确定失败”。</p>
+<table>
+<thead>
+<tr>
+<th>操作</th>
+<th>确定失败</th>
+<th>结果未知</th>
+<th>补偿与恢复责任</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>预留库存</td>
+<td>终止创单，不继续锁券</td>
+<td>按 <code>reservationId</code> 查询预留事实，未确认前不继续</td>
+<td>订单侧流程协调者跟踪；已成功但不再创单的预留需幂等释放</td>
+</tr>
+<tr>
+<td>锁定优惠券</td>
+<td>释放已成功的库存预留</td>
+<td>按稳定的锁券业务标识查询，不重复创建另一把锁</td>
+<td>协调者记录恢复任务，营销侧提供幂等查询与解锁</td>
+</tr>
+<tr>
+<td>保存订单</td>
+<td>确认不会再提交后，解锁券并释放库存</td>
+<td>按同一创单幂等键查询；仍未知则保留核对任务</td>
+<td>已提交则恢复待支付流程，不能再按“创单失败”释放</td>
+</tr>
+<tr>
+<td>解锁券、释放库存</td>
+<td>补偿失败不是创单重新成功</td>
+<td>查询对应资源状态，再决定重试</td>
+<td>协调者持久化各步骤进度，幂等重试；无法自动收敛时告警并人工接管</td>
+</tr>
+</tbody></table>
+<p>图中的顺序补偿只是本例的简化选择。若解锁券阻塞是否仍可先释放库存，应由业务约束决定，并分别记录进度；不能让一个“重试”节点掩盖两个资源的不同恢复状态。</p>
+<p>如果前一步已经产生外部扣款，补偿可能是新建一笔退款，而不是抹掉扣款事实。业务历史和审计证据应保留。</p>
+<p>这也把补偿图与其他视图连起来：时序提供失败发生的位置，状态决定是否还能继续交易，数据记录已经发生的事实，补偿只处理那些已成功但不再需要的业务效果。</p>
+<h3 id="数据流-血缘图：数据怎样产生和加工"><a href="#数据流-血缘图：数据怎样产生和加工" class="headerlink" title="数据流 &#x2F; 血缘图：数据怎样产生和加工"></a>数据流 &#x2F; 血缘图：数据怎样产生和加工</h3><p><a href="/diagrams/07-engineering-diagrams-ai-workflow/15-data-flow.svg"><img src="/diagrams/07-engineering-diagrams-ai-workflow/15-data-flow.svg" alt="商品权威库、CDC、清洗、搜索索引与分析仓库"></a></p>
+<p>数据流图说明数据如何产生、转换并进入索引或报表，箭头不是方法调用的时间顺序。这里搜索索引是异步更新的查询副本；展示的价格或库存可能滞后，下单仍需向相应业务系统核实。</p>
+<p>评审时补充数据新鲜度、删除传播、版本去重与回放策略。一条 CDC 箭头只说明有数据传递，不能证明副本在任何时刻都正确。</p>
+<h2 id="运行与演进：把上线之后的问题画出来"><a href="#运行与演进：把上线之后的问题画出来" class="headerlink" title="运行与演进：把上线之后的问题画出来"></a>运行与演进：把上线之后的问题画出来</h2><h3 id="部署图：实例与故障域"><a href="#部署图：实例与故障域" class="headerlink" title="部署图：实例与故障域"></a>部署图：实例与故障域</h3><p>C4 部署视图把软件实例映射到指定环境的基础设施节点，节点可以嵌套，也可以包含入口等基础设施。<a href="#ref-12">[12]</a></p>
+<p><a href="/diagrams/07-engineering-diagrams-ai-workflow/16-deployment.svg"><img src="/diagrams/07-engineering-diagrams-ai-workflow/16-deployment.svg" alt="两个可用区中的应用实例、数据库主节点和同步副本"></a></p>
+<p>部署图用于上线与高可用评审：容器图中的一个“订单应用”，在这里展开成两个 AZ 内的实例。这只是生产部署假设，不是可用性承诺。</p>
+<p>关键问题是主节点失效时谁切换、副本不可用时能否继续写入、客户端如何重连，以及是否丢失已确认数据。共同依赖和故障演练也要检查，不能仅凭两个 AZ 判断高可用。</p>
+<h3 id="网络拓扑：连通性与网络隔离"><a href="#网络拓扑：连通性与网络隔离" class="headerlink" title="网络拓扑：连通性与网络隔离"></a>网络拓扑：连通性与网络隔离</h3><p><a href="/diagrams/07-engineering-diagrams-ai-workflow/17-network.svg"><img src="/diagrams/07-engineering-diagrams-ai-workflow/17-network.svg" alt="公网入口、应用子网与无公网入口的数据子网"></a></p>
+<p>网络拓扑解释公网与私网区域、入口出口和允许的路径。本例仅允许应用安全组访问 MySQL 与 Redis，数据库没有公网入口。</p>
+<p>网络许可不等于应用授权，能够连接数据库不代表可以读写所有表，TLS 也不能替代业务校验。DNS、NAT、路由和管理入口按需补充，不把每条网络连接都解释成业务调用。</p>
+<h3 id="安全-DFD-信任边界：不可信输入在哪里进入"><a href="#安全-DFD-信任边界：不可信输入在哪里进入" class="headerlink" title="安全 DFD &#x2F; 信任边界：不可信输入在哪里进入"></a>安全 DFD &#x2F; 信任边界：不可信输入在哪里进入</h3><p>威胁建模需要理解系统、数据流、信任边界与资产，并把威胁和控制措施联系起来。OWASP 的威胁建模指南可以作为检查框架。<a href="#ref-13">[13]</a></p>
+<p><a href="/diagrams/07-engineering-diagrams-ai-workflow/18-threat.svg"><img src="/diagrams/07-engineering-diagrams-ai-workflow/18-threat.svg" alt="外部支付通知跨越信任边界并经过验证后写入账本"></a></p>
+<p>支付渠道通知通过 HTTPS 进入系统，仍然是需要验证的输入。图中强调验签、重放检测、商户与订单核对、金额币种检查，以及幂等账本更新。</p>
+<p>这是信任边界的简化示意，不是完整威胁清单。真实方案还要逐项记录攻击面、威胁、缓解措施和残余风险，例如密钥泄露、伪造通知、日志暴露和管理员越权。</p>
+<h3 id="可观测性图：故障怎么被发现与关联"><a href="#可观测性图：故障怎么被发现与关联" class="headerlink" title="可观测性图：故障怎么被发现与关联"></a>可观测性图：故障怎么被发现与关联</h3><p>OpenTelemetry 将 traces、metrics、logs 等作为不同遥测信号。画观测链路时，业务请求和遥测输出应分开表达。<a href="#ref-14">[14]</a></p>
+<p><a href="/diagrams/07-engineering-diagrams-ai-workflow/19-observability.svg"><img src="/diagrams/07-engineering-diagrams-ai-workflow/19-observability.svg" alt="订单与支付请求、遥测采集及告警责任"></a></p>
+<p>本图用于讨论故障发现与排查：实线是请求或后续处理，虚线是遥测流；订单与支付传播关联上下文，数据经 Collector 进入查询和告警链路。</p>
+<p>除了采集，还需说明谁响应支付未知积压、订单确认延迟或预留未释放等业务异常。<code>orderId</code> 可用于日志与 trace 关联，不宜无控制地用作指标标签；基数、采样和敏感字段都需治理。</p>
+<h3 id="迁移-灰度-回滚图：何时切换读写，失败后怎么退回"><a href="#迁移-灰度-回滚图：何时切换读写，失败后怎么退回" class="headerlink" title="迁移 &#x2F; 灰度 &#x2F; 回滚图：何时切换读写，失败后怎么退回"></a>迁移 &#x2F; 灰度 &#x2F; 回滚图：何时切换读写，失败后怎么退回</h3><p><a href="/diagrams/07-engineering-diagrams-ai-workflow/20-migration.svg"><img src="/diagrams/07-engineering-diagrams-ai-workflow/20-migration.svg" alt="订单库回填、影子读、灰度、写权威切换和受控回滚"></a></p>
+<p>迁移图不能只有“旧库 → 新库”一条箭头，还要说明每个阶段以哪个库为准，满足什么条件才能推进，何时切换读写，以及还能不能退回旧库。</p>
+<p>本例先只向旧库写入，回填历史数据，并通过 CDC 同步增量；校验通过后，逐步把读请求切到新库；最后停止旧库写入，确认数据追平，再把写请求切到新库。新库开始接收写入后，旧库不再天然拥有完整数据。要切回旧库，必须先解决反向同步和一致性校验等问题。</p>
+<h2 id="补充视图：代码治理、事故、计划与决策"><a href="#补充视图：代码治理、事故、计划与决策" class="headerlink" title="补充视图：代码治理、事故、计划与决策"></a>补充视图：代码治理、事故、计划与决策</h2><h3 id="依赖图-包图：源码依赖能否支撑边界"><a href="#依赖图-包图：源码依赖能否支撑边界" class="headerlink" title="依赖图 &#x2F; 包图：源码依赖能否支撑边界"></a>依赖图 &#x2F; 包图：源码依赖能否支撑边界</h3><p><a href="/diagrams/07-engineering-diagrams-ai-workflow/21-dependency.svg"><img src="/diagrams/07-engineering-diagrams-ai-workflow/21-dependency.svg" alt="API、应用、领域、基础设施与启动装配的源码依赖"></a></p>
+<p>这张图的箭头表示编译或源码依赖，不是一次请求的执行顺序。基础设施实现领域端口，因此可以在源码上依赖领域层；运行时调用仍可能经过该适配器。</p>
+<p>如果要确认“没有循环依赖”或“领域层不依赖 ORM”，需要检查实际 import、构建依赖或模块关系。图上的设计要求，不能替代对代码的检查。</p>
+<h3 id="故障时间线：先还原事实，再讨论原因"><a href="#故障时间线：先还原事实，再讨论原因" class="headerlink" title="故障时间线：先还原事实，再讨论原因"></a>故障时间线：先还原事实，再讨论原因</h3><p><a href="/diagrams/07-engineering-diagrams-ai-workflow/22-timeline.svg"><img src="/diagrams/07-engineering-diagrams-ai-workflow/22-timeline.svg" alt="支付通知积压事故的假设时间线"></a></p>
+<p>这是一份假设事故，时间采用 UTC+8。时间线排列发布、异常、告警、回滚和恢复，帮助团队对齐事实。</p>
+<p>时间先后并不自动证明因果。发布发生在异常前，不意味着发布必然是根因。复盘时应给关键节点附日志、指标、trace 或操作记录，对时钟误差和证据缺口作说明。</p>
+<h3 id="甘特图：任务依赖与交付里程碑"><a href="#甘特图：任务依赖与交付里程碑" class="headerlink" title="甘特图：任务依赖与交付里程碑"></a>甘特图：任务依赖与交付里程碑</h3><p><a href="/diagrams/07-engineering-diagrams-ai-workflow/23-gantt.svg"><img src="/diagrams/07-engineering-diagrams-ai-workflow/23-gantt.svg" alt="订单服务拆分的假设交付计划"></a></p>
+<p>甘特图（Gantt）表达任务安排、持续时间和前后依赖，不描述系统运行过程。图中的日期只是示例计划，不代表实际工期承诺。</p>
+<p>还需定义“影子读验证完成”等里程碑的验收标准。Diagram Design 的目录包含 timeline、Gantt、架构与数据可视化，适合作为表达方式参考，不是方案的必画清单。<a href="#ref-15">[15]</a></p>
+<h3 id="决策矩阵：同一组维度比较方案"><a href="#决策矩阵：同一组维度比较方案" class="headerlink" title="决策矩阵：同一组维度比较方案"></a>决策矩阵：同一组维度比较方案</h3><p><a href="/diagrams/07-engineering-diagrams-ai-workflow/24-decision.svg"><img src="/diagrams/07-engineering-diagrams-ai-workflow/24-decision.svg" alt="编排式与事件协同式 Saga 的决策思路"></a></p>
+<p>上图只是候选方向的示意。真正的属性比较，使用表格通常比方框图更清楚。</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>编排式 Saga</th>
+<th>事件协同式 Saga</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>流程责任</td>
+<td>编排器显式管理步骤与状态</td>
+<td>分散在参与者和策略中</td>
+</tr>
+<tr>
+<td>全局排查</td>
+<td>可围绕流程实例追踪</td>
+<td>需要跨消费者关联</td>
+</tr>
+<tr>
+<td>耦合方式</td>
+<td>编排器依赖参与者契约</td>
+<td>参与者依赖事件与策略</td>
+</tr>
+<tr>
+<td>主要复杂度</td>
+<td>流程中心增长与恢复治理</td>
+<td>隐式链路、循环触发与全局理解</td>
+</tr>
+<tr>
+<td>采用前提</td>
+<td>需要集中查看流程并统一推动恢复</td>
+<td>各参与方职责清楚、事件治理成熟</td>
+</tr>
+</tbody></table>
+<p>这是定性比较，不是性能测试或固定结论，也不应凭空给属性打分。选择之后，用架构决策记录（ADR）留下约束、理由、收益与代价、接受的风险、验证指标和重新评估条件。</p>
+<h2 id="工具怎么选：讨论、维护和发布各有侧重"><a href="#工具怎么选：讨论、维护和发布各有侧重" class="headerlink" title="工具怎么选：讨论、维护和发布各有侧重"></a>工具怎么选：讨论、维护和发布各有侧重</h2><h3 id="不同工具解决不同成本"><a href="#不同工具解决不同成本" class="headerlink" title="不同工具解决不同成本"></a>不同工具解决不同成本</h3><table>
+<thead>
+<tr>
+<th>工具</th>
+<th>适合什么</th>
+<th>建议保留的源文件</th>
+<th>主要取舍</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PlantUML</td>
+<td>UML、复杂时序、状态、活动、包与部署</td>
+<td><code>.puml</code></td>
+<td>语义表达明确；需要语法和布局经验</td>
+</tr>
+<tr>
+<td>Mermaid</td>
+<td>Markdown 中的流程、时序、类、状态、ER 与计划</td>
+<td><code>.mmd</code></td>
+<td>易集成；需核对文档平台支持的版本</td>
+</tr>
+<tr>
+<td>Structurizr</td>
+<td>同一架构模型生成多种 C4 视图</td>
+<td>DSL &#x2F; 模型</td>
+<td>降低多视图漂移；有建模治理成本</td>
+</tr>
+<tr>
+<td>draw.io</td>
+<td>正式可编辑架构、云组件、网络与业务流程</td>
+<td><code>.drawio</code></td>
+<td>图形生态丰富；XML 差异不一定容易审查</td>
+</tr>
+<tr>
+<td>Excalidraw</td>
+<td>白板讨论、业务边界、可拖拽方案图</td>
+<td><code>.excalidraw</code></td>
+<td>修改灵活；图例和关系含义需要自行约定</td>
+</tr>
+<tr>
+<td>Diagram Design</td>
+<td>文章、演示、发布级图</td>
+<td>HTML + 内嵌 SVG</td>
+<td>展示质量强；不等同于结构化架构模型</td>
+</tr>
+<tr>
+<td>D2</td>
+<td>文本化服务结构、分组和依赖</td>
+<td><code>.d2</code></td>
+<td>声明式布局；不是严格 UML &#x2F; BPMN 的替代品</td>
+</tr>
+</tbody></table>
+<p>draw.io 推荐使用 <code>.drawio</code> 保存原生图，也支持在 SVG、PNG 等格式中嵌入图数据。因此，不能简单地说“SVG&#x2F;PNG 一定不可编辑”：能否还原为原生图形，取决于导出时有没有嵌入图数据。<a href="#ref-16">[16]</a></p>
+<p>Structurizr DSL 将模型与视图分开：先定义系统、应用和关系，再从同一模型生成不同的 C4 视图。对于长期维护多张架构图的团队，这有助于减少重复定义和人工同步。<a href="#ref-17">[17]</a></p>
+<p>D2 也是文本描述和渲染工具，可用于结构示意；不必为了每种新图都更换整个工具栈。<a href="#ref-18">[18]</a></p>
+<p>我的建议是从一个小组合开始：</p>
+<ul>
+<li>一种文本图工具：PlantUML 或 Mermaid，承担高频工程图。</li>
+<li>一种共同编辑画布：Excalidraw 或 draw.io。</li>
+<li>一种发布方式：需要品牌化展示时，再使用 Diagram Design。</li>
+</ul>
+<p>如果主要写 Markdown 方案，Mermaid 往往降低集成成本；如果复杂 UML 与时序是日常工作，PlantUML 更值得投入。先根据团队维护方式选择，不要根据支持类型数量排名。</p>
+<h3 id="你真正要保存的是什么"><a href="#你真正要保存的是什么" class="headerlink" title="你真正要保存的是什么"></a>你真正要保存的是什么</h3><p>建议同时验收“图能不能展示”和“以后能不能修改”。本文把持续维护、用于生成展示图的文件称为<strong>图源</strong>：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">图源：记录业务关系、状态或原生图形元素</span><br><span class="line">  ↓</span><br><span class="line">渲染与布局</span><br><span class="line">  ↓</span><br><span class="line">展示文件：SVG / PNG / HTML</span><br></pre></td></tr></table></figure>
+
+<p><code>.mmd</code>、<code>.puml</code> 和 DSL 便于通过文本差异审查变更；<code>.drawio</code> 和 <code>.excalidraw</code> 保留可拖拽的原生图形。HTML&#x2F;SVG 也可以修改代码，但坐标和路径的变化，未必能直接告诉评审者“新增了一条支付补偿关系”。</p>
+<p>不要假设 Mermaid → Excalidraw → SVG → draw.io 可以无损往返。导入可能重新布局、退化成图像，或失去某些关系语义。跨工具转换后需要再次验收。</p>
+<p>本文的范例使用 SVG 保证浏览器展示，同时保留同名 Mermaid 图源。正式 UML 用例另附 PlantUML 源；泳道与安全边界等图已明确标为简化语义示意。</p>
+<h3 id="三个参考项目的定位"><a href="#三个参考项目的定位" class="headerlink" title="三个参考项目的定位"></a>三个参考项目的定位</h3><p>PlantUML 帮助定义与渲染图语法；Diagram Design 指导 Agent 做发布级布局；Cole 的 Excalidraw Diagram Skill 则指导 Agent 生成场景 JSON，并通过渲染检查布局。<a href="#ref-19">[19]</a></p>
+<p>Cole 的 <code>references</code> 中，元素模板负责矩形、文本、箭头等组合，schema 负责场景文件格式。它们是绘图实现参考，不是新的架构图语义标准。<a href="#ref-20">[20]</a> <a href="#ref-21">[21]</a></p>
+<p>这三者可以配合使用，但没有必要把同一张图维护成三份源文件。先决定今后主要通过文本修改，还是在画布上拖拽修改，再选择对应的图源；其他格式作为导出结果即可。</p>
+<h2 id="AI-Agent-绘图：从生成初稿到持续维护"><a href="#AI-Agent-绘图：从生成初稿到持续维护" class="headerlink" title="AI Agent 绘图：从生成初稿到持续维护"></a>AI Agent 绘图：从生成初稿到持续维护</h2><h3 id="先区分生成图片和生成工程图"><a href="#先区分生成图片和生成工程图" class="headerlink" title="先区分生成图片和生成工程图"></a>先区分生成图片和生成工程图</h3><p>工程绘图的验收重点，是关系表达准确、文字清晰、后续可修改。按这个目标，可以把 AI 辅助绘图分成三条路线：</p>
+<table>
+<thead>
+<tr>
+<th>路线</th>
+<th>Agent 主要做什么</th>
+<th>适用场景</th>
+<th>建议保留什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>生成图描述文本</td>
+<td>编写 Mermaid、PlantUML、D2 或 DSL，再调用渲染器</td>
+<td>时序、状态、ER、结构与依赖</td>
+<td>文本图源与渲染结果</td>
+</tr>
+<tr>
+<td>生成或操作原生场景</td>
+<td>编写图形元素，或调用工具修改节点和连线</td>
+<td>白板讨论、业务边界、自由布局</td>
+<td><code>.excalidraw</code> &#x2F; <code>.drawio</code> 与导出图</td>
+</tr>
+<tr>
+<td>生成展示图片</td>
+<td>根据描述或参考图生成位图</td>
+<td>配图、概念插画、视觉草稿</td>
+<td>原图及生成说明</td>
+</tr>
+</tbody></table>
+<p>这是按维护方式做的实践分类，不是工具之间的能力排名。比如，一张支付时序图需要频繁修改异常分支，我会优先用文本图源；一张 DDD 战略设计图需要与同事一起拖拽调整边界，我会优先用原生画布。博客或演示则从图源导出 SVG &#x2F; PNG，不再单独维护第二套关系。</p>
+<h3 id="可以使用哪些-GitHub-绘图-Skill-和工具"><a href="#可以使用哪些-GitHub-绘图-Skill-和工具" class="headerlink" title="可以使用哪些 GitHub 绘图 Skill 和工具"></a>可以使用哪些 GitHub 绘图 Skill 和工具</h3><p>下面从此前调研中整理出 18 个工程绘图及相关架构分析项目，说明各自解决什么问题。<strong>这些项目并不都是 Skill，也不都采用允许商业使用的开源许可</strong>：有的提供绘图方法和生成脚本，有的提供画布运行时，有的侧重架构分析或通过 MCP 操作图。项目名旁的引用编号对应文末的 GitHub 入口；Nereid 的使用限制单独标明。</p>
+<table>
+<thead>
+<tr>
+<th>GitHub 项目</th>
+<th>类型</th>
+<th>主要作用</th>
+<th>主要输出</th>
+<th>电商方案中的用法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>yctimlin/mcp_excalidraw</code> <a href="#ref-22">[22]</a></td>
+<td>Skill + CLI + MCP + REST + 本地画布</td>
+<td>创建、查询、修改图形元素；对齐、分组；读取场景和截图；导入导出与保存快照</td>
+<td><code>.excalidraw</code>、<code>.excalidraw.md</code>、SVG、PNG</td>
+<td>画 DDD 业务边界，评审后只调整计价与订单之间的关系，保留可编辑图源</td>
+</tr>
+<tr>
+<td><code>coleam00/excalidraw-diagram-skill</code> <a href="#ref-19">[19]</a></td>
+<td>生成与设计 Skill</td>
+<td>从描述组织视觉结构，使用元素模板和配色规范生成场景 JSON，再通过 Playwright 渲染检查</td>
+<td><code>.excalidraw</code>，PNG 检查图</td>
+<td>把下单链路整理成结构清晰的方案图，检查分组、标签和箭头布局</td>
+</tr>
+<tr>
+<td><code>excalidraw/excalidraw-mcp</code> <a href="#ref-23">[23]</a></td>
+<td>官方 MCP App</td>
+<td>在支持 MCP Apps 的客户端中流式展示图形，控制视口，并提供交互式全屏编辑</td>
+<td>对话内的 Excalidraw 交互视图</td>
+<td>在方案讨论中快速画出订单、支付与库存的关系，并继续编辑</td>
+</tr>
+<tr>
+<td><code>axtonliu/axton-obsidian-visual-skills</code> <a href="#ref-24">[24]</a></td>
+<td>面向 Obsidian 的 Skill 集合</td>
+<td>将笔记转成 Excalidraw、Mermaid 或 Obsidian Canvas；按目标格式组织可视化内容</td>
+<td><code>.excalidraw</code>、Obsidian 插件 Markdown、Mermaid、<code>.canvas</code></td>
+<td>把商品、营销、计价的知识笔记整理成概念关系图</td>
+</tr>
+<tr>
+<td><code>jgraph/drawio-mcp</code> <a href="#ref-25">[25]</a></td>
+<td>官方 MCP + 绘图 Skill &#x2F; 插件</td>
+<td>在对话或 draw.io 编辑器中打开图；插件生成原生文件，并可调用本地 Desktop CLI 导出</td>
+<td><code>.drawio</code>；插件可导出 PNG、SVG、PDF</td>
+<td>画需要在 draw.io 中继续编辑的部署、网络或正式架构图</td>
+</tr>
+<tr>
+<td><code>robonuggets/excalidraw-skill</code> <a href="#ref-26">[26]</a></td>
+<td>配合 MCP 使用的设计 Skill</td>
+<td>指导 Agent 使用分区、语义配色、箭头绑定、字号层级和布局检查；通过截图反复修正</td>
+<td>借助配套工具输出 <code>.excalidraw</code>、PNG、SVG</td>
+<td>已有本地画布，希望让订单、支付、履约分区更清晰、布局更一致</td>
+</tr>
+<tr>
+<td><code>robtaylor/excalidraw-diagrams</code> <a href="#ref-27">[27]</a></td>
+<td>Skill + Python 生成器</td>
+<td>提供通用图、流程图和架构图构建器，程序化创建节点和连线，保存原生场景</td>
+<td><code>.excalidraw</code>，可在编辑器中导出图片</td>
+<td>用脚本批量生成相似的订单处理流程或服务结构示意</td>
+</tr>
+<tr>
+<td><code>cathrynlavery/diagram-design</code> <a href="#ref-15">[15]</a></td>
+<td>发布与视觉设计 Skill</td>
+<td>选择图类型，统一品牌配色、字体和版式，将结构整理成适合文章或演示的图</td>
+<td>自包含 HTML + SVG，可导出 SVG &#x2F; PNG</td>
+<td>将已经确认的计价架构或迁移方案整理成博客配图</td>
+</tr>
+<tr>
+<td><code>tt-a1i/archify</code> <a href="#ref-28">[28]</a></td>
+<td>交互式技术图 Skill</td>
+<td>根据描述或仓库证据生成架构、流程、时序、数据流和生命周期图，支持浏览器内探索关系</td>
+<td>结构化 JSON 图源、自包含 HTML + SVG，支持图片导出</td>
+<td>给新同事展示电商服务关系，搜索节点并聚焦某条请求或数据路径</td>
+</tr>
+<tr>
+<td><code>Agents365-ai/drawio-skill</code> <a href="#ref-29">[29]</a></td>
+<td>架构建模与绘图 Skill + CLI，可选 MCP</td>
+<td>从代码、Terraform、Kubernetes、SQL、API Schema 提取结构，生成原生图；支持增量同步、多视图和架构规则检查</td>
+<td><code>.drawio</code>；可导出 SVG、PNG、PDF、HTML、PPTX 等</td>
+<td>从订单服务部署配置生成架构图，变更后保留人工布局并同步节点关系</td>
+</tr>
+<tr>
+<td><code>bybit-exchange/svg-diagram</code> <a href="#ref-30">[30]</a></td>
+<td>纯 SVG 绘图 Skill + 校验器</td>
+<td>规定坐标、间距、字体、语义配色和连线规范，直接编写 SVG，并检查文本溢出、重叠等问题</td>
+<td>独立 SVG</td>
+<td>为计价文章生成轻量配图，通过源文件差异审查标签和关系变更</td>
+</tr>
+<tr>
+<td><code>imxv/Pretty-mermaid-skills</code> <a href="#ref-31">[31]</a></td>
+<td>Mermaid 美化与渲染 Skill</td>
+<td>将已有 Mermaid 源码按主题渲染，支持流程、时序、状态、类、ER、XY 图和批量导出</td>
+<td>SVG、PNG、ASCII &#x2F; Unicode</td>
+<td>保留支付时序 <code>.mmd</code>，统一方案中的图形主题并导出展示图</td>
+</tr>
+<tr>
+<td><code>aetox-skills/senior-architect-agent</code> <a href="#ref-32">[32]</a></td>
+<td>架构分析与评审 Skill</td>
+<td>先检查现有系统证据，再梳理模块、依赖、数据流、边界问题、技术债和待确认项</td>
+<td>架构说明、模块与流程文档、Mermaid 图、风险清单</td>
+<td>先分析计价服务的实际代码，再画模块关系，说明哪些连接已确认、哪些是推断</td>
+</tr>
+<tr>
+<td><code>vijayjoshi24/ea-agent-skills</code> <a href="#ref-33">[33]</a></td>
+<td>企业架构 Skill 集合</td>
+<td>包含 C4 图、业务能力地图、ADR、技术债扫描和架构评审等技能</td>
+<td>交互式 SVG、能力地图、ADR、评审报告；部分技能输出治理清单</td>
+<td>梳理商品、交易、履约能力及改造缺口，并为服务拆分记录决策</td>
+</tr>
+<tr>
+<td><code>Ztsdut/ml-architecture-diagram-skill</code> <a href="#ref-34">[34]</a></td>
+<td>ML 专用 Skill + 架构 IR + 渲染器</td>
+<td>从模型代码或规格恢复计算路径，组织层、张量和分支，生成可编辑的模型结构图</td>
+<td>YAML &#x2F; JSON 图源、SVG、<code>.drawio</code>、PPTX、PNG、PDF</td>
+<td>展示推荐、排序或多模态商品模型；不用于替代订单微服务架构图</td>
+</tr>
+<tr>
+<td><code>lcapossio/hdldiagZero</code> <a href="#ref-35">[35]</a></td>
+<td>HDL &#x2F; RTL &#x2F; SoC 专用 Skill + 渲染器</td>
+<td>从硬件描述整理模块、时钟域、总线与跨时钟域连接，生成并校验方框图</td>
+<td>JSON 规格、SVG</td>
+<td>通常不用于普通电商后端；涉及硬件加速器或芯片设计时再考虑</td>
+</tr>
+<tr>
+<td><code>naorsabag/openhop</code> <a href="#ref-36">[36]</a></td>
+<td>代码流程讲解 Skill + CLI + 本地交互界面</td>
+<td>将代码中的请求、数据或状态流程整理成 YAML，支持逐步播放、暂停和展开子流程</td>
+<td>YAML 图源、交互式流程页面</td>
+<td>逐步讲解提交订单后如何预留库存、确认支付和触发履约</td>
+</tr>
+<tr>
+<td><code>bnomei/nereid</code> <a href="#ref-37">[37]</a></td>
+<td>Mermaid 终端工作台 + MCP；<strong>非商业源码可见许可</strong></td>
+<td>在终端查看和编辑图，持久化会话，并通过 MCP 查询或修改图结构</td>
+<td><code>.mmd</code>、文本预览、会话元数据</td>
+<td>可作为终端协作候选；公司内部业务使用须先取得许可，不列为默认推荐</td>
+</tr>
+</tbody></table>
+<p>表中的能力来自项目文档；电商用法是本文给出的应用示例，不是这些项目已经提供的电商模板，也不是横向性能测试。</p>
+<p>本案例可以先按图源缩小选择：时序、状态和 ER 沿用 Mermaid；需要拖拽讨论边界时使用原生画布；发布时从图源导出展示图。后文只展开 <code>mcp_excalidraw</code> 的最小操作，其他项目按表中场景查阅，不必为了六类视图分别安装六套工具。</p>
+<p>几个容易混淆的地方，需要单独说明：</p>
+<p><code>robonuggets/excalidraw-skill</code> 依赖 <code>yctimlin/mcp_excalidraw</code>，补充的是设计与检查规则，不是另一套独立画布。<a href="#ref-26">[26]</a></p>
+<p><code>robtaylor/excalidraw-diagrams</code> 的基础生成器使用 Python 标准库，但渲染、导出与可选集成仍可能需要额外环境。<a href="#ref-27">[27]</a></p>
+<p>官方 Excalidraw MCP 支持交互编辑，并非只能一次生成；draw.io 官方 Skill &#x2F; 插件可以不配置 MCP，直接生成原生图，本地图片导出依赖 Desktop CLI。<a href="#ref-23">[23]</a> <a href="#ref-25">[25]</a></p>
+<p>Axton 明确标为实验性原型；Archify 可结合仓库证据，但输出不自动等于完整、准确的依赖分析，两者都需验收。<a href="#ref-24">[24]</a> <a href="#ref-28">[28]</a></p>
+<p>Agents365 的提取与同步工具不是 jgraph 官方集成；两者的导出与转换均受环境和版本限制，不能视为无损往返。<a href="#ref-29">[29]</a> <a href="#ref-25">[25]</a></p>
+<p>svg-diagram 的校验器仍需 Node.js，“零依赖”指不额外安装 Node 包。Pretty Mermaid 也依赖本地 Node.js 渲染；美化不等于核实业务关系。<a href="#ref-30">[30]</a> <a href="#ref-31">[31]</a></p>
+<p>架构分析不能替代团队确认 DDD 边界；ML、HDL 的模型与符号有专门含义，不直接加入常规电商方案工具栈。</p>
+<p>Nereid 在本次调研时采用 <strong>Source-Available Noncommercial License</strong>，商业、产品和内部业务使用需另行书面许可。本表仅保留调研记录，不将其列为企业默认推荐，采用前应重新核对 LICENSE。<a href="#ref-37">[37]</a></p>
+<p>安装第三方技能前，应阅读 <code>SKILL.md</code>、脚本与许可证，确认依赖、文件写入和网络访问行为。本清单是项目文档核验后的能力摘要，不代表这些项目已在你的环境中逐一安装或测试，也不构成“全部安装”的建议。</p>
+<h3 id="工作原理：Agent-操作的是元素，不是像素"><a href="#工作原理：Agent-操作的是元素，不是像素" class="headerlink" title="工作原理：Agent 操作的是元素，不是像素"></a>工作原理：Agent 操作的是元素，不是像素</h3><p>以 <code>mcp_excalidraw</code> 为例，可以把各部分的职责理解为：<a href="#ref-22">[22]</a></p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">工程师提供问题、资料与约束</span><br><span class="line">  ↓</span><br><span class="line">Agent 读取 Skill，规划节点、关系和布局</span><br><span class="line">  ↓</span><br><span class="line">CLI / MCP / REST API 传递操作</span><br><span class="line">  ↓</span><br><span class="line">本地 Canvas Server 管理场景</span><br><span class="line">  ├── Excalidraw 网页：人工查看和编辑</span><br><span class="line">  ├── REST / WebSocket：操作和同步场景</span><br><span class="line">  └── 导入、导出与渲染</span><br><span class="line">          ├── .excalidraw：可编辑图源</span><br><span class="line">          └── SVG / PNG：展示文件</span><br></pre></td></tr></table></figure>
+
+<p>Skill 告诉 Agent 如何选图、安排布局、连接箭头和检查结果；CLI、MCP 和 REST 是三种操作入口；Canvas Server 保存运行中的场景，网页让人查看和继续编辑。没有配置 MCP 的编程 Agent，也可以通过 CLI 完成绘图。</p>
+<p>场景中记录了矩形、文字、箭头的 ID、坐标、尺寸、颜色和连接关系。因此，Agent 可以只移动一个节点，或只修改一条连线，不必重新生成整张图片。</p>
+<p>需要注意，工具的输入格式与原生 Excalidraw 文件格式不是一回事。下面的 <code>text</code>、<code>startElementId</code> 和 <code>endElementId</code> 是该项目 CLI 提供的便捷字段，工具会把它们转换成原生的文本元素和箭头绑定；不能把这几个对象直接当作完整的 <code>.excalidraw</code> 文件。原始 REST 请求的字段结构也不同，接入时要查对应接口文档。<a href="#ref-22">[22]</a></p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">[</span></span><br><span class="line">  <span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;id&quot;</span><span class="punctuation">:</span> <span class="string">&quot;demo-order&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;rectangle&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;x&quot;</span><span class="punctuation">:</span> <span class="number">100</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;y&quot;</span><span class="punctuation">:</span> <span class="number">100</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;width&quot;</span><span class="punctuation">:</span> <span class="number">220</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;height&quot;</span><span class="punctuation">:</span> <span class="number">80</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;text&quot;</span><span class="punctuation">:</span> <span class="string">&quot;订单应用&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;backgroundColor&quot;</span><span class="punctuation">:</span> <span class="string">&quot;#d3f9d8&quot;</span></span><br><span class="line">  <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;id&quot;</span><span class="punctuation">:</span> <span class="string">&quot;demo-inventory&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;rectangle&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;x&quot;</span><span class="punctuation">:</span> <span class="number">520</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;y&quot;</span><span class="punctuation">:</span> <span class="number">100</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;width&quot;</span><span class="punctuation">:</span> <span class="number">220</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;height&quot;</span><span class="punctuation">:</span> <span class="number">80</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;text&quot;</span><span class="punctuation">:</span> <span class="string">&quot;库存应用&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;backgroundColor&quot;</span><span class="punctuation">:</span> <span class="string">&quot;#a5d8ff&quot;</span></span><br><span class="line">  <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;id&quot;</span><span class="punctuation">:</span> <span class="string">&quot;demo-reserve&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;arrow&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;x&quot;</span><span class="punctuation">:</span> <span class="number">0</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;y&quot;</span><span class="punctuation">:</span> <span class="number">0</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;startElementId&quot;</span><span class="punctuation">:</span> <span class="string">&quot;demo-order&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;endElementId&quot;</span><span class="punctuation">:</span> <span class="string">&quot;demo-inventory&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;text&quot;</span><span class="punctuation">:</span> <span class="string">&quot;预留库存&quot;</span></span><br><span class="line">  <span class="punctuation">&#125;</span></span><br><span class="line"><span class="punctuation">]</span></span><br></pre></td></tr></table></figure>
+
+<p>这个小例子只表示应用之间的关系，不是完整的下单时序。库存预留失败、订单保存失败等处理，仍应在相应行为图中展开。</p>
+<h3 id="从安装到交付：一个最小操作示例"><a href="#从安装到交付：一个最小操作示例" class="headerlink" title="从安装到交付：一个最小操作示例"></a>从安装到交付：一个最小操作示例</h3><p>下面按调研时核验的 <code>mcp-excalidraw-server</code> <strong>2.1.2</strong> 编写，要求 Node.js 20 或更新版本。示例固定版本是为了便于复现，不表示以后始终推荐这个版本；升级后应重新核对命令和输出。<a href="#ref-22">[22]</a></p>
+<p>先安装项目级 Skill，并启动画布：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">npx -y mcp-excalidraw-server@2.1.2 install-skill --<span class="built_in">dir</span> .agents/skills</span><br><span class="line">npx -y mcp-excalidraw-server@2.1.2 start</span><br><span class="line">npx -y mcp-excalidraw-server@2.1.2 status</span><br></pre></td></tr></table></figure>
+
+<p>Skill 会放到 <code>.agents/skills/excalidraw-skill/</code>。实际安装根目录要与 Agent 的技能发现规则一致；如果需要 Codex 用户级安装，可以改用 <code>install-skill --target codex</code>。安装命令会替换目标目录中的旧技能，升级前不要把自己的定制文件只保存在该目录中。<a href="#ref-22">[22]</a></p>
+<p>画布默认地址是 <code>http://127.0.0.1:3000</code>，可以在浏览器中观察绘图过程。若端口已有其他服务，先确认占用情况并另行配置端口，不要直接停止未知服务。开始操作前，也应先用 <code>describe</code> 查看画布内容，避免覆盖别人的图。</p>
+<p>假设上面的 JSON 已保存为 <code>elements.json</code>，创建元素、检查结果并导出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">mkdir</span> -p diagrams</span><br><span class="line">npx -y mcp-excalidraw-server@2.1.2 describe</span><br><span class="line">npx -y mcp-excalidraw-server@2.1.2 add elements.json</span><br><span class="line">npx -y mcp-excalidraw-server@2.1.2 screenshot --out diagrams/order-inventory.png</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看截图后，如有必要，再调整具体元素</span></span><br><span class="line">npx -y mcp-excalidraw-server@2.1.2 update demo-order --<span class="built_in">set</span> <span class="string">&#x27;&#123;&quot;width&quot;:260&#125;&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 保存可编辑图源，并从最终图源生成展示图</span></span><br><span class="line">npx -y mcp-excalidraw-server@2.1.2 <span class="built_in">export</span> --out diagrams/order-inventory.excalidraw</span><br><span class="line">npx -y mcp-excalidraw-server@2.1.2 render diagrams/order-inventory.excalidraw \</span><br><span class="line">  --out diagrams/order-inventory.svg</span><br></pre></td></tr></table></figure>
+
+<p>这是一个面向独立示例画布的操作模板。实际复用时要检查节点 ID 是否已存在，输出路径是否会覆盖已有文件，并在最后一次修改后重新检查最终渲染结果。</p>
+<p>该版本的普通截图和 SVG &#x2F; PNG 导出可以在服务端无浏览器渲染：Excalidraw 的 <code>exportToSvg</code> 负责生成 SVG，jsdom 提供所需的 DOM 环境，resvg 将 SVG 转成 PNG。<code>render</code> 可以直接读取已保存的场景，不需要启动画布服务；Mermaid 转换和视口控制仍需要打开画布页面。内置字体主要覆盖拉丁文字，中文渲染依赖运行机器上的字体，所以“无需浏览器”不等于“中文在所有环境下都一样”。<a href="#ref-22">[22]</a></p>
+<h3 id="生成、观察、修正：把两种验收分开"><a href="#生成、观察、修正：把两种验收分开" class="headerlink" title="生成、观察、修正：把两种验收分开"></a>生成、观察、修正：把两种验收分开</h3><p>Agent 的绘图流程可以组织成一个循环：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">提取事实 → 创建节点与连线</span><br><span class="line">                ↓</span><br><span class="line">       describe 读取场景结构</span><br><span class="line">       screenshot 查看渲染结果</span><br><span class="line">                ↓</span><br><span class="line">       定位问题 → 按元素 ID 修改</span><br><span class="line">                ↓</span><br><span class="line">       再次渲染 → 人工确认 → 导出图源</span><br></pre></td></tr></table></figure>
+
+<p>在这个流程中，<code>describe</code> 帮助 Agent 找到节点、标签和连接关系，截图帮助它检查文字与布局。但检查和修正需要 Agent 实际执行，不能把“提供截图工具”写成“工具自动保证没有重叠”。<a href="#ref-22">[22]</a></p>
+<table>
+<thead>
+<tr>
+<th>验收层面</th>
+<th>检查什么</th>
+<th>电商例子</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>视觉检查</td>
+<td>中文是否完整，文字是否截断，节点是否重叠，箭头是否穿过标签</td>
+<td>“库存预留”是否被节点遮挡</td>
+</tr>
+<tr>
+<td>语义检查</td>
+<td>职责是否正确，箭头含义是否一致，异常路径是否完整，是否有资料依据</td>
+<td>预留成功但订单保存失败，谁负责释放库存</td>
+</tr>
+</tbody></table>
+<p>前一类问题可以通过渲染与布局调整解决；后一类必须结合业务规则和实现证据判断。再整齐的支付状态图，也不能替代对重复通知、迟到成功和补偿失败的设计。</p>
+<h3 id="先生成事实表，再生成图"><a href="#先生成事实表，再生成图" class="headerlink" title="先生成事实表，再生成图"></a>先生成事实表，再生成图</h3><p>“帮我画一个电商架构”给模型留下了过多自由。它可能补出推荐服务、库存中心、Kafka 和 Redis，却没有说明这些组件是否存在。</p>
+<p>更可靠的流程是：</p>
+<ol>
+<li>确认读者、场景、范围、现状 &#x2F; 目标和图层级。</li>
+<li>从需求、代码、接口、DDL、部署配置与 trace 提取事实。</li>
+<li>对关系标注证据，并区分推断和未知。</li>
+<li>定义权威数据源、不变量、状态和失败语义。</li>
+<li>生成合适的图源并执行渲染。</li>
+<li>检查布局，再检查跨图一致性。</li>
+<li>人工确认后纳入版本管理。</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>图中事实</th>
+<th>可参考的证据</th>
+<th>证据不能自动证明什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>模块依赖</td>
+<td>import、构建配置、依赖分析</td>
+<td>实际运行时完整路径</td>
+</tr>
+<tr>
+<td>接口关系</td>
+<td>OpenAPI、客户端代码、服务契约</td>
+<td>请求一定发生或没有超时</td>
+</tr>
+<tr>
+<td>数据模型</td>
+<td>DDL、迁移文件、持久化代码</td>
+<td>所有业务不变量都由数据库保证</td>
+</tr>
+<tr>
+<td>部署结构</td>
+<td>IaC、工作负载与环境配置</td>
+<td>实际容灾恢复能力</td>
+</tr>
+<tr>
+<td>运行路径</td>
+<td>日志与 trace</td>
+<td>未采样路径不存在</td>
+</tr>
+</tbody></table>
+<p>自动生成的图应附一张关系与来源的对应表，说明每条关键关系依据哪份资料。现状图要有实现证据；目标图要标明设计意图，不能让读者误以为已经落地。</p>
+<p>以本文的目标设计为例，先把三个输入约定交给 Agent：订单保存成交快照；只有符合条件的待支付订单才接受支付成功；已取消订单收到迟到成功时进入核对与补偿。由此形成的事实表可以是：</p>
+<table>
+<thead>
+<tr>
+<th>编号</th>
+<th>元素 &#x2F; 关系与含义</th>
+<th>来源与确定程度</th>
+<th>对应视图</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>F1</td>
+<td>订单应用保存 <code>order_amount</code>、币种、订单行和成交快照</td>
+<td>本文“电商案例”的教学假设，不是实现证据</td>
+<td>边界、结构、数据</td>
+</tr>
+<tr>
+<td>F2</td>
+<td>支付确认须检查订单可接受性及金额币种，再原子推进</td>
+<td>本文“状态机”的转换规则，作为目标设计约束</td>
+<td>时序、状态</td>
+</tr>
+<tr>
+<td>F3</td>
+<td>已取消订单收到迟到成功后仍保持取消，记录核对与补偿任务</td>
+<td>本文案例约定，作为目标设计约束</td>
+<td>时序、状态、补偿</td>
+</tr>
+<tr>
+<td>Q1</td>
+<td>退款接口是否幂等、补偿任务是否持久化、谁响应失败告警</td>
+<td>待确认；需要接口、存储设计和责任人资料</td>
+<td>补偿、数据、可观测性</td>
+</tr>
+</tbody></table>
+<p>这张表不把模型的推演伪装成现状。F1–F3 可以用于生成目标图，Q1 必须保留为缺口；不能因为画出了“退款重试”，就声称当前系统已经具备可靠恢复能力。对于真实系统，把这里的章节依据替换成实际资料的位置和版本。</p>
+<h3 id="一份可以复用的提示词"><a href="#一份可以复用的提示词" class="headerlink" title="一份可以复用的提示词"></a>一份可以复用的提示词</h3><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">你是我的方案建模助手。</span><br><span class="line">主题：电商订单创建与支付确认。</span><br><span class="line">目标：评审业务正确性和失败恢复。</span><br><span class="line">资料：需求、接口契约、相关代码、DDL、事件定义和部署配置。</span><br><span class="line"></span><br><span class="line">先输出事实表：</span><br><span class="line">元素 / 职责 / 关系 / 来源 / 已确认、推断或待确认。</span><br><span class="line">未知项保留，不补造服务、吞吐量、超时或 SLO。</span><br><span class="line">区分 As-is 与 To-be，声明每张图的范围、层级与箭头含义。</span><br><span class="line"></span><br><span class="line">围绕边界、结构、时序、状态、数据和补偿六类视图选图。</span><br><span class="line">复用已有图，只展开本次评审需要的层级，不机械生成全套。</span><br><span class="line">本例涉及跨服务创单，需要补偿视图；外部通知另查信任边界。</span><br><span class="line">保持服务、状态、事件、业务 ID 在不同图中一致。</span><br><span class="line"></span><br><span class="line">保留一种主要图源：PlantUML、Mermaid 或原生 Excalidraw。</span><br><span class="line">逐图渲染，检查空图、文字截断、重叠与连线。</span><br><span class="line">再审查回调重复、乱序、结果未知、迟到成功和补偿失败。</span><br><span class="line"></span><br><span class="line">输出图源、展示物、证据映射、缺口与跨图矛盾。</span><br><span class="line">不得未经请求清空已有画布、上传公司资料或生成公开分享链接。</span><br></pre></td></tr></table></figure>
+
+<p>提示词中的异常集合来自本电商案例，不是模型应为所有系统自动套用的模板。换成搜索、结算或仓储系统时，应换成相应的不变量与失败条件。</p>
+<h3 id="增量修改，避免每轮重新生成"><a href="#增量修改，避免每轮重新生成" class="headerlink" title="增量修改，避免每轮重新生成"></a>增量修改，避免每轮重新生成</h3><p>假设初稿只画了“支付成功 → 已支付”，人工评审对照 F3 后发现漏掉了订单已取消的情况。此时无需重画整套架构，可以给出一次有边界的修改请求：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">保留已确认的节点 ID、位置和关系。</span><br><span class="line">依据事实表 F3，补充“订单已取消后收到迟到支付成功”的分支。</span><br><span class="line">订单保持已取消，可靠记录支付核对与补偿任务；不得改回已支付。</span><br><span class="line">使用 F1 的成交金额与币种核对支付事实。</span><br><span class="line">Q1 中未确认的退款幂等、任务持久化和告警责任继续标为待确认。</span><br><span class="line">输出新增和变更的关系清单，不修改其他已确认语义。</span><br><span class="line">渲染检查后，核对时序、状态、数据依据与补偿路径是否一致。</span><br></pre></td></tr></table></figure>
+
+<p>修改后的验收不能只看“多了一条箭头”：</p>
+<table>
+<thead>
+<tr>
+<th>核对位置</th>
+<th>本轮应看到的变化或保持项</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>时序</td>
+<td>支付成功通知之后按订单状态分支，已取消路径不触发履约</td>
+</tr>
+<tr>
+<td>状态</td>
+<td>保留取消终态，不新增 <code>Cancelled → Paid</code>；将核对与补偿标为后续处理</td>
+</tr>
+<tr>
+<td>数据依据</td>
+<td>用成交快照核对金额币种，保留支付事实；不能用最新报价覆盖历史金额</td>
+</tr>
+<tr>
+<td>补偿与缺口</td>
+<td>记录任务及幂等恢复要求，保留 Q1，未确认前不宣称已实现自动退款</td>
+</tr>
+<tr>
+<td>未受影响的图</td>
+<td>边界与结构没有变化，不为凑齐六类而重新生成</td>
+</tr>
+</tbody></table>
+<p>前文的时序分支、取消状态注释和补偿说明就是这轮修改应相互对照的结果。这样，读者验收的是业务规则如何落实到图中，而不只是画布是否整齐。</p>
+<p>这种方式有助于保留手工调整，但仍需检查 Agent 有没有误改其他节点或连线。多人使用同一画布时，要约定谁正在修改哪张图，避免互相覆盖；结构修改前先导出场景，再保存快照。</p>
+<p><code>mcp_excalidraw</code> 默认将画布状态保存在内存中，服务重启后不能依赖它恢复图。配置 <code>EXCALIDRAW_DATA_DIR</code> 可以启用本地持久化，恢复场景、图片资源和命名快照；未开启持久化时，服务内的快照也不能代替磁盘文件。正式交付仍应导出 <code>.excalidraw</code>，而不是把运行中的画布当作唯一备份。<a href="#ref-22">[22]</a></p>
+<p>对于代码仓库，我建议把可编辑源文件、展示图和简短说明放在一起：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">diagrams/</span><br><span class="line">  order-payment.excalidraw</span><br><span class="line">  order-payment.svg</span><br><span class="line">  README.md</span><br></pre></td></tr></table></figure>
+
+<p>README 记录图的用途、现状或目标版本、资料依据、待确认问题、负责人和更新时机。评审时既看渲染结果，也看“新增了哪些节点或关系”的变更说明；不能只审查场景 JSON 中的坐标差异。</p>
+<p>如果图要进入 Obsidian，则按插件格式导出 <code>.excalidraw.md</code>。该项目支持根据文件扩展名导出这种格式，它与普通 Markdown 中嵌入一张 PNG 不同，仍然保留可编辑场景。<a href="#ref-22">[22]</a></p>
+<h3 id="本地绘图不等于端到端数据留在本地"><a href="#本地绘图不等于端到端数据留在本地" class="headerlink" title="本地绘图不等于端到端数据留在本地"></a>本地绘图不等于端到端数据留在本地</h3><p>官方 draw.io MCP 文档区分了托管 MCP、自托管和本地插件的数据路径：托管 MCP 会接收图数据，本地插件可以本地保存与导出。文档也提醒，远程大模型是独立的数据处理环节。<a href="#ref-25">[25]</a></p>
+<p><code>mcp_excalidraw</code> 的核心绘图运行在本地，但画布网页会加载 CDN 字体，<code>share</code> 命令会上传加密场景并生成分享链接；服务默认只监听回环地址，API 本身没有内置认证，不应直接暴露到公网。<a href="#ref-22">[22]</a></p>
+<p>因此，处理敏感生产图时，要分别检查模型、MCP、渲染器、字体资源、日志、持久化目录和分享出口。公司源码、客户信息、密钥与真实生产日志应遵循组织的数据分类要求。画布运行在 localhost，只说明画布服务的位置，不代表整个流程没有外部数据传输。</p>
+<h2 id="从下一份方案开始，把规范变成习惯"><a href="#从下一份方案开始，把规范变成习惯" class="headerlink" title="从下一份方案开始，把规范变成习惯"></a>从下一份方案开始，把规范变成习惯</h2><p>不建议第一次就制定几十页标准。先选一份真实方案，建立一个最小图集，再从评审反馈里补规则。</p>
+<table>
+<thead>
+<tr>
+<th>方案场景</th>
+<th>建议的最小组合</th>
+<th>何时追加</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>普通 API &#x2F; 功能改造</td>
+<td>范围图 + 关键时序 + 受影响数据或状态</td>
+<td>跨团队时补边界；规则复杂时补活动图</td>
+</tr>
+<tr>
+<td>下单 &#x2F; 支付 &#x2F; 退款</td>
+<td>边界 + 结构 + 时序 + 状态 + 数据 + 补偿（跨服务时）</td>
+<td>事件拓扑、回调安全及观测按风险追加</td>
+</tr>
+<tr>
+<td>系统拆分 &#x2F; 拆库</td>
+<td>边界 + 依赖 + 目标结构 + 迁移回滚</td>
+<td>补契约兼容、故障域与验证指标</td>
+</tr>
+<tr>
+<td>高可用 &#x2F; 基础设施</td>
+<td>部署 + 网络 + 失败恢复路径</td>
+<td>补容量、RPO&#x2F;RTO 与演练证据</td>
+</tr>
+<tr>
+<td>事故复盘</td>
+<td>时间线 + 故障链路 + 受影响状态</td>
+<td>补根因证据与改进验收</td>
+</tr>
+</tbody></table>
+<p>对本文的下单与支付案例，可以优先掌握六类高频视图：<strong>边界、结构、时序、状态、数据和补偿</strong>。它们分别说明责任、组成、协作、合法变化、业务事实和失败恢复，不要求每次交齐六张图。</p>
+<p>部署、网络、安全、可观测性与迁移等视图根据方案风险追加；在基础设施或迁移方案中，它们也可能成为主视图。重点与简述是本文的阅读安排，不是图类型的重要性排名。</p>
+<p>交付前，用下面的清单自查：</p>
+<ul>
+<li>图是否回答了一个明确问题，而不是展示“所有东西”？</li>
+<li>名称、层级、范围与现状 &#x2F; 目标是否清楚？</li>
+<li>节点负责什么、关键数据由谁管理，是否清楚？</li>
+<li>箭头是否有单一含义，图例能否独立解释？</li>
+<li>正常、失败、未知和补偿路径是否有去向？</li>
+<li>时序、状态、数据和架构视图是否互相矛盾？</li>
+<li>事实、推断与假设是否区分，有没有来源？</li>
+<li>图是否可读，图源能否找到，变更由谁维护？</li>
+</ul>
+<p>代码评审可以继续结合 <a href="/2026/04/04/system-design/05-architecture-code-review-checklist/" title="工程评审清单：架构、设计、代码与上线检查">工程评审清单：架构、设计、代码与上线检查</a>，核对实现是否遵守图中已经确认的边界与规则。</p>
+<p>本文的 24 个电商范例 SVG 与同名 <code>.mmd</code> 图源位于站内 <code>/diagrams/07-engineering-diagrams-ai-workflow/</code>，可从 <a href="/diagrams/07-engineering-diagrams-ai-workflow/05-system-context.mmd">系统上下文图源</a>、<a href="/diagrams/07-engineering-diagrams-ai-workflow/11-sequence.mmd">支付时序图源</a>、<a href="/diagrams/07-engineering-diagrams-ai-workflow/20-migration.mmd">迁移图源</a> 开始复用。图源是示例，不是可直接用于生产的完整规格。</p>
+<p>最终要形成的不是一种固定画风，而是一套工作习惯：<strong>按问题选图，统一名称和关系，保留资料依据，并随方案变更更新图源。</strong> AI 可以帮助起草、渲染和修改；工程师仍要确认图表达的设计是否正确、风险是否可以接受。</p>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><p>以下官方文档与项目资料的访问日期为 2026-10-10，补充核验日期在对应条目中另行标注。文中的电商图、最小图集和提示词为本文构造的实践示例，不是来源提供的生产架构。</p>
+<ol>
+<li><a id="ref-1"></a> Simon Brown，C4 model，<a href="https://c4model.com/diagrams">Diagrams</a>。</li>
+<li><a id="ref-2"></a> arc42，<a href="https://docs.arc42.org/section-5/">Building Block View</a>；并参阅 <a href="https://docs.arc42.org/section-6/">Runtime View</a> 与 <a href="https://docs.arc42.org/section-7/">Deployment View</a>。</li>
+<li><a id="ref-3"></a> Simon Brown，C4 model，<a href="https://c4model.com/diagrams/notation">Notation</a>。</li>
+<li><a id="ref-4"></a> PlantUML 项目，<a href="https://plantuml.com/">Supported UML and Non-UML Diagrams</a> 与 <a href="https://plantuml.com/use-case-diagram">Use Case Diagram</a>。</li>
+<li><a id="ref-5"></a> Object Management Group，<a href="https://www.omg.org/spec/BPMN/2.0.2/About-BPMN">Business Process Model and Notation 2.0.2</a>。</li>
+<li><a id="ref-6"></a> Alberto Brandolini &#x2F; EventStorming，<a href="https://www.eventstorming.com/">EventStorming</a>。</li>
+<li><a id="ref-7"></a> Context Mapper，<a href="https://contextmapper.org/docs/context-map/">Context Map</a>。</li>
+<li><a id="ref-8"></a> Simon Brown，C4 model，<a href="https://c4model.com/diagrams/container">Container Diagram</a>；<a href="https://c4model.com/abstractions/container">Container 的运行时边界</a>（后者补充核验于 2026-10-12）。</li>
+<li><a id="ref-9"></a> Mermaid 项目，<a href="https://mermaid.js.org/intro/">About Mermaid</a>。</li>
+<li><a id="ref-10"></a> Chris Richardson，<a href="https://microservices.io/patterns/data/transactional-outbox.html">Transactional Outbox</a>。</li>
+<li><a id="ref-11"></a> Chris Richardson，<a href="https://microservices.io/patterns/data/saga.html">Saga</a>。</li>
+<li><a id="ref-12"></a> Simon Brown，C4 model，<a href="https://c4model.com/diagrams/deployment">Deployment Diagram</a>。</li>
+<li><a id="ref-13"></a> OWASP Foundation，<a href="https://cheatsheetseries.owasp.org/cheatsheets/Threat_Modeling_Cheat_Sheet.html">Threat Modeling Cheat Sheet</a>。</li>
+<li><a id="ref-14"></a> OpenTelemetry 项目，<a href="https://opentelemetry.io/docs/concepts/signals/">Signals</a>。</li>
+<li><a id="ref-15"></a> Cathryn Lavery，<a href="https://github.com/cathrynlavery/diagram-design">Diagram Design</a>。</li>
+<li><a id="ref-16"></a> draw.io，<a href="https://www.drawio.com/docs/manual/editor/save-file-formats/">Save a Diagram in Various Formats</a>。</li>
+<li><a id="ref-17"></a> Structurizr，<a href="https://docs.structurizr.com/dsl">DSL</a>。</li>
+<li><a id="ref-18"></a> D2 项目，<a href="https://d2lang.com/tour/intro/">D2 Tour</a>。</li>
+<li><a id="ref-19"></a> coleam00，<a href="https://github.com/coleam00/excalidraw-diagram-skill">Excalidraw Diagram Skill</a>。</li>
+<li><a id="ref-20"></a> Excalidraw Diagram Skill，<a href="https://github.com/coleam00/excalidraw-diagram-skill/blob/main/references/element-templates.md">Element Templates</a>。</li>
+<li><a id="ref-21"></a> Excalidraw Diagram Skill，<a href="https://github.com/coleam00/excalidraw-diagram-skill/blob/main/references/json-schema.md">JSON Schema Reference</a>。</li>
+<li><a id="ref-22"></a> yctimlin，<a href="https://github.com/yctimlin/mcp_excalidraw">Excalidraw MCP Server, CLI and Agent Skill</a>。</li>
+<li><a id="ref-23"></a> Excalidraw，<a href="https://github.com/excalidraw/excalidraw-mcp">Excalidraw MCP App Server</a>。</li>
+<li><a id="ref-24"></a> Axton Liu，<a href="https://github.com/axtonliu/axton-obsidian-visual-skills">Obsidian Visual Skills Pack</a>。</li>
+<li><a id="ref-25"></a> draw.io &#x2F; JGraph，<a href="https://github.com/jgraph/drawio-mcp">Official draw.io MCP Server</a>。</li>
+<li><a id="ref-26"></a> robonuggets，<a href="https://github.com/robonuggets/excalidraw-skill">Excalidraw Skill for Claude Code</a>。配套 MCP 依赖、视觉规则、截图检查与导出流程。</li>
+<li><a id="ref-27"></a> Rob Taylor，<a href="https://github.com/robtaylor/excalidraw-diagrams">Excalidraw Diagrams</a>。Python 图形构建器、原生图源生成及使用要求。</li>
+<li><a id="ref-28"></a> tt-a1i，<a href="https://github.com/tt-a1i/archify">Archify</a>；<a href="https://github.com/tt-a1i/archify/blob/main/archify/SKILL.md">Skill 定义</a>。技术图类型、结构化图源、交互式 HTML 与仓库证据工作流。</li>
+<li><a id="ref-29"></a> Agents365-ai，<a href="https://github.com/Agents365-ai/drawio-skill">drawio-skill</a>。代码 &#x2F; IaC &#x2F; Schema 提取、原生图源、增量同步与导出能力。</li>
+<li><a id="ref-30"></a> Bybit，<a href="https://github.com/bybit-exchange/svg-diagram">svg-diagram</a>。纯 SVG 绘图规范与 Node.js 校验器。</li>
+<li><a id="ref-31"></a> imxv，<a href="https://github.com/imxv/Pretty-mermaid-skills">Pretty Mermaid</a>。Mermaid 主题、批量渲染及 SVG &#x2F; PNG &#x2F; 文本导出。</li>
+<li><a id="ref-32"></a> aetox-skills，<a href="https://github.com/aetox-skills/senior-architect-agent">senior-architect-agent</a>。现有系统检查、证据映射、架构评估与 Mermaid 文档。</li>
+<li><a id="ref-33"></a> Vijay Joshi，<a href="https://github.com/vijayjoshi24/ea-agent-skills">EA Agent Skills</a>。C4、能力地图、ADR、技术债与架构评审技能。</li>
+<li><a id="ref-34"></a> Ztsdut，<a href="https://github.com/Ztsdut/ml-architecture-diagram-skill">ML Architecture Diagram Skill</a>。模型计算路径、架构 IR 与可编辑科学图输出。</li>
+<li><a id="ref-35"></a> Leonardo Capossio，<a href="https://github.com/lcapossio/hdldiagZero">hdldiagZero</a>。硬件模块、时钟域、总线图与 SVG 几何校验。</li>
+<li><a id="ref-36"></a> Naor Sabag，<a href="https://github.com/naorsabag/openhop">OpenHop</a>。YAML 流程规格、代码讲解 Skill 与逐步交互演示。</li>
+<li><a id="ref-37"></a> bnomei，<a href="https://github.com/bnomei/nereid">Nereid</a>。Mermaid 终端工作台、MCP 与会话持久化；采用非商业源码可见许可，使用限制见仓库 LICENSE。</li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/ai-agent/" rel="tag"># ai-agent</a>
+              <a href="/tags/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/" rel="tag"># 系统设计</a>
+              <a href="/tags/%E6%9E%B6%E6%9E%84%E5%9B%BE/" rel="tag"># 架构图</a>
+              <a href="/tags/PlantUML/" rel="tag"># PlantUML</a>
+              <a href="/tags/Mermaid/" rel="tag"># Mermaid</a>
+              <a href="/tags/documentation-as-code/" rel="tag"># documentation-as-code</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2026/09/24/AI/03-superpowers-source-workflow-practice/" rel="prev" title="Superpowers 源码解析：技能发现机制与开发流程约束">
+                  <i class="fa fa-angle-left"></i> Superpowers 源码解析：技能发现机制与开发流程约束
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":{"light":"default","dark":"dark"},"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js","integrity":"sha256-stuqcu2FrjYCXDOytWFA5SoUE/r3nkp6gTglzNSlavU="}}</script>
+  <script src="/js/third-party/tags/mermaid.js"></script>
+
+
+
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+
+</body>
+</html>
