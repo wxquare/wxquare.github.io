@@ -2,7 +2,7 @@
 title: 系统设计：技术方案写作、架构选型与设计评审
 date: 2025-04-01
 permalink: /2025/04/01/system-design/01-system-design-methodology/
-description: 从问题定义、容量估算、方案比较到风险和发布计划，整理一份可评审、可执行的互联网系统技术方案写作方法。
+description: 配合《系统设计概要》课件，从技术方案写作、架构选型、接口、存储、缓存与异步设计到评审，建立可执行的系统设计方法。
 categories:
   - 系统设计基础
 tags:
@@ -12,6 +12,30 @@ tags:
   - 微服务
 toc: true
 ---
+
+技术方案需要说明解决什么问题、选择了什么方案、为什么这样选择，以及如何验证结果。本文配合《系统设计概要》课件使用：课件梳理设计步骤与常见选型，正文展开判断依据、实现约束和评审问题。
+
+适合正在编写后端技术方案、准备设计评审，或希望建立系统设计知识框架的工程师。建议先浏览课件，再按当前任务查阅正文；写方案时从目标、约束和验收条件开始，结合接口、存储与失败处理补全设计。
+
+## 配套课件与阅读路径
+
+[下载《系统设计概要》公开版课件（PPTX，38 页）](/library/presentations/system-design-overview-public.pptx) · [浏览器在线预览](https://view.officeapps.live.com/op/view.aspx?src=https%3A%2F%2Fwxquare.github.io%2Flibrary%2Fpresentations%2Fsystem-design-overview-public.pptx)
+
+![《系统设计概要》公开版课件封面](/diagrams/01-system-design-methodology/31-public-deck-cover.png)
+
+课件封面为“一起学学系统设计”，原分享日期为 2024-06-12，公开版于 2026-10-12 整理。PPTX 可在 WPS 演示或 PowerPoint 中继续编辑；在线预览由 Microsoft Office 网页查看器提供，若无法加载，可下载后阅读。正文持续维护，课件保留原分享时的组织方式。旧课件中的厂商 API 示例、数据库能力对比和经验阈值，需结合正文的修订说明与当前官方资料判断。
+
+| 阅读任务 | 课件页码 | 正文入口与使用方法 |
+|---|---|---|
+| 明确方案内容与质量标准 | 第 2–5 页 | 从“技术方案应该包含哪些内容”到“技术方案模板”，填写目标、约束、风险与验收条件 |
+| 选择架构视图与职责边界 | 第 7–12 页 | 阅读“整体架构设计”，区分业务、应用、数据与技术视图；绘图方法见 {% post_link system-design/07-engineering-diagrams-ai-workflow %} |
+| 定义接口契约与失败语义 | 第 14–18 页 | 阅读“应用层web网关设计”中的 API、错误码与幂等性；明确超时、重试和结果未知时的处理 |
+| 根据访问模式选择存储 | 第 20–25 页 | 阅读“中间件和存储”，结合事务、一致性、查询、分片与副本条件评估选型 |
+| 设计缓存与回源保护 | 第 27–30 页 | 对照缓存位置、更新方式和失效政策；具体机制见 {% post_link fundamentals/08-redis-principles-and-practice %} |
+| 设计异步流程与故障恢复 | 第 32–33 页 | 阅读“框架和引擎”；可靠事件发布、去重与投影边界见 {% post_link system-design/02-clean-architecture-ddd-cqrs %} |
+| 评估非功能需求与方案取舍 | 第 35–36 页 | 阅读“如何评估技术方案的质量”与“系统设计的权衡”，再用 {% post_link system-design/05-architecture-code-review-checklist %} 检查发布准备 |
+
+课件中的建议应结合具体约束使用。例如，“文档数据库不支持事务”“关系数据库不能水平扩展”不能作为类别级结论；“单表超过 500 万行就拆分”也不是通用门槛。应核对具体产品与版本，依据访问模式、压测结果、数据增长和运维成本决定。接口错误的 HTTP 状态语义与业务错误类型，以本文的“API 错误码设计规范”为准。
 
 ## 速查导航
 
