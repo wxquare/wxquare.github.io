@@ -116,6 +116,20 @@ layout: page
 - 再分发：本人创作，作者已明确确认内容可公开；公开版保留 38 页，采用个人课件版式，保留原有技术图表与参考链接。
 - 加入日期：2026-10-12
 
+### DDIA 读书分享：数据系统的模型、存储与分布式取舍（公开版）
+
+- 作者/机构：wxquare（本人）
+- 类型：presentation
+- 主题：数据模型、存储引擎、事务、分片、复制与批流处理
+- 原始来源：作者提供的第一方演示资料《DDIA 读书分享.pptx》，封面标注原分享日期 2023-12-20；此处为 2026-10-12 整理的公开版，按 DDIA 第一版主题组织
+- 规范源（可编辑）：[ddia-reading-share-public.pptx](/library/presentations/ddia-reading-share-public.pptx)
+- 阅读导出（PDF）：[浏览器直接阅读](/library/presentations/ddia-reading-share-public.pdf)
+- PPTX SHA-256：`10e00615f3266d27a65bb79c64705c57f8c3471896333b14747dfa654860b7c7`
+- PDF SHA-256：`8e579d102d7f3cac62b1f2cb9c0a5935227ffe24881a4afa2e8e04b78eada3bf`
+- 配套文章：{% post_link system-design/08-ddia-reading-data-systems %}
+- 再分发：第一方读书分享，用户明确要求生成公开版；采用个人课件版式，移除组织标识与内部内容，重绘图表，保留技术主题并修订相关表述；保留 18 页，原书观点与官方资料来源见课件备注及配套文章。
+- 加入日期：2026-10-12
+
 ### 《数据密集型应用系统设计》读书分享（2020 PDF）
 
 - 作者/机构：本人

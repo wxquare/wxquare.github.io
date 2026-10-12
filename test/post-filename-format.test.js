@@ -39,6 +39,7 @@ const publishedPaths = new Map([
   ['system-design/05-architecture-code-review-checklist', '2026/04/04/system-design/05-architecture-code-review-checklist/'],
   ['system-design/06-system-reliability-engineering', '2025/05/15/system-design/06-system-reliability-engineering/'],
   ['system-design/07-engineering-diagrams-ai-workflow', '2026/10/10/system-design/07-engineering-diagrams-ai-workflow/'],
+  ['system-design/08-ddia-reading-data-systems', '2026/10/12/system-design/08-ddia-reading-data-systems/'],
   ['other/01-hexo-github-pages-blog-setup', '2023/08/13/other/01-hexo-github-pages-blog-setup/'],
   ['other/02-ai-video-production-workflow', '2026/05/08/other/02-ai-video-production-workflow/'],
   ['other/03-ecommerce-agent-research-report', '2026/09/11/other/03-ecommerce-agent-research-report/'],
