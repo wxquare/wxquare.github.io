@@ -41,7 +41,8 @@ const publishedPaths = new Map([
   ['system-design/07-engineering-diagrams-ai-workflow', '2026/10/10/system-design/07-engineering-diagrams-ai-workflow/'],
   ['other/01-hexo-github-pages-blog-setup', '2023/08/13/other/01-hexo-github-pages-blog-setup/'],
   ['other/02-ai-video-production-workflow', '2026/05/08/other/02-ai-video-production-workflow/'],
-  ['other/03-ecommerce-agent-research-report', '2026/09/11/other/03-ecommerce-agent-research-report/']
+  ['other/03-ecommerce-agent-research-report', '2026/09/11/other/03-ecommerce-agent-research-report/'],
+  ['other/04-future-predictions-career-opportunities', '2026/10/12/other/04-future-predictions-career-opportunities/']
 ]);
 
 test('post filenames use consecutive category-local reading-order numbers', () => {
