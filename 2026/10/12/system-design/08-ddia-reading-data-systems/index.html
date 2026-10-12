@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"wxquare.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="配合 18 页 DDIA 公开版课件，理解数据模型、存储引擎、事务隔离、分片与复制，并用 MySQL、Kafka、Elasticsearch、ZooKeeper 和事件统计案例讨论设计取舍。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="DDIA 读书分享：数据模型、事务与分布式系统的设计取舍">
+<meta property="og:url" content="https://wxquare.github.io/2026/10/12/system-design/08-ddia-reading-data-systems/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="配合 18 页 DDIA 公开版课件，理解数据模型、存储引擎、事务隔离、分片与复制，并用 MySQL、Kafka、Elasticsearch、ZooKeeper 和事件统计案例讨论设计取舍。">
+<meta property="og:locale">
+<meta property="og:image" content="https://wxquare.github.io/diagrams/08-ddia-reading-data-systems/01-public-deck-cover.png">
+<meta property="article:published_time" content="2026-10-12T00:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-12T08:51:21.725Z">
+<meta property="article:author" content="wxquare">
+<meta property="article:tag" content="数据库">
+<meta property="article:tag" content="分布式系统">
+<meta property="article:tag" content="DDIA">
+<meta property="article:tag" content="数据系统">
+<meta property="article:tag" content="一致性">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://wxquare.github.io/diagrams/08-ddia-reading-data-systems/01-public-deck-cover.png">
+
+
+<link rel="canonical" href="https://wxquare.github.io/2026/10/12/system-design/08-ddia-reading-data-systems/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"https://wxquare.github.io/2026/10/12/system-design/08-ddia-reading-data-systems/","path":"/2026/10/12/system-design/08-ddia-reading-data-systems/","title":"DDIA 读书分享：数据模型、事务与分布式系统的设计取舍"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>DDIA 读书分享：数据模型、事务与分布式系统的设计取舍 | wxquare's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-book"><a href="/booklist/" rel="section"><i class="fa fa-book fa-fw"></i>Books</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%85%8D%E5%A5%97%E8%AF%BE%E4%BB%B6%E4%B8%8E%E9%98%85%E8%AF%BB%E8%B7%AF%E5%BE%84"><span class="nav-number">1.</span> <span class="nav-text">配套课件与阅读路径</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E7%B3%BB%E7%BB%9F%E7%9A%84%E7%9B%AE%E6%A0%87%E4%B8%8E%E4%BA%8B%E5%AE%9E%E8%BE%B9%E7%95%8C"><span class="nav-number">2.</span> <span class="nav-text">数据系统的目标与事实边界</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9D%83%E5%A8%81%E6%95%B0%E6%8D%AE%E4%B8%8E%E6%B4%BE%E7%94%9F%E6%95%B0%E6%8D%AE"><span class="nav-number">2.1.</span> <span class="nav-text">权威数据与派生数据</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E6%A8%A1%E5%9E%8B%E4%B8%8E%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E"><span class="nav-number">3.</span> <span class="nav-text">数据模型与存储引擎</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%B3%E7%B3%BB%E4%B8%8E%E6%96%87%E6%A1%A3%EF%BC%9A%E4%BB%8E%E8%AE%BF%E9%97%AE%E6%A8%A1%E5%BC%8F%E5%BC%80%E5%A7%8B"><span class="nav-number">3.1.</span> <span class="nav-text">关系与文档：从访问模式开始</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9B%BE%E6%A8%A1%E5%9E%8B%E3%80%81%E5%88%97%E5%BC%8F%E4%B8%8E%E5%AE%BD%E5%88%97%E7%9A%84%E5%8C%BA%E5%88%AB"><span class="nav-number">3.2.</span> <span class="nav-text">图模型、列式与宽列的区别</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#LSM-Tree-%E4%B8%8E-B-Tree-%E7%9A%84%E6%88%90%E6%9C%AC"><span class="nav-number">3.3.</span> <span class="nav-text">LSM Tree 与 B+ Tree 的成本</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8B%E5%8A%A1%E4%B8%8E%E4%B8%80%E8%87%B4%E6%80%A7%E7%9A%84%E8%BE%B9%E7%95%8C"><span class="nav-number">4.</span> <span class="nav-text">事务与一致性的边界</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#ACID%E3%80%81CAP-%E4%B8%8E-BASE-%E5%9B%9E%E7%AD%94%E4%B8%8D%E5%90%8C%E9%97%AE%E9%A2%98"><span class="nav-number">4.1.</span> <span class="nav-text">ACID、CAP 与 BASE 回答不同问题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AF%BB%E5%8F%AF%E8%A7%81%E6%80%A7%E4%B8%8E%E5%B9%B6%E5%8F%91%E5%86%99%E5%85%A5"><span class="nav-number">4.2.</span> <span class="nav-text">读可见性与并发写入</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%86%E7%89%87%E3%80%81%E5%A4%8D%E5%88%B6%E4%B8%8E%E6%95%85%E9%9A%9C%E6%81%A2%E5%A4%8D"><span class="nav-number">5.</span> <span class="nav-text">分片、复制与故障恢复</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%86%E7%89%87%E9%94%AE%E5%86%B3%E5%AE%9A%E6%9F%A5%E8%AF%A2%E4%B8%8E%E4%BA%8B%E5%8A%A1%E8%8C%83%E5%9B%B4"><span class="nav-number">5.1.</span> <span class="nav-text">分片键决定查询与事务范围</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%89%AF%E6%9C%AC%E6%A8%A1%E5%9E%8B%E4%B8%8E%E5%86%99%E5%85%A5%E7%A1%AE%E8%AE%A4"><span class="nav-number">5.2.</span> <span class="nav-text">副本模型与写入确认</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AF%B9%E7%85%A7%E7%BB%84%E4%BB%B6%E7%90%86%E8%A7%A3%E6%9C%BA%E5%88%B6"><span class="nav-number">6.</span> <span class="nav-text">对照组件理解机制</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Codis%EF%BC%9A%E5%8E%86%E5%8F%B2%E4%BB%A3%E7%90%86%E5%88%86%E7%89%87%E6%A1%88%E4%BE%8B"><span class="nav-number">6.1.</span> <span class="nav-text">Codis：历史代理分片案例</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Kafka%EF%BC%9A%E5%88%86%E5%8C%BA%E6%97%A5%E5%BF%97%E4%B8%8E%E5%A4%96%E9%83%A8%E5%89%AF%E4%BD%9C%E7%94%A8"><span class="nav-number">6.2.</span> <span class="nav-text">Kafka：分区日志与外部副作用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Elasticsearch%EF%BC%9A%E5%A4%8D%E5%88%B6%E6%88%90%E5%8A%9F%E4%B8%8E%E6%90%9C%E7%B4%A2%E5%8F%AF%E8%A7%81%E6%80%A7"><span class="nav-number">6.3.</span> <span class="nav-text">Elasticsearch：复制成功与搜索可见性</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ZooKeeper%EF%BC%9A%E5%86%99%E9%A1%BA%E5%BA%8F%E4%B8%8E%E6%99%AE%E9%80%9A%E8%AF%BB"><span class="nav-number">6.4.</span> <span class="nav-text">ZooKeeper：写顺序与普通读</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8B%E4%BB%B6%E7%BB%9F%E8%AE%A1%EF%BC%9A%E4%B8%80%E6%9D%A1%E5%8F%AF%E6%81%A2%E5%A4%8D%E7%9A%84%E6%95%B0%E6%8D%AE%E9%93%BE%E8%B7%AF"><span class="nav-number">7.</span> <span class="nav-text">事件统计：一条可恢复的数据链路</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%80%E4%BB%BD%E5%8F%AF%E8%AF%84%E5%AE%A1%E7%9A%84%E5%86%B3%E7%AD%96%E8%AE%B0%E5%BD%95"><span class="nav-number">7.1.</span> <span class="nav-text">一份可评审的决策记录</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%98%85%E8%AF%BB%E8%B5%84%E6%BA%90%E4%B8%8E%E5%90%8E%E7%BB%AD%E5%AE%9E%E8%B7%B5"><span class="nav-number">8.</span> <span class="nav-text">阅读资源与后续实践</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="nav-number">9.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">31</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">6</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+<section class="site-series">
+  <div class="site-series-title">
+    <i class="fa fa-book"></i> 系列专题
+  </div>
+  <ul class="series-list">
+    <li class="series-item ecommerce">
+      <a href="/categories/电商系统设计/">
+        <i class="fa fa-shopping-cart"></i>
+        <span class="series-name">电商系统设计</span>
+        <span class="series-count">13篇</span>
+      </a>
+    </li>
+    <li class="series-item architecture-clean-code">
+      <a href="/tags/architecture-and-clean-code/">
+        <i class="fa fa-sitemap"></i>
+        <span class="series-name">架构与整洁代码</span>
+        <span class="series-count">4篇</span>
+      </a>
+    </li>
+    <li class="series-item ai">
+      <a href="/categories/AI-与-Agent/">
+        <i class="fa fa-robot"></i>
+        <span class="series-name">AI 与 Agent</span>
+        <span class="series-count">7篇</span>
+      </a>
+    </li>
+    <li class="series-item system-design">
+      <a href="/categories/系统设计基础/">
+        <i class="fa fa-cogs"></i>
+        <span class="series-name">系统设计基础</span>
+        <span class="series-count">15篇</span>
+      </a>
+    </li>
+    <li class="series-item fundamentals">
+      <a href="/categories/计算机基础/">
+        <i class="fa fa-laptop"></i>
+        <span class="series-name">计算机基础</span>
+        <span class="series-count">6篇</span>
+      </a>
+    </li>
+  </ul>
+</section>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://wxquare.github.io/2026/10/12/system-design/08-ddia-reading-data-systems/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="DDIA 读书分享：数据模型、事务与分布式系统的设计取舍 | wxquare's Blogs">
+      <meta itemprop="description" content="配合 18 页 DDIA 公开版课件，理解数据模型、存储引擎、事务隔离、分片与复制，并用 MySQL、Kafka、Elasticsearch、ZooKeeper 和事件统计案例讨论设计取舍。">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          DDIA 读书分享：数据模型、事务与分布式系统的设计取舍
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2026-10-12 00:00:00 / Modified: 08:51:21" itemprop="dateCreated datePublished" datetime="2026-10-12T00:00:00+00:00">2026-10-12</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E5%9F%BA%E7%A1%80/" itemprop="url" rel="index"><span itemprop="name">系统设计基础</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+            <div class="post-description">配合 18 页 DDIA 公开版课件，理解数据模型、存储引擎、事务隔离、分片与复制，并用 MySQL、Kafka、Elasticsearch、ZooKeeper 和事件统计案例讨论设计取舍。</div>
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>《数据密集型应用系统设计》（Designing Data-Intensive Applications，简称 DDIA）把数据库、缓存、消息日志和数据处理放在同一套问题框架中讨论：如何保存事实，如何扩展负载，如何在故障和并发下维持约定的行为。本文是配套读书分享文章，以 Martin Kleppmann 的第一版为基础，适合希望把数据库知识连接到系统设计的后端工程师。<a href="#ref-1">[1]</a></p>
+<p>DDIA 是数据系统与分布式系统领域的经典著作，第一版主要包含三部分：数据系统基础，涵盖可靠性、可扩展性、可维护性、数据模型、存储引擎与编码演进；分布式数据，涵盖复制、分区、事务、分布式故障、一致性与共识；派生数据，涵盖批处理、流处理及数据系统的未来方向。<a href="#ref-1">[1]</a></p>
+<p>本次分享从中选取了系统质量目标、关系与文档等数据模型、LSM Tree 与 B+ Tree、事务隔离、CAP、分片与一致性哈希、副本复制，以及批处理与流处理的基本思路，并结合 MySQL、Codis、Kafka、Elasticsearch 和 ZooKeeper 说明设计取舍。编码与 schema 演进、共识协议细节，以及批流处理的完整机制等内容未展开，建议结合原书继续阅读。</p>
+<p>阅读时可以带着三个问题：数据模型为什么这样选？一次成功响应究竟确认了什么？组件故障后，系统如何恢复到可核对的状态？这些问题也可以接入 <a href="/2025/04/01/system-design/01-system-design-methodology/" title="系统设计：技术方案写作、架构选型与设计评审">系统设计：技术方案写作、架构选型与设计评审</a> 中的技术方案与评审流程。</p>
+<span id="more"></span>
+
+<h2 id="配套课件与阅读路径"><a href="#配套课件与阅读路径" class="headerlink" title="配套课件与阅读路径"></a>配套课件与阅读路径</h2><p><a href="/library/presentations/ddia-reading-share-public.pdf">在线阅读 DDIA 公开版课件（PDF，18 页）</a> · <a href="/library/presentations/ddia-reading-share-public.pptx">下载可编辑课件（PPTX）</a></p>
+<p><img src="/diagrams/08-ddia-reading-data-systems/01-public-deck-cover.png" alt="DDIA 读书分享公开版封面"></p>
+<p>课件署名为 wxquare，原分享日期为 2023-12-20，公开版于 2026-10-12 整理。公开版采用个人课件版式，重绘关键图表，并修订原稿中对事务、CAP、复制和组件机制的简化表述。PPTX 是可编辑规范源，PDF 是对应阅读导出。以下事件统计流程为教学案例，不代表某个线上系统的既有实现。</p>
+<table>
+<thead>
+<tr>
+<th>阅读任务</th>
+<th>课件页码</th>
+<th>正文重点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>建立数据系统的观察框架</td>
+<td>第 2–3 页</td>
+<td>可靠性、负载描述、权威事实与派生数据</td>
+</tr>
+<tr>
+<td>选择模型与存储引擎</td>
+<td>第 4–6 页</td>
+<td>访问模式、事务边界、图与列式模型、LSM 与 B+ Tree</td>
+</tr>
+<tr>
+<td>理解并发与分布式保证</td>
+<td>第 7–11 页</td>
+<td>ACID、CAP、隔离异常、路由、迁移与副本</td>
+</tr>
+<tr>
+<td>对照组件机制</td>
+<td>第 12–16 页</td>
+<td>MySQL、Codis、Kafka、Elasticsearch、ZooKeeper</td>
+</tr>
+<tr>
+<td>串联数据处理与恢复</td>
+<td>第 17–18 页</td>
+<td>事件时间、迟到、去重、重放与设计问题</td>
+</tr>
+</tbody></table>
+<h2 id="数据系统的目标与事实边界"><a href="#数据系统的目标与事实边界" class="headerlink" title="数据系统的目标与事实边界"></a>数据系统的目标与事实边界</h2><p>DDIA 将可靠性、可扩展性和可维护性作为讨论入口。可靠性需要指定故障假设：单个进程退出、磁盘损坏、网络分区、错误部署分别可能怎样影响读写。可扩展性需要先描述负载，例如请求比例、热点分布、数据增长、查询范围及延迟分位数。可维护性则涉及监控、排障、理解系统与修改系统的成本。<a href="#ref-1">[1]</a></p>
+<p>这些目标不能只用“高可用”“高性能”概括。例如订单创建需要防止重复业务事实，而商品详情可能接受短暂陈旧；二者可以有不同的读取路径和失败处理策略。</p>
+<h3 id="权威数据与派生数据"><a href="#权威数据与派生数据" class="headerlink" title="权威数据与派生数据"></a>权威数据与派生数据</h3><p>数据库中的订单事实、缓存中的详情、搜索索引中的商品文档和统计视图中的成交金额，承担的职责不同。设计应标明哪个数据源决定业务结果，哪些副本或投影能够从事实重建。</p>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>主要职责</th>
+<th>需要明确的失败语义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>事务数据库</td>
+<td>保存业务事实并检查约束</td>
+<td>提交成功、失败与结果未知如何区分</td>
+</tr>
+<tr>
+<td>缓存</td>
+<td>降低重复读取成本</td>
+<td>允许陈旧多久，失效与回源失败怎样处理</td>
+</tr>
+<tr>
+<td>搜索索引</td>
+<td>支持检索与过滤</td>
+<td>索引更新滞后时，用户看到什么</td>
+</tr>
+<tr>
+<td>消息日志</td>
+<td>保存可异步消费的事件</td>
+<td>重复投递、积压与保留期如何影响恢复</td>
+</tr>
+<tr>
+<td>分析视图</td>
+<td>为聚合与报表提供结果</td>
+<td>迟到、重算与版本切换怎样核对</td>
+</tr>
+</tbody></table>
+<p>增加一个组件，同时增加了更新链路和失败组合。需要记录事实怎样传播、谁负责重试，以及怎样发现和修复差异。缓存与异步任务的具体设计可以结合 <a href="/2025/04/01/system-design/01-system-design-methodology/" title="系统设计：技术方案写作、架构选型与设计评审">系统设计：技术方案写作、架构选型与设计评审</a> 阅读。</p>
+<h2 id="数据模型与存储引擎"><a href="#数据模型与存储引擎" class="headerlink" title="数据模型与存储引擎"></a>数据模型与存储引擎</h2><h3 id="关系与文档：从访问模式开始"><a href="#关系与文档：从访问模式开始" class="headerlink" title="关系与文档：从访问模式开始"></a>关系与文档：从访问模式开始</h3><p>关系模型适合表达关联、共享实体以及需要集中检查的约束；文档模型适合把经常一起访问的聚合组织成嵌套结构。它们都需要处理 schema 演进，只是约束的落点和迁移方式不同。<a href="#ref-1">[1]</a></p>
+<p>例如订单包含多个订单项，读取完整订单时可以考虑嵌套；商品与标签是多对多关系，而且标签独立修改时，拆开保存往往更容易控制更新。如果将共享事实复制进大量文档，就必须承担同步和核对成本。</p>
+<p>“文档数据库不支持事务”不能作为类别结论。MongoDB 支持多文档事务，但事务能力仍取决于部署条件、读写关注设置和使用范围；分布式事务也有成本。选型应检查具体产品和版本，而不是仅比较 SQL 与 NoSQL 标签。<a href="#ref-2">[2]</a></p>
+<h3 id="图模型、列式与宽列的区别"><a href="#图模型、列式与宽列的区别" class="headerlink" title="图模型、列式与宽列的区别"></a>图模型、列式与宽列的区别</h3><p>图模型把节点和边作为主要对象，适用于关系遍历、路径和邻居查询。是否采用图数据库，要结合遍历深度、关系更新、索引及查询负载判断。</p>
+<p>列式分析存储把同一列的数据组织在一起，聚合只读取需要的列，并利用编码与压缩减少扫描成本。它适合大量扫描和聚合的负载，但单条记录频繁更新是否合适，仍需核对具体实现。宽列模型则是另一种数据组织方式，不能与列式分析存储混为一谈。<a href="#ref-1">[1]</a></p>
+<p>数据量大、字段多或数据稀疏，都只是输入条件。还需知道读哪些字段、怎样过滤、更新多少记录，以及结果需要多快可见。</p>
+<h3 id="LSM-Tree-与-B-Tree-的成本"><a href="#LSM-Tree-与-B-Tree-的成本" class="headerlink" title="LSM Tree 与 B+ Tree 的成本"></a>LSM Tree 与 B+ Tree 的成本</h3><p>LSM 引擎通常先写日志与内存结构，再生成有序文件，并通过后台合并管理文件层级。B+ Tree 通常按页维护索引，结合日志保证修改的恢复能力。二者都有写放大、缓存和后台维护成本，不能仅用“顺序写”和“随机写”判断最终性能。<a href="#ref-1">[1]</a></p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>LSM Tree 需要关注</th>
+<th>B+ Tree 需要关注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>写入</td>
+<td>MemTable、日志、刷盘、合并能力</td>
+<td>页更新、日志、页分裂与刷盘</td>
+</tr>
+<tr>
+<td>读取</td>
+<td>需要查询的文件数、过滤器与缓存</td>
+<td>树高度、页缓存、索引覆盖与访问局部性</td>
+</tr>
+<tr>
+<td>空间</td>
+<td>层级策略、压缩、删除回收延迟</td>
+<td>页填充率、碎片与空间回收</td>
+</tr>
+<tr>
+<td>尾延迟</td>
+<td>Compaction 与前台 I&#x2F;O 竞争</td>
+<td>缓存未命中、锁争用与页维护</td>
+</tr>
+</tbody></table>
+<p>验证应覆盖稳定状态与维护状态：持续写入、后台合并、恢复、冷缓存以及真实的热点分布。只测短时间峰值吞吐，可能看不到系统积累的维护成本。</p>
+<h2 id="事务与一致性的边界"><a href="#事务与一致性的边界" class="headerlink" title="事务与一致性的边界"></a>事务与一致性的边界</h2><h3 id="ACID、CAP-与-BASE-回答不同问题"><a href="#ACID、CAP-与-BASE-回答不同问题" class="headerlink" title="ACID、CAP 与 BASE 回答不同问题"></a>ACID、CAP 与 BASE 回答不同问题</h3><p>ACID 描述事务的原子性、一致性、隔离性和持久性。其中的一致性涉及业务不变量与约束，并不直接等同于副本读写的线性一致性。</p>
+<p>CAP 讨论发生网络分区时，线性一致性与理论可用性无法同时满足。分析需要落实到某类操作：它是等待、拒绝，还是返回可能陈旧的数据？理论可用性与业务 SLO 的定义也不同，不能因为系统“有副本”就判断整个系统属于 AP 或 CP。<a href="#ref-1">[1]</a></p>
+<p>BASE 是对基本可用、软状态和最终一致性的概括。最终一致性仍需要收敛条件：更新能够继续传播、冲突有处理规则、丢失的传播能够被修复。还需定义等待多久算异常，以及怎样发现没有收敛的记录。</p>
+<h3 id="读可见性与并发写入"><a href="#读可见性与并发写入" class="headerlink" title="读可见性与并发写入"></a>读可见性与并发写入</h3><p>常见异常包括脏读、不可重复读、幻读、丢失更新和写偏斜。隔离级别名称相同，也可能因数据库实现、查询方式和锁机制不同而呈现不同的行为。快照隔离不能普遍保证跨记录不变量。<a href="#ref-1">[1]</a></p>
+<p>例如两名值班人员分别读取“目前有两人值班”，随后各自更新自己的记录为离岗。两次写入修改不同记录，却可能共同破坏“至少一人值班”的约束。这是写偏斜问题，需要约束、显式锁或可串行化事务等方案。</p>
+<p>单个计数器可以优先用原子更新，减少应用读改写带来的覆盖：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">UPDATE</span> counters</span><br><span class="line"><span class="keyword">SET</span> <span class="keyword">value</span> <span class="operator">=</span> <span class="keyword">value</span> <span class="operator">+</span> <span class="number">1</span></span><br><span class="line"><span class="keyword">WHERE</span> id <span class="operator">=</span> <span class="number">42</span>;</span><br></pre></td></tr></table></figure>
+
+<p>版本条件更新可以检测并发冲突，但应用必须检查影响行数。影响行数为零时，要区分记录不存在、版本不匹配等情况，再决定重新读取、返回冲突或重试。</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">UPDATE</span> documents</span><br><span class="line"><span class="keyword">SET</span> content <span class="operator">=</span> <span class="string">&#x27;new content&#x27;</span>, version <span class="operator">=</span> version <span class="operator">+</span> <span class="number">1</span></span><br><span class="line"><span class="keyword">WHERE</span> id <span class="operator">=</span> <span class="number">42</span> <span class="keyword">AND</span> version <span class="operator">=</span> <span class="number">7</span>;</span><br></pre></td></tr></table></figure>
+
+<p>冲突重试也需要预算。涉及跨行规则时，单条 CAS 成功不代表整个业务约束成立；涉及外部支付时，数据库事务也无法自动回滚已经发生的外部副作用。</p>
+<h2 id="分片、复制与故障恢复"><a href="#分片、复制与故障恢复" class="headerlink" title="分片、复制与故障恢复"></a>分片、复制与故障恢复</h2><h3 id="分片键决定查询与事务范围"><a href="#分片键决定查询与事务范围" class="headerlink" title="分片键决定查询与事务范围"></a>分片键决定查询与事务范围</h3><p>哈希分片有利于按键点查，范围分片有利于局部扫描，但热点分布可能完全不同。按时间分区会让新写入集中在尾部，按用户分片也可能遇到少数大用户。分片键还会影响关联查询、跨分片事务和数据迁移。<a href="#ref-1">[1]</a></p>
+<table>
+<thead>
+<tr>
+<th>路由策略</th>
+<th>获得的能力</th>
+<th>需要承担的代价</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>哈希取模</td>
+<td>简单、按键路由直接</td>
+<td>节点数量变化可能产生大规模迁移</td>
+</tr>
+<tr>
+<td>范围分片</td>
+<td>支持范围读取与区间拆分</td>
+<td>热点区间、边界调整和负载不均</td>
+</tr>
+<tr>
+<td>一致性哈希</td>
+<td>限制节点变化时的迁移范围</td>
+<td>虚拟节点、权重、热点键和实际迁移流程</td>
+</tr>
+<tr>
+<td>逻辑槽或映射表</td>
+<td>将逻辑路由与物理节点解耦</td>
+<td>元数据版本、路由切换和映射维护</td>
+</tr>
+</tbody></table>
+<p>一致性哈希通常把键分配给环上顺时针的后继节点，虚拟节点可以改善分布并配置权重。它解决路由与区间分配问题，迁移仍需复制、增量同步、核对和切换。一个热点键的访问压力，也不会因虚拟节点增加而自动分散。</p>
+<h3 id="副本模型与写入确认"><a href="#副本模型与写入确认" class="headerlink" title="副本模型与写入确认"></a>副本模型与写入确认</h3><p>单领导者把写入集中在主节点，需要处理复制延迟、切换与旧主隔离。多领导者允许不同位置接收写入，但必须处理冲突、因果关系和合并规则。无领导者通过多个副本读写和版本修复工作，需要明确读写集合、故障节点与冲突版本的行为。<a href="#ref-1">[1]</a></p>
+<p>在固定副本集合下，<code>R + W &gt; N</code> 可以建立读集合与写集合的交叠条件，但不能单独证明线性一致性。还需核对是否使用 sloppy quorum、并发写入怎样排序，以及版本比较、故障恢复和读修复如何工作。</p>
+<p>以 MySQL 异步复制为例，增加副本可以分担允许陈旧数据的读取，但不会自动扩展一个主节点的写入能力。主节点故障时，未复制完成的已确认写入可能丢失；切换还需要隔离旧主、选择合适副本、核对状态，以及处理客户端看到的结果未知。半同步复制的接收确认，也不能直接等同于副本已执行事务或立即可读。</p>
+<p>备份与副本的目标不同。错误删除可能传播到副本，备份恢复还需要验证可恢复的时间点、恢复耗时，以及重放后的业务核对方式。</p>
+<h2 id="对照组件理解机制"><a href="#对照组件理解机制" class="headerlink" title="对照组件理解机制"></a>对照组件理解机制</h2><h3 id="Codis：历史代理分片案例"><a href="#Codis：历史代理分片案例" class="headerlink" title="Codis：历史代理分片案例"></a>Codis：历史代理分片案例</h3><p>Codis 通过代理将 Redis 客户端请求路由到不同 Redis Group，逻辑槽与物理 Group 的映射让应用不必直接感知每个节点。它适合用来观察路由、元数据与数据迁移的职责如何拆分。<a href="#ref-3">[3]</a></p>
+<p>分析时应分别讨论代理高可用、协调存储、Group 的复制和槽迁移。代理继续提供服务，不代表数据复制已完成；一次故障切换也可能暴露异步复制窗口。该课件保留 Codis 作为历史学习案例，实际选型还应核对维护状态、协议兼容性和运维成本。</p>
+<h3 id="Kafka：分区日志与外部副作用"><a href="#Kafka：分区日志与外部副作用" class="headerlink" title="Kafka：分区日志与外部副作用"></a>Kafka：分区日志与外部副作用</h3><p>Kafka 的顺序保证以分区为单位，业务需要通过分区键组织相关事件，并检查消费者并发与重试路径。<code>acks=1</code> 只要求 Leader 确认，Leader 在副本复制前失效时可能丢失记录；<code>acks=all</code> 要求当前 ISR 集合确认。<a href="#ref-4">[4]</a></p>
+<p><code>min.insync.replicas</code> 决定在 <code>acks=all</code> 下接受写入需要多少 in-sync 副本。它不是“只等待这几个副本”：当前 ISR 中的副本都需要确认，阈值决定是否有资格接受写入。保证还要结合副本数、选主和错误处理理解。<a href="#ref-5">[5]</a></p>
+<p>Producer 幂等性控制生产端重试造成的日志重复，不会自动保护外部数据库、支付或发货操作。消费者可以在业务事务中记录去重标识，并将结果与处理状态一起提交，仍需处理提交后确认失败导致的再次投递。</p>
+<p>课件采用通用分区与副本图，不沿用旧版本中 ZooKeeper 管理 Kafka 元数据的图示。现代 Kafka 使用 KRaft；迁移与运行条件应以所用版本为准。消费侧除了 lag，还应观察最老消息年龄、处理速率、失败终态与业务核对差异。</p>
+<h3 id="Elasticsearch：复制成功与搜索可见性"><a href="#Elasticsearch：复制成功与搜索可见性" class="headerlink" title="Elasticsearch：复制成功与搜索可见性"></a>Elasticsearch：复制成功与搜索可见性</h3><p>Elasticsearch 将写入发送到主分片，再复制到 in-sync 副本。集群管理维护这组能够承担恢复责任的分片副本，不能借用 Kafka 的 ISR 机制解释它。<a href="#ref-6">[6]</a></p>
+<p>写入确认与搜索可见性是不同阶段。Lucene 使用倒排索引和不可变 segment；refresh 让新数据能够被搜索，后台 merge 合并 segment。不能仅因为使用日志、追加写和合并，就把 Elasticsearch 等同于通用 LSM 键值存储。<a href="#ref-7">[7]</a></p>
+<p>“主分片数创建后永远不能改变”也过于绝对。已有索引不能随意原地修改这个设置，但可在满足条件时通过 split、shrink 或重新索引形成不同的分片布局，代价涉及数据复制、资源需求与切换。split 本身有只读状态、健康状态和分片倍数等限制。<a href="#ref-8">[8]</a></p>
+<h3 id="ZooKeeper：写顺序与普通读"><a href="#ZooKeeper：写顺序与普通读" class="headerlink" title="ZooKeeper：写顺序与普通读"></a>ZooKeeper：写顺序与普通读</h3><p>ZooKeeper 提供协调所需的有序更新、会话和版本等机制。普通读可以由连接的服务器处理，也可能返回旧数据；应结合顺序保证、会话以及具体调用方式讨论可观察结果。<a href="#ref-9">[9]</a></p>
+<p>ZooKeeper 的写操作是线性一致的，普通读不能因此自动获得同样保证。需要跨客户端观察更新时，可结合 <code>sync</code>、版本检查及会话语义设计读取协议，并核对所用版本的保证。Zab 的原子广播与恢复形成有序历史，不能简单等同于两阶段提交，也不宜用几条选举口号代替完整协议。<a href="#ref-10">[10]</a></p>
+<h2 id="事件统计：一条可恢复的数据链路"><a href="#事件统计：一条可恢复的数据链路" class="headerlink" title="事件统计：一条可恢复的数据链路"></a>事件统计：一条可恢复的数据链路</h2><p>以下是教学案例。假设系统接收展示、点击和成交事件，需要输出按分钟更新的指标；允许指标短暂滞后，但需要支持迟到更正和历史重算。具体吞吐、窗口长度、延迟目标和保留期应由实际负载确定。</p>
+<ol>
+<li><strong>采集事实</strong>：事件包含稳定的事件 ID、对象 ID、事件发生时间和 schema 版本。首先约定事件代表发生事实还是当前状态，避免重复解释。</li>
+<li><strong>保存可重放输入</strong>：接入层将事件写入日志，并明确受理成功的确认条件。客户端重试可能再次提交相同事件，事件 ID 需要跨重试保持稳定。</li>
+<li><strong>计算实时结果</strong>：流处理按事件时间聚合。迟到事件怎样进入窗口、多久停止更正、超过边界怎样处理，都要写入结果契约。</li>
+<li><strong>保存查询视图</strong>：结果以窗口和对象为键，采用幂等覆盖或受控版本更新；避免重放时把同一贡献重复累加。</li>
+<li><strong>离线重算与核对</strong>：批处理从保留的事实重算，比较实时结果和重算结果，记录差异原因，再通过版本切换发布修正。</li>
+</ol>
+<p>批处理和流处理可共享事实输入，但具体恢复保证取决于日志保留、处理状态、检查点及输出协议。处理引擎宣称的 exactly-once 需要明确覆盖范围，不能直接推广为所有外部业务副作用只发生一次。<a href="#ref-1">[1]</a></p>
+<table>
+<thead>
+<tr>
+<th>失败位置</th>
+<th>可能留下的状态</th>
+<th>恢复措施与观察信号</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>写入成功后响应丢失</td>
+<td>客户端不知道事件是否受理</td>
+<td>使用稳定事件 ID 重试，统计重复输入</td>
+</tr>
+<tr>
+<td>消费结果提交后进程退出</td>
+<td>输入可能再次读取</td>
+<td>幂等输出或原子处理状态，核对重复贡献</td>
+</tr>
+<tr>
+<td>事件乱序或迟到</td>
+<td>当前窗口结果不完整</td>
+<td>迟到策略与更正版本，监控迟到分布</td>
+</tr>
+<tr>
+<td>长时间积压</td>
+<td>结果变旧，恢复窗口缩小</td>
+<td>比较输入与处理速率、最老事件年龄和保留期</td>
+</tr>
+<tr>
+<td>规则或代码错误</td>
+<td>错误结果已经输出</td>
+<td>保留事实与规则版本，重算、核对并切换视图</td>
+</tr>
+</tbody></table>
+<h3 id="一份可评审的决策记录"><a href="#一份可评审的决策记录" class="headerlink" title="一份可评审的决策记录"></a>一份可评审的决策记录</h3><p>在这个教学案例中，可以比较两种候选方案：周期性全量批处理，以及持续流处理加离线核对。假设读者要求分钟级更新，又接受短暂陈旧，后者更符合目标，但仍需验证运行成本。</p>
+<table>
+<thead>
+<tr>
+<th>决策维度</th>
+<th>周期性全量批处理</th>
+<th>持续流处理加离线核对</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>新鲜度</td>
+<td>受运行周期和全量计算时间限制</td>
+<td>持续更新，受积压与迟到影响</td>
+</tr>
+<tr>
+<td>恢复</td>
+<td>重跑任务与切换完整结果</td>
+<td>检查点、重放、幂等输出与重算</td>
+</tr>
+<tr>
+<td>成本</td>
+<td>峰值扫描资源与周期调度</td>
+<td>常驻处理资源与状态存储</td>
+</tr>
+<tr>
+<td>复杂度</td>
+<td>任务与结果版本较集中</td>
+<td>事件时间、状态与两条链路核对</td>
+</tr>
+</tbody></table>
+<p>选择持续流处理，获得更及时的更新和局部重放能力，同时承担常驻资源、状态管理与核对责任；跨系统副作用只执行一次的保证仍需单独设计。可接受风险包括有界迟到、临时积压和规则修正期间的短暂差异。验证指标应包括端到端新鲜度、重放耗时、重算差异和资源成本；无法稳定满足更新目标或成本预算时，应重新评估窗口、输出要求或处理方案。</p>
+<h2 id="阅读资源与后续实践"><a href="#阅读资源与后续实践" class="headerlink" title="阅读资源与后续实践"></a>阅读资源与后续实践</h2><p>中文阅读可使用 Vonng 的翻译仓库；其章节组织和版本应结合原书核对。<a href="#ref-11">[11]</a> 需要深入某个协议或论文时，可以从原书参考文献仓库寻找原始来源。<a href="#ref-12">[12]</a></p>
+<p>实际工作中，可以选一个数据链路，先画出权威源、副本和派生视图，再分别走一遍正常写入、响应丢失、副本切换和历史重放。每次都记录成功确认的条件、可能出现的中间状态及恢复责任，然后用 <a href="/2026/04/04/system-design/05-architecture-code-review-checklist/" title="工程评审清单：架构、设计、代码与上线检查">工程评审清单：架构、设计、代码与上线检查</a> 复核方案。</p>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ol>
+<li><a id="ref-1"></a> <a href="https://dataintensive.net/">Designing Data-Intensive Applications</a>；Martin Kleppmann，第一版，O’Reilly Media，2017；本文按第一版主题组织。</li>
+<li><a id="ref-2"></a> <a href="https://www.mongodb.com/docs/manual/core/transactions/">Transactions</a>；MongoDB，官方文档；访问日期：2026-10-12。</li>
+<li><a id="ref-3"></a> <a href="https://github.com/CodisLabs/codis">Codis</a>；CodisLabs，项目仓库；历史架构学习资料；访问日期：2026-10-12。</li>
+<li><a id="ref-4"></a> <a href="https://kafka.apache.org/41/configuration/producer-configs/">Producer Configs</a>；Apache Software Foundation，Kafka 4.1 文档；访问日期：2026-10-12。</li>
+<li><a id="ref-5"></a> <a href="https://kafka.apache.org/41/configuration/topic-configs/">Topic Configs</a>；Apache Software Foundation，Kafka 4.1 文档；访问日期：2026-10-12。</li>
+<li><a id="ref-6"></a> <a href="https://www.elastic.co/docs/deploy-manage/distributed-architecture/reading-and-writing-documents">Reading and writing documents</a>；Elastic，官方文档；访问日期：2026-10-12。</li>
+<li><a id="ref-7"></a> <a href="https://www.elastic.co/docs/manage-data/data-store/near-real-time-search">Near real-time search</a>；Elastic，官方文档；访问日期：2026-10-12。</li>
+<li><a id="ref-8"></a> <a href="https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-indices-split">Split an index</a>；Elastic，Elasticsearch API 文档；访问日期：2026-10-12。</li>
+<li><a id="ref-9"></a> <a href="https://zookeeper.apache.org/doc/current/zookeeperProgrammers.html">ZooKeeper Programmer’s Guide</a>；Apache Software Foundation，官方文档；访问日期：2026-10-12。</li>
+<li><a id="ref-10"></a> <a href="https://zookeeper.apache.org/doc/current/zookeeperInternals.html">ZooKeeper Internals</a>；Apache Software Foundation，官方文档；访问日期：2026-10-12。</li>
+<li><a id="ref-11"></a> <a href="https://github.com/Vonng/ddia">DDIA 中文翻译</a>；Vonng 及贡献者，翻译仓库；访问日期：2026-10-12。</li>
+<li><a id="ref-12"></a> <a href="https://github.com/ept/ddia-references">References from Designing Data-Intensive Applications</a>；Martin Kleppmann，原书参考文献仓库。</li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/" rel="tag"># 数据库</a>
+              <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/" rel="tag"># 分布式系统</a>
+              <a href="/tags/DDIA/" rel="tag"># DDIA</a>
+              <a href="/tags/%E6%95%B0%E6%8D%AE%E7%B3%BB%E7%BB%9F/" rel="tag"># 数据系统</a>
+              <a href="/tags/%E4%B8%80%E8%87%B4%E6%80%A7/" rel="tag"># 一致性</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2026/10/10/system-design/07-engineering-diagrams-ai-workflow/" rel="prev" title="工程师绘图：用电商案例讲清选图、规范与 AI 协作">
+                  <i class="fa fa-angle-left"></i> 工程师绘图：用电商案例讲清选图、规范与 AI 协作
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2026/10/12/other/04-future-predictions-career-opportunities/" rel="next" title="硅谷未来预测：哪些经得起检验，普通人如何抓住机会">
+                  硅谷未来预测：哪些经得起检验，普通人如何抓住机会 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":{"light":"default","dark":"dark"},"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js","integrity":"sha256-stuqcu2FrjYCXDOytWFA5SoUE/r3nkp6gTglzNSlavU="}}</script>
+  <script src="/js/third-party/tags/mermaid.js"></script>
+
+
+
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+
+</body>
+</html>
