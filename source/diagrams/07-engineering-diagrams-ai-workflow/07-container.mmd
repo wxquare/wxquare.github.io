@@ -1,14 +1,29 @@
-flowchart LR
-  Web["Web App · Vue"]
-  Api["BFF · Node.js"]
-  Order["订单应用 · Java"]
-  Pricing["计价应用 · Java"]
-  Pay["支付应用 · Java"]
-  ODB[("订单库 · MySQL")]
-  PDB[("支付库 · MySQL")]
-  Web -->|HTTPS| Api
-  Api -->|HTTP 提交订单| Order
-  Order -->|HTTP 获取报价| Pricing
-  Order -->|HTTP 创建支付意图| Pay
-  Order -->|SQL| ODB
-  Pay -->|SQL| PDB
+---
+title: 电商平台下单与支付：容器视图
+---
+flowchart TB
+  accTitle: 电商平台下单与支付容器视图
+  accDescr: 教学目标设计，展示应用职责、存储所有权和通信。省略营销、履约与外部支付渠道细节，不表达部署副本。
+  subgraph Scope["平台内部 · To-be 教学设计 · 非部署拓扑"]
+    direction TB
+    Web["买家端 · Vue 应用<br/>提交订单与确认支付"]
+    Api["BFF · Node.js 应用<br/>适配买家端接口"]
+    Order["订单应用 · Java<br/>接受报价与推进订单状态"]
+    Pricing["计价应用 · Java<br/>提供版本化报价"]
+    Inventory["库存应用 · Java<br/>管理库存预留"]
+    Pay["支付应用 · Java<br/>管理支付意图与支付事实"]
+    ODB[("订单库 · MySQL<br/>订单、成交快照与 Outbox")]
+    PDB[("支付库 · MySQL<br/>支付单与渠道交易事实")]
+    Web -->|HTTPS 提交操作| Api
+    Api -->|HTTP 提交订单| Order
+    Api -->|HTTP 确认支付| Pay
+    Order -->|HTTP 校验报价| Pricing
+    Order -->|HTTP 预留库存| Inventory
+    Order -->|HTTP 创建支付意图| Pay
+    Pay -->|HTTP 通知支付结果| Order
+    Order -->|SQL 保存订单事实| ODB
+    Pay -->|SQL 保存支付事实| PDB
+  end
+  Legend["图例：矩形为应用，圆柱为数据存储<br/>实线箭头表示请求方向，标签为协议与动作<br/>省略营销、履约、外部渠道及部分存储"]
+  Scope ~~~ Legend
+  style Legend fill:#ffffff,stroke:#739699,stroke-dasharray:4 4
