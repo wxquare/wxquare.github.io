@@ -64,6 +64,8 @@ npm run build
 
 ## Review checklist
 
+Use [the article review and quality scoring standard](docs/review-checklist.md) for blog content review, publication gates, and evidence-based scoring. Writing and placement rules remain in `AGENTS.md`.
+
 Before opening a PR, confirm:
 
 - source files were edited instead of generated files

@@ -1,6 +1,6 @@
 # AGENTS.md
 
-本文件是仓库内唯一的 AI 协作入口和规范源。与 AI 开发指导、协作约束、工具工作流相关的规则，统一维护在这里，不再拆散到 `CLAUDE.md`、`README-AI-SETUP.md`、`README-CURSOR-USAGE.md`。其他入口只能引用本文件或执行其中定义的流程，不得复制规范。
+本文件是仓库内唯一的 AI 协作入口和协作规范源。文章审查与质量评分的专项标准统一维护在 [`docs/review-checklist.md`](docs/review-checklist.md)。与 AI 开发指导、协作约束、工具工作流相关的规则，统一维护在这里，不再拆散到 `CLAUDE.md`、`README-AI-SETUP.md`、`README-CURSOR-USAGE.md`。其他入口只能引用本文件或执行其中定义的流程，不得复制规范。
 
 ## 1. 项目定位
 
@@ -180,7 +180,7 @@ http://localhost:4000
 
 规则职责边界：
 
-- `AGENTS.md` 是唯一规范源，维护分类、教程、Front Matter、标签、图片、命名和质量要求。
+- `AGENTS.md` 是协作与写作规范源，维护分类、教程、Front Matter、标签、图片和命名；`docs/review-checklist.md` 是文章审查与质量评分的唯一标准。
 - `.agents/cursor/rules/` 只负责让 Cursor 加载 `AGENTS.md` 的相关章节。
 - `.agents/skills/` 与 `.agents/commands/` 只负责执行步骤、输入输出和命令；需要判断规范时回读 `AGENTS.md`。
 
@@ -247,20 +247,7 @@ Cursor 侧通过 `.agents/cursor/rules/` 和自然语言提示完成同类任务
 
 ### 7.2 文章审查
 
-审查至少覆盖以下维度：
-
-- Front Matter 完整性
-- 内容结构
-- 代码块语言标注
-- 格式规范
-- 技术准确性
-- SEO 与标签
-- 可读性
-- 链接有效性
-
-详细检查清单见：
-
-- `.agents/templates/review-checklist.md`
+审查清单、发布门槛、六维质量评分和报告格式统一遵循 [博客文章审查与质量评分标准](docs/review-checklist.md)。审查技能和专项助手只执行该标准，不另行维护评分规则；目录、格式、引用和构建要求仍以本文件相关章节为准。
 
 ### 7.3 摘要与 SEO
 
@@ -596,5 +583,5 @@ npm run build:books
 
 - `CONTRIBUTING.md`：开源贡献流程
 - `.agents/cursor/rules/`：Cursor 适配入口
-- `.agents/templates/review-checklist.md`：审查清单
+- [`docs/review-checklist.md`](docs/review-checklist.md)：文章审查清单、发布门槛与质量评分标准
 - `AGENTS.md`：Agent 内容地图、维护边界与内容落点整理

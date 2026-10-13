@@ -10,6 +10,7 @@
 | [公开参考资料库](./source/library/index.md) | 浏览公开且适合公开保存的第三方技术资料及原始来源 |
 | [AI Engineering：大模型与智能体系统工程](./books/ai-book/src/README.md) | 从模型原理、基础设施到 Agent 应用与生产治理的系统化专题 |
 | [AGENTS.md](./AGENTS.md) | 仓库内 Agent 内容开发、维护边界与人机协作规范 |
+| [文章审查与质量评分标准](./docs/review-checklist.md) | Review checklist、发布门槛、六维评分与统一评审报告 |
 | [CONTRIBUTING.md](./CONTRIBUTING.md) | 开源贡献流程与改动边界 |
 | [可靠系统设计与电商架构](./books/reliable-system-design/src/README.md) | 面向中高级工程师的系统设计、电商架构与可靠性实战 |
 
