@@ -1048,6 +1048,8 @@ Kafka 的分区日志提供分区内顺序，不等于所有业务消息全局�
 
 扩展练习可从短链接、文件同步和消息服务中选择一个，复用同样的输出要求；题目与历史案例线索见 System Design Primer。[[8]](#ref-8) 方案进入开发或发布前，可使用 {% post_link system-design/05-architecture-code-review-checklist %} 复核。
 
+方案评估还可对照 NASA 的系统设计流程、AWS 与 Azure 的 Well-Architected 框架，以及 Microsoft 对容量规划的说明。[[20]](#ref-20) [[21]](#ref-21) [[22]](#ref-22) [[23]](#ref-23) [[24]](#ref-24)
+
 ## 参考资料
 
 1. <a id="ref-1"></a> [Implementing SLOs](https://sre.google/workbook/implementing-slos/)；Google SRE，2018。
@@ -1069,6 +1071,12 @@ Kafka 的分区日志提供分区内顺序，不等于所有业务消息全局�
 17. <a id="ref-17"></a> [Cache-Aside Pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/cache-aside)；Microsoft，Azure Architecture Center；访问日期：2026-10-12。
 18. <a id="ref-18"></a> [Transactional outbox pattern](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html)；AWS，Prescriptive Guidance；访问日期：2026-10-12。
 19. <a id="ref-19"></a> [Design: Message Delivery Semantics](https://kafka.apache.org/41/design/design/)；Apache Software Foundation，Kafka 4.1 文档；访问日期：2026-10-12。
+
+20. <a id="ref-20"></a> [4.0 System Design Processes](https://www.nasa.gov/reference/4-0-system-design-processes/)；NASA Systems Engineering Handbook。访问日期：2026-10-13。
+21. <a id="ref-21"></a> [AWS Well-Architected](https://aws.amazon.com/architecture/well-architected/)；Amazon Web Services。访问日期：2026-10-13。
+22. <a id="ref-22"></a> [Azure Well-Architected Framework](https://learn.microsoft.com/en-us/azure/well-architected/)；Microsoft Learn。访问日期：2026-10-13。
+23. <a id="ref-23"></a> [Architecture strategies for capacity planning](https://learn.microsoft.com/en-us/azure/well-architected/performance-efficiency/capacity-planning)；Microsoft Learn。访问日期：2026-10-13。
+24. <a id="ref-24"></a> [Capacity](https://microsoft.github.io/code-with-engineering-playbook/non-functional-requirements/capacity/)；Microsoft Engineering Fundamentals Playbook。访问日期：2026-10-13。
 
 其他延伸阅读：
 - https://github.com/Vonng/ddia

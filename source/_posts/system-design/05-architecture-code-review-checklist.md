@@ -1028,8 +1028,18 @@ func TestPlaceOrder_OutOfStock(t *testing.T) {
 
 3. <a id="ref-3"></a> [CQRS](https://martinfowler.com/bliki/CQRS.html)；Martin Fowler，2011；读写模型分离与适用边界。
 
----
+4. <a id="ref-4"></a> [The Standard of Code Review](https://google.github.io/eng-practices/review/reviewer/standard.html)；Google Engineering Practices；访问日期：2026-10-13。
+
+5. <a id="ref-5"></a> [The review process](https://docs.aws.amazon.com/wellarchitected/latest/framework/the-review-process.html)；AWS Well-Architected Framework；访问日期：2026-10-13。
+
+6. <a id="ref-6"></a> [Design Reviews](https://microsoft.github.io/code-with-engineering-playbook/design/design-reviews/)；Microsoft Engineering Fundamentals Playbook；访问日期：2026-10-13。
+
+7. <a id="ref-7"></a> [ATAM: Method for Architecture Evaluation](https://www.sei.cmu.edu/library/atam-method-for-architecture-evaluation/)；CMU Software Engineering Institute，2000；访问日期：2026-10-13。
+
+8. <a id="ref-8"></a> [Design review checklist for Performance Efficiency](https://learn.microsoft.com/en-us/azure/well-architected/performance-efficiency/checklist)；Microsoft Learn；访问日期：2026-10-13。
 
 ## 总结
 
 系统化的 Code Review 不是挑剔，而是**把重构前移到成本最低的阶段**。按 **架构 → 设计 → 代码 → 上线前** 四段清单推进，并与 {% post_link system-design/03-clean-code-practice %}、{% post_link system-design/04-ddd-pricing-practice %}、{% post_link system-design/02-clean-architecture-ddd-cqrs %} 交叉引用，团队可以在一致的语言下讨论分层、边界与实现细节。建议把本文的「附录快速参考」嵌入 MR 模板，并在复盘时根据失效案例**增补你们自己的第 21 条**——最好的 Checklist 永远是活文档。
+
+评审方法还可对照 Google 的代码审查标准、AWS 的持续架构评审流程和 Microsoft 的设计评审实践；SEI ATAM 与 Azure 性能设计清单则补充质量属性权衡和性能验收视角。[[4]](#ref-4) [[5]](#ref-5) [[6]](#ref-6) [[7]](#ref-7) [[8]](#ref-8)

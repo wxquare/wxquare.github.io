@@ -1535,7 +1535,7 @@ On-Call 是 SRE/运维团队的核心职责，负责生产环境的故障响应�
 - **完善 Runbook**：标准化处理流程
 - **定期演练**：保持团队能力
 
----
+可靠性治理还可结合 Google SRE 的风险管理、SLO 告警、On-Call、事件响应和 Production Readiness Review 资料，进一步校准错误预算、响应职责与上线准备。[[12]](#ref-12) [[13]](#ref-13) [[14]](#ref-14) [[15]](#ref-15) [[16]](#ref-16)
 
 ## 参考资料
 
@@ -1560,3 +1560,13 @@ On-Call 是 SRE/运维团队的核心职责，负责生产环境的故障响应�
 10. <a id="ref-10"></a> [Implementing SLOs](https://sre.google/workbook/implementing-slos/)；Google SRE，2018；核验于 2026-10-12。
 
 11. <a id="ref-11"></a> [ChaosBlade](https://chaosblade.io/)；ChaosBlade 项目，官方站点；故障注入能力与文档入口；核验于 2026-10-12。
+
+12. <a id="ref-12"></a> [Embracing Risk](https://sre.google/sre-book/embracing-risk/)；Marc Alvidrez，Google SRE；访问日期：2026-10-13。
+
+13. <a id="ref-13"></a> [Alerting on SLOs](https://sre.google/workbook/alerting-on-slos/)；Google SRE Workbook；访问日期：2026-10-13。
+
+14. <a id="ref-14"></a> [On-Call](https://sre.google/workbook/on-call/)；Google SRE Workbook；访问日期：2026-10-13。
+
+15. <a id="ref-15"></a> [Incident Response](https://sre.google/workbook/incident-response/)；Google SRE Workbook；访问日期：2026-10-13。
+
+16. <a id="ref-16"></a> [The Evolving SRE Engagement Model](https://sre.google/sre-book/evolving-sre-engagement-model/)；Acacio Cruz、Ashish Bhambhani，Google SRE；含 Production Readiness Review（PRR）流程；访问日期：2026-10-13。

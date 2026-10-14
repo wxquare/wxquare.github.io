@@ -221,6 +221,8 @@ ZooKeeper 的写操作是线性一致的，普通读不能因此自动获得同�
 
 实际工作中，可以选一个数据链路，先画出权威源、副本和派生视图，再分别走一遍正常写入、响应丢失、副本切换和历史重放。每次都记录成功确认的条件、可能出现的中间状态及恢复责任，然后用 {% post_link system-design/05-architecture-code-review-checklist %} 复核方案。
 
+继续追踪复制和可重放日志时，可阅读 Kleppmann 对日志式数据基础设施的原作者讲解，再对照 PostgreSQL、Kafka 和 MongoDB 的官方复制文档，比较各系统实际提供的机制与边界。[[13]](#ref-13) [[14]](#ref-14) [[15]](#ref-15) [[16]](#ref-16) [[17]](#ref-17)
+
 ## 参考资料
 
 1. <a id="ref-1"></a> [Designing Data-Intensive Applications](https://dataintensive.net/)；Martin Kleppmann，第一版，O'Reilly Media，2017；本文按第一版主题组织。
@@ -235,3 +237,13 @@ ZooKeeper 的写操作是线性一致的，普通读不能因此自动获得同�
 10. <a id="ref-10"></a> [ZooKeeper Internals](https://zookeeper.apache.org/doc/current/zookeeperInternals.html)；Apache Software Foundation，官方文档；访问日期：2026-10-12。
 11. <a id="ref-11"></a> [DDIA 中文翻译](https://github.com/Vonng/ddia)；Vonng 及贡献者，翻译仓库；访问日期：2026-10-12。
 12. <a id="ref-12"></a> [References from Designing Data-Intensive Applications](https://github.com/ept/ddia-references)；Martin Kleppmann，原书参考文献仓库。
+
+13. <a id="ref-13"></a> [Using logs to build a solid data infrastructure (or: why dual writes are a bad idea)](https://martin.kleppmann.com/2015/05/27/logs-for-data-infrastructure.html)；Martin Kleppmann，2015；访问日期：2026-10-13。
+
+14. <a id="ref-14"></a> [Turning the database inside out with Apache Samza](https://martin.kleppmann.com/2015/03/04/turning-the-database-inside-out.html)；Martin Kleppmann，2015；访问日期：2026-10-13。
+
+15. <a id="ref-15"></a> [Logical Replication](https://www.postgresql.org/docs/current/logical-replication.html)；PostgreSQL 官方文档；访问日期：2026-10-13。
+
+16. <a id="ref-16"></a> [Design: Message Delivery Semantics](https://kafka.apache.org/41/design/design/)；Apache Software Foundation，Kafka 4.1 文档；访问日期：2026-10-13。
+
+17. <a id="ref-17"></a> [Replication](https://www.mongodb.com/docs/manual/replication/)；MongoDB 官方文档；访问日期：2026-10-13。

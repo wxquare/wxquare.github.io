@@ -7282,6 +7282,8 @@ flowchart LR
   M --> S[Senior<br/>DDD / Clean Arch / CQRS]
 ```
 
+Go 代码风格可继续参照 Google 的 Go 风格与最佳实践指南，以及 Go 官方的 Effective Go；检查重构信号和评审尺度时，可再对照 Fowler 对 Code Smell 的说明与 Google 的 Code Review 标准。[[11]](#ref-11) [[12]](#ref-12) [[13]](#ref-13) [[14]](#ref-14) [[15]](#ref-15)
+
 ### 与本专题其他篇目的衔接
 
 认知升级可以概括为三层：**代码级**（函数与命名）、**模块级**（边界、依赖方向、聚合）、**系统级**（上下文映射、限界上下文、读写分离与演进式架构）。Clean Code 解决「这一行好不好懂」；Clean Architecture 与 DDD 回答「这一块该不该存在、跟谁说话、如何独立演进」。
@@ -7311,6 +7313,16 @@ flowchart LR
 9. <a id="ref-9"></a> [Refactoring](https://refactoring.com/)；Martin Fowler，作者维护的重构定义与书籍入口。
 
 10. <a id="ref-10"></a> [INSERT ... ON DUPLICATE KEY UPDATE Statement](https://dev.mysql.com/doc/refman/8.4/en/insert-on-duplicate.html)；Oracle，MySQL 8.4 Reference Manual；核验于 2026-10-12。
+
+11. <a id="ref-11"></a> [Go Style](https://google.github.io/styleguide/go/)；Google Style Guides；访问日期：2026-10-13。
+
+12. <a id="ref-12"></a> [Go Best Practices](https://google.github.io/styleguide/go/best-practices)；Google Style Guides；访问日期：2026-10-13。
+
+13. <a id="ref-13"></a> [Effective Go](https://go.dev/doc/effective_go)；The Go Authors；访问日期：2026-10-13。
+
+14. <a id="ref-14"></a> [Code Smell](https://martinfowler.com/bliki/CodeSmell.html)；Martin Fowler；访问日期：2026-10-13。
+
+15. <a id="ref-15"></a> [The Standard of Code Review](https://google.github.io/eng-practices/review/reviewer/standard.html)；Google Engineering Practices；访问日期：2026-10-13。
 
 ---
 

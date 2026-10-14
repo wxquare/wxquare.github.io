@@ -1000,6 +1000,8 @@ Hohpe 与 Woolf 的 Enterprise Integration Patterns [[21]](#ref-21) 可用于明
 把 DDD 当成不可逆的组织身份意味着抽象没有降低变化成本。修正方案通常会增加一个版本、适配器或校验步骤，但能避免下游以猜测方式解释结果。
 
 
+进一步比较计价与促销的工程边界时，可参考 Dynamics 365、Salesforce 和 Optimizely 的官方价格与促销文档；两篇电商动态定价研究则展示了模型目标和实验评估前提。研究结果不直接定义本文的业务约束，可用于比较价格决策机制与验证方法。[[27]](#ref-27) [[28]](#ref-28) [[29]](#ref-29) [[30]](#ref-30) [[31]](#ref-31)
+
 ## 总结与参考资料
 
 DDD 的主线是把业务知识变成共同语言、明确边界和可执行模型。战略设计决定价格、营销、商品、用户与订单分别拥有何种事实；战术设计让值对象、聚合、领域服务、仓储和事件各守一类责任；架构则保护这些决定不被数据库、协议和分布式机制反向控制。
@@ -1059,3 +1061,13 @@ DDD 的主线是把业务知识变成共同语言、明确边界和可执行模�
 25. <a id="ref-25"></a> [Microservices Patterns](https://microservices.io/)；Chris Richardson，2018。
 
 26. <a id="ref-26"></a> [Builders’ Library](https://aws.amazon.com/builders-library/)；AWS，持续维护。
+
+27. <a id="ref-27"></a> [Commerce pricing APIs](https://learn.microsoft.com/en-us/dynamics365/commerce/pricing-apis)；Microsoft Learn；访问日期：2026-10-13。
+
+28. <a id="ref-28"></a> [Salesforce Commerce Pricing and Promotions APIs](https://developer.salesforce.com/docs/commerce/salesforce-commerce/guide/b2b-d2c-comm-pricing-promotions-apis.html)；Salesforce Developers；访问日期：2026-10-13。
+
+29. <a id="ref-29"></a> [Promotion engine](https://docs.optimizely.com/commerce-connect-14/docs/promotions-engine)；Optimizely Commerce Connect 14 文档；访问日期：2026-10-13。
+
+30. <a id="ref-30"></a> [Dynamic Pricing on E-commerce Platform with Deep Reinforcement Learning: A Field Experiment](https://arxiv.org/abs/1912.02572)；Jiaxi Liu、Yidong Zhang、Xiaoqing Wang、Yuming Deng、Xingyu Wu，2019；arXiv 预印本。
+
+31. <a id="ref-31"></a> [Dynamic Pricing with Volume Discounts in Online Settings](https://arxiv.org/abs/2211.09612)；Marco Mussi、Gianmarco Genalti、Alessandro Nuara、Francesco Trovò、Marcello Restelli、Nicola Gatti，2022；arXiv 预印本。

@@ -1736,6 +1736,8 @@ flowchart TD
 
 它们不是互相替代的关系，而是在不同维度上解决不同问题。在**真正复杂**的业务系统中，三者组合使用能发挥最大价值。
 
+要把概念继续映射到代码边界，可对照 Martin 对 Clean Architecture 的原始说明及 Microsoft 的常见架构和 DDD 微服务实现指南；Fowler 对领域驱动设计与贫血领域模型的文章也有助于判断业务行为应由谁持有。[[7]](#ref-7) [[8]](#ref-8) [[9]](#ref-9) [[10]](#ref-10) [[11]](#ref-11)
+
 **本专题下一篇**：{% post_link system-design/03-clean-code-practice %}（实现层的函数、Pipeline 与整洁习惯）。全系列阅读顺序与评审清单见 {% post_link system-design/05-architecture-code-review-checklist %}。
 
 ## 参考资料
@@ -1751,3 +1753,13 @@ flowchart TD
 5. <a id="ref-5"></a> [CQRS Pattern](https://martinfowler.com/bliki/CQRS.html)；Martin Fowler。
 
 6. <a id="ref-6"></a> [CQRS Pattern - Azure Architecture Center](https://learn.microsoft.com/en-us/azure/architecture/patterns/cqrs)；Microsoft。
+
+7. <a id="ref-7"></a> [The Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)；Robert C. Martin，2012；原作者对依赖规则的阐释；访问日期：2026-10-13。
+
+8. <a id="ref-8"></a> [Common web application architectures](https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/common-web-application-architectures)；Microsoft Learn；访问日期：2026-10-13。
+
+9. <a id="ref-9"></a> [Domain-Driven Design](https://martinfowler.com/bliki/DomainDrivenDesign.html)；Martin Fowler；作者对领域驱动设计的说明；访问日期：2026-10-13。
+
+10. <a id="ref-10"></a> [Anemic Domain Model](https://martinfowler.com/bliki/AnemicDomainModel.html)；Martin Fowler；访问日期：2026-10-13。
+
+11. <a id="ref-11"></a> [Designing a DDD-oriented microservice](https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/ddd-oriented-microservice)；Microsoft Learn；访问日期：2026-10-13。

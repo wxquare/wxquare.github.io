@@ -824,6 +824,8 @@ README 记录图的用途、现状或目标版本、资料依据、待确认问�
 
 最终要形成的不是一种固定画风，而是一套工作习惯：**按问题选图，统一名称和关系，保留资料依据，并随方案变更更新图源。** AI 可以帮助起草、渲染和修改；工程师仍要确认图表达的设计是否正确、风险是否可以接受。
 
+若要继续比较“图回答什么问题”以及图与架构文档如何配合，可参考 Microsoft 的架构图指南、C4 作者与 arc42 维护者对两者关系的说明、AWS 的图示实践和 arc42 方法介绍。[[38]](#ref-38) [[39]](#ref-39) [[40]](#ref-40) [[41]](#ref-41) [[42]](#ref-42)
+
 ## 参考资料
 
 以下官方文档与项目资料的访问日期为 2026-10-10，补充核验日期在对应条目中另行标注。文中的电商图、最小图集和提示词为本文构造的实践示例，不是来源提供的生产架构。
@@ -865,3 +867,13 @@ README 记录图的用途、现状或目标版本、资料依据、待确认问�
 35. <a id="ref-35"></a> Leonardo Capossio，[hdldiagZero](https://github.com/lcapossio/hdldiagZero)。硬件模块、时钟域、总线图与 SVG 几何校验。
 36. <a id="ref-36"></a> Naor Sabag，[OpenHop](https://github.com/naorsabag/openhop)。YAML 流程规格、代码讲解 Skill 与逐步交互演示。
 37. <a id="ref-37"></a> bnomei，[Nereid](https://github.com/bnomei/nereid)。Mermaid 终端工作台、MCP 与会话持久化；采用非商业源码可见许可，使用限制见仓库 LICENSE。
+
+38. <a id="ref-38"></a> [Create architecture design diagrams](https://learn.microsoft.com/en-us/azure/well-architected/architect-role/design-diagrams)；Microsoft Learn；访问日期：2026-10-13。
+
+39. <a id="ref-39"></a> [Question B-17: What about arc42 and C4?](https://faq.arc42.org/questions/B-17/)；arc42 FAQ；访问日期：2026-10-13。
+
+40. <a id="ref-40"></a> [FAQ](https://c4model.com/faq)；Simon Brown，C4 model 官方网站；访问日期：2026-10-13。
+
+41. <a id="ref-41"></a> [How to Design Better AWS Architecture Diagrams](https://builder.aws.com/content/3DttzYU07FWj09CqNczGbfSnYF4/how-to-design-better-aws-architecture-diagrams)；AWS Builder Center；访问日期：2026-10-13。
+
+42. <a id="ref-42"></a> [arc42 method](https://arc42.org/method/)；arc42；访问日期：2026-10-13。
