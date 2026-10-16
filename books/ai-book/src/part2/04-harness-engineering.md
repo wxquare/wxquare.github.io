@@ -807,51 +807,7 @@ LLM-as-Judge 可以评估语义质量，但要注意：
 
 ### Trace 设计
 
-一个可复盘 trace 至少包含：
-
-```json
-{
-  "trace_id": "trace_001",
-  "task_id": "task_001",
-  "user_id": "u123",
-  "workflow_state": "ANALYZING",
-  "model": "gpt-4.1",
-  "prompt_version": "dod_agent_v3",
-  "context_package_id": "ctx_001",
-  "retrieved_context": [
-    {
-      "source": "runbook",
-      "doc_id": "runbook_order_cpu_high",
-      "trust_level": "authoritative"
-    }
-  ],
-  "tool_calls": [
-    {
-      "name": "query_metrics",
-      "args_hash": "sha256:...",
-      "status": "success",
-      "latency_ms": 820,
-      "risk_level": "read_only"
-    }
-  ],
-  "guardrail_results": [
-    {
-      "layer": "tool",
-      "decision": "allow",
-      "reason": "read_only tool"
-    }
-  ],
-  "final_decision": "WAITING_CONFIRM",
-  "failure_category": "none",
-  "token_usage": {
-    "input": 8200,
-    "output": 1200
-  },
-  "cost_usd": 0.18
-}
-```
-
-注意：trace 不一定要记录模型完整推理文本，但必须记录可审计的输入、动作、证据、决策和系统判断。
+可复盘的 Trace 需要关联任务、模型与工具调用、输入输出版本、证据和执行结果，以便定位失败发生在哪一层。Trace 不一定要记录模型完整推理文本，但必须记录可审计的输入、动作、证据、决策和系统判断。
 
 ### 指标分层
 

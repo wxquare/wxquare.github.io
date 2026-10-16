@@ -86,7 +86,7 @@ Prompt → Context → Harness → API / Tools → Knowledge / Memory
 6. **Multi-Agent** 将调查、变更审查和面向业务方的交付拆给不同角色；
 7. **受控持续改进** 将复盘中确认有效的证据规则、Skill 和评测样本，经审核和灰度后纳入系统。
 
-第 28 章会完整展开这一类企业级系统。本章只建立一个判断：从第 3 步开始，系统不再只是“回答问题”；它开始触发或建议行动，因此必须把权限、证据、验证、审批和审计一起设计。
+第 11 章讨论这类任务的持久执行与恢复，第 22 章讨论评估、权限与审计。本章只建立一个判断：从第 3 步开始，系统不再只是“回答问题”；它开始触发或建议行动，因此必须把权限、证据、验证、审批和审计一起设计。
 
 ### 13.1.4 升级边界：何时不应升级为 Agent
 
@@ -826,7 +826,7 @@ flowchart LR
 
 | 核心组件 | 主要职责 | 后续展开 |
 |:---|:---|:---|
-| Event & Intake Router | 接收聊天、API、告警、工单、Webhook、定时任务等入口 | 第21章工作流、第28章 DoD Agent |
+| Event & Intake Router | 接收聊天、API、告警、工单、Webhook、定时任务等入口 | 第21章工作流、第27章 Hermes Agent |
 | Intent Normalizer | 把模糊输入变成结构化任务契约 | 第21章入口路由、第22章输入治理 |
 | Task Planner | 生成可执行、可验证、可修订的计划 | 第21章执行编排 |
 | Context Builder | 组织本轮任务需要的证据和上下文 | 第19章 Agent 知识系统 |
@@ -837,7 +837,7 @@ flowchart LR
 | Agent Loop | 推动观察、决策、行动、修复和停止 | 第21章工作流与平台运行时 |
 | Model Router & Handoff Manager | 管理模型选择、专家委派、多 Agent 协作和跨 Agent 通信 | 第21章多 Agent 与平台架构 |
 | Verifier & Eval Harness | 运行时验证和离线回归评测 | 第22章 Evals |
-| Review Surface、Trace & Audit | 提供可审查输出、过程追踪和审计证据 | 第22章可观测性、第28章实战案例 |
+| Review Surface、Trace & Audit | 提供可审查输出、过程追踪和审计证据 | 第22章可观测性、第27章 Hermes Agent |
 | Learning Loop | 把反馈、失败案例和复盘经验转化为能力演进 | 第20章记忆系统、第22章 Evals、第27章 Hermes |
 
 这些组件不一定都要独立成服务。MVP 可以从一个进程、几张表、几个配置和一套 trace schema 开始。但职责边界最好一开始就清楚：哪些事情由模型推理，哪些事情由 Runtime 裁决，哪些事情由人工确认，哪些事情只能通过评测和灰度后进入生产。
@@ -894,7 +894,7 @@ Event & Intake Router 的职责是把这些入口统一成请求信封，而不�
 
 Event & Intake Router 不应该承担复杂推理。它只负责把“事件从哪里来、谁触发、影响什么、属于什么环境”说清楚。真正的任务理解交给 Intent Normalizer，执行路径交给 Planner 和 Workflow。
 
-这一层很容易被忽略，但它决定 Agent 能不能从聊天机器人走向生产系统。DoD Agent、客服 Agent、运营 Agent 和 Coding Agent 的差异，往往首先体现在入口事件不同，而不是模型不同。
+这一层很容易被忽略，但它决定 Agent 能不能从聊天机器人走向生产系统。知识助手、客服 Agent、运营 Agent 和 Coding Agent 的差异，往往首先体现在入口事件不同，而不是模型不同。
 
 ---
 
