@@ -1,14 +1,12 @@
 # 第5章 模型适配与能力扩展
 
-## 怎样为具体场景定制、压缩或扩展能力？
-
 大模型落地时，团队很少从随机初始化开始训练一个新模型，更常见的问题是：已有基础模型如何适配业务，如何在质量下降可控的前提下降低显存和延迟，如何把文本模型扩展到图像、文档、视频或界面。微调、压缩和多模态看似是三组技术，实际上共享一个工程问题：在有限数据、算力和风险预算下，改变模型的有效能力分布。
 
 本章把“适配”与“部署”区分开。LoRA、QLoRA、量化、蒸馏和视觉语言对齐属于算法层；adapter 动态加载、GPU 调度、模型服务和灰度回滚属于后续 Infra 层。算法层必须给 Infra 提供清晰的权重、精度、输入输出和质量契约，但不把一个 adapter 能否上线误解成单纯的训练成功。
 
 本章的执行顺序是先选型、再训练、再压缩、再扩展模态。具体说，先判断问题应由 Prompt、RAG、工具、工作流还是微调解决；再决定监督信号是示范、偏好还是环境反馈；接着评估 PEFT、QLoRA、量化、蒸馏对质量和成本的影响；最后把多模态能力作为通向第6章物理闭环和空间感知的桥，而不是与文本适配并列的孤立主题。
 
-## 5.1 适配决策：什么时候应该微调
+## 5.1 先诊断问题再选适配方式
 
 ### Prompt、RAG、工具与微调的分工
 
@@ -29,7 +27,7 @@ Fine-tuning：以后更稳定地表现出哪种任务模式
 | 长期行为模式不稳定 | SFT / 偏好优化 | 冻结评估集和线上影子流量提升 | 有可授权数据、可回滚发布和质量门禁 |
 | 成本、延迟或端侧部署受限 | 量化 / 蒸馏 | 单位成功任务成本下降且质量不回退 | 服务路径与目标硬件已验证 |
 
-如果问题是实时库存、当前 owner、最新日志、审批状态或价格，微调不是事实源；如果问题是固定 JSON、工单分类、摘要风格、术语习惯和工具参数格式，微调更有价值。Qwen 技术报告体现了基础模型可以同时覆盖中文、代码和多种任务，但领域应用仍要通过数据和评估决定是否需要进一步适配 [27]。
+如果问题是实时库存、当前 owner、最新日志、审批状态或价格，微调不是事实源；如果问题是固定 JSON、工单分类、摘要风格、术语习惯和工具参数格式，微调更有价值。Qwen 技术报告体现了基础模型可以同时覆盖中文、代码和多种任务，但领域应用仍要通过数据和评估决定是否需要进一步适配 [[1]](#ref-1)。
 
 ### 适合微调的任务特征
 
@@ -43,7 +41,7 @@ Fine-tuning：以后更稳定地表现出哪种任务模式
 
 基线还要包含失败样本分类：知识缺失、任务理解错误、格式不稳、风格不一致、工具参数错误、权限越界和无法判断。只有主要失败来自可学习的行为模式时，才进入微调；如果主要失败来自证据和系统状态，应先修 RAG、工具或工作流。
 
-## 5.2 微调目标与数据工程
+## 5.2 适配数据、训练量与泛化
 
 ### SFT、偏好优化与环境反馈
 
@@ -51,11 +49,11 @@ Fine-tuning：以后更稳定地表现出哪种任务模式
 
 SFT 的目标可以写为：
 
-$$
+\\[
 \mathcal{L}_{SFT}=-\sum_{t\in\mathcal{A}}\log p_\theta(y_t\mid x,y_{<t}),
-$$
+\\]
 
-其中只对 assistant 输出位置 (mathcal{A}) 计算损失。角色边界、工具结果、系统消息和用户输入的 mask 一旦错误，模型可能学习复读用户、泄露隐藏指令或把工具返回内容当成新指令。偏好优化的目标不是复制某个答案，而是让更优答案相对概率提高；环境反馈则要求奖励与真实任务完成有可靠关联。
+其中只对 assistant 输出位置 \\(\mathcal{A}\\) 计算损失；中文教材中的softmax与交叉熵定义可用于复习这个目标。[[2]](#ref-2) 角色边界、工具结果、系统消息和用户输入的 mask 一旦错误，模型可能学习复读用户、泄露隐藏指令或把工具返回内容当成新指令。偏好优化的目标不是复制某个答案，而是让更优答案相对概率提高；环境反馈则要求奖励与真实任务完成有可靠关联。
 
 ### 数据集的分层和切分
 
@@ -65,33 +63,57 @@ $$
 
 ### 数据数量与数据质量
 
-LIMA 的研究说明，少量一致、高质量示范也能产生显著对齐收益 [11]。这不是“数据越少越好”，而是强调样本必须覆盖目标任务、边界和失败模式。Self-Instruct 等方法可以扩展指令覆盖，但生成数据仍需要人工抽样、规则验证和去重，不能把合成数量当作有效监督数量。
+LIMA 在其模型和评估设置中展示了少量精选示范的对齐潜力 [[3]](#ref-3)。这不是“数据越少越好”，而是强调样本必须覆盖目标任务、边界和失败模式。合成指令可以扩展覆盖，但生成数据仍需要人工抽样、规则验证和去重，不能把合成数量当作有效监督数量。
 
 数据混乱的典型表现是：同一个标签有多个定义；同一种错误在不同样本中被不同处理；正确答案的长度和风格差异过大；工具字段名与线上 schema 不一致；安全拒答没有替代方案。模型会忠实地学习这些矛盾，训练 loss 下降并不能消除标注冲突。数据审查应像代码 review 一样保留规则、版本和修改原因。
 
-## 5.3 参数高效微调：PEFT 的设计空间
+### 微调超参数与有效容量
+
+PEFT 参数量很小，不代表训练问题简单。学习率通常可以高于全参微调，但过高会让 adapter 迅速记住模板；rank 决定低秩子空间容量，dropout 提供正则化，target modules 决定可改变的表示位置。不同层对任务的敏感性不同，统一给每层同一个 rank 未必是最优方案。
+
+训练时要观察的不只是总 loss，还要看每类任务、每种语言和每种输出字段的 loss。若训练 loss 下降而冻结测试集不升，常见原因是样本重复、答案泄露、模板过拟合或任务定义不清。若目标任务提升而通用能力下降，说明 adapter 更新过强、数据分布过窄或训练阶段过长。保留通用回放样本和早期 checkpoint，有助于确定退化从何时开始。
+
+LoRA 的有效容量还受到基础模型限制。没有图像输入接口的模型不能仅靠加rank获得像素感知；领域术语和工具模式可能通过数据适配学到，不能先验判定“没有概念就不能学”。底座能力、数据覆盖和可更新层共同限制结果。AdaLoRA 通过按重要性分配 rank 的思路说明，参数预算应投向真正敏感的层 [[4]](#ref-4)，但重要性估计仍需目标数据和独立评估校准。
+
+### 数据泄露与微调记忆
+
+微调数据量小、重复率高，模型可能更容易记住敏感字符串。日志、工单、代码和聊天记录常包含 token、账号、内部 URL、客户标识和个人信息。脱敏不能只用正则，还要处理编码变形、截图文字、代码注释、上下文拼接和间接标识。训练前应做 PII 检测、密钥扫描、权限审计和人工抽样；训练后应做 canary 抽取、提示诱导和长字符串复现测试。
+
+如果业务要求模型输出真实内部字段，应该通过受控工具和权限访问，而不是把字段直接写进权重。微调记忆难以逐条删除，也难以证明某个输出没有来自训练数据。将动态和敏感事实留在外部系统，既方便更新，也方便审计和撤销。
+
+### 中文数据与过拟合的诊断顺序
+
+中文领域要同时审查简繁、异体字、标点、术语缩写、金额单位、日期和中英代码混排。术语切成多个token并不必然损害语义，先测真实长度、截断率和任务切片；扩词表会改动嵌入和输出头及发布兼容性，不是中文适配的默认动作。翻译腔、模板化合成和同文档多版本可能制造虚假的覆盖，应按来源实体去重，并保留时间外样本。
+
+发生训练loss下降、验证收益停滞时，先检查验证独立性、标签定义、assistant mask、长度归一化和评估解码，再查近重复、答案泄露、类别不平衡与模板捷径。之后才调早停、训练轮数、学习率、weight decay、dropout和rank，或混合通用回放。减少训练量不能修复错误标签；反复参与调参的验证集也不能再冒充最终测试集。上文是本书结合第2、3章训练契约给出的排障流程。
+
+小模型全参SFT与大模型LoRA不能只按“可训练参数量”排名：前者改变的空间更自由，但底座能力和推理容量较小；后者保留较强底座，却受增量与线上大权重成本约束。全参允许更新更多方向，不保证更好泛化；LoRA可能节省优化器状态，却未必满足部署显存与延迟。用相同授权任务、数据切分、模板、有效训练token预算和调参预算做受控比较；若tokenizer不同，还应给出相同原始样本和实际token量，不伪称两个预算完全相同。
+
+候选评审同时列目标质量、中文/代码与通用能力、训练资源、制品大小、目标负载尾延迟及单位成功成本。先用质量和延迟硬门槛淘汰，再在可行候选中选成本；大模型LoRA稍好但超时，不能只凭平均分上线。任务变难后可重新评估路由，不把一次选型写成模型规模的普遍规律。
+
+## 5.3 PEFT、LoRA 与 QLoRA
 
 ### Adapter、Prefix 与 Prompt Tuning
 
-Adapter 在冻结主模型层之间插入小型可训练模块，训练参数少，多个任务可以保存为不同 adapter [1]。Prefix tuning 在每层注意力中学习连续前缀，改变模型对输入的条件化方式 [2]；Prompt tuning 只学习输入侧的连续提示，随着模型规模增大表现出更好的参数效率 [3]。
+Adapter 在冻结主模型层之间插入小型可训练模块，训练参数少，多个任务可以保存为不同 adapter [[5]](#ref-5)。Prefix tuning 在每层注意力中学习连续前缀，改变模型对输入的条件化方式 [[6]](#ref-6)；Prompt tuning 只学习输入侧的连续提示，随着模型规模增大表现出更好的参数效率 [[7]](#ref-7)。
 
 这些方法的共同优点是基础权重不变、任务版本隔离、存储成本较小，适合多任务和多租户场景。限制是新增参数的表达能力受位置和结构约束，任务分布与基础模型差距很大时可能学不动；多个 adapter 组合时还会出现冲突、加载顺序和延迟问题。
 
 ### LoRA：低秩更新
 
-LoRA 不直接更新权重矩阵 (W)，而是学习低秩增量：
+LoRA 不直接更新权重矩阵 \\(W\\)，而是学习低秩增量：
 
-$$
+\\[
 W'=W+\frac{\alpha}{r}BA,
-$$
+\\]
 
-其中 (A\in\mathbb{R}^{r\times k})、(B\in\mathbb{R}^{d\times r})，(r) 远小于原矩阵维度。训练时冻结 (W)，只更新 (A,B)，推理时可以合并到权重，也可以作为独立 adapter 动态加载。LoRA 论文说明，许多下游适配的有效更新可以用低秩子空间表达 [4]。
+其中 \\(A\in\mathbb{R}^{r\times k}\\)、\\(B\in\mathbb{R}^{d\times r}\\)，\\(r\\) 远小于原矩阵维度。训练时冻结 \\(W\\)，只更新 \\(A,B\\)，推理时可以合并到权重，也可以作为独立 adapter 动态加载。LoRA 论文说明，许多下游适配的有效更新可以用低秩子空间表达 [[8]](#ref-8)。
 
 LoRA 的关键超参数不是只有 rank。target modules 决定更新哪些投影层，alpha 改变增量尺度，dropout 影响正则化，学习率和数据量决定是否过拟合。只在 q_proj 上加 LoRA 可能节省参数但表达不足；覆盖所有线性层可能提高效果，却增加 adapter 大小、训练成本和部署合并风险。应通过小规模消融比较 rank、层范围、数据比例和通用能力保持。
 
 ### AdaLoRA、IA3、BitFit 与 DoRA
 
-AdaLoRA 根据重要性把 rank 动态分配给不同层，在固定参数预算下优先保留更有用的更新 [7]。IA3 通过学习激活缩放向量实现更轻量的适配 [6]；BitFit 只更新 bias 参数，展示了极少参数也可能改变下游行为 [5]。DoRA 将权重方向和幅度分解，再使用低秩适配方向，试图缩小 LoRA 与全参微调之间的差距 [8]。
+BitFit只更新bias参数 [[9]](#ref-9)；IA3学习激活缩放向量 [[10]](#ref-10)；AdaLoRA根据重要性动态分配rank [[4]](#ref-4)，三者分别约束更新位置、形式与预算。DoRA 将权重方向和幅度分解，再使用低秩适配方向，试图缩小 LoRA 与全参微调之间的差距 [[11]](#ref-11)。
 
 这些方法不是线性升级关系。参数越少，存储和多租户加载越容易，但能表达的任务变化越有限；参数越多，效果可能提高，却更容易过拟合和遗忘。方法选择应围绕目标任务的有效参数预算、adapter 数量、是否需要合并、是否需要热切换和是否存在严格延迟约束。
 
@@ -101,87 +123,117 @@ AdaLoRA 根据重要性把 rank 动态分配给不同层，在固定参数预算
 
 合并多个 LoRA 可能出现方向冲突：一个 adapter 要求回答更简洁，另一个要求更详细；一个领域改变术语含义，另一个领域使用不同标签。应优先使用任务路由和显式组合规则，避免把多个未评估的增量直接相加。合并后的模型必须重新做全量回归，不能沿用任一单 adapter 的分数。
 
-## 5.4 QLoRA 与低精度微调
+### Adapter 合并、组合与隔离
 
-### 量化基础
+LoRA 可以在运行时作为增量加载，也可以合并到基础权重。合并便于使用普通推理 kernel，减少动态分支；独立加载便于多租户切换、灰度和回滚。两条路径可能产生数值差异，尤其当基础模型先被量化、adapter 再合并或权重精度不一致时。
 
-量化把高精度数值映射为低比特表示。对称量化可以写成：
-
-$$
-q=\operatorname{round}(x/s),\qquad \hat{x}=s q,
-$$
-
-其中 scale (s) 控制浮点值到整数网格的映射。实际系统还要决定 per-tensor、per-channel 或 per-group 的粒度，是否处理 outlier，scale 如何存储，以及矩阵乘法使用何种 kernel。
-
-权重、激活和 KV cache 的量化难度不同。权重离线量化后可重复使用，激活受输入分布影响，KV cache 还随上下文动态增长。低比特并不自动等于更快：硬件是否有对应 kernel、解码是否受内存带宽限制、反量化开销是否抵消收益，都需要实测。
+多 adapter 组合需要明确优先级和冲突规则。风格 adapter、领域 adapter、语言 adapter 和安全 adapter 可能修改同一层的相反方向；简单相加不保证语义叠加。可以通过路由选择单一 adapter，也可以在验证数据上学习组合系数，但组合模型必须作为新的版本单独评估。禁止把未经审核的第三方 adapter 直接挂到生产基础模型上，因为它可能改变拒答、工具或数据泄露行为。
 
 ### QLoRA 的训练路径
 
-QLoRA 在 4-bit 量化基础模型上训练 LoRA adapter，并通过 NF4、double quantization 和 paged optimizer 降低显存 [9]。它让较大模型在有限 GPU 上完成适配，但训练精度、量化方案、梯度计算和部署合并之间存在耦合。
+QLoRA 在 4-bit 量化基础模型上训练 LoRA adapter，并通过 NF4、double quantization 和 paged optimizer 降低显存 [[12]](#ref-12)。它让较大模型在有限 GPU 上完成适配，但训练精度、量化方案、梯度计算和部署合并之间存在耦合。
 
 QLoRA 项目至少要区分三份模型：量化基础模型、训练中的 adapter、上线时的合并或动态组合模型。合并后再量化可能产生二次误差；动态加载避免合并，却需要 serving 系统支持 adapter；训练时的 chat template 与线上 template 不一致，也可能被误判为量化退化。最终质量必须在真实推理路径上评估。
 
-### 量化感知的评估
+### 连续提示与权重增量的接口差别
 
-量化误差通常对不同层、不同 token 和不同任务影响不均。困惑度变化很小，不代表代码执行、长上下文、数学和中文混合输入不受影响。应至少报告权重精度、激活精度、校准数据、模型大小、吞吐、显存、p95 延迟和任务分层质量。
+Prompt tuning学习输入侧向量，Prefix tuning在层级注意力中引入连续前缀，LoRA改变选定矩阵的有效权重。前两者需要后端支持相应输入或前缀接口，不能把向量文件当普通文字提示；前缀还可能占用注意力长度和缓存资源。LoRA可在兼容的浮点权重上合并，从而消除独立adapter分支，但动态多租户路径仍需要加载增量。不同方法的缓存键、导出方式和并批限制要分别核对，不能凭“参数很少”断言推理免费。
 
-还要测试极端输入：超长 prompt、罕见中文字符、数字密集文本、代码长行、JSON 深嵌套和高温采样。量化校准集如果只包含普通英文，量化后的模型在目标业务上可能出现不可预测退化。
+QLoRA的NF4是针对近似正态权重设计的非均匀编码，不是INT4等距整数；double quantization压缩量化常数，paged optimizer缓解部分显存峰值。[[12]](#ref-12) 冻结低比特底座，反向仍经过相关计算来更新高精度adapter，不等于所有梯度、激活和优化器都以四位存储。它也不等于在训练中更新全部量化权重的QAT。若先合并再量化与训练路径不同，要把导出版本作为新候选回归。
 
-## 5.5 训练后量化：GPTQ、AWQ、SmoothQuant 与稀疏量化
+## 5.4 量化表示、粒度与误差
+
+### 数值编码不是执行能力
+
+量化需同时说明目标张量、编码、共享scale范围和执行算子。均匀整数仿射量化的基本映射与范围选择可见量化白皮书。[[13]](#ref-13) 以下固定本书教学约定：\\(q=\operatorname{clip}(\operatorname{round}(x/s)+z,q_{min},q_{max})\\)，反量化为 \\(\hat{x}=s(q-z)\\)；\\(s>0\\)是步长，\\(z\\)为整数零点。round的平局规则也必须固定。饱和误差来自截断，范围内的舍入误差来自有限网格，二者要分开观察。
+
+对称有符号教学实现取 \\(Q=2^{b-1}-1\\)，编码范围 \\([-Q,Q]\\)，绝对阈值 \\(a>0\\)时设 \\(s=a/Q,z=0\\)；因此四位示例使用-7到7，明确闲置一个码位，不能与使用-8到7的后端直接比较。全零块约定 \\(s=1,q=0\\)避免除零；非零常数块可用非零绝对值定scale。空块、NaN和Inf应在统计前拒绝并定位，不能悄悄当零。非对称范围要先包含实数零，再按两端与码位求scale和zero point；若两端相等需走常数分支。
+
+权重可离线统计；激活依赖请求，可以离线校准为静态范围，也可按token或批次动态统计；KV随位置和上下文增长，其误差影响后续注意力。W4A16通常表示低位宽权重配较高精度激活，不能推断KV也变成四位。累加精度、归一化、softmax和未覆盖算子要单列，模型文件小并不表示全图都执行低精度乘法。
+
+### 明确共享轴才谈粒度
+
+设线性权重 \\(W\in\mathbb{R}^{M\times K}\\)，行是输出通道。以下布局与账本为本书教学推导，不代表任一导出格式：
+
+| 粒度 | 共享范围 | scale数量 | 主要代价 |
+|:---|:---|:---|:---|
+| per-tensor | 整个矩阵 | 1 | 不同通道被同一极值支配 |
+| per-output-channel | 每行沿K共享 | M | 比tensor多元数据 |
+| row-group | 每行沿K每G个值共享 | \\(M\lceil K/G\rceil\\) | 小组多scale、尾组需定义 |
+| 二维块 | 每块\\(G_m\times G_k\\)共享 | \\(\lceil M/G_m\rceil\lceil K/G_k\rceil\\) | 布局与kernel约束不同 |
+
+row-group在每行内细分时比per-channel细；跨行分组可能反而更粗，所以group并非固定“最细”。沿哪个轴、是否转置、广播规则、尾组padding和对齐都属于配置。激活的channel轴也不能机械照搬权重的输出轴。小组通常减轻局部分布差异，却增加scale、zero-point、索引和反量化开销，不保证更快。
+
+若裸编码位数为b、每组scale占\\(s_b\\)位且zero point占\\(z_b\\)位，则未计padding的有效位宽约为 \\(b+(s_b+z_b)/G\\)。教学例：对称四位、每组128项、半精度16位scale，无零点时约4.125位/权重；这是容量算术，不是文件实测。尾组只有实际元素参与范围估计，padding不得引入伪极值；写盘按真实pack对齐计算，不能直接用这个平均数冒充制品大小。
+
+### 离群值与格式选读
+
+一个极大值可能把整组scale拉大，让多数小值舍入到零。裁掉离群点能改善主体分辨率，却可能损伤少见关键语义；应比较保留异常通道、减小组、混合精度和裁剪，不只比较平均重建误差。若只保存量化码却丢失scale轴或广播规则，即使形状相同也会解出错误模型。
+
+FP8与NVFP4等浮点低精度格式还涉及指数/尾数、块缩放和多级scale；它们不能套用上述整数步长公式。作为版本化选读，查目标设备和库的正式格式说明，并记录编码、块形状、scale dtype/层级、布局、算子与累加精度、软件版本及验证日期。本章没有核验一套FP8/NVFP4支持矩阵，故不写固定块宽、全设备兼容或自动提速结论；第9章应在具体后端证据就绪后补齐。只有名称相同远不足以判定可执行和可互换。
+
+## 5.5 校准与训练后量化
+
+### 四种范围选择优化不同的代理
+
+Wu等比较Max、Percentile和Entropy校准；其结果说明不同网络适合的范围方法不同。[[14]](#ref-14) 本书将一般非对称极值法称minmax，对称情形就是最大绝对值法。下表是方法区别，阈值搜索和误差记录必须与5.4的编码约定绑定：
+
+| 方法 | 范围选择 | 优点 | 风险与需记录项 |
+|:---|:---|:---|:---|
+| minmax | 观测最小/最大；对称取max abs | 覆盖校准观测范围，易实现 | 极值拉大步长；未来输入仍可饱和 |
+| percentile | 对称取绝对值分位；非对称说明双侧分位 | 用裁尾换主体分辨率 | 分位定义、插值、尾部占比；罕见关键值受损 |
+| MSE | 搜索反量化平方误差较小的范围 | 直接比较数值重建 | 对数据频率敏感，不等于任务最优 |
+| KL/entropy | 搜索直方图重建分布损失较小的范围 | 比较分布形状的信息损失 | bin、截断重分配、展开和平滑规则影响结果 |
+
+以下是可复核的教学定义。给定校准值集合和固定候选阈值\\(a\\)，对称量化后计算 \\(E(a)=\frac1N\sum_i(x_i-\hat{x}_i(a))^2\\)，选MSE最小的候选；并列用预定规则，如选较大范围。候选集合只能从校准/开发过程确定。MSE会给较大数值更高平方代价，但大量普通值仍可能压过少数关键值，因此应另报饱和率、最大误差和长尾任务。
+
+KL方法先固定原始直方图p，对各阈值把尾部计数折入边界，将保留区间合并到低位码桶，再按明确规则展开到与p相同的bin支持集，归一化得到\\(q_a\\)。计算 \\(D_{KL}(p\Vert q_a)=\sum_{j:p_j>0}p_j\log(p_j/q_{a,j})\\)后选阈值。若正概率bin对应零\\(q\\)，应记无穷或按约定平滑后重新归一化；不能直接跳过该项。不同实现对零bin分配不同，报告必须保存规则，不能声称只写一个KL式就复现了某后端。
+
+这里KL比较的是激活直方图，不是第3章策略相对参考模型的KL，也不是输出语义正确率。MSE与KL最优阈值可能不同，最终用独立开发任务选型，冻结测试集只用于最终验收。校准数据覆盖中文、代码、数字、工具模板、长上下文与异常输入；分层抽样记录比例，不把私密字符串无限复制进缓存。权重范围统计和激活校准也应区分，GPTQ/AWQ用激活信息并不意味着二者都在量化激活。
 
 ### GPTQ：基于误差补偿的权重量化
 
-GPTQ 使用少量校准数据，逐层选择量化权重，并利用近似二阶信息补偿已经产生的误差 [11]。它适合离线压缩大模型权重，尤其关注在固定 bit 数下保持输出误差。优点是无需重新训练，缺点是量化结果依赖校准数据、group size、排序策略和推理 kernel。
+GPTQ 使用少量校准数据，逐层选择量化权重，并利用近似二阶信息补偿已经产生的误差 [[15]](#ref-15)。它适合离线压缩大模型权重，尤其关注在固定 bit 数下保持输出误差。优点是无需重新训练，缺点是量化结果依赖校准数据、group size、排序策略和推理 kernel。
 
-### AWQ：保护重要权重通道
+### AWQ：激活感知的权重缩放
 
-AWQ 观察到，少量与激活相关的重要权重通道对质量影响更大，通过激活感知缩放保护这些通道，再进行低比特量化 [12]。这体现了一个重要原则：权重量化不能只看权重本身，还要看模型在真实输入上的激活分布。不同业务数据会导致“重要通道”不同，因此公开校准集的最佳 bit 配置未必适合线上。
+AWQ 观察到，与激活相关的部分显著权重通道对质量影响更大，通过等价缩放降低敏感权重的量化误差，而非直接把所有重要权重保留高精度 [[16]](#ref-16)。这体现了一个重要原则：权重量化不能只看权重本身，还要看模型在真实输入上的激活分布。不同业务数据会导致“重要通道”不同，因此公开校准集的最佳 bit 配置未必适合线上。
 
 ### SmoothQuant 与 W8A8
 
-SmoothQuant 把激活中的离群值通过等价变换迁移到权重侧，使权重和激活都更容易做 INT8 量化 [13]。它适合对追求端到端整数矩阵乘法的系统进行优化。难点是平滑系数、校准分布和算子支持；如果某个层或某类输入仍有离群值，整体 W8A8 质量可能显著下降。
+SmoothQuant 把激活中的离群值通过等价变换迁移到权重侧，使权重和激活都更容易做 INT8 量化 [[17]](#ref-17)。它适合对追求端到端整数矩阵乘法的系统进行优化。难点是平滑系数、校准分布和算子支持；如果某个层或某类输入仍有离群值，整体 W8A8 质量可能显著下降。
 
 ### ZeroQuant、LLM.int8 与稀疏格式
 
-LLM.int8 通过混合精度处理异常值，说明极少数 outlier 不能简单与普通通道同样量化 [10]。ZeroQuant 探索训练后低比特量化和硬件友好实现 [14]；SpQR 进一步结合稀疏性和量化，以较低存储成本保留敏感权重 [15]。这些方案的共同挑战是算法格式必须与硬件 kernel、编译器和 serving engine 匹配。
+LLM.int8 通过混合精度处理异常值，说明极少数 outlier 不能简单与普通通道同样量化 [[18]](#ref-18)。ZeroQuant 探索训练后低比特量化和硬件友好实现 [[19]](#ref-19)；SpQR 进一步结合稀疏性和量化，以较低存储成本保留敏感权重 [[20]](#ref-20)。这些方案的共同挑战是算法格式必须与硬件 kernel、编译器和 serving engine 匹配。
 
-### 量化误差从哪里来
+### 方法差别与反量化的成本账本
 
-量化误差不是一个固定常数。它受数值范围、分组大小、离群值、校准数据和算子累积影响。把权重从 FP16 压到 INT4 后，每个 group 共享 scale，group 越大元数据越少，但组内不同权重被迫共用刻度；group 越小误差可能下降，却增加 scale 存储和 kernel 复杂度。对激活量化，还要考虑 batch 中不同请求的输入分布。
+GPTQ优化局部权重误差并补偿，AWQ利用激活统计选择等价缩放，SmoothQuant用输入通道的缩放把激活量化难度迁移到权重。以后者为例，列向量约定下 \\(Wx=(WS)(S^{-1}x)\\)，S是输入通道正对角矩阵；浮点等价不保证两端量化后无误差。平滑缩放轴与最终量化scale轴也不是同一概念。GPTQ/AWQ常见路线以权重低比特为中心，SmoothQuant论文主要面向W8A8；具体组大小与激活粒度依配置而定，不虚构统一后端支持表。[[15]](#ref-15)[[16]](#ref-16)[[17]](#ref-17)
 
-Transformer 不同层对量化敏感度不同。embedding、输出头、注意力投影、归一化和 FFN 的误差传播并不相同；长上下文和低概率 token 可能放大量化误差。工程上可以进行逐层敏感度实验：只量化一层或一组，比较困惑度、代码执行、数学、中文和结构化输出，决定哪些层保留更高精度。全模型统一 INT4 的配置通常只是起点，不是结论。
+低位权重可能减少HBM读取，融合kernel可在片上解包/缩放再参与计算，避免先展开整块浮点权重写回显存。小batch解码若受权重带宽限制，节省传输可能超过反量化成本；大batch复用提高后，计算、布局转换和调度可能更重要。这是解释AWQ类部署为何可能更快的条件，不是算法名字带来的保证。[[16]](#ref-16) 实验需固定质量、形状和负载，分别计pack、scale读取、反量化、矩阵乘法及未量化算子。若某一可减半的传输项原占延迟f，理想总加速仅为 \\(1/(1-f/2)\\)，再扣额外开销；此式为串行时间账本的教学推导。
 
-### 权重量化与 KV Cache 量化
+### 校准练习卡：先实现可检查的范围估计
 
-权重量化通常是离线固定的，适合减少模型存储和读取带宽；KV cache 量化则发生在每个请求中，直接影响长上下文并发。KV 中的异常值、位置分布和不同层敏感性会让简单 INT8 或 INT4 产生任务退化。若将 KV 放到更低精度，必须比较首 token、长输出、检索位置、代码上下文和多轮对话。
+输入为有限浮点数组、b、共享轴/组、对称选项及分位参数；先只实现上述对称minmax和绝对值percentile，再扩展非对称双尾。输出阈值、scale、零点、量化码、反量化值、饱和率、MSE和元数据位数，并保存分位插值及round约定。用同一数组比较两法，不能为每法更换输入分布。
 
-权重压缩和 cache 压缩还会相互影响容量预算：权重变小后，服务可能容纳更多请求，但更高并发会使 KV 成为主瓶颈；KV 变小后可以提高并发，却可能增加反量化和带宽开销。最终指标应是目标流量下的单位成功成本和尾延迟，而不是单独的模型文件大小。
+边界至少包括全零、非零常数、正负不对称、单个强离群点、长度不足G和不整除G的尾组；空输入、NaN/Inf要明确失败。以手工小数组核对每个码，再确认组间广播不串行。拓展实现MSE阈值搜索与直方图KL，检查零概率与归一化。练习只规定输入输出和验收，尚无配套代码、模型量化或GPU实测；不要用一次数组误差下降声称模型成功。
 
-### 量化校准数据
-
-校准集不需要覆盖全部训练语料，但必须代表真实输入的长度、语言、代码、数字、结构化格式和多模态提示。只用短英文句子校准的模型，可能在中文日志、长 SQL、JSON 或图片描述上出现严重误差。校准集也不能包含敏感业务数据而缺乏访问控制。
-
-校准流程应可复现：保存样本清单、tokenizer、预处理、随机种子、校准算法、group size、保留高精度层和导出格式。导出后的模型要经过反序列化和真实 kernel 推理，不要只在 Python 参考实现中评估。不同硬件、驱动和 kernel 可能使用不同舍入和累加精度，部署前必须做端到端回放。
-
-### 压缩与路由
-
-不是所有请求都需要同一精度。低风险短问答可以走 INT4 小模型，复杂代码、长上下文和高风险工具调用可以走更高精度或更强模型。路由需要基于任务难度、证据要求、用户等级和当前容量，并且允许失败后升级。压缩因此不只是把一个模型压小，还包括一组模型、精度和验证策略的组合。
-
-## 5.6 知识蒸馏与小模型路线
+## 5.6 蒸馏与小模型路线
 
 ### Teacher—Student 目标
 
 知识蒸馏让 student 学习 teacher 的软分布，而不仅是硬标签。经典形式为：
 
-$$
-\mathcal{L}=\alpha\mathcal{L}_{hard}+(1-\alpha)T^2D_{KL}(p_T^T\Vert p_S^T),
-$$
+\\[
+\mathcal{L}=\alpha\mathcal{L}_{hard}+(1-\alpha)\tau_{distill}^2D_{KL}(p_{teacher}^{\tau_{distill}}\Vert p_{student}^{\tau_{distill}}),
+\\]
 
-其中 (T) 是温度，teacher 的软概率包含类别相似性和暗知识 [16]。对语言模型，蒸馏可以使用 teacher 的 token 分布、生成轨迹、偏好排序、中间表示或工具动作。
+其中 \\(\tau_{distill}>0\\) 是蒸馏softmax温度，teacher 的软概率包含类别相似性和暗知识 [[21]](#ref-21)。对语言模型，蒸馏可以使用 teacher 的 token 分布、生成轨迹、偏好排序、中间表示或工具动作。
 
 ### DistilBERT、MobileBERT 与生成模型
 
-DistilBERT 通过蒸馏和结构简化降低 encoder 模型成本 [17]；MobileBERT 进一步围绕移动设备的延迟和内存设计结构 [18]。生成式大模型蒸馏则更复杂：student 需要学习长序列概率、停止行为、工具格式和安全边界，teacher 生成的错误和偏好也会被复制。
+DistilBERT 通过蒸馏和结构简化降低 encoder 模型成本 [[22]](#ref-22)；MobileBERT 进一步围绕移动设备的延迟和内存设计结构 [[23]](#ref-23)。这里encoder结果不能直接外推到decoder聊天模型。生成式大模型蒸馏则更复杂：student 需要学习长序列概率、停止行为、工具格式和安全边界，teacher 生成的错误和偏好也会被复制。
 
 蒸馏数据应混合真实数据、teacher 高质量输出和独立验证样本。只用 teacher 生成数据会产生模型自我复制；只用硬标签又浪费 teacher 的软信息。代码蒸馏要运行测试，数学蒸馏要验证答案，工具蒸馏要检查环境状态，不能只比较 token-level loss。
 
@@ -189,25 +241,25 @@ DistilBERT 通过蒸馏和结构简化降低 encoder 模型成本 [17]；MobileB
 
 如果目标是低延迟分类，logit 蒸馏可能足够；如果目标是聊天和代码，轨迹蒸馏更重要；如果目标是 reasoning，必须考虑过程、结果和预算；如果目标是多模态，student 还要学习跨模态对齐。蒸馏不是简单把大模型“缩小”，而是选择哪些能力值得保留、哪些推理成本可以削减。
 
-## 5.7 多模态模型：从视觉编码到统一生成
+## 5.7 多模态输入与能力扩展
 
 ### 图文对齐的起点
 
-CLIP 用图像—文本对比学习把视觉和语言映射到共享空间，展示了大规模弱标注数据可以学习通用视觉语义 [19]。对比损失鼓励正确图文配对相似、错误配对分离，适合检索和零样本分类，但不能直接完成长文本生成和复杂对话。
+CLIP 用图像—文本对比学习把视觉和语言映射到共享空间，展示了大规模弱标注数据可以学习通用视觉语义 [[24]](#ref-24)。对比损失鼓励正确图文配对相似、错误配对分离，适合检索和零样本分类，但不能直接完成长文本生成和复杂对话。
 
-ViLT 直接在 Transformer 中处理图像 patch 与文本 token，减少了重型视觉区域特征的依赖 [20]。这类模型解决的是视觉和语言的联合表示，仍需要额外训练才能稳定完成视觉问答、文档理解、空间关系和指令执行。
+ViLT 直接在 Transformer 中处理图像 patch 与文本 token，减少了重型视觉区域特征的依赖 [[25]](#ref-25)。这类模型解决的是视觉和语言的联合表示，仍需要额外训练才能稳定完成视觉问答、文档理解、空间关系和指令执行。
 
 ### Flamingo、BLIP-2 与连接器
 
-Flamingo 通过冻结视觉编码器和语言模型，引入跨模态层支持少样本视觉语言任务 [21]。BLIP-2 使用 Q-Former 从视觉特征中抽取与语言模型相关的信息，再连接冻结的大语言模型 [22]。它们共同体现了“冻结大模块、训练小连接器”的工程思想：减少训练成本和灾难性遗忘，同时让视觉信息以语言模型能利用的形式进入上下文。
+Flamingo 通过冻结视觉编码器和语言模型，引入跨模态层支持少样本视觉语言任务 [[26]](#ref-26)。BLIP-2 使用 Q-Former 从视觉特征中抽取与语言模型相关的信息，再连接冻结的大语言模型 [[27]](#ref-27)。它们共同体现了“冻结大模块、训练小连接器”的工程思想：减少训练成本和灾难性遗忘，同时让视觉信息以语言模型能利用的形式进入上下文。
 
 连接器的瓶颈在于信息压缩。视觉 token 太少会丢失细节，太多会占用上下文和推理成本；冻结语言模型可能无法理解某些视觉概念；视觉编码器和语言模型的坐标、位置与时间尺度不一致。连接器训练必须配合图文对齐、指令数据和任务评估。
 
 ### LLaVA、Qwen-VL 与视觉指令微调
 
-LLaVA 把视觉特征投影到语言模型输入空间，再使用视觉指令数据训练对话能力 [23]。Qwen-VL 进一步覆盖中文、多语言、细粒度定位和文档理解，展示了中文多模态模型在数据配比和评估上的特殊要求 [24]。这类模型的能力不只来自视觉编码器，还来自图像分辨率、OCR、位置表示、指令质量和语言模型本身。
+LLaVA 把视觉特征投影到语言模型输入空间，再使用视觉指令数据训练对话能力 [[28]](#ref-28)。Qwen-VL 进一步覆盖中文、多语言、细粒度定位和文档理解，展示了中文多模态模型在数据配比和评估上的特殊要求 [[29]](#ref-29)。这类模型的能力不只来自视觉编码器，还来自图像分辨率、OCR、位置表示、指令质量和语言模型本身。
 
-InternVL 等工作探索更高分辨率和更大视觉基础模型，说明视觉 token 数和细节能力存在明显权衡 [25]。高分辨率可以提升小文字和局部目标识别，却增加显存、上下文和延迟；多图和视频还要处理帧采样、时间顺序和跨帧一致性。
+InternVL 等工作探索更高分辨率和更大视觉基础模型，说明视觉 token 数和细节能力存在明显权衡 [[30]](#ref-30)。高分辨率可以提升小文字和局部目标识别，却增加显存、上下文和延迟；多图和视频还要处理帧采样、时间顺序和跨帧一致性。
 
 ### 多模态数据与失败模式
 
@@ -235,31 +287,21 @@ InternVL 等工作探索更高分辨率和更大视觉基础模型，说明视�
 
 ### 多模态微调与文本能力保持
 
-视觉指令微调可能让模型更会描述图片，却损伤纯文本代码和数学能力；高分辨率数据可能提高视觉细节，却增加回答冗长和成本。训练时应保留文本回放集合，并按视觉任务、纯文本、中文、代码和安全分层评估。LLaVA 的视觉指令路线、BLIP-2 的连接器设计和 Qwen-VL 的中文多模态实践，分别说明数据、连接器和语言模型底座都会影响最终能力 [22][23][24]。
+视觉指令微调可能让模型更会描述图片，却损伤纯文本代码和数学能力；高分辨率数据可能提高视觉细节，却增加回答冗长和成本。训练时应保留文本回放集合，并按视觉任务、纯文本、中文、代码和安全分层评估。LLaVA 的视觉指令路线、BLIP-2 的连接器设计和 Qwen-VL 的中文多模态实践，分别说明数据、连接器和语言模型底座都会影响最终能力 [[27]](#ref-27)[[28]](#ref-28)[[29]](#ref-29)。
 
 多模态模型还要做输入缺失测试：只有文本、只有图片、图片损坏、图片尺寸异常、OCR 为空、多图顺序改变、视频帧丢失。模型应能识别输入不足并请求补充，而不是用语言先验填满空白。把这种“正确失败”纳入 SFT 和偏好数据，通常比单纯增加正常图文问答更能提高生产可靠性。
 
-### 微调超参数与有效容量
+### 音频、视频证据与可选创作延伸
 
-PEFT 参数量很小，不代表训练问题简单。学习率通常可以高于全参微调，但过高会让 adapter 迅速记住模板；rank 决定低秩子空间容量，dropout 提供正则化，target modules 决定可改变的表示位置。不同层对任务的敏感性不同，统一给每层同一个 rank 未必是最优方案。
+本书把输入处理视为有损证据链：原文件标识与授权范围、解码、采样/裁剪、感知结果和答案引用要对应。音频转写丢失音调、说话人重叠和非语音事件，需保留时间区间、语言和识别不确定性；不让模型把听不清的金额自动补全。视频抽帧会漏掉短事件，帧的顺序、时间戳和音画同步必须保留；只看到两个端点不能断言中间动作发生。这里描述应用契约，不宣称前述视觉模型都原生支持音频或任意时长视频。
 
-训练时要观察的不只是总 loss，还要看每类任务、每种语言和每种输出字段的 loss。若训练 loss 下降而冻结测试集不升，常见原因是样本重复、答案泄露、模板过拟合或任务定义不清。若目标任务提升而通用能力下降，说明 adapter 更新过强、数据分布过窄或训练阶段过长。保留通用回放样本和早期 checkpoint，有助于确定退化从何时开始。
+图像要保留页码、区域与缩放映射，音频要保留片段与说话人标记，视频要保留帧时间和采样规则。资源超预算时先选择问题相关片段，再标记未观察范围；损坏、缺页、静音、丢帧和模态冲突应返回证据不足。将这些输入故障与生成错误分开，才能决定重采集、换感知工具还是修改语言模型。
 
-LoRA 的有效容量还受到基础模型限制。一个基础模型没有视觉编码、工具协议或领域概念时，仅增加 rank 不会凭空创造这些能力；一个模型已经具备任务能力时，低 rank 可能只需要调整决策边界。AdaLoRA 通过按重要性分配 rank 的思路说明，参数预算应投向真正敏感的层 [7]，但重要性估计仍需目标数据和独立评估校准。
+可选延伸是漫剧资产与人物一致性，属于本书教学设计：把角色设定、服装、参考图/声音、分镜与已验收片段保存为带版本资产；镜头记录所用资产和下游依赖。服装版本改变后，只使受影响镜头和合成产物失效，再按预算局部重算。保存seed与提示提高追溯性，但不保证跨镜头身份或每次相同像素；身份条件是否有效取决于具体生成后端，不能从视觉问答论文推出影视生成能力。
 
-### Adapter 合并、组合与隔离
+片段评估分别检查角色身份、服装与场景、动作连续、音画同步、闪烁、文字可读性和叙事衔接，结合相邻镜头比较及人工抽检，失败镜头单独修复。不要仅由生成模型自评或用单帧美观代替整片验收。完整生成工具、版权范围、可恢复编排和发布授权留给专门项目；本章没有实现全自动创作平台，也不承诺人物一致性保证。
 
-LoRA 可以在运行时作为增量加载，也可以合并到基础权重。合并便于使用普通推理 kernel，减少动态分支；独立加载便于多租户切换、灰度和回滚。两条路径可能产生数值差异，尤其当基础模型先被量化、adapter 再合并或权重精度不一致时。
-
-多 adapter 组合需要明确优先级和冲突规则。风格 adapter、领域 adapter、语言 adapter 和安全 adapter 可能修改同一层的相反方向；简单相加不保证语义叠加。可以通过路由选择单一 adapter，也可以在验证数据上学习组合系数，但组合模型必须作为新的版本单独评估。禁止把未经审核的第三方 adapter 直接挂到生产基础模型上，因为它可能改变拒答、工具或数据泄露行为。
-
-### 数据泄露与微调记忆
-
-微调数据量小、重复率高，模型可能更容易记住敏感字符串。日志、工单、代码和聊天记录常包含 token、账号、内部 URL、客户标识和个人信息。脱敏不能只用正则，还要处理编码变形、截图文字、代码注释、上下文拼接和间接标识。训练前应做 PII 检测、密钥扫描、权限审计和人工抽样；训练后应做 canary 抽取、提示诱导和长字符串复现测试。
-
-如果业务要求模型输出真实内部字段，应该通过受控工具和权限访问，而不是把字段直接写进权重。微调记忆难以逐条删除，也难以证明某个输出没有来自训练数据。将动态和敏感事实留在外部系统，既方便更新，也方便审计和撤销。
-
-## 5.8 适配、压缩和多模态的联合评估
+## 5.8 联合实验与发布契约
 
 ### 质量—成本—风险三维矩阵
 
@@ -267,8 +309,8 @@ LoRA 可以在运行时作为增量加载，也可以合并到基础权重。合
 
 | 方案 | 主要收益 | 主要代价 | 必测项目 |
 |:---|:---|:---|:---|
-| Full FT | 表达能力强 | 成本、遗忘、回滚 | 全量能力回归 |
-| LoRA/QLoRA | 训练和存储低 | adapter 冲突、合并差异 | 动态/合并两条路径 |
+| Full FT | 可更新更多参数方向 | 成本、遗忘、回滚 | 全量能力回归 |
+| LoRA/QLoRA | 可减少可训练状态和增量存储 | adapter 冲突、合并差异 | 动态/合并两条路径 |
 | INT4/GPTQ/AWQ | 显存和带宽下降 | 量化误差、kernel 依赖 | 长上下文和目标数据 |
 | 蒸馏 | 推理成本下降 | 能力损失、错误复制 | teacher-student 对照 |
 | VLM 连接器 | 增加视觉能力 | token、数据和幻觉 | OCR、定位、文档、对齐 |
@@ -277,39 +319,19 @@ LoRA 可以在运行时作为增量加载，也可以合并到基础权重。合
 
 训练时评估的模型可能是 BF16 主权重加 adapter，线上却是合并后 INT4 权重；训练时使用单轮 chat template，线上却是多轮工具模板；训练时图像分辨率固定，线上却是不同尺寸和压缩格式。所有这些差异都可能被误认为数据或模型问题。
 
-因此必须建立真实服务路径的离线回放：使用线上 tokenizer、模板、量化、adapter 加载、采样和 schema 校验，记录同一批输入的输出差异。只有训练路径和服务路径都通过，才能进入 shadow mode。Llama 2 的开放模型实践说明，基础模型、聊天适配、安全评估和发布条件需要联合考虑 [26]。
+因此必须建立真实服务路径的离线回放：使用线上 tokenizer、模板、量化、adapter 加载、采样和 schema 校验，记录同一批输入的输出差异。只有训练路径和服务路径都通过，才能进入 shadow mode。Llama 2 的开放模型实践说明，基础模型、聊天适配、安全评估和发布条件需要联合考虑 [[31]](#ref-31)。
 
-### 适配结果的差异归因
+### 一次完整量化实验的交付规格
 
-当微调模型的结果变化时，不能只比较最终答案。应先把变量拆开：基础模型是否相同，tokenizer 和 chat template 是否相同，数据是否包含重复，adapter 是否合并，量化是否发生在合并前或合并后，采样参数和停止条件是否相同。若这些变量同时变化，任何“提升”或“退化”都没有清晰归因。
+以下是企业知识助手的教学实验方案，尚未运行。固定基础checkpoint及hash、tokenizer、模板、检索证据快照和停止条件，先得到浮点基线；把校准集、调参开发集、最终测试集分开，按文档/事件实体和时间去重切分。测试覆盖中文知识问答、代码片段、工具参数、长上下文和关键数字；RAG证据相同，防止把检索改变归因给量化。
 
-可以采用逐层对照：基础模型与 Prompt baseline；基础模型加 LoRA；LoRA 合并模型；合并后量化模型；量化模型接入真实 serving kernel。每一步都使用同一个冻结评估集，并记录任务质量、模型大小、显存、吞吐、首 token 延迟、每 token 延迟和错误类型。对于多模态，还要固定图片解码、缩放、裁剪、patch 数和 OCR 版本。
+第一轮只改权重精度与粒度，记录tensor/channel/row-group、G、zero point、scale dtype、pack和尾组；第二轮固定可行布局比较校准方法；第三轮再比较敏感层回退及可选激活量化。GPTQ/AWQ内部优化与范围法并非全部可自由互换，不能强行把所有组合放进同一个矩阵。先确认所选实现真正支持该组合，再导出候选，并进行序列化、重载和真实kernel回放。
 
-### 低精度训练的数值稳定性
+每个候选报告制品实际字节、峰值显存、任务通过率、关键切片、困惑度、逐层输出误差、饱和率，以及固定输入输出长度、batch和并发下的TTFT、TPOT、吞吐与p95。区分冷加载、预热后稳态和端到端队列时间，记录设备、驱动、库版本与测量重复次数。将成功任务数作分母计算成本，失败重试也算入；样本数和不确定性与平均指标同时给出。
 
-量化微调不仅是存储问题，也可能影响梯度和优化器状态。基础权重低精度加载，adapter 通常以较高精度训练，前向中的反量化、矩阵乘法和梯度路径需要明确。混合精度下要监控 loss spike、梯度溢出、异常激活和不同数据桶的训练曲线。若训练损失正常但导出模型异常，优先检查导出、合并和 kernel，而不是盲目增加训练轮数。
+若工具参数退化但困惑度正常，先定位相关样本与层，再尝试减小组、放宽裁剪、修正代表性或保留高精度，不能直接加训练轮数。若质量达标但速度变慢，检查反量化、fallback、布局和负载，而非宣布算法无效。门槛在看测试结果前由任务方确定；候选只在开发集选择，最终测试失败应回到开发流程并保留失败版本，不反复偷窥测试直到达标。
 
-训练后还应做权重完整性和版本一致性检查：基础模型 hash、adapter hash、量化配置、校准集版本、导出工具版本和推理库版本必须可追溯。一个看似相同的 INT4 文件，可能因为 group size、zero point、布局和累加精度不同而无法互换。模型注册表应把这些字段作为兼容性条件。
-
-### 多模态资源预算
-
-视觉模型的成本不能只按语言 token 估计。需要同时计算图像编码 FLOPs、视觉 token 数、语言上下文、图片数量、视频帧数、分辨率和缓存命中。多图文档问答可能在视觉编码阶段耗时，长图表解释又可能在语言 decode 阶段耗时；不同请求应使用不同的分辨率、帧采样和模型路由。
-
-如果图片较大，可以先做缩略图和区域候选，再按问题裁剪高分辨率区域；如果文档页数多，可以先用 OCR、版面分析和检索缩小范围；如果视频较长，可以根据时间窗口和事件检测采样。这样的分层处理通常比无条件把全部像素和帧送入大模型更稳定，也更容易解释失败原因。
-
-### 多语言与领域泛化
-
-中文业务常包含中文、英文缩写、代码、数字、日志和表格。微调样本若只使用整洁中文，模型可能在真实混合输入上退化；量化校准若只使用英文，低比特误差可能在中文和代码上放大；多模态数据若只包含自然图像，文档截图和监控面板能力不足。测试集必须按语言、格式、领域和输入模态分层。
-
-模型泛化不等于训练集相似度。应保留时间外数据、不同团队数据、不同模板数据和对抗样本，检查模型是否学到任务规则而不是记住表面字符串。周志华关于训练误差、泛化误差和模型选择的讨论，为这种分层评估提供了基础视角 [30]；中文深度学习教材则可用于复习优化、正则化和表示学习基础 [28][29]。
-
-## 5.9 工程决策与验收清单
-
-### 适配路线
-
-一个稳妥的执行顺序是：先建立 Prompt/RAG/Tool 基线，再做小规模 SFT；若任务行为稳定但偏好不同，加入偏好优化；若显存或成本成为瓶颈，比较 QLoRA、训练后量化和蒸馏；若需要视觉或文档理解，再选择视觉编码器、连接器和视觉指令数据。每一步都必须保留上一版本作为对照。
-
-不要把“训练成功”定义成 loss 下降。验收至少包括任务质量、通用能力、格式协议、长上下文、中文与代码、量化前后、adapter 合并前后、多模态失败和安全边界。高风险工具还要检查权限、幂等、人工审批和回滚。
+最终生成一份版本化制品记录：权重/adapter hash、量化格式和共享轴、校准样本清单hash、方法参数、导出工具、兼容后端、模板、视觉处理、评估与已知失败。只对已测形状和设备声明适用性；影子回放不执行工具副作用，灰度有停止条件并能恢复上一整套配置。服务端的调度与容量细节交给第9章，本章负责可重放的算法候选和验收证据。
 
 ### 发布契约
 
@@ -325,95 +347,73 @@ LoRA 可以在运行时作为增量加载，也可以合并到基础权重。合
 
 回滚不仅是恢复旧权重，还要恢复旧 tokenizer、模板、量化配置、视觉预处理、schema、验证器和路由规则。若只回滚模型文件而保留新模板，可能产生比发布前更隐蔽的协议错误。每个版本都应有明确的兼容矩阵和自动停止条件，严重安全事件、关键任务下降、格式破坏或成本超预算时立即暂停。
 
-### 失败样本回流
-
-线上失败样本应先分类再回流。量化误差、adapter 过拟合、动态事实缺失、视觉 OCR 错误、工具权限错误和用户意图不清，需要不同修复方案。把所有失败都加入 SFT 会让模型记住表面答案，无法解决根因；把所有人工修改都当作偏好，也会把风格差异误判成质量差异。
-
-每轮回流应保留原始输入、模型版本、配置、外部证据、验证结果和人工结论，并进行去重、脱敏和冻结测试集隔离。这样微调、量化和多模态适配才会形成可审计的迭代闭环，而不是一次训练后凭样例判断成功。
-
-最终要把算法参数、数据版本和服务配置作为一个整体验收，不能只验收训练曲线。对后端团队来说，这相当于把模型适配当作一次有契约的服务变更：输入可重放，输出可验证，资源有预算，失败可回滚，敏感数据有边界，版本差异有记录。这样的流程比单独追逐某个微调方法更能决定模型是否真正可用。
-
-因此，适配结果的最终交付物不是一个“能加载的权重”，而是一份包含模型、数据、模板、schema、量化 kernel、视觉预处理、验证器、评估报告和回滚版本的发布契约。只有这份契约清楚，微调、压缩和多模态能力才容易复用、监控、定位和持续改进。
-
-### 本章小结
+## 5.9 本章小结
 
 微调改变稳定的行为模式，RAG 和工具提供动态事实与外部能力；PEFT 通过少量参数实现任务隔离，LoRA/QLoRA 在训练成本和表达能力之间折中；量化和蒸馏降低推理成本，但必须结合真实数据、硬件 kernel 和服务路径评估；多模态模型通过视觉编码器、连接器和指令数据把图像、文档和视频接入语言模型，但视觉感知、语言推理和证据可靠性不能混为一谈。
 
 面向企业落地，最重要的不是选择一个“最先进”的方法，而是让适配目标、数据监督、压缩格式、输入模态、评估指标和发布回滚形成一份完整契约。只有这样，算法优化才会转化为可维护、可观测、可控制的模型能力。
 
-## 参考资料
 
-[1] Houlsby, N., et al. *Parameter-Efficient Transfer Learning for NLP*. ICML, 2019. https://arxiv.org/abs/1902.00757 访问日期：2026-09-22
+## 5.10 参考资料
 
-[2] Li, X. L., & Liang, P. *Prefix-Tuning: Optimizing Continuous Prompts for Generation*. ACL, 2021. https://arxiv.org/abs/2101.00190 访问日期：2026-09-22
+<a id="ref-1"></a>[1] Bai, J., et al. *Qwen Technical Report*. arXiv, 2023. https://arxiv.org/abs/2309.16609 访问日期：2026-10-16
 
-[3] Lester, B., Al-Rfou, R., & Constant, N. *The Power of Scale for Parameter-Efficient Prompt Tuning*. EMNLP, 2021. https://arxiv.org/abs/2104.08691 访问日期：2026-09-22
+<a id="ref-2"></a>[2] Zhang, A., et al. 《动手学深度学习》：softmax回归. 中文在线版2.0.0. https://zh.d2l.ai/chapter_linear-networks/softmax-regression.html 访问日期：2026-10-16
 
-[4] Hu, E. J., et al. *LoRA: Low-Rank Adaptation of Large Language Models*. ICLR, 2022. https://arxiv.org/abs/2106.09685 访问日期：2026-09-22
+<a id="ref-3"></a>[3] Zhou, C., et al. *LIMA: Less Is More for Alignment*. NeurIPS, 2023. https://arxiv.org/abs/2305.11206 访问日期：2026-10-16
 
-[5] Zaken, E. B., Ravfogel, S., & Goldberg, Y. *BitFit: Simple Parameter-efficient Fine-tuning for Transformer-based Masked Language-models*. ACL, 2022. https://arxiv.org/abs/2106.10199 访问日期：2026-09-22
+<a id="ref-4"></a>[4] Zhang, Q., et al. *AdaLoRA: Adaptive Budget Allocation for Parameter-Efficient Fine-Tuning*. ICLR, 2023. https://arxiv.org/abs/2303.10512 访问日期：2026-10-16
 
-[6] Liu, H., et al. *Few-Shot Parameter-Efficient Fine-Tuning is Better and Cheaper than In-Context Learning*. NeurIPS, 2022. https://arxiv.org/abs/2205.05638 访问日期：2026-09-22
+<a id="ref-5"></a>[5] Houlsby, N., et al. *Parameter-Efficient Transfer Learning for NLP*. ICML, 2019. https://arxiv.org/abs/1902.00751 访问日期：2026-10-16
 
-[7] Zhang, Q., et al. *AdaLoRA: Adaptive Budget Allocation for Parameter-Efficient Fine-Tuning*. ICLR, 2023. https://arxiv.org/abs/2303.10512 访问日期：2026-09-22
+<a id="ref-6"></a>[6] Li, X. L., & Liang, P. *Prefix-Tuning: Optimizing Continuous Prompts for Generation*. ACL, 2021. https://arxiv.org/abs/2101.00190 访问日期：2026-10-16
 
-[8] Liu, S.-Y., et al. *DoRA: Weight-Decomposed Low-Rank Adaptation*. ICML, 2024. https://arxiv.org/abs/2402.09353 访问日期：2026-09-22
+<a id="ref-7"></a>[7] Lester, B., Al-Rfou, R., & Constant, N. *The Power of Scale for Parameter-Efficient Prompt Tuning*. EMNLP, 2021. https://arxiv.org/abs/2104.08691 访问日期：2026-10-16
 
-[9] Dettmers, T., et al. *QLoRA: Efficient Finetuning of Quantized LLMs*. NeurIPS, 2023. https://arxiv.org/abs/2305.14314 访问日期：2026-09-22
+<a id="ref-8"></a>[8] Hu, E. J., et al. *LoRA: Low-Rank Adaptation of Large Language Models*. ICLR, 2022. https://arxiv.org/abs/2106.09685 访问日期：2026-10-16
 
-[10] Dettmers, T., et al. *LLM.int8(): 8-bit Matrix Multiplication for Transformers at Scale*. NeurIPS, 2022. https://arxiv.org/abs/2208.07339 访问日期：2026-09-22
+<a id="ref-9"></a>[9] Zaken, E. B., Ravfogel, S., & Goldberg, Y. *BitFit: Simple Parameter-efficient Fine-tuning for Transformer-based Masked Language-models*. ACL, 2022. https://arxiv.org/abs/2106.10199 访问日期：2026-10-16
 
-[11] Frantar, E., et al. *GPTQ: Accurate Post-Training Quantization for Generative Pre-trained Transformers*. arXiv, 2022. https://arxiv.org/abs/2210.17323 访问日期：2026-09-22
+<a id="ref-10"></a>[10] Liu, H., et al. *Few-Shot Parameter-Efficient Fine-Tuning is Better and Cheaper than In-Context Learning*. NeurIPS, 2022. https://arxiv.org/abs/2205.05638 访问日期：2026-10-16
 
-[12] Lin, J., et al. *AWQ: Activation-aware Weight Quantization for LLM Compression and Acceleration*. MLSys, 2024. https://arxiv.org/abs/2306.00978 访问日期：2026-09-22
+<a id="ref-11"></a>[11] Liu, S.-Y., et al. *DoRA: Weight-Decomposed Low-Rank Adaptation*. ICML, 2024. https://arxiv.org/abs/2402.09353 访问日期：2026-10-16
 
-[13] Xiao, G., et al. *SmoothQuant: Accurate and Efficient Post-Training Quantization for Large Language Models*. ICML, 2023. https://arxiv.org/abs/2211.10438 访问日期：2026-09-22
+<a id="ref-12"></a>[12] Dettmers, T., et al. *QLoRA: Efficient Finetuning of Quantized LLMs*. NeurIPS, 2023. https://arxiv.org/abs/2305.14314 访问日期：2026-10-16
 
-[14] Yao, Z., et al. *ZeroQuant: Efficient and Affordable Post-Training Quantization for Large-Scale Transformers*. NeurIPS, 2022. https://arxiv.org/abs/2206.01861 访问日期：2026-09-22
+<a id="ref-13"></a>[13] Nagel, M., et al. *A White Paper on Neural Network Quantization*. arXiv, 2021. https://arxiv.org/abs/2106.08295 访问日期：2026-10-16
 
-[15] Dettmers, T., et al. *SpQR: A Sparse-Quantized Representation for Near-Lossless LLM Weight Compression*. ICLR, 2024. https://arxiv.org/abs/2306.03078 访问日期：2026-09-22
+<a id="ref-14"></a>[14] Wu, H., Judd, P., Zhang, X., Isaev, M., & Micikevicius, P. *Integer Quantization for Deep Learning Inference: Principles and Empirical Evaluation*. arXiv, 2020. https://arxiv.org/abs/2004.09602 访问日期：2026-10-16
 
-[16] Hinton, G., Vinyals, O., & Dean, J. *Distilling the Knowledge in a Neural Network*. NeurIPS Deep Learning Workshop, 2015. https://arxiv.org/abs/1503.02531 访问日期：2026-09-22
+<a id="ref-15"></a>[15] Frantar, E., et al. *GPTQ: Accurate Post-Training Quantization for Generative Pre-trained Transformers*. arXiv, 2022. https://arxiv.org/abs/2210.17323 访问日期：2026-10-16
 
-[17] Sanh, V., Debut, L., Chaumond, J., & Wolf, T. *DistilBERT, a Distilled Version of BERT*. arXiv, 2019. https://arxiv.org/abs/1910.01108 访问日期：2026-09-22
+<a id="ref-16"></a>[16] Lin, J., et al. *AWQ: Activation-aware Weight Quantization for LLM Compression and Acceleration*. MLSys, 2024. https://arxiv.org/abs/2306.00978 访问日期：2026-10-16
 
-[18] Sun, Z., et al. *MobileBERT: a Compact Task-Agnostic BERT for Resource-Limited Devices*. ACL, 2020. https://arxiv.org/abs/2004.02984 访问日期：2026-09-22
+<a id="ref-17"></a>[17] Xiao, G., et al. *SmoothQuant: Accurate and Efficient Post-Training Quantization for Large Language Models*. ICML, 2023. https://arxiv.org/abs/2211.10438 访问日期：2026-10-16
 
-[19] Radford, A., et al. *Learning Transferable Visual Models From Natural Language Supervision*. ICML, 2021. https://arxiv.org/abs/2103.00020 访问日期：2026-09-22
+<a id="ref-18"></a>[18] Dettmers, T., et al. *LLM.int8(): 8-bit Matrix Multiplication for Transformers at Scale*. NeurIPS, 2022. https://arxiv.org/abs/2208.07339 访问日期：2026-10-16
 
-[20] Kim, W., Son, B., & Kim, I. *ViLT: Vision-and-Language Transformer Without Convolution or Region Supervision*. ICML, 2021. https://arxiv.org/abs/2102.03334 访问日期：2026-09-22
+<a id="ref-19"></a>[19] Yao, Z., et al. *ZeroQuant: Efficient and Affordable Post-Training Quantization for Large-Scale Transformers*. NeurIPS, 2022. https://arxiv.org/abs/2206.01861 访问日期：2026-10-16
 
-[21] Alayrac, J.-B., et al. *Flamingo: a Visual Language Model for Few-Shot Learning*. NeurIPS, 2022. https://arxiv.org/abs/2204.14198 访问日期：2026-09-22
+<a id="ref-20"></a>[20] Dettmers, T., et al. *SpQR: A Sparse-Quantized Representation for Near-Lossless LLM Weight Compression*. ICLR, 2024. https://arxiv.org/abs/2306.03078 访问日期：2026-10-16
 
-[22] Li, J., et al. *BLIP-2: Bootstrapping Language-Image Pre-training with Frozen Image Encoders and Large Language Models*. ICML, 2023. https://arxiv.org/abs/2301.12597 访问日期：2026-09-22
+<a id="ref-21"></a>[21] Hinton, G., Vinyals, O., & Dean, J. *Distilling the Knowledge in a Neural Network*. NeurIPS Deep Learning Workshop, 2015. https://arxiv.org/abs/1503.02531 访问日期：2026-10-16
 
-[23] Liu, H., Li, C., Wu, Q., & Lee, Y. J. *Visual Instruction Tuning*. NeurIPS, 2023. https://arxiv.org/abs/2304.08485 访问日期：2026-09-22
+<a id="ref-22"></a>[22] Sanh, V., Debut, L., Chaumond, J., & Wolf, T. *DistilBERT, a Distilled Version of BERT*. arXiv, 2019. https://arxiv.org/abs/1910.01108 访问日期：2026-10-16
 
-[24] Bai, J., et al. *Qwen-VL: A Versatile Vision-Language Model for Understanding, Localization, Text Reading, and Beyond*. arXiv, 2023. https://arxiv.org/abs/2308.12966 访问日期：2026-09-22
+<a id="ref-23"></a>[23] Sun, Z., et al. *MobileBERT: a Compact Task-Agnostic BERT for Resource-Limited Devices*. ACL, 2020. https://arxiv.org/abs/2004.02984 访问日期：2026-10-16
 
-[25] Chen, Z., et al. *InternVL: Scaling up Vision Foundation Models and Aligning for Generic Visual-Linguistic Tasks*. arXiv, 2023. https://arxiv.org/abs/2312.14238 访问日期：2026-09-22
+<a id="ref-24"></a>[24] Radford, A., et al. *Learning Transferable Visual Models From Natural Language Supervision*. ICML, 2021. https://arxiv.org/abs/2103.00020 访问日期：2026-10-16
 
-[26] Touvron, H., et al. *Llama 2: Open Foundation and Fine-Tuned Chat Models*. arXiv, 2023. https://arxiv.org/abs/2307.09288 访问日期：2026-09-22
+<a id="ref-25"></a>[25] Kim, W., Son, B., & Kim, I. *ViLT: Vision-and-Language Transformer Without Convolution or Region Supervision*. ICML, 2021. https://arxiv.org/abs/2102.03334 访问日期：2026-10-16
 
-[27] Bai, J., et al. *Qwen Technical Report*. arXiv, 2023. https://arxiv.org/abs/2309.16692 访问日期：2026-09-22
+<a id="ref-26"></a>[26] Alayrac, J.-B., et al. *Flamingo: a Visual Language Model for Few-Shot Learning*. NeurIPS, 2022. https://arxiv.org/abs/2204.14198 访问日期：2026-10-16
 
-[28] Zhang, A., Lipton, Z. C., Li, M., & Smola, A. V. *Dive into Deep Learning*, 2nd ed., 2023. https://zh.d2l.ai/ 访问日期：2026-09-22
+<a id="ref-27"></a>[27] Li, J., et al. *BLIP-2: Bootstrapping Language-Image Pre-training with Frozen Image Encoders and Large Language Models*. ICML, 2023. https://arxiv.org/abs/2301.12597 访问日期：2026-10-16
 
-[29] 邱锡鹏：《神经网络与深度学习》，机械工业出版社，2020。https://nndl.github.io/ 访问日期：2026-09-22
+<a id="ref-28"></a>[28] Liu, H., Li, C., Wu, Q., & Lee, Y. J. *Visual Instruction Tuning*. NeurIPS, 2023. https://arxiv.org/abs/2304.08485 访问日期：2026-10-16
 
-[30] 周志华：《机器学习》，清华大学出版社，2016。https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm 访问日期：2026-09-22
-## 版本与范围
+<a id="ref-29"></a>[29] Bai, J., et al. *Qwen-VL: A Versatile Vision-Language Model for Understanding, Localization, Text Reading, and Beyond*. arXiv, 2023. https://arxiv.org/abs/2308.12966 访问日期：2026-10-16
 
-微调、检索、量化和蒸馏解决的问题不同：前两者主要改变行为或知识供给，后两者主要改变成本与部署形态。量化精度、硬件支持和多模态模型接口更新很快；截至 **2026-09-21**，任何质量或显存结论都应绑定模型、校准集、dtype、硬件和推理引擎。本章不把“多模态”简化成给文本模型增加图片输入，也不把压缩率等同于业务可用性。
+<a id="ref-30"></a>[30] Chen, Z., et al. *InternVL: Scaling up Vision Foundation Models and Aligning for Generic Visual-Linguistic Tasks*. arXiv, 2023. https://arxiv.org/abs/2312.14238 访问日期：2026-10-16
 
-## 工程决策案例
-
-**场景：** 企业要让内部运维助手理解最新 runbook，并在单张 GPU 上服务。先用 RAG 接入频繁变动、需要引用来源的 runbook；只有当固定格式、术语或工具调用习惯在高质量样本中反复失败时，才训练 LoRA。随后对同一基准分别比较 BF16、量化和 QLoRA 制品的任务成功率、JSON 合法率、TTFT、显存峰值和回归失败样本。
-
-决策规则是：知识过期先更新检索；行为不稳定再考虑 LoRA；显存或成本不达标才评估量化；每次压缩都以任务回归集为门禁。若低比特版本让工具参数错误率上升，即使通用困惑度变化很小，也不能直接替换生产制品。
-
-## 参考资料与延伸阅读
-
-- Hu et al., 2021, [LoRA: Low-Rank Adaptation of Large Language Models](https://arxiv.org/abs/2106.09685)。
-- Dettmers et al., 2023, [QLoRA: Efficient Finetuning of Quantized LLMs](https://arxiv.org/abs/2305.14314)。
-- Lin et al., 2024, [AWQ: Activation-aware Weight Quantization for LLM Compression and Acceleration](https://arxiv.org/abs/2306.00978)。
+<a id="ref-31"></a>[31] Touvron, H., et al. *Llama 2: Open Foundation and Fine-Tuned Chat Models*. arXiv, 2023. https://arxiv.org/abs/2307.09288 访问日期：2026-10-16

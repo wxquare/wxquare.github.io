@@ -1,7 +1,5 @@
 # 第4章 推理期扩展
 
-## 推理时怎样释放或放大能力？
-
 第3章可以把模型塑造成更守指令的协作组件，却不能保证它在复杂问题中一次生成就走对路径。大模型的“推理”不是一个单独的神经网络模块，而是模型、提示、搜索、验证器和推理预算共同形成的过程。自回归模型每次只预测下一个 token，但复杂任务需要先拆解问题、保留中间状态、比较候选路径、检查结果，再决定是否继续。于是，推理算法要回答两个问题：如何从概率分布中生成更好的轨迹，如何用额外计算换取更高的任务成功率。
 
 本章的判断是：推理期扩展以时间、token 和验证成本交换复杂任务成功率；它提升的是候选答案质量，而不是替代事实来源、权限控制或 Serving 可靠性。后训练改变默认行为，推理期扩展决定当前任务如何使用计算，两者必须在任务可验证性和预算约束下协同选择。
@@ -12,49 +10,74 @@
 
 ### 自回归生成的基本范式
 
-给定输入 (x)，语言模型定义一个条件分布：
+\\(x\\) 作为输入时，语言模型定义一个条件分布：
 
-$$
+\\[
 P(y\mid x)=\prod_{t=1}^{T}P(y_t\mid x,y_{<t}).
-$$
+\\]
 
-最初的生成系统通常只取最大概率 token，或者用 beam search 在有限候选中寻找高概率序列。GPT-3 展示了模型可以通过上下文示例执行多种任务 [1]，但也暴露了一个事实：单次 greedy 生成的局部最优，不一定对应全局正确答案。模型可能在早期选错一个前提，后续所有 token 都流畅地围绕错误继续。
+最初的生成系统通常只取最大概率 token，或者用 beam search 在有限候选中寻找高概率序列。GPT-3 展示了模型可以通过上下文示例执行多种任务 [[1]](#ref-1)，但也暴露了一个事实：单次 greedy 生成的局部最优，不一定对应全局正确答案。模型可能在早期选错一个前提，后续所有 token 都流畅地围绕错误继续。
 
 ### CoT 与验证式推理
 
-Chain-of-Thought 通过示范中间步骤，让模型把复杂答案展开成一串可观察的推理文本 [2]。Zero-shot CoT 进一步发现，简单的“逐步思考”提示也能诱导某些模型生成中间过程 [3]。Self-Consistency 不再只取一条思路，而是独立采样多条推理轨迹，再对最终答案做多数投票 [4]。这解决了单次采样偶然失败的问题，但成本随样本数增加。
+Chain-of-Thought 通过示范中间步骤，让模型把复杂答案展开成一串可观察的推理文本 [[2]](#ref-2)。Zero-shot CoT 进一步发现，简单的“逐步思考”提示也能诱导某些模型生成中间过程 [[3]](#ref-3)。Self-Consistency 不再只取一条思路，而是独立采样多条推理轨迹，再对最终答案做多数投票 [[4]](#ref-4)。这解决了单次采样偶然失败的问题，但成本随样本数增加。
 
-随后出现了显式搜索、工具调用和验证器：Tree of Thoughts 把中间思路组织成可回溯的树 [5]，Graph of Thoughts 允许不同思路合并和循环 [6]，ReAct 把推理与行动交替连接到外部环境 [7]。在数学、代码和形式化任务中，结果验证器和过程验证器让“好思路”不再完全依赖主观评价 [9][10]。
+随后出现了显式搜索、工具调用和验证器：Tree of Thoughts 把中间思路组织成可回溯的树 [[5]](#ref-5)，Graph of Thoughts 允许不同思路合并和循环 [[6]](#ref-6)，ReAct 把推理与行动交替连接到外部环境 [[7]](#ref-7)。在数学、代码和形式化任务中，结果验证器和过程验证器让“好思路”不再完全依赖主观评价 [[8]](#ref-8)[[9]](#ref-9)。
 
 ### Test-time Scaling 成为新杠杆
 
-传统规模化主要增加参数和训练 token，reasoning model 则在推理时增加计算预算。模型可以生成更多 reasoning token、采样多个候选、调用验证器、进行搜索或重试。OpenAI 的 reasoning 系列将“思考时间”作为可调资源公开讨论 [12]；DeepSeek-R1 把强化学习与可验证奖励结合，展示了模型通过更长推理和自我反思提升数学、代码等任务的路线 [13]。
+传统规模化主要增加参数和训练 token，reasoning model 则在推理时增加计算预算。模型可以生成更多 reasoning token、采样多个候选、调用验证器、进行搜索或重试。DeepSeek-R1 把强化学习与可验证奖励结合，展示了模型通过更长推理和自我反思提升数学、代码等任务的路线 [[10]](#ref-10)。
 
-Test-time scaling 的关键不是“思考越长越好”，而是把预算分配给有价值的分支。Snell 等人的研究指出，在一定条件下，合理增加推理时计算可能比增加模型参数更有效 [11]。新限制也随之出现：推理成本、延迟、错误累积、验证器漏洞和停止条件，成为算法与产品必须共同设计的对象。
+Test-time scaling 的关键不是“思考越长越好”，而是把预算分配给有价值的分支。Snell 等人的研究指出，在一定条件下，合理增加推理时计算可能比增加模型参数更有效 [[11]](#ref-11)。新限制也随之出现：推理成本、延迟、错误累积、验证器漏洞和停止条件，成为算法与产品必须共同设计的对象。
 
 ## 4.2 生成分布与采样：模型如何选择下一个 token
 
 ### Logits、softmax 与温度
 
-模型在每一步输出词表大小的 logits (z_i)。温度采样先把 logits 除以 (\tau)，再计算：
+模型在每一步输出词表大小的 logits \\(z_i\\)。温度采样先把 logits 除以 \\(\tau\\)，再计算：
 
-$$
+\\[
 p_i=\frac{\exp(z_i/\tau)}{\sum_j\exp(z_j/\tau)}.
-$$
+\\]
 
-当 (\tau<1) 时，概率分布更尖锐，输出稳定但可能重复；当 (\tau>1) 时，低概率 token 获得更多机会，输出更有多样性但错误率可能上升。温度不是“创造力旋钮”这么简单，它改变的是整个生成分布，可能影响事实、格式、代码和安全边界。
+当 \\(0<\tau<1\\) 时，概率分布更尖锐，输出稳定但可能重复；当 \\(\tau>1\\) 时，低概率 token 获得更多机会，输出更有多样性但错误率可能上升。温度不是“创造力旋钮”这么简单，它改变的是整个生成分布，可能影响事实、格式、代码和安全边界。
 
 采样实现还要处理数值稳定性，通常先减去最大 logit 再做 softmax；低温下要避免概率下溢，高温下要避免尾部噪声占据过多质量。中文、代码和结构化输出的 token 分布不同，不能用一套参数覆盖所有任务。
 
 ### Greedy、Top-k 与 Top-p
 
-Greedy 每步选择最高概率 token，确定性强，适合部分代码补全和固定格式，但容易陷入重复或早期错误。Top-k 只保留概率最高的 k 个 token，在有限候选中采样；k 太小接近贪心，k 太大又会引入低质量尾部。Top-p，也称 nucleus sampling，保留累计概率达到 p 的最小 token 集合，候选数量随分布形状动态变化 [19]。
+Greedy 每步选择最高概率token；固定数值实现与并列裁决时选择规则确定，适合部分代码补全和固定格式，但容易陷入重复或早期错误。Top-k 只保留概率最高的 k 个 token，在截尾后重新归一化的有限候选中采样，Fan等在故事生成中采用过这种方案[[12]](#ref-12)；k 太小接近贪心，k 太大又会引入低质量尾部。Top-p，也称 nucleus sampling，保留累计概率达到 p 的最小 token 集合，候选数量随分布形状动态变化 [[13]](#ref-13)。
 
 Top-p 适合语言模型概率分布变化较大的自然语言生成，但不是质量保证。一个错误前提可能拥有很高概率，top-p 只会在错误附近增加多样性。代码、SQL、JSON 和函数调用最好结合语法约束、schema 或验证器；单纯调低 temperature 不能把不可靠输出变成可靠输出。
 
+### 随机种子、低温与版本化请求记录
+
+公式要求 \\(\tau>0\\)；服务把temperature设零时，通常需按接口定义切换greedy等路径，不能直接除以零。即使采用greedy，也可能因并列logits、低精度舍入、算子实现、批次形状或模型版本变化而改变输出。PyTorch复现说明明确指出，不保证跨发布版、提交和平台完全复现，CPU/GPU在相同seed下也可能不同。[[14]](#ref-14) 这不能反过来证明某托管API有或没有seed支持；实际参数必须按其版本文档核验。
+
+因此低温用于改变分布集中程度，seed用于控制一部分随机源，二者都不是事实正确率或跨环境逐字复现的保证。比较方案应固定输入及制品，并重复采样报告分布；需要严格回放时，保存已生成输出和环境证据，比事后只给一个seed更有解释力。
+
+以下为本书服务内部的教学记录规约，不是任何厂商API，也未实际发出请求；占位版本应在实验执行时解析为真实哈希。
+
+```json
+{
+  "record_kind": "teaching_example_not_measured",
+  "model_revision": "<resolved model revision>",
+  "tokenizer_template_hash": "<input protocol hash>",
+  "prompt_hash": "<exact final input hash>",
+  "generation": {"temperature": 0.2, "top_p": 0.9, "seed": 123},
+  "accepted_parameters": "<parameters actually accepted by backend>",
+  "budget": {"candidates": 3, "verifier_calls": 3, "deadline_ms": 10000},
+  "runtime": "<backend, kernels, dtype, device and batch policy>",
+  "verifier_revision": "<frozen verifier revision>",
+  "result": {"stop_reason": "<actual reason>", "output_hash": "<actual output>"}
+}
+```
+
+执行时分别保存请求参数和后端实际接受的参数；不支持或被忽略的字段不能算已控制变量。候选编号、工具结果和停止原因需关联同一记录，并区分重试使用相同随机状态还是重新采样。示例中的候选数和时限都是教学假设，没有压测或质量结论。
+
 ### Repetition penalty 与 Unlikelihood
 
-重复可能来自高概率 token 的自强化：模型生成一个短语后，历史上下文使同一短语继续变得可能。repetition penalty 在解码时降低已经出现 token 的分数，简单有效，但可能误伤合法重复，例如代码中的变量名或诗歌中的韵脚。Unlikelihood training 从训练目标出发，显式惩罚不希望出现的候选，尝试让模型减少重复模式 [27]。
+重复可能来自高概率 token 的自强化：模型生成一个短语后，历史上下文使同一短语继续变得可能。repetition penalty 在解码时降低已经出现 token 的分数，简单有效，但可能误伤合法重复，例如代码中的变量名或诗歌中的韵脚。Unlikelihood training 从训练目标出发，显式惩罚不希望出现的候选，尝试让模型减少重复模式 [[15]](#ref-15)。
 
 推理时还可以限制重复 n-gram、设置最小长度、引入 stop sequence 或使用语法约束。每种方法都可能产生副作用：过强惩罚会让模型刻意换词、破坏术语一致性或生成不自然文本。应该用真实任务的重复率、正确率和格式通过率共同评估。
 
@@ -75,7 +98,7 @@ Top-p 适合语言模型概率分布变化较大的自然语言生成，但不�
 
 ### Beam Search 与长度偏差
 
-Beam search 每一步保留概率最高的 B 条前缀，扩展后再裁剪。它比 greedy 能探索更多路径，但自回归概率倾向偏爱短序列：每增加一个 token 就乘以一个小于 1 的概率。实际系统常使用长度归一化或长度惩罚，但惩罚过强会生成冗长答案。
+Beam search 每一步保留概率最高的 \\(K_{beam}\\) 条前缀，扩展后再裁剪。它比 greedy 能探索更多路径，但自回归概率倾向偏爱短序列：每增加一个 token 就乘以一个小于 1 的概率。实际系统常使用长度归一化或长度惩罚，但惩罚过强会生成冗长答案。
 
 Beam search 在机器翻译等条件生成任务中有历史价值，但在开放式聊天中不一定优于采样。模型的概率高低未必等于人类偏好，beam 可能产生安全、流畅但空泛的候选。解码算法必须与训练目标匹配，不能假设最大 likelihood 就是最佳任务答案。
 
@@ -87,7 +110,7 @@ Beam search 在机器翻译等条件生成任务中有历史价值，但在开�
 
 ### Speculative Decoding
 
-投机解码用一个较小的 draft model 先生成连续候选，再由 target model 一次验证多个 token。若 target 接受候选，就减少逐 token 的大模型调用；若在某个位置拒绝，就从 target 的校正分布继续生成。Leviathan 等人的方法给出了在保持目标分布的条件下加速自回归解码的框架 [21]；speculative sampling 进一步讨论了随机采样下的接受与修正 [22]。
+投机解码用一个较小的 draft model 先生成连续候选，再由 target model 一次验证多个 token。若 target 接受候选，就减少逐 token 的大模型调用；若在某个位置拒绝，就从 target 的校正分布继续生成。Leviathan 等人的方法给出了在保持目标分布的条件下加速自回归解码的框架 [[16]](#ref-16)；speculative sampling 进一步讨论了随机采样下的接受与修正 [[17]](#ref-17)。
 
 关键条件是 draft 与 target 足够相似，且验证多个 token 的并行计算成本低于逐 token 生成。接受率低时，draft 只增加开销；draft 太大时，节省的成本又会消失。速度收益还受 batch、上下文长度、GPU kernel 和传输影响，因此要用真实请求分布测量，而不是只看理论接受率。
 
@@ -95,45 +118,64 @@ Speculative decoding 改善的是生成速度，不自动改善答案质量。�
 
 ### Blockwise 与并行预测
 
-Blockwise parallel decoding 让模型尝试一次预测一个 token block，再用后续计算验证，目标是减少串行深度 [23]。这类方法与 speculative decoding 有相似目标，但候选产生方式、模型结构和验证过程不同。它们的共同限制是：自回归依赖仍然存在，真正可并行的部分取决于候选正确率和验证成本。
+Blockwise parallel decoding 让模型尝试一次预测一个 token block，再用后续计算验证，目标是减少串行深度 [[18]](#ref-18)。这类方法与 speculative decoding 有相似目标，但候选产生方式、模型结构和验证过程不同。它们的共同限制是：自回归依赖仍然存在，真正可并行的部分取决于候选正确率和验证成本。
 
 ## 4.4 Chain-of-Thought 与分解式推理
 
 ### CoT 解决什么问题
 
-直接让模型从问题跳到答案，容易在多步任务中丢失中间变量。CoT 通过显式生成中间步骤，把一个长映射拆成多个局部映射：理解题意、列出条件、执行运算、检查结论。Wei 等人的实验显示，足够大的模型在提供推理示范后，复杂算术、常识和符号任务的性能明显提高 [2]。
+直接让模型从问题跳到答案，容易在多步任务中丢失中间变量。CoT 通过显式生成中间步骤，把一个长映射拆成多个局部映射：理解题意、列出条件、执行运算、检查结论。Wei 等人的实验显示，足够大的模型在提供推理示范后，复杂算术、常识和符号任务的性能明显提高 [[2]](#ref-2)。
 
-从算法角度看，CoT 增加了计算轨迹和可利用的中间状态；从工程角度看，它增加了 token 成本和泄露风险。输出的“思考过程”也不一定是模型真实的因果过程，可能是事后合理化。Huang 等人讨论了 CoT 的可解释性与推理过程问题，提醒不能把可读的步骤直接当作忠实解释 [16]。
+从算法角度看，CoT 增加了计算轨迹和可利用的中间状态；从工程角度看，它增加了 token 成本和泄露风险。输出的“思考过程”也不一定是模型真实的因果过程，可能是事后合理化。Turpin 等人通过偏置输入研究CoT解释可能不忠实的问题，提醒不能把可读的步骤直接当作忠实解释 [[19]](#ref-19)。
 
 ### Zero-shot CoT 与提示设计
 
-“逐步思考”一类的提示可以在没有任务专用示范时诱导分步推理 [3]。但效果依赖模型规模、任务类型、语言和提示位置。对代码、数学和规划任务，提示可以明确要求先列约束、再生成候选、最后检查；对敏感任务，不应要求模型公开所有内部思考，而应要求输出可审计的结论、依据和验证状态。
+“逐步思考”一类的提示可以在没有任务专用示范时诱导分步推理 [[3]](#ref-3)。但效果依赖模型规模、任务类型、语言和提示位置。对代码、数学和规划任务，提示可以明确要求先列约束、再生成候选、最后检查；对敏感任务，不应要求模型公开所有内部思考，而应要求输出可审计的结论、依据和验证状态。
+
+Self-ask研究了先显式提出并回答子问题，再合成总答案的方式；能答对各个子问题却合成失败，说明知识召回与组合推理不是同一能力。[[20]](#ref-20)
 
 好的分解不是把答案机械拆成更多句子。它应减少依赖、暴露可验证中间量、允许失败后回溯。例如 SQL Agent 可以先识别实体和权限，再生成查询，执行只读检查后返回结果；代码 Agent 可以先列修改文件和测试，再生成 patch，运行测试后决定是否提交。
 
 ### Self-Refine 与迭代修正
 
-Self-Refine 让模型先生成答案，再根据反馈批评和改写，多轮迭代改善输出 [26]。它适合错误可以被规则、测试或明确 rubric 发现的任务。没有独立反馈时，模型可能只是重复自己的偏差；迭代次数太多还会造成答案漂移和成本爆炸。
+Self-Refine 让模型先生成答案，再根据反馈批评和改写，多轮迭代改善输出 [[21]](#ref-21)。它原研究以同一模型生成反馈并迭代，不要求外部验证器；本书生产设计进一步建议用规则、测试或明确rubric交叉检查。没有独立反馈时，模型可能只是重复自己的偏差；迭代次数太多还会造成答案漂移和成本爆炸。
 
 反馈应尽量具体：指出代码哪项测试失败、数学哪一步不成立、JSON 哪个字段非法、事实缺少哪条证据。泛泛地要求“请改得更好”只能改变风格，不能保证正确性。迭代停止条件应由错误是否消失、验证器是否通过和预算是否耗尽共同决定。
+
+### 有界反思案例：修补订单校验
+
+设想Coding Agent要修复“金额为负时仍可提交”的校验，允许范围只有本地补丁和测试，无发布权限。以下是设计轨迹，非已运行结果。先冻结失败用例和原始代码，设最多三轮补丁候选、三次测试与十秒教学时限。成功条件由外部测试和差异范围检查定义，不由模型的一句“现在正确了”定义。
+
+第一轮候选把金额改成取绝对值。模型自评可能认为“已不再为负”，外部断言却要求拒绝负金额；测试返回明确反例，反思输入只需包含该断言、补丁差异与相关约束，不需要索取隐藏思维链。第二轮候选改成非负判断，还要检查零值、小数、缺失值和不允许修改的文件。若外部检查均通过，停止生成，并交付补丁与测试证据，不因还能“再完善”而自动扩大修改。
+
+若三轮都未通过，停止原因为budget_exhausted，保留最后验证失败的状态，返回缺少的证据或请求人工；若工具状态未知，先核对状态，不把重复执行当成反思；若发现用例要求本身不明确，停止原因为needs_clarification，不在两个相同前提间循环自证。下一轮不得把上轮模型自评当作新增事实。
+
+| 信号 | 可以怎样使用 | 不能推出什么 |
+| --- | --- | --- |
+| 模型指出一个可能错误 | 生成待验证假设 | 错误已经被证明 |
+| 测试给出稳定反例 | 缩小修订范围并复测 | 未覆盖情况全部正确 |
+| 任务断言及范围检查通过 | 按既定门禁结束候选循环 | 已获准发布或产生业务副作用 |
+| 候选意见一致 | 风险或搜索收敛线索 | 事实已经得到独立证实 |
+
+这个案例继承Self-Refine的迭代思路，但外部停止、权限和预算是本书工程设计，不能写成论文保证。记录初稿、具体反馈、改动和外部判定，才能区分修复了错误、只改了措辞和掩盖了失败。反思收益应与单次生成、多候选但不反思等基线比较，包含全部测试与重试成本。
 
 ## 4.5 Self-Consistency、搜索与思路图
 
 ### 多轨迹采样
 
-Self-Consistency 对同一问题采样多条 CoT，再聚合最终答案 [4]。如果不同轨迹独立地走向同一个结果，结果可信度通常提高；如果轨迹高度相关，多数投票只是重复同一个错误。采样温度、轨迹数量、答案规范化和投票规则都会影响效果。
+Self-Consistency 对同一问题采样多条 CoT，再聚合最终答案 [[4]](#ref-4)。如果不同轨迹独立地走向同一个结果，结果可信度通常提高；如果轨迹高度相关，多数投票只是重复同一个错误。采样温度、轨迹数量、答案规范化和投票规则都会影响效果。
 
-聚合不能总是使用字符串多数票。数学答案需要解析等价表达式，代码需要执行测试，开放问答需要 judge 或证据检索。可以把每条轨迹映射为 ((answer, evidence, cost))，先过滤验证失败的轨迹，再按答案聚合。这样“多数”建立在可接受候选集合上，而不是所有文本一视同仁。
+聚合不能总是使用字符串多数票。数学答案需要解析等价表达式，代码需要执行测试，开放问答需要 judge 或证据检索。可以把每条轨迹映射为 `(answer, evidence, cost)`，先过滤验证失败的轨迹，再按答案聚合。这样“多数”建立在可接受候选集合上，而不是所有文本一视同仁。
 
 ### Tree of Thoughts
 
-Tree of Thoughts 把推理看成搜索：在每个状态生成若干思路，使用评估器筛选 promising 分支，继续扩展或回溯 [5]。它适合需要规划、组合搜索或中间状态可评价的任务，例如数值游戏、路线安排和多步证明。搜索策略可以是 breadth-first、depth-first、best-first 或 beam-like pruning。
+Tree of Thoughts 把推理看成搜索：在每个状态生成若干思路，使用评估器筛选 promising 分支，继续扩展或回溯 [[5]](#ref-5)。它适合需要规划、组合搜索或中间状态可评价的任务，例如数值游戏、路线安排和多步证明。搜索策略可以是 breadth-first、depth-first、best-first 或 beam-like pruning。
 
 树搜索的难点是状态表示和启发式评估。状态太粗，无法区分不同前提；状态太长，评估成本高；启发式不准，搜索会把预算花在错误分支；分支太多，组合爆炸。实际系统通常需要限制深度、宽度、每步 token、总 verifier 次数和超时，并保存可回放轨迹。
 
 ### Graph of Thoughts 与共享中间结果
 
-某些推理任务不是树，而是多个思路可以合并、比较和循环。Graph of Thoughts 允许把生成的思路作为图节点，执行聚合、变换和反馈 [6]。例如多个候选计划可以先各自提出，再让模型抽取共同约束，形成一个更稳的综合计划。
+某些推理任务不是树，而是多个思路可以合并、比较和循环。Graph of Thoughts 允许把生成的思路作为图节点，执行聚合、变换和反馈 [[6]](#ref-6)。例如多个候选计划可以先各自提出，再让模型抽取共同约束，形成一个更稳的综合计划。
 
 图结构的收益是复用中间结论，代价是状态一致性和循环检测。若一个错误结论被多个分支共享，错误影响面会扩大；若节点没有版本和来源，无法知道综合答案依赖哪条路径。工程上应给每个节点记录输入、生成模型、验证结果和依赖关系，把推理图当作可审计的 DAG 或状态机。
 
@@ -141,25 +183,25 @@ Tree of Thoughts 把推理看成搜索：在每个状态生成若干思路，使
 
 ### 结果验证器
 
-结果验证器只判断最终结果是否满足条件。代码题可以运行隐藏测试，数学题可以检查数值或符号答案，SQL 可以在只读数据库比较结果，规划任务可以检查环境状态。Cobbe 等人的研究展示了训练 verifier 来区分数学答案的路线 [9]。
+结果验证器只判断最终结果是否满足条件。代码题可以运行隐藏测试，数学题可以检查数值或符号答案，SQL 可以在只读数据库比较结果，规划任务可以检查环境状态。Cobbe 等人的研究展示了训练 verifier 来区分数学答案的路线 [[8]](#ref-8)。
 
 结果验证的优点是信号清晰、成本可控；缺点是不能解释中间过程，也可能存在测试盲区。一个能通过不完整单元测试的代码不一定正确，一个答案数值正确的推导不一定逻辑有效。验证器的覆盖率、误报率和版本必须纳入模型评估。
 
 ### 过程验证器
 
-过程奖励模型在每个推理步骤上给分，帮助模型学习哪些中间状态更可靠。Let’s Verify Step by Step 说明逐步验证可以改善数学推理监督 [10]。过程监督能缓解最终结果的信用分配问题，但标注和建模成本更高，还可能奖励形式正确但语义无效的“看起来像推理”。
+过程奖励模型在每个推理步骤上给分，帮助模型学习哪些中间状态更可靠。Let’s Verify Step by Step 说明逐步验证可以改善数学推理监督 [[9]](#ref-9)。过程监督能缓解最终结果的信用分配问题，但标注和建模成本更高，还可能奖励形式正确但语义无效的“看起来像推理”。
 
 结果奖励与过程奖励可以结合：过程分用于引导搜索，最终验证用于发布门禁；如果两者冲突，以可验证结果和任务约束为准。任何 reward 都是代理，必须通过独立测试防止模型学习评估器漏洞。
 
 ### 幻觉检测与一致性
 
-SelfCheckGPT 利用多个采样结果之间的一致性，检测事实陈述可能存在的幻觉 [17]。如果相同问题的独立样本对一个事实说法差异很大，说明模型内部不确定；但一致性不代表真实，一个模型可以稳定重复错误。幻觉研究还区分事实错误、无依据生成、上下文冲突和指令偏离 [18]。
+SelfCheckGPT 利用多个采样结果之间的一致性，检测事实陈述可能存在的幻觉 [[22]](#ref-22)。如果相同问题的独立样本对一个事实说法差异很大，说明模型内部不确定；但一致性不代表真实，一个模型可以稳定重复错误。幻觉研究还区分事实错误、无依据生成、上下文冲突和指令偏离 [[23]](#ref-23)。
 
 更可靠的做法是让模型引用检索证据、调用事实工具或通过程序检查，并把“不确定”作为合法输出。采样一致性可以作为风险信号，不能单独作为事实验证器。高风险领域要把证据来源、时间、权限和版本纳入判定。
 
 ### 搜索复杂度与剪枝策略
 
-如果每个状态扩展 (b) 个候选，搜索深度为 (d)，最坏情况下节点数为 (O(b^d))。这也是为什么“让模型多想一些”很快会变成成本问题。剪枝的目标是在不丢失高质量路径的前提下减少节点，包括保留 top-k 状态、设置上限、去除重复状态、优先扩展高价值节点，以及在验证失败时尽早停止。
+如果每个状态扩展 \\(b\\) 个候选，搜索深度为 \\(d\\)，最坏情况下节点数为 \\(O(b^d)\\)。这也是为什么“让模型多想一些”很快会变成成本问题。剪枝的目标是在不丢失高质量路径的前提下减少节点，包括保留 top-k 状态、设置上限、去除重复状态、优先扩展高价值节点，以及在验证失败时尽早停止。
 
 剪枝器可以使用模型分数、规则分数、检索证据、程序测试和历史成功率。单一模型分数容易把流畅错误排在前面；单一规则又可能误杀创造性路径。组合评分要注意尺度校准，避免某个分数因为数值范围更大而完全支配决策。对高风险任务，宁可保留少量候选等待人工，也不能用不可解释的启发式直接丢弃所有替代路径。
 
@@ -175,7 +217,7 @@ SelfCheckGPT 利用多个采样结果之间的一致性，检测事实陈述可�
 
 CoT 数据、过程奖励和搜索轨迹会改变模型的先验，但不意味着上线时必须暴露同样长的思考。训练可以让模型学会提出更有价值的候选，推理时再根据难度选择短答、单轨迹、少量采样或完整搜索。相反，如果训练没有学会可验证的中间结构，仅靠 runtime 反复采样可能得到更多相似错误。
 
-因此评估应比较四种配置：基础模型单次生成、后训练模型单次生成、后训练模型加采样、后训练模型加验证或搜索。这样才能知道收益来自训练、额外计算还是验收机制。DeepSeek-R1 等工作说明强化学习可以把一部分搜索能力压进模型，但生产系统仍需要按预算和风险动态决定是否启动外部搜索 [13]。
+因此评估应比较四种配置：基础模型单次生成、后训练模型单次生成、后训练模型加采样、后训练模型加验证或搜索。这样才能知道收益来自训练、额外计算还是验收机制。DeepSeek-R1 等工作说明强化学习可以把一部分搜索能力压进模型，但生产系统仍需要按预算和风险动态决定是否启动外部搜索 [[10]](#ref-10)。
 
 ## 4.7 Test-time Scaling：推理预算如何分配
 
@@ -183,11 +225,11 @@ CoT 数据、过程奖励和搜索轨迹会改变模型的先验，但不意味�
 
 推理预算不只是生成 token 数，还包括候选数量、搜索深度、验证次数、工具调用次数、上下文长度和 wall-clock 时间。可以把一次任务的预算写为：
 
-$$
-B=C_{tokens}+\lambda_1C_{samples}+\lambda_2C_{verify}+\lambda_3C_{tools}+\lambda_4C_{latency}.
-$$
+\\[
+C_{budget}=C_{tokens}+\lambda_1C_{samples}+\lambda_2C_{verify}+\lambda_3C_{tools}+\lambda_4C_{latency}.
+\\]
 
-不同任务的最优分配不同。简单问答增加候选没有收益；数学题可能需要多条轨迹和 verifier；代码题可能更适合少量候选加真实测试；Agent 任务需要把预算留给工具观察和重试。Snell 等人提出的 compute-optimal test-time scaling 视角，正是要寻找模型规模、样本数和验证计算之间的平衡 [11]。
+不同任务的最优分配不同。简单问答增加候选没有收益；数学题可能需要多条轨迹和 verifier；代码题可能更适合少量候选加真实测试；Agent 任务需要把预算留给工具观察和重试。Snell 等人提出的 compute-optimal test-time scaling 视角，正是要寻找模型规模、样本数和验证计算之间的平衡 [[11]](#ref-11)。
 
 ### 何时增加模型，何时增加推理
 
@@ -203,21 +245,21 @@ $$
 
 ### Reasoning RL 与蒸馏
 
-Reasoning RL 使用可验证任务奖励，让策略探索更有效的推理轨迹。DeepSeekMath 将 GRPO 与数学验证结合 [14]，DeepSeek-R1 展示了从冷启动示范到强化学习和蒸馏的组合路线 [13]。PPO 等策略优化方法提供了更通用的 RL 基础 [15]。
+Reasoning RL 使用可验证任务奖励，让策略探索更有效的推理轨迹。DeepSeekMath 将 GRPO 与数学验证结合 [[24]](#ref-24)，DeepSeek-R1 展示了从冷启动示范到强化学习和蒸馏的组合路线 [[10]](#ref-10)。PPO 等策略优化方法提供了更通用的 RL 基础 [[25]](#ref-25)。
 
 强化学习并不自动产生可靠推理。奖励漏洞会让模型学会投机，奖励稀疏会让训练不稳定，长轨迹会提高 credit assignment 难度。蒸馏可以把大模型的推理轨迹压缩到小模型，但如果轨迹包含错误或过度冗长，小模型也会继承这些问题。必须保留独立 verifier、基础能力回归和成本评估。
 
 ### 分解、层次规划与组合泛化
 
-复杂任务通常不是“多生成几个 token”就能解决，而是需要把目标拆成相互依赖的子目标。组合性研究指出，模型可能分别会做两个简单操作，却无法稳定地把它们组合到一个新任务中 [8]。因此推理算法要显式表示任务结构：先识别对象和约束，再决定步骤顺序，最后把子结果合成为答案。
+复杂任务通常不是“多生成几个 token”就能解决，而是需要把目标拆成相互依赖的子目标。组合性研究指出，模型可能分别会做两个简单操作，却无法稳定地把它们组合到一个新任务中 [[20]](#ref-20)。因此推理算法要显式表示任务结构：先识别对象和约束，再决定步骤顺序，最后把子结果合成为答案。
 
-层次生成把规划和表面实现分开。高层规划先产生章节、步骤、动作或子问题，低层生成再把每个计划展开为自然语言、代码或工具参数。Hierarchical Neural Story Generation 说明，长文本生成可以先规划更高层的内容，再逐步生成细节 [20]。在代码 Agent 中，高层计划可以是“定位调用链—修改接口—补测试—运行回归”，低层模型负责每一步的具体 patch。
+层次生成把规划和表面实现分开。高层规划先产生章节、步骤、动作或子问题，低层生成再把每个计划展开为自然语言、代码或工具参数。Hierarchical Neural Story Generation 说明，长文本生成可以先规划更高层的内容，再逐步生成细节 [[12]](#ref-12)。在代码 Agent 中，高层计划可以是“定位调用链—修改接口—补测试—运行回归”，低层模型负责每一步的具体 patch。
 
 分解的关键是边界。子任务太大，仍然需要长链推理；子任务太小，调度和上下文开销会吞掉收益。每个子任务最好有输入契约、输出契约和完成条件。完成条件可以是一个字段完整、测试通过、数据库状态改变或 verifier 接受。没有完成条件的分解只是把一段自由文本拆成几段，不能真正降低错误传播。
 
 ### 搜索状态、动作与回溯
 
-把推理过程形式化为状态 (s_t)、动作 (a_t) 和转移 (s_{t+1}=f(s_t,a_t))，可以更清楚地设计搜索器。状态包含已知事实、已完成步骤、候选答案和剩余预算；动作可以是生成下一步、调用工具、请求澄清、回退或终止；代价包含 token、时间、工具费用和风险。搜索器的目标不是最大化文本概率，而是在约束下找到成功状态。
+把推理过程形式化为状态 \\(s_t\\)、动作 \\(a_t\\) 和转移 \\(s_{t+1}=f(s_t,a_t)\\)，可以更清楚地设计搜索器。状态包含已知事实、已完成步骤、候选答案和剩余预算；动作可以是生成下一步、调用工具、请求澄清、回退或终止；代价包含 token、时间、工具费用和风险。搜索器的目标不是最大化文本概率，而是在约束下找到成功状态。
 
 回溯是搜索区别于普通 CoT 的重要能力。普通生成一旦写出错误前提，后续 token 通常继续围绕错误展开；搜索可以保留多个候选，在验证失败时退回最近的分叉点。回溯需要保存状态快照和依赖关系，不能简单把错误文本追加到上下文后要求模型“重新想一遍”。对于有副作用的工具，回溯还必须配合事务、幂等和补偿，否则算法层回退并不会撤销真实世界的动作。
 
@@ -225,7 +267,7 @@ Reasoning RL 使用可验证任务奖励，让策略探索更有效的推理轨�
 
 规划模型容易产生不可执行计划，执行模型容易在局部步骤上偏离全局目标。实践中可把计划表示成结构化任务图，每个节点包含动作、参数、前置条件、预期结果和失败策略。执行前先检查权限和资源，执行后把真实观察写回状态，再决定继续、重试还是修改计划。
 
-ReAct 的推理—行动交替给出了一个自然接口 [7]，但生产系统还要加入状态机：模型只能提出候选动作，runtime 负责验证 schema、权限和当前状态。这样既能利用模型的灵活规划，也能避免模型通过自然语言绕过动作边界。对于不可逆动作，必须设置确认点；对于可重试动作，必须定义最大次数和退避策略。
+ReAct 的推理—行动交替给出了一个自然接口 [[7]](#ref-7)，但生产系统还要加入状态机：模型只能提出候选动作，runtime 负责验证 schema、权限和当前状态。这样既能利用模型的灵活规划，也能避免模型通过自然语言绕过动作边界。对于不可逆动作，必须设置确认点；对于可重试动作，必须定义最大次数和退避策略。
 
 ## 4.8 算法—系统接口：把推理预算交给运行系统
 
@@ -271,11 +313,11 @@ ReAct 的推理—行动交替给出了一个自然接口 [7]，但生产系统�
 
 ### 中文和代码场景的特殊处理
 
-中文、英文、代码和数字混合输入会产生不同的 token 化和概率形状，采样参数不能直接照搬英文自然语言。中文长文可能需要保留段落、标题和引用边界；代码推理需要维护缩进、括号、类型和测试状态；SQL 需要区分表名、字段名和用户输入；数学表达式需要保留符号结构。中文教材对概率建模、优化和泛化的基础解释有助于理解这些差异 [28][29][30]。
+中文、英文、代码和数字混合输入会产生不同的 token 化和概率形状，采样参数不能直接照搬英文自然语言。中文长文可能需要保留段落、标题和引用边界；代码推理需要维护缩进、括号、类型和测试状态；SQL 需要区分表名、字段名和用户输入；数学表达式需要保留符号结构。中文教材对概率建模、优化和泛化的基础解释有助于理解这些差异 [[26]](#ref-26)。
 
 评估时应按语言和格式切片，而不是把所有任务合成一个平均准确率。一个模型可能英文数学推理较强、中文题目较弱；可能自然语言解释很好、代码执行较差；可能单轮输出正确、多轮工具状态错误。推理算法的收益只有在目标语言和目标格式上重复验证，才具有工程意义。
 
-## 4.9 工程决策与验收方法
+### 工程决策与验收方法
 
 ### 按任务选择采样、搜索与验证
 
@@ -288,119 +330,39 @@ ReAct 的推理—行动交替给出了一个自然接口 [7]，但生产系统�
 
 这张表将算法选择与系统责任分开：采样和搜索帮助生成候选，验证器决定候选是否满足可检查约束，权限和副作用仍由 Runtime 与策略层负责。第9章只处理这些推理预算怎样在真实流量和 SLO 下被调度与交付。
 
-### 算法选择矩阵
+## 4.9 本章小结
 
-| 失败类型 | 优先方法 | 不应先做的事 |
-|:---|:---|:---|
-| 单次回答偶然错误 | Self-Consistency、低成本重采样 | 立即扩大模型参数 |
-| 多步规划易走错 | ToT/GoT、状态搜索 | 只提高 temperature |
-| 数学或代码结果不可判定 | verifier、RLVR、执行测试 | 只依赖 LLM judge |
-| 事实不稳定 | RAG、工具、证据检查 | 继续生成更长 CoT |
-| 格式非法 | constrained decoding、schema | 只做重复 SFT |
-| 生成太慢 | speculative decoding、模型路由 | 盲目增加 reasoning budget |
-| 长上下文成本高 | 压缩、检索、分段推理、预算路由 | 只扩大 context window |
-
-方法选择必须从失败机制出发。推理算法不会修复所有能力问题，搜索也不会创造缺失知识，验证器也不能保证测试覆盖之外的正确性。
-
-### 实验与评估记录
-
-每个推理实验至少固定模型 checkpoint、tokenizer、system prompt、采样参数、候选数量、验证器版本、最大 token、超时和硬件环境。报告平均准确率之外，还要报告成本、p50/p95 延迟、成功率随预算的曲线、失败类型和停止原因。
-
-对于随机采样，使用足够重复次数和置信区间；对于多数投票，记录投票前后的候选分布；对于搜索，保存扩展树和剪枝原因；对于 verifier，保存通过与拒绝的样本；对于 speculative decoding，记录 draft 接受率和质量一致性。只有保留这些中间证据，才能知道收益来自算法还是偶然随机种子。
-
-评估集还应包含“看似简单但容易犯错”的反例，例如错误前提、单位混用、边界条件、同义答案、工具返回空结果和权限变化。推理算法如果只在标准题上测试，可能学会固定模板，却无法处理真实系统中的不完整信息和异常状态。每次更新都应比较反例通过率，并保留回归失败样本，避免后续优化再次引入旧问题。
-
-当算法涉及用户可见的思考摘要时，还要评估摘要是否忠实、是否泄露敏感信息、是否误导用户把模型推理当成证明。正确答案、有效证据和可复核步骤应分别计分；语言流畅只能作为辅助指标。
-
-对后端团队而言，最实用的指标不是“平均思考长度”，而是每个成功任务消耗多少 token、多少次验证和多少次工具调用。只有把质量、成本和风险放在同一张表里，才能决定推理预算是否值得。
-
-还要区分模型内部生成与外部可见结果：内部候选可以失败、重试和被丢弃，外部结果必须经过协议校验、证据检查和权限判断。这个边界能把探索自由度与生产可靠性分开。
-
-如果没有这个边界，搜索分支、工具返回值和未验证草稿可能混入用户上下文，既增加成本，也可能造成信息泄露。运行时应明确哪些状态可以回放、哪些状态可以展示、哪些状态只能由审计人员访问，并为每类状态设置保留时间和权限。
-
-这套状态治理是推理算法能够长期演进的基础：算法失败可以重现，系统风险可以审计，成本优化有据可依。只有状态、预算、验证和结果都被记录，推理优化才不是凭感觉调参。实验室中的平均分只能说明方法值得继续研究；要说明服务可靠，还必须在真实任务、真实预算和真实失败路径上反复验证。
-
-### 给后端工程师的落地清单
-
-实现一个推理型模型服务时，可以按以下顺序评审：先定义任务的成功条件和失败代价；再决定是单次生成、重采样、搜索还是工具循环；为可验证任务实现程序化 verifier；给每种请求设置 token、候选、工具和时间预算；将结构化输出交给 schema 校验；将副作用操作交给权限和人工审批；最后测量单位成功成本和尾延迟。
-
-推理算法的最终验收不是“模型能输出一段很像思考的文字”，而是：在给定预算内，任务成功率是否提高；验证失败是否被拦截；额外计算是否值得；错误是否可定位；系统是否能停止、重试和回滚。这个标准也为后续 Infra 章节提供接口：算法给出预算、状态和验证需求，Infra 负责以稳定成本执行它们。
-
-### 本章小结
 
 生成算法从 greedy 和 sampling 发展到 CoT、Self-Consistency、显式搜索、验证器和 test-time scaling，核心变化是从“选择一个最可能的下一个 token”转向“在预算内寻找并验证一条可接受的任务轨迹”。投机解码、长上下文压缩和预算路由可以改善执行效率或成本，但它们与推理质量相关而不等价。
 
 面对一个具体任务，先判断错误来自知识、搜索、验证、格式还是系统权限，再选择对应方法。能程序化验证的任务优先使用执行器和 verifier；需要多路径探索的任务使用采样和搜索；需要实时事实的任务使用工具和检索；需要低延迟的任务使用路由、草稿模型和预算控制。这样，推理能力才会从论文中的 benchmark 变成可观察、可控制、可回滚的工程组件。
 
-## 参考资料
 
-[1] Brown, T. B., et al. *Language Models are Few-Shot Learners*. NeurIPS, 2020. https://arxiv.org/abs/2005.14165 访问日期：2026-09-22
+## 4.10 参考资料
 
-[2] Wei, J., et al. *Chain-of-Thought Prompting Elicits Reasoning in Large Language Models*. NeurIPS, 2022. https://arxiv.org/abs/2201.11903 访问日期：2026-09-22
-
-[3] Kojima, T., et al. *Large Language Models are Zero-Shot Reasoners*. NeurIPS, 2022. https://arxiv.org/abs/2205.11916 访问日期：2026-09-22
-
-[4] Wang, X., et al. *Self-Consistency Improves Chain of Thought Reasoning in Language Models*. ICLR, 2023. https://arxiv.org/abs/2203.11171 访问日期：2026-09-22
-
-[5] Yao, S., et al. *Tree of Thoughts: Deliberate Problem Solving with Large Language Models*. NeurIPS, 2023. https://arxiv.org/abs/2305.10601 访问日期：2026-09-22
-
-[6] Besta, M., et al. *Graph of Thoughts: Solving Elaborate Problems with Large Language Models*. AAAI, 2024. https://arxiv.org/abs/2308.09687 访问日期：2026-09-22
-
-[7] Yao, S., et al. *ReAct: Synergizing Reasoning and Acting in Language Models*. ICLR, 2023. https://arxiv.org/abs/2210.03629 访问日期：2026-09-22
-
-[8] Press, O., et al. *Measuring and Narrowing the Compositionality Gap in Language Models*. arXiv, 2022. https://arxiv.org/abs/2210.03350 访问日期：2026-09-22
-
-[9] Cobbe, K., et al. *Training Verifiers to Solve Math Word Problems*. arXiv, 2021. https://arxiv.org/abs/2110.14168 访问日期：2026-09-22
-
-[10] Lightman, H., et al. *Let's Verify Step by Step*. arXiv, 2023. https://arxiv.org/abs/2305.20050 访问日期：2026-09-22
-
-[11] Snell, C., et al. *Scaling LLM Test-Time Compute Optimally can be More Effective than Scaling Model Parameters*. arXiv, 2024. https://arxiv.org/abs/2408.03314 访问日期：2026-09-22
-
-[12] OpenAI. *Learning to Reason with LLMs*. 2024. https://openai.com/index/learning-to-reason-with-llms/ 访问日期：2026-09-22
-
-[13] Guo, D., et al. *DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning*. arXiv, 2025. https://arxiv.org/abs/2501.12948 访问日期：2026-09-22
-
-[14] Shao, Z., et al. *DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models*. arXiv, 2024. https://arxiv.org/abs/2402.03300 访问日期：2026-09-22
-
-[15] Schulman, J., et al. *Proximal Policy Optimization Algorithms*. arXiv, 2017. https://arxiv.org/abs/1707.06347 访问日期：2026-09-22
-
-[16] Huang, J., et al. *Let's Think Step by Step: An Interpretable Reasoning Process in Large Language Models*. arXiv, 2022. https://arxiv.org/abs/2205.10625 访问日期：2026-09-22
-
-[17] Manakul, P., Liusie, A., & Gales, M. *SelfCheckGPT: Zero-Resource Black-Box Hallucination Detection for Generative Large Language Models*. EMNLP, 2023. https://arxiv.org/abs/2303.08896 访问日期：2026-09-22
-
-[18] Ji, Z., et al. *Survey of Hallucination in Natural Language Generation*. ACM Computing Surveys, 2023. https://arxiv.org/abs/2202.03629 访问日期：2026-09-22
-
-[19] Holtzman, A., et al. *The Curious Case of Neural Text Degeneration*. ICLR, 2020. https://arxiv.org/abs/1904.09751 访问日期：2026-09-22
-
-[20] Fan, A., et al. *Hierarchical Neural Story Generation*. ACL, 2018. https://arxiv.org/abs/1805.04833 访问日期：2026-09-22
-
-[21] Leviathan, Y., Kalman, M., & Matias, Y. *Fast Inference from Transformers via Speculative Decoding*. ICML, 2023. https://arxiv.org/abs/2211.17192 访问日期：2026-09-22
-
-[22] Chen, C., et al. *Accelerating Large Language Model Decoding with Speculative Sampling*. arXiv, 2023. https://arxiv.org/abs/2302.01318 访问日期：2026-09-22
-
-[23] Stern, M., et al. *Blockwise Parallel Decoding for Deep Autoregressive Models*. NeurIPS, 2018. https://arxiv.org/abs/1811.03115 访问日期：2026-09-22
-
-[26] Madaan, A., et al. *Self-Refine: Iterative Refinement with Self-Feedback*. NeurIPS, 2023. https://arxiv.org/abs/2303.17651 访问日期：2026-09-22
-
-[27] Welleck, S., et al. *Neural Text Generation with Unlikelihood Training*. ICLR, 2020. https://arxiv.org/abs/1908.04319 访问日期：2026-09-22
-
-[28] Zhang, A., Lipton, Z. C., Li, M., & Smola, A. V. *Dive into Deep Learning*, 2nd ed., 2023. https://zh.d2l.ai/ 访问日期：2026-09-22
-
-[29] 邱锡鹏：《神经网络与深度学习》，机械工业出版社，2020。https://nndl.github.io/ 访问日期：2026-09-22
-
-[30] 周志华：《机器学习》，清华大学出版社，2016。https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm 访问日期：2026-09-22
-## 版本与范围
-
-本章区分模型生成策略、推理时搜索和 serving 优化。温度、Top-p、约束解码和验证器是应用层可控变量；连续 batching、KV Cache 和吞吐容量属于第 9 章的推理 Infra 主题。投机解码的实际收益依赖模型组合、长度分布和批处理方式；截至 **2026-09-21**，必须用目标流量压测，而不能引用其他服务的加速比例。
-
-## 工程决策案例
-
-**场景：** 系统从一段合同文本提取固定 JSON 字段。对字段名、枚举和 JSON 语法使用 schema/约束解码，并把缺失字段显式返回为 `null`；不要把低温采样当作结构化输出的保证。对需要生成“风险说明”的自由文本字段，使用较低温度并允许有限候选，再由规则验证引用位置和禁止词。
-
-该设计把“必须正确的接口形状”与“允许有表达差异的自然语言”分开：前者失败即重试或人工转交，后者才适合比较多个候选。评测记录 JSON 解析率、字段级准确率、无依据断言率、p95 延迟和每份合同成本；若约束解码造成延迟不可接受，先缩小输出 schema 或预填确定字段，而不是取消校验。
-
-## 参考资料与延伸阅读
-
-- Vaswani et al., 2017, [Attention Is All You Need](https://arxiv.org/abs/1706.03762)。
-- Leviathan, Kalman and Matias, 2023, [Fast Inference from Transformers via Speculative Decoding](https://arxiv.org/abs/2211.17192)。
-- [vLLM Documentation](https://docs.vllm.ai/), accessed 2026-09-21.
+1. <a id="ref-1"></a> Brown, T. B., et al，[Language Models are Few-Shot Learners](https://arxiv.org/abs/2005.14165)，2005。核验日期：2026-10-16。
+2. <a id="ref-2"></a> Wei, J., et al，[Chain-of-Thought Prompting Elicits Reasoning in Large Language Models](https://arxiv.org/abs/2201.11903)，2022。核验日期：2026-10-16。
+3. <a id="ref-3"></a> Kojima, T., et al，[Large Language Models are Zero-Shot Reasoners](https://arxiv.org/abs/2205.11916)，2022。核验日期：2026-10-16。
+4. <a id="ref-4"></a> Wang, X., et al，[Self-Consistency Improves Chain of Thought Reasoning in Language Models](https://arxiv.org/abs/2203.11171)，2023。核验日期：2026-10-16。
+5. <a id="ref-5"></a> Yao, S., et al，[Tree of Thoughts: Deliberate Problem Solving with Large Language Models](https://arxiv.org/abs/2305.10601)，2023。核验日期：2026-10-16。
+6. <a id="ref-6"></a> Besta, M., et al，[Graph of Thoughts: Solving Elaborate Problems with Large Language Models](https://arxiv.org/abs/2308.09687)，2024。核验日期：2026-10-16。
+7. <a id="ref-7"></a> Yao, S., et al，[ReAct: Synergizing Reasoning and Acting in Language Models](https://arxiv.org/abs/2210.03629)，2023。核验日期：2026-10-16。
+8. <a id="ref-8"></a> Cobbe, K., et al，[Training Verifiers to Solve Math Word Problems](https://arxiv.org/abs/2110.14168)，2021。核验日期：2026-10-16。
+9. <a id="ref-9"></a> Lightman, H., et al，[Let's Verify Step by Step](https://arxiv.org/abs/2305.20050)，2005。核验日期：2026-10-16。
+10. <a id="ref-10"></a> Guo, D., et al，[DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning](https://arxiv.org/html/2501.12948v1)，2025 / v1。核验日期：2026-10-16。
+11. <a id="ref-11"></a> Snell, C., et al，[Scaling LLM Test-Time Compute Optimally can be More Effective than Scaling Model Parameters](https://arxiv.org/abs/2408.03314)，2024。核验日期：2026-10-16。
+12. <a id="ref-12"></a> Fan, A., et al，[Hierarchical Neural Story Generation](https://arxiv.org/abs/1805.04833)，2018。核验日期：2026-10-16。
+13. <a id="ref-13"></a> Holtzman, A., et al，[The Curious Case of Neural Text Degeneration](https://arxiv.org/abs/1904.09751)，2020。核验日期：2026-10-16。
+14. <a id="ref-14"></a> PyTorch contributors，[Reproducibility](https://docs.pytorch.org/docs/2.14/notes/randomness.html)，2.14 documentation; checked 2026-10-16。核验日期：2026-10-16。
+15. <a id="ref-15"></a> Welleck, S., et al，[Neural Text Generation with Unlikelihood Training](https://arxiv.org/abs/1908.04319)，2020。核验日期：2026-10-16。
+16. <a id="ref-16"></a> Leviathan, Y., Kalman, M., & Matias, Y，[Fast Inference from Transformers via Speculative Decoding](https://arxiv.org/abs/2211.17192)，2023。核验日期：2026-10-16。
+17. <a id="ref-17"></a> Chen, C., et al，[Accelerating Large Language Model Decoding with Speculative Sampling](https://arxiv.org/abs/2302.01318)，2023。核验日期：2026-10-16。
+18. <a id="ref-18"></a> Stern, M., et al，[Blockwise Parallel Decoding for Deep Autoregressive Models](https://arxiv.org/abs/1811.03115)，2018。核验日期：2026-10-16。
+19. <a id="ref-19"></a> Turpin, Michael, Perez, Bowman，[Language Models Don't Always Say What They Think: Unfaithful Explanations in Chain-of-Thought Prompting](https://arxiv.org/abs/2305.04388)，2023 / v2。核验日期：2026-10-16。
+20. <a id="ref-20"></a> Press, O., et al，[Measuring and Narrowing the Compositionality Gap in Language Models](https://arxiv.org/abs/2210.03350)，2022。核验日期：2026-10-16。
+21. <a id="ref-21"></a> Madaan, A., et al，[Self-Refine: Iterative Refinement with Self-Feedback](https://arxiv.org/abs/2303.17651)，2023。核验日期：2026-10-16。
+22. <a id="ref-22"></a> Manakul, P., Liusie, A., & Gales, M，[SelfCheckGPT: Zero-Resource Black-Box Hallucination Detection for Generative Large Language Models](https://arxiv.org/abs/2303.08896)，2023。核验日期：2026-10-16。
+23. <a id="ref-23"></a> Ji, Z., et al，[Survey of Hallucination in Natural Language Generation](https://arxiv.org/abs/2202.03629)，2023。核验日期：2026-10-16。
+24. <a id="ref-24"></a> Shao, Z., et al，[DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models](https://arxiv.org/abs/2402.03300)，2024。核验日期：2026-10-16。
+25. <a id="ref-25"></a> Schulman, J., et al，[Proximal Policy Optimization Algorithms](https://arxiv.org/abs/1707.06347)，2017。核验日期：2026-10-16。
+26. <a id="ref-26"></a> Zhang, A., Lipton, Z. C., Li, M., & Smola, A. V，[动手学深度学习：softmax回归](https://zh.d2l.ai/chapter_linear-networks/softmax-regression.html)，中文在线2.0.0。核验日期：2026-10-16。

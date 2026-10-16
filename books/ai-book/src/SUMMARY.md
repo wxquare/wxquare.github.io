@@ -6,7 +6,7 @@
 
 # 第一部分：大模型算法
 
-- [第1章 从语言模型到 Agent：为什么 LLM 会演进为 Agent？](part1/01-llm-foundations-transformer.md)
+- [第1章 从 Transformer 到 Agent：模型结构如何影响系统能力](part1/01-llm-foundations-transformer.md)
 - [第2章 预训练：能力的来源：模型能力的底层来源是什么？](part1/02-pretraining-data-scaling.md)
 - [第3章 后训练：行为的塑形：如何把原始能力塑造成可用行为？](part1/03-post-training-alignment.md)
 - [第4章 推理期扩展：推理时怎样释放或放大能力？](part1/04-reasoning-generation-algorithms.md)

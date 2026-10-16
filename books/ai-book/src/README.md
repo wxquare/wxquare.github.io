@@ -53,7 +53,7 @@ AI 工程实践里最容易踩的坑，不只是模型输出不稳定，也包�
 
 | 章 | 章节 | 一句话概述 |
 | --- | --- | --- |
-| 第1章 | [大模型基础与 Transformer 架构](part1/01-llm-foundations-transformer.md) | 从 token、Embedding 和 Transformer 出发，建立理解大模型算法与能力边界的基础。 |
+| 第1章 | [从 Transformer 到 Agent：模型结构如何影响系统能力](part1/01-llm-foundations-transformer.md) | 从 token、Embedding 和 Transformer 出发，建立理解大模型算法与能力边界的基础。 |
 | 第2章 | [预训练：数据、目标与能力形成](part1/02-pretraining-data-scaling.md) | 解释预训练数据、目标函数、规模定律和模型能力形成之间的关系。 |
 | 第3章 | [后训练与模型对齐](part1/03-post-training-alignment.md) | 介绍 SFT、RLHF、DPO、RLAIF 和安全对齐如何改变模型行为。 |
 | 第4章 | [推理能力与生成算法](part1/04-reasoning-generation-algorithms.md) | 讨论采样、推理预算、验证和生成算法如何影响模型输出。 |
