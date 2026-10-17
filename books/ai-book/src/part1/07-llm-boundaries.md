@@ -1,12 +1,10 @@
 # 第7章 AI Infra 全景
 
-## AI Infra 的全局地图是什么？
-
 前六章讨论了模型如何表示、学习、对齐、推理和适配。本章开始进入大模型 Infra：同一个算法模型，怎样被稳定地训练出来、保存下来、部署出去、服务给用户，并在故障、扩容、升级和成本约束下持续运行。
 
 大模型 Infra 不是“把模型放进一台 GPU 服务器”。它是一条跨越数据、计算、通信、存储、调度、服务、观测和治理的系统链路。训练侧关心有效 token/s、扩展效率、故障恢复和 checkpoint；推理侧关心 TTFT、TPOT、吞吐、KV cache、排队和单位成功成本；平台侧还要处理模型版本、容量预测、租户隔离、权限、审计和回滚。
 
-本章作为 Infra 六章的总览，先建立资源模型和系统边界，后续章节再分别深入训练平台、推理服务、数据与评估、分布式调度以及可靠性与成本治理。算法章节给出的模型结构、并行需求、精度和验证器，是 Infra 的输入契约；Infra 的工作是让这些算法在真实约束下可重复、可观测、可恢复地执行。
+本章作为第二部分Infra六章的总览（源码继续沿用part1路径），先建立资源模型和系统边界，后续章节再分别深入训练平台、推理服务、数据与评估、持久Agent Runtime以及可靠性与成本治理。算法章节给出的模型结构、并行需求、精度和验证器，是 Infra 的输入契约；Infra 的工作是让这些算法在真实约束下可重复、可观测、可恢复地执行。
 
 ## 7.1 为什么大模型需要独立的 Infra 方法论
 
@@ -45,11 +43,13 @@
 | 量化、LoRA、视觉输入 | 转换和 kernel 是否兼容 | 质量、吞吐、回滚 |
 | 验证器、工具和多步推理 | 如何调度额外计算 | 单位成功成本、尾延迟 |
 
+以下资源账本、状态机、门禁与费用数字均为本书的设计建议或教学假设，不代表来源中的已实现平台。后续章节承担实现细节；本章只冻结跨层输入、输出与可检查边界。
+
 ### 为什么“能跑”远远不够
 
-一个训练脚本能在 8 张 GPU 上跑通，只能说明功能闭环成立，不能说明系统可扩展。可能存在 GPU 等待、数据加载不足、通信瓶颈、checkpoint 阻塞、故障后无法恢复和成本不可接受等问题。一个推理服务返回了 token，也不代表可上线：它可能首 token 很慢、并发一高就 OOM、长请求饿死短请求、模型升级无法灰度、工具请求没有审计。
+例如教学场景中，一个训练脚本能在8张GPU上跑通，只能说明功能闭环成立，不能说明系统可扩展。可能存在 GPU 等待、数据加载不足、通信瓶颈、checkpoint 阻塞、故障后无法恢复和成本不可接受等问题。一个推理服务返回了 token，也不代表可上线：它可能首 token 很慢、并发一高就 OOM、长请求饿死短请求、模型升级无法灰度、工具请求没有审计。
 
-大模型 Infra 的验收必须从“功能正确”扩展到五个维度：性能、容量、可靠性、可观测性和治理。Google SRE 方法论把服务目标、错误预算和发布决策联系起来 [22]；大模型系统还要把 token、上下文、模型版本和生成质量纳入同一套服务目标。
+大模型 Infra 的验收必须从“功能正确”扩展到五个维度：性能、容量、可靠性、可观测性和治理。Google SRE 方法论把服务目标、错误预算和发布决策联系起来 [[1]](#ref-1)；大模型系统还要把 token、上下文、模型版本和生成质量纳入同一套服务目标。
 
 ## 7.2 工作负载与资源模型：先算清楚再选组件
 
@@ -71,19 +71,21 @@
 
 ### 参数、激活和状态的内存账本
 
-训练显存不只有模型权重。粗略账本包括参数、梯度、优化器状态、激活、通信 buffer、临时 workspace 和 checkpoint buffer。以 Adam 类优化器为例，参数本身可能以 BF16 保存，梯度和 master weight、动量与方差还需要额外空间；激活随 batch 和 sequence length 增长。ZeRO 通过分片优化器状态、梯度和参数降低单卡冗余 [2]，ZeRO-Infinity 进一步探索 CPU/NVMe offload [3]。
+训练显存不只有模型权重。粗略账本包括参数、梯度、优化器状态、激活、通信 buffer、临时 workspace 和 checkpoint buffer。以 Adam 类优化器为例，参数本身可能以 BF16 保存，梯度和 master weight、动量与方差还需要额外空间；激活随 batch 和 sequence length 增长。ZeRO 通过分片优化器状态、梯度和参数降低单卡冗余 [[2]](#ref-2)，ZeRO-Infinity 进一步探索 CPU/NVMe offload [[3]](#ref-3)。
 
-推理显存则主要由权重、KV cache、运行时 workspace 和 batch 中的临时张量组成。对 decoder-only 模型，可以用近似式估算每个请求的 KV：
+推理显存则主要由权重、KV cache、运行时 workspace 和 batch 中的临时张量组成。对 decoder-only 模型，在常规MHA/GQA、K/V维相同且无特殊压缩时，可按第1章符号用近似式估算一批序列的KV载荷：
 
-$$
+\\[
 M_{KV}\approx 2\times L\times B\times T\times H_{KV}\times d_{head}\times bytes,
-$$
+\\]
 
-其中 (L) 为层数，(B) 为序列数，(T) 为输入加输出长度，(H_{KV}) 为 KV head 数。GQA 通过减少 (H_{KV}) 降低 cache 压力，但模型结构和质量已经在算法侧决定。Infra 需要把最大长度、并发和精度转换成 admission control 和容量上限。
+其中 \\(L\\) 为层数，\\(B\\) 为同时驻留的序列数，\\(T\\) 为每条序列已缓存token数，\\(H_{KV}\\) 为KV头数，\\(d_{head}\\)为每头维度，bytes为每元素字节数。这里计算一个批的载荷；单请求取 \\(B=1\\)，不同长度要逐序列求和。GQA通过减少 \\(H_{KV}\\) 降低cache压力，但模型结构和质量已经在算法侧决定。Infra 需要把最大长度、并发和精度转换成 admission control 和容量上限。
+
+MoE还要分清总参数与每token激活参数。权重驻留与制品存储通常受总参数、共享层和放置方案约束；每token激活参数可帮助描述参与计算的专家，却不能直接当作全部显存。路由通信、负载偏斜和非专家计算也不能从“激活少”消失。不能拿总参数估每token计算后又拿激活参数估权重内存，混合两种口径会同时高估算力需求与低估驻留成本。
 
 ### 计算、带宽与通信
 
-大模型性能不能只看 FLOPS。训练时需要矩阵乘法，也需要 GPU 之间的 all-reduce、all-gather、reduce-scatter；推理 decode 可能更受显存带宽和 KV 读取限制；数据处理可能受网络和对象存储吞吐限制。NCCL 为 GPU 集合通信提供了高性能 primitives [19]，但应用层仍要正确选择并行维度、通信时机和拓扑。
+大模型性能不能只看 FLOPS。训练时需要矩阵乘法，也需要 GPU 之间的 all-reduce、all-gather、reduce-scatter；推理 decode 可能更受显存带宽和 KV 读取限制；数据处理可能受网络和对象存储吞吐限制。NCCL 为 GPU 集合通信提供了高性能 primitives [[4]](#ref-4)，但应用层仍要正确选择并行维度、通信时机和拓扑。
 
 一个简单判断是：如果 GPU compute 利用率低、网络利用率高，可能是并行切分或 all-reduce 瓶颈；如果 compute 低、显存带宽接近上限，可能是 decode 或小 batch memory-bound；如果 GPU 和网络都低，而 CPU 或对象存储高，说明数据供给是瓶颈。需要同时观察多个层级的指标，不能只看一个 GPU utilization 百分比。
 
@@ -109,7 +111,7 @@ $$
 
 ### 数据并行
 
-数据并行把不同 batch 分配给不同 GPU，每张卡保存完整模型副本，反向后通过 all-reduce 同步梯度。它实现简单，适合模型能放进单卡、通信带宽足够的场景。模型越大，单卡越放不下；batch 越小，梯度同步相对成本越高。经典大规模训练系统会把 data parallel 与 tensor/pipeline parallel 组合使用 [1][5]。
+数据并行把不同 batch 分配给不同 GPU，每张卡保存完整模型副本，反向后通过 all-reduce 同步梯度。它适合模型能放进单卡、通信带宽足够的场景；中文多GPU教材可用于复习副本、样本切分与梯度聚合的基础 [[5]](#ref-5)。模型越大，单卡越放不下；batch 越小，梯度同步相对成本越高。经典大规模训练系统会把 data parallel 与 tensor/pipeline parallel 组合使用 [[6]](#ref-6)[[7]](#ref-7)。
 
 ### 张量并行
 
@@ -117,45 +119,45 @@ $$
 
 ### 流水线并行
 
-流水线并行把不同 Transformer 层放在不同 GPU，输入 micro-batch 依次通过 stage。它减少单卡参数压力，却引入 pipeline bubble 和 stage imbalance。micro-batch 越小，bubble 可能越明显；micro-batch 越大，激活和排队压力增加。流水线切分不能只按层数平均，还要考虑不同层的算子、通信和激活成本。
+流水线并行把不同 Transformer 层放在不同 GPU，输入 micro-batch 依次通过 stage。它减少单卡参数压力，却引入 pipeline bubble 和 stage imbalance。bubble与stage数、micro-batch数量及调度有关；固定全局batch时，减小单个micro-batch可能增加批次数并降低bubble比例，却也可能损害kernel效率。增大单个micro-batch则可能增加激活压力。流水线切分不能只按层数平均，还要考虑不同层的算子、通信和激活成本。
 
 ### ZeRO、FSDP 与分片状态
 
-ZeRO 将优化器状态、梯度和参数的冗余分片，按阶段逐步降低单卡内存 [2]。PyTorch FSDP 提供 fully sharded data parallel 的实现，把参数、梯度和优化器状态在数据并行组中分片，并在计算前 all-gather、计算后释放或重新分片 [18]。它们的共同代价是通信和调度复杂度上升。
+ZeRO 将优化器状态、梯度和参数的冗余分片，按阶段逐步降低单卡内存 [[2]](#ref-2)。PyTorch FSDP 提供 fully sharded data parallel 的实现，把参数、梯度和优化器状态在数据并行组中分片，并在计算前 all-gather、计算后释放或重新分片 [[8]](#ref-8)。它们的共同代价是通信和调度复杂度上升。
 
 选择 DDP、FSDP、ZeRO 或 Megatron 组合时，需要明确：模型是否能完整驻留、通信拓扑是什么、checkpoint 是否支持、优化器状态如何保存、是否需要 CPU offload，以及训练是否要和推理共享权重格式。没有统一最优方案，只有与模型规模、硬件和故障模型相匹配的方案。
 
 ### MoE 与专家并行
 
-MoE 通过 router 为每个 token 选择少数专家，参数总量可以大于每个 token 的激活量，但 token 需要在 GPU 间路由。专家负载不均会导致某些 GPU 成为 straggler，capacity factor 过小会丢弃 token，过大又浪费显存。Infra 需要观测专家负载、token dispatch、通信量、溢出率和路由稳定性。
+MoE 通过 router 为每个 token 选择少数专家，参数总量可以大于每个 token 的激活量，但 token 需要在 GPU 间路由。专家负载不均会导致某些 GPU 成为 straggler，在采用容量上限并丢弃溢出的实现中，capacity factor过小可能丢弃token，过大又浪费显存。Infra 需要观测专家负载、token dispatch、通信量、溢出率和路由稳定性。
 
 MoE 的扩展效率不等于 dense 模型的扩展效率。专家并行、数据并行和张量并行组合后，通信拓扑更复杂；容错时一个专家节点故障可能影响全局。训练平台应支持专家负载告警、故障重启和 checkpoint 恢复，不要只看总体 FLOPS。
 
 ### 并行度如何选择
 
-可以把总并行度写成：
+在DP、TP、PP三个轴独立的稠密mesh中，总进程数可写成三者乘积。原Megatron组合研究支持这三个轴的取舍 [[7]](#ref-7)；下式不是所有框架通用的世界大小公式：
 
-$$
-P_{total}=P_{data}\times P_{tensor}\times P_{pipeline}\times P_{expert}.
-$$
+\\[
+P_{world}=P_{data}\times P_{tensor}\times P_{pipeline}.
+\\]
 
-每个维度都可能带来通信、显存、调度和可恢复性代价。一个实用的选择顺序是：先让单层和单 stage 放得下，再根据机内拓扑确定 TP，按模型深度和 bubble 选择 PP，剩余 GPU 扩展 DP；MoE 再根据专家数量和路由流量选择 EP。小规模 benchmark 必须测真实拓扑和真实 sequence length，不能用理论计算量外推大集群性能。
+EP常与DP进程组相互划分或重叠，不能无条件再乘一个专家并行度；应先写清物理rank到各逻辑组的映射，再核对覆盖、重叠与参数副本。每个维度都可能带来通信、显存、调度和可恢复性代价。一个实用的选择顺序是：先让单层和单 stage 放得下，再根据机内拓扑确定 TP，按模型深度和 bubble 选择 PP，剩余 GPU 扩展 DP；MoE 再根据专家数量和路由流量选择 EP。小规模 benchmark 必须测真实拓扑和真实 sequence length，不能用理论计算量外推大集群性能。
 
 ### 集群扩展效率
 
 理想情况下，GPU 数翻倍，吞吐也翻倍；实际扩展效率受到通信、同步、数据读取和尾部 straggler 影响：
 
-$$
+\\[
 E(N)=\frac{throughput(N)}{N\times throughput(1)}.
-$$
+\\]
 
-当 (E(N)) 随 GPU 数下降时，继续扩容可能不划算。Megatron-LM 的大规模训练研究展示了模型并行与集群训练如何协同 [1][5]；PaLM 的 Pathways 经验也说明，大规模训练需要统一计算、通信和故障管理 [7]。平台团队应把扩展曲线作为发布门禁：在目标规模上测吞吐、通信比例、checkpoint 时间和节点故障恢复。
+当 \\(E(N)\\) 随GPU数下降时，继续扩容可能不划算。Megatron-LM 的大规模训练研究展示了模型并行与集群训练如何协同 [[6]](#ref-6)[[7]](#ref-7)；PaLM 的 Pathways 经验也说明，大规模训练需要统一计算、通信和故障管理 [[9]](#ref-9)。平台团队应把扩展曲线作为发布门禁：在目标规模上测吞吐、通信比例、checkpoint 时间和节点故障恢复。
 
-## 7.4 数据、Checkpoint 与训练可恢复性
+### 数据与训练恢复的接口
 
 ### 数据管线是训练系统的前端
 
-训练 GPU 只在拿到有效 batch 时产生价值。数据管线要完成对象存储读取、解压、解码、去重、tokenization、混合采样、shuffle、packing 和 batch 组装。任何一个环节抖动，都会让 GPU 等待。Spark 等数据处理系统展示了大规模 DAG、分区和容错的基本方法 [27]；大模型训练通常还需要面向 token 的流式和分片设计。
+训练 GPU 只在拿到有效 batch 时产生价值。数据管线要完成对象存储读取、解压、解码、去重、tokenization、混合采样、shuffle、packing 和 batch 组装。任何一个环节抖动，都会让 GPU 等待。Spark 等数据处理系统展示了大规模 DAG、分区和容错的基本方法 [[10]](#ref-10)；大模型训练通常还需要面向 token 的流式和分片设计。
 
 数据管线要区分 raw document、clean document、token shard、packed sample 和 training batch。每一层都有版本和统计：文档数、有效 token、语言比例、平均长度、重复率、过滤率、错误率和采样权重。训练时记录 manifest hash 和 shard 顺序，才能在 checkpoint 恢复时继续得到一致或可解释的样本流。
 
@@ -169,15 +171,11 @@ $$
 
 一个可恢复 checkpoint 通常包括：模型参数、优化器状态、学习率调度器、梯度 scaler、随机状态、数据游标、训练配置、并行拓扑、tokenizer、数据 manifest、代码版本和评估结果。只保存权重可以做推理，却不能保证从同一个优化状态继续训练。
 
-Checkpoint 保存会产生大量 I/O 和 GPU/CPU 拷贝。可以使用分片、异步写入、增量 checkpoint、对象存储 multipart 和本地缓存，但必须定义一致性：训练进程崩溃时，不能得到一组模型权重来自 step (t)、optimizer 来自 step (t-1) 的伪恢复点。保存过程应有临时前缀、manifest、校验和、完成标志，读取时只选择完整版本。
+Checkpoint 保存会产生大量 I/O 和 GPU/CPU 拷贝。可以使用分片、异步写入、增量 checkpoint、对象存储 multipart 和本地缓存，但必须定义一致性：训练进程崩溃时，不能把来自step \\(t\\)的权重与step \\(t-1\\)的优化器状态当作同一恢复点。保存过程应有临时前缀、manifest、校验和、完成标志，读取时只选择完整版本。
 
 ### 保存频率与丢失工作量
 
-Checkpoint 越频繁，丢失的训练工作越少，但 I/O 阻塞和存储成本越高。可以用近似成本做决策：
-
-$$
-Expected\ Loss\ Cost\approx failure\ rate\times recovery\ time\times compute\ cost.
-$$
+Checkpoint越频繁，潜在重算量越少，但保存成本更高。若教学假设故障时间在相邻完整快照之间均匀分布、间隔为 \\(\tau\\)，平均丢失进度约 \\(\tau/2\\)，另加重启和恢复耗时；不能只用恢复耗时乘故障率表示全部损失。真实故障并不一定独立均匀，异步写入也会延长最后可用快照的年龄，应按第8章定义的完整快照时间线计量。
 
 节点越多、运行时间越长、故障率越高，越应该降低恢复粒度。训练系统还要区分可恢复 checkpoint 和发布 checkpoint：前者服务训练重启，后者经过评估、转换和注册后供推理使用。
 
@@ -193,17 +191,17 @@ $$
 
 模型 checkpoint 同样可能包含训练数据记忆和内部能力，下载、复制、转换和发布都需要权限。平台要记录谁创建了 checkpoint、谁下载过、哪个数据版本训练而来，以及是否通过安全评估。模型注册表不是简单文件目录，而是算法、数据和治理元数据的索引。
 
-## 7.5 Kernel、通信与存储：性能优化的正确层次
+### Kernel、通信与存储的总览
 
 ### 从算子到融合 kernel
 
-Transformer 训练和推理包含 GEMM、attention、normalization、activation、通信和采样等算子。单个算子都正确，不代表组合执行高效：中间张量写入 HBM、kernel launch 次数、非连续 layout 和 padding 都会造成开销。FlashAttention 通过 IO-aware 的 tiling 减少 attention 的 HBM 读写，并保持精确结果 [9]；FlashAttention-2 进一步改善并行和 work partitioning [10]。
+Transformer 训练和推理包含 GEMM、attention、normalization、activation、通信和采样等算子。单个算子都正确，不代表组合执行高效：中间张量写入 HBM、kernel launch 次数、非连续 layout 和 padding 都会造成开销。FlashAttention 通过 IO-aware 的 tiling 减少 attention 的 HBM 读写，并保持精确结果 [[11]](#ref-11)；FlashAttention-2 进一步改善并行和 work partitioning [[12]](#ref-12)。
 
 工程优化应先用 profiler 找到热点，再决定融合、重排、kernel 替换或模型结构调整。不要为了追求 benchmark 盲目改动算子，尤其要验证不同 sequence length、batch、精度、GPU 架构和边界输入。kernel 变化必须绑定版本和回归集，因为数值微小差异可能在长训练或低精度推理中累积。
 
 ### 集合通信与拓扑
 
-all-reduce 适合同步梯度，all-gather 适合参数分片，reduce-scatter 可把聚合结果直接分片。NCCL 根据 GPU、PCIe、NVLink、InfiniBand 和网卡拓扑选择通信路径 [19]。拓扑探测错误、网卡配置不一致、MTU、拥塞或跨机带宽不足，都会让训练吞吐大幅下降。
+all-reduce 适合同步梯度，all-gather 适合参数分片，reduce-scatter 可把聚合结果直接分片。NCCL 根据 GPU、PCIe、NVLink、InfiniBand 和网卡拓扑选择通信路径 [[4]](#ref-4)。拓扑探测错误、网卡配置不一致、MTU、拥塞或跨机带宽不足，都会让训练吞吐大幅下降。
 
 性能分析不能只看通信总时长，还要看通信是否与计算重叠、是否被最慢 rank 阻塞、消息大小是否匹配、是否存在热点链路。训练系统应记录每种 collective 的耗时、字节数、调用次数、rank 方差和重试情况。集群变更后必须重新测扩展曲线。
 
@@ -221,11 +219,11 @@ BF16、FP16、FP8、INT8 和 INT4 的选择需要同时考虑硬件支持、训�
 
 ### 编译、缓存和可重复性
 
-Torch compile、CUDA graph、kernel autotune 和 TensorRT-LLM engine build 可以减少运行时开销，但会引入编译时间、shape 约束、设备兼容和缓存失效。TensorRT-LLM 文档覆盖了张量并行、量化和推理优化的工程接口 [16]；Triton Inference Server 提供模型加载、版本和 ensemble 服务能力 [17]。
+编译、图捕获、kernel autotune与后端制品构建 可以减少运行时开销，但会引入编译时间、shape 约束、设备兼容和缓存失效。Triton官方模型管理文档区分NONE、EXPLICIT和POLL；POLL可能观察到仓库的部分更新，不应把目录轮询当作原子发布。这里引用的是管理边界，不承诺某套引擎版本的完整兼容矩阵 [[13]](#ref-13)。
 
 编译产物必须绑定模型 hash、GPU 架构、CUDA/driver、输入 shape、精度和算子版本。一个 engine 在 A100 上生成，不能默认在 H100 或不同 driver 上复用。构建过程应可重放，发布前进行冷启动、热启动、最大长度和错误输入测试。
 
-## 7.6 推理平台：从一次 forward 到在线服务
+## 7.4 推理平台与请求调度
 
 ### Prefill 与 Decode
 
@@ -235,16 +233,16 @@ Torch compile、CUDA graph、kernel autotune 和 TensorRT-LLM engine build 可�
 
 ```text
 TTFT = request arrival -> first output token
-TPOT = decode time / generated tokens
-E2E latency = queue + prefill + decode + postprocess
+TPOT (N_out > 1) = (last_token_time - first_token_time) / (N_out - 1)
+E2E latency = preprocess + queue + prefill + decode + postprocess
 goodput = successful requests / time under SLO
 ```
 
-只报告 tokens/s 容易掩盖排队和尾延迟。一个批处理吞吐很高的服务，可能让短请求等待长 prompt；一个单请求延迟低的服务，可能在并发时显存爆炸。平台要按 workload 分布测 p50、p95、p99 和成功率。
+TPOT采用首末token之间的平均间隔，不把首token再算进分母；单token输出不定义该值。还应保留逐token间隔与流式停顿，平均TPOT不能反映所有抖动。只报告 tokens/s 容易掩盖排队和尾延迟。一个批处理吞吐很高的服务，可能让短请求等待长 prompt；一个单请求延迟低的服务，可能在并发时显存爆炸。平台要按 workload 分布测 p50、p95、p99 和成功率。
 
 ### Serving engine 的职责
 
-推理引擎负责模型加载、权重分片、KV cache、batch 调度、sampling、streaming、量化 kernel、prefix cache 和错误处理。vLLM 以 PagedAttention、连续批处理和高效内存管理为核心 [11][12]；TensorRT-LLM 侧重编译和 NVIDIA GPU 优化 [16]；Triton 更像服务编排和模型管理层 [17]。它们可能组合使用，不应把“模型服务框架”当成一个单一组件。
+推理引擎负责模型加载、权重分片、KV cache、batch 调度、sampling、streaming、量化 kernel、prefix cache 和错误处理。vLLM 以 PagedAttention、连续批处理和高效内存管理为核心 [[14]](#ref-14)[[15]](#ref-15)；Triton在此承担模型仓库与加载管理接口 [[13]](#ref-13)。它们可能组合使用，不应把“模型服务框架”当成一个单一组件。
 
 服务接口还要处理 tokenizer 版本、chat template、停止词、结构化输出、工具调用、超时、取消和流式断开。客户端取消后是否立刻释放 KV cache，工具调用中断后是否保留上下文，重试是否导致重复副作用，都属于 Infra 的正确性问题。
 
@@ -254,17 +252,17 @@ goodput = successful requests / time under SLO
 
 对于多模型平台，路由还要考虑模型能力、租户、区域、价格、精度和数据驻留。fallback 模型必须经过任务和安全评估，不能在主模型不可用时任意切换到能力不等价的模型。路由决策要写入 trace，便于解释一次请求实际使用了什么模型。
 
-## 7.7 调度、Batching 与 KV Cache
+### 调度、Batching与KV Cache
 
 ### Continuous Batching
 
-传统 batch 等待一批请求一起开始、一起结束，但生成长度通常差异很大。Orca 提出的 iteration-level scheduling 使请求可以在每个生成迭代加入或退出 batch [13]。Continuous batching 提升了 GPU 利用率，却要求调度器实时管理 prefill、decode、KV 容量、优先级、取消和饥饿。
+传统 batch 等待一批请求一起开始、一起结束，但生成长度通常差异很大。Orca 提出的 iteration-level scheduling 使请求可以在每个生成迭代加入或退出 batch [[16]](#ref-16)。Continuous batching 提升了 GPU 利用率，却要求调度器实时管理 prefill、decode、KV 容量、优先级、取消和饥饿。
 
 调度器至少要选择三个对象：本轮处理哪些请求、每个请求分配多少 token、是否允许新请求进入。只按 FIFO 可能让一个超长 prompt 阻塞大量短请求；只按短请求优先可能让长任务饥饿；只追求 batch 最大化可能违反 TTFT SLO。常见策略包括 token budget、deadline、优先级队列、chunked prefill 和公平配额。
 
 ### PagedAttention 与内存碎片
 
-PagedAttention 把 KV cache 切成固定大小的 block，像虚拟内存一样由引擎管理，不要求每个请求占用连续大块显存 [11]。这减少了外部碎片，支持不同长度请求和动态 batch，也便于 beam 或 prefix 共享。它把 KV cache 从模型内部数组变成平台资源，带来 block 分配、回收、引用计数和 eviction 的系统问题。
+PagedAttention 把 KV cache 切成固定大小的 block，像虚拟内存一样由引擎管理，不要求每个请求占用连续大块显存 [[14]](#ref-14)。这减少了外部碎片，支持不同长度请求和动态 batch，也便于 beam 或 prefix 共享。它把 KV cache 从模型内部数组变成平台资源，带来 block 分配、回收、引用计数和 eviction 的系统问题。
 
 KV block 分配要考虑请求取消、生成结束、异常、重试和多租户隔离。若 block 泄漏，服务会逐渐 OOM；若过度回收，重新计算 prefix 会增加 TTFT；若跨请求共享错误，可能泄露上下文。缓存 key 必须由完整 token prefix、模型版本、模板和权限范围组成。
 
@@ -276,21 +274,21 @@ KV block 分配要考虑请求取消、生成结束、异常、重试和多租�
 
 ### Chunked Prefill 与长请求公平性
 
-长 prompt 的 prefill 可能占据 GPU 多个迭代，阻塞正在 decode 的请求。Sarathi-Serve 通过 chunked prefill 把长 prompt 切成块，与 decode 交错执行，以改善吞吐和延迟权衡 [14]。切块大小决定计算利用率和抢占粒度：太小会增加 launch 与调度开销，太大仍然阻塞 decode。
+长 prompt 的 prefill 可能占据 GPU 多个迭代，阻塞正在 decode 的请求。Sarathi-Serve 通过 chunked prefill 把长 prompt 切成块，与 decode 交错执行，以改善吞吐和延迟权衡 [[17]](#ref-17)。切块大小决定计算利用率和抢占粒度：太小会增加 launch 与调度开销，太大仍然阻塞 decode。
 
 长请求还要设置 admission control：最大输入 token、最大输出 token、并发占用、租户配额和超时。超过限制时可以拒绝、截断、压缩、转异步队列或路由到低优先级池。重要的是提前拒绝而不是让请求进入后才 OOM。
 
 ### Prefill/Decode Disaggregation
 
-Prefill 和 decode 的资源画像不同：前者偏计算，后者偏内存带宽和 KV。DistServe 把二者分离到不同资源池，允许分别扩容和优化 SLO [15]。分离带来 KV transfer、网络、状态一致性和调度复杂度，适合流量规模和延迟要求足够大、能够摊平额外通信成本的场景。
+Prefill 和 decode 的资源画像不同：前者偏计算，后者偏内存带宽和 KV。DistServe 把二者分离到不同资源池，允许分别扩容和优化 SLO [[18]](#ref-18)。分离带来 KV transfer、网络、状态一致性和调度复杂度，适合流量规模和延迟要求足够大、能够摊平额外通信成本的场景。
 
 设计 disaggregation 时要回答：KV 如何传输和序列化，传输期间请求如何取消，decode 节点如何发现 prefill 已完成，失败时是否重做 prefill，跨机网络是否成为瓶颈。小规模部署不一定值得引入这种复杂度；平台应通过 workload 画像和容量模型证明收益。
 
-## 7.8 资源调度、隔离与平台化
+## 7.5 资源调度、隔离与平台化
 
 ### GPU 资源编排
 
-Kubernetes 可以通过 device plugin 和资源请求调度 GPU [20]，但大模型训练通常还需要拓扑感知、gang scheduling、优先级、抢占、节点健康和本地数据。一个分布式训练 job 需要一组 GPU 同时可用，只有部分资源会导致长期 pending；推理服务可以弹性扩容，但模型加载和 warmup 时间使瞬时扩容不一定及时。
+Kubernetes 可以通过 device plugin 和资源请求调度 GPU [[19]](#ref-19)，但大模型训练通常还需要拓扑感知、gang scheduling、优先级、抢占、节点健康和本地数据。一个分布式训练 job 需要一组 GPU 同时可用，只有部分资源会导致长期 pending；推理服务可以弹性扩容，但模型加载和 warmup 时间使瞬时扩容不一定及时。
 
 集群调度应区分训练、推理、评估和交互式开发资源池。训练追求长时间稳定和大 gang，推理追求低延迟和滚动升级，评估追求大量可并行任务，开发追求快速反馈。混在同一资源池中，低优先级训练可能抢占在线推理，或交互式任务碎片化大 GPU。
 
@@ -298,7 +296,7 @@ Kubernetes 可以通过 device plugin 和资源请求调度 GPU [20]，但大模
 
 资源账本必须同时拥有“请求量”和“实耗量”。请求量用于准入与公平：一个八卡训练任务若只申报四卡，就会挤占不属于它的容量；实耗量用于容量与成本：长期低利用率的 reservation 可能需要回收或降级。两者之间的差异不是立即的违规证据，因为模型加载、checkpoint、通信同步和长上下文请求都可能造成短时空闲；但平台应按工作负载类型设定观察窗口和解释码。训练作业可在稳定 step 窗口内评估有效 token/s 和通信等待，推理副本可按长度分桶评估排队、TTFT、TPOT、KV 水位和取消率，不能用一个全局 GPU 利用率阈值处罚所有任务。
 
-拓扑是资源账本的一部分。八张跨机 PCIe GPU 与八张同机高速互联 GPU 在训练、TP 和 MoE 场景中的可用能力不同；同样的显存总量也不能保证模型、激活、优化器状态和通信 buffer 同时放得下。控制面应把 topology class、故障域和网络带宽写入可调度属性，调度器只在兼容集合中做 placement。Borg 对资源分配、优先级和集群效率的讨论 [21] 提供了这一控制逻辑的基本框架；Kubernetes 的资源请求和 device plugin 是执行底座 [20]，但它们不能自动判断一组 GPU 是否满足某种并行策略。
+拓扑是资源账本的一部分。八张跨机 PCIe GPU 与八张同机高速互联 GPU 在训练、TP 和 MoE 场景中的可用能力不同；同样的显存总量也不能保证模型、激活、优化器状态和通信 buffer 同时放得下。控制面应把 topology class、故障域和网络带宽写入可调度属性，调度器只在兼容集合中做 placement。Borg 对资源分配、优先级和集群效率的讨论 [[20]](#ref-20) 提供了这一控制逻辑的基本框架；Kubernetes 的资源请求和 device plugin 是执行底座 [[19]](#ref-19)，但它们不能自动判断一组 GPU 是否满足某种并行策略。
 
 资源生命周期还需要处理“僵尸占用”。worker 已失联、训练进程仍在运行、NCCL communicator 未释放或对象存储上传卡住时，调度器看到的状态可能与真实设备不同。每个 allocation 因而需要 lease、心跳、fencing token 和可验证的释放确认。lease 过期只表示控制面可以开始调查或隔离，不表示可以立刻把同一块 GPU 给另一个高风险任务；执行面必须确认旧进程、容器、挂载和网络身份已经被撤销。对于无法确认的节点，宁可暂时摘除也不要超卖，这与数据库中不把失联锁直接视为已释放是同一种保守性。
 
@@ -315,7 +313,7 @@ requested -> admitted -> reserved -> allocated -> warming -> serving/running
 
 ### 调度公平与容量预留
 
-Borg 等集群管理系统的经验表明，资源调度要同时处理优先级、配额、隔离、故障域和利用率 [21]。大模型平台还要增加显存、模型权重、KV 容量和通信拓扑维度。GPU 数量相同，不同 GPU 型号和互联拓扑的有效容量不同。
+Borg 等集群管理系统的经验表明，资源调度要同时处理优先级、配额、隔离、故障域和利用率 [[20]](#ref-20)。大模型平台还要增加显存、模型权重、KV 容量和通信拓扑维度。GPU 数量相同，不同 GPU 型号和互联拓扑的有效容量不同。
 
 容量规划不能只按平均 QPS。要看输入/输出 token 分布、并发峰值、长尾请求、模型路由比例、缓存命中和故障余量。建议建立容量方程：
 
@@ -337,7 +335,7 @@ required capacity
 
 “每百万 token 的价格”不足以支撑平台优化。一次请求的真实边际成本可能包含 prefill、decode、KV 驻留、cache miss、路由到更大模型、重试、工具调用、网络出口和人工处理；训练成本还包含空闲 reservation、失败 step、checkpoint、数据读取和评估。较有用的单位是每次成功任务、每个被接受的工单、每个通过的测试或每个有效训练 token 的成本，但这些单位必须同时报告质量和延迟。否则团队可能通过缩短输出、拒绝困难任务或降低验证次数来制造“成本下降”的假象。
 
-为了支持审计，成本链应能从总账一路钻取到单个动作。例如一个业务 Run 的根成本为 12 元，其中模型 token 6 元、GPU reservation 分摊 2 元、搜索工具 1 元、重试 1 元、人工批准 2 元；若任务失败，系统还应显示是模型质量、工具故障还是预算策略导致失败。这样，负责人能判断应该调模型路由、修复工具、优化 cache 还是限制输入长度，而不是把所有异常归咎于某个团队。归因也必须支持共享成本：基础模型 warm pool、公共向量索引和观测系统可以按预先公布的规则分摊，不能在月末按临时印象摊派。
+为了支持审计，成本链应能从总账一路钻取到单个动作。例如教学假设中一个业务Run的归因成本为12元，其中模型 token 6 元、GPU reservation 分摊 2 元、搜索工具 1 元、重试 1 元、人工批准 2 元；若任务失败，系统还应显示是模型质量、工具故障还是预算策略导致失败。这样，负责人能判断应该调模型路由、修复工具、优化 cache 还是限制输入长度，而不是把所有异常归咎于某个团队。归因也必须支持共享成本：基础模型 warm pool、公共向量索引和观测系统可以按预先公布的规则分摊，不能在月末按临时印象摊派。
 
 多租户隔离的公平不是平均分卡。交互式生产请求通常有严格 deadline，训练可以接受等待但需要连续 gang，评估适合在空档批量填充。控制面可同时采用 hard quota、reservation、借用和回收：hard quota 防止一个租户耗尽集群；reservation 为关键服务保留容量；借用让空闲容量被低优先级任务使用；回收在 reservation 真正需要资源时让可检查点的任务有序退出。借用必须有最大期限、可抢占标记和 checkpoint 协议，不能把“空闲”误解为永久所有权。
 
@@ -370,27 +368,27 @@ required capacity
 
 ADR 不替代实验数据，但它规定在什么约束下解释实验数据。发布后若观察到闲置成本高于隔离收益，团队可以根据既定重评估条件合并资源池；若发生跨租户 cache 风险，则应立即提高隔离优先级。将获得与牺牲放在同一维度比较，能防止“吞吐提升”掩盖安全、可运维性或恢复能力的下降。
 
-## 7.9 可靠性、观测与 Infra 验收
+## 7.6 可靠性、观测与Infra验收
 
 ### SLO 不只是一条延迟线
 
 在线 LLM 服务的 SLO 至少包括可用性、TTFT、TPOT、完成率、错误率、超时率和质量门禁。对流式请求，“HTTP 200”不代表成功：可能只返回了部分 token、工具调用格式损坏或用户中途取消。对 Agent，最终任务成功和工具状态一致性比单次模型响应更重要。
 
-可以把 SLO 分层：平台层保证服务可用和延迟，模型层保证格式和能力回归，业务层保证任务成功和人工接管率。错误预算用于决定是否继续发布、是否暂停实验、是否把资源投入稳定性。SRE Workbook 提供了服务等级和错误预算的系统方法 [22]。
+可以把 SLO 分层：平台层保证服务可用和延迟，模型层保证格式和能力回归，业务层保证任务成功和人工接管率。错误预算用于决定是否继续发布、是否暂停实验、是否把资源投入稳定性。SRE Workbook 提供了服务等级和错误预算的系统方法 [[1]](#ref-1)。
 
 ### Metrics、Logs 与 Traces
 
-Metrics 适合时间序列和聚合趋势，logs 记录单次错误与上下文，traces 记录跨服务和跨工具的因果链。Dapper 展示了大规模分布式 tracing 如何把请求在多个服务中的路径串起来 [23]；OpenTelemetry 提供统一的 trace、metric 和 log 语义 [24]；Prometheus 提供指标采集、查询和告警基础 [25]。
+Metrics 适合时间序列和聚合趋势，logs 记录单次错误与上下文，traces 记录跨服务和跨工具的因果链。Dapper 展示了大规模分布式 tracing 如何把请求在多个服务中的路径串起来 [[21]](#ref-21)；OpenTelemetry 提供统一的 trace、metric 和 log 语义 [[22]](#ref-22)；Prometheus 提供指标采集、查询和告警基础 [[23]](#ref-23)。
 
 大模型 trace 需要额外字段：model、model version、tokenizer、prompt hash、input/output token、TTFT、TPOT、queue time、cache hit、sampling、tool calls、verifier、finish reason、safety decision 和 estimated cost。默认不要记录完整敏感 prompt 和隐私输出；应做脱敏、采样、访问审计和保留时间控制。
 
-观测设计的第一原则是把控制面决定与数据面结果连起来。一次请求的 trace 不能只知道“模型慢”，还要知道它命中了哪个 routing rule、在哪个队列等待、由哪个 scheduler admission、分配了哪种 GPU、是否发生 prefill/decode 迁移、KV 是否因配额被驱逐、以及最终归因到哪个 tenant 和成本中心。没有这些字段，SRE 只能看到症状，平台团队无法判断根因是容量不足、调度不公平、缓存策略、模型版本还是上游输入变化。OpenTelemetry 的统一上下文传播可以承载关联 id [24]，但字段的语义、脱敏范围和基数控制必须由平台契约定义。
+观测设计的第一原则是把控制面决定与数据面结果连起来。一次请求的 trace 不能只知道“模型慢”，还要知道它命中了哪个 routing rule、在哪个队列等待、由哪个 scheduler admission、分配了哪种 GPU、是否发生 prefill/decode 迁移、KV 是否因配额被驱逐、以及最终归因到哪个 tenant 和成本中心。没有这些字段，SRE 只能看到症状，平台团队无法判断根因是容量不足、调度不公平、缓存策略、模型版本还是上游输入变化。OpenTelemetry 的统一上下文传播可以承载关联 id [[22]](#ref-22)，但字段的语义、脱敏范围和基数控制必须由平台契约定义。
 
 指标也要避免两个极端。只记录全局平均值会掩盖长上下文、低频模型、特定区域和单一租户的退化；为每个 request id、prompt 或用户建立指标标签又会导致时序系统失控。正确做法是把高基数事实放 trace 或日志，把可聚合维度放 metrics：例如按模型、版本、长度桶、区域、硬件池、路由原因和结果类别聚合 TTFT、TPOT、完成率、OOM、queue time、cache hit 和成本；对异常样本保留可检索 trace。指标字典应写清名称、单位、分母、窗口、延迟、owner 与允许标签，避免不同 dashboard 用“成功率”指代不同东西。
 
 观测数据本身有成本与风险。全量记录 prompt、输出、工具参数或 KV 事件既昂贵又可能泄露隐私；过度采样又会遗漏罕见故障。平台可采用分层留存：所有安全、失败、超预算、回滚和人工接管事件保留完整受控证据；成功请求保留摘要和少量采样；聚合指标长期保留；原始敏感 artifact 按租户政策加密、最小化访问并设置删除期限。采样规则同样需要版本化，因为若发布后只改变采样率，趋势图可能看似质量下降或上升而实际上只是观测口径变化。
 
-错误预算应连接发布与资源控制。若某模型路由在最近窗口内消耗了 latency 或可用性错误预算，控制面可以冻结扩容、降低其流量、增加可用副本或把新实验转为 shadow；若质量 gate 消耗过快，则应停止灰度，即使基础设施指标健康。SRE Workbook 对错误预算的核心启发是将可靠性目标转换为决策边界 [22]，而不是只在月报中展示一个百分比。对 AI Infra 而言，质量、成本和安全也可以有各自的预算，但它们不能被任意相互抵消：更便宜的模型不能用安全事件换取，吞吐提升也不能抵消结构化输出错误。
+错误预算应连接发布与资源控制。若某模型路由在最近窗口内消耗了 latency 或可用性错误预算，控制面可以冻结扩容、降低其流量、增加可用副本或把新实验转为 shadow；若质量 gate 消耗过快，则应停止灰度，即使基础设施指标健康。SRE Workbook 对错误预算的核心启发是将可靠性目标转换为决策边界 [[1]](#ref-1)，而不是只在月报中展示一个百分比。对 AI Infra 而言，质量、成本和安全也可以有各自的预算，但它们不能被任意相互抵消：更便宜的模型不能用安全事件换取，吞吐提升也不能抵消结构化输出错误。
 
 故障演练应在控制面与数据面两个层次同时验证。数据面演练包括杀掉副本、注入 OOM、限制对象存储、使 KV transfer 失败和模拟 token 流中断；控制面演练包括错误路由、过期 reservation、计费事件重复、策略服务不可用、发布 manifest 不兼容和区域容量突然下降。每项演练记录检测信号、告警延迟、自动处置、人工升级、恢复时间、丢失或重复的请求、成本上限和剩余风险。容器能自动重启只证明一个局部机制存在，不能证明用户任务、资源账本与发布状态能收敛。
 
@@ -436,7 +434,7 @@ Metrics 适合时间序列和聚合趋势，logs 记录单次错误与上下文�
 
 这种 gate 还要求明确责任分工。模型团队对能力、评估集、已知限制和制品签名负责；Infra 团队对调度、容量、路由、计量、隔离和恢复负责；业务团队对成功定义、风险接受和人工路径负责；安全与治理团队对数据、权限、审计和发布政策负责。责任边界并不意味着问题可以被转交：一次发布需要这些 owner 在同一个 manifest 与 ADR 上留下证据。没有 owner 的指标、没有回滚路径的制品、没有成本中心的任务都不应进入生产资源池。
 
-## 7.10 生命周期、五平面与决策地图
+## 7.7 生命周期、五平面与决策地图
 
 本章只建立总览，不重复第8到第12章的细节。后续章节会分别展开训练作业、推理服务、数据评估、Agent Runtime 和治理控制；这里保留一张跨章节地图，帮助读者在设计评审中判断问题应落在哪一层。
 
@@ -490,7 +488,48 @@ Metrics 适合时间序列和聚合趋势，logs 记录单次错误与上下文�
 
 为避免评估只停留在会议纪要，控制面还应把每次决定的反事实写入演练：若不收紧 admission、若继续使用旧路由、若提前解除配额，哪些 SLO、成本或隔离边界会先失效。反事实不要求精确预测事故日期，却要求把可观测指标、阈值和责任人关联起来。之后用真实事件校正这些假设，能够区分策略本身失效、观测缺失与执行未落地三种不同问题，避免团队反复用同一个阈值掩盖不同根因。
 
-### 本章小结：把复杂度变成契约
+## 7.8 跨章接口与部署决策
+
+### 工作负载、状态与事实源总图
+
+| 生产者/负载 | 核心输入 | 产出与持久事实 | 主要资源 | 消费章节与边界 |
+|:---|:---|:---|:---|:---|
+| 数据处理 | 授权原始数据、规则版本 | dataset manifest、shard与血缘 | CPU、存储与网络 | 第8/10章；不把加工完成当训练完成 |
+| 训练/后训练 | 数据与目标、拓扑、训练配置 | 完整训练checkpoint、候选制品 | 权重/状态/激活、通信、rollout | 第8章；可恢复不等于可发布 |
+| Serving | 已准入Model Manifest、请求画像 | token流、请求终态、用量事件 | 权重、KV、工作区与带宽 | 第9章；KV缓存不等于业务提交记录 |
+| 评估实验 | Eval Case集、候选版本与判定器 | 分切片结果、失败证据、统计区间 | 模型、CPU和隔离沙箱 | 第10章；分数不等于业务效果保证 |
+| 持久Runtime | Task、授权、执行预算 | Run/Step/Event、Operation与产物 | 状态库、队列、执行器、模型配额 | 第11章；连接断开不等于任务取消 |
+| 运维治理 | SLO、策略、账本和事件 | 发布/修复/删除/升级证据 | 保留空间、值班与隔离容量 | 第12章；没有事实不能把未知结果记失败 |
+
+这张表描述本书接口分工。一个对象存储桶可以同时容纳多类文件，但存储位置相同不意味着语义相同。训练checkpoint保存优化器和采样位置，推理KV是可重算中间值，Runtime checkpoint保存步骤与外部动作关联；不能把三者统一成一个模糊的“缓存恢复”。目录名也不决定书的部分：本章位于part1仅为历史路径身份，阅读上从此进入第二部分Infra；不移动路径、不建立重复版本。
+
+### Model Manifest：注册、兼容与失效
+
+Model Manifest是不可变的模型执行包描述。最小字段包括manifest id、基础权重及hash、tokenizer/特殊token、模板、adapter及底座约束、W/A/KV精度、量化配置与布局、运行后端版本、必要预处理、允许输入和输出协议。硬件/上下文/并发限制应来自验证记录，不能写成模型名称推断。训练checkpoint与导出制品是不同的artifact，使用血缘关联，不让同一个URI静默覆盖成另一类文件。
+
+制品注册产生候选状态；评估服务附上Eval Case版本与结果，发布控制面再给批准范围和路由条件。路由只消费已批准的manifest，推理返回实际执行的manifest id；出现hash或模板不匹配时，拒绝加载并保留错误原因。回滚恢复整套依赖，不只恢复权重。第8章负责导出与恢复证据，第9章负责运行兼容，第10章负责质量记录，第12章负责批准、保留和撤销。
+
+### 资源账本：先有事实再汇总
+
+资源请求给出workload id、租户、优先级、预计长度分布、设备/互联约束与预算；调度回执给出reservation id、allocation id、真实设备和起止时间；用量事件再关联token、GPU时间、存储和失败重算。每个事件要有去重标识和计量规则版本。取消只产生控制意图，实际释放要由执行面确认；设备失联进入隔离或待确认，不凭超时自动把占用清零。
+
+账本查询应把reserved、allocated、live usage和released分别返回，并标明采样时间、延迟和未知部分。容量评估使用可承诺资源，而不是当前空闲数；成本评估同时展示失败与闲置分摊，不能把预留费和实际GPU费重复相加。把账单误差归因到计量延迟、重投递或规则变化，比直接改dashboard总数更可审计。第8/9章分别提供训练与请求计量，第12章定义对账和异常处置。
+
+### Eval Case与上线证据：区分假设和结论
+
+Eval Case描述固定输入、授权/环境快照、预期约束、判定器、切片、预算与副作用规则。候选模型、模板或调度策略变化后，评估任务记录实际版本、运行状态、观测结果与判定原因；未完成、超时、基础设施错误、模型错误、业务失败和未知外部结果应区分。第10章再定义完整记录，后续章引用这一契约，不把服务测试case当作线上业务已经成功。
+
+发布请求至少引用manifest、资源画像、case集、质量/延迟/成本门槛与回滚版本。若质量达标但目标负载资源不够，应缩小范围、排队或重新选型；若容量达标但权限或质量失败，则暂停发布。缺少某类证据时，系统不能通过省略这一类评估制造绿色状态。所有门槛都记录owner、到期时间与复核条件，避免一次获批无限续用。
+
+### 自托管、外部API与混合部署
+
+先按数据分级澄清传输、留存、访问、部署区域和审计要求，再判断哪些候选允许接触相应输入。自托管增加硬件、模型加载、Serving升级、补丁、值守与事故责任，不自动等同安全；外部API减少部分运维负担，却引入配额、网络、供应商变更与留存契约。未经独立核验，不能把某家API的宣传写成默认数据保证。
+
+对峰谷明显的企业任务，在相同质量和延迟目标下比较总拥有成本：基础预留与闲置、峰值冗余、冷启动、模型分发、缓存、网络、失败重试、人工值守，以及排队超时损失。外部方案还比较峰值配额是否可兑现、可接受输入的最小化与跨区费用；不能只把token单价与GPU标价相除。混合方案可按敏感级别或任务类型路由，回退候选也必须满足原权限和数据边界，不能因为本地故障把受限材料外发。
+
+本书建议把决策记录为：允许的任务和数据范围、同负载基线、容量与费用假设、所选路线、主动承担的运维或依赖成本、失败时缩小服务的方式，以及重新评估触发条件。利用率低但峰值排队严重时，先对照预留与启动时间，再决定购买峰值、引入允许的API补峰或改异步，不能只用平均利用率要求减卡。这里给出比较方法，尚无实际价格、压测或供应商合同结论。
+
+## 7.9 本章小结：把复杂度变成契约
 
 AI Infra 的核心能力不是堆叠组件，而是把算法复杂度转化为资源契约、状态契约、质量契约和治理契约。资源契约说明模型在不同长度、并发和硬件下需要多少计算、显存、网络与存储；状态契约说明请求、KV、checkpoint、数据游标和工具操作如何创建、恢复、过期与回滚；质量契约说明模型升级、量化、kernel、调度和降级对输出质量与用户任务的影响；治理契约说明谁批准、谁负责、证据保存在哪里。
 
@@ -498,74 +537,50 @@ AI Infra 的核心能力不是堆叠组件，而是把算法复杂度转化为�
 
 最终，AI Infra 的可靠性来自可执行的闭环：工作负载进入时有资源与权限准入，执行时有状态、隔离与观测，结果产生后有质量、成本和责任归因，变更发生时有分阶段门禁与可验证回滚，故障出现时有已知的恢复与人工路径。把这些环节拆成组件很容易，把它们通过同一套 identity、manifest、事件和证据连接起来才是平台设计的难点。只有当资源消耗、模型版本、业务 outcome 与风险处置能在同一条链路上被解释时，团队才真正拥有可扩展的 AI Infra，而不仅是一组能够运行的 GPU 服务。
 
-这也给容量计划提出了更严格的要求。计划不应只输出“下季度买多少 GPU”，还要给出需求假设、负载类别、模型与长度分布、每类服务的 SLO、故障和发布余量、可借用容量、数据与网络瓶颈、预算上限以及触发扩容或收缩的指标。假设变化时，控制面用同一套资源账本重新计算，而不是沿用过去峰值乘一个经验系数。对于高度不确定的新模型或 Agent 工作流，应先保守地设置并发、预算和影响范围，用真实的 token、KV、工具与人工数据更新模型，再决定是否扩大 reservation。
+## 7.10 参考资料
 
-平台团队还应区分“可用容量”和“可承诺容量”。可用容量是当前空闲设备；可承诺容量要扣除故障域冗余、滚动发布、模型加载、驱动维护、长上下文尾部和已经授出的 reservation。把二者混在一起会在高峰或事故期间过度承诺。容量承诺的消费者也必须可见：产品团队知道何时可能被降级，研究团队知道何时可能被抢占，财务团队知道共享 warm pool 的成本如何分摊。透明的承诺模型有时会暴露资源不足，但它能让买卡、优化模型、排队和限制范围成为可比较的选择。
+<a id="ref-1"></a>[1] Beyer, B., et al. *The Site Reliability Workbook: Implementing SLOs*. O’Reilly, 2018. https://sre.google/workbook/implementing-slos/ 核验日期：2026-10-17
 
-资源策略变更本身也应按发布处理。调整一个租户配额、抢占规则、cache 额度或路由权重，可能不改任何模型权重，却会立刻改变延迟、成本、公平与风险。控制面因此要为策略保留版本、模拟结果、批准记录、灰度对象、观察指标和回滚版本；上线后将实际排队、拒绝、借用和回收事件与预测比较。若策略模拟无法解释真实结果，问题可能在资源画像、计量口径或隐藏依赖，而不是简单地把阈值调大。
+<a id="ref-2"></a>[2] Rajbhandari, S., et al. *ZeRO: Memory Optimizations Toward Training Trillion Parameter Models*. SC, 2020. https://arxiv.org/abs/1910.02054 访问日期：2026-10-17
 
-当预算成为硬约束时，降级路径也要有产品语义。系统可以缩短最大上下文、减少候选、降低优先级、转异步、切换到较小模型或等待人工，但必须告诉调用方发生了哪一种降级、对结果有什么影响、是否可以稍后恢复完整服务。静默地省略检索、验证或安全步骤会制造不可审计的质量变化。预算策略的目标不是让每个任务都在限额内“看似完成”，而是在资源紧张时仍使系统的承诺、风险和用户预期一致。
+<a id="ref-3"></a>[3] Rajbhandari, S., et al. *ZeRO-Infinity: Breaking the GPU Memory Wall for Extreme Scale Deep Learning*. SC, 2021. https://arxiv.org/abs/2104.07857 访问日期：2026-10-17
 
-资源治理的验收因此要使用组合情景，而不是孤立压测：在滚动发布期间注入一台节点失效，同时让一个租户发起长上下文峰值、另一个租户执行可抢占训练，再使计量或策略服务短暂不可用。系统应证明在线服务保留承诺容量、训练按 checkpoint 有序让出、计量事件最终对账、策略失效进入保守模式，且每个决策都有 trace 与 owner。真实事故往往正是这些条件叠加；只在平稳环境下得到的吞吐数字不能证明平台具有弹性。
+<a id="ref-4"></a>[4] NVIDIA. *NCCL: Collective Operations*. 2.32.3文档，核验2026-10-17. https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/usage/collectives.html
 
-对外部依赖也要建模。云区库存、GPU 驱动、网络配额、对象存储吞吐、模型仓库、鉴权服务和上游模型 API 都可能限制承诺容量。控制面把依赖健康、速率限制、过期时间和 fallback 写进容量模型，在依赖不健康时减少 admission 或切换受控降级，而不是继续接收无法兑现的任务。这样，资源管理从“调度器如何放置容器”扩展为“平台能向用户可靠承诺什么”。
+<a id="ref-5"></a>[5] 张阿斯顿、李沐等. 《动手学深度学习》：12.5多GPU训练. 中文在线2.0.0，核验2026-10-17. https://zh.d2l.ai/chapter_computational-performance/multiple-gpus.html
 
-每次容量决策都应留下可复核的假设快照：预测负载、可持续 token 速率、故障余量、预期 cache 命中和所选降级路径。事后比较预测与实际，才知道应修正画像、扩容资源、优化模型，还是收紧承诺范围。
+<a id="ref-6"></a>[6] Shoeybi, M., et al. *Megatron-LM: Training Multi-Billion Parameter Language Models Using Model Parallelism*. arXiv, 2019. https://arxiv.org/abs/1909.08053 访问日期：2026-10-17
 
-容量模型应定期用真实高峰、发布窗口和故障演练校准，而不是只用离线 benchmark 更新。模型、token 分布或租户结构变化后，旧的吞吐结论可能已经失效；把校准结果写入新的策略版本，才能让资源承诺持续可信。
+<a id="ref-7"></a>[7] Narayanan, D., et al. *Efficient Large-Scale Language Model Training on GPU Clusters Using Megatron-LM*. arXiv, 2021. https://arxiv.org/abs/2104.04473 访问日期：2026-10-17
 
-校准过程还应保留反例：哪些预测在长尾输入、跨区流量、模型冷启动或依赖退化时失效，最终采取了什么更保守的 admission 与降级。反例能约束容量模型的适用范围，避免团队把一次成功压测误写成通用承诺。
+<a id="ref-8"></a>[8] Zhao, Y., et al. *PyTorch FSDP: Experiences on Scaling Fully Sharded Data Parallel*. arXiv v2, 2023. https://arxiv.org/abs/2304.11277 核验日期：2026-10-17
 
-当证据不足时，平台应把不确定性显式计入余量，而不是通过提高平均利用率掩盖它。对用户而言，可解释的受限服务优于高峰时无法兑现的无限承诺。
+<a id="ref-9"></a>[9] Chowdhery, A., et al. *PaLM: Scaling Language Modeling with Pathways*. arXiv, 2022. https://arxiv.org/abs/2204.02311 访问日期：2026-10-17
 
-同样重要的是保留决策后的复盘窗口：当实际负载、成本或质量偏离假设时，负责人应能暂停进一步承诺、收集证据并调整策略，而不是让旧配额自动延续。资源治理的目标不是让集群永远满载，而是在变化中持续兑现已说明的服务边界。
+<a id="ref-10"></a>[10] Zaharia, M., et al. *Resilient Distributed Datasets: A Fault-Tolerant Abstraction for In-Memory Cluster Computing*. NSDI, 2012. https://www.usenix.org/conference/nsdi12/technical-sessions/presentation/zaharia 访问日期：2026-10-17
 
-最后，控制面应持续验证自身不会成为单点风险。策略、配额、路由、制品目录、计量、发布审批和告警服务失效时，数据面需要明确的保守行为：已有请求能否在租约内完成，新请求是拒绝还是进入受限队列，紧急回滚是否有独立通道，计量延迟如何补账。只有把控制面故障也放入演练，平台才能在“模型服务本身仍可运行、但管理能力暂时不可用”的情况下维持正确边界。
+<a id="ref-11"></a>[11] Dao, T., et al. *FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness*. NeurIPS, 2022. https://arxiv.org/abs/2205.14135 访问日期：2026-10-17
 
-## 参考资料
+<a id="ref-12"></a>[12] Dao, T. *FlashAttention-2: Faster Attention with Better Parallelism and Work Partitioning*. ICLR, 2024. https://arxiv.org/abs/2307.08691 访问日期：2026-10-17
 
-[1] Shoeybi, M., et al. *Megatron-LM: Training Multi-Billion Parameter Language Models Using Model Parallelism*. arXiv, 2019. https://arxiv.org/abs/1909.08053 访问日期：2026-09-22
+<a id="ref-13"></a>[13] NVIDIA. *Triton Inference Server: Model Management*. 在线文档，核验2026-10-17. https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/model_management.html
 
-[2] Rajbhandari, S., et al. *ZeRO: Memory Optimizations Toward Training Trillion Parameter Models*. SC, 2020. https://arxiv.org/abs/1910.02054 访问日期：2026-09-22
+<a id="ref-14"></a>[14] Kwon, W., et al. *Efficient Memory Management for Large Language Model Serving with PagedAttention*. SOSP, 2023. https://arxiv.org/abs/2309.06180 访问日期：2026-10-17
 
-[3] Rajbhandari, S., et al. *ZeRO-Infinity: Breaking the GPU Memory Wall for Extreme Scale Deep Learning*. SC, 2021. https://arxiv.org/abs/2104.07857 访问日期：2026-09-22
+<a id="ref-15"></a>[15] vLLM Team. *vLLM Documentation and Source Repository*. https://github.com/vllm-project/vllm 访问日期：2026-10-17
 
-[5] Narayanan, D., et al. *Efficient Large-Scale Language Model Training on GPU Clusters Using Megatron-LM*. arXiv, 2021. https://arxiv.org/abs/2104.04473 访问日期：2026-09-22
+<a id="ref-16"></a>[16] Yu, G.-I., et al. *Orca: A Distributed Serving System for Transformer-Based Generative Models*. OSDI, 2022. https://www.usenix.org/conference/osdi22/presentation/yu 访问日期：2026-10-17
 
-[7] Chowdhery, A., et al. *PaLM: Scaling Language Modeling with Pathways*. arXiv, 2022. https://arxiv.org/abs/2204.02311 访问日期：2026-09-22
+<a id="ref-17"></a>[17] Agrawal, A., et al. *Taming Throughput-Latency Tradeoff in LLM Inference with Sarathi-Serve*. OSDI, 2024. https://www.usenix.org/conference/osdi24/presentation/agrawal 访问日期：2026-10-17
 
-[9] Dao, T., et al. *FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness*. NeurIPS, 2022. https://arxiv.org/abs/2205.14135 访问日期：2026-09-22
+<a id="ref-18"></a>[18] Zhong, Y., et al. *DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving*. OSDI, 2024. https://arxiv.org/abs/2401.09670 核验日期：2026-10-17
 
-[10] Dao, T. *FlashAttention-2: Faster Attention with Better Parallelism and Work Partitioning*. ICLR, 2024. https://arxiv.org/abs/2307.08691 访问日期：2026-09-22
+<a id="ref-19"></a>[19] Kubernetes. *Schedule GPUs*. https://kubernetes.io/docs/tasks/manage-gpus/scheduling-gpus/ 访问日期：2026-10-17
 
-[11] Kwon, W., et al. *Efficient Memory Management for Large Language Model Serving with PagedAttention*. SOSP, 2023. https://arxiv.org/abs/2309.06180 访问日期：2026-09-22
+<a id="ref-20"></a>[20] Verma, A., et al. *Large-scale Cluster Management at Google with Borg*. EuroSys, 2015. https://research.google/pubs/large-scale-cluster-management-at-google-with-borg/ 访问日期：2026-10-17
 
-[12] vLLM Team. *vLLM Documentation and Source Repository*. https://github.com/vllm-project/vllm 访问日期：2026-09-22
+<a id="ref-21"></a>[21] Sigelman, B. H., et al. *Dapper, a Large-Scale Distributed Systems Tracing Infrastructure*. Google Research, 2010. https://research.google/pubs/dapper-a-large-scale-distributed-systems-tracing-infrastructure/ 访问日期：2026-10-17
 
-[13] Yu, G.-I., et al. *Orca: A Distributed Serving System for Transformer-Based Generative Models*. OSDI, 2022. https://www.usenix.org/conference/osdi22/presentation/yu 访问日期：2026-09-22
+<a id="ref-22"></a>[22] OpenTelemetry Authors. *Signals*. 在线文档，核验2026-10-17. https://opentelemetry.io/docs/concepts/signals/
 
-[14] Agrawal, A., et al. *Taming Throughput-Latency Tradeoff in LLM Inference with Sarathi-Serve*. OSDI, 2024. https://www.usenix.org/conference/osdi24/presentation/agrawal 访问日期：2026-09-22
-
-[15] Zhong, Y., et al. *DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving*. OSDI, 2024. https://www.usenix.org/conference/osdi24/presentation/zhong 访问日期：2026-09-22
-
-[16] NVIDIA. *TensorRT-LLM Documentation*. https://nvidia.github.io/TensorRT-LLM/ 访问日期：2026-09-22
-
-[17] NVIDIA. *Triton Inference Server Documentation*. https://docs.nvidia.com/deeplearning/triton-inference-server/ 访问日期：2026-09-22
-
-[18] PyTorch. *Fully Sharded Data Parallel Documentation*. https://pytorch.org/docs/stable/fsdp.html 访问日期：2026-09-22
-
-[19] NVIDIA. *NCCL Documentation*. https://docs.nvidia.com/deeplearning/nccl/ 访问日期：2026-09-22
-
-[20] Kubernetes. *Schedule GPUs*. https://kubernetes.io/docs/tasks/manage-gpus/scheduling-gpus/ 访问日期：2026-09-22
-
-[21] Verma, A., et al. *Large-scale Cluster Management at Google with Borg*. EuroSys, 2015. https://research.google/pubs/large-scale-cluster-management-at-google-with-borg/ 访问日期：2026-09-22
-
-[22] Beyer, B., et al. *The Site Reliability Workbook*. O'Reilly, 2018. https://sre.google/workbook/table-of-contents/ 访问日期：2026-09-22
-
-[23] Sigelman, B. H., et al. *Dapper, a Large-Scale Distributed Systems Tracing Infrastructure*. Google Research, 2010. https://research.google/pubs/dapper-a-large-scale-distributed-systems-tracing-infrastructure/ 访问日期：2026-09-22
-
-[24] OpenTelemetry Authors. *OpenTelemetry Documentation*. https://opentelemetry.io/docs/ 访问日期：2026-09-22
-
-[25] Prometheus Authors. *Prometheus Documentation*. https://prometheus.io/docs/introduction/overview/ 访问日期：2026-09-22
-
-[27] Zaharia, M., et al. *Resilient Distributed Datasets: A Fault-Tolerant Abstraction for In-Memory Cluster Computing*. NSDI, 2012. https://www.usenix.org/legacy/events/nsdi12/tech/full_papers/Zaharia_new.pdf 访问日期：2026-09-22
+<a id="ref-23"></a>[23] Prometheus Authors. *Prometheus Documentation*. https://prometheus.io/docs/introduction/overview/ 访问日期：2026-10-17
