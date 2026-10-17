@@ -37,10 +37,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-65ae5acc.js";
+            window.path_to_searchindex_js = "../searchindex-33f54a4b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-c280e3b8.js"></script>
+        <script src="../toc-ff756377.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -183,6 +183,7 @@
 <blockquote>
 <p>模型能力不是直接被业务系统“使用”，而是先被抽象成输入、消息、工具、结构化输出和流式事件，再进入 Runtime、编排器和工具系统。</p>
 </blockquote>
+<p>版本与范围：滚动官方资料核验于2026-10-18；示例是未调用真实模型的教学协议记录，模型名与额度必须从已验证manifest选择。</p>
 <h2 id="引言"><a class="header" href="#引言">引言</a></h2>
 <p>理解 LLM 的原理，只能回答“模型为什么能工作”；理解 LLM API 协议，才能回答“系统怎样把模型接进来”。在工程落地里，这一步经常被低估。很多团队熟悉 Token、上下文窗口、Transformer 和 Sampling，却在真正接入模型时发现一连串新问题：</p>
 <ol>
@@ -193,7 +194,7 @@
 <li>一个 Agent 工作流，怎样被映射成多轮请求、工具回填和状态延续？</li>
 </ol>
 <p>这一章讨论的不是 SDK 语法糖，而是模型协议层的统一抽象。你可以把它看成 Agent Runtime 和模型能力之间的接口层：往左连接 Prompt、Context、Tool、Skill 和 Workflow，往右连接 OpenAI、Anthropic、DeepSeek 等不同提供方。</p>
-<p>如果说第 11 章定义了 Agent Runtime 的总纲，那么本章回答的就是：<strong>Runtime 究竟怎样消费模型能力。</strong></p>
+<p>如果说第 11 章定义了持久Runtime，第13章给出了Agent架构总纲，那么本章回答的就是：<strong>Runtime 究竟怎样消费模型能力。</strong></p>
 <h2 id="171-统一抽象输入指令上下文与输出"><a class="header" href="#171-统一抽象输入指令上下文与输出">17.1 统一抽象：输入、指令、上下文与输出</a></h2>
 <p>学到这里，如果只知道 token、上下文和 Transformer 还不够。工程上真正调用大模型时，还要理解这些能力如何暴露成 API 协议。否则你会知道“模型能做什么”，却不知道“系统该怎么把这些能力接进来”。</p>
 <p>这也是为什么 API 协议属于 Agent Runtime 的核心知识。它不是单纯的 SDK 用法，而是模型能力在工程边界上的投影：</p>
@@ -243,11 +244,9 @@ Response
   + 可选 reasoning / streaming events
 </code></pre>
 <h2 id="172-chat-completionsresponses-与消息协议"><a class="header" href="#172-chat-completionsresponses-与消息协议">17.2 Chat Completions、Responses 与消息协议</a></h2>
-<h3 id="1721-三种常见接口范式"><a class="header" href="#1721-三种常见接口范式">17.2.1 三种常见接口范式</a></h3>
-<p>虽然抽象相似，但主流厂商在协议层已经分化出三种常见范式。</p>
-<p><strong>第一种是 OpenAI 风格的通用 Responses / Chat 接口。</strong> 这类接口强调统一输入抽象，既能接文本，也能接图片、文件、工具和结构化输出。OpenAI 当前主推 <code>Responses API</code>，核心思路是用 <code>input</code> 承载多模态内容，并在输出中统一返回 message、tool call 和 usage。它仍保留 <code>Chat Completions</code> 兼容路径，因此很多第三方也会优先兼容这套形态。OpenAI 官方文档还提供结构化输出、函数调用、提示缓存、图片输入、推理 effort 和 realtime 等能力。<a href="https://developers.openai.com/api/reference/resources/responses/methods/create">OpenAI Responses API</a> <a href="https://developers.openai.com/api/docs/guides/structured-outputs">OpenAI Structured Outputs</a> <a href="https://developers.openai.com/api/docs/guides/prompt-caching">OpenAI Prompt Caching</a></p>
-<p><strong>第二种是 Anthropic 的 Messages / content blocks 范式。</strong> 它没有把接口设计成“OpenAI Chat 的一个镜像”，而是更强调内容块和工具块。输入主体是 <code>messages</code>，每条消息的 <code>content</code> 可以是文本、图片等 block；工具使用也会回到消息内容流里。Anthropic 还把 extended thinking、prompt caching、strict tool use、parallel tool use 等能力直接纳入 Claude 平台文档体系。它的协议风格通常更适合把“消息内容”和“工具内容”统一看成一个事件流。 <a href="https://platform.claude.com/docs/en/api/messages">Anthropic Messages API</a> <a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview">Anthropic Tool Use</a> <a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching">Anthropic Prompt Caching</a></p>
-<p><strong>第三种是兼容层范式。</strong> DeepSeek 的定位很典型：它同时提供 OpenAI 兼容和 Anthropic 兼容入口。你可以继续使用 OpenAI SDK，把 <code>base_url</code> 改成 <code>https://api.deepseek.com</code>；也可以用 Anthropic 兼容入口 <code>https://api.deepseek.com/anthropic</code>。这种模式的价值在于迁移成本低，但也意味着“兼容”不一定等于“协议细节完全相同”，尤其是 reasoning 输出、缓存语义和模型专有参数。 <a href="https://api-docs.deepseek.com/zh-cn/">DeepSeek 首次调用 API</a> <a href="https://api-docs.deepseek.com/zh-cn/guides/anthropic_api">DeepSeek Anthropic API</a></p>
+<h3 id="1721-不同接口保留自己的消息语义"><a class="header" href="#1721-不同接口保留自己的消息语义">17.2.1 不同接口保留自己的消息语义</a></h3>
+<p>OpenAI Responses使用输入/输出项表达文本与工具调用；工具结果按call_id回填，执行仍由应用负责。<a href="#ref-1">[1]</a>Anthropic Messages的流式表达以message/content block为单位。<a href="#ref-2">[2]</a>DeepSeek提供兼容形态，但strict工具模式还要求其beta入口和受支持Schema，不能只改base_url后假定全部参数相同。<a href="#ref-3">[3]</a></p>
+<p>适配层保留原始provider、API形态、模型版本、finish/error和usage字段，再导出稳定应用类型。未识别能力必须明确拒绝或按已评估策略降级，不悄悄丢掉system规则、工具定义或图像输入。</p>
 <h3 id="1722-输入输出协议长什么样"><a class="header" href="#1722-输入输出协议长什么样">17.2.2 输入输出协议长什么样</a></h3>
 <p>把复杂的 SDK 名词去掉后，三家接口都可以还原成下面这两类模式。</p>
 <p><strong>模式 A：对话消息数组</strong></p>
@@ -259,7 +258,7 @@ Response
   ]
 }
 </code></pre>
-<p>这类协议最常见于 OpenAI Chat Completions、Anthropic Messages 和 DeepSeek 的 OpenAI 兼容接口。它的优点是简单直观，缺点是当内容类型越来越多时，文本消息数组会逐渐演化成更复杂的 block 结构。</p>
+<p>这是Chat风格示意；不能原样发送给Anthropic Messages，因为它的system指令位于顶层，具体结构由对应适配器生成。它的优点是简单直观，缺点是当内容类型越来越多时，文本消息数组会逐渐演化成更复杂的 block 结构。</p>
 <p><strong>模式 B：结构化输入块</strong></p>
 <pre><code class="language-json">{
   "model": "xxx",
@@ -309,7 +308,7 @@ LLM API 输出 = 文本结果 + 结构化状态 + 工具调用意图 + usage + s
 </thead>
 <tbody>
 <tr><td style="text-align: left">API 行为</td><td style="text-align: left">服务端生成完整结果后一次性返回大 JSON</td><td style="text-align: left">服务端边生成边推送增量事件</td></tr>
-<tr><td style="text-align: left">首字延迟（TTFT）感知</td><td style="text-align: left">高，用户会长时间盯着空白或 loading</td><td style="text-align: left">低，通常几百毫秒内就能看到首个 token</td></tr>
+<tr><td style="text-align: left">首字延迟（TTFT）感知</td><td style="text-align: left">高，用户会长时间盯着空白或 loading</td><td style="text-align: left">可以先看到增量；实际TTFT取决于排队、模型与网络</td></tr>
 <tr><td style="text-align: left">用户感受</td><td style="text-align: left">像“系统在等待”</td><td style="text-align: left">像“系统正在实时工作”</td></tr>
 <tr><td style="text-align: left">长连接风险</td><td style="text-align: left">内容过长时更容易超时</td><td style="text-align: left">持续传输可维持连接活跃</td></tr>
 </tbody>
@@ -317,7 +316,7 @@ LLM API 输出 = 文本结果 + 结构化状态 + 工具调用意图 + usage + s
 </div>
 <p>所以，流式输出的核心价值不是“更酷”，而是把模型生成过程从“黑盒等待”变成“可感知、可消费、可中途响应的输出过程”。</p>
 <h3 id="1732-为什么流式输出几乎是现代-llm-apps-的标配"><a class="header" href="#1732-为什么流式输出几乎是现代-llm-apps-的标配">17.3.2 为什么流式输出几乎是现代 LLM Apps 的标配</a></h3>
-<p>只要场景同时满足两个条件，流式输出几乎就是必选项：</p>
+<p>只要场景同时满足两个条件，流式输出通常值得评估：</p>
 <ol>
 <li>内容生成需要明显时间。</li>
 <li>前端有人类用户在等待结果。</li>
@@ -366,316 +365,79 @@ LLM API 输出 = 文本结果 + 结构化状态 + 工具调用意图 + usage + s
 <li>Runtime 如何处理中途中断、取消和超时；</li>
 <li>日志和 trace 如何记录“过程输出”而不只是最终结果。</li>
 </ul>
-<h2 id="174-openaianthropicdeepseek-等厂商差异"><a class="header" href="#174-openaianthropicdeepseek-等厂商差异">17.4 OpenAI、Anthropic、DeepSeek 等厂商差异</a></h2>
-<h3 id="1741-openaianthropicdeepseek-的能力与协议差异"><a class="header" href="#1741-openaianthropicdeepseek-的能力与协议差异">17.4.1 OpenAI、Anthropic、DeepSeek 的能力与协议差异</a></h3>
-<p>下面这张表总结了三家截至 <strong>2026 年 7 月 1 日</strong> 官方文档可确认的公开能力与协议形态。这里说的“支持”指官方文档明确提供对应能力；并不意味着所有模型、所有 SDK 或所有兼容层都完全等价。</p>
+<h3 id="1735-sse分帧与完成判断"><a class="header" href="#1735-sse分帧与完成判断">17.3.5 SSE分帧与完成判断</a></h3>
+<p>SSE是UTF-8文本，空行结束一帧，event给类型，data给载荷，id可用于EventSource的Last-Event-ID机制。TCP读取块不是帧边界；同一JSON甚至UTF-8字符可能跨读取块，必须增量解码、组帧再解析。WHATWG并未规定某模型服务必须保存重放日志。<a href="#ref-4">[4]</a></p>
+<p>OpenAI Responses使用response.created、response.output_text.delta、response.completed等typed events；中途error或连接断开不能当正常完成。<a href="#ref-5">[5]</a>Anthropic还区分content_block_stop、message_delta与message_stop；工具块结束不等于业务动作成功。<a href="#ref-2">[2]</a></p>
+<p>下列是本书<strong>应用任务流</strong>的合法SSE教学样例，应用字段由第11章约定，不能冒充任何供应商原始流：</p>
+<pre><code class="language-text">id: run-demo:41
+event: step.completed
+data: {"run_id":"run-demo","event_seq":41,"step_id":"s1","state_version":7,"artifact_ref":"answer-v1"}
+
+id: run-demo:42
+event: run.completed
+data: {"run_id":"run-demo","event_seq":42,"state_version":8,"result_ref":"answer-v1","verification_ref":"check-v1"}
+
+</code></pre>
+<p>每帧后的空行不可省。前端按run_id/event_seq去重更新视图，再查询结果接口核对当前状态；这项回放保证来自应用的持久事件与保留策略，不来自SSE语法。</p>
+<h2 id="174-供应商适配与错误分类"><a class="header" href="#174-供应商适配与错误分类">17.4 供应商适配与错误分类</a></h2>
+<h3 id="1741-能力矩阵必须绑定版本"><a class="header" href="#1741-能力矩阵必须绑定版本">17.4.1 能力矩阵必须绑定版本</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th style="text-align: left">维度</th><th style="text-align: left">OpenAI</th><th style="text-align: left">Anthropic</th><th style="text-align: left">DeepSeek</th></tr>
+<tr><th>维度</th><th>OpenAI Responses</th><th>Anthropic Messages</th><th>DeepSeek工具接口</th><th>适配验收</th></tr>
 </thead>
 <tbody>
-<tr><td style="text-align: left">主要接口范式</td><td style="text-align: left"><code>Responses API</code> 为主，也保留 <code>Chat Completions</code></td><td style="text-align: left"><code>Messages API</code></td><td style="text-align: left">OpenAI 兼容 + Anthropic 兼容</td></tr>
-<tr><td style="text-align: left">典型输入结构</td><td style="text-align: left"><code>input</code> 或 <code>messages</code></td><td style="text-align: left"><code>messages</code> + content blocks</td><td style="text-align: left">以 <code>messages</code> 为主，兼容两套 SDK</td></tr>
-<tr><td style="text-align: left">工具调用</td><td style="text-align: left">支持 <code>tools</code>、function calling、strict schema</td><td style="text-align: left">支持 tool use、<code>tool_choice</code>、strict tool use、parallel tool use</td><td style="text-align: left">支持 OpenAI 风格 <code>tools</code> / <code>tool_calls</code></td></tr>
-<tr><td style="text-align: left">结构化输出</td><td style="text-align: left">支持 JSON schema、strict structured outputs</td><td style="text-align: left">支持 structured outputs 与 strict tool schema</td><td style="text-align: left">支持 JSON Output，<code>response_format={type: json_object}</code></td></tr>
-<tr><td style="text-align: left">多模态输入</td><td style="text-align: left">官方文档支持文本、图片、文件、音频等多种输入路径</td><td style="text-align: left">官方文档支持文本、图片、文件相关能力，围绕 messages/content blocks 展开</td><td style="text-align: left">公开文档重点是文本、工具、思考模式；能力表述更偏兼容层</td></tr>
-<tr><td style="text-align: left">推理控制</td><td style="text-align: left">官方文档提供 reasoning models 与 <code>reasoning_effort</code></td><td style="text-align: left">官方文档提供 extended thinking / effort</td><td style="text-align: left">官方文档提供 thinking 开关和 <code>reasoning_effort</code></td></tr>
-<tr><td style="text-align: left">流式输出</td><td style="text-align: left">支持 streaming events</td><td style="text-align: left">支持 streaming messages</td><td style="text-align: left">支持流式，thinking 和 content 可分别增量返回</td></tr>
-<tr><td style="text-align: left">上下文缓存</td><td style="text-align: left">官方文档提供 prompt caching，<code>usage.prompt_tokens_details.cached_tokens</code> 可观测</td><td style="text-align: left">官方文档提供 prompt caching，支持 <code>cache_control</code> 与显式 breakpoint</td><td style="text-align: left">官方文档称上下文硬盘缓存默认开启，返回 <code>prompt_cache_hit_tokens</code> / <code>prompt_cache_miss_tokens</code></td></tr>
-<tr><td style="text-align: left">兼容 SDK 迁移</td><td style="text-align: left">原生</td><td style="text-align: left">原生</td><td style="text-align: left">迁移成本最低，适合复用 OpenAI / Anthropic SDK</td></tr>
-<tr><td style="text-align: left">协议风格</td><td style="text-align: left">统一平台型</td><td style="text-align: left">内容块 / 事件流型</td><td style="text-align: left">兼容层型</td></tr>
+<tr><td>输出组织</td><td>typed output item/event</td><td>message/content block</td><td>按目标API形态返回</td><td>保留provider原始类型，未知项不能误判完成</td></tr>
+<tr><td>工具关联</td><td>function_call与function_call_output按call_id</td><td>tool_use与tool_result关联</td><td>tool_calls与结果关联</td><td>允许并行、错序结果按ID归并，不能按位置配对</td></tr>
+<tr><td>参数增量</td><td>function_call_arguments.delta/done</td><td>input_json_delta后完成块</td><td>按所选端点文档组装</td><td>全量参数完整后解析并校验，片段不执行</td></tr>
+<tr><td>严格结构</td><td>官方受支持Schema子集</td><td>按目标模型/端点核验</td><td>strict beta需beta入口及支持子集</td><td>不支持时能力错误，不静默放宽</td></tr>
+<tr><td>结束/错误</td><td>completed/failed/incomplete等分别处理</td><td>stop_reason及message_stop、error分别处理</td><td>按响应finish/error原字段</td><td>保留原原因，不把连接EOF当成功</td></tr>
+<tr><td>续接</td><td>具体API状态功能另验</td><td>文本续写策略随模型版本变化</td><td>不假定原流游标重放</td><td>生成续写和业务恢复分别测试</td></tr>
 </tbody>
 </table>
 </div>
-<h3 id="1742-几个最值得工程上关注的差异"><a class="header" href="#1742-几个最值得工程上关注的差异">17.4.2 几个最值得工程上关注的差异</a></h3>
-<p><strong>第一，OpenAI 更像统一平台协议。</strong><br>它把文本、图片、文件、结构化输出、工具调用、推理 effort、conversation state、realtime 和 prompt caching 放进一个越来越统一的平台接口体系里。对新项目来说，这种协议更适合做“一个入口接多种能力”的平台化设计。<a href="https://developers.openai.com/api/reference/resources/responses/methods/create">OpenAI Responses API</a></p>
-<p><strong>第二，Anthropic 更强调消息内容块与工具事件流。</strong><br>它的文档体系把 tool use、strict tool use、parallel tool use、prompt caching、extended thinking 组织得非常清楚。对于需要自己实现 Agent runtime 的团队，这种“消息内容即事件流”的风格比较容易映射到状态机和 orchestrator 上。<a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview">Anthropic Tool Use</a></p>
-<p><strong>第三，DeepSeek 的核心价值是兼容和迁移友好。</strong><br>它官方明确说明可通过修改 <code>base_url</code> 使用 OpenAI / Anthropic SDK，并提供 OpenAI 兼容的 tool calls、JSON output、thinking mode 与默认开启的上下文硬盘缓存。这对已有 OpenAI 风格代码库非常友好，但也要注意兼容层上的专有行为，例如思考模式下 <code>reasoning_content</code> 的回传规则。 <a href="https://api-docs.deepseek.com/zh-cn/">DeepSeek 首次调用 API</a> <a href="https://api-docs.deepseek.com/zh-cn/guides/thinking_mode">DeepSeek 思考模式</a></p>
-<h3 id="1743-工程选型怎么判断"><a class="header" href="#1743-工程选型怎么判断">17.4.3 工程选型怎么判断</a></h3>
-<p>如果你的系统目标是<strong>统一接入多模态、结构化输出和平台级能力</strong>，OpenAI 风格接口通常更适合作为默认抽象层。</p>
-<p>如果你的系统目标是<strong>围绕 tool use、长对话缓存、消息事件流自己做 Agent runtime</strong>，Anthropic 的 Messages 范式会更值得认真学习。</p>
-<p>如果你的系统目标是<strong>快速兼容已有 OpenAI/Anthropic SDK，降低迁移成本，或在成本与能力之间做替代路线</strong>，DeepSeek 这种兼容层模式会很有吸引力。</p>
-<p>但不要把“兼容某家 SDK”误以为“所有协议细节和所有模型能力完全等价”。真正需要验证的至少包括：</p>
+<p>上述事实分别依据三家已读协议页。<a href="#ref-5">[5]</a><a href="#ref-1">[1]</a><a href="#ref-6">[6]</a><a href="#ref-2">[2]</a><a href="#ref-3">[3]</a>矩阵表达核对维度，<strong>没有进行真实端点兼容性测试</strong>；具体model/API/SDK版本、schema hash和支持能力写入第8–9章manifest，未测项不能填“测试通过”。原生工具、缓存、多模态和推理参数不得在未核对时泛化为所有模型都支持。</p>
+<h3 id="1742-稳定错误类型与重试责任"><a class="header" href="#1742-稳定错误类型与重试责任">17.4.2 稳定错误类型与重试责任</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>应用类别</th><th>例子</th><th>下一步</th></tr>
+</thead>
+<tbody>
+<tr><td>capability_unsupported</td><td>模型不支持工具或Schema关键字</td><td>调整已评估适配组合，不能盲重试</td></tr>
+<tr><td>request_invalid / auth_denied</td><td>消息不合法、凭据/权限拒绝</td><td>修配置或授权，禁止模型绕过</td></tr>
+<tr><td>rate_limited / transient_provider</td><td>限流、暂态服务错误</td><td>单一责任层在总deadline和预算内退避</td></tr>
+<tr><td>stream_incomplete</td><td>中断、长度截断、半个工具参数</td><td>标未完成；保留可展示内容，不执行参数</td></tr>
+<tr><td>protocol_invalid</td><td>JSON损坏、关联ID缺失、事件不相容</td><td>停止该路径，隔离样本与版本，不能猜关联</td></tr>
+<tr><td>model_refusal</td><td>明确拒绝</td><td>交付拒绝或允许的替代，不循环改写绕过</td></tr>
+<tr><td>tool_result_unknown</td><td>工具请求已发但结果未知</td><td>回第11章Operation查证/对账，禁止直接再执行</td></tr>
+</tbody>
+</table>
+</div>
+<p>记录原HTTP状态、provider错误码、request/response/call ID、attempt及可脱敏上下文。重试模型生成可能计费，也可能生成不同工具提案；不能因生成重试创建新的业务幂等键。参数/授权变化必须重新校验。</p>
+<h2 id="175-多轮工具关联与应用重连"><a class="header" href="#175-多轮工具关联与应用重连">17.5 多轮工具关联与应用重连</a></h2>
+<h3 id="1751-调用id不是业务operation"><a class="header" href="#1751-调用id不是业务operation">17.5.1 调用ID不是业务Operation</a></h3>
+<p>教学Responses输出项与回填项分别如下，output里的JSON字符串是工具已返回的观察，不能由模型编造。<a href="#ref-1">[1]</a></p>
+<pre><code class="language-json">{"type":"function_call","id":"fc_demo","call_id":"call_demo","name":"lookup_document","arguments":"{\"document_id\":\"policy-7\"}"}
+</code></pre>
+<pre><code class="language-json">{"type":"function_call_output","call_id":"call_demo","output":"{\"status\":\"ok\",\"version\":\"v3\",\"evidence_ref\":\"ev7\"}"}
+</code></pre>
+<p>应用先校验完整arguments、工具版本与当前权限，再执行并关联结果；同一call_id冲突内容应拒绝而非覆盖。保留协议要求的相关输出项，缺结果不能伪装为已完成对话。call_id只关联一轮模型调用，业务Operation的稳定幂等键由第11章另行维护。Skill是应用加载的程序性上下文，不自动变成供应商原生工具或权限。</p>
+<h3 id="1752-断线重连的两个层面"><a class="header" href="#1752-断线重连的两个层面">17.5.2 断线重连的两个层面</a></h3>
+<p>教学时序：客户端订阅应用run-demo，确认事件40后断线；服务端继续按权威Run状态执行，先提交Step/产物/Event 41，再形成终态Event 42；客户端重连携带40，授权检查后重放41、42并去重，最后查询run结果。游标过期时使用第11章快照/重新订阅契约，不伪造供应商续流。</p>
+<p>如果断的是模型供应商连接且工具参数只收到一半，adapter把生成attempt记为stream_incomplete，不能据半个JSON执行工具。若已执行工具但结果未知，先查询Operation而不是重新生成后再执行一次。取消只表达停止意图，迟到结果仍需要写入事实账本。</p>
+<p>Anthropic文档的续写策略随模型版本区分，部分工具/思考块不能按文本方式恢复；这种“带部分输出重新请求”不是从旧SSE事件ID重放，也不保证续写逐字相同。<a href="#ref-2">[2]</a>应用事件回放的保留期、权限、重复和过期语义仍由<a href="infra-11-runtime.html">第11章</a>负责；第27章Gateway的具体实现需独立核验。</p>
+<h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
+<p>Provider Adapter把消息、工具关联、完整输出与错误映射成应用可消费契约，同时保留供应商差异。SSE只提供传输分帧；参数完整、结构/语义/业务校验、授权和Operation才决定可否执行。模型生成中断、任务执行中断和用户连接断开必须分别处理。兼容声明要有版本和测试，教学样例不能冒充端点实测。</p>
+<h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
 <ol>
-<li>工具调用返回格式是否一致。</li>
-<li>严格 JSON 或 schema 约束是否真的可靠。</li>
-<li>thinking / reasoning 字段是否需要单独处理。</li>
-<li>streaming 事件粒度是否一致。</li>
-<li>缓存语义和 usage 字段是否一致。</li>
-<li>多模态输入、文件输入和 server-side tools 是否都被兼容。</li>
+<li><a id="ref-1"></a> OpenAI，<a href="https://developers.openai.com/api/docs/guides/function-calling">Function calling</a>，rolling; 2026-10-18。</li>
+<li><a id="ref-2"></a> Anthropic，<a href="https://platform.claude.com/docs/en/build-with-claude/streaming">Streaming messages</a>，rolling; 2026-10-18。</li>
+<li><a id="ref-3"></a> DeepSeek，<a href="https://api-docs.deepseek.com/guides/tool_calls/">Tool Calls</a>，rolling; 2026-10-18。</li>
+<li><a id="ref-4"></a> WHATWG，<a href="https://html.spec.whatwg.org/multipage/server-sent-events.html">HTML Standard: Server-sent events</a>，living; 2026-10-16。</li>
+<li><a id="ref-5"></a> OpenAI，<a href="https://developers.openai.com/api/docs/guides/streaming-responses">Streaming API responses</a>，rolling; 2026-10-18。</li>
+<li><a id="ref-6"></a> OpenAI，<a href="https://developers.openai.com/api/docs/guides/structured-outputs">Structured model outputs</a>，rolling; 2026-10-17。</li>
 </ol>
-<p>一个成熟的做法不是直接把厂商 SDK 暴露到业务层，而是在你自己的系统里再包一层 provider adapter：</p>
-<pre><code class="language-text">Business Logic
-  -&gt; Provider Adapter
-      -&gt; OpenAI / Anthropic / DeepSeek
-</code></pre>
-<p>这样，真正稳定的不是供应商字段，而是你自己定义的抽象契约：输入消息、工具定义、结构化输出、usage 统计、错误类型和重试策略。</p>
-<h2 id="175-agent-工作流如何映射为模型请求"><a class="header" href="#175-agent-工作流如何映射为模型请求">17.5 Agent 工作流如何映射为模型请求</a></h2>
-<h3 id="1751-skilltool-与多轮-brainstorming如何把-agent-工作流映射到模型请求"><a class="header" href="#1751-skilltool-与多轮-brainstorming如何把-agent-工作流映射到模型请求">17.5.1 Skill、Tool 与多轮 Brainstorming：如何把 Agent 工作流映射到模型请求</a></h3>
-<p>到这里还有一个常见误区：很多开发者已经在 Agent 框架里使用了 Skill、Tool、Workflow，于是会自然地以为这些概念都可以直接作为底层模型 API 的字段传进去。真实情况并不是这样。</p>
-<p>在底层大模型协议里，<strong>Tool 通常是原生字段</strong>，例如 <code>tools</code>、<code>tool_choice</code>、<code>tool_calls</code>；但 <strong>Skill 往往不是原生协议字段</strong>。像 <code>superpowers:brainstorming</code> 这类 Skill，本质上更像一份“工作方法说明书”，它约束的是模型做事的顺序、提问方式、停止条件和交付格式，而不是一个底层 API 枚举值。</p>
-<p>因此，一个更准确的映射关系是：</p>
-<pre><code class="language-text">Skill
-  -&gt; system prompt / developer prompt / injected context
-
-Tool
-  -&gt; tools schema + tool_choice + tool result messages
-
-Multi-turn conversation
-  -&gt; messages history
-</code></pre>
-<p>也就是说：</p>
-<ul>
-<li><strong>Skill 解决“模型应该按什么方法工作”</strong>；</li>
-<li><strong>Tool 解决“模型可以调用哪些外部能力”</strong>；</li>
-<li><strong>Messages history 解决“模型当前已经知道哪些对话上下文”</strong>。</li>
-</ul>
-<p>如果把一个 Agent 请求拆开看，它实际更像：</p>
-<pre><code class="language-text">system: 工作流规则、角色、边界
-user / assistant: 多轮历史对话
-tools: 可调用能力定义
-current user turn: 本轮新任务
-</code></pre>
-<p>这也是为什么 Agent Runtime 不能只做一个简单的 <code>prompt -&gt; completion</code> 封装。它至少还要负责三件事：</p>
-<ol>
-<li>把 Skill 压缩成适合当前任务的系统约束，而不是把整份文档原封不动塞进 prompt。</li>
-<li>维护多轮消息历史，保留澄清问题、用户回答、阶段性判断和工具结果。</li>
-<li>在模型返回 <code>tool_calls</code> 时执行工具，再把工具结果作为后续消息喂回模型。</li>
-</ol>
-<h3 id="1752-一个具体例子把-superpowersbrainstorming-映射进请求"><a class="header" href="#1752-一个具体例子把-superpowersbrainstorming-映射进请求">17.5.2 一个具体例子：把 <code>superpowers:brainstorming</code> 映射进请求</a></h3>
-<p>以 <code>superpowers:brainstorming</code> 为例，它原始描述很长，但工程上真正要传给模型的，不是整份 Skill 文档，而是其中对当前任务最重要的几条约束：</p>
-<ul>
-<li>先理解项目上下文；</li>
-<li>每次只问一个澄清问题；</li>
-<li>在设计被批准前，不进入实现；</li>
-<li>信息足够后，先给出 2 到 3 个方案并说明 trade-off；</li>
-<li>必要时才调用工具读取项目文件或目录。</li>
-</ul>
-<p>这些内容可以被压缩成一个 <code>system</code> 消息。例如：</p>
-<pre><code class="language-json">{
-  "role": "system",
-  "content": "你是一个严格遵循 brainstorming 工作流的设计助手。规则：1. 先理解项目上下文。2. 每次只问一个澄清问题。3. 在用户批准设计前，不要写代码，不要进入实现。4. 信息足够后，先提出 2 到 3 个方案并说明 trade-off。5. 只有在缺少项目上下文时，才调用工具读取相关文件。"
-}
-</code></pre>
-<p>注意这里传给模型的是<strong>Skill 的运行约束摘要</strong>，而不是 Skill 名称本身。换句话说，模型并不知道 <code>superpowers:brainstorming</code> 这个标识符意味着什么；真正起作用的是你注入进去的规则文本。</p>
-<h3 id="1753-模拟任务三轮-brainstorming-之后的一次模型请求"><a class="header" href="#1753-模拟任务三轮-brainstorming-之后的一次模型请求">17.5.3 模拟任务：三轮 Brainstorming 之后的一次模型请求</a></h3>
-<p>下面这份请求模拟了一个真实场景：用户要为现有博客系统设计“PDF 自动摘要”能力；对话已经进行了三轮澄清；当前这一轮模型既要遵守 brainstorming 工作流，又可以按需调用工具读取项目目录和文件。</p>
-<pre><code class="language-json">{
-  "model": "deepseek-v4-pro",
-  "messages": [
-    {
-      "role": "system",
-      "content": "你是一个严格遵循 brainstorming 工作流的设计助手。规则：1. 先理解项目上下文。2. 每次只问一个澄清问题。3. 在用户批准设计前，不要写代码，不要进入实现。4. 信息足够后，先提出 2 到 3 个方案并说明 trade-off。5. 只有在缺少项目上下文时，才调用工具读取相关文件。"
-    },
-    {
-      "role": "user",
-      "content": "我想给博客系统增加一个 PDF 自动摘要功能，请先帮我 brainstorm。"
-    },
-    {
-      "role": "assistant",
-      "content": "先确认一个关键问题：这个 PDF 摘要功能是给站点管理员离线生成文章摘要，还是给终端访客在线上传 PDF 实时生成摘要？"
-    },
-    {
-      "role": "user",
-      "content": "给站点管理员使用，主要是在写文章时辅助生成摘要，不是给终端访客开放上传。"
-    },
-    {
-      "role": "assistant",
-      "content": "明白了。再确认一个问题：你希望这个能力直接集成到现有博客构建流程里，还是先做成一个独立脚本或命令行工具？"
-    },
-    {
-      "role": "user",
-      "content": "先做成独立脚本，但最好后面能接进博客工作流。项目是 Hexo 博客，文章在 source/_posts 下面。"
-    },
-    {
-      "role": "assistant",
-      "content": "信息已经足够开始收敛方案，但我还缺少项目当前文章结构和脚本组织方式。接下来我会先读取相关目录或现有脚本，再决定给出哪种方案最合适。"
-    },
-    {
-      "role": "user",
-      "content": "可以，继续。"
-    }
-  ],
-  "tools": [
-    {
-      "type": "function",
-      "function": {
-        "name": "list_project_files",
-        "description": "列出项目中与当前任务相关的文件，用于理解目录结构和现有脚本组织。",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "path": {
-              "type": "string",
-              "description": "要查看的目录路径"
-            },
-            "pattern": {
-              "type": "string",
-              "description": "可选的文件匹配模式"
-            }
-          },
-          "required": ["path"]
-        }
-      }
-    },
-    {
-      "type": "function",
-      "function": {
-        "name": "read_project_file",
-        "description": "读取项目文件内容，用于理解现有实现、脚本或文档。",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "path": {
-              "type": "string",
-              "description": "要读取的文件路径"
-            }
-          },
-          "required": ["path"]
-        }
-      }
-    }
-  ],
-  "tool_choice": "auto",
-  "stream": false
-}
-</code></pre>
-<p>这份请求体现了三层不同职责：</p>
-<ul>
-<li><code>system</code> 承载的是 Skill 约束；</li>
-<li><code>messages</code> 承载的是三轮 brainstorming 历史；</li>
-<li><code>tools</code> 承载的是本轮可调用能力。</li>
-</ul>
-<h3 id="1754-模型在这类请求后可能返回什么"><a class="header" href="#1754-模型在这类请求后可能返回什么">17.5.4 模型在这类请求后可能返回什么</a></h3>
-<p>收到上面的请求后，模型通常不会直接进入实现，而会在三种动作中选择其一：</p>
-<ol>
-<li><strong>继续追问一个澄清问题</strong>：如果它认为信息仍不足；</li>
-<li><strong>直接给出 2 到 3 个设计方案</strong>：如果它认为上下文已经足够；</li>
-<li><strong>先发起 tool call</strong>：如果它认为必须先读目录、读文件或查项目结构。</li>
-</ol>
-<p>例如，如果模型决定先读取目录，它可能返回：</p>
-<pre><code class="language-json">{
-  "choices": [
-    {
-      "message": {
-        "role": "assistant",
-        "tool_calls": [
-          {
-            "id": "call_1",
-            "type": "function",
-            "function": {
-              "name": "list_project_files",
-              "arguments": "{\"path\":\"source/_posts\",\"pattern\":\"*.md\"}"
-            }
-          }
-        ]
-      },
-      "finish_reason": "tool_calls"
-    }
-  ]
-}
-</code></pre>
-<p>这时 Runtime 需要执行 <code>list_project_files</code>，再把结果作为 <code>tool</code> 消息继续喂回模型。也就是说，<strong>多轮 brainstorming + tool calling 并不是一次性请求，而是一个运行闭环</strong>：</p>
-<pre><code class="language-text">Skill rules
-  + conversation history
-  + tools schema
-  -&gt; model proposes tool call
-  -&gt; runtime executes tool
-  -&gt; tool result returns to model
-  -&gt; model continues brainstorming
-</code></pre>
-<p>这个例子也说明了为什么 Skill、Tool 和底层模型 API 不能混为一谈。Skill 决定行为策略，Tool 决定能力边界，Messages 决定当前上下文，Runtime 决定如何把这些要素编排成可重复、可治理的对话事务。</p>
-<h3 id="1755-真实样例思考模式下的多轮对话响应"><a class="header" href="#1755-真实样例思考模式下的多轮对话响应">17.5.5 真实样例：思考模式下的多轮对话响应</a></h3>
-<p>前面的例子偏向 Agent 工作流：有 Skill 约束，有 Tool schema，有可能触发 <code>tool_calls</code>。但在很多日常场景里，请求并不会走到工具调用，而只是一个带历史上下文的普通多轮对话。这个时候，思考模式的协议行为会更接近“模型先内部推理，再输出面向用户的自然回答”。</p>
-<p>例如，先有这样一段多轮对话历史：</p>
-<pre><code class="language-text">system:
-  你是一个实用主义的生活助手。回答要更自然、更完整、更像聊天助手，更适合普通用户阅读。先直接给结论，再用简洁易懂的方式解释原因，语气友好，不要过于生硬。
-
-user:
-  我想去洗车，洗车店距离我家 50 米。你说我应该开车过去还是走过去？
-
-assistant:
-  你应该开车过去。因为你是去洗车，车得一起到洗车店，走过去没有意义。50 米非常近，启动一下车开过去也不会造成什么额外负担。
-
-user:
-  如果我只是先去问价格，还没决定洗，那我应该走过去还是开车过去？
-</code></pre>
-<p>对应到一次实际请求，请求体可以写成：</p>
-<pre><code class="language-json">{
-  "model": "deepseek-v4-pro",
-  "messages": [
-    {
-      "role": "system",
-      "content": "你是一个实用主义的生活助手。回答要更自然、更完整、更像聊天助手，更适合普通用户阅读。先直接给结论，再用简洁易懂的方式解释原因，语气友好，不要过于生硬。"
-    },
-    {
-      "role": "user",
-      "content": "我想去洗车，洗车店距离我家 50 米。你说我应该开车过去还是走过去？"
-    },
-    {
-      "role": "assistant",
-      "content": "你应该开车过去。因为你是去洗车，车得一起到洗车店，走过去没有意义。50 米虽然近，但这不影响结论。"
-    },
-    {
-      "role": "user",
-      "content": "如果我担心刚开过去 50 米，车还没热就到了，会不会伤车？"
-    },
-    {
-      "role": "assistant",
-      "content": "一般不用担心，这么短的距离不会因为“没热车”就对车辆造成什么明显影响。相比之下，更关键的是你本来就是要把车送去洗，所以把车开过去本身就是合理动作。"
-    },
-    {
-      "role": "user",
-      "content": "那如果我只是想先去问价格，再决定洗不洗呢？"
-    }
-  ],
-  "thinking": {
-    "type": "enabled"
-  },
-  "reasoning_effort": "high",
-  "stream": false
-}
-</code></pre>
-<p>这里可以看到，普通多轮对话在协议层并不复杂：只需要把前面的 <code>user</code> 和 <code>assistant</code> 消息继续保存在 <code>messages</code> 里，再追加当前轮的 <code>user</code> 问题即可。对于这个不涉及工具调用的场景，历史上下文的核心载体仍然是 <code>messages</code>，而不是额外的工作流状态对象。</p>
-<p>在 DeepSeek 的思考模式下，请求模型后，可能会得到下面这样的返回：</p>
-<pre><code class="language-json">{
-  "id": "3a0689fc-197d-4e07-b89e-f8347aefc1a6",
-  "object": "chat.completion",
-  "created": 1782898620,
-  "model": "deepseek-v4-pro",
-  "choices": [
-    {
-      "index": 0,
-      "message": {
-        "role": "assistant",
-        "content": "那走过去更合适。\\n既然只是去问价格、还没决定要洗，就走几步路过去方便又省事，不用特意发动车子、找停车位。问完如果觉得合适，再回去把车开过来也就一分钟的事儿，完全来得及。",
-        "reasoning_content": "我们需要理解用户的新问题：用户之前问的是去洗车，现在问如果只是想去问价格再决定洗不洗，那应该开车还是走过去。之前我建议开车过去，因为车也要洗。但现在场景变了，只是去问价格，可能不需要车在场。\\n\\n作为生活助手，我需要给出实用的建议。结论应该是：走过去更合适。因为距离只有50米，走路几分钟就到，方便又省事，还省得启动车辆、找车位。如果决定洗车了，再回去开车过来也不迟。这样既环保又高效。\\n\\n语气要友好自然，先直接给出结论，再解释原因。不需要过度复杂化。"
-      },
-      "finish_reason": "stop"
-    }
-  ],
-  "usage": {
-    "prompt_tokens": 185,
-    "completion_tokens": 191,
-    "total_tokens": 376,
-    "completion_tokens_details": {
-      "reasoning_tokens": 136
-    }
-  }
-}
-</code></pre>
-<p>这个样例很适合说明思考模式下的三个关键点。</p>
-<p><strong>第一，<code>content</code> 和 <code>reasoning_content</code> 是两层不同输出。</strong><br><code>content</code> 是真正给终端用户看的自然语言回答；<code>reasoning_content</code> 是模型在输出前的思考轨迹。你可以看到，这个例子里给用户的最终回答很短，但 <code>reasoning_content</code> 明确记录了模型如何利用上一轮上下文修正结论：前一轮因为“要洗车”所以建议开车，这一轮因为“只是去问价格”所以建议走过去。</p>
-<p><strong>第二，多轮对话真正生效的是历史消息，而不是把整段思维链反复塞回去。</strong><br>这个例子没有发生工具调用，因此下一轮继续对话时，通常只需要把前面的 <code>user</code> 和 <code>assistant.content</code> 放回 <code>messages</code>。按照 DeepSeek 文档，在“无工具调用”的场景里，之前轮次的 <code>reasoning_content</code> 后续传回去会被忽略。也就是说，这类请求的核心是“历史对话状态”，而不是“长期保存全部思维链”。</p>
-<p><strong>第三，思考模式会显著增加 token 消耗。</strong><br>这个例子里 <code>prompt_tokens</code> 是 185，但 <code>completion_tokens</code> 达到 191，其中 <code>reasoning_tokens</code> 就占了 136。说明最终展示给用户的短回答背后，模型实际上做了更长的内部推理。工程上这意味着：一旦开启 thinking，不仅输出更稳定，成本和延迟也会相应上升。</p>
-<p>如果把这个例子和前面的 brainstorming/tool calling 示例对照起来，可以得到一个更完整的结论：</p>
-<ul>
-<li><strong>普通多轮对话</strong>：重点是维护 <code>messages</code> 历史；</li>
-<li><strong>思考模式</strong>：重点是区分 <code>content</code> 与 <code>reasoning_content</code>；</li>
-<li><strong>工具调用场景</strong>：重点是追加 <code>tool_calls</code>、<code>tool</code> 消息，并在需要时回传 <code>reasoning_content</code>；</li>
-<li><strong>Skill 场景</strong>：重点是把工作流规则压缩成 <code>system</code> 或注入上下文。</li>
-</ul>
 
                     </main>
 

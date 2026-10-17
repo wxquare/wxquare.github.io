@@ -37,10 +37,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-65ae5acc.js";
+            window.path_to_searchindex_js = "../searchindex-33f54a4b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-c280e3b8.js"></script>
+        <script src="../toc-ff756377.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -183,6 +183,7 @@
 <blockquote>
 <p>Harness Engineering 的目标，不是让模型“更聪明”，而是让模型在一个可约束、可验证、可观测、可恢复的环境中工作。</p>
 </blockquote>
+<p>版本与范围：以下控制层、风险矩阵与示例是本书教学设计；来源核验于2026-10-18，不代表某产品已经实现全部保证。</p>
 <h2 id="引言"><a class="header" href="#引言">引言</a></h2>
 <p>前两章分别讨论了 Prompt Engineering 和 Context Engineering。</p>
 <p>Prompt Engineering 把人的意图整理成模型可执行的任务协议；Context Engineering 为模型准备正确、可信、可追溯的信息。但只做到这两层，系统仍然停留在“模型调用”阶段。</p>
@@ -198,7 +199,7 @@
 <li>把失败样本沉淀为 eval 和回归测试。</li>
 </ul>
 <p>一旦模型开始行动，工程问题就从“如何让模型回答得好”变成“如何让模型在系统中可靠地行动”。</p>
-<p>这就是 <strong>Harness Engineering</strong> 的位置。</p>
+<p>这就是 <strong>Harness Engineering</strong> 的位置。OpenAI SDK文档区分SDK循环与应用负责的部署、工具、存储和审批；本章六层是组织这些责任的教学模型。<a href="#ref-1">[1]</a></p>
 <pre><code class="language-text">Agent = Model + Harness
 </code></pre>
 <p>Harness 是模型周围的运行环境。它包括上下文构建、工具系统、工作流控制、安全护栏、评估回路、可观测性和持续改进机制。它的核心不是替代模型，而是把模型的非确定性放进确定性的工程框架中。</p>
@@ -309,8 +310,8 @@ Model Guess
 <tr><th style="text-align: left">风险等级</th><th style="text-align: left">示例</th><th style="text-align: left">Harness 策略</th></tr>
 </thead>
 <tbody>
-<tr><td style="text-align: left">只读</td><td style="text-align: left">查指标、查日志、查文档</td><td style="text-align: left">自动执行，记录 trace</td></tr>
-<tr><td style="text-align: left">可逆写入</td><td style="text-align: left">创建工单、发送通知</td><td style="text-align: left">自动执行，但必须审计和幂等</td></tr>
+<tr><td style="text-align: left">只读</td><td style="text-align: left">查指标、查日志、查文档</td><td style="text-align: left">在已有授权与数据范围内执行，记录脱敏关联</td></tr>
+<tr><td style="text-align: left">写入/外发</td><td style="text-align: left">创建工单、发送通知</td><td style="text-align: left">按授权和风险审批、审计、幂等；外发不保证可撤回</td></tr>
 <tr><td style="text-align: left">高风险变更</td><td style="text-align: left">重启服务、回滚发布</td><td style="text-align: left">生成计划，人工确认后执行</td></tr>
 <tr><td style="text-align: left">禁止动作</td><td style="text-align: left">删除生产数据、绕过权限</td><td style="text-align: left">不暴露工具，直接拒绝</td></tr>
 </tbody>
@@ -568,7 +569,7 @@ create_incident_ticket(summary, evidence, risk_level)
 </code></pre>
 <p>LLM 能否恢复，很大程度取决于错误是否可操作。</p>
 <h3 id="mcp-的位置"><a class="header" href="#mcp-的位置">MCP 的位置</a></h3>
-<p>MCP 可以标准化工具暴露方式，但它不是安全边界本身。</p>
+<p>MCP接入并不替代执行策略。外部文档也能携带注入；OWASP建议最小权限和独立控制高风险动作。<a href="#ref-2">[2]</a></p>
 <p>通过 MCP 暴露工具时，仍然需要服务端保证：</p>
 <ul>
 <li>权限检查；</li>
@@ -582,6 +583,7 @@ create_incident_ticket(summary, evidence, risk_level)
 <p>不要把“接入 MCP”理解为“工具系统已经设计好了”。MCP 只是连接层，Harness 才是治理层。</p>
 <hr>
 <h2 id="166-workflow-layer用确定性流程约束开放推理"><a class="header" href="#166-workflow-layer用确定性流程约束开放推理">16.6 Workflow Layer：用确定性流程约束开放推理</a></h2>
+<p>本层消费<a href="infra-11-runtime.html">第11章</a>Run/Step/Event与Operation，流程组合由<a href="09-workflow-orchestration.html">第21章</a>负责。LangGraph的checkpoint必须选择合适存储，内存Saver重启丢失；不能把状态图本身当作持久恢复证明。<a href="#ref-3">[3]</a></p>
 <p>LLM 很适合在局部做判断，但不适合独自管理完整生命周期。</p>
 <p>自由循环 Agent 的常见问题：</p>
 <ul>
@@ -841,6 +843,7 @@ if env == "production" and action mutates state:
 成本没有超限，但多走了 8 个无用步骤。
 </code></pre>
 <h3 id="trace-设计"><a class="header" href="#trace-设计">Trace 设计</a></h3>
+<p>Langfuse以关联的模型、工具与检索观察支持故障诊断。<a href="#ref-4">[4]</a>本书只记录必要元数据与受控载荷引用；采样、缺span和导出失败均可能影响完整性，权威状态以第11章账本为准。</p>
 <p>可复盘的 Trace 需要关联任务、模型与工具调用、输入输出版本、证据和执行结果，以便定位失败发生在哪一层。Trace 不一定要记录模型完整推理文本，但必须记录可审计的输入、动作、证据、决策和系统判断。</p>
 <h3 id="指标分层"><a class="header" href="#指标分层">指标分层</a></h3>
 <div class="table-wrapper">
@@ -923,21 +926,25 @@ Gradual Rollout
 </code></pre>
 <p>关键不是“这次修好了”，而是“这个错误类型以后不会静默发生”。</p>
 <p>这也是 Harness 与生产治理的分工：Harness 负责把每一步行为记录成可复盘事实，治理控制面负责把失败归档到 Failure Registry、生成回归样本，并在下一次发布前用 Release Gate 阻断旧问题复发。</p>
-<h3 id="行业实证同一模型不同-harness"><a class="header" href="#行业实证同一模型不同-harness">行业实证：同一模型，不同 Harness</a></h3>
-<p>博客中的几个行业案例共同说明：提升 Agent 质量的杠杆不只在模型本身，还在模型周围的工作环境。这里的数字属于特定项目和测试条件，不应直接当作所有团队的通用基准。</p>
+<h3 id="coding闭环如何消费六层契约"><a class="header" href="#coding闭环如何消费六层契约">Coding闭环如何消费六层契约</a></h3>
+<p>教学输入：“修复登录过期边界，不部署”。下表按一次任务追踪控制层，而非重复产品实现。</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th style="text-align: left">案例</th><th style="text-align: left">Harness 改造</th><th style="text-align: left">观察到的结果</th><th style="text-align: left">工程含义</th></tr>
+<tr><th>阶段</th><th>消费契约</th><th>系统验证与失败动作</th></tr>
 </thead>
 <tbody>
-<tr><td style="text-align: left">OpenAI 的 agent-first 工程实践</td><td style="text-align: left">入口文档只做导航；用 linter 和结构化测试执行架构约束；让 Agent 访问日志、指标和 trace；定期清理架构熵</td><td style="text-align: left">在特定项目中，以少量工程师和 Agent 协作交付大规模代码</td><td style="text-align: left">规模化的关键不是把更多规则塞进 Prompt，而是把约束和反馈机械化</td></tr>
-<tr><td style="text-align: left">LangChain Deep Agents</td><td style="text-align: left">自验证回路、循环检测中间件、按需上下文注入、完成前检查表</td><td style="text-align: left">博客记录的 Terminal Bench 2.0 对比中，保持模型不变，准确率由 52.8% 提升到 66.5%</td><td style="text-align: left">失败检测和完成判定是 Harness 的一等能力，不是任务结束后的人工补救</td></tr>
-<tr><td style="text-align: left">Anthropic 的多代理协作</td><td style="text-align: left">Planner 产出规格，Generator 实现，Evaluator 按标准打分并反馈</td><td style="text-align: left">在高质量任务中换取更高的功能完整度和代码质量，但调用成本显著增加</td><td style="text-align: left">评估代理可以提高质量上限，但必须显式管理额外成本、延迟和协调复杂度</td></tr>
+<tr><td>明确任务</td><td><a href="02-prompt-engineering.html">第14章</a>目标/边界/验收</td><td>缺失败路径先澄清，不自动扩大为发布</td></tr>
+<tr><td>装配工作区</td><td><a href="03-context-engineering.html">第15章</a>Context Package/文件hash</td><td>旧hash回源；保留禁止部署与未决操作</td></tr>
+<tr><td>提出工具调用</td><td><a href="05-llm-api-protocol.html">第17章</a>完整参数与调用ID</td><td>片段参数不执行，拒绝/截断单独处理</td></tr>
+<tr><td>编辑与测试</td><td><a href="06-tool-calling-mcp.html">第18章</a>工具Schema/权限</td><td>限定目录与网络出口，权限在工具外强制检查</td></tr>
+<tr><td>组织步骤</td><td><a href="09-workflow-orchestration.html">第21章</a>依赖与owner</td><td>消费第11章状态，不由Todo勾选制造完成事实</td></tr>
+<tr><td>独立验收</td><td><a href="infra-10-data-eval.html">第10章</a>Eval Case与<a href="10-agent-evals-guardrails-observability.html">第22章</a>行为断言</td><td>检查真实diff/测试输出、越界和部署尝试，失败有界修复</td></tr>
+<tr><td>观测交付</td><td>版本、工具结果、策略裁决与产物引用</td><td>报告通过/未运行项目，隐藏敏感载荷；Trace缺失另报</td></tr>
 </tbody>
 </table>
 </div>
-<p>这些案例不能被简化成“多代理一定更好”或“加测试就能解决一切”。它们真正提供的是一套实验方法：固定模型和任务分布，只改变上下文、约束、工具、验证和反馈回路，再用可复现的 Eval 比较结果。只有这样，团队才能判断收益来自哪个 Harness 层，而不是凭感觉继续调 Prompt。</p>
+<p>Verifier独立首先指判据和数据独立：固定验收、不可被生成者随意改写的测试、实际执行结果及必要人工复核；只换一个模型并让它读取同一份自述并不足够。生成者建议删测试时，执行层仍按原验收核对。这个闭环服务<a href="../part3/01-coding-agent-systems.html">第23章</a>与<a href="../part3/08-mini-agent-observability.html">第29章</a>，没有宣称Hermes已经具备其中的耐久恢复扩展。</p>
 <h3 id="工程师角色的转变"><a class="header" href="#工程师角色的转变">工程师角色的转变</a></h3>
 <p>Harness Engineering 并不意味着工程师不再写代码，而是把工程师的交付对象从单个实现扩展为“让 Agent 能可靠工作的环境”：</p>
 <div class="table-wrapper">
@@ -1004,17 +1011,14 @@ Gradual Rollout
 <li>Observability：定位失败并持续改进。</li>
 </ol>
 <p>当所有团队都能接入相似水平的模型时，差异不再主要来自“谁的模型更强”，而是来自“谁的 Harness 更可靠”。这也是工程师最有价值的地方：把不确定的模型能力，放进确定的工程系统里。</p>
-<p>下一部分将进入 Agent 架构与运行时设计，讨论 LLM 能力边界、Agent 架构决策、工具系统和工作流编排。等到第 22 章讨论生产治理时，你会再次看到这条主线：Harness 采集事实，治理控制面消费事实，并把失败变成下一次发布前的门禁。</p>
+<p>下一章先核对模型API协议，再进入工具、知识、记忆与编排。等到第 22 章讨论生产治理时，你会再次看到这条主线：Harness 采集事实，治理控制面消费事实，并把失败变成下一次发布前的门禁。</p>
 <hr>
 <h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
 <ol>
-<li><strong>Model Context Protocol</strong> - https://modelcontextprotocol.io/</li>
-<li><strong>OpenAI Evals</strong> - https://github.com/openai/evals</li>
-<li><strong>LangChain Documentation</strong> - https://python.langchain.com/</li>
-<li><strong>Anthropic Claude Code Documentation</strong> - https://docs.anthropic.com/</li>
-<li><strong>OpenAI：Harness engineering: leveraging Codex in an agent-first world</strong> - https://www.engineering.fyi/article/harness-engineering-leveraging-codex-in-an-agent-first-world</li>
-<li><strong>LangChain：Improving Deep Agents with harness engineering</strong> - https://blog.langchain.dev/improving-deep-agents-with-harness-engineering/</li>
-<li><strong>LangChain：The Anatomy of an Agent Harness</strong> - https://blog.langchain.com/the-anatomy-of-an-agent-harness/</li>
+<li><a id="ref-1"></a> OpenAI，<a href="https://developers.openai.com/api/docs/guides/agents/sdk">Agents SDK</a>，rolling; 2026-10-17。</li>
+<li><a id="ref-2"></a> OWASP，<a href="https://genai.owasp.org/llmrisk/llm01-prompt-injection/">LLM01:2025 Prompt Injection</a>，2025。</li>
+<li><a id="ref-3"></a> LangChain，<a href="https://docs.langchain.com/oss/python/langgraph/persistence">Persistence</a>，rolling; 2026-10-17。</li>
+<li><a id="ref-4"></a> Langfuse，<a href="https://langfuse.com/docs/observability/overview">Observability &amp; Application Tracing</a>，rolling; 2026-10-18。</li>
 </ol>
 
                     </main>

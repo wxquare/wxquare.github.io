@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第21章 Agent 执行编排与平台架构：工作流、状态机、多 Agent 与框架生态 - AI Engineering：大模型与智能体系统工程</title>
+        <title>第21章 执行编排与多 Agent 协作：任务图、交接与平台边界 - AI Engineering：大模型与智能体系统工程</title>
 
 
         <!-- Custom HTML head -->
@@ -37,10 +37,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-65ae5acc.js";
+            window.path_to_searchindex_js = "../searchindex-33f54a4b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-c280e3b8.js"></script>
+        <script src="../toc-ff756377.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -179,31 +179,10 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="第21章-agent-执行编排与平台架构工作流状态机多-agent-与框架生态"><a class="header" href="#第21章-agent-执行编排与平台架构工作流状态机多-agent-与框架生态">第21章 Agent 执行编排与平台架构：工作流、状态机、多 Agent 与框架生态</a></h1>
-<blockquote>
-<p>Agent 执行编排的目标，不是让模型“多想几步”，而是把不确定的模型行为放进可恢复、可审计、可治理的运行时结构里。</p>
-</blockquote>
-<h2 id="引言从可靠执行到平台化运行时"><a class="header" href="#引言从可靠执行到平台化运行时">引言：从可靠执行到平台化运行时</a></h2>
-<p>前面几章分别讨论了 Agent 的架构边界、工具系统、知识系统和记忆系统。到这里，一个 Agent 已经具备了“看上下文、查知识、调用工具、保留连续性”的能力。但这些能力本身还不能保证任务可靠完成。</p>
-<p>生产环境中的 Agent 往往要处理更长的任务：</p>
-<ul>
-<li>一次任务包含多个步骤；</li>
-<li>某些步骤依赖工具结果；</li>
-<li>某些动作有副作用，需要审批；</li>
-<li>中途可能失败、超时或被用户打断；</li>
-<li>任务可能隔天继续；</li>
-<li>多个 Agent 或多个工作区可能并行执行；</li>
-<li>结果必须能被追踪、回放和评估。</li>
-</ul>
-<p>这就是执行编排的位置。</p>
-<p>执行编排不是多 Agent 才需要。单 Agent 只要任务变长、动作变多、风险变高，也需要 workflow、state machine、checkpoint、human-in-the-loop 和 trace。多 Agent 只是执行编排的一种复杂形态。</p>
-<p>本章把两类内容合并讨论：</p>
-<pre><code class="language-text">执行编排：如何把任务组织成可靠过程
-平台架构：如何把编排、状态、工具、审批、恢复和观测沉淀为可复用运行时
-</code></pre>
-<p>这也是为什么 LangGraph、AutoGen、Microsoft Agent Framework 这类框架不能只当作“Agent 框架”看。它们背后真正解决的是：如何让 Agent 从 demo 变成可运行、可恢复、可审计、可扩展的系统。</p>
-<hr>
-<h2 id="211-从-agent-loop-到-workflow-runtime"><a class="header" href="#211-从-agent-loop-到-workflow-runtime">21.1 从 Agent Loop 到 Workflow Runtime</a></h2>
+                        <h1 id="第21章-执行编排与多-agent-协作任务图交接与平台边界"><a class="header" href="#第21章-执行编排与多-agent-协作任务图交接与平台边界">第21章 执行编排与多 Agent 协作：任务图、交接与平台边界</a></h1>
+<p>本章消费第11章持久Runtime，不重复定义可靠投递算法。版本与范围：资料核验于2026-10-18，A2A选读固定v0.3.0；以下消息、时序、批处理和控制流程均为教学设计，未运行多Agent或消息系统实验。</p>
+<h2 id="211-先选择确定性工作流还是-agent"><a class="header" href="#211-先选择确定性工作流还是-agent">21.1 先选择确定性工作流还是 Agent</a></h2>
+<p>LangGraph文档区分固定Workflow与动态Agent路径；是否增加角色要比较任务收益与协调成本。<a href="#ref-1">[1]</a></p>
 <h3 id="2111-最小-agent-loop-的边界"><a class="header" href="#2111-最小-agent-loop-的边界">21.1.1 最小 Agent Loop 的边界</a></h3>
 <p>最小 Agent Loop 通常长这样：</p>
 <pre><code class="language-python">while not done:
@@ -287,7 +266,46 @@
 </div>
 <p>Agent Platform 不是一开始就要建设的东西。但如果每个团队都在重复实现工具注册、状态恢复、审批、trace 和 eval，那么平台化就开始有价值。</p>
 <hr>
-<h2 id="212-单-agent-执行编排把任务组织成可靠过程"><a class="header" href="#212-单-agent-执行编排把任务组织成可靠过程">21.2 单 Agent 执行编排：把任务组织成可靠过程</a></h2>
+<h3 id="2115-图式编排-vs-自由-agent-loop"><a class="header" href="#2115-图式编排-vs-自由-agent-loop">21.1.5 图式编排 vs 自由 Agent Loop</a></h3>
+<p>自由 loop 灵活，图式编排可控。</p>
+<p>建议：</p>
+<ul>
+<li>低风险探索用自由 loop；</li>
+<li>生产流程用显式 workflow；</li>
+<li>高风险动作必须进入审批节点；</li>
+<li>长任务必须有 checkpoint。</li>
+</ul>
+<h3 id="2116-单-agent-vs-多-agent"><a class="header" href="#2116-单-agent-vs-多-agent">21.1.6 单 Agent vs 多 Agent</a></h3>
+<p>优先从单 Agent + Workflow 开始。只有当存在清晰角色边界、并行收益或互审需求时，再引入多 Agent。</p>
+<p>多 Agent 的收益必须超过协调成本。</p>
+<h3 id="2117-框架-vs-自研"><a class="header" href="#2117-框架-vs-自研">21.1.7 框架 vs 自研</a></h3>
+<p>选择框架还是自研，取决于已有系统约束。</p>
+<p>适合框架：</p>
+<ul>
+<li>需要 durable execution；</li>
+<li>需要多 Agent；</li>
+<li>需要快速验证；</li>
+<li>团队愿意接受框架抽象。</li>
+</ul>
+<p>适合自研：</p>
+<ul>
+<li>内部权限、工具、审计约束很强；</li>
+<li>只需要轻量 workflow；</li>
+<li>不希望引入重依赖；</li>
+<li>平台能力需要深度定制。</li>
+</ul>
+<h3 id="2118-平台化-vs-单应用内嵌"><a class="header" href="#2118-平台化-vs-单应用内嵌">21.1.8 平台化 vs 单应用内嵌</a></h3>
+<p>单应用内嵌适合早期验证。平台化适合多团队复用。</p>
+<p>平台化触发信号：</p>
+<ul>
+<li>多个团队重复接模型；</li>
+<li>多个团队重复封装工具；</li>
+<li>权限和审计开始分散；</li>
+<li>需要统一成本控制；</li>
+<li>需要统一 eval 和 release gate；</li>
+<li>长任务恢复成为共性问题。</li>
+</ul>
+<h2 id="212-计划任务图与有界执行"><a class="header" href="#212-计划任务图与有界执行">21.2 计划、任务图与有界执行</a></h2>
 <h3 id="2121-plan-and-execute计划与执行分离"><a class="header" href="#2121-plan-and-execute计划与执行分离">21.2.1 Plan-and-Execute：计划与执行分离</a></h3>
 <p>Plan-and-Execute 把任务拆成两个阶段：</p>
 <pre><code class="language-text">Plan: 生成可执行步骤、约束、证据要求和风险边界
@@ -365,41 +383,11 @@ Execute: 按步骤执行、验证、修正和结束
 <li>trace 和 eval 可以按状态归因。</li>
 </ul>
 <p>不要把状态机藏在 prompt 里。状态应该由 Runtime 保存，模型只能基于状态提出建议或选择允许的动作。</p>
-<h3 id="2125-checkpointresumereplay-与幂等"><a class="header" href="#2125-checkpointresumereplay-与幂等">21.2.5 Checkpoint、Resume、Replay 与幂等</a></h3>
-<p>长任务必须考虑失败。模型调用可能超时，工具可能失败，进程可能重启，人类审批可能隔天才发生。</p>
-<p>Checkpoint 的基本思想是：</p>
-<pre><code class="language-text">Step completed -&gt; save state
-External action requested -&gt; save intent and idempotency key
-Human approval pending -&gt; save approval state
-Resume -&gt; continue from last safe checkpoint
-</code></pre>
-<p>关键点有三个：</p>
-<ul>
-<li>checkpoint 保存的是结构化状态，不只是聊天历史；</li>
-<li>外部副作用必须有幂等键；</li>
-<li>replay 时不能重复执行已经成功的副作用。</li>
-</ul>
-<p>幂等设计尤其重要。一个“创建退款单”的工具如果在恢复时重复执行，就会造成真实业务事故。Runtime 必须记录 action id、request payload、response、状态和重试策略。</p>
-<h3 id="2126-human-in-the-loop审批暂停与恢复"><a class="header" href="#2126-human-in-the-loop审批暂停与恢复">21.2.6 Human-in-the-loop：审批、暂停与恢复</a></h3>
-<p>Human-in-the-loop 不是在聊天里问一句“要继续吗”，而是 workflow state 的一部分。</p>
-<pre><code class="language-text">Propose Action
-  -&gt; Risk Classifier
-  -&gt; Approval Node
-  -&gt; Execute or Reject
-</code></pre>
-<p>审批节点至少要记录：</p>
-<ul>
-<li>谁发起；</li>
-<li>审批什么动作；</li>
-<li>证据是什么；</li>
-<li>风险等级是什么；</li>
-<li>谁批准或拒绝；</li>
-<li>什么时候处理；</li>
-<li>恢复后从哪里继续。</li>
-</ul>
-<p>这样人工介入才具备可审计性和可恢复性。</p>
-<hr>
-<h2 id="213-workflow-pattern单-agent-和多-agent-都适用"><a class="header" href="#213-workflow-pattern单-agent-和多-agent-都适用">21.3 Workflow Pattern：单 Agent 和多 Agent 都适用</a></h2>
+<h3 id="2125-计划节点必须有外部验收"><a class="header" href="#2125-计划节点必须有外部验收">21.2.5 计划节点必须有外部验收</a></h3>
+<p>ReAct交替行动和观察，为下一步补充环境证据。<a href="#ref-2">[2]</a>本书TaskGraph节点另含node_id、depends_on、input/artifact_refs、owner、acceptance、risk、budget/deadline与failure_route。Todo是图的视图，不替代执行状态。反思只在新失败证据或进展停滞时触发，有限轮数；没有新证据不能反复自我赞同。</p>
+<p>重规划固定plan_version，复用仍有效的产物和既有Operation，只重算受影响节点。目标或授权改变需要重新确认，旧版本结果不能提交到新计划。最大步数、调用数、并发、token、成本和墙钟deadline来自父预算，子任务不得各自重新拥有全额预算。完成需满足验收与安全约束，预算耗尽或unknown不是成功。</p>
+<p>Checkpoint、取消、等待审批、未知副作用与恢复按<a href="infra-11-runtime.html">第11章</a>执行，本章只组合控制流；Replay观察不重复执行副作用。</p>
+<h2 id="213-可组合工作流模式"><a class="header" href="#213-可组合工作流模式">21.3 可组合工作流模式</a></h2>
 <h3 id="2131-sequential顺序执行"><a class="header" href="#2131-sequential顺序执行">21.3.1 Sequential：顺序执行</a></h3>
 <p>Sequential 是最基础的 workflow pattern。</p>
 <pre><code class="language-text">Input -&gt; Step 1 -&gt; Step 2 -&gt; Step 3 -&gt; Output
@@ -514,7 +502,11 @@ Input -&gt; -&gt; Branch B -&gt; Aggregator -&gt; Output
 </code></pre>
 <p>这些边界最好由 Runtime 执行，而不是靠 prompt 约束。</p>
 <hr>
-<h2 id="214-multi-agent-协作执行编排的复杂形态"><a class="header" href="#214-multi-agent-协作执行编排的复杂形态">21.4 Multi-Agent 协作：执行编排的复杂形态</a></h2>
+<h3 id="2138-十万词分类用批处理代替十万次自主规划"><a class="header" href="#2138-十万词分类用批处理代替十万次自主规划">21.3.8 十万词分类：用批处理代替十万次自主规划</a></h3>
+<p>教学输入为十万余词及固定分类体系版本。先定义单/多标签、层级、歧义和拒判，人工标注分层基线；规范化保留original_word与稳定item_id，去重项保留原位置映射。规则/词典处理确定项，轻量分类或embedding给候选，LLM只处理难例；不按每个词创建自主Agent。</p>
+<p>代码按token预算与输出长度确定batch，教学候选每批128项仅作起点，不能当通用最优值。每项输出item_id、taxonomy_version、labels、evidence/reason及abstain；检查输入输出一一对应、无缺/重项、枚举/层级/多标签约束。按batch_id/input_hash/model/prompt/taxonomy版本保存结果，失败只重跑未完成或失效项，重启按账本恢复。</p>
+<p>标签更新保留旧版与迁移映射，低置信阈值在独立标注集校准，LLM自报分数不是概率。评价macro/micro、长尾混淆、层级一致、拒判、尾延迟和单位成功成本。仅独立领域判断确有收益时用专家Agent；机械切批、限速、join和结果去重由确定性调度器完成。此案例未运行。</p>
+<h2 id="214-多-agent-的职责与交接协议"><a class="header" href="#214-多-agent-的职责与交接协议">21.4 多 Agent 的职责与交接协议</a></h2>
 <h3 id="2141-多-agent-什么时候才必要"><a class="header" href="#2141-多-agent-什么时候才必要">21.4.1 多 Agent 什么时候才必要</a></h3>
 <p>多 Agent 的价值不是“看起来更智能”，而是解决单 Agent 难以同时满足的工程诉求：</p>
 <ul>
@@ -587,8 +579,22 @@ Synthesizer: 组织结论、处理冲突、生成答案
 </div>
 <p>多 Agent 不是替代 workflow。多 Agent 更需要 workflow。</p>
 <hr>
-<h2 id="215-并行执行基础设施"><a class="header" href="#215-并行执行基础设施">21.5 并行执行基础设施</a></h2>
-<h3 id="2151-git-worktrees隔离工作区"><a class="header" href="#2151-git-worktrees隔离工作区">21.5.1 Git Worktrees：隔离工作区</a></h3>
+<h3 id="2147-modular-agent与交接契约"><a class="header" href="#2147-modular-agent与交接契约">21.4.7 Modular Agent与交接契约</a></h3>
+<p>Modular Agent在本书指职责和接口可替换的设计方式，不是一个统一标准算法，也不要求每个模块都成为Agent。Multi-Agent则有多个各自上下文和决策循环的角色；模块化本身不会自动产生规划能力。</p>
+<p>Handoff至少包含任务/父子身份、输入版本和证据、验收/返回格式、工具/数据授权范围、预算/deadline、owner与拒收/升级路径。接收方先验权限/版本/能力/预算，再原子认领目标Step并回accept或带原因reject；发送消息不等责任已交接。拒收仍由原owner负责重新分流，限定次数后升级人工，避免互相推诿。</p>
+<h2 id="215-mailbox共享状态与事件总线"><a class="header" href="#215-mailbox共享状态与事件总线">21.5 mailbox、共享状态与事件总线</a></h2>
+<h3 id="2151-三种组件各司其职"><a class="header" href="#2151-三种组件各司其职">21.5.1 三种组件各司其职</a></h3>
+<p>共享状态持久保存TaskGraph、Step/owner/version、审批和不可变Artifact引用；mailbox承载定向命令及接收/处理状态；事件总线传播“状态已变”的通知，不能取代权威状态。结构为“编排器+状态→定向信箱→Worker→产物/状态→Outbox事件→编排器核验→后继节点”。</p>
+<p>Correlation Identifier模式区分请求和响应的关联。<a href="#ref-3">[3]</a>RabbitMQ将发布者确认与消费者确认分开；收到broker确认并不证明下游业务动作完成。<a href="#ref-4">[4]</a>本书envelope是教学契约：</p>
+<pre><code class="language-json">{"schema_version":"1","message_id":"m17","kind":"review.request","task_id":"t1","run_id":"r1","step_id":"review","parent_task_id":"parent1","correlation_id":"h1","causation_id":"m16","sender":"A","recipient":"B","plan_version":3,"state_version":7,"owner_epoch":4,"deadline":"2026-10-18T10:10:00Z","budget_ref":"budget-r1","input_ref":"patch-v2","input_hash":"sha256-demo","evidence_refs":["test-v2"],"authorization_ref":"scope-review-v1","reply_to":"mailbox-A"}
+</code></pre>
+<p>身份与授权由可信通道和服务端验证，不能信任载荷自称sender或authorization。大内容传不可变引用，接收时重验读取权限；敏感原文不广播给所有订阅者。message_id用于传输去重，correlation_id贯穿交接，causation_id表达因果；业务Operation稳定键属于第11章，不能用message_id替代。</p>
+<h3 id="2152-重复乱序取消和失联"><a class="header" href="#2152-重复乱序取消和失联">21.5.2 重复、乱序、取消和失联</a></h3>
+<p>消费者将inbox去重记录与创建/推进Step放同一受控事务，成功接收后才确认。投递重复查询既有处理结果，同message_id异payload拒绝；同业务动作跨消息仍按Operation去重。状态更新条件检查plan_version、state_version与epoch，早到依赖结果等待或对账，旧终态不得覆盖新终态。</p>
+<p>取消持久写入权威状态，并以控制消息传播到子任务；停止新动作，在安全点确认。先到取消后到成功时保留外部事实，不能为保持“已取消”展示而抹掉副作用。owner失联按第11章租约/执行代次处理，租约过期不证明旧进程已停止；网关/资源支持时执行fencing，不支持则限制副作用并查询对账。</p>
+<p>mailbox限制队列长度、并发、消息大小、委派深度与重投次数，超过总deadline停止新工作；永久失败进入带owner/修复入口的dead letter，通知不能代替认领。中心协调易于全局预算和审计但可能瓶颈；分布式执行提升隔离与吞吐，必须付出一致性、去重和跨分区恢复成本。逻辑中心协调可与分布式Worker组合，并非二选一。</p>
+<h2 id="216-共享资源与执行隔离"><a class="header" href="#216-共享资源与执行隔离">21.6 共享资源与执行隔离</a></h2>
+<h3 id="2161-git-worktrees隔离工作区"><a class="header" href="#2161-git-worktrees隔离工作区">21.6.1 Git Worktrees：隔离工作区</a></h3>
 <p>Coding Agent 的并行执行通常需要隔离文件系统状态。Git worktree 是一个实用基础设施。</p>
 <pre><code class="language-bash">git worktree add ../feature-auth feature/auth
 git worktree add ../feature-payment feature/payment
@@ -601,7 +607,7 @@ git worktree add ../feature-payment feature/payment
 <li>批量迁移。</li>
 </ul>
 <p>关键要求是写入范围要提前划分，避免多个 Agent 修改同一文件。</p>
-<h3 id="2152-subagents专家上下文"><a class="header" href="#2152-subagents专家上下文">21.5.2 Subagents：专家上下文</a></h3>
+<h3 id="2162-subagents专家上下文"><a class="header" href="#2162-subagents专家上下文">21.6.2 Subagents：专家上下文</a></h3>
 <p>Subagent 的核心价值是独立上下文。主 Agent 可以把一个边界清晰的任务交给专家 Agent，让它在自己的上下文中完成。</p>
 <p>适合：</p>
 <ul>
@@ -612,7 +618,7 @@ git worktree add ../feature-payment feature/payment
 <li>代码库局部探索。</li>
 </ul>
 <p>不适合把关键路径上的阻塞任务随意交给 subagent。下一步必须依赖的结果，主流程通常应该自己处理，或明确等待。</p>
-<h3 id="2153-agent-teams自动协调"><a class="header" href="#2153-agent-teams自动协调">21.5.3 Agent Teams：自动协调</a></h3>
+<h3 id="2163-agent-teams自动协调"><a class="header" href="#2163-agent-teams自动协调">21.6.3 Agent Teams：自动协调</a></h3>
 <p>Agent Team 把多个角色组织成固定拓扑。例如：</p>
 <pre><code class="language-text">Writer -&gt; Reviewer -&gt; Writer
 Planner -&gt; Executor -&gt; Verifier
@@ -626,7 +632,7 @@ Coordinator -&gt; Specialists -&gt; Coordinator
 <li>有合并规则；</li>
 <li>有审计和成本记录。</li>
 </ul>
-<h3 id="2154-batch--fan-out批量迁移批量修复与批量评审"><a class="header" href="#2154-batch--fan-out批量迁移批量修复与批量评审">21.5.4 Batch / Fan-out：批量迁移、批量修复与批量评审</a></h3>
+<h3 id="2164-batch--fan-out批量迁移批量修复与批量评审"><a class="header" href="#2164-batch--fan-out批量迁移批量修复与批量评审">21.6.4 Batch / Fan-out：批量迁移、批量修复与批量评审</a></h3>
 <p>批量任务适合 fan-out。</p>
 <pre><code class="language-text">Find targets
   -&gt; shard targets
@@ -643,7 +649,7 @@ Coordinator -&gt; Specialists -&gt; Coordinator
 <li>最后统一格式化和测试；</li>
 <li>合并后的人工 review。</li>
 </ul>
-<h3 id="2155-并行任务的合并冲突和审查边界"><a class="header" href="#2155-并行任务的合并冲突和审查边界">21.5.5 并行任务的合并、冲突和审查边界</a></h3>
+<h3 id="2165-并行任务的合并冲突和审查边界"><a class="header" href="#2165-并行任务的合并冲突和审查边界">21.6.5 并行任务的合并、冲突和审查边界</a></h3>
 <p>并行执行的难点不在启动 worker，而在合并。</p>
 <p>合并前要检查：</p>
 <ul>
@@ -655,241 +661,33 @@ Coordinator -&gt; Specialists -&gt; Coordinator
 </ul>
 <p>并行执行的原则是：并行可以提升吞吐，但不能降低审查标准。</p>
 <hr>
-<h2 id="216-langgraph把-agent-表示成有状态图"><a class="header" href="#216-langgraph把-agent-表示成有状态图">21.6 LangGraph：把 Agent 表示成有状态图</a></h2>
-<h3 id="2161-statenodeedge-与-graph"><a class="header" href="#2161-statenodeedge-与-graph">21.6.1 State、Node、Edge 与 Graph</a></h3>
-<p>LangGraph 的核心抽象是有状态图。</p>
+<h3 id="2166-隔离的对象不止文件"><a class="header" href="#2166-隔离的对象不止文件">21.6.6 隔离的对象不止文件</a></h3>
+<p>Git worktree隔离checkout，不隔离同一数据库、远程服务、端口、凭据或共享缓存。每个角色使用独立工作目录/进程/必要sandbox，固定输入版本与hash；共享文件通过分工或受控合并更新，不让多个Agent同时覆写。</p>
+<p>输入按“原始任务→权威状态→每角色Context Package视图”装配。公共目标/硬约束一致，专用证据按角色权限加载；各自消息列表、证据引用和摘要不可变或copy-on-write，不共享一个可任意改写的全量上下文。共享结果需明确来源/版本/可信度，敏感材料在读取和输出时再检权限。全局资源/预算/取消由唯一责任层控制。</p>
+<h2 id="217-框架与-sdk-的分层选型"><a class="header" href="#217-框架与-sdk-的分层选型">21.7 框架与 SDK 的分层选型</a></h2>
+<h3 id="2171-先分模型sdkagent-sdk编排runtime与产品"><a class="header" href="#2171-先分模型sdkagent-sdk编排runtime与产品">21.7.1 先分模型SDK、Agent SDK、编排Runtime与产品</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th style="text-align: left">抽象</th><th style="text-align: left">含义</th><th style="text-align: left">工程价值</th></tr>
+<tr><th>层</th><th>提供什么</th><th>例子与应用仍需承担的责任</th></tr>
 </thead>
 <tbody>
-<tr><td style="text-align: left">State</td><td style="text-align: left">节点之间共享的结构化状态</td><td style="text-align: left">避免所有信息都塞进 prompt</td></tr>
-<tr><td style="text-align: left">Node</td><td style="text-align: left">一步计算，可以是 LLM、工具、函数、人工节点</td><td style="text-align: left">让步骤可测试、可替换</td></tr>
-<tr><td style="text-align: left">Edge</td><td style="text-align: left">状态转移，可以是固定边或条件边</td><td style="text-align: left">把控制流显式化</td></tr>
-<tr><td style="text-align: left">Graph</td><td style="text-align: left">节点和边组成的运行时结构</td><td style="text-align: left">支持可视化、恢复和审计</td></tr>
+<tr><td>模型SDK</td><td>请求/响应/流式事件客户端</td><td>原生OpenAI/Anthropic客户端；应用自建循环、工具执行和状态</td></tr>
+<tr><td>Agent SDK/Harness</td><td>循环、工具、上下文与角色能力</td><td>OpenAI Agents SDK、Claude Agent SDK；核对现成工具/交接和进程/工作区/权限边界</td></tr>
+<tr><td>编排Runtime/框架</td><td>显式状态/节点/边/消息和恢复组合</td><td>LangGraph、AutoGen Core、Microsoft Agent Framework；应用仍验证存储、业务幂等和总预算</td></tr>
+<tr><td>面向用户产品</td><td>IDE/CLI/工作台的完整使用体验</td><td>Coding产品、Hermes等案例按第23/27章版本核验；产品名不证明底层标准或能力</td></tr>
 </tbody>
 </table>
 </div>
-<p>这种设计适合把 Agent loop 拆成可观察的步骤。</p>
-<h3 id="2162-durable-execution"><a class="header" href="#2162-durable-execution">21.6.2 Durable Execution</a></h3>
-<p>Durable Execution 让长任务可以在失败后恢复。关键是每一步状态都能持久化。</p>
-<pre><code class="language-text">Node A completed -&gt; checkpoint
-Node B waiting approval -&gt; checkpoint
-Resume after approval -&gt; Node C
-</code></pre>
-<p>这比保存聊天历史更可靠，因为 Runtime 知道当前状态、已完成动作和下一步允许动作。</p>
-<h3 id="2163-human-in-the-loop"><a class="header" href="#2163-human-in-the-loop">21.6.3 Human-in-the-loop</a></h3>
-<p>LangGraph 这类图式编排天然适合插入人工节点。</p>
-<pre><code class="language-text">Diagnose -&gt; Propose Action -&gt; Human Approval -&gt; Execute
-</code></pre>
-<p>审批不是模型输出的一句话，而是图中的 interrupt / approval state。这样才能恢复和审计。</p>
-<h3 id="2164-persistence-与-replay"><a class="header" href="#2164-persistence-与-replay">21.6.4 Persistence 与 Replay</a></h3>
-<p>Persistence 保存状态，Replay 用于调试和评估。</p>
-<p>Replay 时要区分：</p>
-<ul>
-<li>可以重放的纯计算节点；</li>
-<li>不能重复执行的副作用节点；</li>
-<li>需要 mock 或固定响应的外部工具；</li>
-<li>需要人工重新确认的审批节点。</li>
-</ul>
-<p>这也是为什么工具副作用要有幂等键和 action log。</p>
-<h3 id="2165-适用场景与局限"><a class="header" href="#2165-适用场景与局限">21.6.5 适用场景与局限</a></h3>
-<p>适合 LangGraph 思路的场景：</p>
-<ul>
-<li>长任务；</li>
-<li>多步骤流程；</li>
-<li>需要恢复和人审；</li>
-<li>需要可视化状态；</li>
-<li>需要严格 trace。</li>
-</ul>
-<p>局限是设计成本更高。对于一次性问答或低风险探索，完整图式编排可能过重。</p>
-<hr>
-<h2 id="217-autogen从多-agent-对话到协作拓扑"><a class="header" href="#217-autogen从多-agent-对话到协作拓扑">21.7 AutoGen：从多 Agent 对话到协作拓扑</a></h2>
-<h3 id="2171-agentchatcore-与-extensions"><a class="header" href="#2171-agentchatcore-与-extensions">21.7.1 AgentChat、Core 与 Extensions</a></h3>
-<p>AutoGen 的价值在于多 Agent 编程模型。它把不同角色的 Agent、消息流、工具执行和团队模式组织起来。</p>
-<p>从工程角度看，它解决的是：</p>
-<ul>
-<li>多 Agent 如何通信；</li>
-<li>谁先说，谁后说；</li>
-<li>什么时候停止；</li>
-<li>工具由谁执行；</li>
-<li>多角色结果如何合并。</li>
-</ul>
-<h3 id="2172-team-pattern多-agent-不是群聊"><a class="header" href="#2172-team-pattern多-agent-不是群聊">21.7.2 Team Pattern：多 Agent 不是群聊</a></h3>
-<p>多 Agent 系统不应该是开放群聊，而应该是协作拓扑。</p>
-<pre><code class="language-text">RoundRobin Team
-Selector Team
-Swarm
-Planner / Executor Team
-Writer / Reviewer Team
-</code></pre>
-<p>不同拓扑对应不同控制策略。生产系统需要明确谁有最终决策权。</p>
-<h3 id="2173-工具执行和代码执行边界"><a class="header" href="#2173-工具执行和代码执行边界">21.7.3 工具执行和代码执行边界</a></h3>
-<p>多 Agent 中工具权限更容易出问题。不能因为某个 Agent 是“子角色”，就绕过工具权限。</p>
-<p>每个 Agent 都应该有：</p>
-<ul>
-<li>可用工具列表；</li>
-<li>风险等级；</li>
-<li>sandbox；</li>
-<li>审批规则；</li>
-<li>trace identity。</li>
-</ul>
-<h3 id="2174-多-agent-系统的终止条件"><a class="header" href="#2174-多-agent-系统的终止条件">21.7.4 多 Agent 系统的终止条件</a></h3>
-<p>多 Agent 最容易无限循环。终止条件必须外置。</p>
-<pre><code class="language-yaml">team_policy:
-  max_rounds: 6
-  stop_when:
-    - reviewer_approved
-    - coordinator_decided
-    - budget_exceeded
-    - human_required
-</code></pre>
-<p>终止条件不应该完全交给参与对话的 Agent 自己判断。</p>
-<h3 id="2175-适用场景与局限"><a class="header" href="#2175-适用场景与局限">21.7.5 适用场景与局限</a></h3>
-<p>适合 AutoGen 思路的场景：</p>
-<ul>
-<li>多角色协作；</li>
-<li>互审；</li>
-<li>研究和综合；</li>
-<li>复杂任务分解；</li>
-<li>需要模拟团队工作方式。</li>
-</ul>
-<p>局限是成本和不确定性更高。角色越多，协调协议越重要。</p>
-<hr>
-<h2 id="218-microsoft-agent-framework企业化-agent-runtime"><a class="header" href="#218-microsoft-agent-framework企业化-agent-runtime">21.8 Microsoft Agent Framework：企业化 Agent Runtime</a></h2>
-<h3 id="2181-agents-vs-workflows"><a class="header" href="#2181-agents-vs-workflows">21.8.1 Agents vs Workflows</a></h3>
-<p>企业级 Agent 系统通常同时需要 Agent 和 Workflow。</p>
-<pre><code class="language-text">Agent: 处理开放任务和动态判断
-Workflow: 管理确定流程、状态、审批和恢复
-</code></pre>
-<p>两者不是替代关系。生产系统常常是 workflow 调用 Agent，Agent 在节点内完成推理或工具选择。</p>
-<h3 id="2182-企业编排模式"><a class="header" href="#2182-企业编排模式">21.8.2 企业编排模式</a></h3>
-<p>企业编排更关注：</p>
-<ul>
-<li>长任务；</li>
-<li>组织权限；</li>
-<li>审批流程；</li>
-<li>多系统连接；</li>
-<li>审计留痕；</li>
-<li>版本治理；</li>
-<li>部署和监控。</li>
-</ul>
-<p>这些能力往往比“模型能不能回答”更决定系统能否上线。</p>
-<h3 id="2183-middlewaretelemetry-与企业接入"><a class="header" href="#2183-middlewaretelemetry-与企业接入">21.8.3 Middleware、Telemetry 与企业接入</a></h3>
-<p>企业平台需要在运行时统一处理横切能力：</p>
-<ul>
-<li>authentication；</li>
-<li>authorization；</li>
-<li>policy；</li>
-<li>logging；</li>
-<li>tracing；</li>
-<li>cost accounting；</li>
-<li>rate limiting；</li>
-<li>data boundary。</li>
-</ul>
-<p>Middleware 和 telemetry 的价值是让这些能力不散落在业务代码里。</p>
-<h3 id="2184-审批恢复部署与治理"><a class="header" href="#2184-审批恢复部署与治理">21.8.4 审批、恢复、部署与治理</a></h3>
-<p>企业场景中，Agent Runtime 要能回答：</p>
-<ul>
-<li>哪个版本执行了这个任务；</li>
-<li>哪些工具被调用；</li>
-<li>谁批准了高风险动作；</li>
-<li>失败后是否能恢复；</li>
-<li>新版本是否通过 eval；</li>
-<li>线上质量是否下降。</li>
-</ul>
-<p>这些能力和第 22 章生产治理直接衔接。</p>
-<h3 id="2185-适用场景与局限"><a class="header" href="#2185-适用场景与局限">21.8.5 适用场景与局限</a></h3>
-<p>适合企业级 Agent Framework 的场景：</p>
-<ul>
-<li>多团队共用 Agent 能力；</li>
-<li>需要统一权限和审计；</li>
-<li>需要工作流审批；</li>
-<li>需要部署、监控和治理；</li>
-<li>Agent 是长期运行服务，而不是一次性脚本。</li>
-</ul>
-<p>局限是平台成本较高。单一场景验证阶段不应过早平台化。</p>
-<hr>
-<h2 id="219-平台能力矩阵"><a class="header" href="#219-平台能力矩阵">21.9 平台能力矩阵</a></h2>
-<h3 id="2191-编排能力"><a class="header" href="#2191-编排能力">21.9.1 编排能力</a></h3>
-<p>编排能力包括：</p>
-<ul>
-<li>graph / workflow；</li>
-<li>router；</li>
-<li>conditional edge；</li>
-<li>loop；</li>
-<li>interrupt；</li>
-<li>human approval；</li>
-<li>retry；</li>
-<li>compensation。</li>
-</ul>
-<p>编排层决定任务怎么走。</p>
-<h3 id="2192-状态与持久化能力"><a class="header" href="#2192-状态与持久化能力">21.9.2 状态与持久化能力</a></h3>
-<p>状态能力包括：</p>
-<ul>
-<li>task state；</li>
-<li>session state；</li>
-<li>checkpoint；</li>
-<li>thread；</li>
-<li>replay；</li>
-<li>state migration；</li>
-<li>action log。</li>
-</ul>
-<p>状态层决定任务能不能恢复。</p>
-<h3 id="2193-多-agent-能力"><a class="header" href="#2193-多-agent-能力">21.9.3 多 Agent 能力</a></h3>
-<p>多 Agent 能力包括：</p>
-<ul>
-<li>role definition；</li>
-<li>team topology；</li>
-<li>handoff；</li>
-<li>shared evidence；</li>
-<li>independent context；</li>
-<li>termination policy；</li>
-<li>merge protocol。</li>
-</ul>
-<p>多 Agent 层决定多个角色能不能协作而不是互相干扰。</p>
-<h3 id="2194-工具和资源接入能力"><a class="header" href="#2194-工具和资源接入能力">21.9.4 工具和资源接入能力</a></h3>
-<p>工具和资源接入可以通过函数调用、内部 API Gateway、Connector、MCP Server 等方式实现。</p>
-<p>MCP 的价值在于统一暴露 Tool、Resource 和 Prompt，但它不是编排框架。它不负责 workflow、checkpoint、human approval、multi-agent routing 或 release gate。</p>
-<p>因此平台设计时应把 MCP 放在 Integration Layer，而不是 Orchestration Layer。</p>
-<pre><code class="language-text">Orchestration Layer: workflow / state / approval / routing
-Integration Layer: tools / resources / connectors / MCP servers
-Governance Layer: policy / trace / eval / release gate
-</code></pre>
-<h3 id="2195-治理观测和部署能力"><a class="header" href="#2195-治理观测和部署能力">21.9.5 治理、观测和部署能力</a></h3>
-<p>治理能力包括：</p>
-<ul>
-<li>policy engine；</li>
-<li>tool permission；</li>
-<li>trace；</li>
-<li>eval harness；</li>
-<li>release gate；</li>
-<li>audit log；</li>
-<li>cost control；</li>
-<li>deployment strategy。</li>
-</ul>
-<p>这些能力决定 Agent 能不能长期运行，而不仅是 demo 能不能跑通。</p>
-<h3 id="2196-框架选型对比表"><a class="header" href="#2196-框架选型对比表">21.9.6 框架选型对比表</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th style="text-align: left">维度</th><th style="text-align: left">LangGraph</th><th style="text-align: left">AutoGen</th><th style="text-align: left">Microsoft Agent Framework</th><th style="text-align: left">自研 Runtime</th></tr>
-</thead>
-<tbody>
-<tr><td style="text-align: left">核心强项</td><td style="text-align: left">有状态图、durable execution</td><td style="text-align: left">多 Agent 编程模型</td><td style="text-align: left">企业工作流和平台化</td><td style="text-align: left">完全贴合内部系统</td></tr>
-<tr><td style="text-align: left">适合任务</td><td style="text-align: left">长任务、可恢复流程</td><td style="text-align: left">多角色协作</td><td style="text-align: left">企业级 Agent 应用</td><td style="text-align: left">特殊约束或轻量场景</td></tr>
-<tr><td style="text-align: left">状态管理</td><td style="text-align: left">强</td><td style="text-align: left">中</td><td style="text-align: left">强</td><td style="text-align: left">取决于实现</td></tr>
-<tr><td style="text-align: left">多 Agent</td><td style="text-align: left">中</td><td style="text-align: left">强</td><td style="text-align: left">中到强</td><td style="text-align: left">取决于实现</td></tr>
-<tr><td style="text-align: left">工具接入</td><td style="text-align: left">需集成</td><td style="text-align: left">需集成</td><td style="text-align: left">生态集成</td><td style="text-align: left">自行建设</td></tr>
-<tr><td style="text-align: left">治理能力</td><td style="text-align: left">需补齐</td><td style="text-align: left">需补齐</td><td style="text-align: left">较强</td><td style="text-align: left">自行建设</td></tr>
-<tr><td style="text-align: left">主要风险</td><td style="text-align: left">图设计成本</td><td style="text-align: left">协调成本</td><td style="text-align: left">平台复杂度</td><td style="text-align: left">重复造轮子</td></tr>
-</tbody>
-</table>
-</div>
-<hr>
-<h2 id="2110-设计自己的-agent-平台"><a class="header" href="#2110-设计自己的-agent-平台">21.10 设计自己的 Agent 平台</a></h2>
-<h3 id="21101-最小生产平台清单"><a class="header" href="#21101-最小生产平台清单">21.10.1 最小生产平台清单</a></h3>
+<p>LangChain提供高层agent/harness，官方说明其Agent建立于LangGraph之上；直接使用LangGraph可细化状态、节点、条件边和并发合并规则。<a href="#ref-5">[5]</a>持久性还取决于checkpointer选择，内存Saver不能用于证明重启恢复。<a href="#ref-6">[6]</a></p>
+<p>OpenAI Agents SDK提供代码式循环/工具/交接等入口，应用拥有工具实现、部署、状态与审批决策。<a href="#ref-7">[7]</a>Claude Agent SDK面向把Claude Code循环/工具/上下文能力嵌入应用，运行者需管理进程、工作区和凭据；两者场景有重叠，不是业务/编码的排他分工。<a href="#ref-8">[8]</a></p>
+<p>AutoGen Core强调Actor式异步消息与事件驱动。<a href="#ref-9">[9]</a>Microsoft Agent Framework提供Agent与Workflow开发抽象。<a href="#ref-10">[10]</a>这些是执行模型实例，不能仅按“强/中/弱”声称恢复、权限和治理完整。</p>
+<h3 id="2172-组合选型要消除重复责任"><a class="header" href="#2172-组合选型要消除重复责任">21.7.2 组合选型要消除重复责任</a></h3>
+<p>固定路径分类先用普通代码+模型SDK；常见工具循环可评估高层Agent SDK；复杂分支/审批/暂停用显式图；跨角色异步协作先验证消息和owner。可以在图节点中运行Agent SDK，但必须明确内外循环、重试、状态、预算、取消与完成验收各由谁负责，防止双重重试和重复副作用。用最小真实任务和故障验证质量、延迟、成功成本与维护代价，再决定是否自研。</p>
+<h3 id="2173-a2a仅作版本化协议选读"><a class="header" href="#2173-a2a仅作版本化协议选读">21.7.3 A2A仅作版本化协议选读</a></h3>
+<p>A2Av0.3.0定义Agent Card、Task/Message/Artifact以及认证授权等接口。<a href="#ref-11">[11]</a>MCP连接能力服务，A2A面向具有独立执行过程的Agent协作；两者可以组合。本文自建envelope、子Agent调用或事件总线都不自动符合A2A。声明支持需要检查协议端点、版本/能力、消息/任务模型和兼容测试；本轮未实现或测试A2A。</p>
+<h2 id="218-平台组合故障与选型"><a class="header" href="#218-平台组合故障与选型">21.8 平台组合、故障与选型</a></h2>
+<h3 id="2181-最小生产平台清单"><a class="header" href="#2181-最小生产平台清单">21.8.1 最小生产平台清单</a></h3>
 <p>一个最小生产 Agent 平台不应该先追求可视化拖拽，而应该优先建设运行时底座。</p>
 <div class="table-wrapper">
 <table>
@@ -907,7 +705,7 @@ Governance Layer: policy / trace / eval / release gate
 </tbody>
 </table>
 </div>
-<h3 id="21102-控制面执行面集成面与治理面"><a class="header" href="#21102-控制面执行面集成面与治理面">21.10.2 控制面、执行面、集成面与治理面</a></h3>
+<h3 id="2182-控制面执行面集成面与治理面"><a class="header" href="#2182-控制面执行面集成面与治理面">21.8.2 控制面、执行面、集成面与治理面</a></h3>
 <p>可以把平台拆成四个面：</p>
 <pre><code class="language-text">Control Plane: registry / policy / config / release
 Execution Plane: workflow runtime / task runner / sandbox
@@ -915,7 +713,7 @@ Integration Plane: tools / resources / connectors / MCP
 Governance Plane: trace / eval / audit / cost / monitoring
 </code></pre>
 <p>这四个面不一定要拆成四个服务，但职责要清楚。</p>
-<h3 id="21103-生产级运行时事件模型"><a class="header" href="#21103-生产级运行时事件模型">21.10.3 生产级运行时事件模型</a></h3>
+<h3 id="2183-生产级运行时事件模型"><a class="header" href="#2183-生产级运行时事件模型">21.8.3 生产级运行时事件模型</a></h3>
 <p>Agent Runtime 应该把关键事件记录下来。</p>
 <pre><code class="language-json">{
   "run_id": "run_123",
@@ -930,7 +728,7 @@ Governance Plane: trace / eval / audit / cost / monitoring
 }
 </code></pre>
 <p>事件模型是 trace、eval、debug、audit 和 billing 的共同基础。</p>
-<h3 id="21104-多租户与权限边界"><a class="header" href="#21104-多租户与权限边界">21.10.4 多租户与权限边界</a></h3>
+<h3 id="2184-多租户与权限边界"><a class="header" href="#2184-多租户与权限边界">21.8.4 多租户与权限边界</a></h3>
 <p>平台化后必须处理多租户：</p>
 <ul>
 <li>用户身份；</li>
@@ -942,7 +740,7 @@ Governance Plane: trace / eval / audit / cost / monitoring
 <li>审计归属。</li>
 </ul>
 <p>多 Agent 和 subagent 不能继承无限权限。每次 handoff 都应该重新计算权限和上下文边界。</p>
-<h3 id="21105-从单应用-agent-到共享平台的演进路线"><a class="header" href="#21105-从单应用-agent-到共享平台的演进路线">21.10.5 从单应用 Agent 到共享平台的演进路线</a></h3>
+<h3 id="2185-从单应用-agent-到共享平台的演进路线"><a class="header" href="#2185-从单应用-agent-到共享平台的演进路线">21.8.5 从单应用 Agent 到共享平台的演进路线</a></h3>
 <p>推荐演进路线：</p>
 <pre><code class="language-text">single app agent
   -&gt; shared tool runtime
@@ -953,70 +751,7 @@ Governance Plane: trace / eval / audit / cost / monitoring
 </code></pre>
 <p>不要一开始就做大而全平台。先从重复痛点最多的能力开始抽取。</p>
 <hr>
-<h2 id="2111-工程取舍与选型清单"><a class="header" href="#2111-工程取舍与选型清单">21.11 工程取舍与选型清单</a></h2>
-<h3 id="21111-图式编排-vs-自由-agent-loop"><a class="header" href="#21111-图式编排-vs-自由-agent-loop">21.11.1 图式编排 vs 自由 Agent Loop</a></h3>
-<p>自由 loop 灵活，图式编排可控。</p>
-<p>建议：</p>
-<ul>
-<li>低风险探索用自由 loop；</li>
-<li>生产流程用显式 workflow；</li>
-<li>高风险动作必须进入审批节点；</li>
-<li>长任务必须有 checkpoint。</li>
-</ul>
-<h3 id="21112-单-agent-vs-多-agent"><a class="header" href="#21112-单-agent-vs-多-agent">21.11.2 单 Agent vs 多 Agent</a></h3>
-<p>优先从单 Agent + Workflow 开始。只有当存在清晰角色边界、并行收益或互审需求时，再引入多 Agent。</p>
-<p>多 Agent 的收益必须超过协调成本。</p>
-<h3 id="21113-框架-vs-自研"><a class="header" href="#21113-框架-vs-自研">21.11.3 框架 vs 自研</a></h3>
-<p>选择框架还是自研，取决于已有系统约束。</p>
-<p>适合框架：</p>
-<ul>
-<li>需要 durable execution；</li>
-<li>需要多 Agent；</li>
-<li>需要快速验证；</li>
-<li>团队愿意接受框架抽象。</li>
-</ul>
-<p>适合自研：</p>
-<ul>
-<li>内部权限、工具、审计约束很强；</li>
-<li>只需要轻量 workflow；</li>
-<li>不希望引入重依赖；</li>
-<li>平台能力需要深度定制。</li>
-</ul>
-<h3 id="21114-平台化-vs-单应用内嵌"><a class="header" href="#21114-平台化-vs-单应用内嵌">21.11.4 平台化 vs 单应用内嵌</a></h3>
-<p>单应用内嵌适合早期验证。平台化适合多团队复用。</p>
-<p>平台化触发信号：</p>
-<ul>
-<li>多个团队重复接模型；</li>
-<li>多个团队重复封装工具；</li>
-<li>权限和审计开始分散；</li>
-<li>需要统一成本控制；</li>
-<li>需要统一 eval 和 release gate；</li>
-<li>长任务恢复成为共性问题。</li>
-</ul>
-<h3 id="21115-选型决策树"><a class="header" href="#21115-选型决策树">21.11.5 选型决策树</a></h3>
-<pre><code class="language-text">任务是否有明确流程？
-  ├─ 是：优先 workflow / graph
-  └─ 否：继续问
-
-任务是否需要长时间运行或恢复？
-  ├─ 是：必须 checkpoint / durable execution
-  └─ 否：继续问
-
-是否需要多个角色协作？
-  ├─ 是：考虑 multi-agent topology
-  └─ 否：单 Agent + workflow
-
-是否多团队复用？
-  ├─ 是：建设平台控制面
-  └─ 否：先应用内嵌
-
-是否主要问题是外部能力接入？
-  ├─ 是：建设 tool runtime / connector / MCP integration
-  └─ 否：不要把 MCP 当编排层
-</code></pre>
-<hr>
-<h2 id="2112-常见失败模式与修复路径"><a class="header" href="#2112-常见失败模式与修复路径">21.12 常见失败模式与修复路径</a></h2>
-<h3 id="21121-工作流卡死"><a class="header" href="#21121-工作流卡死">21.12.1 工作流卡死</a></h3>
+<h3 id="2186-工作流卡死"><a class="header" href="#2186-工作流卡死">21.8.6 工作流卡死</a></h3>
 <p>表现：</p>
 <ul>
 <li>等待一个永远不会发生的事件；</li>
@@ -1030,7 +765,7 @@ Governance Plane: trace / eval / audit / cost / monitoring
 <li>增加 fallback 和 human escalation；</li>
 <li>trace 中记录卡住原因。</li>
 </ul>
-<h3 id="21122-状态丢失或重复执行"><a class="header" href="#21122-状态丢失或重复执行">21.12.2 状态丢失或重复执行</a></h3>
+<h3 id="2187-状态丢失或重复执行"><a class="header" href="#2187-状态丢失或重复执行">21.8.7 状态丢失或重复执行</a></h3>
 <p>表现：</p>
 <ul>
 <li>进程重启后任务从头开始；</li>
@@ -1044,7 +779,7 @@ Governance Plane: trace / eval / audit / cost / monitoring
 <li>action log 记录请求和响应；</li>
 <li>resume 时从状态恢复，不从聊天历史猜。</li>
 </ul>
-<h3 id="21123-多-agent-循环争论"><a class="header" href="#21123-多-agent-循环争论">21.12.3 多 Agent 循环争论</a></h3>
+<h3 id="2188-多-agent-循环争论"><a class="header" href="#2188-多-agent-循环争论">21.8.8 多 Agent 循环争论</a></h3>
 <p>表现：</p>
 <ul>
 <li>reviewer 不断要求修改；</li>
@@ -1058,7 +793,7 @@ Governance Plane: trace / eval / audit / cost / monitoring
 <li>引入 final decision owner；</li>
 <li>低置信度转人工。</li>
 </ul>
-<h3 id="21124-工具副作用失控"><a class="header" href="#21124-工具副作用失控">21.12.4 工具副作用失控</a></h3>
+<h3 id="2189-工具副作用失控"><a class="header" href="#2189-工具副作用失控">21.8.9 工具副作用失控</a></h3>
 <p>表现：</p>
 <ul>
 <li>Agent 执行了未授权写操作；</li>
@@ -1074,7 +809,7 @@ Governance Plane: trace / eval / audit / cost / monitoring
 <li>audit log；</li>
 <li>最小权限。</li>
 </ul>
-<h3 id="21125-平台抽象过重"><a class="header" href="#21125-平台抽象过重">21.12.5 平台抽象过重</a></h3>
+<h3 id="21810-平台抽象过重"><a class="header" href="#21810-平台抽象过重">21.8.10 平台抽象过重</a></h3>
 <p>表现：</p>
 <ul>
 <li>简单任务也要配置复杂 graph；</li>
@@ -1088,7 +823,7 @@ Governance Plane: trace / eval / audit / cost / monitoring
 <li>保留轻量 escape hatch；</li>
 <li>平台能力按复用痛点演进。</li>
 </ul>
-<h3 id="21126-trace-不足导致无法复盘"><a class="header" href="#21126-trace-不足导致无法复盘">21.12.6 Trace 不足导致无法复盘</a></h3>
+<h3 id="21811-trace-不足导致无法复盘"><a class="header" href="#21811-trace-不足导致无法复盘">21.8.11 Trace 不足导致无法复盘</a></h3>
 <p>表现：</p>
 <ul>
 <li>不知道模型看到了什么；</li>
@@ -1105,33 +840,39 @@ Governance Plane: trace / eval / audit / cost / monitoring
 <li>将失败 trace 转成 eval case。</li>
 </ul>
 <hr>
+<h3 id="21812-一次双agent交接与故障复核"><a class="header" href="#21812-一次双agent交接与故障复核">21.8.12 一次双Agent交接与故障复核</a></h3>
+<p>教学Coding任务由A负责父任务，B负责补丁审查子Step；B不自动获得发布权限。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>顺序</th><th>事实/消息</th><th>权威变化与验证</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>A保存patch-v2/test-v2，提交review.request m17与Outbox</td><td>review Step版本7，目标B、预算与输入hash固定</td></tr>
+<tr><td>2</td><td>mailbox投递，B校验输入/权限并条件认领</td><td>review版本8/owner=B/epoch=4，回accept；A仍拥有父任务</td></tr>
+<tr><td>3</td><td>m17重复投递</td><td>inbox返回已有认领，不创建第二个review或新业务动作</td></tr>
+<tr><td>4</td><td>B输出不可变review-v1并提交result m18</td><td>带correlation=h1、causation=m17、plan=3与产物hash</td></tr>
+<tr><td>5</td><td>A收到后查询review Step并独立验收</td><td>旧plan结果拒收，验收通过才join后继；拒收回有界修订</td></tr>
+<tr><td>6</td><td>B中途失联或父任务取消</td><td>由状态记录驱动owner恢复/取消传播，迟到产物重验，不复活终态</td></tr>
+</tbody>
+</table>
+</div>
+<p>生产故障断言至少覆盖：提交后宕机、投递/回执重复、乱序、过期owner写入、同ID异参、拒收循环、权限撤销、取消后晚到成功、队列积压及缺失产物。每项复用<a href="infra-11-runtime.html">第11章</a>原语和<a href="infra-12-reliability-governance.html">第12章</a>修复owner/deadline；Trace和事件总线只是观测，不是可靠事实的替代。</p>
 <h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
-<p>执行编排是 Agent 从 demo 走向生产的关键层。它不只属于多 Agent，单 Agent 只要任务变长、动作变多、风险变高，也需要 workflow、state machine、checkpoint 和 human-in-the-loop。</p>
-<p>本章的核心结论是：</p>
-<ol>
-<li>Agent Loop 适合原型，生产系统需要 Workflow Runtime；</li>
-<li>单 Agent 也需要显式编排；</li>
-<li>Workflow Pattern 可以服务单 Agent，也可以服务多 Agent；</li>
-<li>Multi-Agent 是执行编排的复杂形态，不是默认起点；</li>
-<li>LangGraph、AutoGen、Microsoft Agent Framework 分别从状态图、多 Agent 编程模型和企业运行时角度提供抽象；</li>
-<li>MCP 是 Integration Layer，不是 Orchestration Layer；</li>
-<li>平台化的关键不是框架名称，而是状态、工具、权限、审批、恢复、trace、eval 和发布治理是否形成闭环。</li>
-</ol>
-<p>一句话总结：</p>
-<pre><code class="language-text">生产级 Agent 不是一个更聪明的 while loop，而是一个能组织任务、保存状态、控制副作用、插入人工、恢复失败、记录证据的运行时系统。
-</code></pre>
-<hr>
+<p>编排把计划、步骤、权限和验收连成有界过程。mailbox传定向工作，共享状态保存责任与版本，总线通知变化；消息关联、传输去重与业务幂等分别设计。角色越多越需要独立上下文、资源隔离和总预算。框架按层选型，自建通信不自动成为A2A，教学轨迹不是实现与实测。</p>
 <h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
 <ol>
-<li><a href="https://docs.langchain.com/oss/python/langgraph/overview">LangGraph Overview - LangChain Docs</a></li>
-<li><a href="https://docs.langchain.com/oss/python/langgraph/durable-execution">LangGraph Durable Execution - LangChain Docs</a></li>
-<li><a href="https://docs.langchain.com/oss/python/langgraph/persistence">LangGraph Persistence - LangChain Docs</a></li>
-<li><a href="https://microsoft.github.io/autogen/stable/index.html">AutoGen Stable Documentation - Microsoft</a></li>
-<li><a href="https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/index.html">AutoGen AgentChat User Guide - Microsoft</a></li>
-<li><a href="https://www.microsoft.com/en-us/research/publication/autogen-enabling-next-gen-llm-applications-via-multi-agent-conversation-framework/">AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation - Microsoft Research</a></li>
-<li><a href="https://learn.microsoft.com/en-us/agent-framework/overview/">Microsoft Agent Framework Overview - Microsoft Learn</a></li>
-<li><a href="https://learn.microsoft.com/en-us/agent-framework/workflows/orchestrations/">Agent Framework Workflow Orchestrations - Microsoft Learn</a></li>
-<li><a href="https://modelcontextprotocol.io/specification/2025-03-26/architecture">Model Context Protocol Specification</a></li>
+<li><a id="ref-1"></a> LangChain，<a href="https://docs.langchain.com/oss/python/langgraph/workflows-agents">Workflows and agents</a>，rolling; 2026-10-18。</li>
+<li><a id="ref-2"></a> Yao et al.，<a href="https://arxiv.org/abs/2210.03629">ReAct: Synergizing Reasoning and Acting in Language Models</a>，2022。</li>
+<li><a id="ref-3"></a> Hohpe and Woolf，<a href="https://www.enterpriseintegrationpatterns.com/patterns/messaging/CorrelationIdentifier.html">Correlation Identifier</a>，Enterprise Integration Patterns。</li>
+<li><a id="ref-4"></a> RabbitMQ，<a href="https://www.rabbitmq.com/docs/confirms">Consumer Acknowledgements and Publisher Confirms</a>，rolling; 2026-10-18。</li>
+<li><a id="ref-5"></a> LangChain，<a href="https://docs.langchain.com/oss/python/langchain/overview">LangChain overview</a>，rolling; 2026-10-18。</li>
+<li><a id="ref-6"></a> LangChain，<a href="https://docs.langchain.com/oss/python/langgraph/persistence">Persistence</a>，rolling; 2026-10-17。</li>
+<li><a id="ref-7"></a> OpenAI，<a href="https://developers.openai.com/api/docs/guides/agents/sdk">Agents SDK</a>，rolling; 2026-10-17。</li>
+<li><a id="ref-8"></a> Anthropic，<a href="https://code.claude.com/docs/en/agent-sdk/overview">Agent SDK overview</a>，rolling; 2026-10-18。</li>
+<li><a id="ref-9"></a> Microsoft，<a href="https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/index.html">AutoGen Core</a>，stable docs; 2026-10-18。</li>
+<li><a id="ref-10"></a> Microsoft，<a href="https://learn.microsoft.com/en-us/agent-framework/overview/">Microsoft Agent Framework Overview</a>，rolling; 2026-10-18。</li>
+<li><a id="ref-11"></a> A2A project，<a href="https://a2a-protocol.org/v0.3.0/specification/">A2A Protocol Specification</a>，v0.3.0。</li>
 </ol>
 
                     </main>

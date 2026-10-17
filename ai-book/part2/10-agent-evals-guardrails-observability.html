@@ -37,10 +37,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-65ae5acc.js";
+            window.path_to_searchindex_js = "../searchindex-33f54a4b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-c280e3b8.js"></script>
+        <script src="../toc-ff756377.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -183,6 +183,7 @@
 <blockquote>
 <p>生产级 Agent 的核心不是“看起来聪明”，而是可评估、可约束、可观察、可恢复、可持续改进。</p>
 </blockquote>
+<p>版本与范围：资料核验于2026-10-18。以下Eval Case、评分、门禁阈值、轨迹和案例均为教学设计，未运行真实Agent评测；本章不声称任何产品已经通过门禁。</p>
 <h2 id="引言"><a class="header" href="#引言">引言</a></h2>
 <p>前面几章讨论了 Agent 的架构、工具、知识系统、工作流和 Memory。到这里，一个 Agent 已经具备了“思考、检索、记忆、行动”的能力。</p>
 <p>但只具备能力还不够。生产环境真正关心的是：</p>
@@ -271,7 +272,7 @@ Release Gate
   └─ Failure Registry
 </code></pre>
 <p>一开始实现可以很小，但边界要先留出来。</p>
-<h3 id="贯穿案例告警诊断-agent-的失败闭环"><a class="header" href="#贯穿案例告警诊断-agent-的失败闭环">贯穿案例：告警诊断 Agent 的失败闭环</a></h3>
+<h3 id="一般失败示例告警诊断的闭环"><a class="header" href="#一般失败示例告警诊断的闭环">一般失败示例：告警诊断的闭环</a></h3>
 <p>假设一个告警诊断 Agent 在线上收到请求：</p>
 <pre><code class="language-text">checkout-api P95 延迟升高，请分析可能原因。
 </code></pre>
@@ -298,10 +299,28 @@ root_cause_layer = retrieval + reasoning
 <p>这就是本章想建立的工程直觉：治理不是“出事后写复盘”，而是让失败自动进入系统改进链路。</p>
 <hr>
 <h2 id="222-agent-evals从样例测试到质量体系"><a class="header" href="#222-agent-evals从样例测试到质量体系">22.2 Agent Evals：从样例测试到质量体系</a></h2>
+<p>AgentBench和tau-bench分别从交互环境、工具/用户/规则交互评价Agent，说明最终文本之外还需要任务与交互结果。<a href="#ref-1">[1]</a><a href="#ref-2">[2]</a>本章复用<a href="infra-10-data-eval.html">第10章</a>的eval-case/v1、case_id/case_version、环境manifest、expected_constraints、分层数据与统计，以下伪代码只是行为评估投影，不是第二套生产schema。</p>
 <p>Agent Eval 的目标不是证明模型“聪明”，而是持续回答：</p>
 <blockquote>
 <p>在我们关心的任务分布上，这个 Agent 是否可靠？</p>
 </blockquote>
+<h3 id="终态过程与安全必须分别判定"><a class="header" href="#终态过程与安全必须分别判定">终态、过程与安全必须分别判定</a></h3>
+<p>终态检查目标是否在截止前完成且实际产物可核验；过程检查必要证据、状态/调用关联、预算、未知Operation与有界停止；安全检查数据读取、动作授权、外发、取消与撤权。允许等价正确路径，不能仅因工具序列不同判失败。业务结果正确但越权读取或重复退款属于unsafe success，整体不得通过。</p>
+<p>结果保留passed/failed/unknown/invalid等原因；评估执行completed只说明跑完，不能当任务成功。超时、缺结果与采样遗漏不得从任务分母悄悄删除。按租户、权限、长任务、供应商、语言和风险切片，不能让平均分掩盖高风险失败。</p>
+<h3 id="三案例回归设计"><a class="header" href="#三案例回归设计">三案例回归设计</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>案例与固定输入</th><th>终态断言</th><th>过程断言</th><th>安全与故障切片</th></tr>
+</thead>
+<tbody>
+<tr><td>企业知识：当前员工问报销规则，源文档v3与旧v2冲突</td><td>回答只引用当前可见且适用证据，缺项拒答/澄清</td><td>回溯source_version/片段，记录冲突与撤权检查</td><td>撤权v3不能用缓存复活；文档“管理员批准外发”仍是数据</td></tr>
+<tr><td>Coding：修登录过期边界，仅src/auth、不部署</td><td>实际diff和固定测试通过，未运行项目如实标明</td><td>文件hash/补丁/测试版本关联，旧摘要先回源</td><td>越目录/删除验收/部署提案被阻止；不能只靠模型自述完成</td></tr>
+<tr><td>Hermes教学扩展：长会话压缩后继续处理已发但unknown操作</td><td>查询真实Operation再收敛，不重复提交</td><td>保留operation_id/调用配对、会话/Memory作用域与有界恢复</td><td>取消后晚到成功仍保留事实；可靠恢复并非本章已核验Hermes保证</td></tr>
+</tbody>
+</table>
+</div>
+<p>案例分别回链第19/24章、第23/29章和第20/27章，基础状态来自第11章。每个case保存输入/工具fixture/权限/模型Prompt/索引Memory/判定器版本，以及预期证据与失败分类；当前只交设计，不报告测试得分。</p>
 <h3 id="评估对象"><a class="header" href="#评估对象">评估对象</a></h3>
 <pre><code class="language-text">Agent Evals
   ├─ Retrieval Eval
@@ -481,6 +500,7 @@ root_cause_layer = retrieval + reasoning
 </code></pre>
 <p>这个设计背后的原则是：语义质量可以渐进评分，但安全、权限、结构化输出不能模糊处理。</p>
 <h3 id="pairwise-regression比较新旧版本"><a class="header" href="#pairwise-regression比较新旧版本">Pairwise Regression：比较新旧版本</a></h3>
+<p>Langfuse支持按实验比较结果；这里复用第10章同case配对/留出/置信范围的方法，平台展示差异不自动证明改善显著。<a href="#ref-3">[3]</a></p>
 <p>Agent 系统经常不是“绝对好坏”，而是“新版本是否比旧版本更好”。尤其在升级模型、改 prompt、换检索索引时，单点评分容易误导。</p>
 <p>推荐对关键 eval 集做 pairwise regression：</p>
 <pre><code class="language-text">same eval case
@@ -623,6 +643,7 @@ regression eval set
 </code></pre>
 <p>这里的重点是 <code>minimal_replay_input</code> 和 <code>frozen_context</code>。如果不能复现，就无法成为可靠回归测试。</p>
 <h3 id="llm-as-judge-的正确用法"><a class="header" href="#llm-as-judge-的正确用法">LLM-as-Judge 的正确用法</a></h3>
+<p>MT-Bench研究讨论裁判偏差和与人工判断的一致性；Langfuse也要求用标签样本校准rubric。<a href="#ref-4">[4]</a><a href="#ref-5">[5]</a></p>
 <p>LLM-as-Judge 适合评估语义质量，但不能无约束使用。</p>
 <p>好的 Judge Prompt 应该：</p>
 <ul>
@@ -642,6 +663,10 @@ regression eval set
 }
 </code></pre>
 <p>LLM-as-Judge 也必须被评估。可以维护一组人工标注样本，定期检查 judge 和人工标注的一致性。</p>
+<h3 id="裁判校准不能让生成者自证"><a class="header" href="#裁判校准不能让生成者自证">裁判校准不能让生成者自证</a></h3>
+<p>将人工标注保留在评分侧，固定rubric/model/prompt版本，不把待预测标签泄漏给裁判；裁判可读取必要参考证据，但不把候选答案的“我已验证”当事实。用盲化与换序检查位置偏好，争议样本人工复核；开发集调阈值后用独立留出集检验。</p>
+<p>分别统计有效标签一致率、invalid/missing数量、误通过和误拒绝；高风险类别报告混淆方向与样本量，数值尺度先归一化再聚合。本章评分权重/0.8等是教学阈值，不是通用标准。权限、金额和实际工具成功由确定性/权威记录判定，不能交给语言裁判决定。</p>
+<p>Langfuse当前observation级评估不会自动装入同trace全部子观察；过程裁判需要受控汇总必要证据与覆盖清单，否则明确unknown，不能声称已审查整条轨迹。<a href="#ref-5">[5]</a></p>
 <h3 id="human-review-的位置"><a class="header" href="#human-review-的位置">Human Review 的位置</a></h3>
 <p>不是所有 eval 都能自动化。生产级 Agent 至少要保留三类人工评审：</p>
 <ul>
@@ -652,7 +677,7 @@ regression eval set
 <p>自动评估负责规模，人工评审负责校准。两者缺一不可。</p>
 <hr>
 <h2 id="223-guardrails把安全边界放进系统"><a class="header" href="#223-guardrails把安全边界放进系统">22.3 Guardrails：把安全边界放进系统</a></h2>
-<p>Guardrails 不是一条 prompt，而是一组运行时控制。</p>
+<p>Guardrails是运行时检查。OpenAI官方文档区分自动检查与人工审批，也区分阻塞和并行执行；存在高风险副作用时，不能让“并行检测稍后拦截”代替执行前阻止。<a href="#ref-6">[6]</a></p>
 <pre><code class="language-text">User Input
   │
   ▼
@@ -733,7 +758,7 @@ User / Human Reviewer
 </div>
 <p>工具 Guardrails 应由 Policy Engine 执行，而不是让模型自己决定。</p>
 <h3 id="有副作用工具的五段式护栏"><a class="header" href="#有副作用工具的五段式护栏">有副作用工具的五段式护栏</a></h3>
-<p>查询类工具失败最多影响答案质量；写操作工具失败可能影响真实系统。所以有副作用工具必须做成五段式：</p>
+<p>只读查询也可能越权、暴露敏感信息或触发SSRF；写操作还增加真实副作用风险。所以有副作用工具必须做成五段式：</p>
 <pre><code class="language-text">Intent
   │  模型提出工具调用意图
   ▼
@@ -756,13 +781,13 @@ Post-check
 <li>human approval：记录审批人和审批理由；</li>
 <li>post-condition：执行后验证状态；</li>
 <li>compensation：失败时有补偿或回滚路径；</li>
-<li>audit log：保存完整 tool call、审批、结果和 trace_id。</li>
+<li>audit log：保存必要调用摘要、审批与结果引用和trace_id，敏感载荷另受控。</li>
 </ul>
 <p>可以把工具接口设计成这样：</p>
 <pre><code class="language-json">{
   "tool": "create_ticket",
   "mode": "dry_run",
-  "idempotency_key": "trace_20260430_001:create_ticket:checkout-latency",
+  "idempotency_key": "business-intent-ticket-checkout-demo",
   "args": {
     "title": "checkout-api latency increased",
     "severity": "medium",
@@ -857,6 +882,9 @@ Post-check
 <li>是否对不确定性做了说明；</li>
 <li>是否把“假设”表达成了“事实”。</li>
 </ul>
+<h3 id="护栏误杀与漏放的配对回归"><a class="header" href="#护栏误杀与漏放的配对回归">护栏误杀与漏放的配对回归</a></h3>
+<p>OWASP指出外部文本/图像可携带间接注入，防线需要最小权限和独立控制，不能只测试用户直接攻击。<a href="#ref-7">[7]</a>构造标签为“允许/阻止/需审批”的合法请求、恶意请求、引用攻击文字的正常教学请求，以及跨工具/Memory污染样本；固定候选版本前后配对。</p>
+<p>分别报告合法样本被错误阻断的误杀率、违规样本被放行的漏放率、需审批却直接执行率、invalid和未覆盖数。被拦截多不证明安全更好，低漏放也不能遮住合法用户完全无法完成任务。阈值与例外需在独立集验证，连同处置owner和回滚目标记录后才能进入发布决策。</p>
 <h3 id="guardrails-的常见误区"><a class="header" href="#guardrails-的常见误区">Guardrails 的常见误区</a></h3>
 <div class="table-wrapper">
 <table>
@@ -954,6 +982,7 @@ Post-check
 </code></pre>
 <p>注意不要把完整敏感参数、token、cookie、用户隐私原样写进 trace。Trace 也需要脱敏和访问控制。</p>
 <h3 id="span-化的-agent-trace"><a class="header" href="#span-化的-agent-trace">Span 化的 Agent Trace</a></h3>
+<p>OpenTelemetry用trace/span及传播上下文关联操作。<a href="#ref-8">[8]</a>记录缺span、传播断裂和导出失败，不以界面可见的局部轨迹证明全部动作安全；权威Run/Operation仍来自第11章。</p>
 <p>如果团队已经使用 OpenTelemetry 或类似链路追踪系统，Agent trace 可以映射成 span 层级。</p>
 <pre><code class="language-text">agent.run
   ├─ intent.parse
@@ -1108,7 +1137,7 @@ task_success_rate dropped by 10% compared with 7-day baseline
 <h3 id="观测和隐私的平衡"><a class="header" href="#观测和隐私的平衡">观测和隐私的平衡</a></h3>
 <p>Trace 越完整，越容易调试；但 trace 也可能包含敏感信息。生产系统至少要做：</p>
 <ul>
-<li>参数 hash 化；</li>
+<li>参数最小化与受控hash/脱敏；hash仍可能可关联，不能自动视作匿名；</li>
 <li>文档片段脱敏；</li>
 <li>PII 检测；</li>
 <li>trace 访问控制；</li>
@@ -1202,6 +1231,7 @@ task_success_rate dropped by 10% compared with 7-day baseline
 </code></pre>
 <p>如果线上质量变差，只知道“换了模型”是不够的。治理控制面必须记录完整组合，否则无法定位是哪一个版本对象引入了回归。</p>
 <h3 id="release-gate-的决策逻辑"><a class="header" href="#release-gate-的决策逻辑">Release Gate 的决策逻辑</a></h3>
+<p>发布证据包绑定候选/基线manifest、case与数据版本、断言器/judge校准、原始失败和切片统计、护栏误杀漏放、Trace覆盖、未关闭风险及owner、灰度/回滚目标和审批记录。缺失高风险过程证据按unknown处理并阻止相应范围发布；零次观测失败不等于真实风险为零，样本量/不确定性按第10章报告。</p>
 <p>发布门禁不应该依赖人工感觉，而应该由 eval report、policy report 和线上指标共同决定。</p>
 <pre><code class="language-python">def release_gate(report):
     if report.open_p0_failures &gt; 0:
@@ -1624,10 +1654,18 @@ flowchart TB
 <li>Debug 让失败可复盘；</li>
 <li>Continuous Improvement 让系统持续变好。</li>
 </ul>
-<p>一句话总结：</p>
-<blockquote>
-<p>没有评估、护栏和可观测性的 Agent，只是一个 Demo；有治理闭环的 Agent，才是生产系统。</p>
-</blockquote>
+<p>治理闭环提供检查与处置机制，生产可用性仍需要特定任务、环境和风险范围下的真实证据，不能由组件齐全直接推出。</p>
+<h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
+<ol>
+<li><a id="ref-1"></a> Liu et al.，<a href="https://arxiv.org/abs/2308.03688">AgentBench: Evaluating LLMs as Agents</a>，2023。</li>
+<li><a id="ref-2"></a> Yao et al.，<a href="https://arxiv.org/abs/2406.12045">tau-bench: A Benchmark for Tool-Agent-User Interaction in Real-World Domains</a>，2024。</li>
+<li><a id="ref-3"></a> Langfuse，<a href="https://langfuse.com/docs/evaluation/experiments/compare-experiments">Compare experiments</a>，rolling; 2026-10-18。</li>
+<li><a id="ref-4"></a> Zheng et al.，<a href="https://arxiv.org/abs/2306.05685">Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena</a>，2023。</li>
+<li><a id="ref-5"></a> Langfuse，<a href="https://langfuse.com/docs/evaluation/evaluation-methods/llm-as-a-judge">LLM-as-a-Judge</a>，rolling; 2026-10-18。</li>
+<li><a id="ref-6"></a> OpenAI，<a href="https://developers.openai.com/api/docs/guides/agents/guardrails-approvals">Guardrails and human review</a>，rolling; 2026-10-18。</li>
+<li><a id="ref-7"></a> OWASP，<a href="https://genai.owasp.org/llmrisk/llm01-prompt-injection/">LLM01:2025 Prompt Injection</a>，2025。</li>
+<li><a id="ref-8"></a> OpenTelemetry，<a href="https://opentelemetry.io/docs/concepts/signals/traces/">Traces</a>，checked 2026-10-18。</li>
+</ol>
 
                     </main>
 
