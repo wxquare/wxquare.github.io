@@ -85,9 +85,9 @@ AI 工程实践里最容易踩的坑，不只是模型输出不稳定，也包�
 | 第16章 | [Harness Engineering：从模型调用到 Agent 运行环境](part2/04-harness-engineering.md) | 构建模型之外的执行外壳，负责控制、状态、权限和失败处理。 |
 | 第17章 | [LLM API 协议：模型能力如何被系统消费](part2/05-llm-api-protocol.md) | 把模型接口当成系统契约来设计，而不是只看一次调用是否成功。 |
 | 第18章 | [Agent 工具系统工程：Tool Calling、Skills 与 MCP](part2/06-tool-calling-mcp.md) | 说明工具如何成为 Agent 的手脚，以及如何安全、可扩展地接入工具。 |
-| 第19章 | [Agent 知识系统：从知识源、RAG 到 Agentic RAG](part2/07-agent-knowledge-systems.md) | 介绍知识检索与增强生成的系统化做法，让 Agent 知道去哪找答案。 |
+| 第19章 | [Agent 知识系统：从知识源到可验证证据](part2/07-agent-knowledge-systems.md) | 介绍知识检索与增强生成的系统化做法，让 Agent 知道去哪找答案。 |
 | 第20章 | [Agent 记忆系统：Memory、会话与长期上下文](part2/08-agent-memory.md) | 讨论记忆如何跨会话保存、更新和检索，支撑长期协作。 |
-| 第21章 | [Agent 执行编排与平台架构：工作流、状态机、多 Agent 与框架生态](part2/09-workflow-orchestration.md) | 说明任务如何被拆解、编排和调度成稳定的执行流程。 |
+| 第21章 | [执行编排与多 Agent 协作：任务图、交接与平台边界](part2/09-workflow-orchestration.md) | 说明任务如何被拆解、编排和调度成稳定的执行流程。 |
 | 第22章 | [Agent 生产治理：Evals、Guardrails 与可观测性](part2/10-agent-evals-guardrails-observability.md) | 把评估、约束和可观测性连成闭环，保证系统可用、可控、可迭代。 |
 
 ### 第四部分：Agent 应用与实战

@@ -1,7 +1,8 @@
 # 第13章 Agent 的演化与架构总纲：从对话应用到可治理 Runtime
 
-> "The right question isn't whether to use AI, but whether the problem requires reasoning."
-> 关键不是要不要用 AI，而是这个问题是否需要推理、行动、验证和治理。
+> 本章核心问题：任务是否需要动态推理、外部行动、验证与治理？
+
+版本与范围：协议按 MCP 2025-06-18，滚动文档核验于 2026-10-17。本章组件划分、JSON、图示与数值均为本书教学设计；框架材料只证明对应机制存在，不证明该架构已经实现或实测。
 
 ## 引言
 
@@ -24,7 +25,7 @@
 
 本章的目标是先建立一条 Agent 演化主线，再给出通用的架构总纲。它不绑定某一种产品形态，也不局限于某个垂直场景。你可以用它设计企业知识助手、告警处理助手、客服运营助手、数据分析助手、审批助手，也可以用它评估一个现有 Agent 系统到底缺了哪一层。
 
-本章按六层展开：13.1 先理解 Agent 如何从对话应用演化为受控 Runtime；13.2 判断是否真的需要 Agent；13.3 建立生产级 Agent Runtime 的最小骨架；13.4 展开核心组件的职责边界和后续章节地图；13.5 讨论组件如何组合成不同架构模式；13.6 用场景映射和检查清单校验设计是否完整。
+本章按七层展开：13.1 先理解 Agent 如何从对话应用演化为受控 Runtime；13.2 判断是否真的需要 Agent；13.3 建立生产级 Agent Runtime 的最小骨架；13.4 展开核心组件的职责边界和后续章节地图；13.5 讨论组件如何组合成不同架构模式；13.6 用三案例和检查清单校验设计，13.7 说明后端能力如何迁移。
 
 第 13 章不是把每个组件都讲透，而是给第三部分建立一张总图。第 17 章会先展开模型协议与系统消费边界，第 18 章会深入工具、Skills、连接器与 MCP，第 19 章会展开 Agent 知识系统，第 20 章会展开 Agent 记忆系统，第 21 章会深入执行编排、状态机、多 Agent 协作和平台框架，第 22 章会系统讨论 Evals、Guardrails、Trace 和可观测性。理解了本章的边界图，后续章节就不再是零散专题，而是同一个 Runtime 的逐层展开。
 
@@ -53,6 +54,8 @@ Chatbot → Prompt Application → Tool-using Agent → Workflow Agent
 | Multi-Agent | 让角色或专长分工协作 | 分离调查、执行、审查和交付等不同职责 | 角色互相放大错误、责任不清、成本失控 | Handoff 契约、共享状态、角色权限和统一治理 |
 | 受控持续改进系统 | 从评测与复盘中更新能力 | 将高频失败和反馈沉淀为 Skill、策略或测试集 | 未验证的经验进入生产、能力退化 | Evals、审核、灰度发布、回滚与版本审计 |
 
+MRKL 用模块组合语言、知识与离散推理；Toolformer 研究模型如何学习调用 API。这些论文说明能力组合的技术方向，并未给模型授予系统权限。[[1]](#ref-1)[[2]](#ref-2)
+
 阶段之间不是替代关系。大多数生产系统同时包含多个阶段：稳定的步骤仍然应该由工作流或传统后端完成；只有需要动态判断的局部才交给 Agent。演化的正确方向不是“更自主”，而是“在更复杂的任务上仍可约束、可验证、可交接”。
 
 ### 13.1.2 工程能力：每次升级都要补上一层确定性
@@ -69,19 +72,19 @@ Prompt → Context → Harness → API / Tools → Knowledge / Memory
 - **Harness** 把模型调用包进预算、循环、重试、验证和停止条件。
 - **API / Tools** 把行动变成受 schema、权限和副作用控制的接口调用。
 - **Knowledge / Memory** 分别提供可追溯事实与跨任务沉淀的经验，不能彼此替代。
-- **Orchestration** 让多步骤、多角色任务能暂停、恢复、幂等执行和人工接管。
+- **Orchestration** 让多步骤、多角色任务消费第11章的暂停、恢复、幂等与人工接管原语。
 - **Evals / Guardrails / Observability** 让系统能够发现退化、限制风险、回放过程并安全迭代。
 
 这正是第三部分后续章节的阅读地图。第 14 至第 16 章处理任务协议、信息架构和运行环境；第 17 至第 21 章扩展模型能力、外部行动、知识、记忆和执行编排；第 22 章把所有能力收敛到生产治理。不要把其中任何一层当成可选装饰：当系统开始影响外部世界时，缺失的一层通常就是下一次事故的来源。
 
-### 13.1.3 贯穿案例：企业告警与知识答疑如何升级
+### 13.1.3 贯穿案例：企业知识助手如何升级
 
-以“企业告警与知识答疑”为例，同一个需求会经历完全不同的系统形态：
+以“企业知识答疑”为例，同一个需求会经历完全不同的系统形态：
 
-1. **Chatbot** 解释告警术语与指标含义；
-2. **Prompt Application** 根据告警文本生成初步排障建议；
-3. **Tool-using Agent** 查询监控指标、日志和 Runbook，并给出引用证据；
-4. **Workflow Agent** 按固定顺序取证、归因、生成工单草稿并提交审批；
+1. **Chatbot** 解释制度术语；
+2. **Prompt Application** 根据问题生成制度答复草稿；
+3. **Tool-using Agent** 检索制度、流程和 FAQ，并给出引用证据；
+4. **Workflow Agent** 按固定顺序检索、核对版本、生成带引用的答复并审查；
 5. **Runtime Agent** 在异常路径出现时选择补充查询、请求澄清或转交人工；
 6. **Multi-Agent** 将调查、变更审查和面向业务方的交付拆给不同角色；
 7. **受控持续改进** 将复盘中确认有效的证据规则、Skill 和评测样本，经审核和灰度后纳入系统。
@@ -105,6 +108,8 @@ Prompt → Context → Harness → API / Tools → Knowledge / Memory
 ## 13.2 Agent 架构决策：先判断是否需要 Agent
 
 ### 13.2.1 从问题出发：为什么不是传统后端
+
+Anthropic 将预定义代码路径的 Workflow 与由模型动态决定路径的 Agent 区分，并指出复杂度会增加成本和延迟。这里采用这个选型维度；两者可以组合。[[3]](#ref-3)
 
 在设计 Agent 系统之前，先不要问“能不能接一个大模型”，而要问：为什么传统后端、规则引擎、工作流系统或搜索系统不够用？
 
@@ -223,7 +228,7 @@ LLM / Agent Loop
 
 这也解释了生产级 Agent 的一个基本原则：**Prompt 不是权限边界，Runtime 才是权限边界**。就像不能靠告诉用户态程序“请不要访问这个文件”来保护操作系统，Agent 也不能只靠 Prompt 说“不要执行危险命令”。真正的安全边界必须由 Runtime、Policy、Sandbox、Execution Engine 和 Tool Runtime 强制执行。
 
-这个分层不是某个框架的唯一官方术语，而是对多种工程实践的综合抽象：ReAct 强调推理和行动循环，MCP 强调工具、资源和外部能力边界，LangGraph 强调状态、checkpoint 和可恢复执行，OpenAI Agents SDK 和 Google ADK 强调 Runtime、工具、handoff、guardrails 和 trace。不同框架命名不同，但共同点是一致的：**模型负责提出行动，Runtime 负责裁决和编排，执行层负责可靠运行，后端负责真实副作用**。
+这个分层是本书的教学抽象。OpenAI Agents SDK 提供循环、工具、交接、审批与观测入口，但应用仍负责部署、工具实现、状态存储和审批决策；不能从“用了 SDK”推出业务动作可靠完成。[[4]](#ref-4)
 
 Agent 系统通常长这样：
 
@@ -760,7 +765,7 @@ response.sent
 
 13.4 不是要把每个组件都讲透，而是建立一张生产级 Agent Runtime 的组件地图。后续第 17 到第 22 章，会沿着这张地图逐层展开：模型协议、工具系统、知识系统、记忆系统、执行编排、平台化、Evals、Guardrails 和可观测性。
 
-现代 Agent 系统已经不只是“模型 + 工具调用”。从 OpenAI Agents SDK、AgentKit、LangGraph、Google ADK、MCP、Anthropic Skills 这些工程实践可以看到，生产级 Agent 越来越像一个可治理的 Runtime：它要管理入口、任务契约、上下文、状态、能力、权限、人工控制、模型路由、Trace、评测和学习闭环。
+以下组件地图是本书的责任划分，不声称所有框架都实现了同一套控制面。
 
 先用一张图把职责边界和后续章节关系串起来：
 
@@ -827,11 +832,11 @@ flowchart LR
 | 核心组件 | 主要职责 | 后续展开 |
 |:---|:---|:---|
 | Event & Intake Router | 接收聊天、API、告警、工单、Webhook、定时任务等入口 | 第21章工作流、第27章 Hermes Agent |
-| Intent Normalizer | 把模糊输入变成结构化任务契约 | 第21章入口路由、第22章输入治理 |
+| Intent Normalizer | 把模糊输入变成结构化任务契约 | [第14章任务协议](02-prompt-engineering.md) |
 | Task Planner | 生成可执行、可验证、可修订的计划 | 第21章执行编排 |
-| Context Builder | 组织本轮任务需要的证据和上下文 | 第19章 Agent 知识系统 |
+| Context Builder | 组织本轮工作区，消费检索证据 | [第15章Context](03-context-engineering.md)、[第19章知识](07-agent-knowledge-systems.md) |
 | Memory Layer | 管理跨会话偏好、经验、历史任务和长期上下文 | 第20章记忆系统 |
-| Execution State & Checkpoint | 管理任务状态、暂停、恢复、重试、回放和幂等 | 第21章状态机、第20章记忆系统 |
+| Execution State & Checkpoint | 管理权威状态与恢复，和记忆分离 | [第11章Runtime](infra-11-runtime.md)、[第21章编排](09-workflow-orchestration.md) |
 | Capability Registry | 统一管理 Skills、Tools、Connectors、MCP、Prompt 和 Workflow | 第17章模型协议、第18章工具系统、第21章平台架构 |
 | Policy Engine & Human Control Plane | 管理权限、风险、审批、接管、降级和回滚 | 第18章工具权限、第22章 Guardrails |
 | Agent Loop | 推动观察、决策、行动、修复和停止 | 第21章工作流与平台运行时 |
@@ -969,7 +974,7 @@ search_customer(candidate_name)
 get_ticket_status(ticket_id)
 ```
 
-工具返回的不是推断，而是可校验事实：
+工具返回的是带来源、时间和版本的观察，仍需判断是否过期、完整或与目标实体一致：
 
 ```json
 {
@@ -1399,7 +1404,7 @@ Context Builder 的核心原则：
 1. **先权限，后检索结果注入**：用户无权访问的内容不应该进入模型上下文。
 2. **先证据，后结论**：让模型围绕证据推理，而不是凭记忆回答。
 3. **保留来源和时间**：引用、更新时间、owner、置信度都应进入上下文。
-4. **区分事实和推断**：工具返回的是事实，模型总结的是推断，两者要分开。
+4. **区分观察、事实和推断**：工具结果经过身份、版本与完整性校验后才成为可用事实，模型总结仍需证据支持。
 5. **控制预算**：上下文越多不一定越好，噪声会让模型更难判断。
 
 还要注意，Context Builder 不是 Memory 系统本身。Context 是本轮模型调用的工作区，Memory 是跨轮次、跨会话、跨任务保存的外部状态。Context Builder 可以读取 Memory，并把经过筛选、授权、压缩后的记忆放入本轮上下文，但不能把所有历史对话一股脑塞给模型。
@@ -1487,70 +1492,19 @@ Memory 的核心原则是：**可读、可控、可忘、可审计、可评估**
 
 ---
 
-### 13.4.6 Execution State 与 Checkpoint：让 Agent 可暂停、恢复与回放
+### 13.4.6 Execution State 与 Checkpoint：引用权威状态
 
-Execution State 管的是“当前任务执行到哪里”。它和 Memory 不同：Memory 是跨任务经验，Execution State 是一次任务生命周期里的事实状态。
+Execution State 回答一次任务已做什么，Memory 提供跨任务可复用信息。LangGraph 的 checkpointer 与 store 也分别面向 thread 状态与跨 thread 数据；内存 Saver 重启会丢失，不能用“配置了 checkpoint”代替耐久性验证。[[5]](#ref-5)
 
-生产级 Agent 一旦进入多步骤任务，就必须有状态层。否则系统会遇到几个典型问题：
+本章只保留职责接口：Context Package 引用 `run_id`、`step_id`、状态版本、证据和未决 `operation_id`；Planner 消费状态并提出下一步；持久 Runtime 校验和提交状态变化。[第11章](infra-11-runtime.md)是 Run/Step/Event、Operation、Outbox、Checkpoint、取消和恢复语义的唯一责任章，[第21章](09-workflow-orchestration.md)把这些原语组合成任务图和角色交接。
 
-- 工具调用失败后不知道从哪一步重试；
-- 用户审批后无法恢复原来的上下文；
-- 长任务中断后只能从头开始；
-- 同一告警重复触发导致重复处置；
-- 模型忘记已经查过哪些系统；
-- 事故复盘时无法重放执行路径。
-
-一个任务状态可以这样建模：
-
-```json
-{
-  "task_id": "task_20260512_001",
-  "status": "waiting_approval",
-  "current_step": "recommend_action",
-  "plan_version": 3,
-  "checkpoints": [
-    {
-      "step": "collect_evidence",
-      "completed_at": "2026-05-12T10:20:00+08:00",
-      "evidence_ids": ["metric_001", "log_002", "deploy_003"]
-    }
-  ],
-  "tool_calls": [
-    {
-      "tool": "query_metric",
-      "idempotency_key": "metric-payment-latency-001",
-      "status": "success"
-    }
-  ],
-  "approval": {
-    "required": true,
-    "reason": "生产环境恢复动作需要 SRE Lead 确认",
-    "approver_role": "sre_lead"
-  },
-  "budget": {
-    "remaining_steps": 5,
-    "remaining_seconds": 120,
-    "remaining_tool_calls": 8
-  }
-}
-```
-
-Checkpoint 的价值是让 Agent 支持：
-
-| 能力 | 说明 |
-|:---|:---|
-| Pause | 等待用户补充信息、等待审批、等待外部系统结果 |
-| Resume | 从中断点继续，而不是重新推理整条链 |
-| Retry | 对可重试工具调用做幂等重试 |
-| Replay | 按 trace 和 checkpoint 重放任务过程 |
-| Time Travel Debugging | 回到某个状态观察不同计划或不同模型的表现 |
-| Human Takeover | 人工接管时能看到当前状态、证据和建议动作 |
-
-第 21 章讲工作流和状态机时，会把 Execution State 作为核心对象；第 20 章讲 Memory 时，会进一步区分短期会话状态、任务状态和长期记忆。
+不要根据摘要或 Trace 宣告一个外部写动作成功。超时但结果未知时，保留未决 Operation 并进入查询或对账；恢复时重新检查当前权限、状态版本与既有执行身份。观察历史和重新执行必须分开，回放不自动重放副作用。
 
 ---
 
 ### 13.4.7 Capability Registry：Skills、Tools、Connectors 与 MCP
+
+MCP 2025-06-18 定义了 host/client/server、tools/resources/prompts 与能力协商，同时说明协议本身不能强制执行全部安全原则。[[6]](#ref-6)
 
 很多系统会把 Skill、Tool、Connector、Workflow、MCP Server 混在一起，导致权限边界混乱。现代 Agent Runtime 更适合用 Capability Registry 统一管理“系统能提供哪些能力”，再按任务、身份、环境和风险筛选本轮可见能力。
 
@@ -1558,7 +1512,7 @@ Checkpoint 的价值是让 Agent 支持：
 
 | 概念 | 含义 | 是否执行外部动作 | 示例 |
 |:---|:---|:---|:---|
-| Skill | 完成某类任务的方法论 | 否 | “如何做事故初步诊断”“如何回答制度问题” |
+| Skill | 方法指令及可选脚本/资源 | 脚本经授权后可能执行 | “如何做事故初步诊断”“如何回答制度问题” |
 | Tool | 可调用的外部能力 | 是 | 搜索文档、查询工单、发送通知、创建审批 |
 | Connector | 外部系统连接方式 | 可能 | Google Drive、Slack、Jira、内部 CMDB、日志平台 |
 | MCP Resource | 可读取的上下文资源 | 否 | 文件、数据库记录、设计稿、代码仓库片段 |
@@ -1591,6 +1545,8 @@ flowchart TD
 ```
 
 **Skill Registry**
+
+Anthropic 的 Agent Skills 将指令、脚本与资源组织为可按需加载的文件夹。脚本仍可能执行动作，因此本书区分“加载方法”与“获准执行”。[[7]](#ref-7)
 
 Skill Registry 管的是“做事方法”。一个 Skill 应该描述：
 
@@ -1670,7 +1626,7 @@ all capabilities
 
 这也是 MCP、连接器和插件体系必须被治理的原因。MCP 可以标准化外部系统接入，但它不是安全边界本身。一个 MCP Server 暴露的资源、工具和 Prompt，都要经过 Capability Registry、Policy Engine、Trace 和 Review Surface 才能进入生产 Agent。
 
-第 18 章会深入展开 Tool Calling、Skills 与 MCP。第 13 章只需要建立一个关键边界：**Skill 是流程知识，Tool 是外部能力，Connector 是连接方式，Policy 是执行裁决**。
+第 18 章会深入展开 Tool Calling、Skills 与 MCP。第 13 章只需要建立一个关键边界：**Skill 包装流程知识及可选脚本，Tool 是可调用能力，Connector 是连接方式，Policy 是执行裁决**。
 
 ---
 
@@ -2110,7 +2066,7 @@ Agent 架构模式不是越复杂越好。应该根据任务复杂度、风险�
 
 | 架构模式 | 任务复杂度 | 工具调用 | 状态管理 | 风险动作 | 适合场景 |
 |:---|:---|:---|:---|:---|:---|
-| Single-shot | 低 | 无或少量只读 | 不需要 | 低 | 摘要、分类、草稿、简单问答 |
+| Single-shot | 低 | 无或少量只读 | 按风险保留请求记录 | 低 | 摘要、分类、草稿、简单问答 |
 | Router + Specialist | 中 | 按领域暴露 | 会话级 | 低到中 | 企业助手、多类型入口、客服辅助 |
 | Plan-and-Execute | 中到高 | 多工具 | 任务级 | 中 | 数据分析、复杂检索、跨系统诊断 |
 | State Machine + Agent | 高 | 多工具 | 生命周期级 | 中到高 | 告警处置、审批、工单、恢复流程 |
@@ -2121,6 +2077,8 @@ Agent 架构模式不是越复杂越好。应该根据任务复杂度、风险�
 ---
 
 ### 13.5.2 ReAct、Plan-and-Execute 与 Plan mode：三个容易混淆的概念
+
+ReAct 交替生成推理与行动，并通过外部观察补充信息；纯 CoT 不包含同样的环境交互闭环。[[8]](#ref-8)例如“解释已有排序证明”可以仅推理，“修复测试失败”必须读取代码、修改并运行独立检查。观察也可能失败，工具使用不保证结果正确。
 
 这三个词经常被放在一起讨论，但它们位于不同层级：
 
@@ -2257,69 +2215,25 @@ flowchart TD
 - Review Surface 要鼓励用户反馈“文档过期”“没有回答我的问题”；
 - Learning Loop 可以把失败问题变成知识库更新候选，但不能自动污染正式知识库。
 
-### 13.6.2 告警诊断与处置助手
+### 13.6.2 Coding Agent
 
-```mermaid
-flowchart TD
-    Alert["告警 / 事件 / 用户投诉"]
-    Intent["事件归一化<br/>服务 / 时间窗 / 影响范围"]
-    Planner["诊断计划<br/>指标 / 日志 / 变更 / 历史案例"]
-    Context["Context Builder<br/>监控 / 日志 / 工单 / Runbook"]
-    Policy["Policy Engine<br/>只读 / dry-run / 审批 / 禁止"]
-    Loop["Agent Loop<br/>观察 / 诊断 / 补证据"]
-    Verify["Verifier<br/>证据完整度 / 建议安全性"]
-    Review["Incident Surface<br/>根因候选 / 证据 / 建议动作 / 交接"]
+教学链路为 Issue → 任务协议 → 文件/符号检索 → 补丁提案 → 受限编辑与测试 → 独立验收 → 用户审查。模型解释“修改成功”只是一项声明；Verifier 必须核对实际 diff、测试范围和产物。文件变更前后使用版本或哈希确认，过时上下文先回源。产品比较由[第23章](../part3/01-coding-agent-systems.md)负责，最小闭环见[第29章](../part3/08-mini-agent-observability.md)。
 
-    Alert --> Intent --> Planner --> Context --> Policy --> Loop --> Verify --> Review
-```
+### 13.6.3 Hermes Agent
 
-设计重点：
+本书在[第27章](../part3/05-hermes-agent-architecture.md)核对 Hermes 的具体源码与版本。本章仅把长期会话、Context/Memory 与工具调用作为教学观察维度；跨入口的身份、权限和上下文必须分别检查，不因为“同一助手”而自动共享全部数据。
 
-- 诊断可以自动化，恢复动作要分级审批；
-- 所有结论必须绑定时间窗口和证据；
-- 高风险动作优先提供 dry-run 和人工确认；
-- 处置后要把复盘结果沉淀成 Runbook、Eval Case 和 Skill 候选。
+若在 Hermes 案例上加入 Outbox、Checkpoint、幂等、补偿与可靠通知，它们是引用第11章的**教学扩展**，并非本章已经核验的 Hermes 能力。没有源码或测试证据时，保持未知；不以架构图证明实现。
 
-### 13.6.3 业务运营助手
+### 13.6.4 三案例的责任地图
 
-```mermaid
-flowchart TD
-    Request["运营请求<br/>活动分析 / 客群筛选 / 异常解释"]
-    Intent["任务契约<br/>目标 / 指标 / 口径 / 时间范围"]
-    Planner["分析计划<br/>数据源 / 维度 / 对比方式"]
-    Context["Context Builder<br/>指标定义 / 数据表 / 历史活动 / 规则"]
-    Tools["Tool Runtime<br/>查询 / 计算 / 生成报告"]
-    Policy["Policy Engine<br/>数据权限 / 导出限制 / 外发审批"]
-    Verify["Verifier<br/>口径一致 / 数据可复现 / 异常解释"]
-    Review["Report Surface<br/>结论 / 图表 / 查询口径 / 下一步建议"]
+| 案例 | 输入到交付 | 主要边界 | 责任章与验证证据 |
+| --- | --- | --- | --- |
+| 企业知识助手 | 问题→检索→证据包→带引用回答 | 当前ACL、版本、冲突与拒答 | [第19章](07-agent-knowledge-systems.md)定义Evidence；[第24章](../part3/02-enterprise-knowledge-assistant.md)落实连接器与身份；检查主张是否被可见证据支持 |
+| Coding Agent | Issue→Context→工具→patch→Verifier | 工作区权限、旧文件、测试独立性 | [第14章](02-prompt-engineering.md)任务、[第15章](03-context-engineering.md)工作区、[第16章](04-harness-engineering.md)控制层、[第18章](06-tool-calling-mcp.md)工具、[第23/29章](../part3/01-coding-agent-systems.md)案例；核对diff与实际检查 |
+| Hermes Agent | 会话→筛选上下文→受控行动→反馈候选 | 会话与记忆作用域、事实/教学扩展区分 | [第20章](08-agent-memory.md)Memory、[第21章](09-workflow-orchestration.md)协作、[第22章](10-agent-evals-guardrails-observability.md)行为评估、[第27章](../part3/05-hermes-agent-architecture.md)实现核验 |
 
-    Request --> Intent --> Planner --> Context --> Tools --> Policy --> Verify --> Review
-```
-
-设计重点：
-
-- 指标口径必须进入 Context Package；
-- 查询和图表要可复现；
-- 涉及用户数据导出时必须经过权限和审批；
-- 输出不应只有结论，还要包含口径、数据范围和不确定性。
-
-这三个场景差异很大，但底层架构是一致的：入口归一、任务契约、上下文、Memory、状态、能力注册、策略、循环、验证、审查、Trace 和学习闭环。
-
----
-
-### 13.6.4 三类场景横向对比
-
-这三个场景可以放在一起比较：
-
-| 场景 | 主要任务 | 推荐模式 | 核心组件 | 最大风险 |
-|:---|:---|:---|:---|:---|
-| 企业知识助手 | 回答制度、流程、知识问题 | Router + Specialist / Single-shot | Context、RAG、Memory、Permission、Verifier | 引用错误、越权、文档过期、错误记忆污染 |
-| 告警诊断与处置助手 | 诊断告警、建议处置、交接事故 | State Machine + Agent / Plan-and-Execute | Tool、Policy、State、Checkpoint、Trace、Review | 误诊、高风险动作、证据不足、重复处置 |
-| 业务运营助手 | 分析数据、解释异常、生成报告 | Plan-and-Execute | Planner、Data Tool、Context、Verifier、Artifact Store | 口径错误、数据不可复现、越权导出 |
-
-同一套 Agent Runtime，在不同场景中重点不同。知识助手的核心是权限和引用，告警助手的核心是证据和风险动作，运营助手的核心是数据口径和可复现性。架构设计不能只复制组件图，必须让组件服务当前场景的主要风险。
-
----
+三个案例共用第11章的权威执行语义和第12章的运营治理入口。第13章负责总图；证据、上下文、记忆、工具和状态各有主责任章，不在案例中重新发明同名对象。
 
 ### 13.6.5 Agent 设计检查清单
 
@@ -2354,7 +2268,7 @@ flowchart TD
 
 **技能与工具**
 
-- [ ] Skill 是否只描述方法，不拥有执行权限？
+- [ ] Skill 的脚本执行是否仍经工具策略授权，而非由技能自授权限？
 - [ ] Tool 是否有明确输入 Schema、输出 Schema 和风险等级？
 - [ ] Connector、MCP Resource、MCP Prompt、Workflow 是否纳入 Capability Registry？
 - [ ] 模型是否只能看到本轮经过筛选后的能力子集？
@@ -2489,17 +2403,11 @@ Agent 不会替代后端的状态、事务和权限边界。更可靠的分工�
 
 ## 参考资料
 
-1. [ReAct: Synergizing Reasoning and Acting in Language Models](https://arxiv.org/abs/2210.03629) - Shunyu Yao et al., 2022
-2. [MRKL Systems: A modular, neuro-symbolic architecture that combines large language models, external knowledge sources and discrete reasoning](https://arxiv.org/abs/2205.00445) - Karpas et al., 2022
-3. [Toolformer: Language Models Can Teach Themselves to Use Tools](https://arxiv.org/abs/2302.04761) - Schick et al., 2023
-4. [OpenAI Agents SDK](https://platform.openai.com/docs/guides/agents-sdk)
-5. [OpenAI AgentKit](https://openai.com/index/introducing-agentkit/)
-6. [OpenAI Agents SDK Tracing](https://openai.github.io/openai-agents-python/tracing/)
-7. [OpenAI Agents SDK Guardrails](https://openai.github.io/openai-agents-python/guardrails/)
-8. [OpenAI Agents SDK Handoffs](https://openai.github.io/openai-agents-js/guides/handoffs/)
-9. [LangGraph Persistence](https://docs.langchain.com/oss/python/langgraph/persistence)
-10. [LangGraph Memory](https://docs.langchain.com/oss/javascript/langgraph/add-memory)
-11. [Model Context Protocol Specification](https://modelcontextprotocol.io/specification/2025-06-18)
-12. [Google Agent Development Kit](https://adk.dev/)
-13. [A2A Protocol Specification](https://google-a2a.github.io/A2A/specification/)
-14. [Anthropic Agent Skills](https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills)
+1. <a id="ref-1"></a> Karpas et al.，[MRKL Systems](https://arxiv.org/abs/2205.00445)，2022。
+2. <a id="ref-2"></a> Schick et al.，[Toolformer: Language Models Can Teach Themselves to Use Tools](https://arxiv.org/abs/2302.04761)，2023。
+3. <a id="ref-3"></a> Anthropic，[Building effective agents](https://www.anthropic.com/engineering/building-effective-agents)，2024-12-19; living page checked 2026-10-17。
+4. <a id="ref-4"></a> OpenAI，[Agents SDK](https://developers.openai.com/api/docs/guides/agents/sdk)，rolling docs; checked 2026-10-17。
+5. <a id="ref-5"></a> LangChain，[Persistence](https://docs.langchain.com/oss/python/langgraph/persistence)，rolling docs; checked 2026-10-17。
+6. <a id="ref-6"></a> MCP maintainers，[Model Context Protocol Specification](https://modelcontextprotocol.io/specification/2025-06-18)，2025-06-18。
+7. <a id="ref-7"></a> Anthropic，[Equipping agents for the real world with Agent Skills](https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills)，2025-10-16; checked 2026-10-17。
+8. <a id="ref-8"></a> Yao et al.，[ReAct: Synergizing Reasoning and Acting in Language Models](https://arxiv.org/abs/2210.03629)，2022; v3 2023。

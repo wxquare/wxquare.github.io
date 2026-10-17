@@ -2,6 +2,8 @@
 
 > Agent Memory 的目标不是“让模型记住一切”，而是为 Agent 构建一套可治理、可追溯、可遗忘、可评估的外部状态与连续性系统。
 
+版本与范围：滚动资料核验于2026-10-18；本章schema、控制流程、实验与数值均教学设计，产品仅陈述下方官方文档支持的范围。
+
 ## 引言
 
 LLM 本身是无状态的。每一次调用都只看到当前 prompt、上下文包、工具结果和系统注入的信息。它不会天然记得上一次任务的真实状态，也不会天然区分“用户稳定偏好”“临时指令”“模型猜测”“工具事实”和“历史案例”。
@@ -173,11 +175,10 @@ Agent Memory 的工程设计不是凭空出现的。过去几年有几条代表�
 |:---|:---|:---|
 | Generative Agents | Memory Stream、重要性评分、反思、计划 | Memory 不只是聊天历史，而是驱动行为连续性的事件流 |
 | MemGPT | 类操作系统的虚拟上下文管理 | 上下文窗口是 RAM，外部 Memory 是 disk，需要显式换入、换出、压缩 |
-| MemoryBank | 长期陪伴、用户画像、情感和关系连续性 | 用户 Profile 和长期偏好需要隐私、可见性和遗忘机制 |
-| Reflexion | 失败反馈转成自然语言反思 | 失败经验可以作为 reflective memory 进入后续尝试 |
-| Voyager | 成功代码和技能沉淀为 Skill Library | 可执行技能库也是 procedural memory |
-| A-MEM | 动态链接的 Agentic Memory 网络 | Memory 不是静态向量库，而是会演化、链接和重组的知识网络 |
-| MemoryAgentBench | 评估准确召回、测试时学习、长程理解和选择性遗忘 | Memory 需要独立 eval，不能只用普通 QA 指标衡量 |
+| Reflexion | 自然语言反馈进入记忆缓冲区 | 反馈需要独立验证，不自动晋升规则 |
+| Voyager | Minecraft中的可执行技能库 | 环境反馈和技能复用需分开评价 |
+
+Generative Agents、MemGPT、Reflexion与Voyager分别提供观察/反思、分层上下文、语言反馈和技能库的研究实例。[[1]](#ref-1)[[2]](#ref-2)[[3]](#ref-3)[[4]](#ref-4)本书的scope、撤回和隐私契约是工程推导，不能声称这些论文已证明其生产保证。
 
 这些工作共同指向一个结论：
 
@@ -725,6 +726,12 @@ memory_item:
 ```
 
 这些字段决定这条记忆能否被读取、如何排序、何时过期、能否支撑结论。
+
+### 版本、有效期与撤回关系
+
+Memory Item补充source_version/content_hash、effective_at/expires_at、last_verified_at、status、supersedes/retracted_by、parent_memory_ids与derived_artifact_refs。来源授权另存可复验引用。last_used_at与use_count表示使用，不证明内容更新或更可信；TTL只控制召回资格，不证明源事实正确。
+
+同主体键更新使用条件版本检查；设备时间不同不能决定真实先后。文件摘要绑定工作区和内容hash，同commit下手工修改也使旧条目stale。反思与归纳保持derived，owner确认的范围/证据必须明确；多个Agent重复引用同一错误不增加独立证据。
 
 ### Scope 是 Memory 的生命线
 
@@ -1338,10 +1345,11 @@ memory_from_rag:
 
 ### 冲突时的优先级
 
-Memory 和 Knowledge / Tool 冲突时，应按权威性排序：
+Memory与知识/工具冲突时，先区分控制权限与事实证据，再比较适用范围：
 
 ```text
-当前用户指令 > 安全与权限策略 > 当前工具事实 > 当前权威文档 / 源代码 > 长期 Memory > 模型记忆
+安全与权限由应用独立执行；用户当前目标不被旧偏好覆盖。
+事实按实体/版本/生效时间/来源核验，Memory不能覆盖权威业务状态。
 ```
 
 典型冲突：
@@ -1400,6 +1408,25 @@ summary:
 - 未解决问题；
 - 被拒绝方案。
 
+### 纠错依赖链：不能只覆盖原句
+
+教学链：旧文件F1→Memory M1“测试已通过”→摘要S1→计划P1“可以发布”。当前文件变为F2且测试失败后，先禁用M1的当前召回，再按来源血缘找到S1/P1及其他派生条目，标stale/retracted并撤销未执行的发布提案；回读F2和真实测试结果生成M2，记录supersedes=M1与原因，重新核验相关产物。保留受控历史用于解释“当时如何判断”，不能让旧记录重新参与当前决策。
+
+若P1已经执行，记忆撤回不撤销外部副作用；按[第11章](infra-11-runtime.md)查询Operation并在授权内修复/补偿。用户撤回地址只影响记忆有效性，不自动修改账户资料。删除范围覆盖索引、派生摘要、缓存、导出和备份恢复后的删除水位，具体保留/例外由[第12章](infra-12-reliability-governance.md)负责，不承诺即时物理擦除或模型遗忘。
+
+### 小模型压缩器的独立评测
+
+LLMLingua研究以预算控制压缩提示，不能推出某业务任务的无损性。[[5]](#ref-5)小模型可能降低辅助调用成本，但长文摘要并不天然简单；先检查实际输入/输出上限、工具协议、否定、数值、跨轮约束与来源血缘。
+
+| 实验臂 | 固定条件与验收 | 失败路由 |
+| --- | --- | --- |
+| 无压缩/确定性抽取 | 作为可用范围内基线，保留独立约束清单与权威账本 | 超窗口则报告范围，不强塞 |
+| 大模型压缩 | 同输入/预算/后续任务与留出集 | 不变量不通过则回源 |
+| 小模型压缩 | 相同输入、summary schema与后续任务 | 窗口不足分块重验；关键字段丢失升级或停止 |
+| 小模型+有界回退 | 独立验证后才放行，不让压缩器自评决定通过 | 记录升级率、读取和重试开销 |
+
+指标包括硬约束召回、否定/单位保真、Operation与调用配对保留、污染/越权率、下游任务成功和重复副作用，压缩率次之。按长输入、多轮压缩、过时文件、撤权、失败/未知工具结果切片。总成功成本=(主任务+压缩+回读+重试+人工费用)/成功任务数，同时报告失败数、尾延迟与安全违例；不能只比较辅助单价。以上实验尚未运行，没有结果数字。
+
 ### Event Sourcing
 
 对高风险任务，事件比自然语言摘要更可靠。
@@ -1444,7 +1471,7 @@ consolidated_preference:
     - session_2_turn_4
     - session_3_turn_9
   scope: "ai-book"
-  trust_level: confirmed
+  trust_level: derived
 ```
 
 Consolidation 要保留 source_events，避免把归纳变成无来源事实。
@@ -1747,488 +1774,25 @@ Memory 的评估目标不是让系统记得更多，而是让系统在正确时�
 
 ---
 
-## 20.12 工业系统逆向：Codex、Claude Code 与 Hermes
+## 20.12 三类产品的已核验证据与边界
 
-前面几节讨论的是 Memory 系统的通用设计。到了 Coding Agent 和长期 Agent 产品里，Memory 不再只是一个抽象模块，而会变成一套具体的读写链路、文件布局、后台任务和上下文注入策略。
+### Codex：后台记忆与会话不是同一对象
 
-Codex、Claude Code 和 Hermes 代表了三种不同的工程路线：
+官方文档说明本地Codex可从符合条件的历史聊天后台生成记忆，默认根目录为~/.codex/memories，并区分使用与生成控制；extract_model与consolidation_model可配置提取/整合模型。[[6]](#ref-6)这不证明所有会话压缩路径共享同一辅助模型，也不证明后台开关开启后某条记忆已经生成。必须查看实际产物、适用主机与时间，必要团队规则仍放项目规范。
 
-```text
-Codex：从历史中学，把会话轨迹自动提炼成长期 handbook。
-Claude Code：从规则中稳，用显式上下文文件塑造 Agent 行为。
-Hermes：从长期使用中成长，把事实、历史、流程和身份一起治理。
-```
+### Claude Code：显式规则与Auto Memory
 
-这三者不是谁替代谁，而是分别回答了 Agent Memory 的三个问题：
+官方文档区分人工规则文件与自动笔记，支持按范围加载项目规则；这些内容被当作上下文，强制阻止动作需要执行控制。[[7]](#ref-7)不能由“存在compact/auto memory”推断所有入口都允许用户指定小压缩模型，也不能把笔记保存当作已修改业务资料。
 
-- 历史执行轨迹如何变成未来经验；
-- 项目规则如何稳定进入上下文；
-- 长期 Agent 如何积累能力而不失控。
+### Hermes：持久笔记、会话快照和辅助压缩
 
-### Codex：后台提炼型 Memory
+官方Persistent Memory文档说明MEMORY.md/USER.md与profile作用域，且启动注入是会话快照；实际写入工具结果与“我已经记住”这句回复要分开核对。[[8]](#ref-8)具体路径、字符预算和插件能力按版本确认，不复制本机快照作为全平台默认。
 
-Codex 的记忆系统更像一条后台生产线，而不是一次会话里的即时写入。
+压缩文档给出auxiliary.compression模型/提供方配置，并讨论辅助窗口可行性与尾部保留。[[9]](#ref-9)这为Q080提供配置层证据，仍需上述任务集验证保真和总成本；不由配置存在推出小模型一定更快/更便宜/不会丢约束。Hermes可靠任务恢复、撤回传播等扩展没有在本节实现或实测；产品案例继续在[第27章](../part3/05-hermes-agent-architecture.md)核验。
 
-它的核心链路可以抽象成：
+### 产品对照的共同验收
 
-```text
-rollout
-  -> state DB
-  -> stage1_outputs
-  -> memory workspace
-  -> memory_summary.md
-  -> future session
-```
-
-```mermaid
-flowchart TD
-    A["一次 Codex Thread / Session"] --> B["Rollout<br/>Agent 执行轨迹"]
-    B --> B1["包含内容<br/>用户消息、Assistant 输出、工具调用、工具结果、运行时事件"]
-
-    B --> C["State DB<br/>线程索引与后台调度状态"]
-    C --> D["Phase 1: Memory Extraction<br/>单个 rollout 抽取"]
-    D --> E["stage1_outputs<br/>单次会话的候选记忆"]
-
-    E --> E1["raw_memory<br/>原始经验片段"]
-    E --> E2["rollout_summary<br/>会话摘要"]
-    E --> E3["rollout_slug<br/>可读标题"]
-    E --> E4["usage_count / last_usage<br/>使用统计"]
-
-    E --> F["Phase 2: Global Consolidation<br/>全局合并与去重"]
-    F --> G["Memory Workspace<br/>~/.codex/memories/"]
-
-    G --> H["memory_summary.md<br/>启动时注入的短摘要"]
-    G --> I["MEMORY.md<br/>可检索的长期 handbook"]
-    G --> J["raw_memories.md<br/>合并前的原始材料"]
-    G --> K["rollout_summaries/<br/>具体会话证据摘要"]
-    G --> L["skills/<br/>可复用流程"]
-    G --> M["extensions/<br/>外部扩展记忆资源"]
-
-    H --> N["Future Session<br/>未来会话"]
-    N --> O{"当前任务是否需要历史经验？"}
-
-    O -- "否" --> P["只使用 memory_summary.md<br/>避免上下文浪费"]
-    O -- "是" --> Q["搜索 MEMORY.md<br/>定位相关经验"]
-    Q --> R{"是否需要更具体证据或流程？"}
-
-    R -- "需要证据" --> K
-    R -- "需要流程" --> L
-    R -- "不需要" --> S["把相关记忆注入 Context Builder"]
-
-    K --> S
-    L --> S
-    P --> T["Agent 执行当前任务"]
-    S --> T
-
-    subgraph WriteRisks["写入侧风险"]
-        W1["后台 pipeline 是否真的启动"]
-        W2["抽取质量是否可靠"]
-        W3["错误经验是否被固化"]
-        W4["敏感信息是否被写入"]
-    end
-
-    subgraph ReadRisks["读取侧风险"]
-        R1["旧记忆是否过期"]
-        R2["召回是否相关"]
-        R3["是否把历史经验当当前事实"]
-        R4["上下文成本是否过高"]
-    end
-
-    D -.-> WriteRisks
-    F -.-> WriteRisks
-    Q -.-> ReadRisks
-    S -.-> ReadRisks
-```
-
-`rollout` 是原始会话轨迹，包含用户消息、assistant 输出、工具调用、工具结果和运行时事件。直接把 rollout 塞回上下文会带来噪声、隐私和成本问题，所以 Codex 先把它写入本地 session 记录，再由后台 memory writer 做两阶段处理。
-
-第一阶段从单个 rollout 中抽取候选记忆，写入 `stage1_outputs`。这一层像“单次会话的经验摘要”，会保留 raw memory、rollout summary、标题、生成时间和使用统计。
-
-第二阶段做全局 consolidation，把多个 stage-1 输出整理成文件型 memory workspace。典型结构可以理解为：
-
-```text
-~/.codex/memories/
-  memory_summary.md
-  MEMORY.md
-  raw_memories.md
-  rollout_summaries/
-  skills/
-  extensions/
-```
-
-读取路径则遵循 progressive disclosure：
-
-```text
-memory_summary.md
-  -> MEMORY.md
-  -> rollout_summaries/ 或 skills/
-```
-
-也就是说，新会话通常先看到很短的 `memory_summary.md`。如果当前任务和某段历史经验相关，Agent 再搜索 `MEMORY.md`，必要时打开具体 rollout summary 或 skill。它不是“把所有历史都记住”，而是把历史压缩成可导航的 handbook。
-
-Codex 这条路线的工程判断是：
-
-```text
-Coding Agent 的长期经验主要藏在历史执行轨迹里，系统应该自动从这些轨迹里提炼经验。
-```
-
-它的优点很明显：
-
-- 自动化程度高，不完全依赖用户手写规则；
-- 读写分离，普通交互 Agent 不直接修改长期 memory；
-- 两阶段 pipeline 适合处理大量历史会话；
-- summary、handbook、rollout summary 分层清楚；
-- 很适合沉淀“之前怎么解决过”“哪些命令有效”“哪些坑踩过”。
-
-但代价也很真实：
-
-- 后台 pipeline 复杂，用户很难判断它是否真的运行；
-- UI 开关打开不等于 memory 已经生成；
-- writer、stage-1、phase-2、文件产物是不同状态层，容易混淆；
-- consolidation 质量决定长期 handbook 质量；
-- 错误抽取会把一次偶然经验固化成未来默认行为。
-
-所以 Codex 代表的是 **自动提炼型 Memory**。它把 Memory 当作从执行轨迹中提炼出来的长期操作手册。
-
-### Claude Code：显式上下文型 Memory
-
-Claude Code 的记忆系统更偏显式上下文工程。
-
-它的核心链路可以抽象成：
-
-```text
-CLAUDE.md / .claude/rules/
-  + auto memory
-  + session transcript
-  + file history
-  -> startup context / on-demand context
-```
-
-Claude Code 最确定、最可审计的记忆来源是 `CLAUDE.md` 和 `.claude/rules/`。
-
-`CLAUDE.md` 通常保存项目规则、构建命令、禁止修改路径、代码风格、写作规范、常见陷阱和协作原则。它可以存在于用户级、项目级、组织级 managed policy，也可以在子目录里按需加载。
-
-`.claude/rules/*.md` 则适合拆分大型规则。无 `paths` 的规则启动时加载；带 `paths` 的规则在读取匹配文件时触发。这个设计很适合 monorepo：处理前端文件时加载前端规则，处理后端服务时加载后端规则，不必每次把全部规则塞进上下文。
-
-Claude Code 还有 auto memory，默认位于：
-
-```text
-~/.claude/projects/<project>/memory/
-```
-
-它通常包含入口 `MEMORY.md` 和若干 topic 文件。启动时只加载 `MEMORY.md` 的前 200 行或前 25KB，具体 topic 文件按需读取。
-
-此外，Claude Code 还保存 session transcript 和 file history。它们主要用于 resume、continue、fork session、文件回滚和历史检查，不是新 session 的主要长期记忆入口。
-
-Claude Code 这条路线的工程判断是：
-
-```text
-Coding Agent 最重要的长期上下文，应该由项目显式管理，而不是完全依赖模型从历史中猜。
-```
-
-它的优点是：
-
-- 可控性强，规则写在哪里、写了什么，用户和团队都能 review；
-- 非常适合项目工程规范，例如构建命令、目录结构、禁止路径和提交前检查；
-- `CLAUDE.md` 与 repo 生命周期绑定，天然适合团队协作；
-- rules 可按路径拆分，降低上下文噪声；
-- auto memory 可以补充用户偏好、环境坑和项目经验。
-
-它的缺点是：
-
-- 自动提炼历史经验的能力不如后台 pipeline 系统化；
-- `CLAUDE.md` 太长会占用上下文并降低遵循稳定性；
-- 多层规则冲突需要人为治理；
-- auto memory 的写入质量依赖 Agent 判断；
-- 如果把规则文件当万能药，仍然会忽视当前工具事实和实时状态。
-
-所以 Claude Code 代表的是 **显式上下文型 Memory**。它把 Memory 当作项目可审计、可维护、可注入的上下文规则栈。
-
-### Hermes：长期成长型 Memory
-
-Hermes 的记忆系统不是单纯面向 coding task，而是面向长期运行的个人或团队 Agent Runtime。它不像 Codex 那样主要依赖后台从执行轨迹中自动提炼，也不像 Claude Code 那样把项目规则文件作为最核心入口。Hermes 更像一套“主动整理型 Memory”：稳定事实写入 `MEMORY.md`，用户画像写入 `USER.md`，历史会话保存在 SQLite 里并通过 `session_search` 召回，复杂流程沉淀成 Skills，外部长期记忆系统则通过 memory provider 插件接入。
-
-它的核心链路可以抽象成：
-
-```text
-MEMORY.md / USER.md
-  + state.db session transcript
-  + session_search
-  + skills/
-  + optional memory.provider
-  -> Long-running Agent
-```
-
-在本机可观察安装中，Hermes 的典型目录形态是：
-
-```text
-~/.hermes/
-  config.yaml
-  state.db
-  memories/
-  sessions/
-  skills/
-  hermes-agent/
-  SOUL.md
-```
-
-其中 `config.yaml` 里的 memory 相关配置大致包括：
-
-```yaml
-memory:
-  memory_enabled: true
-  user_profile_enabled: true
-  memory_char_limit: 2200
-  user_char_limit: 1375
-  provider: ''
-  nudge_interval: 10
-```
-
-这几个字段揭示了 Hermes 内置 memory 的基本取向：
-
-- `memory_enabled` 控制 Agent 自身长期笔记；
-- `user_profile_enabled` 控制用户画像；
-- `memory_char_limit` 和 `user_char_limit` 控制长期注入内容的字符预算；
-- `provider` 用来选择外部 memory provider；
-- `nudge_interval` 用 turn 数触发周期性 memory review 提醒。
-
-Hermes 的长期上下文分成几层：
-
-| 层 | 典型存储 | 解决什么 |
-|:---|:---|:---|
-| Persistent Memory | `~/.hermes/memories/MEMORY.md` | Agent 自己应该长期知道的事实，例如环境事实、项目约定、工具坑、稳定经验 |
-| User Profile | `~/.hermes/memories/USER.md` | 用户画像和协作偏好，例如表达风格、工作习惯、反复纠正过的要求 |
-| Session Search | `~/.hermes/state.db` | 历史会话细节，例如过去讨论、工具结果、任务轨迹、旧 session 摘要 |
-| Skills | `~/.hermes/skills/` | 程序性记忆，例如触发条件、操作步骤、依赖工具、验证方式 |
-| Profiles | profile-scoped `HERMES_HOME` | 身份和环境隔离，例如不同项目、客户、账号、工具权限和记忆空间 |
-| External Provider | `memory.provider` | 接入 Honcho、Hindsight、Mem0、RetainDB、Supermemory、Byterover 等外部记忆后端 |
-
-Hermes 的关键设计不是“记得更多”，而是把不同连续性放到不同层里。
-
-```text
-MEMORY.md = 我知道什么稳定事实
-USER.md = 我知道用户长期偏好
-state.db + session_search = 我们过去做过什么
-skills/ = 我下次怎么做
-profile = 我现在是谁、在哪个边界内工作
-```
-
-#### 内置 Memory：`MEMORY.md` 与 `USER.md`
-
-Hermes 内置 memory 是一个很克制的文件型存储。它不是无限增长的聊天摘要，而是两个小型、可审计、会被注入 system prompt 的 Markdown 文件：
-
-```text
-~/.hermes/memories/
-  MEMORY.md
-  USER.md
-```
-
-`MEMORY.md` 保存 Agent 自己的长期笔记，适合写：
-
-- 用户机器或项目环境的稳定事实；
-- 项目约定、工具 quirks、常见坑；
-- 已验证且未来会反复有用的经验。
-
-`USER.md` 保存用户画像，适合写：
-
-- 用户偏好的回答风格；
-- 用户反复强调的协作方式；
-- 用户明确说过“记住”的稳定偏好。
-
-Hermes 的实现里有一个重要细节：这两个文件在 session 启动时加载，并形成 frozen snapshot 注入 system prompt。session 中途调用 `memory` 工具写入会立即落盘，但不会刷新当前 session 的 system prompt。新的 memory 要到下一个 session 才会稳定进入上下文。
-
-这个设计牺牲了一点“刚写入就立刻生效”的直觉，但换来了两个工程收益：
-
-- system prompt 在一个 session 内保持稳定，有利于 prompt cache；
-- memory 写入不会在当前会话里反复改变模型的最高层上下文，行为更可预测。
-
-Hermes 的 `memory` 工具提供 `add`、`replace`、`remove` 三类操作。写入前会做轻量安全扫描，阻止明显的 prompt injection、密钥外泄、隐藏 Unicode、读取 `.env` 或 `~/.ssh` 等危险内容进入 memory。文件写入也使用锁和原子替换，避免并发 session 同时改 memory 时产生截断或丢写。
-
-这说明 Hermes 把内置 memory 当作“会进入 system prompt 的高敏长期材料”，所以它宁愿小、慢、可控，也不把它做成无限 transcript。
-
-#### 历史会话：`state.db` 与 `session_search`
-
-Hermes 的另一个长期记忆入口是 `state.db`。它不是给 system prompt 每次全量注入的，而是给 `session_search` 做按需召回。
-
-逆向观察到的核心表包括：
-
-```text
-sessions
-messages
-messages_fts
-messages_fts_trigram
-state_meta
-```
-
-其中 `sessions` 保存 session 元信息，例如 `id`、`source`、`model`、`started_at`、`ended_at`、`title`、token 和成本统计等；`messages` 保存消息、工具调用、工具结果、reasoning 相关字段；`messages_fts` 和 `messages_fts_trigram` 提供全文检索。trigram 索引尤其值得注意，它是为了让中文、日文等 CJK 查询也能做更可靠的子串匹配。
-
-`session_search` 的读取链路可以抽象为：
-
-```text
-user query
-  -> SQLite FTS5 / trigram search
-  -> group by session
-  -> exclude current session
-  -> load matched session transcript
-  -> truncate around matches
-  -> auxiliary model summarizes
-  -> return focused recall
-```
-
-它返回的是“围绕搜索主题的历史会话摘要”，而不是直接把原始 transcript 塞进当前上下文。这一点很关键：Hermes 把历史会话当作可搜索档案，而不是长期规则。
-
-因此，Hermes 明确区分：
-
-```text
-稳定事实、偏好、环境坑 -> MEMORY.md / USER.md
-任务进展、PR 编号、commit SHA、临时 TODO -> state.db + session_search
-可复用操作流程 -> skills/
-```
-
-这比“什么都写进 memory”更成熟。因为任务进展很容易过期，直接写进长期 memory 会让 Agent 在未来误以为旧状态仍然成立。
-
-#### Skills：程序性记忆
-
-Hermes 把“怎么做”更多交给 Skills，而不是塞进一句长期 memory。
-
-例如：
-
-```text
-记忆：这个项目用 npm run build 验证。
-Skill：当修改 mdBook 章节时，读取章节、修改 Markdown、运行 npm clean/build、运行 mdbook build、检查生成文件。
-```
-
-前者只是一个事实，后者是可执行流程。对于长期 Agent 来说，真正能提升能力的往往不是“记住一个句子”，而是把反复出现的任务固化成带触发条件、操作步骤、工具约束和验证方式的 Skill。
-
-这也是 Hermes 和普通 Chatbot memory 很不一样的地方：它把 procedural memory 当作一等公民。
-
-#### 外部 Memory Provider
-
-Hermes 还提供 memory provider 插件机制。内置 manager 的设计是：内置 memory 可以存在，但外部 provider 同一时间最多启用一个，避免工具 schema 膨胀和多个后端同时写入造成语义冲突。
-
-从安装包静态痕迹看，常见 provider 包括：
-
-```text
-plugins/memory/honcho
-plugins/memory/hindsight
-plugins/memory/mem0
-plugins/memory/retaindb
-plugins/memory/supermemory
-plugins/memory/byterover
-plugins/memory/openviking
-```
-
-provider 生命周期大致包括：
-
-```text
-initialize
-  -> system_prompt_block
-  -> prefetch before turn
-  -> sync_turn after turn
-  -> on_session_end
-  -> on_pre_compress
-  -> on_memory_write
-  -> shutdown
-```
-
-外部 provider 的 recall 结果会被包进类似 `<memory-context>` 的隔离块，并标注这是 recalled memory context，不是新的用户输入。这是一种上下文防火墙：让模型能使用召回内容，但不把召回内容误当成用户刚发来的指令。
-
-#### Hermes Memory 流程图
-
-```mermaid
-flowchart TD
-    A["Hermes 启动"] --> B["读取 config.yaml"]
-    B --> C{"memory_enabled / user_profile_enabled?"}
-    C -- "是" --> D["加载 MEMORY.md / USER.md"]
-    D --> E["生成 frozen snapshot"]
-    E --> F["注入 system prompt"]
-    C -- "否" --> G["跳过内置 memory"]
-
-    H["用户新 turn"] --> I["turn counter + nudge_interval"]
-    I --> J{"是否需要 review memory?"}
-    J -- "是" --> K["提示模型审视是否有稳定事实要保存"]
-    J -- "否" --> L["正常执行"]
-
-    K --> M{"调用 memory 工具?"}
-    L --> M
-    M -- "add / replace / remove" --> N["写 MEMORY.md 或 USER.md"]
-    N --> O["立即落盘"]
-    O --> P["当前 session 的 prompt snapshot 不刷新"]
-    P --> Q["下个 session 生效"]
-
-    R["用户引用过去任务"] --> S["session_search"]
-    S --> T["搜索 state.db<br/>messages_fts / trigram"]
-    T --> U["按 session 聚合并排除当前 session"]
-    U --> V["辅助模型生成聚焦摘要"]
-    V --> W["作为历史召回进入当前任务"]
-
-    X["复杂任务反复出现"] --> Y["沉淀为 Skill"]
-    Y --> Z["未来按需加载流程"]
-
-    AA["启用 memory.provider"] --> AB["外部 provider prefetch / sync_turn"]
-    AB --> AC["召回内容包入 memory-context"]
-    AC --> W
-```
-
-Hermes 这条路线的工程判断是：
-
-```text
-长期 Agent 的能力增长，不只靠记住事实，还要把稳定偏好、历史档案、可复用流程和外部记忆后端分层治理。
-```
-
-它的优点是：
-
-- `MEMORY.md` / `USER.md` 边界清楚，长期注入内容小而可审计；
-- session 中途写入不刷新 system prompt，有利于缓存稳定和行为可预测；
-- `session_search` 把历史会话变成可搜索档案，避免把全部历史塞进上下文；
-- Skills 把“怎么做”变成程序性记忆，比普通 memory 更可执行；
-- 外部 provider 机制让 Hermes 可以接入更强的长期记忆后端；
-- Profiles 和 profile-scoped storage 能降低跨项目、跨客户、跨身份的记忆污染。
-
-它的缺点也来自复杂度：
-
-- 自动化程度不如 Codex，很多长期记忆依赖模型主动调用 `memory` 工具；
-- 当前 session 写入不立即进入 prompt，用户可能误以为“刚记住就马上生效”；
-- `MEMORY.md` / `USER.md` 字符预算很小，需要经常压缩和清理；
-- `session_search` 依赖搜索词、FTS 命中和辅助模型摘要质量；
-- Skill 可能固化错误经验，让 Agent 更稳定地犯错；
-- 外部 provider 增强能力的同时，也带来配置、同步、隐私和故障面；
-- 需要 review、eval、cleanup 和版本治理，否则长期系统会逐渐臃肿；
-- 对短期 coding task 来说，这套体系可能偏重。
-
-所以 Hermes 代表的是 **主动整理型 / 长期成长型 Memory**。它不试图把所有历史都自动变成长期记忆，而是把长期事实、历史会话和可复用流程分开放置，让 Agent 在合适的时候写、搜、学、复用：事实进 `MEMORY.md`，用户偏好进 `USER.md`，历史进 `session_search`，流程进 `skills/`，外部长期记忆进 provider。
-
-### 三种路线的对比
-
-| 维度 | Codex | Claude Code | Hermes |
-|:---|:---|:---|:---|
-| 核心思路 | 后台 memory pipeline | 显式规则栈 + auto memory | 主动整理型长期 Agent Runtime |
-| 设计目标 | 从历史工作中自动沉淀经验 | 让项目规则稳定注入上下文 | 让 Agent 长期变得更懂用户、更会做事 |
-| 主要输入 | rollout、state DB、session trace | `CLAUDE.md`、rules、auto memory、session transcript | `MEMORY.md`、`USER.md`、`state.db`、`skills/`、memory provider |
-| 写入方式 | 异步后台抽取和合并 | 运行中写本地 memory，用户维护规则文件 | Agent 主动写 curated memory，历史自动入 DB，流程沉淀为 skill |
-| 读取方式 | summary -> handbook -> evidence | 启动加载规则，topic 按需读 | 启动注入 frozen snapshot，历史和 skill 按需召回 |
-| 最强点 | 自动从历史轨迹提炼 | 可控、清晰、项目工程友好 | 事实、偏好、历史、流程分层清楚 |
-| 最大风险 | 后台链路黑盒，空状态难诊断 | 依赖用户维护，规则可能膨胀 | 体系复杂，写入依赖模型判断，provider 增加故障面 |
-| 最适合 | Coding Agent 历史经验沉淀 | 项目级工程规则和协作规范 | 长期个人或团队 Agent |
-
-三者本质差异不是文件路径，也不是是否使用 Markdown，而是它们分别相信什么：
-
-| 系统 | 它相信什么 |
-|:---|:---|
-| Codex | 历史轨迹里有可自动提炼的经验 |
-| Claude Code | 项目规则应该显式、可审计、可维护 |
-| Hermes | 长期 Agent 需要把稳定事实、历史档案、程序性技能和外部记忆后端分层治理 |
-
-如果自研 Agent，可以组合三者的优点：
-
-1. 学 Claude Code，把稳定规则显式化。项目规范、构建命令、安全边界和禁止路径应写进 repo 级 memory 文件。
-2. 学 Codex，从历史轨迹自动提炼。会话、工具调用、失败测试和用户纠正应进入后台 pipeline，生成候选 memory。
-3. 学 Hermes，把 memory、session search 和 skill 分开。稳定事实写长期 memory，任务历史保留在 session archive，可复用流程沉淀成带触发条件、步骤、工具和验证方式的 Skill。
-4. 加统一治理。每条长期 memory 都应该有 `source`、`scope`、`trust_level`、`ttl`、`sensitivity`、`owner` 和 `last_verified_at`。
-
-成熟 Agent Memory 不是聊天记录缓存，而是一套读写分离、上下文预算、权限隔离、经验压缩和生命周期治理的工程系统。
-
----
+固定产品/主机/模型/配置版本，分别确认写入发生、下次装配读取、当前权限和来源有效，再测完整下游任务。会话恢复、Memory召回、Prompt缓存和业务Operation是不同机制；第15章摘要字段不是这些产品已实现的统一协议。
 
 ## 20.13 三个典型架构案例
 
@@ -2453,3 +2017,16 @@ Agent Memory 是 Agent 系统的外部状态与连续性控制层。它不是“
 13. 用显式规则稳定项目行为，用后台提炼复用历史经验，用 Skills 固化经过验证的流程。
 
 Memory 的最终目标不是让 Agent “记得更多”，而是让 Agent 在长期协作中更可靠、更个性化、更可恢复，同时不越权、不污染、不失控。
+
+
+## 参考资料
+
+1. <a id="ref-1"></a> Park et al.，[Generative Agents: Interactive Simulacra of Human Behavior](https://arxiv.org/abs/2304.03442)，2023。
+2. <a id="ref-2"></a> Packer et al.，[MemGPT: Towards LLMs as Operating Systems](https://arxiv.org/abs/2310.08560)，2023。
+3. <a id="ref-3"></a> Shinn et al.，[Reflexion: Language Agents with Verbal Reinforcement Learning](https://arxiv.org/abs/2303.11366)，2023。
+4. <a id="ref-4"></a> Wang et al.，[Voyager: An Open-Ended Embodied Agent with Large Language Models](https://arxiv.org/abs/2305.16291)，2023。
+5. <a id="ref-5"></a> Jiang et al.，[LLMLingua: Compressing Prompts for Accelerated Inference of Large Language Models](https://arxiv.org/abs/2310.05736)，2023。
+6. <a id="ref-6"></a> OpenAI，[Memories](https://learn.chatgpt.com/docs/customization/memories)，rolling; 2026-10-18。
+7. <a id="ref-7"></a> Anthropic，[How Claude remembers your project](https://code.claude.com/docs/en/memory)，rolling; 2026-10-18。
+8. <a id="ref-8"></a> Nous Research，[Persistent Memory](https://hermes-agent.nousresearch.com/docs/user-guide/features/memory)，rolling; 2026-10-18。
+9. <a id="ref-9"></a> Nous Research，[Context Compression and Caching](https://hermes-agent.nousresearch.com/docs/developer-guide/context-compression-and-caching)，rolling; 2026-10-18。

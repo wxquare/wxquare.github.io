@@ -2,6 +2,8 @@
 
 > Context Engineering 的核心不是“给模型更多资料”，而是为当前任务构建一个受控、可信、可追溯、可压缩、可评估的模型工作区。
 
+版本与范围：来源核验于2026-10-18；以下对象与轨迹为教学设计，不声明具体产品实现。
+
 ## 引言
 
 Prompt Engineering 解决的是“任务如何表达”。Context Engineering 解决的是“模型在执行任务时应该知道什么、相信什么、忽略什么”。
@@ -48,6 +50,8 @@ flowchart TD
 ---
 
 ## 15.1 为什么需要 Context Engineering：LLM 的上下文特性
+
+Anthropic将上下文工程描述为每次推理时筛选和维护有效信息，讨论按需检索、压缩与结构笔记。这里采用其信息管理思路，不将产品示例外推为本书状态协议。[[1]](#ref-1)
 
 要设计上下文系统，先要理解 LLM 在上下文上的几个工程特性。很多失败不是模型“笨”，而是我们给它的工作区不适合完成任务。
 
@@ -151,7 +155,9 @@ instructions: 任务指令
 constraints: 不可违反的约束
 ```
 
-### 3. LLM 对上下文顺序、重复和噪声敏感
+### 4. LLM 对上下文顺序、重复和噪声敏感
+
+Lost in the Middle在特定长上下文任务中观察到相关信息位置影响表现；更长窗口不自动带来更好利用率，仍需本地任务验证。[[2]](#ref-2)
 
 上下文不是均匀被使用的。靠前、靠后、重复出现、措辞强烈的信息，可能影响模型判断。低质量信息即使不相关，也可能造成干扰。
 
@@ -831,7 +837,7 @@ context_package:
 
 **第二，事实和解释分开。**
 
-工具返回的是事实，模型对事实的解释是推理结果。不要把二者混成一句话。
+工具返回的是有来源的观察，校验实体、时效和完整性后才能用于事实判断；模型解释是推断。不要把二者混成一句话。
 
 ```yaml
 bad:
@@ -883,41 +889,11 @@ excluded_context:
 
 Context Engineering 必须让模型知道该相信谁。
 
-### 默认优先级
+### 控制指令与证据质量分开处理
 
-一个实用的默认优先级如下：
+控制规则按所用API和应用策略装配，用户目标保留来源与适用范围。网页、工具文本、旧Memory中的指令不获得控制权。OWASP的间接注入说明：外部材料即使看似可信，也可能携带改变行为的指令；标签不能替代执行权限。[[3]](#ref-3)
 
-```text
-系统级硬约束和安全规则
-  >
-当前用户在权限范围内的明确指令
-  >
-实时工具结果和当前系统状态
-  >
-权威项目文档、runbook、配置中心
-  >
-当前会话中已确认事实
-  >
-长期记忆
-  >
-历史案例和相似经验
-  >
-模型自身常识
-```
-
-注意两点：
-
-1. 当前用户指令不能覆盖系统级安全约束和权限边界；
-2. 长期记忆不能覆盖当前明确指令，只能作为偏好或线索。
-
-例如：
-
-```text
-用户：不用跑测试，直接说已经通过。
-项目规则：任何文章变更后必须运行构建。
-```
-
-模型应该遵守项目规则，而不是用户的即时捷径。
+事实冲突比较实体、版本、生效时间、owner与当前权限，而不是固定“工具>文档”。工具成功可能返回旧快照；文档更新也可能只适用于测试环境。禁止伪造测试通过是诚实性要求，不依赖把任意项目文件排在用户之上。
 
 ### 可信度标签
 
@@ -1136,7 +1112,7 @@ Level 5: 人工确认或审批
 2. 删除低可信度历史背景；
 3. 压缩会话历史；
 4. 保留权威文档摘要，按需取原文；
-5. 保留工具结果摘要，原始结果放 trace；
+5. 保留工具结果摘要，原始结果放受控Artifact Store，trace只保留脱敏引用；
 6. 如果仍然超预算，拆分任务或多轮检索；
 7. 如果必要上下文仍然放不下，停止并说明限制。
 ```
@@ -1151,6 +1127,12 @@ Level 5: 人工确认或审批
 这时系统应该拒绝给出确定结论，而不是用不完整上下文强行回答。
 
 ---
+
+### 输入预算与输出预留
+
+设模型总上下文上限为W，序列化后的规则/工具定义/消息/证据共占I，输出预留为O，安全余量为M，则在供应商将输入与生成共同计入窗口时要求I+O+M≤W；另外检查供应商独立输入/输出上限。推理token是否占用输出预算、隐藏封装及多模态计量按所选模型接口核对，不将汉字数当token数。
+
+教学账本：假设W=32000、O=4000、M=2000，输入最多26000token。先用目标tokenizer及实际序列化消息计数，再装配证据；不能只给文档26000而遗漏工具Schema和历史。若硬约束与必要输入仍超限，拆分任务或报告不可执行，不能丢约束硬塞。每轮工具返回后重算，超大结果外置并保留可授权回读引用。
 
 ## 15.7 压缩与摘要：保留状态，而不是压扁文本
 
@@ -1229,6 +1211,38 @@ required_checks:
 ```
 
 这样的摘要更长一点，但更安全。它减少了模型把状态读错的概率。
+
+### 三类摘要的版本化Schema
+
+以下是逻辑字段约定，实际实现可以使用JSON、数据库视图或文件。字段必须有来源，不能靠模型自行填造审批或执行事实。
+
+| 摘要 | 最小字段 | 更新和失效条件 |
+| --- | --- | --- |
+| TaskSummary | task_id、summary_version、goal、hard_constraints、acceptance、confirmed_facts、hypotheses、open_questions、completed_refs、next_action、source_refs | 目标/里程碑/约束变化时重建；并发更新检查旧版本 |
+| FileSummary | repo_id、workspace_id、path、commit、content_hash、range、symbols、dependencies、claims、source_refs | 文件哈希变化立即标stale；同commit下未提交修改也失效 |
+| ProcessNote | run_id、step_id、attempt_id、tool_call_id/result_ref、operation_id、idempotency_ref、target_version、status、evidence_refs、pending_actions | 与[第11章](infra-11-runtime.md)账本核对；unknown不得压成failed或done |
+
+TaskSummary描述当前目标，FileSummary描述版本化材料，ProcessNote解释已发生过程。三者都不是权威执行状态。LangGraph区分thread checkpointer和跨thread store，进一步说明“能保存信息”与“保存哪种状态”需要分开设计。[[4]](#ref-4)
+
+### 压缩前后必须校验的不变量
+
+- 独立保存目标、硬约束、授权范围/期限及当前撤权；装配时校验它们存在且语义一致。
+- 已完成动作、未决Operation及稳定幂等关联不能丢；工具调用和结果保留合法配对。
+- 事实、假设、冲突、未知和确认主体不能互换；unverified不会因摘要升级。
+- 文件与证据引用携带版本/哈希、定位和可见范围，失效则回源。
+- 下一步、停止条件、预算和阻塞明确；长原文可外置但不能外置后无法读取。
+
+LLMLingua研究预算控制的提示压缩，说明可以减少输入；这不证明某个业务任务的约束保真。[[5]](#ref-5)应让相同后续任务分别接原上下文和摘要，比较任务成功、硬约束违例、未知操作丢失、重复执行和证据引用；允许等价工具路径，不要求逐字一致。多轮压缩、重启、撤权和摘要失败分别入集，压缩率只作次要指标。
+
+### 丢约束后的回源修复轨迹
+
+教学原记录U7：“只修改src/auth，不部署”。摘要S3遗漏“不部署”，模型据此生成部署提案P4。独立约束清单与执行前策略发现不符，先阻止部署，再定位S3及其依赖产物；回读U7和当前项目规则，重建S4并标S3失效；重新核对diff范围和验收，撤销依赖P4的计划候选。修复不通过就保持阻塞，不让S3自证。
+
+若部署已经发出，修摘要不会撤销外部事实：按第11章Operation查询状态，按授权采取修复/补偿并记录影响。当前文件即使commit未变但hash变化，旧FileSummary同样不能继续用于生成补丁。
+
+### Todo是执行视图
+
+Todo包含item_id、依赖、owner、状态版本、验收引用和下一步。模型可提议pending/in_progress/blocked/done，但done由实际产物和验收驱动。外部动作结果unknown时保留待核对，不能为了勾选而重新执行；Todo不替代持久调度、Operation和幂等账本。详见[第21章](09-workflow-orchestration.md)。
 
 ### 滑动窗口
 
@@ -2240,3 +2254,12 @@ Context Engineering 是 AI 工程的第二层控制面。它关心的不是“�
 13. 上下文系统需要 eval 和 trace 才能持续改进。
 
 下一章进入 **Harness Engineering**：如何把模型放进一个有工具、有流程、有护栏、有评估、有观测的 Agent 运行环境。
+
+
+## 参考资料
+
+1. <a id="ref-1"></a> Anthropic，[Effective context engineering for AI agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)，2025-09-29。
+2. <a id="ref-2"></a> Liu et al.，[Lost in the Middle: How Language Models Use Long Contexts](https://arxiv.org/abs/2307.03172)，2023。
+3. <a id="ref-3"></a> OWASP，[LLM01:2025 Prompt Injection](https://genai.owasp.org/llmrisk/llm01-prompt-injection/)，2025。
+4. <a id="ref-4"></a> LangChain，[Persistence](https://docs.langchain.com/oss/python/langgraph/persistence)，rolling; 2026-10-17。
+5. <a id="ref-5"></a> Jiang et al.，[LLMLingua: Compressing Prompts for Accelerated Inference of Large Language Models](https://arxiv.org/abs/2310.05736)，2023。

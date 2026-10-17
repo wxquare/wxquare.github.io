@@ -1,33 +1,10 @@
-# 第19章 Agent 知识系统：从知识源、RAG 到 Agentic RAG
+# 第19章 Agent 知识系统：从知识源到可验证证据
 
-> Agent 知识系统的目标，不是把更多文本塞进上下文，而是让 Agent 知道该查哪里、信什么、取多少、如何验证，以及如何把证据组织成模型可以可靠使用的上下文。
+知识系统要回答四个相互独立的问题：信息在哪里、能否召回、是否适用于当前问题、结论是否被证据支持。RAG原论文组合参数模型和外部检索索引；工程中的ACL、更新、引用与业务状态还需要额外机制。[[1]](#ref-1)
 
-## 引言：Agent 为什么需要知识系统
+版本与范围：资料核验于2026-10-18，模型示例固定到模型卡；以下预算、字段、轨迹和实验均为教学设计，未运行数据库或视频实验。第19章维护Evidence约定，第15章装配Context，第20章管理Memory，第24章落实企业连接器与权限。
 
-LLM 本身不是实时事实源，也不是企业知识库。它可以理解问题、规划步骤、综合证据、生成表达，但它不知道当前数据库里的订单状态，不知道刚刚发布的公司公告，不知道某个内部接口的最新 schema，也不会天然记住项目里刚更新的架构约束。
-
-因此，生产级 Agent 必须有一套外部知识系统。这个系统要解决的不是单纯“检索几段文档”，而是完整回答这些问题：
-
-- 当前任务需要什么知识？
-- 这些知识应该来自 Prompt、上下文、文档库、Web Search、数据库、MCP Resource，还是工具调用？
-- 哪些来源可信，哪些只能作为参考？
-- 检索结果如何变成可引用、可压缩、可验证的 Evidence？
-- 普通 RAG 不够时，Agent 如何多轮检索、拆解问题、验证证据和停止？
-- 错误答案出现后，如何从 trace 中定位是召回错、重排错、证据不足，还是模型生成错？
-
-本章把 RAG、MCP Resource、MCP Tool、Web Search、外部 API、GraphRAG、Agentic RAG 和知识治理放在同一张图里讨论。主线不是“多接几个知识源”，而是构建一条工程化链路：
-
-```text
-知识源选型
-→ RAG 工程实现
-→ Web Search / MCP / Tool 组合
-→ Agentic RAG 控制循环
-→ 证据、引用、评估与治理
-```
-
----
-
-## 19.1 Agent 知识系统全景
+## 19.1 知识供给与事实源选择
 
 ### 19.1.1 模型不是事实源
 
@@ -121,9 +98,8 @@ Source Routing 是知识系统的入口。它把用户问题映射到合适的�
 
 ---
 
-## 19.2 知识源形态与选型
 
-### 19.2.1 Markdown / Docs-as-Code：工程化知识沉淀
+### 19.1.6 Markdown / Docs-as-Code：工程化知识沉淀
 
 Markdown repo、mdBook、Docusaurus、VitePress、MkDocs 和 Obsidian vault 都属于 Docs-as-Code 的范式。它们适合工程团队沉淀长期知识：
 
@@ -138,7 +114,7 @@ Markdown repo、mdBook、Docusaurus、VitePress、MkDocs 和 Obsidian vault 都�
 
 缺点也明显：非技术人员编辑门槛高，权限和评论体验弱，文档多了以后目录和命名会变成治理问题。因此 Markdown 适合“可审查、可自动化、偏工程”的知识，不一定适合跨部门日常协作。
 
-### 19.2.2 Wiki / 协作文档系统：组织知识协作
+### 19.1.7 Wiki / 协作文档系统：组织知识协作
 
 Confluence、Notion、飞书知识库、语雀、Outline、Wiki.js 等更适合组织协作：
 
@@ -153,7 +129,7 @@ Confluence、Notion、飞书知识库、语雀、Outline、Wiki.js 等更适合�
 
 Wiki 的治理重点是“信息架构”和“生命周期”。如果没有负责人、目录规范、更新时间和过期机制，Wiki 很容易变成文档坟场。RAG 可以缓解“找不到”的问题，但不能自动解决“文档已经错了”的问题。
 
-### 19.2.3 RAG 知识库：大规模非结构化检索
+### 19.1.8 RAG 知识库：大规模非结构化检索
 
 RAG 适合处理大量非结构化或半结构化文本：
 
@@ -169,7 +145,7 @@ RAG 适合处理大量非结构化或半结构化文本：
 
 但 RAG 不是万能知识层。它不擅长实时状态，不擅长精确事务查询，也不擅长维护“当前最佳结论”。如果用户问“这个订单现在在哪个状态”，应该查业务系统；如果问“过去三个月类似故障的处理经验”，RAG 才合适。
 
-### 19.2.4 MCP Resource：标准化暴露明确资源
+### 19.1.9 MCP Resource：标准化暴露明确资源
 
 MCP Resource 的定位是把明确资源以标准协议暴露给 Agent 读取。例如：
 
@@ -192,7 +168,7 @@ RAG 解决“从大量知识里找什么”，MCP Resource 解决“以标准方
 
 在工程系统里，MCP Resource 常用于暴露项目目录、数据库 schema、API 文档、配置片段、日志样本和运行时上下文。它比把这些内容预先切片进向量库更直接、更可控。
 
-### 19.2.5 MCP Tool / 外部 API：实时结构化事实
+### 19.1.10 MCP Tool / 外部 API：实时结构化事实
 
 Tool 适合查询实时状态或执行动作。典型例子：
 
@@ -205,7 +181,7 @@ Tool 适合查询实时状态或执行动作。典型例子：
 
 结构化事实不应该优先进入向量库。向量检索擅长相似度召回，不擅长精确一致性。对于订单状态、库存数量、监控指标、股票价格这类事实，直接查权威系统更可靠。
 
-### 19.2.6 Web Search：公开互联网与近期事实
+### 19.1.11 Web Search：公开互联网与近期事实
 
 Web Search 适合获取公开互联网中的近期事实：
 
@@ -225,9 +201,9 @@ Web Search：检索公开互联网
 
 区别在于，Web Search 的数据源更开放，可信度更不稳定，因此更依赖来源筛选、日期判断、交叉验证和引用展示。
 
-### 19.2.7 GBrain 类系统：Agent 长期知识演化
+### 19.1.12 可编译知识系统：Agent 长期知识演化
 
-GBrain 类 AI-native knowledge brain 的重点不是“存文档”，而是让 Agent 可以长期维护和演化知识。
+本书讨论的可编译知识工作区 的重点不是“存文档”，而是让 Agent 可以长期维护和演化知识。
 
 常见设计是：
 
@@ -246,9 +222,9 @@ compiled truth：当前最佳理解
 evidence history：证据和变化历史
 ```
 
-这种系统和普通 Wiki 的区别在于：Wiki 主要服务人类协作，GBrain 类系统同时服务人类阅读和 Agent 读写。风险也更高，因为 Agent 写入长期知识需要门控、审计、回滚和过期机制。
+这种系统和普通 Wiki 的区别在于：Wiki 主要服务人类协作，可编译知识系统同时服务人类阅读和 Agent 读写。风险也更高，因为 Agent 写入长期知识需要门控、审计、回滚和过期机制。
 
-### 19.2.8 知识图谱：关系密集型知识
+### 19.1.13 知识图谱：关系密集型知识
 
 当问题的关键不在文本相似度，而在人、系统、项目、事件之间的关系时，知识图谱更合适。
 
@@ -261,7 +237,7 @@ evidence history：证据和变化历史
 
 图谱的优势是关系明确、可追踪、适合多跳推理。缺点是建模和维护成本高。早期系统不要一上来就做复杂图谱，除非关系本身就是核心问题。
 
-### 19.2.9 场景选型表
+### 19.1.14 场景选型表
 
 | 场景 | 推荐方案 |
 |:---|:---|
@@ -272,43 +248,254 @@ evidence history：证据和变化历史
 | 订单、库存、部署、日志、指标 | MCP Tool / 业务 API |
 | 近期公共事实 | Web Search + 来源过滤 |
 | 金融行情、天气、体育 | 专用数据 API |
-| 长期个人或组织知识演化 | GBrain 类系统 |
+| 长期个人或组织知识演化 | 可编译知识系统 |
 | 关系密集型分析 | 知识图谱 / GraphRAG |
 
 ---
 
-## 19.3 RAG 基础：从文档到检索索引
 
-### 19.3.1 RAG 真正解决什么问题
+### 19.1.15 Web Search 的实现原理
 
-RAG 的核心不是“让模型读文档”，而是把外部知识变成可检索、可引用、可验证的证据上下文。
+Web Search 不是模型“自己上网”，而是模型通过受控工具访问搜索和网页内容。
 
-基本流程是：
+典型链路是：
+
+```text
+用户问题
+→ 模型判断需要搜索
+→ 生成搜索 query
+→ 调用搜索工具
+→ 返回候选网页
+→ 打开网页或抽取正文
+→ 清洗、排序、去重
+→ 压缩进上下文
+→ 基于来源回答
+```
+
+推理模型还可能多轮搜索：先搜概览，再搜一手来源，再打开页面验证细节，最后综合回答。
+
+### 19.1.16 搜索结果、网页正文与内容清洗
+
+搜索 API 返回的 snippet 往往不够。Agent 需要正文、发布时间、作者、标题、表格和引用来源。
+
+网页清洗需要去掉：
+
+- 导航栏；
+- 广告；
+- 推荐阅读；
+- cookie 弹窗；
+- 重复页脚；
+- 无关评论。
+
+同时要保留：
+
+- 标题；
+- 发布时间；
+- 正文段落；
+- 表格；
+- 链接；
+- 来源域名；
+- 引用位置。
+
+对于近期事实，时间尤其重要。同一家公司新闻，2024 年的消息和 2026 年的消息不能混用。回答里应该明确“截至哪个日期检索到的信息”。
+
+### 19.1.17 自建索引与垂直搜索
+
+大型平台或垂直领域系统可能不会完全依赖第三方搜索 API，而是自建索引：
+
+```text
+Crawler
+→ Parser
+→ Dedup
+→ Indexer
+→ Search Service
+→ Reranker
+→ Context Builder
+```
+
+自建索引适合：
+
+- 高频查询；
+- 垂直领域；
+- 合规要求强；
+- 需要稳定召回；
+- 需要自定义排序；
+- 需要权限隔离。
+
+缺点是成本高，尤其是抓取、反爬、内容清洗、增量更新和质量评估。
+
+### 19.1.18 实时事实为什么常常需要专用 API
+
+Web Search 适合查公开网页，但不一定适合查实时结构化事实。
+
+例如股票分析：
+
+- 当前价格、K 线、成交量应该来自行情 API；
+- 公司公告应该来自公司 IR、交易所或 SEC；
+- 新闻可以来自 Web Search 或新闻 API；
+- 技术指标应该由系统用行情数据计算；
+- 分析师评级和财务数据应来自专业数据源。
+
+如果只靠网页搜索，可能拿到过期价格、转载新闻、无来源评论或延迟数据。
+
+### 19.1.19 股票分析案例：行情、新闻、财报、技术指标如何组合
+
+当用户问：
+
+```text
+结合最近某只股票的趋势和相关新闻，分析短期应该关注的指标。
+```
+
+一个可靠 Agent 不应该直接凭模型记忆回答，而应组合多个来源：
+
+```mermaid
+flowchart LR
+    A["User Query"] --> B["Parse Symbol + Horizon"]
+    B --> C["Market Data API<br/>价格、成交量、K 线"]
+    B --> D["News Search<br/>新闻与公告"]
+    B --> E["Filings / IR<br/>财报与指引"]
+    B --> F["Macro / Sector<br/>指数、ETF、VIX"]
+    C --> G["Indicator Engine<br/>MA / RSI / MACD / ATR"]
+    D --> H["Event Summary"]
+    E --> H
+    F --> H
+    G --> I["Evidence Packet"]
+    H --> I
+    I --> J["LLM Analysis<br/>情景化分析与风险提示"]
+```
+
+短线分析可以关注：
+
+- 1D、5D、1M、3M 走势；
+- 成交量是否放大；
+- MA20、MA50、MA200；
+- RSI 是否过热或超卖；
+- MACD 是否转向；
+- ATR 和隐含波动率；
+- 大盘和行业 ETF；
+- 财报日期和业绩指引；
+- 近 7-30 天新闻和公告。
+
+输出应是情景化框架，而不是承诺收益。例如：“若价格放量突破某压力位，关注延续；若跌破某支撑位，说明短期趋势失效。”
+
+---
+
+
+### 19.1.20 RAG 与 MCP Resource 的本质区别
+
+RAG 是检索系统，MCP Resource 是资源访问接口。
+
+```text
+RAG：不知道读哪篇文档，所以先搜索
+MCP Resource：已经知道资源 URI，所以直接读取
+```
+
+这一区分很重要。很多系统把 schema、配置、API 文档都切进向量库，导致回答依赖相似度召回。更好的做法是：明确资源通过 MCP Resource 暴露，需要搜索时再由 RAG 找到资源入口。
+
+### 19.1.21 Resource：读取明确上下文
+
+Resource 适合稳定、明确、可枚举的上下文：
+
+```text
+schema://order-db/orders
+api://payment-service/openapi
+config://checkout-service/retry-policy
+repo://pricing-service/README.md
+```
+
+Agent 使用 Resource 的模式通常是：
+
+```text
+list resources
+→ select resource
+→ read resource
+→ summarize or use as evidence
+```
+
+Resource 的优势是可控、可权限化、可审计。它不需要把所有内容提前 embedding，也不依赖语义相似度命中。
+
+### 19.1.22 Tool：查询实时状态或执行动作
+
+Tool 适合带参数的查询和动作：
+
+```json
+{
+  "tool": "query_logs",
+  "arguments": {
+    "service": "order-service",
+    "env": "prod",
+    "time_range": "2026-05-21T10:00:00+08:00/2026-05-21T11:00:00+08:00",
+    "keyword": "payment timeout"
+  }
+}
+```
+
+Tool 结果应该被纳入 Evidence，而不是直接拼成自然语言上下文。这样系统才能记录来源、时间、参数和可信度。
+
+### 19.1.23 RAG + MCP Resource：先检索，再读取完整资源
+
+一种常见组合是：
 
 ```text
 User Query
-→ Query Understanding
-→ Retrieve candidate chunks
-→ Rerank
-→ Build Context Package
-→ Generate answer with citations
+→ RAG search 找到相关文档片段
+→ 返回 resource URI
+→ MCP Resource 读取完整章节或 schema
+→ 构建 Evidence Packet
 ```
 
-RAG 适合的问题有三个特征：
+这样可以避免只引用片段而丢失上下文，也能把最终引用定位到稳定资源。
 
-- 答案依赖外部文档；
-- 文档规模超过上下文窗口；
-- 需要引用或可追溯证据。
+### 19.1.24 RAG + Tool：把工具结果纳入 Evidence
 
-不适合只靠 RAG 的问题包括：
+复杂问题通常需要文档和工具共同提供证据。
 
-- 实时状态查询；
-- 强一致事务查询；
-- 复杂多步操作；
-- 需要权限审批的动作；
-- 需要持续探索和验证的研究任务。
+例如排查事故：
 
-### 19.3.2 生产级 RAG 的离线与在线链路
+```text
+Runbook RAG：告诉你标准处理流程
+Log Tool：告诉你当前错误模式
+Metrics Tool：告诉你指标变化
+Deployment Tool：告诉你最近是否发布
+Incident RAG：告诉你历史类似案例
+```
+
+Agent 的任务不是把这些结果混成一段话，而是把它们标准化：
+
+```json
+{
+  "id": "E3",
+  "source_type": "tool_result",
+  "tool_name": "query_metrics",
+  "query_time": "2026-05-21T11:20:00+08:00",
+  "trust_level": "runtime_observation",
+  "content": "order-service p95 latency increased from 120ms to 850ms after 10:35."
+}
+```
+
+### 19.1.25 Tool-Augmented Retrieval 的优先级与风险
+
+工具结果通常比历史文档更接近当前事实，但也有风险：
+
+- 工具参数可能错；
+- 时间窗口可能错；
+- 权限可能不足；
+- 查询结果可能只是局部现象；
+- 工具失败可能被模型误解为空结果。
+
+推荐优先级：
+
+```text
+当前权威系统状态 > 官方文档 / 源代码 > 内部历史文档 > 新闻 / 博客 > 社交媒体 > 模型记忆
+```
+
+同时要保留 tool call trace，包括参数、时间、返回摘要和错误状态。
+
+---
+
+## 19.2 摄取、结构化解析与切分
+
+### 19.2.1 生产级 RAG 的离线与在线链路
 
 生产级 RAG 通常分成离线链路和在线链路。
 
@@ -335,7 +522,8 @@ flowchart TB
 
 离线链路决定知识质量上限。在线链路决定用户问题能否命中正确证据。只优化 embedding 模型而忽略文档解析、chunk、metadata 和 rerank，通常不会得到稳定效果。
 
-### 19.3.3 文档摄取：解析、清洗、版本与生命周期
+
+### 19.2.2 文档摄取：解析、清洗、版本与生命周期
 
 文档摄取不是简单读文件。不同来源有不同风险。
 
@@ -363,7 +551,8 @@ flowchart TB
 
 生命周期也很重要。每个文档和 chunk 都应该有稳定 ID、版本、更新时间、失效状态和来源链接。否则引用会漂移，debug 时无法复现。
 
-### 19.3.4 Chunk 策略：检索单位、上下文单位、引用单位
+
+### 19.2.3 Chunk 策略：检索单位、上下文单位、引用单位
 
 Chunk 不是越小越好，也不是越大越好。它至少有三种角色：
 
@@ -391,7 +580,8 @@ parent section：用于上下文展示和引用
 
 这样可以兼顾召回精度和回答完整性。
 
-### 19.3.5 Metadata：让检索从“相似”走向“可控”
+
+### 19.2.4 Metadata：让检索从“相似”走向“可控”
 
 没有 metadata 的 RAG 只能做“相似文本搜索”。生产系统需要可控检索。
 
@@ -425,7 +615,20 @@ metadata 的作用包括：
 
 如果 metadata 缺失，系统很难回答“为什么召回了这个 chunk”“这个文档是否过期”“用户是否有权限看”。
 
-### 19.3.6 Embedding 与向量索引
+
+### 19.2.5 无标题、表格和OCR的兜底链
+
+解析器先产生带位置的元素，而不是先把所有格式压成纯文本；Unstructured展示按格式和策略做partitioning的接口。[[2]](#ref-2)无标题Markdown仍可按段落、列表、代码围栏与表格节点分组，超长节点再沿句界/Token边界拆；派生主题标签不能冒充原作者标题。
+
+扫描页需OCR并保留原页图、bbox、页码、阅读顺序和低置信标记；多栏顺序错误、单位/脚注丢失会直接改变答案。表格召回行片段后补表头、单位、脚注与邻行，不把“12”脱离列含义引用。
+
+父子检索保存doc_id/version、parent_id/child_id和原文偏移。小块用于召回，父块补适用条件，引用仍定位实际支持范围。父版本更新后旧子块全部失效或重建；无权限父段不能因子块命中而回读。
+
+小说迁移练习：按章→场景→段落保存人物别名、叙事位置与故事时间；局部引文与人物跨章变化分别选不同扩展范围，按阅读进度防剧透。仅练习设计，不声称已处理某作品。
+
+## 19.3 Embedding 与近似索引
+
+### 19.3.1 Embedding 与向量索引
 
 Embedding model 把文本映射到向量空间，使语义相近的文本距离更近。例如：
 
@@ -458,7 +661,24 @@ RAG text embedding：检索系统把 query / document 映射成语义索引
 
 但 embedding 不是搜索的全部。它擅长语义相似，不擅长精确匹配实体、错误码、接口名、类名、订单号、版本号和配置 key。一个单向量表示会压缩掉很多细节，尤其是数字、否定、时间、表格结构、代码符号和权限语义。因此生产 RAG 不能只靠向量库。
 
-### 19.3.7 Hybrid Search：关键词检索为什么仍然重要
+
+### 19.3.2 非对称编码与空间契约
+
+DPR使用query与passage双编码器，而不是把两段字符串任意送入不同模型后比较。[[3]](#ref-3)例如e5-base-v2模型卡要求query:/passage:前缀并展示归一化，这只适用于该模型约定，不能机械推广。[[4]](#ref-4)记录模型revision、tokenizer、前缀、pooling、截断、维度、归一化与metric；短query和长chunk可得到同维表示，长度不同不妨碍计算，却可能因截断/信息稀释降低相关性。
+
+相似度cos(q,d)=q·d/(||q||||d||)，仅单位归一化时内积等于余弦；对单位向量有平方L2=2−2q·d。换模型即使维度相同也不能混用空间；不要通用除以文本长度“修正”分数。Token embedding属于生成模型内部权重，检索embedding属于外部编码契约。
+
+### 19.3.3 Flat、HNSW、IVF与PQ的取舍
+
+HNSW通过分层近邻图搜索，查询宽度、图连接和构建投入分别影响召回、内存与构建成本。[[5]](#ref-5)Faiss索引文档区分全扫描Flat、聚类分桶IVF、图索引与PQ压缩。[[6]](#ref-6)IVF选择探测桶再算候选，nprobe影响速度/召回；PQ将子向量编码为码本索引，减少载荷但引入近似误差，可对候选用原向量重评分。
+
+Flat精确近邻可作为ANN Recall@K基线，但近邻正确不等于业务相关证据正确。强权限过滤后候选可能不足，比较过滤前/中/后策略及小集合精确搜索；禁止为补足K返回越权对象。删除、更新、持久化和租户隔离是数据库能力，不能从“使用Faiss”自动推出。
+
+教学容量账本：100万条1536维float32向量，原始载荷为N×d×4=6.144GB（十进制）。另计图/倒排、payload、原文、复制、临时构建和新旧双索引；该数既非实测内存，也不表示必须全部常驻RAM。冷热缓存、分片扇出、过滤选择性、写入积压与P95/P99共同决定选型。
+
+## 19.4 在线召回、融合与重排
+
+### 19.4.1 Hybrid Search：关键词检索为什么仍然重要
 
 检索方法可以粗略分成三类：
 
@@ -501,9 +721,7 @@ vector top-k
 
 ---
 
-## 19.4 在线检索 Pipeline
-
-### 19.4.1 Query Understanding：理解用户到底要查什么
+### 19.4.2 Query Understanding：理解用户到底要查什么
 
 用户问题往往不等于检索 query。在线 pipeline 的第一步是理解用户到底需要什么。
 
@@ -529,7 +747,8 @@ vector top-k
 - 风险：金融建议，需要免责声明和来源
 ```
 
-### 19.4.2 Query Rewrite 与 Query Expansion
+
+### 19.4.3 Query Rewrite 与 Query Expansion
 
 Query Rewrite 把用户问题改写成更适合检索的表达。Query Expansion 补充同义词、实体别名和相关字段。
 
@@ -545,7 +764,8 @@ rewrite:
 
 改写不能失控。过度 expansion 会引入噪声。工程上可以限制 expansion 的数量，并把扩展词记录到 trace 中，方便排查召回为什么偏了。
 
-### 19.4.3 Source Routing：选择知识源
+
+### 19.4.4 Source Routing：选择知识源
 
 在线检索中的 Source Routing 需要结合问题类型、实体、时间窗口和权限。
 
@@ -570,7 +790,8 @@ rewrite:
 - 历史事故提供经验；
 - 代码和配置提供实现依据。
 
-### 19.4.4 Candidate Retrieval：召回候选证据
+
+### 19.4.5 Candidate Retrieval：召回候选证据
 
 Candidate Retrieval 的目标是高召回，不是最终排序。常见做法是：
 
@@ -596,7 +817,8 @@ Candidate Retrieval 的目标是高召回，不是最终排序。常见做法是
 
 这些信息对后续 debug 很有价值。
 
-### 19.4.5 Rerank：让结果从“相似”变成“有用”
+
+### 19.4.6 Rerank：让结果从“相似”变成“有用”
 
 Rerank 解决的是候选结果排序问题。Embedding 检索通常负责从大量文档中快速召回候选，例如 top 50 或 top 100；reranker 负责对候选进行更精细排序，例如选出 top 5。可以把它压缩成一句话：
 
@@ -621,7 +843,8 @@ Rerank 可以考虑：
 
 生产系统里，rerank 往往比单纯换 embedding 模型更能提升最终回答质量。
 
-### 19.4.6 去重、多样性与权限过滤
+
+### 19.4.7 去重、多样性与权限过滤
 
 检索结果容易出现重复：同一文档的相邻 chunk、复制到多个 Wiki 页面、旧版和新版文档同时存在。去重需要在 chunk、section、doc 三个层级做。
 
@@ -633,296 +856,16 @@ Rerank 可以考虑：
 
 权限过滤必须发生在进入模型上下文之前。模型不应该看到用户无权访问的证据，再靠 prompt 要求它“不泄露”。权限应该由检索层或资源层强制执行。
 
-### 19.4.7 Context Package：把检索结果变成证据包
 
-最终进入模型的不是原始 top-k，而是 Context Package。
+### 19.4.8 融合与重排不共享一个“万能分数”
 
-一个好的 Context Package 至少包含：
+BM25/稠密分数尺度不同，不能未经校准直接相加。RRF按排名融合：score(d)=Σ_r 1/(k+rank_r(d))，缺席某路不贡献；k和候选数需任务集调优。[[7]](#ref-7)加权融合先做可靠校准，硬权限/时间适用条件不以低权重代替。
 
-```json
-{
-  "question": "订单支付超时后如何补偿？",
-  "evidence": [
-    {
-      "id": "E1",
-      "source_type": "runbook",
-      "title": "订单支付超时补偿机制",
-      "uri": "docs://order/payment-timeout",
-      "updated_at": "2026-05-10",
-      "trust_level": "official_internal",
-      "content": "支付超时后，系统会通过补偿任务扫描 pending_payment 状态订单..."
-    }
-  ],
-  "constraints": {
-    "must_cite": true,
-    "answer_if_insufficient": "say_insufficient_evidence"
-  }
-}
-```
+BERT重排联合读query与passage，可在有限候选集上精细判断。[[8]](#ref-8)ColBERT则保留token级表示并做late interaction，不能与单向量或普通CrossEncoder混称。[[9]](#ref-9)候选N、重排截断长度和最终证据K各有预算；增加N可能修召回，也可能增加延迟和噪声。未经核验的模型分数不代表事实可信度，版本新也不代表当前实体适用。
 
-Context Package 的目标是让模型更容易做正确综合，而不是让模型在杂乱 chunk 中自行猜测。
+## 19.5 Agentic RAG 与高级检索
 
----
-
-## 19.5 Web Search 与实时外部知识
-
-### 19.5.1 Web Search 的实现原理
-
-Web Search 不是模型“自己上网”，而是模型通过受控工具访问搜索和网页内容。
-
-典型链路是：
-
-```text
-用户问题
-→ 模型判断需要搜索
-→ 生成搜索 query
-→ 调用搜索工具
-→ 返回候选网页
-→ 打开网页或抽取正文
-→ 清洗、排序、去重
-→ 压缩进上下文
-→ 基于来源回答
-```
-
-推理模型还可能多轮搜索：先搜概览，再搜一手来源，再打开页面验证细节，最后综合回答。
-
-### 19.5.2 Google API、Bing、Brave、SerpAPI、Tavily、Exa 的角色
-
-Web Search 的底层不一定是 Google API。它可以有多种实现。
-
-| 类型 | 代表 | 特点 |
-|:---|:---|:---|
-| 搜索引擎 API | Google Programmable Search、Bing Web Search、Brave Search | 返回标题、摘要、URL，通常还需要抓正文 |
-| 搜索代理 API | SerpAPI、Serper | 封装搜索结果页，接入快 |
-| AI Search API | Tavily、Exa、Perplexity API | 更适合 LLM，常返回正文片段和摘要 |
-| 自建索引 | crawler + parser + indexer | 成本高但可控，适合垂直领域 |
-| 垂直 API | SEC、PubMed、arXiv、财经 API | 权威、结构化、领域强 |
-
-生产级 Agent 往往会混合多个来源，而不是只依赖一个通用搜索 API。
-
-### 19.5.3 搜索结果、网页正文与内容清洗
-
-搜索 API 返回的 snippet 往往不够。Agent 需要正文、发布时间、作者、标题、表格和引用来源。
-
-网页清洗需要去掉：
-
-- 导航栏；
-- 广告；
-- 推荐阅读；
-- cookie 弹窗；
-- 重复页脚；
-- 无关评论。
-
-同时要保留：
-
-- 标题；
-- 发布时间；
-- 正文段落；
-- 表格；
-- 链接；
-- 来源域名；
-- 引用位置。
-
-对于近期事实，时间尤其重要。同一家公司新闻，2024 年的消息和 2026 年的消息不能混用。回答里应该明确“截至哪个日期检索到的信息”。
-
-### 19.5.4 自建索引与垂直搜索
-
-大型平台或垂直领域系统可能不会完全依赖第三方搜索 API，而是自建索引：
-
-```text
-Crawler
-→ Parser
-→ Dedup
-→ Indexer
-→ Search Service
-→ Reranker
-→ Context Builder
-```
-
-自建索引适合：
-
-- 高频查询；
-- 垂直领域；
-- 合规要求强；
-- 需要稳定召回；
-- 需要自定义排序；
-- 需要权限隔离。
-
-缺点是成本高，尤其是抓取、反爬、内容清洗、增量更新和质量评估。
-
-### 19.5.5 实时事实为什么常常需要专用 API
-
-Web Search 适合查公开网页，但不一定适合查实时结构化事实。
-
-例如股票分析：
-
-- 当前价格、K 线、成交量应该来自行情 API；
-- 公司公告应该来自公司 IR、交易所或 SEC；
-- 新闻可以来自 Web Search 或新闻 API；
-- 技术指标应该由系统用行情数据计算；
-- 分析师评级和财务数据应来自专业数据源。
-
-如果只靠网页搜索，可能拿到过期价格、转载新闻、无来源评论或延迟数据。
-
-### 19.5.6 股票分析案例：行情、新闻、财报、技术指标如何组合
-
-当用户问：
-
-```text
-结合最近某只股票的趋势和相关新闻，分析短期应该关注的指标。
-```
-
-一个可靠 Agent 不应该直接凭模型记忆回答，而应组合多个来源：
-
-```mermaid
-flowchart LR
-    A["User Query"] --> B["Parse Symbol + Horizon"]
-    B --> C["Market Data API<br/>价格、成交量、K 线"]
-    B --> D["News Search<br/>新闻与公告"]
-    B --> E["Filings / IR<br/>财报与指引"]
-    B --> F["Macro / Sector<br/>指数、ETF、VIX"]
-    C --> G["Indicator Engine<br/>MA / RSI / MACD / ATR"]
-    D --> H["Event Summary"]
-    E --> H
-    F --> H
-    G --> I["Evidence Packet"]
-    H --> I
-    I --> J["LLM Analysis<br/>情景化分析与风险提示"]
-```
-
-短线分析可以关注：
-
-- 1D、5D、1M、3M 走势；
-- 成交量是否放大；
-- MA20、MA50、MA200；
-- RSI 是否过热或超卖；
-- MACD 是否转向；
-- ATR 和隐含波动率；
-- 大盘和行业 ETF；
-- 财报日期和业绩指引；
-- 近 7-30 天新闻和公告。
-
-输出应是情景化框架，而不是承诺收益。例如：“若价格放量突破某压力位，关注延续；若跌破某支撑位，说明短期趋势失效。”
-
----
-
-## 19.6 MCP Resource、Tool 与 RAG 的组合
-
-### 19.6.1 RAG 与 MCP Resource 的本质区别
-
-RAG 是检索系统，MCP Resource 是资源访问接口。
-
-```text
-RAG：不知道读哪篇文档，所以先搜索
-MCP Resource：已经知道资源 URI，所以直接读取
-```
-
-这一区分很重要。很多系统把 schema、配置、API 文档都切进向量库，导致回答依赖相似度召回。更好的做法是：明确资源通过 MCP Resource 暴露，需要搜索时再由 RAG 找到资源入口。
-
-### 19.6.2 Resource：读取明确上下文
-
-Resource 适合稳定、明确、可枚举的上下文：
-
-```text
-schema://order-db/orders
-api://payment-service/openapi
-config://checkout-service/retry-policy
-repo://pricing-service/README.md
-```
-
-Agent 使用 Resource 的模式通常是：
-
-```text
-list resources
-→ select resource
-→ read resource
-→ summarize or use as evidence
-```
-
-Resource 的优势是可控、可权限化、可审计。它不需要把所有内容提前 embedding，也不依赖语义相似度命中。
-
-### 19.6.3 Tool：查询实时状态或执行动作
-
-Tool 适合带参数的查询和动作：
-
-```json
-{
-  "tool": "query_logs",
-  "arguments": {
-    "service": "order-service",
-    "env": "prod",
-    "time_range": "2026-05-21T10:00:00+08:00/2026-05-21T11:00:00+08:00",
-    "keyword": "payment timeout"
-  }
-}
-```
-
-Tool 结果应该被纳入 Evidence，而不是直接拼成自然语言上下文。这样系统才能记录来源、时间、参数和可信度。
-
-### 19.6.4 RAG + MCP Resource：先检索，再读取完整资源
-
-一种常见组合是：
-
-```text
-User Query
-→ RAG search 找到相关文档片段
-→ 返回 resource URI
-→ MCP Resource 读取完整章节或 schema
-→ 构建 Evidence Packet
-```
-
-这样可以避免只引用片段而丢失上下文，也能把最终引用定位到稳定资源。
-
-### 19.6.5 RAG + Tool：把工具结果纳入 Evidence
-
-复杂问题通常需要文档和工具共同提供证据。
-
-例如排查事故：
-
-```text
-Runbook RAG：告诉你标准处理流程
-Log Tool：告诉你当前错误模式
-Metrics Tool：告诉你指标变化
-Deployment Tool：告诉你最近是否发布
-Incident RAG：告诉你历史类似案例
-```
-
-Agent 的任务不是把这些结果混成一段话，而是把它们标准化：
-
-```json
-{
-  "id": "E3",
-  "source_type": "tool_result",
-  "tool_name": "query_metrics",
-  "query_time": "2026-05-21T11:20:00+08:00",
-  "trust_level": "runtime_observation",
-  "content": "order-service p95 latency increased from 120ms to 850ms after 10:35."
-}
-```
-
-### 19.6.6 Tool-Augmented Retrieval 的优先级与风险
-
-工具结果通常比历史文档更接近当前事实，但也有风险：
-
-- 工具参数可能错；
-- 时间窗口可能错；
-- 权限可能不足；
-- 查询结果可能只是局部现象；
-- 工具失败可能被模型误解为空结果。
-
-推荐优先级：
-
-```text
-当前权威系统状态 > 官方文档 / 源代码 > 内部历史文档 > 新闻 / 博客 > 社交媒体 > 模型记忆
-```
-
-同时要保留 tool call trace，包括参数、时间、返回摘要和错误状态。
-
----
-
-## 19.7 Agentic RAG：复杂知识任务的控制循环
-
-### 19.7.1 为什么普通 RAG 不够
+### 19.5.1 为什么普通 RAG 不够
 
 普通 RAG 假设一次检索就能找到足够证据。但很多任务不满足这个假设：
 
@@ -941,7 +884,7 @@ Agent 的任务不是把这些结果混成一段话，而是把它们标准化�
 
 这不是一次 top-k 检索能解决的问题。Agent 需要先查历史事故，再抽取共同模式，再查当前日志和指标，最后判断是否相似。
 
-### 19.7.2 什么时候需要 Agentic RAG
+### 19.5.2 什么时候需要 Agentic RAG
 
 满足以下条件时，应该考虑 Agentic RAG：
 
@@ -955,7 +898,7 @@ Agent 的任务不是把这些结果混成一段话，而是把它们标准化�
 
 不应该把所有问题都升级成 Agentic RAG。简单 FAQ、明确文档问答、单资源读取不需要多轮搜索，否则只会增加延迟、成本和不稳定性。
 
-### 19.7.3 Plan：把问题拆成可检索任务
+### 19.5.3 Plan：把问题拆成可检索任务
 
 Agentic RAG 的第一步是生成检索计划。
 
@@ -988,7 +931,7 @@ Agentic RAG 的第一步是生成检索计划。
 
 计划必须包含预算。没有预算的 Agentic RAG 容易无限检索。
 
-### 19.7.4 Retrieve：按子问题检索
+### 19.5.4 Retrieve：按子问题检索
 
 Retrieve 阶段按子问题选择不同工具和知识源。它不是简单循环调用同一个 search。
 
@@ -1009,7 +952,7 @@ Q4 → runbook Resource
 - 失败原因；
 - 进入 evidence state 的内容。
 
-### 19.7.5 Read：抽取结构化证据
+### 19.5.5 Read：抽取结构化证据
 
 Agentic RAG 不应该把检索结果原样堆进上下文。Read 阶段要把结果抽取成结构化证据。
 
@@ -1030,7 +973,7 @@ Agentic RAG 不应该把检索结果原样堆进上下文。Read 阶段要把结
 
 结构化证据让后续验证、引用和冲突处理变得可做。
 
-### 19.7.6 Evidence State：维护证据状态
+### 19.5.6 Evidence State：维护证据状态
 
 Evidence State 是 Agentic RAG 的工作记忆，不等于长期 Memory。
 
@@ -1056,7 +999,7 @@ Evidence State
 └─ budget_used
 ```
 
-### 19.7.7 Decide Next Step：继续检索、换源、验证或停止
+### 19.5.7 Decide Next Step：继续检索、换源、验证或停止
 
 每轮检索后，Agent 需要决定下一步：
 
@@ -1078,7 +1021,7 @@ stop if:
 - cost or latency budget exhausted
 ```
 
-### 19.7.8 Synthesize + Verify：综合与验证
+### 19.5.8 Synthesize + Verify：综合与验证
 
 综合阶段不是简单总结所有证据，而是把证据映射到 claim。
 
@@ -1102,9 +1045,8 @@ stop if:
 
 ---
 
-## 19.8 高级检索模式
 
-### 19.8.1 Query Decomposition 的风险
+### 19.5.9 Query Decomposition 的风险
 
 Query Decomposition 可以提升复杂问题处理能力，但也会引入风险：
 
@@ -1123,7 +1065,7 @@ Query Decomposition 可以提升复杂问题处理能力，但也会引入风险
 子问题数量受预算约束
 ```
 
-### 19.8.2 Multi-hop Retrieval：跨证据链路检索
+### 19.5.10 Multi-hop Retrieval：跨证据链路检索
 
 Multi-hop Retrieval 用于答案需要跨多个证据节点时。
 
@@ -1141,7 +1083,7 @@ Multi-hop Retrieval 用于答案需要跨多个证据节点时。
 
 每一跳都要产生新的实体或约束，而不是盲目继续搜索。
 
-### 19.8.3 Bridge Entity：通过中间实体继续追踪
+### 19.5.11 Bridge Entity：通过中间实体继续追踪
 
 Bridge Entity 是多跳检索中的桥梁实体。它可能是服务名、接口名、错误码、配置 key、人员、公司、论文术语或数据库表。
 
@@ -1159,7 +1101,9 @@ Bridge Entity 是多跳检索中的桥梁实体。它可能是服务名、接口
 
 Bridge Entity 必须来自证据，而不是模型凭空生成。
 
-### 19.8.4 GraphRAG：当关系比文本相似更重要
+### 19.5.12 GraphRAG：当关系比文本相似更重要
+
+GraphRAG研究从实体关系和社区摘要支持全局问题，图是检索组织方式，抽取出的边仍需原文证据。[[10]](#ref-10)
 
 GraphRAG 适合关系密集问题：
 
@@ -1179,7 +1123,9 @@ GraphRAG 适合关系密集问题：
 
 GraphRAG 的风险是图谱过期、边关系错误、实体消歧困难。它应该和文本证据、工具结果结合，而不是替代所有检索。
 
-### 19.8.5 Long-context 与 RAG 的组合
+### 19.5.13 Long-context 与 RAG 的组合
+
+长上下文研究显示位置影响某些任务的利用率，不能只以窗口大小判定无需检索。[[11]](#ref-11)
 
 长上下文可以减少切片损失，但不能替代 RAG。
 
@@ -1207,7 +1153,7 @@ Rerank 负责排序
 Context Builder 负责组织
 ```
 
-### 19.8.6 反证检索与 Self-Verification
+### 19.5.14 反证检索与 Self-Verification
 
 高风险回答需要反证检索。不要只检索支持当前结论的证据，也要检索可能推翻结论的证据。
 
@@ -1227,9 +1173,9 @@ Self-Verification 的目标不是让模型“自信”，而是让系统检查�
 
 ---
 
-## 19.9 证据、引用与可信回答
+## 19.6 证据包与可信回答
 
-### 19.9.1 Evidence Packet 的结构
+### 19.6.1 Evidence Packet 的结构
 
 Evidence Packet 是知识系统交给模型的事实载体。它应该比原始 chunk 更结构化。
 
@@ -1252,7 +1198,7 @@ Evidence Packet 是知识系统交给模型的事实载体。它应该比原始 
 
 Evidence Packet 的关键字段是来源、时间、可信度和限制条件。没有这些字段，模型很容易把局部证据说成全局结论。
 
-### 19.9.2 Token 预算与上下文压缩
+### 19.6.2 Token 预算与上下文压缩
 
 上下文不是越多越好。过多证据会带来：
 
@@ -1271,7 +1217,7 @@ Evidence Packet 的关键字段是来源、时间、可信度和限制条件。�
 - 把长文档拆成 evidence summary + resource link；
 - 对低可信来源降权或排除。
 
-### 19.9.3 Citation 与 Claim-level Citation
+### 19.6.3 Citation 与 Claim-level Citation
 
 Citation 不应该只是回答末尾的链接列表。更好的方式是 claim-level citation：每个关键事实都能对应证据。
 
@@ -1286,7 +1232,7 @@ Claim-level Citation 的好处是：
 - debug 时能定位错误证据；
 - 模型不容易把多个来源混成一个泛泛结论。
 
-### 19.9.4 Evidence Sufficiency Check
+### 19.6.4 Evidence Sufficiency Check
 
 回答前应检查证据是否足够。
 
@@ -1302,7 +1248,7 @@ Claim-level Citation 的好处是：
 
 如果证据不足，应该明确说不足，而不是补全一个看似完整的答案。
 
-### 19.9.5 证据不足时如何回答
+### 19.6.5 证据不足时如何回答
 
 证据不足时，推荐回答结构是：
 
@@ -1321,14 +1267,14 @@ Claim-level Citation 的好处是：
 
 这比强行给出确定答案更有工程价值。生产环境里，“不知道但知道还差什么”通常比错误自信更可靠。
 
-### 19.9.6 证据冲突时如何处理
+### 19.6.6 证据冲突时如何处理
 
 证据冲突很常见。例如 Wiki 说接口字段叫 `user_id`，OpenAPI schema 说叫 `buyer_id`，源代码里实际读取 `account_id`。
 
 处理原则：
 
 ```text
-当前权威实现 > 自动生成 schema > 官方文档 > 历史 Wiki > 二手说明
+先核对部署版本/实体/时间/owner；冲突保留并回查当前权威源，不按来源类型固定排序
 ```
 
 回答时要显式指出冲突：
@@ -1337,7 +1283,7 @@ Claim-level Citation 的好处是：
 文档 A 使用 user_id，但当前 OpenAPI schema 使用 buyer_id。若以当前接口为准，应使用 buyer_id。建议同步修正文档 A。
 ```
 
-### 19.9.7 Hallucination Guard
+### 19.6.7 Hallucination Guard
 
 Hallucination Guard 不是一句 prompt，而是一组机制：
 
@@ -1354,7 +1300,63 @@ Hallucination Guard 不是一句 prompt，而是一组机制：
 
 ---
 
-## 19.10 生产治理：评估、观测与失败诊断
+### 19.6.8 Context Package：把检索结果变成证据包
+
+最终进入模型的不是原始 top-k，而是 Context Package。
+
+一个好的 Context Package 至少包含：
+
+```json
+{
+  "question": "订单支付超时后如何补偿？",
+  "evidence": [
+    {
+      "id": "E1",
+      "source_type": "runbook",
+      "title": "订单支付超时补偿机制",
+      "uri": "docs://order/payment-timeout",
+      "updated_at": "2026-05-10",
+      "trust_level": "official_internal",
+      "content": "支付超时后，系统会通过补偿任务扫描 pending_payment 状态订单..."
+    }
+  ],
+  "constraints": {
+    "must_cite": true,
+    "answer_if_insufficient": "say_insufficient_evidence"
+  }
+}
+```
+
+Context Package 的目标是让模型更容易做正确综合，而不是让模型在杂乱 chunk 中自行猜测。
+
+---
+
+
+### 19.6.9 Evidence的最小约定与来源血缘
+
+Evidence不是“模型觉得有用的一段话”，至少包含evidence_id、source_id/source_version、locator、collected_at/effective_at、visibility/ACL_ref、supported_claims、content/artifact_ref及limitations。派生摘要增加parent_evidence_ids与transform_version；引用指向固定版本片段，当前可见性在回读和交付时重验。
+
+对“只在测试环境生效”的配置片段，claim必须保留环境限定；两个段落拼成的因果结论要说明推导，不能把时间相关当因果。当前余额、订单状态等精确结构事实优先查授权API/SQL，不能用旧向量近邻替代。冲突比较实体、版本、生效时间和权威owner，不能固定地认定代码永远高于文档。
+
+## 19.7 索引演化与多模态证据
+
+### 19.7.1 双索引迁移时序
+
+教学迁移把encoder/预处理/metric/index作为一个manifest切换：冻结源快照水位v100→构建新索引I2→旧I1继续服务→按源版本回填并追增量→重放删除/撤权水位→影子查询与证据/延迟评估→小范围切路由→保留回滚窗→回收I1。索引别名可实现路由切换，Elastic提供alias机制；它不替代回填一致性或权限核验。[[12]](#ref-12)
+
+若v103更新先于v102到达，按源版本拒绝旧写；v104删除形成墓碑，后到回填不能复活。ACL从v105撤回后，I1/I2、结果缓存、证据摘要和原文回读全部遵守当前授权。只核对向量数量无法发现缺失删除；切换条件包括水位、校验抽样、源版本/ACL覆盖、未决失败和影子差异。回滚也持续接受删除与撤权，不能恢复旧权限。
+
+### 19.7.2 时间定位的多模态证据
+
+VideoRAG研究将跨视频文本关系与多模态编码组合，说明只做字幕检索不足以覆盖视频知识。[[13]](#ref-13)本书采用教学流水线：视频版本→镜头/事件/时间窗→ASR/OCR/关键帧与必要音视频表示→文本/视觉分路索引→问题路由→融合与原片复核。采样率、时间窗、模型和token预算需实验，不假定固定抽帧能覆盖全部动作。
+
+教学Evidence：video_id=V7、asset_version=sha7、segment=[12.4s,18.9s]、keyframes=[13.1s,16.8s]、ASR_range=[12.1s,19.2s]、alignment_offset、bbox、modality、人物/事件候选、ACL_ref、supported_claims与uncertainty。定位引用保留原片播放区间和关键帧，而非只有摘要文字。
+
+问题“谁把红盒放到门边？”即使没有字幕也需要视觉动作路；ASR只说“放这里”不能证明颜色/人物。检查动作前后相邻片段，字幕偏移须校准；OCR读到人名不等于该人出现在画面。同名人物、同款衣服或相似背景不能作为跨视频同一身份/事件的充分证据。
+
+跨视频问题先按租户、时间、来源和权限过滤，再按video_id/version合并片段；保留每条局部证据与冲突。V7去年上海与V8今年北京不能拼成同一会议；身份不明就明确未知。撤权/删除使原片、索引、缓存与派生摘要一起失效。端到端评测同时看片段覆盖、时间定位、身份混淆、答案忠实、拒答与预算。企业落地由[第24章](../part3/02-enterprise-knowledge-assistant.md)展开。
+
+## 19.8 分层实验与故障诊断
 
 RAG 质量不能只看最终回答。一个回答错了，可能是没有召回正确证据，也可能是排错序、上下文污染、证据冲突、生成总结错误、权限过滤错误或索引过期。
 
@@ -1370,7 +1372,7 @@ RAG 质量不能只看最终回答。一个回答错了，可能是没有召回�
 
 这张表的价值在于把“RAG 效果不好”拆成可定位的问题，而不是笼统地换 embedding 模型或增加 top-k。
 
-### 19.10.1 检索层指标
+### 19.8.1 检索层指标
 
 检索层关注“是否找到了该找的证据”。
 
@@ -1387,7 +1389,7 @@ RAG 质量不能只看最终回答。一个回答错了，可能是没有召回�
 
 评估集应该包含真实用户问题、期望证据、不可回答问题和权限受限问题。
 
-### 19.10.2 证据层指标
+### 19.8.2 证据层指标
 
 证据层关注“进入上下文的证据是否可用”。
 
@@ -1402,7 +1404,7 @@ RAG 质量不能只看最终回答。一个回答错了，可能是没有召回�
 
 证据层指标能帮助区分“检索没找到”和“找到了但模型没用好”。
 
-### 19.10.3 生成层指标
+### 19.8.3 生成层指标
 
 生成层关注最终回答。
 
@@ -1418,7 +1420,7 @@ RAG 质量不能只看最终回答。一个回答错了，可能是没有召回�
 
 对于企业知识助手，不能只看答案是否流畅，而要看是否有证据、有权限、有引用、有边界。
 
-### 19.10.4 Agentic RAG 过程指标
+### 19.8.4 Agentic RAG 过程指标
 
 Agentic RAG 还需要过程指标：
 
@@ -1433,7 +1435,7 @@ Agentic RAG 还需要过程指标：
 
 这些指标必须依赖 trace。只看最终答案，很难知道 Agent 是靠正确过程得到答案，还是误打误撞。
 
-### 19.10.5 Trace 与可观测性
+### 19.8.5 Trace 与可观测性
 
 知识系统 trace 应记录：
 
@@ -1455,7 +1457,7 @@ Agentic RAG 还要记录每一轮计划、工具调用、证据状态和停止�
 
 没有 trace 的 RAG 系统很难生产化。用户说“答错了”，你需要知道错在召回、排序、上下文压缩、证据冲突、模型生成，还是数据源本身过期。
 
-### 19.10.6 预算、缓存与可恢复性
+### 19.8.6 预算、缓存与可恢复性
 
 知识系统的成本来自：
 
@@ -1488,7 +1490,7 @@ Agentic RAG 还要记录每一轮计划、工具调用、证据状态和停止�
 
 可恢复性要求 Agentic RAG 的状态能 checkpoint。任务中断后，应能从 evidence state 恢复，而不是重新搜索一遍。
 
-### 19.10.7 常见失败模式与修复路径
+### 19.8.7 常见失败模式与修复路径
 
 | 失败模式 | 可能原因 | 修复方向 |
 |:---|:---|:---|
@@ -1516,9 +1518,8 @@ Debug 顺序建议：
 
 ---
 
-## 19.11 系统设计清单与设计评审表达
 
-### 19.11.1 Agent 知识系统设计清单
+### 19.8.8 Agent 知识系统设计清单
 
 设计 Agent 知识系统时，可以按这个清单展开：
 
@@ -1556,7 +1557,7 @@ Debug 顺序建议：
    - 如何处理权限、成本、缓存、失败恢复？
 ```
 
-### 19.11.2 企业知识助手设计题回答框架
+### 19.8.9 企业知识助手设计题回答框架
 
 如果在设计评审中被问到“如何设计企业知识助手”，可以这样推演：
 
@@ -1577,7 +1578,7 @@ Debug 顺序建议：
 生产上用 trace、检索指标、证据指标、生成指标和过程指标持续评估。
 ```
 
-### 19.11.3 RAG / Agentic RAG 设计评审表达
+### 19.8.10 RAG / Agentic RAG 设计评审表达
 
 RAG 的重点表达：
 
@@ -1597,7 +1598,7 @@ MCP 与 RAG 的重点表达：
 RAG 解决“从大量知识里找什么”，MCP Resource 解决“读取明确资源”，MCP Tool 解决“查询实时系统或执行动作”。生产系统通常需要三者组合。
 ```
 
-### 19.11.4 落地选型速查表
+### 19.8.11 落地选型速查表
 
 | 需求 | 优先方案 | 补充 |
 |:---|:---|:---|
@@ -1614,18 +1615,38 @@ RAG 解决“从大量知识里找什么”，MCP Resource 解决“读取明确
 
 ---
 
+
+### 19.8.12 控制变量实验与故障回源
+
+所有行均为实验设计，结果待测。按第10章Eval Case固定源快照、问题/证据标注、租户/ACL、生成模型与温度；开发调参集与留出集分开，来源范围标注避免重叠chunk虚增召回。
+
+| 实验 | 只改变 | 对照与观察 | 失败定位 |
+| --- | --- | --- | --- |
+| 切块 | 256/512/1024token及overlap（教学候选） | 固定编码/检索；看源证据覆盖、去重Recall、父块扩展噪声、答案支持率/成本 | 无标题/跨表/代码围栏与答案跨度 |
+| ANN | HNSW宽度或IVF探测/PQ参数，按实际索引分别测 | 同向量Flat基准；ANN Recall、P95/内存/更新与过滤后候选 | 邻近误差和业务标注分开 |
+| 融合/重排 | 候选N、融合参数、reranker开关/截断 | 固定候选或固定前段分层比较，按类别/实体/否定/版本切片 | 精确符号丢失、证据被截或排序压低 |
+| 生成上限 | 实际证据与人工充分证据 | 固定生成配置，比较引用支持、拒答、幻觉 | 证据充分仍错归生成/装配；证据缺失回召回/解析 |
+| 迁移/视频 | 更新乱序/删除撤权/无字幕/时间偏移/跨视频同名 | 按故障独立断言，报告未知和失败而非只平均分 | 回源版本、ACL水位或原帧 |
+
+数据库选型使用相同向量、维度、负载、过滤、硬件和目标Recall，测冷热缓存/读写混合/构建/恢复；不搬用厂商QPS当项目实测。先找限制任务成功和风险的阶段，再做端到端回归，不能断言所有RAG的最大瓶颈都是embedding。
+
 ## 本章小结
 
-Agent 知识系统的核心不是“接入更多数据源”，而是把知识获取变成可路由、可验证、可引用、可评估的工程链路。
+知识链路从权威来源、解析血缘、兼容向量空间走向候选融合、证据与索引生命周期。高召回不等于有适用证据，答案流畅不等于被引用支持；索引切换不恢复旧权限，多视频检索不自动合并身份。实验必须把解析、ANN、业务证据、生成和安全结果分层，当前仅完成设计，未提供实测性能。
 
-本章可以压缩成几条原则：
 
-- 模型不是事实源，外部系统负责事实与证据。
-- RAG 适合大量非结构化文档，不适合实时结构化状态。
-- MCP Resource 适合读取明确资源，MCP Tool 适合查询实时系统或执行动作。
-- Web Search 适合近期公开事实，但需要来源过滤、正文清洗、日期判断和引用。
-- Agentic RAG 适合复杂知识任务，但必须有计划、证据状态、预算、停止条件和 trace。
-- Evidence Packet 和 Context Package 是从“检索结果”走向“可信回答”的关键中间层。
-- 生产级知识系统必须评估检索、证据、生成和过程，而不是只看最终回答是否流畅。
+## 参考资料
 
-最终，一个优秀 Agent 的能力不是“记住更多”，而是更可靠地获取、验证、组织和使用知识。
+1. <a id="ref-1"></a> Lewis et al.，[Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks](https://arxiv.org/abs/2005.11401)，2020; v4 2021。
+2. <a id="ref-2"></a> Unstructured，[Partitioning](https://docs.unstructured.io/open-source/core-functionality/partitioning)，checked 2026-10-18。
+3. <a id="ref-3"></a> Karpukhin et al.，[Dense Passage Retrieval for Open-Domain Question Answering](https://arxiv.org/abs/2004.04906)，2020。
+4. <a id="ref-4"></a> intfloat，[e5-base-v2 model card](https://huggingface.co/intfloat/e5-base-v2)，checked 2026-10-18。
+5. <a id="ref-5"></a> Malkov and Yashunin，[Efficient and robust approximate nearest neighbor search using Hierarchical Navigable Small World graphs](https://arxiv.org/abs/1603.09320)，2016。
+6. <a id="ref-6"></a> Faiss maintainers，[Faiss indexes](https://github.com/facebookresearch/faiss/wiki/Faiss-indexes)，checked 2026-10-18。
+7. <a id="ref-7"></a> Cormack, Clarke, Buettcher，[Reciprocal Rank Fusion outperforms Condorcet and individual Rank Learning Methods](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf)，SIGIR 2009。
+8. <a id="ref-8"></a> Nogueira and Cho，[Passage Re-ranking with BERT](https://arxiv.org/abs/1901.04085)，2019。
+9. <a id="ref-9"></a> Khattab and Zaharia，[ColBERT: Efficient and Effective Passage Search via Contextualized Late Interaction over BERT](https://arxiv.org/abs/2004.12832)，2020。
+10. <a id="ref-10"></a> Edge et al.，[From Local to Global: A Graph RAG Approach to Query-Focused Summarization](https://arxiv.org/abs/2404.16130)，2024。
+11. <a id="ref-11"></a> Liu et al.，[Lost in the Middle: How Language Models Use Long Contexts](https://arxiv.org/abs/2307.03172)，2023。
+12. <a id="ref-12"></a> Elastic，[Aliases](https://www.elastic.co/docs/manage-data/data-store/aliases)，checked 2026-10-18。
+13. <a id="ref-13"></a> Ren et al.，[VideoRAG: Retrieval-Augmented Generation with Extreme Long-Context Videos](https://arxiv.org/abs/2502.01549)，2025。

@@ -1,37 +1,11 @@
-# 第21章 Agent 执行编排与平台架构：工作流、状态机、多 Agent 与框架生态
+# 第21章 执行编排与多 Agent 协作：任务图、交接与平台边界
 
-> Agent 执行编排的目标，不是让模型“多想几步”，而是把不确定的模型行为放进可恢复、可审计、可治理的运行时结构里。
+本章消费第11章持久Runtime，不重复定义可靠投递算法。版本与范围：资料核验于2026-10-18，A2A选读固定v0.3.0；以下消息、时序、批处理和控制流程均为教学设计，未运行多Agent或消息系统实验。
 
-## 引言：从可靠执行到平台化运行时
+## 21.1 先选择确定性工作流还是 Agent
 
-前面几章分别讨论了 Agent 的架构边界、工具系统、知识系统和记忆系统。到这里，一个 Agent 已经具备了“看上下文、查知识、调用工具、保留连续性”的能力。但这些能力本身还不能保证任务可靠完成。
+LangGraph文档区分固定Workflow与动态Agent路径；是否增加角色要比较任务收益与协调成本。[[1]](#ref-1)
 
-生产环境中的 Agent 往往要处理更长的任务：
-
-- 一次任务包含多个步骤；
-- 某些步骤依赖工具结果；
-- 某些动作有副作用，需要审批；
-- 中途可能失败、超时或被用户打断；
-- 任务可能隔天继续；
-- 多个 Agent 或多个工作区可能并行执行；
-- 结果必须能被追踪、回放和评估。
-
-这就是执行编排的位置。
-
-执行编排不是多 Agent 才需要。单 Agent 只要任务变长、动作变多、风险变高，也需要 workflow、state machine、checkpoint、human-in-the-loop 和 trace。多 Agent 只是执行编排的一种复杂形态。
-
-本章把两类内容合并讨论：
-
-```text
-执行编排：如何把任务组织成可靠过程
-平台架构：如何把编排、状态、工具、审批、恢复和观测沉淀为可复用运行时
-```
-
-这也是为什么 LangGraph、AutoGen、Microsoft Agent Framework 这类框架不能只当作“Agent 框架”看。它们背后真正解决的是：如何让 Agent 从 demo 变成可运行、可恢复、可审计、可扩展的系统。
-
----
-
-## 21.1 从 Agent Loop 到 Workflow Runtime
 
 ### 21.1.1 最小 Agent Loop 的边界
 
@@ -126,7 +100,58 @@ Agent Platform 不是一开始就要建设的东西。但如果每个团队都�
 
 ---
 
-## 21.2 单 Agent 执行编排：把任务组织成可靠过程
+### 21.1.5 图式编排 vs 自由 Agent Loop
+
+自由 loop 灵活，图式编排可控。
+
+建议：
+
+- 低风险探索用自由 loop；
+- 生产流程用显式 workflow；
+- 高风险动作必须进入审批节点；
+- 长任务必须有 checkpoint。
+
+
+### 21.1.6 单 Agent vs 多 Agent
+
+优先从单 Agent + Workflow 开始。只有当存在清晰角色边界、并行收益或互审需求时，再引入多 Agent。
+
+多 Agent 的收益必须超过协调成本。
+
+
+### 21.1.7 框架 vs 自研
+
+选择框架还是自研，取决于已有系统约束。
+
+适合框架：
+
+- 需要 durable execution；
+- 需要多 Agent；
+- 需要快速验证；
+- 团队愿意接受框架抽象。
+
+适合自研：
+
+- 内部权限、工具、审计约束很强；
+- 只需要轻量 workflow；
+- 不希望引入重依赖；
+- 平台能力需要深度定制。
+
+
+### 21.1.8 平台化 vs 单应用内嵌
+
+单应用内嵌适合早期验证。平台化适合多团队复用。
+
+平台化触发信号：
+
+- 多个团队重复接模型；
+- 多个团队重复封装工具；
+- 权限和审计开始分散；
+- 需要统一成本控制；
+- 需要统一 eval 和 release gate；
+- 长任务恢复成为共性问题。
+
+## 21.2 计划、任务图与有界执行
 
 ### 21.2.1 Plan-and-Execute：计划与执行分离
 
@@ -162,6 +187,7 @@ Execute: 按步骤执行、验证、修正和结束
 
 计划一旦结构化，Runtime 就能检查预算、权限、风险动作和完成条件。
 
+
 ### 21.2.2 ReAct Loop：观察、思考、行动、反馈
 
 ReAct Loop 强调在推理和行动之间循环：
@@ -190,6 +216,7 @@ Observe -> Think -> Act -> Observe -> ...
 
 也就是说，ReAct 是 Agent 的认知循环，Workflow Runtime 是它的运行边界。
 
+
 ### 21.2.3 Workflow：固定流程中的 LLM 节点
 
 有些业务流程本身比较稳定，只是其中某些节点需要 LLM 判断或生成。
@@ -208,6 +235,7 @@ Classify Ticket
 这里 LLM 不是整个流程的主人，而是某些节点的执行器。Workflow 负责顺序、分支、权限、审批和失败恢复。
 
 这种模式适合生产系统，因为它把不确定性限制在节点内部，而不是让整个流程都由模型自由决定。
+
 
 ### 21.2.4 State Machine：显式状态转移
 
@@ -233,53 +261,16 @@ created
 
 不要把状态机藏在 prompt 里。状态应该由 Runtime 保存，模型只能基于状态提出建议或选择允许的动作。
 
-### 21.2.5 Checkpoint、Resume、Replay 与幂等
 
-长任务必须考虑失败。模型调用可能超时，工具可能失败，进程可能重启，人类审批可能隔天才发生。
+### 21.2.5 计划节点必须有外部验收
 
-Checkpoint 的基本思想是：
+ReAct交替行动和观察，为下一步补充环境证据。[[2]](#ref-2)本书TaskGraph节点另含node_id、depends_on、input/artifact_refs、owner、acceptance、risk、budget/deadline与failure_route。Todo是图的视图，不替代执行状态。反思只在新失败证据或进展停滞时触发，有限轮数；没有新证据不能反复自我赞同。
 
-```text
-Step completed -> save state
-External action requested -> save intent and idempotency key
-Human approval pending -> save approval state
-Resume -> continue from last safe checkpoint
-```
+重规划固定plan_version，复用仍有效的产物和既有Operation，只重算受影响节点。目标或授权改变需要重新确认，旧版本结果不能提交到新计划。最大步数、调用数、并发、token、成本和墙钟deadline来自父预算，子任务不得各自重新拥有全额预算。完成需满足验收与安全约束，预算耗尽或unknown不是成功。
 
-关键点有三个：
+Checkpoint、取消、等待审批、未知副作用与恢复按[第11章](infra-11-runtime.md)执行，本章只组合控制流；Replay观察不重复执行副作用。
 
-- checkpoint 保存的是结构化状态，不只是聊天历史；
-- 外部副作用必须有幂等键；
-- replay 时不能重复执行已经成功的副作用。
-
-幂等设计尤其重要。一个“创建退款单”的工具如果在恢复时重复执行，就会造成真实业务事故。Runtime 必须记录 action id、request payload、response、状态和重试策略。
-
-### 21.2.6 Human-in-the-loop：审批、暂停与恢复
-
-Human-in-the-loop 不是在聊天里问一句“要继续吗”，而是 workflow state 的一部分。
-
-```text
-Propose Action
-  -> Risk Classifier
-  -> Approval Node
-  -> Execute or Reject
-```
-
-审批节点至少要记录：
-
-- 谁发起；
-- 审批什么动作；
-- 证据是什么；
-- 风险等级是什么；
-- 谁批准或拒绝；
-- 什么时候处理；
-- 恢复后从哪里继续。
-
-这样人工介入才具备可审计性和可恢复性。
-
----
-
-## 21.3 Workflow Pattern：单 Agent 和多 Agent 都适用
+## 21.3 可组合工作流模式
 
 ### 21.3.1 Sequential：顺序执行
 
@@ -435,7 +426,16 @@ workflow_policy:
 
 ---
 
-## 21.4 Multi-Agent 协作：执行编排的复杂形态
+
+### 21.3.8 十万词分类：用批处理代替十万次自主规划
+
+教学输入为十万余词及固定分类体系版本。先定义单/多标签、层级、歧义和拒判，人工标注分层基线；规范化保留original_word与稳定item_id，去重项保留原位置映射。规则/词典处理确定项，轻量分类或embedding给候选，LLM只处理难例；不按每个词创建自主Agent。
+
+代码按token预算与输出长度确定batch，教学候选每批128项仅作起点，不能当通用最优值。每项输出item_id、taxonomy_version、labels、evidence/reason及abstain；检查输入输出一一对应、无缺/重项、枚举/层级/多标签约束。按batch_id/input_hash/model/prompt/taxonomy版本保存结果，失败只重跑未完成或失效项，重启按账本恢复。
+
+标签更新保留旧版与迁移映射，低置信阈值在独立标注集校准，LLM自报分数不是概率。评价macro/micro、长尾混淆、层级一致、拒判、尾延迟和单位成功成本。仅独立领域判断确有收益时用专家Agent；机械切批、限速、join和结果去重由确定性调度器完成。此案例未运行。
+
+## 21.4 多 Agent 的职责与交接协议
 
 ### 21.4.1 多 Agent 什么时候才必要
 
@@ -529,9 +529,38 @@ Coordinator 负责拆分、分配、合并和停止条件。Specialist 负责明
 
 ---
 
-## 21.5 并行执行基础设施
 
-### 21.5.1 Git Worktrees：隔离工作区
+### 21.4.7 Modular Agent与交接契约
+
+Modular Agent在本书指职责和接口可替换的设计方式，不是一个统一标准算法，也不要求每个模块都成为Agent。Multi-Agent则有多个各自上下文和决策循环的角色；模块化本身不会自动产生规划能力。
+
+Handoff至少包含任务/父子身份、输入版本和证据、验收/返回格式、工具/数据授权范围、预算/deadline、owner与拒收/升级路径。接收方先验权限/版本/能力/预算，再原子认领目标Step并回accept或带原因reject；发送消息不等责任已交接。拒收仍由原owner负责重新分流，限定次数后升级人工，避免互相推诿。
+
+## 21.5 mailbox、共享状态与事件总线
+
+### 21.5.1 三种组件各司其职
+
+共享状态持久保存TaskGraph、Step/owner/version、审批和不可变Artifact引用；mailbox承载定向命令及接收/处理状态；事件总线传播“状态已变”的通知，不能取代权威状态。结构为“编排器+状态→定向信箱→Worker→产物/状态→Outbox事件→编排器核验→后继节点”。
+
+Correlation Identifier模式区分请求和响应的关联。[[3]](#ref-3)RabbitMQ将发布者确认与消费者确认分开；收到broker确认并不证明下游业务动作完成。[[4]](#ref-4)本书envelope是教学契约：
+
+```json
+{"schema_version":"1","message_id":"m17","kind":"review.request","task_id":"t1","run_id":"r1","step_id":"review","parent_task_id":"parent1","correlation_id":"h1","causation_id":"m16","sender":"A","recipient":"B","plan_version":3,"state_version":7,"owner_epoch":4,"deadline":"2026-10-18T10:10:00Z","budget_ref":"budget-r1","input_ref":"patch-v2","input_hash":"sha256-demo","evidence_refs":["test-v2"],"authorization_ref":"scope-review-v1","reply_to":"mailbox-A"}
+```
+
+身份与授权由可信通道和服务端验证，不能信任载荷自称sender或authorization。大内容传不可变引用，接收时重验读取权限；敏感原文不广播给所有订阅者。message_id用于传输去重，correlation_id贯穿交接，causation_id表达因果；业务Operation稳定键属于第11章，不能用message_id替代。
+
+### 21.5.2 重复、乱序、取消和失联
+
+消费者将inbox去重记录与创建/推进Step放同一受控事务，成功接收后才确认。投递重复查询既有处理结果，同message_id异payload拒绝；同业务动作跨消息仍按Operation去重。状态更新条件检查plan_version、state_version与epoch，早到依赖结果等待或对账，旧终态不得覆盖新终态。
+
+取消持久写入权威状态，并以控制消息传播到子任务；停止新动作，在安全点确认。先到取消后到成功时保留外部事实，不能为保持“已取消”展示而抹掉副作用。owner失联按第11章租约/执行代次处理，租约过期不证明旧进程已停止；网关/资源支持时执行fencing，不支持则限制副作用并查询对账。
+
+mailbox限制队列长度、并发、消息大小、委派深度与重投次数，超过总deadline停止新工作；永久失败进入带owner/修复入口的dead letter，通知不能代替认领。中心协调易于全局预算和审计但可能瓶颈；分布式执行提升隔离与吞吐，必须付出一致性、去重和跨分区恢复成本。逻辑中心协调可与分布式Worker组合，并非二选一。
+
+## 21.6 共享资源与执行隔离
+
+### 21.6.1 Git Worktrees：隔离工作区
 
 Coding Agent 的并行执行通常需要隔离文件系统状态。Git worktree 是一个实用基础设施。
 
@@ -549,7 +578,7 @@ git worktree add ../feature-payment feature/payment
 
 关键要求是写入范围要提前划分，避免多个 Agent 修改同一文件。
 
-### 21.5.2 Subagents：专家上下文
+### 21.6.2 Subagents：专家上下文
 
 Subagent 的核心价值是独立上下文。主 Agent 可以把一个边界清晰的任务交给专家 Agent，让它在自己的上下文中完成。
 
@@ -563,7 +592,7 @@ Subagent 的核心价值是独立上下文。主 Agent 可以把一个边界清�
 
 不适合把关键路径上的阻塞任务随意交给 subagent。下一步必须依赖的结果，主流程通常应该自己处理，或明确等待。
 
-### 21.5.3 Agent Teams：自动协调
+### 21.6.3 Agent Teams：自动协调
 
 Agent Team 把多个角色组织成固定拓扑。例如：
 
@@ -581,7 +610,7 @@ Team 的重点不是“让多个 Agent 聊天”，而是：
 - 有合并规则；
 - 有审计和成本记录。
 
-### 21.5.4 Batch / Fan-out：批量迁移、批量修复与批量评审
+### 21.6.4 Batch / Fan-out：批量迁移、批量修复与批量评审
 
 批量任务适合 fan-out。
 
@@ -602,7 +631,7 @@ Find targets
 - 最后统一格式化和测试；
 - 合并后的人工 review。
 
-### 21.5.5 并行任务的合并、冲突和审查边界
+### 21.6.5 并行任务的合并、冲突和审查边界
 
 并行执行的难点不在启动 worker，而在合并。
 
@@ -618,300 +647,41 @@ Find targets
 
 ---
 
-## 21.6 LangGraph：把 Agent 表示成有状态图
 
-### 21.6.1 State、Node、Edge 与 Graph
+### 21.6.6 隔离的对象不止文件
 
-LangGraph 的核心抽象是有状态图。
+Git worktree隔离checkout，不隔离同一数据库、远程服务、端口、凭据或共享缓存。每个角色使用独立工作目录/进程/必要sandbox，固定输入版本与hash；共享文件通过分工或受控合并更新，不让多个Agent同时覆写。
 
-| 抽象 | 含义 | 工程价值 |
-|:---|:---|:---|
-| State | 节点之间共享的结构化状态 | 避免所有信息都塞进 prompt |
-| Node | 一步计算，可以是 LLM、工具、函数、人工节点 | 让步骤可测试、可替换 |
-| Edge | 状态转移，可以是固定边或条件边 | 把控制流显式化 |
-| Graph | 节点和边组成的运行时结构 | 支持可视化、恢复和审计 |
+输入按“原始任务→权威状态→每角色Context Package视图”装配。公共目标/硬约束一致，专用证据按角色权限加载；各自消息列表、证据引用和摘要不可变或copy-on-write，不共享一个可任意改写的全量上下文。共享结果需明确来源/版本/可信度，敏感材料在读取和输出时再检权限。全局资源/预算/取消由唯一责任层控制。
 
-这种设计适合把 Agent loop 拆成可观察的步骤。
+## 21.7 框架与 SDK 的分层选型
 
-### 21.6.2 Durable Execution
+### 21.7.1 先分模型SDK、Agent SDK、编排Runtime与产品
 
-Durable Execution 让长任务可以在失败后恢复。关键是每一步状态都能持久化。
+| 层 | 提供什么 | 例子与应用仍需承担的责任 |
+| --- | --- | --- |
+| 模型SDK | 请求/响应/流式事件客户端 | 原生OpenAI/Anthropic客户端；应用自建循环、工具执行和状态 |
+| Agent SDK/Harness | 循环、工具、上下文与角色能力 | OpenAI Agents SDK、Claude Agent SDK；核对现成工具/交接和进程/工作区/权限边界 |
+| 编排Runtime/框架 | 显式状态/节点/边/消息和恢复组合 | LangGraph、AutoGen Core、Microsoft Agent Framework；应用仍验证存储、业务幂等和总预算 |
+| 面向用户产品 | IDE/CLI/工作台的完整使用体验 | Coding产品、Hermes等案例按第23/27章版本核验；产品名不证明底层标准或能力 |
 
-```text
-Node A completed -> checkpoint
-Node B waiting approval -> checkpoint
-Resume after approval -> Node C
-```
+LangChain提供高层agent/harness，官方说明其Agent建立于LangGraph之上；直接使用LangGraph可细化状态、节点、条件边和并发合并规则。[[5]](#ref-5)持久性还取决于checkpointer选择，内存Saver不能用于证明重启恢复。[[6]](#ref-6)
 
-这比保存聊天历史更可靠，因为 Runtime 知道当前状态、已完成动作和下一步允许动作。
+OpenAI Agents SDK提供代码式循环/工具/交接等入口，应用拥有工具实现、部署、状态与审批决策。[[7]](#ref-7)Claude Agent SDK面向把Claude Code循环/工具/上下文能力嵌入应用，运行者需管理进程、工作区和凭据；两者场景有重叠，不是业务/编码的排他分工。[[8]](#ref-8)
 
-### 21.6.3 Human-in-the-loop
+AutoGen Core强调Actor式异步消息与事件驱动。[[9]](#ref-9)Microsoft Agent Framework提供Agent与Workflow开发抽象。[[10]](#ref-10)这些是执行模型实例，不能仅按“强/中/弱”声称恢复、权限和治理完整。
 
-LangGraph 这类图式编排天然适合插入人工节点。
+### 21.7.2 组合选型要消除重复责任
 
-```text
-Diagnose -> Propose Action -> Human Approval -> Execute
-```
+固定路径分类先用普通代码+模型SDK；常见工具循环可评估高层Agent SDK；复杂分支/审批/暂停用显式图；跨角色异步协作先验证消息和owner。可以在图节点中运行Agent SDK，但必须明确内外循环、重试、状态、预算、取消与完成验收各由谁负责，防止双重重试和重复副作用。用最小真实任务和故障验证质量、延迟、成功成本与维护代价，再决定是否自研。
 
-审批不是模型输出的一句话，而是图中的 interrupt / approval state。这样才能恢复和审计。
+### 21.7.3 A2A仅作版本化协议选读
 
-### 21.6.4 Persistence 与 Replay
+A2Av0.3.0定义Agent Card、Task/Message/Artifact以及认证授权等接口。[[11]](#ref-11)MCP连接能力服务，A2A面向具有独立执行过程的Agent协作；两者可以组合。本文自建envelope、子Agent调用或事件总线都不自动符合A2A。声明支持需要检查协议端点、版本/能力、消息/任务模型和兼容测试；本轮未实现或测试A2A。
 
-Persistence 保存状态，Replay 用于调试和评估。
+## 21.8 平台组合、故障与选型
 
-Replay 时要区分：
-
-- 可以重放的纯计算节点；
-- 不能重复执行的副作用节点；
-- 需要 mock 或固定响应的外部工具；
-- 需要人工重新确认的审批节点。
-
-这也是为什么工具副作用要有幂等键和 action log。
-
-### 21.6.5 适用场景与局限
-
-适合 LangGraph 思路的场景：
-
-- 长任务；
-- 多步骤流程；
-- 需要恢复和人审；
-- 需要可视化状态；
-- 需要严格 trace。
-
-局限是设计成本更高。对于一次性问答或低风险探索，完整图式编排可能过重。
-
----
-
-## 21.7 AutoGen：从多 Agent 对话到协作拓扑
-
-### 21.7.1 AgentChat、Core 与 Extensions
-
-AutoGen 的价值在于多 Agent 编程模型。它把不同角色的 Agent、消息流、工具执行和团队模式组织起来。
-
-从工程角度看，它解决的是：
-
-- 多 Agent 如何通信；
-- 谁先说，谁后说；
-- 什么时候停止；
-- 工具由谁执行；
-- 多角色结果如何合并。
-
-### 21.7.2 Team Pattern：多 Agent 不是群聊
-
-多 Agent 系统不应该是开放群聊，而应该是协作拓扑。
-
-```text
-RoundRobin Team
-Selector Team
-Swarm
-Planner / Executor Team
-Writer / Reviewer Team
-```
-
-不同拓扑对应不同控制策略。生产系统需要明确谁有最终决策权。
-
-### 21.7.3 工具执行和代码执行边界
-
-多 Agent 中工具权限更容易出问题。不能因为某个 Agent 是“子角色”，就绕过工具权限。
-
-每个 Agent 都应该有：
-
-- 可用工具列表；
-- 风险等级；
-- sandbox；
-- 审批规则；
-- trace identity。
-
-### 21.7.4 多 Agent 系统的终止条件
-
-多 Agent 最容易无限循环。终止条件必须外置。
-
-```yaml
-team_policy:
-  max_rounds: 6
-  stop_when:
-    - reviewer_approved
-    - coordinator_decided
-    - budget_exceeded
-    - human_required
-```
-
-终止条件不应该完全交给参与对话的 Agent 自己判断。
-
-### 21.7.5 适用场景与局限
-
-适合 AutoGen 思路的场景：
-
-- 多角色协作；
-- 互审；
-- 研究和综合；
-- 复杂任务分解；
-- 需要模拟团队工作方式。
-
-局限是成本和不确定性更高。角色越多，协调协议越重要。
-
----
-
-## 21.8 Microsoft Agent Framework：企业化 Agent Runtime
-
-### 21.8.1 Agents vs Workflows
-
-企业级 Agent 系统通常同时需要 Agent 和 Workflow。
-
-```text
-Agent: 处理开放任务和动态判断
-Workflow: 管理确定流程、状态、审批和恢复
-```
-
-两者不是替代关系。生产系统常常是 workflow 调用 Agent，Agent 在节点内完成推理或工具选择。
-
-### 21.8.2 企业编排模式
-
-企业编排更关注：
-
-- 长任务；
-- 组织权限；
-- 审批流程；
-- 多系统连接；
-- 审计留痕；
-- 版本治理；
-- 部署和监控。
-
-这些能力往往比“模型能不能回答”更决定系统能否上线。
-
-### 21.8.3 Middleware、Telemetry 与企业接入
-
-企业平台需要在运行时统一处理横切能力：
-
-- authentication；
-- authorization；
-- policy；
-- logging；
-- tracing；
-- cost accounting；
-- rate limiting；
-- data boundary。
-
-Middleware 和 telemetry 的价值是让这些能力不散落在业务代码里。
-
-### 21.8.4 审批、恢复、部署与治理
-
-企业场景中，Agent Runtime 要能回答：
-
-- 哪个版本执行了这个任务；
-- 哪些工具被调用；
-- 谁批准了高风险动作；
-- 失败后是否能恢复；
-- 新版本是否通过 eval；
-- 线上质量是否下降。
-
-这些能力和第 22 章生产治理直接衔接。
-
-### 21.8.5 适用场景与局限
-
-适合企业级 Agent Framework 的场景：
-
-- 多团队共用 Agent 能力；
-- 需要统一权限和审计；
-- 需要工作流审批；
-- 需要部署、监控和治理；
-- Agent 是长期运行服务，而不是一次性脚本。
-
-局限是平台成本较高。单一场景验证阶段不应过早平台化。
-
----
-
-## 21.9 平台能力矩阵
-
-### 21.9.1 编排能力
-
-编排能力包括：
-
-- graph / workflow；
-- router；
-- conditional edge；
-- loop；
-- interrupt；
-- human approval；
-- retry；
-- compensation。
-
-编排层决定任务怎么走。
-
-### 21.9.2 状态与持久化能力
-
-状态能力包括：
-
-- task state；
-- session state；
-- checkpoint；
-- thread；
-- replay；
-- state migration；
-- action log。
-
-状态层决定任务能不能恢复。
-
-### 21.9.3 多 Agent 能力
-
-多 Agent 能力包括：
-
-- role definition；
-- team topology；
-- handoff；
-- shared evidence；
-- independent context；
-- termination policy；
-- merge protocol。
-
-多 Agent 层决定多个角色能不能协作而不是互相干扰。
-
-### 21.9.4 工具和资源接入能力
-
-工具和资源接入可以通过函数调用、内部 API Gateway、Connector、MCP Server 等方式实现。
-
-MCP 的价值在于统一暴露 Tool、Resource 和 Prompt，但它不是编排框架。它不负责 workflow、checkpoint、human approval、multi-agent routing 或 release gate。
-
-因此平台设计时应把 MCP 放在 Integration Layer，而不是 Orchestration Layer。
-
-```text
-Orchestration Layer: workflow / state / approval / routing
-Integration Layer: tools / resources / connectors / MCP servers
-Governance Layer: policy / trace / eval / release gate
-```
-
-### 21.9.5 治理、观测和部署能力
-
-治理能力包括：
-
-- policy engine；
-- tool permission；
-- trace；
-- eval harness；
-- release gate；
-- audit log；
-- cost control；
-- deployment strategy。
-
-这些能力决定 Agent 能不能长期运行，而不仅是 demo 能不能跑通。
-
-### 21.9.6 框架选型对比表
-
-| 维度 | LangGraph | AutoGen | Microsoft Agent Framework | 自研 Runtime |
-|:---|:---|:---|:---|:---|
-| 核心强项 | 有状态图、durable execution | 多 Agent 编程模型 | 企业工作流和平台化 | 完全贴合内部系统 |
-| 适合任务 | 长任务、可恢复流程 | 多角色协作 | 企业级 Agent 应用 | 特殊约束或轻量场景 |
-| 状态管理 | 强 | 中 | 强 | 取决于实现 |
-| 多 Agent | 中 | 强 | 中到强 | 取决于实现 |
-| 工具接入 | 需集成 | 需集成 | 生态集成 | 自行建设 |
-| 治理能力 | 需补齐 | 需补齐 | 较强 | 自行建设 |
-| 主要风险 | 图设计成本 | 协调成本 | 平台复杂度 | 重复造轮子 |
-
----
-
-## 21.10 设计自己的 Agent 平台
-
-### 21.10.1 最小生产平台清单
+### 21.8.1 最小生产平台清单
 
 一个最小生产 Agent 平台不应该先追求可视化拖拽，而应该优先建设运行时底座。
 
@@ -925,7 +695,7 @@ Governance Layer: policy / trace / eval / release gate
 | Eval Harness | 回归集、失败样本、版本对比 | 模型或 prompt 一改就退化 |
 | Artifact Store | 报告、diff、图表、日志片段 | 输出散落在聊天里，无法审查 |
 
-### 21.10.2 控制面、执行面、集成面与治理面
+### 21.8.2 控制面、执行面、集成面与治理面
 
 可以把平台拆成四个面：
 
@@ -938,7 +708,7 @@ Governance Plane: trace / eval / audit / cost / monitoring
 
 这四个面不一定要拆成四个服务，但职责要清楚。
 
-### 21.10.3 生产级运行时事件模型
+### 21.8.3 生产级运行时事件模型
 
 Agent Runtime 应该把关键事件记录下来。
 
@@ -958,7 +728,7 @@ Agent Runtime 应该把关键事件记录下来。
 
 事件模型是 trace、eval、debug、audit 和 billing 的共同基础。
 
-### 21.10.4 多租户与权限边界
+### 21.8.4 多租户与权限边界
 
 平台化后必须处理多租户：
 
@@ -972,7 +742,7 @@ Agent Runtime 应该把关键事件记录下来。
 
 多 Agent 和 subagent 不能继承无限权限。每次 handoff 都应该重新计算权限和上下文边界。
 
-### 21.10.5 从单应用 Agent 到共享平台的演进路线
+### 21.8.5 从单应用 Agent 到共享平台的演进路线
 
 推荐演进路线：
 
@@ -989,85 +759,8 @@ single app agent
 
 ---
 
-## 21.11 工程取舍与选型清单
 
-### 21.11.1 图式编排 vs 自由 Agent Loop
-
-自由 loop 灵活，图式编排可控。
-
-建议：
-
-- 低风险探索用自由 loop；
-- 生产流程用显式 workflow；
-- 高风险动作必须进入审批节点；
-- 长任务必须有 checkpoint。
-
-### 21.11.2 单 Agent vs 多 Agent
-
-优先从单 Agent + Workflow 开始。只有当存在清晰角色边界、并行收益或互审需求时，再引入多 Agent。
-
-多 Agent 的收益必须超过协调成本。
-
-### 21.11.3 框架 vs 自研
-
-选择框架还是自研，取决于已有系统约束。
-
-适合框架：
-
-- 需要 durable execution；
-- 需要多 Agent；
-- 需要快速验证；
-- 团队愿意接受框架抽象。
-
-适合自研：
-
-- 内部权限、工具、审计约束很强；
-- 只需要轻量 workflow；
-- 不希望引入重依赖；
-- 平台能力需要深度定制。
-
-### 21.11.4 平台化 vs 单应用内嵌
-
-单应用内嵌适合早期验证。平台化适合多团队复用。
-
-平台化触发信号：
-
-- 多个团队重复接模型；
-- 多个团队重复封装工具；
-- 权限和审计开始分散；
-- 需要统一成本控制；
-- 需要统一 eval 和 release gate；
-- 长任务恢复成为共性问题。
-
-### 21.11.5 选型决策树
-
-```text
-任务是否有明确流程？
-  ├─ 是：优先 workflow / graph
-  └─ 否：继续问
-
-任务是否需要长时间运行或恢复？
-  ├─ 是：必须 checkpoint / durable execution
-  └─ 否：继续问
-
-是否需要多个角色协作？
-  ├─ 是：考虑 multi-agent topology
-  └─ 否：单 Agent + workflow
-
-是否多团队复用？
-  ├─ 是：建设平台控制面
-  └─ 否：先应用内嵌
-
-是否主要问题是外部能力接入？
-  ├─ 是：建设 tool runtime / connector / MCP integration
-  └─ 否：不要把 MCP 当编排层
-```
-
----
-
-## 21.12 常见失败模式与修复路径
-
-### 21.12.1 工作流卡死
+### 21.8.6 工作流卡死
 
 表现：
 
@@ -1082,7 +775,7 @@ single app agent
 - 增加 fallback 和 human escalation；
 - trace 中记录卡住原因。
 
-### 21.12.2 状态丢失或重复执行
+### 21.8.7 状态丢失或重复执行
 
 表现：
 
@@ -1097,7 +790,7 @@ single app agent
 - action log 记录请求和响应；
 - resume 时从状态恢复，不从聊天历史猜。
 
-### 21.12.3 多 Agent 循环争论
+### 21.8.8 多 Agent 循环争论
 
 表现：
 
@@ -1112,7 +805,7 @@ single app agent
 - 引入 final decision owner；
 - 低置信度转人工。
 
-### 21.12.4 工具副作用失控
+### 21.8.9 工具副作用失控
 
 表现：
 
@@ -1129,7 +822,7 @@ single app agent
 - audit log；
 - 最小权限。
 
-### 21.12.5 平台抽象过重
+### 21.8.10 平台抽象过重
 
 表现：
 
@@ -1144,7 +837,7 @@ single app agent
 - 保留轻量 escape hatch；
 - 平台能力按复用痛点演进。
 
-### 21.12.6 Trace 不足导致无法复盘
+### 21.8.11 Trace 不足导致无法复盘
 
 表现：
 
@@ -1163,36 +856,37 @@ single app agent
 
 ---
 
+
+### 21.8.12 一次双Agent交接与故障复核
+
+教学Coding任务由A负责父任务，B负责补丁审查子Step；B不自动获得发布权限。
+
+| 顺序 | 事实/消息 | 权威变化与验证 |
+| --- | --- | --- |
+| 1 | A保存patch-v2/test-v2，提交review.request m17与Outbox | review Step版本7，目标B、预算与输入hash固定 |
+| 2 | mailbox投递，B校验输入/权限并条件认领 | review版本8/owner=B/epoch=4，回accept；A仍拥有父任务 |
+| 3 | m17重复投递 | inbox返回已有认领，不创建第二个review或新业务动作 |
+| 4 | B输出不可变review-v1并提交result m18 | 带correlation=h1、causation=m17、plan=3与产物hash |
+| 5 | A收到后查询review Step并独立验收 | 旧plan结果拒收，验收通过才join后继；拒收回有界修订 |
+| 6 | B中途失联或父任务取消 | 由状态记录驱动owner恢复/取消传播，迟到产物重验，不复活终态 |
+
+生产故障断言至少覆盖：提交后宕机、投递/回执重复、乱序、过期owner写入、同ID异参、拒收循环、权限撤销、取消后晚到成功、队列积压及缺失产物。每项复用[第11章](infra-11-runtime.md)原语和[第12章](infra-12-reliability-governance.md)修复owner/deadline；Trace和事件总线只是观测，不是可靠事实的替代。
+
 ## 本章小结
 
-执行编排是 Agent 从 demo 走向生产的关键层。它不只属于多 Agent，单 Agent 只要任务变长、动作变多、风险变高，也需要 workflow、state machine、checkpoint 和 human-in-the-loop。
+编排把计划、步骤、权限和验收连成有界过程。mailbox传定向工作，共享状态保存责任与版本，总线通知变化；消息关联、传输去重与业务幂等分别设计。角色越多越需要独立上下文、资源隔离和总预算。框架按层选型，自建通信不自动成为A2A，教学轨迹不是实现与实测。
 
-本章的核心结论是：
-
-1. Agent Loop 适合原型，生产系统需要 Workflow Runtime；
-2. 单 Agent 也需要显式编排；
-3. Workflow Pattern 可以服务单 Agent，也可以服务多 Agent；
-4. Multi-Agent 是执行编排的复杂形态，不是默认起点；
-5. LangGraph、AutoGen、Microsoft Agent Framework 分别从状态图、多 Agent 编程模型和企业运行时角度提供抽象；
-6. MCP 是 Integration Layer，不是 Orchestration Layer；
-7. 平台化的关键不是框架名称，而是状态、工具、权限、审批、恢复、trace、eval 和发布治理是否形成闭环。
-
-一句话总结：
-
-```text
-生产级 Agent 不是一个更聪明的 while loop，而是一个能组织任务、保存状态、控制副作用、插入人工、恢复失败、记录证据的运行时系统。
-```
-
----
 
 ## 参考资料
 
-1. [LangGraph Overview - LangChain Docs](https://docs.langchain.com/oss/python/langgraph/overview)
-2. [LangGraph Durable Execution - LangChain Docs](https://docs.langchain.com/oss/python/langgraph/durable-execution)
-3. [LangGraph Persistence - LangChain Docs](https://docs.langchain.com/oss/python/langgraph/persistence)
-4. [AutoGen Stable Documentation - Microsoft](https://microsoft.github.io/autogen/stable/index.html)
-5. [AutoGen AgentChat User Guide - Microsoft](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/index.html)
-6. [AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation - Microsoft Research](https://www.microsoft.com/en-us/research/publication/autogen-enabling-next-gen-llm-applications-via-multi-agent-conversation-framework/)
-7. [Microsoft Agent Framework Overview - Microsoft Learn](https://learn.microsoft.com/en-us/agent-framework/overview/)
-8. [Agent Framework Workflow Orchestrations - Microsoft Learn](https://learn.microsoft.com/en-us/agent-framework/workflows/orchestrations/)
-9. [Model Context Protocol Specification](https://modelcontextprotocol.io/specification/2025-03-26/architecture)
+1. <a id="ref-1"></a> LangChain，[Workflows and agents](https://docs.langchain.com/oss/python/langgraph/workflows-agents)，rolling; 2026-10-18。
+2. <a id="ref-2"></a> Yao et al.，[ReAct: Synergizing Reasoning and Acting in Language Models](https://arxiv.org/abs/2210.03629)，2022。
+3. <a id="ref-3"></a> Hohpe and Woolf，[Correlation Identifier](https://www.enterpriseintegrationpatterns.com/patterns/messaging/CorrelationIdentifier.html)，Enterprise Integration Patterns。
+4. <a id="ref-4"></a> RabbitMQ，[Consumer Acknowledgements and Publisher Confirms](https://www.rabbitmq.com/docs/confirms)，rolling; 2026-10-18。
+5. <a id="ref-5"></a> LangChain，[LangChain overview](https://docs.langchain.com/oss/python/langchain/overview)，rolling; 2026-10-18。
+6. <a id="ref-6"></a> LangChain，[Persistence](https://docs.langchain.com/oss/python/langgraph/persistence)，rolling; 2026-10-17。
+7. <a id="ref-7"></a> OpenAI，[Agents SDK](https://developers.openai.com/api/docs/guides/agents/sdk)，rolling; 2026-10-17。
+8. <a id="ref-8"></a> Anthropic，[Agent SDK overview](https://code.claude.com/docs/en/agent-sdk/overview)，rolling; 2026-10-18。
+9. <a id="ref-9"></a> Microsoft，[AutoGen Core](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/index.html)，stable docs; 2026-10-18。
+10. <a id="ref-10"></a> Microsoft，[Microsoft Agent Framework Overview](https://learn.microsoft.com/en-us/agent-framework/overview/)，rolling; 2026-10-18。
+11. <a id="ref-11"></a> A2A project，[A2A Protocol Specification](https://a2a-protocol.org/v0.3.0/specification/)，v0.3.0。

@@ -2,6 +2,8 @@
 
 > 生产级 Agent 的核心不是“看起来聪明”，而是可评估、可约束、可观察、可恢复、可持续改进。
 
+版本与范围：资料核验于2026-10-18。以下Eval Case、评分、门禁阈值、轨迹和案例均为教学设计，未运行真实Agent评测；本章不声称任何产品已经通过门禁。
+
 ## 引言
 
 前面几章讨论了 Agent 的架构、工具、知识系统、工作流和 Memory。到这里，一个 Agent 已经具备了“思考、检索、记忆、行动”的能力。
@@ -108,7 +110,7 @@ Agent Runtime
 
 一开始实现可以很小，但边界要先留出来。
 
-### 贯穿案例：告警诊断 Agent 的失败闭环
+### 一般失败示例：告警诊断的闭环
 
 假设一个告警诊断 Agent 在线上收到请求：
 
@@ -146,9 +148,27 @@ root_cause_layer = retrieval + reasoning
 
 ## 22.2 Agent Evals：从样例测试到质量体系
 
+AgentBench和tau-bench分别从交互环境、工具/用户/规则交互评价Agent，说明最终文本之外还需要任务与交互结果。[[1]](#ref-1)[[2]](#ref-2)本章复用[第10章](infra-10-data-eval.md)的eval-case/v1、case_id/case_version、环境manifest、expected_constraints、分层数据与统计，以下伪代码只是行为评估投影，不是第二套生产schema。
+
 Agent Eval 的目标不是证明模型“聪明”，而是持续回答：
 
 > 在我们关心的任务分布上，这个 Agent 是否可靠？
+
+### 终态、过程与安全必须分别判定
+
+终态检查目标是否在截止前完成且实际产物可核验；过程检查必要证据、状态/调用关联、预算、未知Operation与有界停止；安全检查数据读取、动作授权、外发、取消与撤权。允许等价正确路径，不能仅因工具序列不同判失败。业务结果正确但越权读取或重复退款属于unsafe success，整体不得通过。
+
+结果保留passed/failed/unknown/invalid等原因；评估执行completed只说明跑完，不能当任务成功。超时、缺结果与采样遗漏不得从任务分母悄悄删除。按租户、权限、长任务、供应商、语言和风险切片，不能让平均分掩盖高风险失败。
+
+### 三案例回归设计
+
+| 案例与固定输入 | 终态断言 | 过程断言 | 安全与故障切片 |
+| --- | --- | --- | --- |
+| 企业知识：当前员工问报销规则，源文档v3与旧v2冲突 | 回答只引用当前可见且适用证据，缺项拒答/澄清 | 回溯source_version/片段，记录冲突与撤权检查 | 撤权v3不能用缓存复活；文档“管理员批准外发”仍是数据 |
+| Coding：修登录过期边界，仅src/auth、不部署 | 实际diff和固定测试通过，未运行项目如实标明 | 文件hash/补丁/测试版本关联，旧摘要先回源 | 越目录/删除验收/部署提案被阻止；不能只靠模型自述完成 |
+| Hermes教学扩展：长会话压缩后继续处理已发但unknown操作 | 查询真实Operation再收敛，不重复提交 | 保留operation_id/调用配对、会话/Memory作用域与有界恢复 | 取消后晚到成功仍保留事实；可靠恢复并非本章已核验Hermes保证 |
+
+案例分别回链第19/24章、第23/29章和第20/27章，基础状态来自第11章。每个case保存输入/工具fixture/权限/模型Prompt/索引Memory/判定器版本，以及预期证据与失败分类；当前只交设计，不报告测试得分。
 
 ### 评估对象
 
@@ -336,6 +356,8 @@ def aggregate_score(scores):
 
 ### Pairwise Regression：比较新旧版本
 
+Langfuse支持按实验比较结果；这里复用第10章同case配对/留出/置信范围的方法，平台展示差异不自动证明改善显著。[[3]](#ref-3)
+
 Agent 系统经常不是“绝对好坏”，而是“新版本是否比旧版本更好”。尤其在升级模型、改 prompt、换检索索引时，单点评分容易误导。
 
 推荐对关键 eval 集做 pairwise regression：
@@ -496,6 +518,8 @@ failure_case:
 
 ### LLM-as-Judge 的正确用法
 
+MT-Bench研究讨论裁判偏差和与人工判断的一致性；Langfuse也要求用标签样本校准rubric。[[4]](#ref-4)[[5]](#ref-5)
+
 LLM-as-Judge 适合评估语义质量，但不能无约束使用。
 
 好的 Judge Prompt 应该：
@@ -520,6 +544,14 @@ LLM-as-Judge 适合评估语义质量，但不能无约束使用。
 
 LLM-as-Judge 也必须被评估。可以维护一组人工标注样本，定期检查 judge 和人工标注的一致性。
 
+### 裁判校准不能让生成者自证
+
+将人工标注保留在评分侧，固定rubric/model/prompt版本，不把待预测标签泄漏给裁判；裁判可读取必要参考证据，但不把候选答案的“我已验证”当事实。用盲化与换序检查位置偏好，争议样本人工复核；开发集调阈值后用独立留出集检验。
+
+分别统计有效标签一致率、invalid/missing数量、误通过和误拒绝；高风险类别报告混淆方向与样本量，数值尺度先归一化再聚合。本章评分权重/0.8等是教学阈值，不是通用标准。权限、金额和实际工具成功由确定性/权威记录判定，不能交给语言裁判决定。
+
+Langfuse当前observation级评估不会自动装入同trace全部子观察；过程裁判需要受控汇总必要证据与覆盖清单，否则明确unknown，不能声称已审查整条轨迹。[[5]](#ref-5)
+
 ### Human Review 的位置
 
 不是所有 eval 都能自动化。生产级 Agent 至少要保留三类人工评审：
@@ -534,7 +566,7 @@ LLM-as-Judge 也必须被评估。可以维护一组人工标注样本，定期�
 
 ## 22.3 Guardrails：把安全边界放进系统
 
-Guardrails 不是一条 prompt，而是一组运行时控制。
+Guardrails是运行时检查。OpenAI官方文档区分自动检查与人工审批，也区分阻塞和并行执行；存在高风险副作用时，不能让“并行检测稍后拦截”代替执行前阻止。[[6]](#ref-6)
 
 ```text
 User Input
@@ -624,7 +656,7 @@ context_items:
 
 ### 有副作用工具的五段式护栏
 
-查询类工具失败最多影响答案质量；写操作工具失败可能影响真实系统。所以有副作用工具必须做成五段式：
+只读查询也可能越权、暴露敏感信息或触发SSRF；写操作还增加真实副作用风险。所以有副作用工具必须做成五段式：
 
 ```text
 Intent
@@ -650,7 +682,7 @@ Post-check
 - human approval：记录审批人和审批理由；
 - post-condition：执行后验证状态；
 - compensation：失败时有补偿或回滚路径；
-- audit log：保存完整 tool call、审批、结果和 trace_id。
+- audit log：保存必要调用摘要、审批与结果引用和trace_id，敏感载荷另受控。
 
 可以把工具接口设计成这样：
 
@@ -658,7 +690,7 @@ Post-check
 {
   "tool": "create_ticket",
   "mode": "dry_run",
-  "idempotency_key": "trace_20260430_001:create_ticket:checkout-latency",
+  "idempotency_key": "business-intent-ticket-checkout-demo",
   "args": {
     "title": "checkout-api latency increased",
     "severity": "medium",
@@ -770,6 +802,12 @@ def decide_tool_call(user, env, tool, args, task_state):
 - 是否对不确定性做了说明；
 - 是否把“假设”表达成了“事实”。
 
+### 护栏误杀与漏放的配对回归
+
+OWASP指出外部文本/图像可携带间接注入，防线需要最小权限和独立控制，不能只测试用户直接攻击。[[7]](#ref-7)构造标签为“允许/阻止/需审批”的合法请求、恶意请求、引用攻击文字的正常教学请求，以及跨工具/Memory污染样本；固定候选版本前后配对。
+
+分别报告合法样本被错误阻断的误杀率、违规样本被放行的漏放率、需审批却直接执行率、invalid和未覆盖数。被拦截多不证明安全更好，低漏放也不能遮住合法用户完全无法完成任务。阈值与例外需在独立集验证，连同处置owner和回滚目标记录后才能进入发布决策。
+
 ### Guardrails 的常见误区
 
 | 误区 | 问题 | 更好的做法 |
@@ -867,6 +905,8 @@ Trace 不只是日志。它应该成为调试、评估、审计和成本分析�
 注意不要把完整敏感参数、token、cookie、用户隐私原样写进 trace。Trace 也需要脱敏和访问控制。
 
 ### Span 化的 Agent Trace
+
+OpenTelemetry用trace/span及传播上下文关联操作。[[8]](#ref-8)记录缺span、传播断裂和导出失败，不以界面可见的局部轨迹证明全部动作安全；权威Run/Operation仍来自第11章。
 
 如果团队已经使用 OpenTelemetry 或类似链路追踪系统，Agent trace 可以映射成 span 层级。
 
@@ -1029,7 +1069,7 @@ Agent 成本主要来自：
 
 Trace 越完整，越容易调试；但 trace 也可能包含敏感信息。生产系统至少要做：
 
-- 参数 hash 化；
+- 参数最小化与受控hash/脱敏；hash仍可能可关联，不能自动视作匿名；
 - 文档片段脱敏；
 - PII 检测；
 - trace 访问控制；
@@ -1137,6 +1177,8 @@ agent_version:
 如果线上质量变差，只知道“换了模型”是不够的。治理控制面必须记录完整组合，否则无法定位是哪一个版本对象引入了回归。
 
 ### Release Gate 的决策逻辑
+
+发布证据包绑定候选/基线manifest、case与数据版本、断言器/judge校准、原始失败和切片统计、护栏误杀漏放、Trace覆盖、未关闭风险及owner、灰度/回滚目标和审批记录。缺失高风险过程证据按unknown处理并阻止相应范围发布；零次观测失败不等于真实风险为零，样本量/不确定性按第10章报告。
 
 发布门禁不应该依赖人工感觉，而应该由 eval report、policy report 和线上指标共同决定。
 
@@ -1577,6 +1619,16 @@ Agent 治理的目标，是把概率系统放进工程闭环。
 - Debug 让失败可复盘；
 - Continuous Improvement 让系统持续变好。
 
-一句话总结：
+治理闭环提供检查与处置机制，生产可用性仍需要特定任务、环境和风险范围下的真实证据，不能由组件齐全直接推出。
 
-> 没有评估、护栏和可观测性的 Agent，只是一个 Demo；有治理闭环的 Agent，才是生产系统。
+
+## 参考资料
+
+1. <a id="ref-1"></a> Liu et al.，[AgentBench: Evaluating LLMs as Agents](https://arxiv.org/abs/2308.03688)，2023。
+2. <a id="ref-2"></a> Yao et al.，[tau-bench: A Benchmark for Tool-Agent-User Interaction in Real-World Domains](https://arxiv.org/abs/2406.12045)，2024。
+3. <a id="ref-3"></a> Langfuse，[Compare experiments](https://langfuse.com/docs/evaluation/experiments/compare-experiments)，rolling; 2026-10-18。
+4. <a id="ref-4"></a> Zheng et al.，[Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena](https://arxiv.org/abs/2306.05685)，2023。
+5. <a id="ref-5"></a> Langfuse，[LLM-as-a-Judge](https://langfuse.com/docs/evaluation/evaluation-methods/llm-as-a-judge)，rolling; 2026-10-18。
+6. <a id="ref-6"></a> OpenAI，[Guardrails and human review](https://developers.openai.com/api/docs/guides/agents/guardrails-approvals)，rolling; 2026-10-18。
+7. <a id="ref-7"></a> OWASP，[LLM01:2025 Prompt Injection](https://genai.owasp.org/llmrisk/llm01-prompt-injection/)，2025。
+8. <a id="ref-8"></a> OpenTelemetry，[Traces](https://opentelemetry.io/docs/concepts/signals/traces/)，checked 2026-10-18。
