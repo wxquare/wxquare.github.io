@@ -269,16 +269,43 @@ CUDA的逻辑Grid包含Block，Block包含Thread；线程以warp参与执行，b
 
 本书用32个bank、4字节float和32线程warp作教学映射：连续访问通常分散到不同bank，32×32 tile按列读取的步长32可能使不同地址落同bank；改32×33可改变映射。这里不把同地址广播当不同地址冲突，也不推广到任意向量宽度与硬件。padding增加共享空间，可能减少驻留block；它解决的是特定性能冲突，不能修复越界、未初始化或race。[[23]](#ref-23)
 
+### Shared Memory故障：先证明正确，再诊断bank冲突
+
+某个 shape 才出错时，先固定输入、dtype、stride、block/tile 和工具链，缩减成可复现的最小尺寸，并与可靠参考逐元素比较。以下是本书诊断顺序；Sanitizer 工具职责依据 NVIDIA 官方手册：memcheck 检查内存访问，racecheck 检查共享内存访问竞争，synccheck 检查同步原语使用。它们只覆盖已执行路径，并不能证明所有尺寸正确。[[25]](#ref-25)
+
+| 现象或证据 | 优先核对 | 修复后的验收 |
+| --- | --- | --- |
+| 非整 tile 或短行出错 | 全局/共享索引、尾线程读写、有效元素数、对齐和越界；先运行 memcheck | 同时测试 tile 前后相邻尺寸、非连续 stride 与空维度 |
+| 结果随运行变化 | 共享位置是否先写后读、是否复用上轮残值；按需运行 racecheck | 消费路径只读本轮已写位置，循环复用前后依赖明确 |
+| 部分尺寸挂起或同步报错 | 分支和提前 return 是否使部分线程跳过块屏障；运行 synccheck | 无效线程可屏蔽访存，但仍按算法要求参与同步 |
+| 结果正确、访问明显变慢 | 区分同地址广播和不同地址落同 bank；检查布局、元素宽度及资源占用 | padding 前后输出等价，同时比较共享空间、驻留度和耗时 |
+
+自动门禁配置非零错误退出码并保存报告，缺少设备时记录未验证；padding 不能修复越界、竞争或错误屏障。
+
 ### 融合、编译与瓶颈的受控实验
 
-融合常减少launch和中间HBM读写，却可能增加寄存器、spill、共享内存和同步，破坏独立库核的tile或Tensor Core路径。回退时先固定形状、dtype、预热、计时同步与数据，再比寄存器、local spill、占用、访存合并和kernel时间；缩小融合范围也应作为候选，而非只继续加融合。Triton语言以blocked program描述计算，CUDA给出较显式的线程与同步控制；此Triton不是第7章的Triton Inference Server。[[25]](#ref-25)
+融合常减少launch和中间HBM读写，却可能增加寄存器、spill、共享内存和同步，破坏独立库核的tile或Tensor Core路径。回退时先固定形状、dtype、预热、计时同步与数据，再比寄存器、local spill、占用、访存合并和kernel时间；缩小融合范围也应作为候选，而非只继续加融合。Triton语言以blocked program描述计算，CUDA给出较显式的线程与同步控制；此Triton不是第7章的Triton Inference Server。[[26]](#ref-26)
 
-TVM涉及图与算子程序及运行时，XLA是张量计算编译器，TensorRT面向NVIDIA推理部署，三者不是训练并行框架的同义词。[[26]](#ref-26)[[27]](#ref-27)[[28]](#ref-28) 图级做等价变换、常量折叠、死代码消除、布局协调与融合；算子级安排tiling、循环、线程与存储层级。局部最佳布局可能让相邻算子多出转置，需接受局部牺牲来减少全图搬运。浮点重排按明确误差而非文本相同验收。
+TVM涉及图与算子程序及运行时，XLA是张量计算编译器，TensorRT面向NVIDIA推理部署，三者不是训练并行框架的同义词。[[27]](#ref-27)[[28]](#ref-28)[[29]](#ref-29) 图级做等价变换、常量折叠、死代码消除、布局协调与融合；算子级安排tiling、循环、线程与存储层级。局部最佳布局可能让相邻算子多出转置，需接受局部牺牲来减少全图搬运。浮点重排按明确误差而非文本相同验收。
 
 动态图可捕获局部静态IR并做符号维或shape特化；图断裂、数据依赖分支和新形状可能回退或重编译。静态IR不等于全部尺寸固定，也不等于CUDA Graph的launch捕获。记录编译、预热、缓存命中和长尾形状成本，限制特化缓存，罕见shape走经过验证的通用路径。一次导出成功不能证明训练或Serving端到端更快。
 
-Nsight的Roofline用算术强度与带宽/计算上限帮助解释核的瓶颈。[[29]](#ref-29) 本书粗略模型为性能不超过min(峰值算力,带宽×FLOPs/字节)，但计数器须对应所用精度、访存层和真实指令。SM低且DRAM低也可能是launch、同步、CPU供给、小grid或依赖链；不能据此二分为“计算”或“显存”。先从时间线看空闲还是核内低效，再改batch、分块或融合检验假设，报告kernel和端到端两个层级。
+Nsight的Roofline用算术强度与带宽/计算上限帮助解释核的瓶颈。[[30]](#ref-30) 本书粗略模型为性能不超过min(峰值算力,带宽×FLOPs/字节)，但计数器须对应所用精度、访存层和真实指令。SM低且DRAM低也可能是launch、同步、CPU供给、小grid或依赖链；不能据此二分为“计算”或“显存”。先从时间线看空闲还是核内低效，再改batch、分块或融合检验假设，报告kernel和端到端两个层级。
 
+
+### 编译工具比较：抽象层次与验收对象
+
+下表比较开发者控制的对象，描述依据维护方文档；验收要求为本书推导。[[23]](#ref-23)[[26]](#ref-26)[[27]](#ref-27)[[28]](#ref-28)[[29]](#ref-29)
+
+| 路线 | 主要控制对象与用途 | 比较时需要验证的代价 |
+| --- | --- | --- |
+| CUDA | 显式线程、块、同步与内存访问；适合需要细致控制的设备程序 | 开发调试、边界与同步正确性、架构适配，以及实际占用和访存 |
+| Triton | 用分块张量程序表达自定义计算，由编译器生成设备代码 | mask、布局、编译特化和调优；表达简洁不保证比成熟 CUDA 库更快 |
+| TVM | 连接模型/图表示、张量程序变换、目标代码与运行时，可组合图和算子优化 | 前端与目标支持、优化与搜索成本、布局转换和外部库边界 |
+| XLA | 对张量计算图进行编译、优化与目标代码生成 | 可编译区域、动态控制流/shape、重编译与回退，连同首次编译时间 |
+| TensorRT | 针对 NVIDIA 推理进行网络优化、执行方案选择与 engine 构建 | 算子与精度支持、动态 shape 配置、插件维护、构建时间及部署兼容性 |
+
+以 `matmul → bias → activation` 为教学例，图级先识别数据依赖、消去无效节点，并决定是否融合及如何衔接布局；不能跨越有副作用或不满足语义的边界任意重排。算子级再选择分块、循环顺序、线程绑定和存储位置。TVM 的图与张量程序层、Pass 基础设施支持这种分层变换，具体入口随版本核对。[[27]](#ref-27)这里给出的是优化职责与执行次序，不是一段已经运行的 TVM 程序。
 
 ## 8.5 Checkpoint与恢复协议
 
@@ -302,7 +329,7 @@ Nsight的Roofline用算术强度与带宽/计算上限帮助解释核的瓶颈�
 
 常见故障包括 GPU Xid、节点重启、网络分区、NCCL hang、对象存储限流、文件系统不可写、容器驱逐、OOM、NaN 和数据 shard 损坏。单卡故障可能需要替换节点并重建 communicator；存储抖动可以退避重试；NaN 应停止并恢复健康点；rank 卡死需要 watchdog 和全局超时。不同故障必须有不同的 runbook，不能把“自动重启”当作统一方案。
 
-弹性恢复可以等待原节点、替换节点后保持 world size、缩小 world size 继续，或回滚并重新分配。改变 world size 可能改变 global batch、学习率、数据顺序和 optimizer 行为。平台应让恢复策略显式化，并在报告中记录丢失步数、重算 token、恢复耗时和最终质量差异。SRE 的错误预算思想可用于决定何时继续重试、何时停止作业并人工处理 [[30]](#ref-30)。
+弹性恢复可以等待原节点、替换节点后保持 world size、缩小 world size 继续，或回滚并重新分配。改变 world size 可能改变 global batch、学习率、数据顺序和 optimizer 行为。平台应让恢复策略显式化，并在报告中记录丢失步数、重算 token、恢复耗时和最终质量差异。SRE 的错误预算思想可用于决定何时继续重试、何时停止作业并人工处理 [[31]](#ref-31)。
 
 
 ### 训练状态与推理制品分离
@@ -332,7 +359,7 @@ Nsight的Roofline用算术强度与带宽/计算上限帮助解释核的瓶颈�
 
 ### 异步快照时间线与完整性发布
 
-PyTorch DCP2.9明确把staging目标定义为training-safe表示：staging完成后，后续参数更新不应改动被保存的表示；自定义stager若不自动同步，调用者负责选择正确同步点。[[31]](#ref-31) 这里区分设备拷贝完成与持久化完成，不能把Future存在当保存已提交。以下是本书通用协议设计，不是DDP自动具备的API行为：
+PyTorch DCP2.9明确把staging目标定义为training-safe表示：staging完成后，后续参数更新不应改动被保存的表示；自定义stager若不自动同步，调用者负责选择正确同步点。[[32]](#ref-32) 这里区分设备拷贝完成与持久化完成，不能把Future存在当保存已提交。以下是本书通用协议设计，不是DDP自动具备的API行为：
 
 | 时刻 | 训练/保存行为 | 可见事实与恢复选择 |
 |:---|:---|:---|
@@ -357,7 +384,7 @@ PyTorch DCP2.9明确把staging目标定义为training-safe表示：staging完成
 
 配额应同时按 GPU 数、GPU 小时、显存、优先级和项目预算表达。一个团队占用少量高端 GPU 训练很久，可能比另一个团队使用更多低端 GPU 更昂贵。成本系统要记录预约、实际使用、空闲等待、通信等待、恢复重算、评估和 checkpoint。按有效 token 和成功实验归因，才能比较不同团队的真实效率。
 
-多租户环境应隔离数据凭证、checkpoint 路径、日志、缓存和调试权限。训练 worker 只获得访问具体 manifest 和 shard 的短期凭证，不能拥有整个 bucket 的写权限；checkpoint 目录与原始数据隔离；样本抽样和错误日志默认脱敏。OpenTelemetry 与 Prometheus 可以提供统一的运行指标和追踪基础，但敏感数据是否记录仍需平台策略 [[11]](#ref-11)[[32]](#ref-32)[[33]](#ref-33)。
+多租户环境应隔离数据凭证、checkpoint 路径、日志、缓存和调试权限。训练 worker 只获得访问具体 manifest 和 shard 的短期凭证，不能拥有整个 bucket 的写权限；checkpoint 目录与原始数据隔离；样本抽样和错误日志默认脱敏。OpenTelemetry 与 Prometheus 可以提供统一的运行指标和追踪基础，但敏感数据是否记录仍需平台策略 [[11]](#ref-11)[[33]](#ref-33)[[34]](#ref-34)。
 
 ### 成本预算与容量计划
 
@@ -374,7 +401,7 @@ E(N) = throughput(N) / (N × throughput(1))
 
 训练作业失败后，常见残留包括 Kubernetes Pod、NCCL 进程、共享内存、Pinned Memory、对象存储临时目录、租约、GPU reservation 和告警。控制面应有终止流程：先发送取消事件，等待 worker 上报 checkpoint 或停止原因，再清理通信组、释放分配、关闭数据流、删除临时文件并写最终状态。清理流程需要超时和人工兜底，不能无限等待一个失联 worker。
 
-资源回收要幂等。重复执行清理不会删除其他 job 的路径，不会释放错误的 GPU，也不会覆盖成功的最终状态。临时目录命名必须包含不可猜测的 run_id 和版本；清理器根据 manifest 校验归属，而不是使用宽泛的通配符。Prometheus 可以监测 reservation 与实际 Pod 的差异，及时发现资源泄漏 [[32]](#ref-32)。
+资源回收要幂等。重复执行清理不会删除其他 job 的路径，不会释放错误的 GPU，也不会覆盖成功的最终状态。临时目录命名必须包含不可猜测的 run_id 和版本；清理器根据 manifest 校验归属，而不是使用宽泛的通配符。Prometheus 可以监测 reservation 与实际 Pod 的差异，及时发现资源泄漏 [[33]](#ref-33)。
 
 ### 训练与后训练的资源差异
 
@@ -401,7 +428,7 @@ E(N) = throughput(N) / (N × throughput(1))
 
 训练指标包括 loss、学习率、梯度范数、有效 token、device token、GPU 利用率、显存、kernel 时间、通信、数据等待、checkpoint、恢复和节点健康。指标要按 rank、节点、数据桶和并行维度聚合，同时保留最大值和方差，避免平均值掩盖一个慢 rank。日志记录错误上下文，trace 连接控制面、数据服务、worker 和 checkpoint 服务。
 
-Dapper 的分布式追踪思想适合把训练控制面和数据面关联起来 [[33]](#ref-33)。训练 trace 不应默认记录完整样本和隐私文本，而应记录 manifest、shard、batch、step、request id、错误类型和 hash。OpenTelemetry 提供跨组件的语义约定，Prometheus 适合时间序列与告警；二者结合后，平台能从“GPU 下降”追到“某类 shard 解压变慢”或“某个 rank 通信抖动”。
+Dapper 的分布式追踪思想适合把训练控制面和数据面关联起来 [[34]](#ref-34)。训练 trace 不应默认记录完整样本和隐私文本，而应记录 manifest、shard、batch、step、request id、错误类型和 hash。OpenTelemetry 提供跨组件的语义约定，Prometheus 适合时间序列与告警；二者结合后，平台能从“GPU 下降”追到“某类 shard 解压变慢”或“某个 rank 通信抖动”。
 
 ### 验收矩阵
 
@@ -414,7 +441,7 @@ Dapper 的分布式追踪思想适合把训练控制面和数据面关联起来 
 
 训练平台至少要演练五类注入：杀死一个 rank、关闭一台节点、阻断集合通信、让对象存储返回超时、损坏一个 checkpoint shard。每次注入要记录检测时间、作业状态、用户可见影响、自动恢复、重算 token、恢复后的 loss 和资源释放。若系统只在单进程退出时能恢复，而一个 rank 卡死会让其他进程永久等待，那么它并不具备生产级弹性。
 
-故障注入不能只发生在非高峰环境。高峰期的队列、配额和发布动作会改变恢复路径。可以先在隔离资源池做小规模演练，再在生产影子作业验证指标与告警，最后安排可控的真实节点维护。本书结合SRE错误预算的决策方法 [[30]](#ref-30) 设计演练与停止条件，不把该书当特定训练平台已经恢复成功的证据。
+故障注入不能只发生在非高峰环境。高峰期的队列、配额和发布动作会改变恢复路径。可以先在隔离资源池做小规模演练，再在生产影子作业验证指标与告警，最后安排可控的真实节点维护。本书结合SRE错误预算的决策方法 [[31]](#ref-31) 设计演练与停止条件，不把该书当特定训练平台已经恢复成功的证据。
 
 ### 数据与模型治理
 
@@ -455,7 +482,7 @@ Dapper 的分布式追踪思想适合把训练控制面和数据面关联起来 
 
 ### NCCL timeout先找未到达的rank
 
-PyTorch分布式文档给出通信组与辅助诊断机制，NCCL也按拓扑、运行时与网络分层提供排障入口。[[34]](#ref-34)[[35]](#ref-35) 本书诊断流程从最早异常开始：关联所有rank的run/step、collective序号、组、shape、dtype与进入/退出时间，而非只读最后超时的节点。某rank先OOM、CUDA错误、进程退出或卡在数据读取，其他rank可能只是等待它而最后报timeout。
+PyTorch分布式文档给出通信组与辅助诊断机制，NCCL也按拓扑、运行时与网络分层提供排障入口。[[35]](#ref-35)[[36]](#ref-36) 本书诊断流程从最早异常开始：关联所有rank的run/step、collective序号、组、shape、dtype与进入/退出时间，而非只读最后超时的节点。某rank先OOM、CUDA错误、进程退出或卡在数据读取，其他rank可能只是等待它而最后报timeout。
 
 若同一collective序号的调用或张量不一致，检查条件分支、尾批、异常处理和组创建；若某rank在进入collective前长期数据等待，检查其shard、解压、NUMA和CPU；若顺序一致但特定链路反复慢，再查GPU/Xid、NIC/RDMA、拓扑与独立通信复现。监测用barrier也有后端与版本限制，不把它插到所有生产step里制造新等待。
 
@@ -506,7 +533,7 @@ PyTorch分布式文档给出通信组与辅助诊断机制，NCCL也按拓扑、
 
 一次训练结果至少需要能回答四个问题：使用了什么数据，执行了什么计算，经历了哪些故障，为什么可以发布。数据由 manifest、授权和统计回答；计算由 job spec、代码 hash、并行拓扑和运行时镜像回答；故障由事件、trace、重试和恢复记录回答；发布由评估报告、质量门禁和审批记录回答。把这些信息分散在聊天记录、机器本地日志和手工表格中，短期看似灵活，长期一定无法复盘。
 
-可审计不等于保存所有原始内容。审计记录可以使用带权限控制的hash（敏感低熵字段不能依赖裸hash匿名化）、版本号、长度、来源、权限和时间，敏感文本单独受控。关键事件使用追加式日志，修正通过新事件表达而不是覆盖旧记录。这样既能支持事故调查和合规审查，又不会把训练数据复制到每个监控系统。Dapper 的 trace 关联思想和 OpenTelemetry 的上下文传播可以帮助连接不同服务，但数据最小化仍然是平台责任 [[11]](#ref-11)[[33]](#ref-33)。
+可审计不等于保存所有原始内容。审计记录可以使用带权限控制的hash（敏感低熵字段不能依赖裸hash匿名化）、版本号、长度、来源、权限和时间，敏感文本单独受控。关键事件使用追加式日志，修正通过新事件表达而不是覆盖旧记录。这样既能支持事故调查和合规审查，又不会把训练数据复制到每个监控系统。Dapper 的 trace 关联思想和 OpenTelemetry 的上下文传播可以帮助连接不同服务，但数据最小化仍然是平台责任 [[11]](#ref-11)[[34]](#ref-34)。
 
 ### GPU与规约练习卡组（设计，未实现未实测）
 
@@ -581,24 +608,26 @@ PyTorch分布式文档给出通信组与辅助诊断机制，NCCL也按拓扑、
 
 <a id="ref-24"></a>[24] NVIDIA. *CUDA Programming Guide: Asynchronous Execution*. 2026-09-10. https://docs.nvidia.com/cuda/cuda-programming-guide/02-basics/asynchronous-execution.html 核验日期：2026-10-17
 
-<a id="ref-25"></a>[25] Triton Contributors. *Triton Language Introduction*. online checked 2026-10-17. https://triton-lang.org/main/programming-guide/chapter-1/introduction.html 核验日期：2026-10-17
+<a id="ref-25"></a>[25] NVIDIA. *Compute Sanitizer User Manual*. [官方文档](https://docs.nvidia.com/compute-sanitizer/ComputeSanitizer/index.html)。核验日期：2026-10-18
 
-<a id="ref-26"></a>[26] Apache TVM. *Design and Architecture*. online checked 2026-10-17. https://tvm.apache.org/docs/arch/index.html 核验日期：2026-10-17
+<a id="ref-26"></a>[26] Triton Contributors. *Triton Language Introduction*. https://triton-lang.org/main/programming-guide/chapter-1/introduction.html 核验日期：2026-10-18
 
-<a id="ref-27"></a>[27] OpenXLA. *XLA*. online checked 2026-10-17. https://openxla.org/xla 核验日期：2026-10-17
+<a id="ref-27"></a>[27] Apache TVM. *Design and Architecture*. https://tvm.apache.org/docs/arch/index.html 核验日期：2026-10-18
 
-<a id="ref-28"></a>[28] NVIDIA. *TensorRT Architecture Overview*. online checked 2026-10-17. https://docs.nvidia.com/deeplearning/tensorrt/latest/architecture/architecture-overview.html 核验日期：2026-10-17
+<a id="ref-28"></a>[28] OpenXLA. *XLA*. https://openxla.org/xla 核验日期：2026-10-18
 
-<a id="ref-29"></a>[29] NVIDIA. *Nsight Compute Profiling Guide*. online checked 2026-10-17. https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html 核验日期：2026-10-17
+<a id="ref-29"></a>[29] NVIDIA. *TensorRT Architecture Overview*. https://docs.nvidia.com/deeplearning/tensorrt/latest/architecture/architecture-overview.html 核验日期：2026-10-18
 
-<a id="ref-30"></a>[30] Beyer, B., et al. *The Site Reliability Workbook: Implementing SLOs*. O’Reilly, 2018. https://sre.google/workbook/implementing-slos/ 核验日期：2026-10-17
+<a id="ref-30"></a>[30] NVIDIA. *Nsight Compute Profiling Guide*. online checked 2026-10-17. https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html 核验日期：2026-10-17
 
-<a id="ref-31"></a>[31] PyTorch. *Distributed Checkpoint*. 2.9. https://docs.pytorch.org/docs/2.9/distributed.checkpoint.html 核验日期：2026-10-17
+<a id="ref-31"></a>[31] Beyer, B., et al. *The Site Reliability Workbook: Implementing SLOs*. O’Reilly, 2018. https://sre.google/workbook/implementing-slos/ 核验日期：2026-10-17
 
-<a id="ref-32"></a>[32] Prometheus Authors. *Prometheus Documentation*. https://prometheus.io/docs/introduction/overview/ 访问日期：2026-10-17
+<a id="ref-32"></a>[32] PyTorch. *Distributed Checkpoint*. 2.9. https://docs.pytorch.org/docs/2.9/distributed.checkpoint.html 核验日期：2026-10-17
 
-<a id="ref-33"></a>[33] Sigelman, B. H., et al. *Dapper, a Large-Scale Distributed Systems Tracing Infrastructure*. Google Research, 2010. https://research.google/pubs/dapper-a-large-scale-distributed-systems-tracing-infrastructure/ 访问日期：2026-10-17
+<a id="ref-33"></a>[33] Prometheus Authors. *Prometheus Documentation*. https://prometheus.io/docs/introduction/overview/ 访问日期：2026-10-17
 
-<a id="ref-34"></a>[34] PyTorch. *Distributed communication package*. 2.9文档. https://docs.pytorch.org/docs/2.9/distributed.html 核验日期：2026-10-17
+<a id="ref-34"></a>[34] Sigelman, B. H., et al. *Dapper, a Large-Scale Distributed Systems Tracing Infrastructure*. Google Research, 2010. https://research.google/pubs/dapper-a-large-scale-distributed-systems-tracing-infrastructure/ 访问日期：2026-10-17
 
-<a id="ref-35"></a>[35] NVIDIA. *NCCL Troubleshooting*. 2.32.3. https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/troubleshooting.html 核验日期：2026-10-17
+<a id="ref-35"></a>[35] PyTorch. *Distributed communication package*. 2.9文档. https://docs.pytorch.org/docs/2.9/distributed.html 核验日期：2026-10-17
+
+<a id="ref-36"></a>[36] NVIDIA. *NCCL Troubleshooting*. 2.32.3. https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/troubleshooting.html 核验日期：2026-10-17
