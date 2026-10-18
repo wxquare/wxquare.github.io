@@ -1,22 +1,18 @@
 # 第30章 个人知识管理 Agent 实践
 
-> "Knowledge is not information storage, it's continuous training." （知识不是信息存储，而是持续训练）—— Andrej Karpathy
+> 个人知识管理需要把材料、摘要、连接和自己的判断分开保存，并持续回源修订。
 
 ## 引言
 
-第24章把企业知识助手落到 RAG、搜索、权限和治理实践中，第27章分析长期运行的 Hermes Agent，第29章则用一个可运行 lab 展示了 Coding Agent Runtime 的最小闭环。但 Agent 不仅适用于企业场景，也适用于个人生产力。
+[第 24 章](02-enterprise-knowledge-assistant.md)处理企业连接器、ACL 与权威数据，[第 27 章](05-hermes-agent-architecture.md)分析长期会话、Memory 和 Skills，[第 29 章](08-mini-agent-observability.md)给出最小 Coding 教学闭环。本章保留个人知识的摄入、编译、连接、问答、输出和维护工作流。
 
-Andrej Karpathy（前 Tesla Autopilot 负责人、OpenAI 研究员）分享了一个颠覆性观点：他的 token 消耗正在从"操作代码"转向"操作知识"。不是让 LLM 帮他写代码，而是让它帮他**整理、连接、检索知识**。
-
-本章将深入探讨如何构建一个**自我进化的个人知识管理 Agent**，从理论模型到工程实现。
-
----
+这些目录、类、脚本和输出均为设计示意，没有配套可运行实现或实测结果。机器学习“训练”的类比只帮助组织持续修订，不代表每次写笔记会更新模型参数。原稿未能核验到原始出处的名人引语不继续归因。
 
 ## 30.1 核心理念：知识系统的"机器学习"类比
 
 ### 学习即训练
 
-Karpathy 将人的学习过程类比为机器学习 pipeline：
+本书用机器学习 pipeline 类比知识整理：
 
 ```text
 Input data → Processing → Knowledge model → Feedback → Update
@@ -32,7 +28,7 @@ Input data → Processing → Knowledge model → Feedback → Update
 | **Inference** | 应用知识 | 智能检索和问答 |
 | **Retraining** | 修正理解 | 健康检查和更新 |
 
-**关键洞察：知识不是存储，而是持续训练的过程。Agent 是知识的训练器和推理引擎。**
+知识维护是持续修订的过程；摘要和连接先作为候选，由原文核验与实际使用反馈决定是否保留。
 
 ### 知识即压缩
 
@@ -48,15 +44,15 @@ Transformer 论文（20 页 PDF，~1万字）
 4. Feed-Forward Layer - 位置独立的变换
 5. Layer Norm + Residual - 稳定训练
 
-信息熵：10,000 words → 100 words
-压缩比：99%
+示意长度：原始材料约1万字 → 摘要约100字
+仅比较篇幅，不等于信息熵或理解程度
 ```
 
-这是信息熵降低的过程，也是**真正的理解**。Agent 的任务就是帮我们完成这个压缩过程。
+这只是篇幅压缩示例。摘要可能丢失假设、反例与数学条件，长度变短不能证明熵下降或真正理解；关键判断必须保留来源位置、适用条件与未解决问题。
 
 ---
 
-## 30.2 系统架构：五层知识管道
+## 30.2 系统架构：六个职责的知识管道
 
 ### 整体架构
 
@@ -105,7 +101,7 @@ Transformer 论文（20 页 PDF，~1万字）
 
 ---
 
-## 30.3 核心模块实现
+## 30.3 核心模块的教学设计
 
 ### 模块 1：数据摄入层
 
@@ -130,7 +126,7 @@ knowledge-base/
 │   └── images/            # 配图资源
 ```
 
-**工具实现：**
+**接口伪代码（helper 未实现）：**
 
 ```python
 class DataCaptureAgent:
@@ -147,8 +143,8 @@ class DataCaptureAgent:
         # 2. 提取正文和图片
         content, images = extract_main_content(html)
 
-        # 3. 下载图片到本地
-        local_images = await download_images(images, self.raw_dir + "/images")
+        # 3. 默认保留原始链接；另获授权时再使用受控本地副本
+        local_images = images
 
         # 4. 转换为 Markdown
         markdown = convert_to_markdown(content, local_images)
@@ -173,8 +169,8 @@ class DataCaptureAgent:
 ```
 
 **关键原则：**
-- **只收集高信噪比信息**：论文 > 技术博客 > 社交媒体
-- **本地化资源**：图片下载到本地，避免链接失效
+- **按论点选择来源**：原始论文支持研究结论，官方文档支持产品机制，个人经验保留适用条件；不单凭载体排序。
+- **来源权限**：公开可读不等于可复制/再分发；默认保存链接、必要元数据与自己的简短笔记，只有许可明确时保留副本。robots 遵循规则不是授权证明。[[1]](#ref-1)
 - **统一格式**：全部转为 Markdown，方便 LLM 处理
 
 ---
@@ -219,7 +215,7 @@ Agent 方式:
    - Multi-Head Attention
    ```
 
-**实现代码：**
+**讲解性伪代码：**
 
 ```python
 class KnowledgeCompiler:
@@ -356,15 +352,11 @@ class KnowledgeCompiler:
 
 ### 模块 3：前端展示层
 
-使用 **Obsidian** 作为知识 IDE：
+Obsidian Graph view 显示笔记与内部链接，Canvas 可组织卡片、附件和网页；内部链接支持定位笔记内容。它们是浏览与组织工具，不证明节点间存在真实因果或语义关系。[[2]](#ref-2)[[3]](#ref-3)[[4]](#ref-4) Dataview 是第三方索引查询工具，Marp 是独立的 Markdown 幻灯片生态，均不作为 Obsidian 默认内置能力。[[5]](#ref-5)[[6]](#ref-6)
 
-**核心功能：**
-1. **Graph View**：可视化知识图谱
-2. **Canvas**：概念地图绘制
-3. **Dataview**：数据查询
-4. **Marp**：Markdown 转幻灯片
+**图形布局示意（未运行）：**
 
-**实际效果：**
+
 
 ```text
 Obsidian Graph View:
@@ -457,12 +449,7 @@ class QuestionAnsweringAgent:
         return response
 ```
 
-**意外发现**：在 40 万字规模下，LLM 表现很好，不需要复杂的 RAG 系统。
-
-**原因分析：**
-- 40 万字 ≈ 150k tokens
-- 对现代 LLM（Claude 3.5、GPT-4）完全可处理
-- 简单的索引文件 + 摘要就够了
+**检索取舍：** 先用索引和摘要定位，再读取原文片段；小库可从文本/文件检索开始，向量检索由任务分布与召回测试决定。40 万汉字不能固定折算为 150k token，也不能据此认定某型号的上下文足够；应使用目标 tokenizer 估算系统指令、schema、输入和输出余量。字数未超窗口也不证明长上下文没有漏证据，参见[第 19 章](../part2/07-agent-knowledge-systems.md)。
 
 ---
 
@@ -589,11 +576,11 @@ class HealthChecker:
 
 ---
 
-## 30.4 完整工作流示例
+## 30.4 完整工作流示意（未运行）
 
 ### 典型使用场景
 
-**场景：学习 Transformer 架构**
+**场景：学习 Transformer 架构。** 下列命令中的脚本为概念名称，终端输出是合成预期结果，不是本次运行记录；论文模型说明依据原始资料。[[7]](#ref-7)
 
 **Step 1: 数据收集**
 ```bash
@@ -604,7 +591,7 @@ python capture.py --pdf "Attention is All You Need.pdf"
 python capture.py --url "https://jalammar.github.io/illustrated-transformer/"
 
 # 采集代码示例
-python capture.py --repo "https://github.com/pytorch/examples/transformer"
+python capture.py --repo "<authorized-repository-url>"
 ```
 
 **Step 2: 知识编译**
@@ -656,7 +643,7 @@ Transformer 的核心创新是 Self-Attention 机制：
 
 2. **捕获长距离依赖**
    - 直接计算任意两个位置的关系
-   - 不受距离影响，不会梯度消失
+   - 缩短位置之间的信息路径；仍受数据、优化与模型条件限制
 
 3. **计算效率**
    - 时间复杂度 O(n²d) vs RNN 的 O(nd²)
@@ -672,7 +659,7 @@ Transformer 的核心创新是 Self-Attention 机制：
 python output.py --question "Transformer 的核心创新是什么？" --format "slide"
 ```
 
-生成 `outputs/transformer-innovation.md`（Marp 格式幻灯片），并自动归档到 `wiki/qa/`。
+设计上生成`outputs/transformer-innovation.md`（Marp 格式），审核引用与来源权限后再归档；生成回答不能直接反过来成为支持自身的新事实。
 
 **Step 6: 健康检查**
 ```bash
@@ -763,7 +750,7 @@ AI 擅长：
 
 ### 案例假设：3 个月个人试点
 
-下面的数字不是通用 benchmark，而是一个可复现实验模板。真实效果取决于输入材料质量、知识库规模、模型版本、prompt 版本、人工复核标准和使用频率。
+下面均为尚未运行的教学假设，表中数字用于说明统计口径，不是试点结果或保证可复现的效果。真实效果取决于输入材料质量、知识库规模、模型版本、prompt 版本、人工复核标准和使用频率。
 
 假设试点条件：
 
@@ -828,10 +815,7 @@ Agent 流程：自动摘要、概念提取、双链生成、问答检索、健�
 
 **1. 规模扩展**
 
-当 Wiki 超过 100 万字时：
-- 引入向量数据库（Chroma、Pinecone）
-- 实现分层索引
-- 使用更复杂的 RAG 架构
+不设置按字数自动升级的门槛。先测查询分布、精确标识符/语义召回、权限过滤、延迟与维护成本，再决定分层索引或向量检索；索引版本迁移和回滚沿用第 19 章机制。
 
 **2. 成本优化**
 
@@ -846,6 +830,14 @@ Agent 流程：自动摘要、概念提取、双链生成、问答检索、健�
 - 持续优化 Prompt
 
 ---
+
+### 来源、个人事实与派生内容的失效
+
+借鉴 W3C PROV 对 entity/activity/agent 及派生关系的组织，本书为原始材料、编译活动和笔记保留来源 URL、版本/hash、许可/可见范围、生成配置、审核人与依赖。PROV 提供溯源表达，不自动提供权限或真值裁决。[[8]](#ref-8)
+
+例如一篇文章说“某种学习节奏有效”，编译器不能将其写成“用户每天按此节奏学习”；前者是外部论点，后者需要用户陈述或授权事实证据。个人日志中的暂时状态也不直接晋升成长期偏好。纠正源文后，沿依赖使摘要、连接、问答缓存和输出标为待重验，不能只改 raw 而继续引用旧 wiki。
+
+原始材料权限撤销或删除时，同步清理许可范围内需删除的副本和派生内容，缓存/旧会话重读时再次授权；不能因为存入个人 vault 就绕过组织 ACL。Hermes 的 Memory 与 Skills 机制见第 27 章，企业跨租户/连接器/实时价格库存仍归第 24 章；此处只维护个人组织工作流，不复制另一套企业检索平台。
 
 ## 30.7 关键洞察与最佳实践
 
@@ -898,7 +890,7 @@ Agent 方式: 持续压缩 → 理解加深
 
 **1. 核心理念**
 - 学习即训练：知识系统的机器学习类比
-- 知识即压缩：信息熵降低的过程
+- 摘要压缩篇幅：需要核验假设、反例和来源，不证明信息熵或理解变化
 - AI 是知识的训练器和推理引擎
 
 **2. 系统架构**
@@ -910,7 +902,7 @@ Agent 方式: 持续压缩 → 理解加深
 - 健康检查层：自动维护和优化
 
 **3. 实现细节**
-- 工具栈：Obsidian + Claude/GPT-4 + Python
+- 工具栈：笔记界面、经核验的模型 adapter 和独立执行器，版本按项目记录
 - 目录结构：raw/ → wiki/ → outputs/
 - 核心脚本：compile.py、ask.py、health_check.py
 
@@ -927,22 +919,24 @@ Agent 方式: 持续压缩 → 理解加深
 ### 与企业级 Agent 的对比
 
 | 维度 | 个人知识 Agent | 企业知识助手 |
-|------|--------------|--------------|
-| **复杂度** | 中等 | 高 |
-| **用户数** | 1 人 | 团队 |
-| **数据规模** | 10-100 万字 | 百万级告警 |
-| **实时性** | 无要求 | 秒级响应 |
-| **成本** | 取决于模型、token、缓存和使用频率 | 取决于告警量、模型、工具和集成成本 |
-| **价值** | 个人生产力 | 团队效率 |
+| --- | --- | --- |
+| 数据职责 | 个人获授权材料、编译笔记和连接 | 组织连接器、身份映射、ACL 与权威数据 |
+| 新鲜度 | 按任务需要定义；日历/个人事实也可能过期 | 按源类型定义，价格库存需实时接口 |
+| 权限 | 单用户仍需守来源许可、凭据与组织边界 | 多用户/租户须显式授权、安全裁剪与撤权传播 |
+| 结果 | 可回源的个人笔记与候选总结 | 可审计证据和按权限生成的答案 |
+| 实现状态 | 本章仅设计与假设数字 | 第 24 章也是教学架构，不是生产部署声明 |
 
-个人知识管理 Agent 是本书实战案例中的最后一个场景：它把 RAG、Memory、工作流、健康检查和输出驱动学习压缩到个人生产力系统里。和前面的企业级案例相比，它的规模更小，但更能展示 Agent 如何长期塑造个人知识系统。
+个人知识管理 Agent 是本书的个人生产力案例：它把 RAG、Memory、工作流、健康检查和输出驱动学习压缩到个人生产力系统里。和前面的企业级案例相比，它的规模更小，但更能展示 Agent 如何长期塑造个人知识系统。
 
 ---
 
 ## 参考资料
 
-1. **Karpathy's Knowledge Base** - Andrej Karpathy (Twitter/X)
-2. **Building a Second Brain** - Tiago Forte
-3. **How to Take Smart Notes** - Sönke Ahrens
-4. **Obsidian Documentation** - https://obsidian.md/
-5. **Mermaid Diagrams** - https://mermaid.js.org/
+1. <a id="ref-1"></a> IETF，[Robots Exclusion Protocol](https://www.rfc-editor.org/rfc/rfc9309)，RFC 9309；2022。
+2. <a id="ref-2"></a> Obsidian，[Graph view](https://help.obsidian.md/plugins/graph)，2026-10-18 文档快照。
+3. <a id="ref-3"></a> Obsidian，[Canvas](https://help.obsidian.md/plugins/canvas)，2026-10-18 文档快照。
+4. <a id="ref-4"></a> Obsidian，[Internal links](https://help.obsidian.md/links)，2026-10-18 文档快照。
+5. <a id="ref-5"></a> Dataview maintainers，[Dataview overview](https://blacksmithgu.github.io/obsidian-dataview/)，2026-10-18 文档快照。
+6. <a id="ref-6"></a> Marp maintainers，[Markdown Presentation Ecosystem](https://marp.app/)，2026-10-18 文档快照。
+7. <a id="ref-7"></a> Vaswani et al.，[Attention Is All You Need](https://arxiv.org/abs/1706.03762)，2017；arXiv:1706.03762。
+8. <a id="ref-8"></a> W3C，[PROV-Overview](https://www.w3.org/TR/prov-overview/)，2013 Working Group Note。

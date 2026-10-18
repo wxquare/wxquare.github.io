@@ -1,6 +1,6 @@
 # 第29章 从零实现一个可观测 Coding Agent
 
-> 一个接近生产级的 Agent 原型，不是把模型接到代码仓库上就结束，而是把上下文、工具、权限、验证、trace 和失败复盘都放进同一个闭环。
+> 一个最小 Agent 教学闭环，需要把上下文、工具、权限、独立验证和运行证据串起来；本章片段不是可运行项目或持久平台。
 
 ## 引言
 
@@ -39,9 +39,9 @@
 - 执行 `list_files`、`read_file`、`search_code`、`replace_in_file`、`create_file`、`run_shell`、`git_diff`；
 - 用 Policy 控制读、写和 shell 权限；
 - 用路径沙箱限制文件访问范围；
-- 保存每一步 thought、tool call、tool result 和 final；
+- 保存简短决策说明、tool call、tool result 和 final；不要求或保存模型隐藏思维链；
 - 输出本次修改的文件和 `git diff`；
-- 提供 unit tests 验证工具、配置、trace 和 Agent Loop。
+- 定义工具、配置、trace 和 Agent Loop 的测试要求；本章没有提供或运行这些测试。
 
 它明确不做：
 
@@ -56,7 +56,7 @@
 
 ---
 
-## 29.2 接近生产级 Coding Agent 的最小闭环
+## 29.2 可观察、可验收的最小闭环
 
 Coding Agent 的核心不是“自动写代码”，而是一个带控制面的执行闭环。
 
@@ -133,14 +133,14 @@ flowchart TD
 
 ```toml
 [llm]
-provider = "deepseek"
-base_url = "https://api.deepseek.com"
-api_key = "sk-your-deepseek-api-key"
-model = "deepseek-v4-flash"
+provider = "configured-provider"
+base_url = "https://model.example.com/v1"
+api_key_env = "MODEL_API_KEY"
+model = "<verified-model-id>"
 temperature = 0
 max_tokens = 4096
 timeout = 120
-thinking = "disabled"
+
 
 [agent]
 max_steps = 20
@@ -214,7 +214,7 @@ class AgentState:
     messages: list[dict[str, str]] = field(default_factory=list)
     steps: list[AgentStep] = field(default_factory=list)
     changed_files: set[str] = field(default_factory=set)
-    status: Literal["running", "done", "failed"] = "running"
+    status: Literal["running", "candidate", "done", "failed"] = "running"
     final: dict[str, Any] | None = None
 ```
 
@@ -344,7 +344,7 @@ Prefer replace_in_file over rewriting whole files.
 - verifier；
 - final report schema。
 
-原生 tool calling 解决的是“模型如何结构化表达工具调用”，不自动解决“工具是否安全”和“任务是否完成”。
+原生 tool calling 由模型提出调用、应用执行并回填结果，不自动解决权限和完成裁决。[[1]](#ref-1)
 
 ---
 
@@ -383,7 +383,9 @@ class Workspace:
         return path
 ```
 
-这个实现同时挡住几类风险：
+`Path.resolve()`帮助规范路径和解析符号链接，但下方检查到打开文件之间仍可能有 TOCTOU 竞态，不能单凭此片段称 OS 沙箱；应以受控文件句柄/目录能力与操作系统隔离补齐。[[2]](#ref-2)
+
+在目录不被并发替换的教学假设下，它检查：
 
 - `../../secret.txt` 这类路径逃逸；
 - `.git`、`.venv`、`node_modules` 这类高噪声或敏感目录；
@@ -409,7 +411,7 @@ def replace_in_file(ws: Workspace, path: str, old: str, new: str) -> ToolResult:
     return ToolResult(True, f"updated {path}")
 ```
 
-这会逼模型先 `read_file`，再基于精确片段修改。它不能随手重写整个文件，也更容易保护用户未提交的局部改动。
+这个片段只检查 old 文本存在，不证明模型真的先读，也不处理重复匹配与并发修改。验收实现应要求唯一匹配、expected_hash、原子写入及写后 hash；发现文件已变就重新读取，保护用户已有 dirty diff。
 
 生产系统还可以把编辑工具升级成 patch 工具：
 
@@ -421,7 +423,7 @@ def replace_in_file(ws: Workspace, path: str, old: str, new: str) -> ToolResult:
 
 ### Shell 白名单
 
-Shell 是 Coding Agent 最危险的工具之一。本章的实现只允许配置中的命令：
+Shell 是 Coding Agent 最危险的工具之一。本章的教学设计只允许配置中的命令：
 
 ```python
 DEFAULT_ALLOWED_COMMANDS = {
@@ -453,7 +455,7 @@ DENY_TOKENS = {
 }
 ```
 
-这不是最终安全模型，但已经足够表达原则：让 Agent 运行测试，不等于让 Agent 拥有一个无限 shell。
+命令名和 DENY_TOKENS 只表达策略意图，不能构成隔离：python 可以执行任意代码，npm/make 测试脚本也有副作用。应传结构化 argv、禁用不需要的 shell、固定 cwd/env、限制网络/文件/凭据并捕获退出码；超时还要确认子进程树终止。Python subprocess 文档只定义进程接口，不保证这些业务策略已经实现。[[3]](#ref-3)
 
 ---
 
@@ -539,7 +541,7 @@ for _ in range(max_steps):
 
     if "final" in data:
         final = data["final"]
-        state.status = "done"
+        state.status = "candidate"
         state.final = final
         for path in final.get("changed_files", []):
             state.changed_files.add(str(path))
@@ -564,20 +566,18 @@ for _ in range(max_steps):
 
 第二，`max_steps` 是硬停止条件。任何 Agent Loop 都必须有预算，不能让模型无限尝试。
 
-### 当前 MVP 的一个刻意简化
+### final 是候选完成，Verifier 决定终态
 
-这个版本在收到 `final` 时会把 `state.status` 设为 `done`。生产系统里更稳妥的做法是让 final 进入 verifier：
+前述片段收到 final 后返回 candidate。宿主必须独立调用 29.14 的 Verifier，核对固定输入版本、实际变更和验收断言：
 
 ```text
-model final
-  │
-  ▼
-run verifier
-  ├─ pass -> done
-  └─ fail -> append observation and continue / failed
+model final -> candidate
+  -> verifier pass 且影响范围/权限检查通过 -> done
+  -> verifier fail -> observation + 有限repair / failed
+  -> 缺命令、超时、缺环境或证据过期 -> 未验证，不能done
 ```
 
-本章保留 `verifier.py`，是为了明确下一步演进方向：完成状态不能只由模型声明，应该由测试、diff 和风险检查共同决定。
+`changed_files`和`verification`来自模型时只是候选报告，必须与实际 Git 状态及命令记录对照。空命令列表、FakeLLM 耗尽、无关 diff 和未跟踪文件都不能靠“有 final”绕过门禁。这里是设计契约，未实现持久队列、崩溃重放或跨 worker 恢复；持久 Run/Step/Event 见[第 11 章](../part2/infra-11-runtime.md)。
 
 ---
 
@@ -591,7 +591,7 @@ class LLMClient(Protocol):
         ...
 ```
 
-本地测试使用 `FakeLLM`：
+确定性测试可使用`FakeLLM`（未在本章运行）：
 
 ```python
 class FakeLLM:
@@ -617,7 +617,7 @@ class FakeLLM:
         return value
 ```
 
-真实运行使用 DeepSeek 兼容接口：
+下方仅展示 Chat Completions 式 JSON 响应的教学 payload，不宣称任一模型都支持这些字段；`base_url/model`必须按实际供应商版本核验：
 
 ```python
 payload: dict[str, object] = {
@@ -646,6 +646,10 @@ payload: dict[str, object] = {
 
 ---
 
+### Adapter 的刻意简化
+
+`complete(prompt)->str`把角色、原生 tool call ID、流式结束/错误、usage 和取消都投影成文本；FakeLLM 只验证确定性路径，不能证明真实供应商兼容。迁移到原生协议时记录 provider/model/API 版本、能力表和调用配对，未知结束状态不当成功，网络重连不等于 Task 恢复。详细契约复用[第 17 章](../part2/05-llm-api-protocol.md)，MCP 与工具授权归[第 18 章](../part2/06-tool-calling-mcp.md)。
+
 ## 29.13 Trace：让每一步都能复盘
 
 `trace_writer.py` 把每个 `AgentStep` 写成 JSONL：
@@ -661,7 +665,7 @@ class TraceWriter:
             handle.write(json.dumps(asdict(step), ensure_ascii=False) + "\n")
 ```
 
-运行后会生成类似路径：
+若在独立项目实现，可选择类似路径；此处未生成运行轨迹：
 
 ```text
 traces/20260506-143000.jsonl
@@ -724,7 +728,7 @@ eval_case:
 
 ## 29.14 Verifier：不要让模型自己宣布完成
 
-`verifier.py` 提供了一个最小验证器：
+以下片段只示意独立命令与 diff 检查。完整验收还需后文断言；它不是已经执行的验证器：
 
 ```python
 def verify(
@@ -732,6 +736,8 @@ def verify(
     commands: list[str],
     allowed_commands: list[str] | None = None,
 ) -> tuple[bool, str]:
+    if not commands:
+        return False, "verification commands required"
     outputs: list[str] = []
     for command in commands:
         result = run_shell(ws, command, timeout=60, allowed_commands=allowed_commands)
@@ -787,6 +793,35 @@ def coding_agent_release_gate(eval_report):
 
 ---
 
+### 除零任务的验收 walkthrough（设计，未运行）
+
+输入冻结仓库 commit、用户原有 diff、任务文本和测试版本；独立 Verifier 在 Agent 不能修改的测试夹具中断言：`divide(6,3)==2`、正负/浮点正常行为保持、除数为 0 时抛指定 ValueError。禁止只检查异常字符串或只确认新增测试文件。
+
+| 观察结果 | 验收决策 | 保存证据 |
+| --- | --- | --- |
+| 模型称 pytest 通过但无命令事件 | 未验证 | 缺失项与候选 final |
+| 只运行被 Agent 改成空断言的测试 | 拒绝 | 测试 diff、独立夹具结果 |
+| 功能通过但改到禁写文件 | 拒绝 | baseline diff 与实际路径集合 |
+| 目标断言/正常回归通过且 diff 限范围 | 可候选 done | 命令/退出码、环境、输出 hash、修改后 repo hash |
+| 测试超时或依赖缺失 | unknown/blocked | 准确错误，不伪造成功 |
+
+`git diff`非空只是有变更的信号；新增未跟踪测试需`git status`补查，原有 dirty diff 也要排除。评分侧保存第 10 章 Eval Case 的输入/执行/结果分离，行为门禁复用[第 22 章](../part2/10-agent-evals-guardrails-observability.md)。
+
+### 选做练习卡：让 Agent 生成 CUDA Kernel
+
+**状态：仅完成练习设计；没有代码仓库实现、GPU 执行、性能或成本实测。** 这是 Coding 方法的高难度迁移，不是现成高性能 kernel 平台。KernelBench 提供把生成程序的正确性与相对性能分别评价的研究背景。[[4]](#ref-4)
+
+**输入：** 一个受限 elementwise 或 reduction 算子、输入 shape/dtype/stride 范围、不可更改的参考实现和独立测试、指定 GPU/驱动/CUDA/编译器版本、数值容差及搜索预算。容差由算子语义预先决定，不能看到失败后任意放宽；浮点归约需明确允许误差与确定性要求。
+
+**输出：** 候选 kernel 及 hash、编译日志、正确性明细、sanitizer 结果、计时原始样本、配置与失败原因。按依赖门禁依次执行：
+
+1. **编译门：** 在固定工具链编译；编译失败即反馈并消耗尝试预算，不进入性能比较。
+2. **正确性门：** 对照 CPU/框架参考覆盖正常、空/小 shape、非整块尾部、非连续 stride、dtype、NaN/Inf 及数值边界；不允许替换参考实现。CUDA 最佳实践把验证与优化结合，测试通过仍不代表所有输入正确。[[5]](#ref-5)
+3. **内存与同步门：** 按适用范围运行 memcheck、racecheck、initcheck、synccheck；自动门禁配置非零`--error-exitcode`，否则工具报告错误而进程成功可能漏判。Sanitizer 只覆盖其检查与已执行路径。[[6]](#ref-6)
+4. **性能门：** 正确性通过后预热、同步并明确计时 kernel 还是端到端；同设备/shape/精度与参考比较，多次重复保存分布，排除编译/数据拷贝口径差异。计时方法依 CUDA 最佳实践，不把异步 launch 返回时间当 kernel 耗时。[[5]](#ref-5)
+
+速度提升不能补偿错误、越界或数据竞争。超时/挂起终止隔离任务，OOM 或驱动故障标 infra failure 并保留重试口径；Agent 不得访问生产 GPU 或修改系统驱动。若以后实现完整实验，依仓库规则放独立项目仓库，本书只链接结果与版本。预算耗尽输出未完成候选，绝不按最快样本挑一个错误 kernel。
+
 ## 29.15 概念执行路径：从任务到 diff
 
 以下是一个隔离的演示性代码仓库中可能发生的执行路径，而非本章提供的运行步骤或本仓库的配套示例。任务可以是：为 `calculator.py` 的 `divide` 函数补充除零错误处理，并新增相应测试。
@@ -802,7 +837,7 @@ def coding_agent_release_gate(eval_report):
 4. replace_in_file 修改测试；
 5. run_shell("pytest")；
 6. git_diff；
-7. final report。
+7. candidate final -> 独立Verifier -> done/failed/未验证报告。
 ```
 
 运行时最终报告可以包含：
@@ -1224,7 +1259,9 @@ Runtime 负责做 policy check、路径沙箱、工具执行、trace 写入和 d
 
 ## 参考资料
 
-1. [OpenAI Function Calling Guide](https://platform.openai.com/docs/guides/function-calling)
-2. [Model Context Protocol Specification](https://modelcontextprotocol.io/specification/2025-03-26/architecture)
-3. [Claude Code Hooks - Anthropic Docs](https://docs.anthropic.com/en/docs/claude-code/hooks)
-4. [Cursor Rules - Cursor Docs](https://docs.cursor.com/context/rules)
+1. <a id="ref-1"></a> OpenAI，[Function calling](https://developers.openai.com/api/docs/guides/function-calling)，2026-10-18 文档快照。
+2. <a id="ref-2"></a> Python Software Foundation，[pathlib](https://docs.python.org/3/library/pathlib.html)，3.15 docs；2026-10-18 访问。
+3. <a id="ref-3"></a> Python Software Foundation，[subprocess](https://docs.python.org/3/library/subprocess.html)，3.15 docs；2026-10-18 访问。
+4. <a id="ref-4"></a> Ouyang et al.，[KernelBench: Can LLMs Write Efficient GPU Kernels?](https://arxiv.org/abs/2502.10517)，arXiv:2502.10517；2025。
+5. <a id="ref-5"></a> NVIDIA，[CUDA C++ Best Practices Guide](https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/index.html)，13.4 文档快照。
+6. <a id="ref-6"></a> NVIDIA，[Compute Sanitizer](https://docs.nvidia.com/compute-sanitizer/ComputeSanitizer/index.html)，2026-10-18 文档快照。

@@ -14,7 +14,7 @@
 - 反馈不能只变成“调 prompt”，而要能路由到连接器、索引、排序、权限、文档治理和生成策略；
 - 企业上线需要审计、数据保留、SSO、SCIM、DLP、数据驻留和可追责机制。
 
-Glean、Microsoft 365 Copilot、Perplexity Enterprise 这类系统的成熟之处，不是某个模型更强，而是把企业搜索、RAG、权限同步、引用证据、连接器生态、反馈治理和组织管理组合成完整系统。
+Glean 连接器资料说明了内容摄取、权限镜像与更新职责；Microsoft 的 externalItem 接口也将 ACL、properties 和 content 分别建模。这里只引用这些公开机制，不推断厂商未公开的完整内部架构。[[1]](#ref-1)[[2]](#ref-2)
 
 本章按一个企业内部落地案例展开：假设我们要为一家中大型研发和运营组织建设“企业知识助手”。它需要接入 Confluence / SharePoint、Slack / Teams、Jira / Linear、GitHub、BI 报表和内部 Runbook，让员工可以安全地搜索、提问、分析和追溯证据。
 
@@ -86,7 +86,7 @@ Glean、Microsoft 365 Copilot、Perplexity Enterprise 这类系统的成熟之�
 | 答案 | Grounded Q&A、引用、缺失证据说明 | 自动执行高风险业务动作 |
 | 治理 | connector health、query trace、反馈路由 | 完整知识治理平台 |
 
-这个边界让项目可以在 6-10 周内交付一个可用版本，而不是陷入平台大而全。
+6–10 周可作为团队估算的教学假设；真实交付周期取决于源接口、身份治理、迁移与验收，不是本章实测结论。
 
 ---
 
@@ -248,6 +248,8 @@ Online Serving Plane
 | 删除传播 | 源文档删除后索引仍可见 | tombstone 和 hard delete |
 | 大组展开 | 一个组有几万成员 | 不要把组展开到每个 item |
 
+Microsoft 接口明确 deny 优先及 external group 用途；本书 KnowledgeItem 是统一教学契约，不是所有连接器都能原样返回的 API。源系统的 allow/deny/继承必须通过适配器等价转换，映射未知则隔离该 item。[[2]](#ref-2)[[3]](#ref-3)
+
 查询时再结合用户身份做过滤：
 
 ```text
@@ -263,6 +265,12 @@ visible_docs
 这意味着企业知识助手的检索系统必须同时处理“相关性”和“可见性”。
 
 ---
+
+### 增量更新、撤权与索引迁移
+
+以下是本书在接口之上的设计，不是 Graph 或 Glean 自动提供的事务保证。内容、ACL、删除各带源版本；ETag 只可相等比较时，不能把字符串大小当时序。优先使用源序号/变更游标，并记录消费者水位；无可比序号则回源读当前状态，不能按到达时间覆盖。假设同一 item 依次产生 upsert v7、delete v8，队列却先投递 v8 再 v7：先保存 v8 墓碑并拒绝低版本复活；内容已删但 ACL 缓存仍旧也必须拒答。数据可合法重建时使用新的 generation 与明确授权，避免与旧重试混淆。
+
+chunk 键包含`tenant/source/item/generation/version/chunk_id`。构建新版本时先验证所有 chunk 及 ACL，最后切换可见 manifest；旧 chunk 随后按保留策略清理，不能让一次回答拼接两个版本。索引迁移使用新旧 index 版本及同源数据水位做影子检索，比较权限、证据支持和召回；切换后若回滚，新旧索引都必须消费最新撤权/墓碑，不能回退权限。重嵌入期间预留双写与回填容量。接口支持更新删除并不意味着多索引原子发布已实现。[[2]](#ref-2)
 
 ## 24.4 文档处理：Chunk 不是切字符串
 
@@ -341,6 +349,33 @@ lifecycle:
 
 ---
 
+### 商品变体：SKU × 版本 × chunk 的容量账本
+
+商品描述仍走同一摄取/索引链路；价格和可售库存改走带权限的权威 API。容量先按对象和生命周期估计，而不是只报“千万商品”：
+
+```text
+有效chunk数 N = SKU数 S × 平均保留版本 V × 每版本chunk数 C
+单副本原始向量字节 = N × 维度 d × 每维字节 b
+峰值容量还包括：副本、ANN结构、正文/metadata、关键词索引、墓碑、双索引迁移及临时回填
+```
+
+教学假设 S=1000 万、V=2、C=4、d=1024、b=2，则 N=8000 万，单副本原始向量约 163.84 GB（十进制）。这不是总磁盘或内存需求；副本 3 份仅向量原值约 491.52 GB，再加索引与运行余量。量化损失、召回率、缓存命中与分片路由必须用实际数据测量。更新吞吐还取决于每日变更 SKU 数×重切 chunk 数；只有价格变化时不应无意义地重嵌入整段描述。
+
+| 字段 | 权威源/查询方式 | 回答与交易边界 |
+| --- | --- | --- |
+| 商品描述、规格 | 带版本的商品主数据/文档索引 | 返回 source_version 及适用地区，过期时回源 |
+| 展示价格 | Pricing API，绑定 SKU/地区/币种/用户资格/报价时间与有效期 | 可展示有时效的报价；旧 chunk 价格仅作历史证据 |
+| 库存与可售 | Inventory API，绑定渠道和库存口径 | 查询结果不等于预留；不能承诺下单时仍有货 |
+| 成交价和预留 | 交易服务校验并记录订单/报价/预留 ID | 需要业务授权、并发控制与幂等；由权威业务账本确认 |
+
+比如描述 v12 说支持某配件，而实时 API 已下架 SKU：回答可以解释历史规格，却不能继续推荐购买。价格缓存必须含租户、地区、币种、资格与有效期，用户切换身份后重查。故障时可返回“无法确认当前价格/库存”，不可用 embedding 里的旧值填补。
+
+### 视频变体：证据位置与权限沿同一链路传播
+
+Graph 的内容接口可将视频等材料解析成文本后摄取；它并不自动证明视频帧、转录或操作步骤正确。[[2]](#ref-2) 本书设计每个证据保存`media_id/source_version/start_ms/end_ms/frame_id/transcript_version/acl_epoch`，截图 OCR、转录和模型概括分别标来源。回答“如何操作设备”时链接到可访问的时间窗；只能听到口述而画面未覆盖的步骤标为未确认，字幕与画面冲突时并列保留。
+
+所有派生 chunk 继承原视频 ACL，并按附件/片段更严格的限制取交集。链接签名有效不等于用户有读取权限；播放时重新授权。视频撤权或删除触发转录、帧、摘要、向量、回答缓存与会话证据失效。个人记忆也不能绕过企业权限长期保留派生事实。多模态检索机制见[第 19 章](../part2/07-agent-knowledge-systems.md)，此处只定义企业接入边界。
+
 ## 24.5 检索层：Hybrid Search 是默认选择
 
 单纯向量检索不适合企业知识场景，因为企业问题经常包含精确实体：
@@ -355,7 +390,9 @@ lifecycle:
 - 指标名；
 - 发布版本。
 
-成熟系统通常使用 Hybrid Search：
+Azure AI Search 把全文和向量查询融合，semantic ranker 在已有候选上次级排序；这是可选实现依据，不保证任何配置都比关键词基线好。[[4]](#ref-4)[[5]](#ref-5)
+
+本案例候选架构为：
 
 ```text
 Query
@@ -403,7 +440,7 @@ Query Understanding 的价值是把自然语言问题转成检索计划，而不
 | “谁负责这个系统？” | CMDB、owner registry、代码 CODEOWNERS | 旧文档 |
 | “历史上怎么处理？” | 事故复盘、工单、on-call 记录 | 官方规范 |
 
-Source Routing 能显著减少无关召回，也能降低成本。
+Source Routing 旨在减少无关召回；效果和成本需与无路由基线比较。
 
 ### 排序信号
 
@@ -460,7 +497,7 @@ Rerank
 
 ## 24.6 Evidence Package：让答案有证据边界
 
-RAG 的关键中间产物不应该是“拼接后的上下文”，而应该是 Evidence Package。
+RAG 的关键中间产物不应该只是“拼接后的上下文”，而应该是 Evidence Package。以下数字、日期、工单和延迟均为合成教学数据。`permission_checked`仅是显示投影；执行时需绑定 principal、tenant、acl_epoch、检查时间和允许操作，不能永久信任一个布尔值。
 
 ```json
 {
@@ -572,11 +609,11 @@ Chunk 是检索材料，Evidence 是被系统选中、可支撑某个 claim 的�
 4. 不确定性；
 5. 下一步动作。
 
-### 好的答案结构
+### 有边界的答案结构（合成示例）
 
 ```text
 结论：
-日本站订单取消率升高，最可能与 payment-router-v3 发布后的支付超时增加有关。
+日本站订单取消率升高与支付超时及发布在时间上相关；现有证据不足以确认根因。
 
 证据：
 1. BI 报表显示取消率从 2.1% 升至 4.8%。
@@ -701,7 +738,7 @@ Document ACL
 | connector token 过大 | 连接器用超级权限读取 | 最小权限和源侧审计 |
 | 跨租户污染 | 多租户索引 filter 失效 | tenant_id 强制过滤 |
 
-权限不是一个检索参数，而是企业知识助手的生命线。
+权限不是一个检索参数。缓存命中也要重新裁决：键至少包含 tenant/principal 或等价权限集合、acl_epoch、文档版本和查询参数。撤权使缓存、摘要及引用失效，不能等内容更新才刷新。无法确认权限水位时停止访问，记录缺口并交连接器 owner 修复；不能让未知 ACL 只作为排序降权。重新授权只允许之后的新读取，不会把已经泄露的数据收回。
 
 ---
 
@@ -938,6 +975,29 @@ Retrieval Orchestrator 负责 source routing 和结果融合。
 
 目标是从“给答案”升级为“辅助行动”。
 
+### 受控 Text-to-SQL：语法安全和业务正确分别验收
+
+SQL 沿同一 source router 进入受控结构化数据支路，结果转成带快照、口径与权限的 Evidence Package，不另外搭一套“数据库 Agent 平台”。以下是教学流水线，未连接真实数据库：
+
+| 门禁 | 输入与检查 | 失败处理 |
+| --- | --- | --- |
+| 澄清和 schema linking | 指标定义、地区、时区、时间窗、实体/列/单位、快照版本 | “销售额”不明是下单/支付/退款口径时先澄清 |
+| AST 静态检查 | 只接收单条允许的查询 AST；解析 CTE/子查询，拒绝写操作、DDL、COPY、危险函数和未授权表/列 | 不靠正则或仅看 SELECT 前缀；拒绝后给明确错误 |
+| 身份与隔离 | 服务端从登录身份绑定 tenant；最小权限只读角色、RLS、受控视图、固定 search_path、函数 allowlist | 不采用模型传入的 tenant；禁止 owner/superuser/BYPASSRLS 执行 |
+| 资源预算 | 非 ANALYZE 的 EXPLAIN 检查候选计划，再设 statement_timeout、行数/字节/扫描预算 | LIMIT 不限制全部聚合扫描成本；超限取消并反馈 |
+| 语义验收 | join 关系、数据粒度、去重、空值、币种、时区及分母；用已知样例与权威报表对照 | SQL 执行成功仍可判业务错误；不能自动放宽权限修复 |
+| 结果交付 | 查询 hash、schema/指标版本、快照时间、行数、截断标记和引用 | 不把部分结果称完整结论；保存可重查证据 |
+
+PostgreSQL 18 的 RLS 有表 owner、superuser 与 BYPASSRLS 等绕过边界；必须选择受约束执行角色并核验 policy。[[6]](#ref-6) 只读事务是额外防线，不能证明任意 SELECT 无副作用；临时对象例外、可调用函数及扩展还需收窄，不能允许模型选择外部 IO 函数。[[7]](#ref-7)[[8]](#ref-8) EXPLAIN 成本是估算，EXPLAIN ANALYZE 会实际执行；资源控制使用执行器限制，不能靠模型自报便宜。[[9]](#ref-9)[[10]](#ref-10)
+
+**错误 join 例：** 合成订单表一行一订单，明细表一行一商品，直接 join 后 SUM(order.total)会将多商品订单重复计入。修复应按业务键先聚合明细或选订单粒度，不能用`SUM(DISTINCT total)`掩盖相同金额的不同订单。测试夹具放两张金额相同、其中一张有两条明细的订单，核验总额及订单数；另加入退款、零分母、跨午夜和跨租户样本。AST 合法、RLS 通过和数值正确是三个独立条件。通用执行边界见[第 18 章](../part2/06-tool-calling-mcp.md)。
+
+### 客服短案例：转人工后的迟到结果
+
+假设用户询问订单退款，助手仅可读取本人订单与政策。先构造带 owner、订单范围、权限快照、已知事实、缺失字段和允许动作的 handoff envelope；用户允许查询不等于允许退款。转人工以`handoff_id/owner_epoch`确认接收，在 ack 前不能说“人工已处理”。接收后 Agent 停止新的退款动作，人工从同一权威操作账本接管。
+
+若转接后先前的退款请求才返回成功，按 operation_id 写入真实结果并通知当前 owner，旧 Agent 不能再次退款、覆写人工结论或把成功丢弃。超时结果保持 unknown，先查询状态而非盲重试。取消、补偿和费用需独立业务授权；用户会话断开不等于业务操作撤销。教学账本、持久交接和幂等设计复用[第 11 章](../part2/infra-11-runtime.md)及[第 21 章](../part2/09-workflow-orchestration.md)，未声称某客服产品已实现这套协议。
+
 ### 第五阶段：Knowledge Governance Platform
 
 - owner 工作台；
@@ -1030,9 +1090,13 @@ flowchart TD
 
 ## 参考资料
 
-1. [Glean Connectors - Glean Docs](https://docs.glean.com/connectors/about)
-2. [Microsoft 365 Copilot Connectors API Overview - Microsoft Learn](https://learn.microsoft.com/en-us/graph/connecting-external-content-connectors-api-overview)
-3. [Create, update, and delete items in a Microsoft Graph connection - Microsoft Learn](https://learn.microsoft.com/en-us/graph/connecting-external-content-manage-items)
-4. [Use external groups to manage permissions to Microsoft 365 Copilot connectors data sources - Microsoft Learn](https://learn.microsoft.com/en-us/graph/connecting-external-content-external-groups)
-5. [Hybrid search using vectors and full text in Azure AI Search - Microsoft Learn](https://learn.microsoft.com/en-us/azure/search/hybrid-search-overview)
-6. [Semantic ranking in Azure AI Search - Microsoft Learn](https://learn.microsoft.com/en-us/azure/search/semantic-search-overview)
+1. <a id="ref-1"></a> Glean，[About connectors](https://docs.glean.com/connectors/about)，2026-09-23 页面；2026-10-18 访问。
+2. <a id="ref-2"></a> Microsoft，[Create, update, and delete items in a Microsoft Graph connection](https://learn.microsoft.com/en-us/graph/connecting-external-content-manage-items)，2024-11-07 页面；2026-10-18 访问。
+3. <a id="ref-3"></a> Microsoft，[Use external groups to manage permissions](https://learn.microsoft.com/en-us/graph/connecting-external-content-external-groups)，2026-10-18 文档快照。
+4. <a id="ref-4"></a> Microsoft，[Hybrid search overview](https://learn.microsoft.com/en-us/azure/search/hybrid-search-overview)，2026-10-18 文档快照。
+5. <a id="ref-5"></a> Microsoft，[Semantic ranking overview](https://learn.microsoft.com/en-us/azure/search/semantic-search-overview)，2026-10-18 文档快照。
+6. <a id="ref-6"></a> PostgreSQL Global Development Group，[Row Security Policies](https://www.postgresql.org/docs/18/ddl-rowsecurity.html)，18。
+7. <a id="ref-7"></a> PostgreSQL Global Development Group，[SET TRANSACTION](https://www.postgresql.org/docs/18/sql-set-transaction.html)，18。
+8. <a id="ref-8"></a> PostgreSQL Global Development Group，[Function Volatility Categories](https://www.postgresql.org/docs/18/xfunc-volatility.html)，18。
+9. <a id="ref-9"></a> PostgreSQL Global Development Group，[EXPLAIN](https://www.postgresql.org/docs/18/sql-explain.html)，18。
+10. <a id="ref-10"></a> PostgreSQL Global Development Group，[Client Connection Defaults](https://www.postgresql.org/docs/18/runtime-config-client.html)，18。

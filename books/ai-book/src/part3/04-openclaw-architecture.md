@@ -4,7 +4,7 @@
 
 ## 引言
 
-第 21 章已经分析了 LangGraph、AutoGen、MCP 这类 Agent 平台与编排框架；第 23 章分析了 AI Coding Agent，第 25 章进一步拆解了 Pi 这类终端原生 Coding Agent Runtime。本章继续分析一个更贴近个人生产力场景的成熟系统：OpenClaw。
+[第 21 章](../part2/09-workflow-orchestration.md)已区分编排/SDK/Runtime 层次，MCP 属于工具协议；第 23 章分析了 AI Coding Agent，第 25 章进一步拆解了 Pi 这类终端原生 Coding Agent Runtime。本章继续分析一个更贴近个人生产力场景的成熟系统：OpenClaw。
 
 OpenClaw 的官方定位是个人 AI 助手。它运行在用户自己的设备或服务器上，通过一个长期运行的 Gateway 接入 WhatsApp、Telegram、Slack、Discord、Signal、iMessage、WebChat 等渠道，并把这些消息路由给 Agent Runtime。它还提供工具、技能、插件、会话、上下文、沙箱、移动节点和控制台等能力。
 
@@ -27,7 +27,7 @@ OpenClaw = Personal Agent Gateway
 5. 它的安全模型和沙箱边界是什么？
 6. 如果我们自己设计个人 AI 助手系统，可以从 OpenClaw 借鉴什么？
 
-本文基于 2026 年 4 月 30 日可访问的 OpenClaw 官方 README 与文档进行分析。由于 OpenClaw 仍在快速演进，具体配置项和实现细节以后可能变化，但它的架构思想具有长期参考价值。
+本章于 2026-10-18 核验官方仓库提交`62cb03ac7a95f4b9cb435f8efc57f4034ba2649b`。事实只对应此提交，不声称本地已安装运行。图和组件映射是本书抽象；下列命令/配置用于讲解，实际部署需再核对有效策略。Gateway、Agent Runtime 和状态存储分别取证，避免把旧版本图直接沿用。[[1]](#ref-1)[[2]](#ref-2)[[3]](#ref-3)
 
 ---
 
@@ -161,7 +161,7 @@ OpenClaw 最值得学习的地方，是它没有把所有东西堆进 Agent Loop
 
 ### 与第13章组件地图的对应关系
 
-OpenClaw 的特点是 Gateway 很强。它不是只做一个 Agent Loop，而是先把多渠道入口、身份绑定、队列、会话、上下文、工具、插件和执行边界组织起来。用第 13 章组件地图来看，OpenClaw 对“入口路由、人类交互、上下文、工具扩展、权限边界”覆盖较完整，对“离线 Eval Harness、模型路由、长期学习闭环”的公开实现则相对弱一些。
+OpenClaw 的特点是 Gateway 很强。它不是只做一个 Agent Loop，而是先把多渠道入口、身份绑定、队列、会话、上下文、工具、插件和执行边界组织起来。用第 13 章组件地图来看，OpenClaw 对“入口路由、人类交互、上下文、工具扩展、权限边界”覆盖较完整，对“离线 Eval、学习闭环”的完整效果，本章没有同条件实测，不使用强弱评分代替证据。
 
 | 第13章组件 | OpenClaw 中的实现方式 | 实现状态与差异 |
 |:---|:---|:---|
@@ -170,7 +170,7 @@ OpenClaw 的特点是 Gateway 很强。它不是只做一个 Agent Loop，而是
 | Task Planner | Agent Runtime 内部计划，Skill / Plugin 可提供流程约束 | 隐式实现；不是显式 planner 服务 |
 | Context Builder | Context Engine、Workspace、Bootstrap Context、Prompt Builder | 强实现；上下文构建被抽成可插拔引擎 |
 | Memory Layer | Session、Memory、Compaction、DM isolation | 中等实现；偏个人助手会话和长期上下文，不是企业知识治理平台 |
-| Execution State & Checkpoint | Queue、Session Manager、Command Queue、Transcript、Compaction | 强实现；适合长期在线个人助手和异步消息处理 |
+| Execution State & Checkpoint | Queue、Session Manager、Command Queue、Transcript、Compaction | 已有会话与队列机制；不能据此推导外部动作通用 checkpoint 保证 |
 | Capability Registry | Tool Registry、Skills、Plugins、Hooks、MCP / External Tools | 强实现；Tool / Skill / Plugin 三层边界清楚 |
 | Policy Engine & Human Control Plane | Pairing / Allowlist / Auth、Tool Policy、Sandbox、workspaceAccess、Control UI | 强实现；个人助手场景下的权限和接管模型很完整 |
 | Agent Loop | Agent Runtime 中的 loop 负责模型调用、工具调度和事件输出 | 中等到强；OpenClaw 更强调 Gateway + Runtime 组合，而不是单独炫技 loop |
@@ -179,7 +179,7 @@ OpenClaw 的特点是 Gateway 很强。它不是只做一个 Agent Loop，而是
 | Review Surface、Trace & Audit | WebChat、Control UI、事件流、消息回执、会话 transcript | 强实现；用户交互和接管体验是 OpenClaw 的核心优势 |
 | Learning Loop | Skill、Plugin、Memory、用户反馈可沉淀经验 | 部分实现；更像手工/半自动沉淀，不应自动污染长期记忆和插件生态 |
 
-所以 OpenClaw 与 Pi 的差异很清楚：Pi 先把可嵌入 Runtime 做薄，OpenClaw 则把 Runtime 放进一个多入口个人 Agent Gateway 里。它更接近第 13 章里的“Entry Plane + Human Control Plane + Capability Plane”组合样板。
+所以 OpenClaw 与 Pi 的差异很清楚：Pi 暴露可嵌入 Runtime 接口，OpenClaw 则组合多入口 Gateway 与自有 Runtime；当前二者没有由相似术语推导出的 Pi SDK 依赖关系。[[2]](#ref-2)它更接近第 13 章里的“Entry Plane + Human Control Plane + Capability Plane”组合样板。
 
 ---
 
@@ -199,7 +199,7 @@ Gateway 至少管理七类状态：
 | Agent runs | 当前运行中的 agent 任务、runId、生命周期事件 |
 | Tool/event stream | 工具事件、assistant delta、lifecycle event |
 | Config | 模型、工具、渠道、权限、sandbox 配置 |
-| Transcript | 会话 JSONL 记录和压缩摘要 |
+| Transcript | SQLite 活动会话与历史、压缩及导出材料 |
 
 这就是为什么 OpenClaw 不是“每个渠道一个 bot”。它通过单 Gateway 汇聚所有输入，然后统一处理会话和工具权限。
 
@@ -226,7 +226,9 @@ connect handshake
 
 ### Gateway 的不变量
 
-OpenClaw 的 Gateway 架构隐含几个重要不变量：
+Gateway 文档支持下列协议边界；幂等缓存是短期去重，不是跨重启永久业务幂等保证。[[1]](#ref-1)
+
+本书据此归纳：
 
 - 一个 host 上通常由一个 Gateway 负责控制渠道连接；
 - 所有客户端连接都要经过握手；
@@ -288,11 +290,13 @@ Channel Send
 1. 两个 agent run 同时写同一个 session transcript；
 2. 两个工具调用共享状态，导致结果交错或覆盖。
 
-OpenClaw 的设计是按 session lane 串行化运行，同时保留跨 session 的安全并行。换句话说：
+OpenClaw 用 session lane 及并发预算协调运行；同会话仍可接收 steering，不能把“串行”理解成每条输入都等待上一 run 完全结束。[[4]](#ref-4)
+
+可概括为：
 
 ```text
-同一个 session：严格串行
-不同 session：可以并行，但受全局并发上限控制
+同一session：新输入可steer当前run，后续run受session lane协调
+不同session：可并发，受对应lane和配置预算控制
 ```
 
 这和数据库事务里的“同一行串行，不同行并行”很像。它牺牲了一点即时性，换来了会话一致性和工具执行稳定性。
@@ -308,13 +312,13 @@ OpenClaw 还区分不同输入处理模式：
 | steer | 希望影响当前 run | 在下一个模型边界注入 |
 | interrupt | 强制打断当前 run | 风险更高，适合控制命令 |
 
-这个设计非常实用。真实聊天不是单条完整 prompt，而是“我先说一点，又补一句，再发张图”。Agent 系统必须把这种碎片输入转成稳定的执行单元。
+固定版本以 steering 作为活跃 run 的默认行为：已开始的工具继续执行，未开始的串行尾部可能跳过，并行批次不会因 steering 跳过；不能把用户中断解释成业务副作用已撤销。普通 chat.send 输入先入每 agent 数据库再 ack，但若 Gateway 在输入进入 transcript 前退出，重启后显示 interrupted 并需要显式重发，内存队列不会直接重放；渠道 durable ingress 另有接管与重试边界。输入落盘不等于执行权限恢复。[[4]](#ref-4)
 
 ---
 
 ## 26.5 Agent Runtime：OpenClaw 的执行核心
 
-OpenClaw 运行一个嵌入式 Agent Runtime。官方文档提到，它在底层依赖 Pi agent core，OpenClaw 自己负责 session 管理、工具接线、发现、路由和渠道投递。
+OpenClaw 运行自有嵌入式 Agent Runtime；固定提交明确不再依赖外部 agent framework，agent-core、工具、模型与会话模块均有本地 owner。Pi TUI 组件依赖与 legacy runtime 别名不等于 Pi SDK 集成。[[2]](#ref-2)[[3]](#ref-3)
 
 可以把 OpenClaw Agent Runtime 理解为下面的组合：
 
@@ -375,13 +379,15 @@ sequenceDiagram
 
 OpenClaw 要求 agent 有一个 workspace。这个 workspace 不是普通目录，而是 agent 的“人格、规则、工具说明和记忆入口”。
 
-官方文档列出的典型 bootstrap 文件包括：
+固定版本的 Agent runtime 文档列出下列 bootstrap 文件；缺失文件、截断与首次引导另有生命周期。[[3]](#ref-3)
+
+核心文件包括：
 
 | 文件 | 作用 |
 |:---|:---|
 | `AGENTS.md` | 操作指令、项目规则、部分记忆 |
 | `SOUL.md` | persona、边界、语气 |
-| `TOOLS.md` | 用户维护的工具使用说明 |
+| `MEMORY.md` | 存在于 workspace 根目录时的长期记忆入口 |
 | `BOOTSTRAP.md` | 首次运行引导 |
 | `IDENTITY.md` | agent 名称、风格、标识 |
 | `USER.md` | 用户资料和称呼偏好 |
@@ -418,7 +424,7 @@ Compressed Context -> compaction summary
 
 OpenClaw 的 Context Engine 是一个很关键的抽象。它决定每次模型运行时看到哪些消息、如何摘要旧历史、如何跨 subagent 边界管理上下文。
 
-官方文档把 Context Engine 的生命周期拆成四个点：
+Context engine 文档给出以下核心生命周期，还包括可选 bootstrap、maintenance 与子会话钩子；本图只保留主要路径。[[5]](#ref-5)
 
 ```text
 Ingest
@@ -501,7 +507,7 @@ Tool 的设计重点不是“函数能不能调”，而是：
 
 Skill 是 `SKILL.md` 文件，用来教 agent 何时、如何使用工具。它更像“运行时可加载的操作手册”，而不是函数实现。
 
-OpenClaw 支持多个 skill 来源，并有明确优先级：
+OpenClaw 公开文档给出多来源 Skill 发现规则。[[6]](#ref-6) 本章保留主要优先级，具体启用还受配置、可信来源与执行权限控制：
 
 ```text
 <workspace>/skills
@@ -518,9 +524,9 @@ OpenClaw 支持多个 skill 来源，并有明确优先级：
 
 第一，**Skill 是上下文，不是执行权限**。`SKILL.md` 可以教 Agent 如何做事，但它本身不应该绕过 tools allow/deny、sandbox、approval gate。这样即使某个 Skill 写了高风险步骤，真正执行时仍然会被 Tool Policy 拦住。
 
-第二，**Skill 有明确的 scope 和优先级**。workspace skill 优先于用户 skill，用户 skill 优先于 bundled skill，这等价于把“上下文规则”做成分层覆盖模型。越靠近当前 workspace 的 Skill 越具体，越应该优先生效。
+第二，**Skill 有明确的 scope 和优先级**。workspace skill 优先于用户 skill，用户 skill 优先于 bundled skill，这等价于把“上下文规则”做成分层覆盖模型。同名 Skill 的加载优先级不等于指令权限优先级：workspace 里的恶意文本不能覆盖用户授权、组织策略与沙箱。
 
-第三，**Skill 和 Plugin 解耦**。Skill 只是方法说明，Plugin 才能注册 tool、channel、hook、model provider。这个边界能降低供应链风险：安装一个 Skill 主要改变 Agent 的行为指导，安装一个 Plugin 才扩大系统能力面。
+第三，**Skill 和 Plugin 解耦**。Skill 只是方法说明，Plugin 才能注册 tool、channel、hook、model provider。这个边界能降低供应链风险：Skill 也可能附带脚本并诱导调用既有工具，因此两者都需供应链审查；Plugin 另有可执行注册面。
 
 一个成熟 OpenClaw-like 系统中，Skill 加载链路应该类似这样：
 
@@ -550,7 +556,9 @@ Tool Policy / Sandbox
 
 ### Plugin：能力包
 
-Plugin 可以注册多种能力：
+官方插件架构区分能力声明、代码注册与实际可用性；下列是能力类别，不表示每个安装都启用。[[7]](#ref-7)
+
+它可以注册：
 
 - channel；
 - model provider；
@@ -600,16 +608,7 @@ OpenClaw 支持通过配置控制工具 allow/deny、tool profile 和 provider-s
 }
 ```
 
-Tool profile 则提供基础能力集合：
-
-| Profile | 适合场景 | 特点 |
-|:---|:---|:---|
-| full | 个人强信任环境 | 几乎不限制 |
-| coding | 编码和自动化 | 文件、运行时、web、session、memory |
-| messaging | 只做消息助手 | 消息和 session 相关工具 |
-| minimal | 高风险入口 | 只保留最小状态读回 |
-
-这背后的原则是：**工具权限必须由确定性配置控制，而不是只靠系统提示词劝模型自觉。**
+Tool profile 选择候选工具，不能替代执行授权。固定提交的`minimal`仍含`session_status`与仅更新动作的`gateway`；`full`是不做核心 profile 过滤，不等于 Full Access。`coding`/`messaging`集合也会演进，本章不再复制易漂移的长清单。是否配置、连接、被 deny、获得 owner 权限及能否通过沙箱，是后续独立检查。[[8]](#ref-8)
 
 ### Deny wins
 
@@ -625,7 +624,7 @@ base profile -> allow list -> deny list -> provider restriction -> sandbox
 
 ## 26.10 Session、Memory 与 Compaction
 
-OpenClaw 按消息来源组织 session：
+OpenClaw 按消息来源组织 session，以下默认行为取自固定提交。[[9]](#ref-9)
 
 | 来源 | 默认行为 |
 |:---|:---|
@@ -651,11 +650,11 @@ OpenClaw 按消息来源组织 session：
 }
 ```
 
-这个细节非常重要。很多 bot 系统的隐私问题，不是模型泄漏，而是 session key 设计错误。
+跨入口身份需要同时记录`agent/account/channel/peer/group/thread`。同名显示名称不证明同一人；不能仅因两个入口都叫 Alice 就共享上下文。启用身份映射前核对来源账户与授权，账号切换、离组或撤权后重新裁决工具、摘要和引用权限。群聊 scope 也不能只使用 peer 而丢掉 tenant/account。每个 agent 会话域是入口隔离设计，不自动构成敌对多租户安全边界。[[9]](#ref-9)[[10]](#ref-10)
 
 ### Transcript 与 Compaction
 
-OpenClaw 把 session transcript 存成 JSONL。上下文窗口接近上限时，会把旧消息压缩成 summary，同时保留最近消息。关键是：完整历史仍然在磁盘上，compaction 只改变下一次模型看到的上下文。
+固定版本的活动会话行和历史存储在每 agent SQLite 数据库；JSONL 仍可作为迁移输入、归档、导入导出或支持材料，不能继续把它当当前活动历史的唯一事实源。[[3]](#ref-3)[[9]](#ref-9) Compaction 改变供模型消费的上下文；历史是否保留还受维护/归档/删除策略控制，不能承诺永不丢失。
 
 这个设计体现了两个原则：
 
@@ -670,7 +669,7 @@ OpenClaw 把 session transcript 存成 JSONL。上下文窗口接近上限时，
 
 OpenClaw 支持多 Agent 路由。你可以把不同渠道、账号、群组、发送者、Discord role、Slack team 等绑定到不同 agent。
 
-路由规则的核心是 most-specific wins：
+多 Agent 路由将 binding 映射到 agent 与其独立 workspace、模型配置和会话域。[[11]](#ref-11) 下方最具体匹配顺序是教学概括，具体规则需按固定版本的配置和诊断核对：
 
 ```text
 peer exact match
@@ -722,7 +721,7 @@ Cron daily digest     -> summary agent
 
 ## 26.12 Sandbox 与安全边界
 
-OpenClaw 的安全文档强调一个基本前提：它主要面向个人助手部署，不是多租户敌对环境的安全隔离边界。如果你要让不可信用户共享一个 agent/gateway，就必须拆分 trust boundary，例如单独 Gateway、凭证、OS 用户或主机。
+OpenClaw 安全文档强调个人助手的信任模型。[[10]](#ref-10) 一个基本前提是：它主要面向个人助手部署，不是多租户敌对环境的安全隔离边界。如果你要让不可信用户共享一个 agent/gateway，就必须拆分 trust boundary，例如单独 Gateway、凭证、OS 用户或主机。
 
 ### 访问控制优先于智能
 
@@ -751,7 +750,7 @@ OpenClaw 对聊天入口提供多种安全控制：
 
 ### Sandbox workspaceAccess
 
-OpenClaw 的 sandbox 可以控制 agent 工具看到的 workspace：
+Sandbox 默认关闭，Gateway 本身留在 host，启用时部分工具执行转入配置的后端；workspace 只读不能限制全部网络或 host 插件。[[12]](#ref-12) 下表说明挂载模式的意图，实际后端与额外挂载仍需核对：
 
 | workspaceAccess | 含义 | 典型用途 |
 |:---|:---|:---|
@@ -816,7 +815,7 @@ Control UI 是 Gateway 的浏览器控制台，用于：
 
 ### Nodes
 
-Nodes 是一个很有意思的设计。macOS、iOS、Android 或 headless node 可以连接 Gateway，并声明自己的能力，例如：
+Nodes 以不同于 operator 的角色声明命令和能力；配对和设备本地权限仍需分别成立。[[13]](#ref-13)macOS、iOS、Android 或 headless node 可以连接 Gateway，并声明自己的能力，例如：
 
 - canvas；
 - camera；
@@ -935,7 +934,7 @@ read-only
 
 ## 26.16 如果从零复刻一个 OpenClaw-like 系统
 
-如果你想从零实现一个简化版 OpenClaw，不要一开始支持 20 个渠道。推荐按下面顺序做。
+下面是本书自研教学方案，数据结构、JSONL 和阶段次序不代表当前 OpenClaw 实现或已经运行的实验。最初先接一个入口，再逐步扩展。
 
 ### 第一阶段：单 Gateway + WebChat
 
@@ -1061,7 +1060,7 @@ skills/
     └── SKILL.md
 ```
 
-Skill 只影响 prompt，不执行代码。Plugin 才注册工具、渠道、hooks。这样更安全，也更容易调试。
+Skill 说明本身是文本，但附带脚本及其诱导动作仍按工具执行边界审查；Plugin 注册面也需要独立治理。
 
 ---
 
@@ -1079,15 +1078,9 @@ OpenClaw 展示了一个重要方向：未来的个人 AI 助手可能不是一�
 - 管理事件、任务和自动化；
 - 让用户拥有数据和控制权。
 
-从这个角度看，OpenClaw 和 Claude Desktop、ChatGPT、Cursor、Claude Code 的关系不是简单替代：
+### 与 Hermes 贯穿案例的对照
 
-| 系统 | 核心形态 | 适合场景 |
-|:---|:---|:---|
-| ChatGPT / Claude | 云端对话产品 | 通用问答、写作、分析 |
-| Claude Desktop | 桌面模型入口 + MCP | 本地工具连接 |
-| Cursor | IDE 原生 Coding Agent | 代码编辑和重构 |
-| Claude Code | 终端原生 Coding Agent | 代码任务和工具执行 |
-| OpenClaw | 本地个人 Agent Gateway | 多渠道个人助手和自动化 |
+OpenClaw 在本章用于解释 Gateway 如何归一化多入口、划分会话域并调用自有 Runtime；[第 27 章 Hermes](05-hermes-agent-architecture.md)沿“输入→上下文→行动→回流”走通一条持续任务轨迹。两章复用[第 15 章](../part2/03-context-engineering.md)上下文、[第 18 章](../part2/06-tool-calling-mcp.md)工具策略、[第 20 章](../part2/08-agent-memory.md)记忆和[第 11 章](../part2/infra-11-runtime.md)持久执行契约。共同术语不表示两产品都有相同 Outbox、Checkpoint、业务幂等与补偿能力；这些保证需分别核对，不用架构形态排优劣。
 
 OpenClaw 的独特性在于它不把“聊天窗口”当中心，而把“个人消息网络 + 本地执行环境”当中心。
 
@@ -1116,13 +1109,16 @@ OpenClaw 值得分析，不是因为它支持很多聊天渠道，而是因为�
 
 ## 参考资料
 
-1. [OpenClaw GitHub Repository](https://github.com/openclaw/openclaw)
-2. [OpenClaw Docs: Overview](https://docs.openclaw.ai/)
-3. [OpenClaw Docs: Gateway Architecture](https://docs.openclaw.ai/concepts/architecture)
-4. [OpenClaw Docs: Agent Runtime](https://docs.openclaw.ai/concepts/agent)
-5. [OpenClaw Docs: Agent Loop](https://docs.openclaw.ai/concepts/agent-loop)
-6. [OpenClaw Docs: Context Engine](https://docs.openclaw.ai/concepts/context-engine)
-7. [OpenClaw Docs: Tools and Plugins](https://docs.openclaw.ai/tools)
-8. [OpenClaw Docs: Skills](https://docs.openclaw.ai/tools/skills)
-9. [OpenClaw Docs: Security](https://docs.openclaw.ai/gateway/security)
-10. [OpenClaw Docs: Sandboxing](https://docs.openclaw.ai/gateway/sandboxing)
+1. <a id="ref-1"></a> OpenClaw maintainers，[Gateway architecture](https://github.com/openclaw/openclaw/blob/62cb03ac7a95f4b9cb435f8efc57f4034ba2649b/docs/concepts/architecture.md)，62cb03ac7a95f4b9cb435f8efc57f4034ba2649b。
+2. <a id="ref-2"></a> OpenClaw maintainers，[Agent runtime architecture](https://github.com/openclaw/openclaw/blob/62cb03ac7a95f4b9cb435f8efc57f4034ba2649b/docs/agent-runtime-architecture.md)，62cb03ac7a95f4b9cb435f8efc57f4034ba2649b。
+3. <a id="ref-3"></a> OpenClaw maintainers，[Agent runtime](https://github.com/openclaw/openclaw/blob/62cb03ac7a95f4b9cb435f8efc57f4034ba2649b/docs/concepts/agent.md)，62cb03ac7a95f4b9cb435f8efc57f4034ba2649b。
+4. <a id="ref-4"></a> OpenClaw maintainers，[Command queue](https://github.com/openclaw/openclaw/blob/62cb03ac7a95f4b9cb435f8efc57f4034ba2649b/docs/concepts/queue.md)，62cb03ac7a95f4b9cb435f8efc57f4034ba2649b。
+5. <a id="ref-5"></a> OpenClaw maintainers，[Context engine](https://github.com/openclaw/openclaw/blob/62cb03ac7a95f4b9cb435f8efc57f4034ba2649b/docs/concepts/context-engine.md)，62cb03ac7a95f4b9cb435f8efc57f4034ba2649b。
+6. <a id="ref-6"></a> OpenClaw maintainers，[Skills](https://github.com/openclaw/openclaw/blob/62cb03ac7a95f4b9cb435f8efc57f4034ba2649b/docs/tools/skills.md)，62cb03ac7a95f4b9cb435f8efc57f4034ba2649b。
+7. <a id="ref-7"></a> OpenClaw maintainers，[Plugin architecture](https://github.com/openclaw/openclaw/blob/62cb03ac7a95f4b9cb435f8efc57f4034ba2649b/docs/plugins/architecture.md)，62cb03ac7a95f4b9cb435f8efc57f4034ba2649b。
+8. <a id="ref-8"></a> OpenClaw maintainers，[Tool policy](https://github.com/openclaw/openclaw/blob/62cb03ac7a95f4b9cb435f8efc57f4034ba2649b/docs/gateway/config-tools/tool-policy.md)，62cb03ac7a95f4b9cb435f8efc57f4034ba2649b。
+9. <a id="ref-9"></a> OpenClaw maintainers，[Session management](https://github.com/openclaw/openclaw/blob/62cb03ac7a95f4b9cb435f8efc57f4034ba2649b/docs/concepts/session.md)，62cb03ac7a95f4b9cb435f8efc57f4034ba2649b。
+10. <a id="ref-10"></a> OpenClaw maintainers，[Security](https://github.com/openclaw/openclaw/blob/62cb03ac7a95f4b9cb435f8efc57f4034ba2649b/docs/gateway/security/index.md)，62cb03ac7a95f4b9cb435f8efc57f4034ba2649b。
+11. <a id="ref-11"></a> OpenClaw maintainers，[Multi-agent routing](https://github.com/openclaw/openclaw/blob/62cb03ac7a95f4b9cb435f8efc57f4034ba2649b/docs/concepts/multi-agent.md)，62cb03ac7a95f4b9cb435f8efc57f4034ba2649b。
+12. <a id="ref-12"></a> OpenClaw maintainers，[Sandboxing](https://github.com/openclaw/openclaw/blob/62cb03ac7a95f4b9cb435f8efc57f4034ba2649b/docs/gateway/sandboxing.md)，62cb03ac7a95f4b9cb435f8efc57f4034ba2649b。
+13. <a id="ref-13"></a> OpenClaw maintainers，[Nodes](https://github.com/openclaw/openclaw/blob/62cb03ac7a95f4b9cb435f8efc57f4034ba2649b/docs/nodes/index.md)，62cb03ac7a95f4b9cb435f8efc57f4034ba2649b。

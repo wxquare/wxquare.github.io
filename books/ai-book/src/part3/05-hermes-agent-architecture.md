@@ -4,7 +4,7 @@
 
 ## 引言
 
-前几章已经分别分析了 Coding Agent Runtime、Pi 和 OpenClaw。Pi 让我们看到终端原生 Agent Runtime 如何被做成可嵌入、可扩展的执行核心；OpenClaw 则展示了个人 AI 助手如何通过 Gateway 接入多入口渠道。Hermes 更进一步：它关心的不只是 Agent 在哪里和用户相遇，而是 Agent 如何在长期运行中持续积累记忆、沉淀技能、复用会话状态，并把行动轨迹变成新的能力资产。
+前几章已经分别分析了 Coding Agent Runtime、Pi 和 OpenClaw。Pi 让我们看到终端原生 Agent Runtime 如何被做成可嵌入、可扩展的执行核心；OpenClaw 则展示了个人 AI 助手如何通过 Gateway 接入多入口渠道。Hermes 在本书中承担第三个贯穿案例：解释会话、记忆、Skills 和工具轨迹如何组成持续任务。此处是教学侧重点，不代表其能力高于其他产品或已经实测提升。
 
 如果用一句话概括：
 
@@ -13,7 +13,7 @@ OpenClaw 更强调“Agent 如何到达用户所在的平台”
 Hermes 更强调“Agent 如何在长期使用中变得更懂用户、更会做事”
 ```
 
-本章基于 2026 年 5 月 15 日可访问的 Hermes Agent 官方 README 与文档进行分析。Hermes Agent 正在快速演进，工具注册表、平台适配器和闭环学习能力仍在持续变化，因此本章尽量使用“数十个内置工具”“持续增长的工具集”这类稳健表述，而不是绑定某个容易过期的精确数量。
+本章于 2026-10-18 核验官方仓库提交`18c525b669b6ea4ba62e6967d228af21d89aa9d3`；源码路径均对应此版本，未安装运行 Hermes、未产生成功率或成本实测。Architecture 说明多入口复用核心；本文六边界、三层上下文和治理协议属于本书解读，不是官方模块名或能力保证。[[1]](#ref-1)
 
 ## 27.1 系统定位：Hermes 解决的不是聊天，而是长期 Agent Runtime
 
@@ -102,119 +102,27 @@ flowchart TB
 
 把这六个运行时边界连起来，Hermes 讲的是同一个架构命题：输入先被接入，随后被整理成稳定上下文，再通过工具与执行链路落到真实环境，最后以记忆、会话和技能的形式回流为长期状态。
 
-### 27.2.2 设计哲学：窄腰与边缘，为什么能力要长在核心之外
+### 27.2.2 设计哲学：窄腰与能力边缘
 
-上一节把 Hermes 拆成六个运行时边界，但还没回答一个更根本的问题：为什么这些边界要这么画？为什么"工具中心""记忆系统""执行引擎"全是环绕在 Agent Core 之外的一圈，而不是把能力直接塞进核心循环？
+固定版本的开发指南建议把核心保持克制，新能力依次考虑复用代码、CLI 加 Skill、按可达性/opt-in 启用的工具、Plugin 和 MCP 等边缘接口，最后才新增常驻 core tool。[[2]](#ref-2) 这是一项维护原则，不是所有工具必须永远同时发送的协议定律；延迟发现、按会话工具策略和 provider 适配都可能改变实际请求。
 
-答案藏在 Hermes 官方开发指南（AGENTS.md）公开的第一条设计原则里：
+| 设计选择 | 获得的能力 | 需要承担的代价 |
+| --- | --- | --- |
+| 常驻核心 schema | 调用接口直接、稳定 | 活跃请求可能增加输入、选择歧义和缓存变化 |
+| CLI 加 Skill | 不必为每个子命令新增 schema | 命令与脚本仍按执行权限审核 |
+| Plugin/MCP | 接口化扩展、可单独配置 | 凭据、供应链、版本与发现成本 |
 
-> The core is a narrow waist; capability lives at the edges. Every model tool we add is sent on every API call, so the bar for a new core tool is high.
+本书据此建议先确定真正消费者，再增加接口。`check_fn`用于可达性/opt-in 检查，不应被误读成逐用户授权裁决；工具出现在目录或 schema 里也不等于当前动作被允许。增删 schema 可能降低可复用前缀，但“成本翻倍”需要特定请求、价格与命中记录才能成立。
 
-这句话有三个层层递进的判断。
+### 27.2.3 缓存稳定不能压过事实与权限
 
-**判断一：核心是"沙漏腰"，必须薄而稳定。** 这是互联网沙漏模型（hourglass model）的隐喻：互联网之所以能无限扩展应用，是因为中间只有一层极薄、极稳定的"腰"——IP 协议。腰之上（HTTP、各种 App）和腰之下（以太网、光纤）可以任意演化，但腰本身几十年不变。Hermes 的"腰"就是 `run_agent.py`（对话循环）、`model_tools.py`（工具编排）以及发送给 LLM 的那份工具 schema。这层必须薄、必须稳定，能力长在它的上下两端。
+开发指南强调保持长期会话前缀稳定；源码还包含恢复与失效边界。[[2]](#ref-2)[[3]](#ref-3)[[4]](#ref-4) 因而不能写成“任何状态变化都禁止，只有压缩例外”：配置切换、显式更新、撤权和安全纠错都可能要求重建或新会话。缓存优化必须服从正确性与授权，不能因为命中更便宜而继续使用已撤销权限或错误记忆。
 
-**判断二：每个模型工具都随每次 API 调用发送——这是"腰必须窄"的技术命门。** LLM 的函数调用机制决定了：每次向模型发请求时，必须把全部工具的 JSON schema（name + description + parameters）放进请求体。一个新 core tool 会带来三重代价，且对每一个用户、每一次调用都生效：
-
-- Token 成本：50 个工具意味着 50 份 schema 在每个 turn 都被 token 化，即使用户从不调用某个工具也一直付费；
-- 选择准确率：工具越多，模型在"该调哪个"上越容易出错（tool-choice confusion）；
-- 缓存失效：工具 schema 是 system-prompt 前缀的一部分，增删工具会让前缀变化、prompt cache 失效、成本翻倍——这正好和"对话级缓存神圣"那条原则对称。
-
-**判断三：因此"新增 core tool 的门槛极高"。** 这不是审美偏好，是边际成本结构决定的：core tool 的代价被乘上了（用户数 × 调用数）。所以大多数新能力应当作为 CLI 命令、service-gated tool 或 plugin 抵达，而不是增长核心表面。
-
-把沙漏模型画出来，就能看到六个运行时边界其实是从这条哲学推出来的——核心只留一条薄腰，能力繁荣在它的两端边缘：
-
-```mermaid
-flowchart TB
-    subgraph Upper["边缘：能力繁荣、可任意增删"]
-        Apps["Skills / CLI 命令 / Plugins / MCP Servers / 平台 Adapter"]
-    end
-    subgraph Waist["窄腰：Agent Core（薄而稳定）"]
-        Core["AIAgent Loop + Tool Schema + Provider Resolver"]
-    end
-    subgraph Lower["边缘：能力繁荣、可任意增删"]
-        Backends["Local / Docker / SSH / Modal / 各 Memory Provider"]
-    end
-    Upper --> Waist
-    Waist --> Lower
-```
-
-**Footprint Ladder：把这条哲学变成可操作的决策树。** AGENTS.md 给出一条"足迹阶梯"，按"对核心 schema 的永久污染程度"从低到高排列。任何新能力，都从最高（足迹最小）的梯子逐级选择：
-
-| 阶梯 | 方案 | 对 core schema 的足迹 | 机制 |
-|:---|:---|:---|:---|
-| 1 | 扩展已有代码 | 零 | 能力是已有东西的变体，不新增表面 |
-| 2 | CLI 命令 + skill | 零 | agent 走 `terminal` 调 `hermes x`，schema 里根本没有它 |
-| 3 | service-gated tool（`check_fn`） | 未配置时零 | 前置条件不满足时根本不进 schema |
-| 4 | Plugin | 仅启用时有 | 运行时发现，不装就没有 |
-| 5 | MCP server（catalog） | 零永久核心足迹 | 经内置 MCP client 连接，不写进 core schema |
-| 6 | New core tool | 永久、每次调用都有 | 进 `_HERMES_CORE_TOOLS`，所有平台继承，最后手段 |
-
-阶梯里"零足迹"出现两次但含义不同：CLI 是"根本不在 schema 里"，service-gated 是"条件满足才出现"。两者都比"常驻 core"轻。正确的 core tool 只有在该能力"基础、对几乎所有用户有用、且 terminal+file 无法触达"时才允许——文档给出的范例是 `terminal`、`read_file`、`web_search`、`browser_navigate`。
-
-**阶梯之外的元规则：同类能力要收敛成一套接口，不要逐个合并。** 文档给了一条容易被忽略但更关键的原则：当 3+ 个 PR 试图集成**同一类东西**（memory backends、providers、notifiers）时，不要一个一个合并——应当设计一套 **ABC（抽象基类）+ orchestrator（编排器）**，把**已有的内置实现作为第一个 provider 接入**，再让那些竞争的 PR 转成这套接口下的 plugin。原因是逐个合并会产出 N 套平行、重复的接入代码，core 每次都要变胖、每次都要改；收敛成一套接口后，core 只长一次（接口本身），之后所有同类能力都只是"实现接口的新 provider"，对 core 零改动。这正好把上面 27.2.2 反复强调的"扩展而不重复"（Extend, don't duplicate）从口号落成架构动作——能力增长不通过"往核心加特例"，而通过"往接口加实现"。
-
-**一个反例：把抽象变具体。** 假设给 Hermes 加"发邮件"能力。(错误) 加一个 `send_email` core tool，结果是每个用户、每次对话、每轮调用的 schema 里都多一份邮件工具定义，哪怕他从不发邮件、连邮箱都没配。(正确) 用 `hermes mail send` CLI 命令 + skill，或做成 service-gated tool——仅在配置了 `EMAIL_*` 凭证时才出现在 schema，未配置用户零代价。三种正确方案的共同点：能力随需求出现，而非随核心常驻。
-
-```text
-增量核心 = 对所有用户 × 所有调用 放大成本
-边缘能力 = 只对启用者 × 调用时 生效
-```
-
-**两条透镜是一枚硬币的两面。** 本章开头提到的"对话级缓存神圣"与这里的"窄腰"并非并列两条原则，而是耦合的：缓存原则说"腰不能动"（中途别改 schema），窄腰原则说"腰不能胖"（别往 schema 加东西）。两者合力推出同一个工程纪律——core toolset 是一个只减不增、至多缓慢增长的固定集合，任何增长冲动都被推到边缘消解。这正好解释了为什么 27.2.1 的六个边界里，"工具中心""记忆系统""执行引擎"全都环绕在 Agent Core 之外：它们被刻意挡在腰之外，以保持腰的薄与稳。
-
-#### 关键判断：可扩展性的真正含义
-
-多数 Agent 框架谈“可扩展”时，指的是“容易往核心加东西”。Hermes 的立场相反：可扩展性来自“尽量不往核心加东西”。把新能力推到 CLI、skill、plugin、MCP 这些边缘通道，核心才能长期保持薄、稳定、可缓存——这正是长期运行 Agent 区别于一次性脚本的关键工程纪律。
-
-### 27.2.3 设计哲学：对话级缓存神圣，为什么中途不能动状态
-
-窄腰原则回答的是“核心应该多小”，另一条设计原则回答的是“核心一旦定下来能不能动”。Hermes 官方开发指南（AGENTS.md）把它列为第一条设计原则：
-
-> Per-conversation prompt caching is sacred. A long-lived conversation reuses a cached prefix every turn. Anything that mutates past context, swaps toolsets, or rebuilds the system prompt mid-conversation invalidates that cache and multiplies the user's cost. We do not do it (the one exception is context compression).
-
-这句话可以拆成三个事实和一个纪律。
-
-**事实一：长期对话每轮复用同一个缓存前缀。** 现代推理 API（如 Anthropic / OpenAI 的 prompt caching）允许把 prompt 的“前缀部分”缓存下来：system prompt、工具 schema、长期记忆等稳定内容只计费一次，后续每轮只要前缀不变，就按大幅折扣的缓存价计费。一个活了几十上百轮的长期 Agent，前缀被复用的次数越多，省下的钱越多。这正是“长期运行”能成立的成本前提——没有缓存，长对话的 token 账单会随轮数线性爆炸。
-
-**事实二：缓存命中的前提是“前缀字节稳定”。** 缓存是按前缀的精确字节匹配的。只要前缀中任何一个字节变了（哪怕只是重新序列化、顺序微调、增删一个工具），缓存键就失效，这一轮起全部按全价重计，且后续轮次要重新累积缓存。换句话说，缓存是“脆弱的”——它奖励稳定，惩罚任何中途变动。
-
-**事实三：三类操作会直接打碎缓存。** AGENTS.md 明确点名：(1) 改写历史上下文（mutates past context）；(2) 中途切换工具集（swaps toolsets）；(3) 中途重建 system prompt（rebuilds the system prompt）。这三类在朴素实现里很常见（比如“用户装了个新 skill，我顺手把它热加载进当前会话”），但在长期 Agent 里代价极高。
-
-**纪律：默认不做，唯一例外是上下文压缩。** 因此 Hermes 的工程纪律是“我们不做”——任何改变过去上下文、切换工具集、重建系统提示的操作，默认都被禁止。唯一的例外是**上下文压缩（context compression）**：当对话超过模型窗口上限时，必须把历史压缩成更小的摘要;这是被迫的、且实现上要小心保持前缀结构。注意这揭示了一个重要次序——压缩是“不得不打碎缓存时的逃生舱”，不是日常手段。
-
-把这条原则对工程行为的约束画成一张红线图：
-
-```mermaid
-flowchart LR
-    A["长期对话第 N 轮"] --> B{"本次操作是否<br/>改变前缀字节？"}
-    B -->|否：读 memory / 调工具 / 追写历史| C["缓存命中<br/>折扣计费 ✅"]
-    B -->|是：热加载 skill / 中途换 toolset / 重建 system prompt| D["缓存失效<br/>全价重计 + 重建缓存 ❌"]
-    B -->|窗口超限被迫压缩| E["context compression<br/>唯一允许的例外 ⚠️"]
-```
-
-**它要求“缓存感知”的工具治理。** 这一原则直接塑造了 Hermes 的 slash command 设计：凡是会改 system-prompt 状态的操作（装 skill、换 toolset、改 memory），默认采用“延迟失效”——变更在**下一会话**才生效，并提供 `--now` 选项供用户主动选择立即失效。典型如 `hermes skills install --now`。这把“缓存神圣”从一个抽象禁令，落成了一条可执行的 UX 规则：中途想变的，先攒着，会话结束再落。
-
-```text
-热变更（中途改前缀）  → 打碎缓存 → 成本翻倍（默认禁止）
-冷变更（下会话生效）  → 前缀字节稳 → 缓存持续命中（默认行为，--now 可越权）
-```
-
-**两条哲学是一枚硬币的两面，不是并列两条。** 27.2.2 的窄腰说“腰不能胖”（别往 schema 加东西），本节的缓存神圣说“腰不能动”（中途别改 schema）。两者指向同一个工程纪律：
-
-```text
-窄腰       → 工具集是固定集合，尽量不增长
-缓存神圣   → 工具集是稳定前缀，尽量不变化
-            ⇒ core toolset：只减不增、至多缓慢增长、且对话内不可变
-```
-
-这正是为什么六个运行时边界里所有“会随用户操作变化的能力”（skill 热装、toolset 切换、memory 重写）都被推到会话边界之外——它们一旦出现在进行中的对话前缀里，就会立刻破坏缓存。窄腰管“增长”，缓存神圣管“稳定”，二者合力把 Agent Core 锁成一条薄而不可变的腰。
-
-#### 关键判断：长期 Agent 的成本纪律
-
-一次性脚本不必在乎缓存，因为对话只有一轮。长期 Agent 的成本不在单轮，而在“前缀被复用了几百轮”的累积效应。Hermes 把“缓存神圣”列为第一条设计原则，本质上是在说：长期 Agent 的架构必须服从它的计费模型——凡是会破坏前缀稳定性的便利功能，都要让位于成本纪律。这是“可长期运行”四个字背后最硬的工程约束。
+持久 Memory、当前 prompt 快照和 provider 侧缓存是三种状态。文件落盘后，当前会话可能仍使用旧快照；若本轮必须知道更正，通过有来源的工具结果或新上下文呈现，并核对重建边界。不能假定写 Memory 后下一轮就已刷新，也不能把所有摘要当成权威事实。
 
 ### 27.2.4 证据一：工程分层确实围绕运行时边界展开
+
+下列目录/入口以 Architecture 为依据，分层图是本书抽象。[[1]](#ref-1)
 
 如果从源码和运行时模块看，Hermes Agent 可以进一步分成几层工程分工：
 
@@ -348,6 +256,35 @@ Hermes 的关键点是：**Memory 不只是输入层，也在输出后参与回�
 
 这个判断决定了 Hermes 这类系统能否长期稳定运行。没有回流，Agent 每次都从头开始；没有约束，Agent 会把错误、噪声和越权信息永久化。
 
+### 贯穿教学案例：定时整理项目简报，再跨入口继续
+
+统一案例为`hermes-brief-01`：用户授权助手读取指定项目资料，每周准备一份待审简报；允许保存草稿，发送到群里另需明确授权。项目、日期、轨迹均为合成教学输入，未调用真实账号、未配置 Cron、未实测 Hermes。
+
+| 阶段 | 可核验的机制 | 本书教学契约与边界 |
+| --- | --- | --- |
+| 输入 | Gateway SessionSource 记录 platform/chat/user/thread；Cron 可创建独立执行 | 绑定 profile、来源账户与 task_id；跨 CLI/消息入口继续须显式验证身份和 session 关联 |
+| 上下文 | Memory 冻结快照、SessionDB 历史、Skills 按需加载 | 只读取授权资料版本；任务摘要保留截止时间、禁止发送、证据 hash 和未解决项 |
+| 行动 | Toolsets 与后端组织能力，工具执行器调度调用 | 先检索/生成草稿，Verifier 独立检查引用和接收人；工具目录不是业务授权 |
+| 投递 | 固定源码存在 Gateway delivery ledger 及 delivery_obligations | 只证明特定回复投递义务机制，不能推导任何业务消息都不会重复 |
+| 回流 | 记忆和 Skills 可更新；trajectory 可保存 | 经用户确认的事实、候选经验和独立评测结果分开；不自动晋升为规则 |
+
+投递 ledger 的存在有独立源码证据。[[5]](#ref-5) 其与外部业务的一致性仍需单独验证。以下通用`operation_id/outbox/checkpoint/compensation`状态机均为**教学扩展**；不能由 ledger 名字、SQLite WAL checkpoint 或会话恢复推导它们已经完整实现。
+
+**连续轨迹：** 用户先从 CLI 要求周五前准备简报，系统保存 Task 范围与只读授权；Cron 触发合成新会话，读取授权资料 v8，生成草稿 v1。用户从消息入口补充“暂时不要发”，先验证关联身份，再把禁止发送写入当前权威约束；不能只改长期 Memory、让冻结 prompt 继续沿用旧要求。长工具输出触发压缩后，恢复摘要核验资料版本、deadline 与禁止事项，漏字段即回源。
+
+在教学扩展中，假设用户随后明确批准发送草稿 hash H 给群 G，发送请求已发出但响应超时：Operation 保持 unknown。用户此时取消后续发送，Runtime 阻止新操作，查询原 operation 真实结果；晚到成功仍记录为已发，不能假称取消已撤销或直接重发。撤回消息/补偿需要渠道支持和独立授权。新资料 v9 到达后，旧草稿与其派生 Skill 候选标为待重验，不能拿“上次成功”自动放行。
+
+| 通用章节 | 本案例复用契约 | 本章负责的落点 |
+| --- | --- | --- |
+| [第 11 章](../part2/infra-11-runtime.md) | Run/Step/Event、unknown、幂等与取消 | 解释教学扩展如何处理晚到成功 |
+| [第 15 章](../part2/03-context-engineering.md) | 摘要字段、不变量与回源 | 压缩前后保留禁止发送与证据版本 |
+| [第 18 章](../part2/06-tool-calling-mcp.md) | Tool/Skill 权限和动作前后检查 | 当前 profile/接收人/草稿 hash 绑定 |
+| [第 20 章](../part2/08-agent-memory.md) | 事实/偏好/过程记忆与撤回 | 资料纠正后检查派生摘要和 Skill 候选 |
+| [第 21 章](../part2/09-workflow-orchestration.md) | owner、交接与状态版本 | Cron/交互入口不能互相覆写旧结果 |
+| [第 22 章](../part2/10-agent-evals-guardrails-observability.md) | 终态/过程/安全断言 | 正确草稿但误发也判 unsafe；未运行样本不记成功 |
+
+本案例把各章合同组合成可评审轨迹；它没有证明产品已通过崩溃注入、重复投递、撤权或成本实验。恢复验收应分别检查重复发送次数、unknown 收敛、权限撤回、摘要保真和回流污染，而非只检查最后一段文字。
+
 ### 27.3.1 一个消息任务的端到端路径
 
 如果把抽象数据流落到一个具体例子里，可以把一条 Telegram 消息在 Hermes 中的处理路径简化为：
@@ -462,6 +399,8 @@ def run_turn(user_message, profile, entry_point):
 
 ### 27.3.4 复杂任务不是单一机制，而是四层运行时能力叠加
 
+下表按固定提交的工具执行、委派、MoA 与 Kanban 分别取证，不是统一恢复保证。[[6]](#ref-6)
+
 Hermes 处理复杂任务时，最容易被误读的地方是：源码里确实同时出现了 `delegate_task`、Kanban、MoA 和并发工具调用，但它们解决的不是同一个问题。更准确地说，Hermes 不是只有一种“复杂任务模式”，而是把复杂任务拆成四层不同的运行时能力：
 
 - 单 Agent 工具链负责在同一个 Agent 回合里并行执行安全的工具调用；
@@ -476,7 +415,7 @@ Hermes 处理复杂任务时，最容易被误读的地方是：源码里确实�
 | 代表源码 | `tools/delegate_tool.py` | `tools/kanban_tools.py` + `gateway/kanban_watchers.py` | `agent/moa_loop.py` + `agent/moa_trace.py` + `hermes_cli/moa_config.py` | `run_agent.py` + `agent/tool_executor.py` + `toolsets.py` + `tools/registry.py` |
 | 入口 | `delegate_task()` | Gateway 内嵌 dispatcher + `kanban_*` tools | `MoAChatCompletions.create()` | `AIAgent._execute_tool_calls()` |
 | 核心目标 | 会话内子任务拆分 | 长流程、多 profile、可恢复任务编排 | 单轮推理质量增强 | 同一轮工具执行提速 |
-| 持久化 | 否，主要是内存态子会话 | 是，SQLite board DB | 否，只有 turn 内缓存；trace 持久化是可选旁路 | 否，属于当前会话执行态 |
+| 持久化 | child 可用独立 SessionDB 连接保存 transcript，活动执行态另行判断 | SQLite board DB 保存 task/run | 参考缓存及 trajectory 各有作用域 | 工具结果可入会话，但活动线程不等于持久任务 |
 | 隔离方式 | 独立 `AIAgent`、独立 `task_id`、受限工具集 | 独立 task、独立 worker、可继承独立 workspace / profile | advisory view，只读历史文本，无工具权限 | 不额外隔离，仍是同一个 Agent |
 | 并行引擎 | `ThreadPoolExecutor`，按 `max_children` fan-out | 独立 worker / task 进程，由 dispatcher 周期推进 | `ThreadPoolExecutor`，最多 8 个 reference models 并发 | `ThreadPoolExecutor`，只并发安全工具批次 |
 | 心跳 / 存活 | 父 Agent 定期轮询 child 进度 | board heartbeat + claim TTL + watcher/dispatcher 检测 | 无 | 无任务级心跳，只有 timeout / interrupt 控制 |
@@ -493,6 +432,8 @@ Hermes 处理复杂任务时，最容易被误读的地方是：源码里确实�
 因此，后面要展开的 `delegate_task` 并不能代表 Hermes 的全部复杂任务能力。它只是这四层里最像“多 Agent”的那一层，也是最适合先展开讲清楚的一层。
 
 #### 27.3.4.1 MoA 解决的是推理增强，不是任务编排
+
+MoA 参考视图与聚合代码支持机制描述；参考意见不是独立事实或验证结果。[[7]](#ref-7)
 
 MoA 这个名字很容易让人误以为它和 `delegate_task` 一样，也是在运行多个会“行动”的 Agent。实际上源码里的 MoA 更像“多参考模型咨询机制”，而不是任务调度器。
 
@@ -528,7 +469,7 @@ task created
   -> dispatcher 按 parents、状态和超时继续推进
 ```
 
-这和 `delegate_task` 那种“父会话里起几个子 Agent，等结果回流”是两种完全不同的边界。前者强调 durable state machine，后者强调 in-memory fan-out。
+这和 `delegate_task` 那种“父会话里起几个子 Agent，等结果回流”是两种完全不同的边界。前者强调 board 任务状态机，后者强调父会话触发的 child 执行；child 历史可持久化也不等于活动执行可任意重放。
 
 因此，如果要给这一章一个很短的归纳，可以写成：
 
@@ -690,12 +631,14 @@ Hermes 不会把它当成一次问答，而是当成一个单 Agent 工具链循
 
 ### 27.3.6 Kanban Board：如何把复杂任务变成持久化工作流
 
+依赖状态与 claim 事务来自 Kanban DB，worker 运行要求另见 Kanban 文档。[[8]](#ref-8)
+
 如果说单 Agent 工具链解决的是“**同一个会话里，如何把很多步骤持续做完**”，那么 Kanban Board 解决的就是另一个层级的问题：**任务不再依附某一轮对话，而是被提升为可持久化、可恢复、可依赖编排的工作项**。
 
 这也是为什么 Kanban 不只是“又一种多 Agent”。从源码看，它有自己完整的一套 board runtime：
 
-- 工具面由 [tools/kanban_tools.py](/Users/xianguiwang/hermes-agent/tools/kanban_tools.py) 暴露，例如 `kanban_create`、`kanban_complete`、`kanban_block`、`kanban_heartbeat`；
-- 调度面由 [gateway/kanban_watchers.py](/Users/xianguiwang/hermes-agent/gateway/kanban_watchers.py) 的 `_kanban_dispatcher_watcher()` 常驻 tick；
+- 工具面由 [tools/kanban_tools.py](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/tools/kanban_tools.py) 暴露，例如 `kanban_create`、`kanban_complete`、`kanban_block`、`kanban_heartbeat`；
+- 调度面由 [gateway/kanban_watchers.py](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/gateway/kanban_watchers.py) 的 `_kanban_dispatcher_watcher()` 常驻 tick；
 - 状态面落在 SQLite `kanban.db`，而不是某个 Agent 的临时消息历史里。
 
 因此，Kanban 的主线更像下面这样：
@@ -717,7 +660,7 @@ Hermes 不会把它当成一次问答，而是当成一个单 Agent 工具链循
 
 第二，**worker 生命周期是显式受控的，不是会话自然结束就算完成**。当 dispatcher 启动一个 task worker 时，会把 `HERMES_KANBAN_TASK`、`HERMES_KANBAN_RUN_ID` 之类的环境变量注入进去。随后这个 worker 只被允许操作自己的 task：源码里的 `_enforce_worker_task_ownership()` 会阻止它错误地完成或阻塞别的 task。这一点很重要，因为它意味着 Kanban worker 虽然本质上也是 Agent，但它在运行时被收窄成“只服务这一张 task 卡片”的执行单元。
 
-第三，**heartbeat 和 claim TTL 让长任务具备可回收性**。单 Agent 会话如果挂掉，通常就是这轮对话中断；而 Kanban 不能接受“挂掉就没人知道这张卡现在归谁”。所以 worker 除了显式调用 `kanban_heartbeat`，运行时还会通过 activity bridge 把进程活跃度同步回 board，更新 `last_heartbeat_at`。dispatcher 则据此判断某个 claim 是否已经 stale，是否需要 reclaim 再次调度。这样一来，复杂任务即使跨数小时、跨进程重启，也不会因为某个 worker 消失而永久卡死。
+第三，**heartbeat 和 claim TTL 让长任务具备可回收性**。单 Agent 会话如果挂掉，通常就是这轮对话中断；而 Kanban 不能接受“挂掉就没人知道这张卡现在归谁”。所以 worker 除了显式调用 `kanban_heartbeat`，运行时还会通过 activity bridge 把进程活跃度同步回 board，更新 `last_heartbeat_at`。dispatcher 则据此判断某个 claim 是否已经 stale，是否需要 reclaim 再次调度。这样一来，复杂任务即使跨数小时、跨进程重启，可检测失联并尝试恢复；能否继续仍取决于执行环境、权限、重试预算与外部副作用对账，不能保证永不卡住。
 
 第四，**依赖关系是显式 DAG，不再靠 LLM 临时记忆顺序**。单 Agent 工具链里当然也有“先跑测试再看报错再 patch”这种顺序，但这种顺序只是运行时事实，不会单独落成一张依赖图。Kanban 则不同，父子任务与 `parents=[]` 依赖链本身就是 board 的一等公民。任务何时 ready，不取决于模型是否还记得“上一件事做完了没”，而取决于 board 中前置任务是否真的已经完成。
 
@@ -806,7 +749,9 @@ task C: 更新发布说明（parents=[A, B]）
 
 ### 27.3.7 多 Agent 机制：`delegate_task` 驱动的子 Agent 扇出与汇总
 
-Hermes 的多 Agent 不是默认运行模式，也不是在一个会话里让多个“人格”轮流发言。它的触发条件很明确：**只有当父 Agent 当前这一轮的 LLM 输出了 `delegate_task` 这个 tool call，Hermes 才会进入多 Agent 路径。**
+下文委派描述只针对该工具路径，不覆盖其他显式调度器。[[9]](#ref-9)
+
+Hermes 的多 Agent 不是默认运行模式，也不是在一个会话里让多个“人格”轮流发言。它的触发条件很明确：**本节只讨论父 Agent 通过`delegate_task`工具触发的委派路径，Kanban 等其他调度入口另见前文。**
 
 也就是说，多 Agent 在运行时里的地位首先是一个工具能力，而不是一个常驻调度框架：
 
@@ -820,7 +765,7 @@ Hermes 的多 Agent 不是默认运行模式，也不是在一个会话里让多
   -> 结果汇总回父 Agent
 ```
 
-这里最容易误解的地方有两个。第一，Hermes 不会在“检测到任务很复杂”时自动偷偷切成多 Agent，触发点必须是模型显式选择了 `delegate_task`。第二，`delegate_task` 并不是让父 Agent 自己开几个线程继续同一段上下文，而是**真的 new 出新的 `AIAgent` 实例**，每个实例都有自己的对话循环、工具调用链和会话状态。
+这里最容易误解的地方有两个。第一，Hermes 不会在“检测到任务很复杂”时自动偷偷切成多 Agent，本工具路径的触发点是显式`delegate_task`调用，不代表全产品只有这一种多 Agent 入口。第二，`delegate_task` 并不是让父 Agent 自己开几个线程继续同一段上下文，而是**真的 new 出新的 `AIAgent` 实例**，每个实例都有自己的对话循环、工具调用链和会话状态。
 
 #### 27.3.7.1 `delegate_task` 的参数是模型直接给出的
 
@@ -935,44 +880,9 @@ orchestrator 子 Agent:
 
 ---
 
-### 27.3.8 上下文稳定性与厂商缓存：长期 Agent 的第三个成本维度
+### 27.3.8 上下文与缓存的三本账
 
-27.3.5.3 讲了三层机制解决“上下文窗口装不下”的问题。但对于长期运行的 Agent，上下文还有第三个成本维度，这层我们在 27.3.5.3 里没有展开：**同一条长会话里，系统提示词和已发生历史每轮都被重新发送给模型、重新计费**。窗口稳定不等于成本稳定——如果系统提示词每轮字节都变，模型确实“装得下”，但 LLM 厂商对输入前缀的 prompt caching 就永远命中不了，同一段长 system prompt 会被重复全价计费几十次。
-
-把三个维度放在一起看会更清楚：
-
-| 维度 | 解决的问题 | Hermes 对应机制 | 失败后果 |
-|:---|:---|:---|:---|
-| 上下文体积 | 窗口装不下 | 工具结果裁剪、会话内压缩、长期/当前状态分层（27.3.5.3） | 超出上下文窗口，任务中断 |
-| 行为一致性 | 人格/事实中途跳变 | Stable / Context / Volatile 分层（27.4.1） | Agent 说话方式、已知事实每轮漂移 |
-| **前缀缓存命中** | **长会话输入成本爆炸** | **frozen snapshot：系统提示词首轮构建后整体缓存、会话内不重写（27.4.3）** | **同一段前缀被重复全价计费，成本成倍放大** |
-
-关键判断是：**前面两层的“分层”动机，不只为避免窗口溢出和行为漂移，也为保住缓存前缀**。LLM 厂商（Anthropic 系）对稳定的输入前缀做哈希缓存，命中部分按约 1/10 计费；前缀字节一旦中途变动，缓存作废、整段重算重计费。所以“系统提示词会话内字节稳定”是一条跨越“窗口 / 一致性 / 成本”三重目标的统一约束，也是 AGENTS.md 把 "prompt caching is sacred" 列为最高优先级原则的原因。
-
-```mermaid
-flowchart LR
-    subgraph Win["维度一：窗口"]
-        W1["工具结果裁剪"] --> W2["会话内压缩"]
-        W2 --> W3["长期/当前状态分层"]
-    end
-    subgraph Beh["维度二：一致性"]
-        B1["Stable 层：人格/长期事实"]
-        B2["Context 层：按需召回"]
-        B3["Volatile 层：本轮状态"]
-    end
-    subgraph Cost["维度三：成本（缓存命中）"]
-        C1["frozen snapshot"]
-        C2["系统提示词首轮构建整体缓存"]
-        C3["会话内不重写 → 前缀哈希稳定"]
-    end
-    Win --> Cost
-    Beh --> Cost
-    Cost --> Save["前缀命中折扣<br/>长会话成本 ↓"]
-```
-
-Hermes 在这条主线上的具体落点是：系统提示词在首轮由 `build_system_prompt()`（`agent/system_prompt.py:470`）构建一次、整体缓存到 `agent._cached_system_prompt`；续会话时 `_restore_or_build_system_prompt`（`agent/conversation_loop.py:277`）若发现已存 prompt 与 runtime 匹配，直接复用而非重建。缓存的物理本质、KV 复用过程、厂商两大家族差异与 `system_and_3` 断点布局，详见 **27.4.3**。
-
----
+上下文窗口衡量模型可见信息量；会话持久化保留历史；provider 缓存影响前缀复用和计费。三者分别核验，不能互相替代。Hermes 源码把缓存规划绑定到具体请求目的地，并按 provider 兼容布局构造标记。[[10]](#ref-10)[[11]](#ref-11) 其节省效果需记录 usage、命中、TTL、模型和实际计价；本章不沿用固定折扣或“75%成本下降”的未经复现实测。
 
 ## 27.4 上下文主线：Prompt System 如何保持长期稳定
 
@@ -1005,227 +915,21 @@ Prompt System 的关键不是“资料越多越好”，而是“稳定前缀尽
 
 ---
 
-### 27.4.3 Prompt Caching 与 frozen snapshot：会话内更新，前缀不重写
+### 27.4.3 Prompt Caching：快照、标记与实际命中
 
-Hermes 在会话开始时把 `MEMORY.md`、`USER.md` 和 `SOUL.md` 读成 frozen snapshot（冻结快照），渲染进系统提示词前缀；整个会话内即使 memory store 发生更新，当前 system prompt 也不会立刻被重写。这不是“少做一步”，而是为了让 LLM 厂商的 prompt caching 命中稳定前缀、并避免会话中途的人格漂移。要理解这条边界，先要弄清楚“prompt caching 到底缓存了什么、为什么前缀一变就作废”。
+Memory 资料和 store 实现支持会话开始时加载冻结快照、工具写入更新 live store 的分工；prompt 整体的构建与复用还由 conversation/system prompt 模块控制。[[12]](#ref-12)[[13]](#ref-13)[[3]](#ref-3)[[4]](#ref-4) 不用某个字段名推导所有重建时机。
 
-#### 27.4.3.1 两层缓存内容：逻辑前缀与物理 KV
+固定提交的缓存规划已超出旧稿单一`system_and_3`说明：
 
-LLM 厂商的 prompt caching 要分两层理解，二者容易被混为一谈：
+| 分支 | 源码支持的布局 | 证据边界 |
+| --- | --- | --- |
+| 有匹配静态前缀 | 静态 system 前缀、system 末尾与最近两条可缓存非 system 消息分配标记 | 不等于任意消息都可放标记 |
+| 无静态前缀 | 保留 system 加尾部三条的 legacy 路径 | 不能写成所有请求的唯一布局 |
+| 特定原生工具缓存路径 | 静态前缀、工具数组尾部及已完成事务端点分配预算 | 必须核对实际 destination 与适配器支持 |
 
-```mermaid
-flowchart LR
-    subgraph Logical["逻辑层（缓存了什么内容）"]
-        L1["系统提示词<br/>SOUL.md + Stable 层"]
-        L2["对话历史<br/>user/assistant/tool"]
-        L3["工具定义 schema"]
-        LN["模型输出 token ❌ 不缓存"]
-    end
-    subgraph Physical["物理层（GPU 显存里存了什么）"]
-        P1["前缀每个 token<br/>在每一层的 K 向量"]
-        P2["前缀每个 token<br/>在每一层的 V 向量"]
-        PN["文本原文 ❌ 不存<br/>只存从文本算出的注意力状态"]
-    end
-    Logical -. "映射为" .-> Physical
-```
+源码会清理旧装饰，避免重复规划积累标记；部分代理对 tool result 的标记位置有限制。[[10]](#ref-10) 这些是客户端构造事实，不证明服务端接受、命中或采用同一价格。供应商 API、TTL、阈值与折扣归[第 17 章](../part2/05-llm-api-protocol.md)的版本化 adapter 核验，不在本章维护固定厂商计费表。
 
-- **逻辑层**：缓存的是“输入前缀的 token 序列”——从请求开头到缓存断点之间的全部输入（系统提示词、对话历史、工具 schema）。模型生成的**输出 token 不缓存**；但上一轮的输出会作为本轮历史进入输入，于是被间接缓存。
-- **物理层**：缓存的不是文本，而是该前缀在 Transformer **每一层、每个 token 的 (K, V) 注意力张量**（Key/Value 向量）。下次相同前缀的请求直接加载这些 KV，**跳过对前缀的 prefill（注意力预处理）**，只对新增 token 计算。
-
-> **术语澄清（避免与 27.3.4.1 混淆）**：这里“查缓存命中的钥匙”是**前缀 token 序列的哈希**（cache key）；而注意力 K/V 向量是**被缓存存储的内容**，不是钥匙。另外，27.3.4.1 讲的 MoA 缓存键（advisory view 的 SHA256）是 Hermes 在**应用层**自己做的参考模型结果缓存，与 LLM 厂商在**推理层**做的 prompt caching 是两回事：键空间、失效条件和节省对象都不同。
-
-**一个真实例子：KV 复用到底怎么发生。** 假设系统前缀首句是 `You are a helpful coding assistant.`，模型为其中 7 个 token 在 32 层各算出一对 (K, V) 向量存入显存（文本原文不存，存的是从文本算出的注意力状态）。第 2 轮处理新 token `Now` 时，只新算它的 Query 向量，再拿 Q 与缓存里已存的每个 K 做点积得到注意力分数，对缓存的 V 加权求和——前缀的 K/V 直接复用，前缀的 prefill 算力被省。
-
-```mermaid
-sequenceDiagram
-    participant P1 as 第 1 轮前缀<br/>(You are a helpful coding assistant.)
-    participant Cache as GPU 缓存<br/>(前缀每 token × 每层的 K/V)
-    participant Q as 第 2 轮新 token "Now"
-    participant Out as 下一层输入
-
-    P1->>Cache: prefill 算出 7 token × 32 层 的 (K,V) 并存入
-    Note over Cache: K("coding")=[0.88, -0.04, ...]<br/>V("coding")=[0.05, 0.91, ...]
-    Q->>Q: 只新算自己的 Query 向量
-    Q->>Cache: 拿 Q 与缓存里每个 K 做点积
-    Cache-->>Q: 注意力分数 (coding 最高 0.93)
-    Q->>Out: 对缓存的 V 加权求和 → context("Now")
-    Note over Q,Out: 前缀 prefill 被跳过，K/V 直接复用
-```
-
-因此缓存同时带来两层收益：**前缀 prefill 算力被省（延迟与 GPU 开销下降）+ 前缀输入 token 计费打折**。代价是：前缀字节一旦中途变动，旧的 K/V 作废需重算——这正是 AGENTS.md 把 "prompt caching is sacred" 列为最高约束的物理根源。
-
-#### 27.4.3.2 两条成本账：prefill 算力 vs 输入计费
-
-一个常见误解是“每轮都要重新推理，所以缓存没用”。澄清三个维度：
-
-| 维度 | 是什么 | 缓存能不能省 | 说明 |
-|:---|:---|:---|:---|
-| 推理算力（prefill） | 模型每轮必须把整个上下文从头读一遍 | **能省** | 稳定前缀的 K/V 直接复用，跳过 prefill |
-| 输入 token 计费 | 按发送的输入 token 数收钱 | **能省** | 命中前缀按折扣（Anthropic 约 0.1×）而非全价 |
-| 新增 / 输出 token | 当轮新消息、模型生成 | **省不了** | 永远全价 |
-
-**一个 100 轮会话的成本账（系统提示词 4000 token，每轮新增 200 token）：**
-
-| 方案 | 第 1 轮 | 第 100 轮 | 100 轮总输入计费（相对） |
-|:---|:---|:---|:---|
-| 不缓存（naive） | 全价 4200 | 全价 23800 | **≈ 141 万 token 全价** |
-| 有缓存（Hermes） | system+历史首轮全价，新增全价 | 前缀命中折扣，仅 `msg100` 200 全价 | **≈ naive 的 1/5 ~ 1/10** |
-
-不缓存时同一段历史被重复全价计费数十次；有缓存时系统提示词与历史只在首轮全价一次，之后折扣，仅当轮新增全价。所以“前缀稳定”直接决定长会话成本——这解释了为什么 Hermes 把系统提示词设计成“会话内字节稳定、首轮构建后整体缓存”。
-
-#### 27.4.3.3 Hermes 的 `system_and_3` 断点布局
-
-Hermes 不对整段历史都打缓存断点（Anthropic 每请求最多 4 个断点）。源码 `agent/prompt_caching.py` 采用名为 `system_and_3` 的布局：只在 **系统提示词** 和 **最近 3 条非系统消息** 上注入 `cache_control` 标记，其余消息不打。
-
-```mermaid
-flowchart TB
-    Req["一次 API 请求的消息流"] --> Sys["[system] 4000 token<br/>★ 断点 1（最大最稳）"]
-    Sys --> M1["[msg1]"]
-    Sys --> M2["[msg2]"]
-    Sys --> Mdots["... 更早的历史 ..."]
-    Sys --> M98["[msg98]"]
-    Sys --> M99["[msg99] ★ 断点 2"]
-    Sys --> M100["[msg100] ★ 断点 3"]
-    Sys --> M101["[msg101] ★ 断点 4（新增）"]
-    M101 --> Tail["标记点之后 → 永远全价、不缓存"]
-
-    style Sys fill:#2e7d32,color:#fff
-    style M99 fill:#558b2f,color:#fff
-    style M100 fill:#558b2f,color:#fff
-    style M101 fill:#558b2f,color:#fff
-    style Tail fill:#c62828,color:#fff
-```
-
-- **系统提示词**是最大且最稳的缓存块（对应 27.4.1 的 Stable 层），命中折扣是大头；
-- **最近 3 条**覆盖工具调用的局部回看需求，且很快滚出窗口、写入成本可控；
-- 文件 docstring 自述该布局在多轮会话中削减约 **75%** 输入成本（`agent/prompt_caching.py:5`）。
-- 一个容易误解的点是“更早的历史滑出 3 条窗口后就按全价计费”。**不准确**：在只追加、字节稳定且 TTL 未过期的会话里，更早的历史通过“最长前缀命中”持续保持缓存读取，并不会因滑出窗口而变全价。3 条滑动窗口的作用见下文——它是在“把增长的历史写进缓存”，而不是“丢弃更早的”。
-
-#### 27.4.3.3.1 为什么是“3 条尾部断点”而不是“1 条”：滑动断点的根本作用是“写”
-
-一个 `cache_control` 断点的语义是“把从请求开头到这个断点为止的前缀写（commit）进缓存”。因此断点有双重身份：**写**（把此前缀存入缓存，供以后读）与**读**（本轮匹配已存在的最长前缀、命中折扣）。关键推论——**如果某段前缀从未被任何断点写过，它就永远不在缓存里，之后也读不到**。
-
-**反例：若只有 system 一个断点**。每轮只在 `[S]` 处写入，更长的前缀 `[S,m1]`、`[S,m1,m2]`… 从未被 commit，于是第 2 轮起 m1、m2… 全部读不到缓存、按全价重算。**这就是尾部断点存在的根本理由：只有在“当前最后一条消息”上打断点，才能把“包含全部历史的最长前缀”写进缓存，下一轮才可能读到它。没有尾部断点，增长的历史根本进不了缓存。**
-
-**断点为何贴着尾部滑动**：会话每轮在尾部追加新内容，要让“含新内容的最长前缀”进缓存，断点就必须追着增长的边缘挪到当前最后一条。`system_and_3` 里 3 条尾部断点的根本作用正是**“写”而非“读”**——Anthropic 只在断点处 commit 前缀，没有尾部断点，历史永远进不了缓存、每轮全价重算；断点贴着尾部滑动，是为了持续把“含最新内容的最长前缀”写入，供下一轮以最长前缀命中读取。
-
-**为何是 3 而非 1**：每个 agentic 回合常一次追加多条 block（user + 多个 tool 结果 + assistant 回复），且受限于 Anthropic 每请求最多 4 个断点上限与写入价（约 1.25×），不能给每条历史都打断点。3 条窗口是“覆盖回合尾部 + 留重叠余量”与“名额上限”的平衡，理由有三：
-
-1. **覆盖多 block 回合**：一个带 2 次工具调用的回合可能一次追加 5~6 条消息。若只在最后一条打 1 个断点，中间 tool_result 都没被单独 commit，下一轮匹配窗口够不到时可能整段回合重写。3 条窗口一次覆盖回合尾部多条 block，保留多个写入锚点。
-2. **相邻两轮断点重叠，保证链连续并刷新 TTL**：窗口每轮滑 1 格，相邻两轮共享 2 个断点（如第 4 轮断点 `m2,m3,m4` 与第 5 轮 `m3,m4,m5` 重叠 `m3,m4`）。重叠既保证上一轮写入的最长前缀在本轮被重新命中、缓存链不断裂，又刷新该前缀的 TTL（5m/1h 重新计时），避免稍早历史因到期掉出缓存。
-3. **成本与名额上限**：写入要花 1.25×、名额仅 4 个。于是 1 个名额永久留给最大最稳的 system（每轮必命中），3 个名额给尾部滑动窗口（负责写增长边缘 + 重叠兜底）。
-
-> 用一句实际走法收束：第 K 轮把 `[S..m_K]` 通过尾部断点 commit 进缓存（增量按写入价）；第 K+1 轮匹配到已缓存的最长前缀 `[S..m_K]`（命中折扣），只新增 `m_{K+1}` 按写入价。3 个尾部锚点让“多 block 回合 + 断点重叠”下的缓存链既连续又抗 TTL 过期——这正是 `system_and_3` 而非 `system_and_1` 的原因。
-
-#### 27.4.3.3.2 实际例子：同一个请求，四种厂商的缓存标记长什么样
-
-为了看清厂商差异，假设第 101 轮请求的 system 前缀是 `You are a helpful coding assistant.`，最近 3 条消息是 `msg99 / msg100 / msg101`。下面看 Hermes 针对四种厂商**实际生成的请求体片段**（已简化，只保留 cache 相关字段）。`agent/agent_runtime_helpers.py:1408` 的 `anthropic_prompt_cache_policy` 按厂商分派——原生 Anthropic 用内层 content 标记（`use_native_layout=True`），OpenRouter / Nous Portal 上的 Claude、Qwen / 阿里系走外层信封标记（`False`）；对 OpenAI 官方、Gemini 等不认 `cache_control` 的厂商则返回 `(False, False)`，靠服务端自动前缀缓存命中。
-
-**(a) 原生 Anthropic（`use_native_layout=True`）——标记打在 content block 内层**
-
-```json
-{
-  "system": [
-    { "type": "text",
-      "text": "You are a helpful coding assistant.",
-      "cache_control": { "type": "ephemeral" } }
-  ],
-  "messages": [
-    { "role": "user", "content": "Read main.py", "cache_control": { "type": "ephemeral" } },
-    { "role": "assistant", "content": [ { "type": "text", "text": "main.py defines...",
-        "cache_control": { "type": "ephemeral" } } ] },
-    { "role": "user", "content": [ { "type": "text", "text": "Now refactor it.",
-        "cache_control": { "type": "ephemeral" } } ] }
-  ]
-}
-```
-
-注意 `system` 是一个 content 数组，`cache_control` 挂在**数组里最后一个 text block 上**；assistant / user 的 `content` 也被包成数组，标记同样在内层 block。这就是 Anthropic 原生协议要求的"内层布局"。
-
-**(b) OpenRouter 上的 Claude / Qwen-DashScope（`use_native_layout=False`）——标记打在 message 信封层**
-
-```json
-{
-  "system": "You are a helpful coding assistant.",
-  "messages": [
-    { "role": "user", "content": "Read main.py",
-      "cache_control": { "type": "ephemeral" } },
-    { "role": "assistant", "content": "main.py defines...",
-      "cache_control": { "type": "ephemeral" } },
-    { "role": "user", "content": "Now refactor it.",
-      "cache_control": { "type": "ephemeral" } }
-  ]
-}
-```
-
-这里 `system` 是纯字符串，`cache_control` 挂在**整个 message 对象**上（信封层），而不是内层 block。OpenRouter 这类 OpenAI-wire 代理只认这种"松散布局"——如果硬塞内层 content block，代理会忽略或报错。Qwen / 阿里系在 OpenCode、DashScope 上走同一信封布局（`agent_runtime_helpers.py:1504` 的 `provider_is_alibaba_family and model_is_qwen` 分支返回 `(True, False)`）。
-
-**(c) MiniMax / 智谱 GLM（第三方 Anthropic 兼容网关）——同 (a) 内层布局**
-
-这些厂商用自己的模型但实现了 Anthropic 兼容协议，于是 `is_anthropic_wire and is_claude`（`agent_runtime_helpers.py:1473`）或 MiniMax 分支（`:1486`）返回 `(True, True)`，**复用原生内层布局**，享同样的 ~0.1× 读价。
-
-**(d) OpenAI 官方 / Gemini——请求里完全没有 `cache_control`**
-
-Hermes 对这两家返回 `(False, False)`，**不注入任何标记**。请求就是普通的 chat completions / generateContent 调用：
-
-```json
-{
-  "messages": [
-    { "role": "system", "content": "You are a helpful coding assistant." },
-    { "role": "user", "content": "Read main.py" },
-    { "role": "assistant", "content": "main.py defines..." },
-    { "role": "user", "content": "Now refactor it." }
-  ]
-}
-```
-
-那它们怎么命中缓存？靠**服务端自动前缀匹配**：因为 system 前缀 + 历史在连续多轮里字节稳定，OpenAI / Gemini 服务端自动对"近期相同前缀"做哈希缓存（最小长度阈值 1024 / 2048 token），命中即折扣。客户端什么都不用做——这正是家族 B（自动前缀）与家族 A（显式断点）的本质区别。
-
-**四个厂商一句话对比：**
-
-| 厂商 | 请求里有无 `cache_control` | 标记位置 | 命中靠什么 |
-|:---|:---|:---|:---|
-| 原生 Anthropic | 有 | content block 内层 | 客户端显式断点 |
-| OpenRouter-Claude / Qwen | 有 | message 信封层 | 客户端显式断点 |
-| MiniMax / 智谱（Anthropic 兼容） | 有 | content block 内层 | 客户端显式断点 |
-| OpenAI / Gemini | **无** | — | 服务端自动前缀匹配 |
-
-无论哪种，Hermes 在核心循环里都不关心这些差异——它只在 `prompt_caching.py` 这一小块按 `anthropic_prompt_cache_policy` 的分派结果注入或不注入标记，**系统提示词是否"字节稳定"才是所有厂商共同的前提**。这再次印证 27.4.1 的分层不是为了提示词美观，而是为了跨厂商都能拿到缓存折扣。
-
-#### 27.4.3.4 两大家族与 frozen snapshot 的落点
-
-LLM 厂商的 prompt caching 分两大家族：
-
-| 维度 | 家族 A：显式断点（Anthropic 系） | 家族 B：自动前缀（OpenAI / Gemini 系） |
-|:---|:---|:---|
-| 代表 | Anthropic、OpenRouter-Claude、MiniMax、智谱、Qwen/DashScope | OpenAI 官方、Google Gemini |
-| 客户端要做什么 | 显式打 `cache_control` 标记（如 `system_and_3`） | 什么都不做 |
-| 命中折扣 | ~0.1× 输入价 | OpenAI ~0.5× / Gemini ~0.25× |
-| 写入费 | 有（~1.25×） | 无 |
-| 断点 / 下限 | 最多 4 个断点 | 最小长度阈值（1024 / 2048 token） |
-| TTL | 5m / 1h 可配（见 `agent_init.py:519`） | OpenAI ~5–10m / Gemini ~1h |
-
-无论哪一家，命中的前提都是**前缀字节级稳定**。这正落回 Hermes 的 frozen snapshot 机制：系统提示词在首轮由 `build_system_prompt()`（`agent/system_prompt.py:470`）构建一次、整体缓存到 `agent._cached_system_prompt`；续会话时 `_restore_or_build_system_prompt`（`agent/conversation_loop.py:277`）若发现已存 prompt 与 runtime 匹配（`_stored_prompt_matches_runtime`），直接复用而非重建——注释明说 "reuse the exact system prompt … so the cache prefix matches"。
-
-> **证据锚点修正**：27.4.3 原稿把“前缀不重写”的证据只挂在 `tools/memory_tool.py` 的 `MemoryStore.load_from_disk()` 与 `_system_prompt_snapshot`。更准确地说，这两者是 **memory 侧的变更检测**（判断 memory 内容是否变了、要不要触发重建），而“会话内前缀不重写”的主逻辑在 `conversation_loop.py` 的 restore-or-build；`_system_prompt_snapshot` 由 memory 子系统持有，是“memory 是否漂移”的信号，不是 system prompt 重建的唯一闸门。Hermes 把“更新长期存储”（实时落盘，见 27.5）与“重建 system prompt”（保缓存命中、行为稳定）刻意拆成两条链路——前者追求实时，后者追求稳定。
-
-因此，Hermes 不是“不支持记忆更新”，而是把记忆写入与系统提示词重建解耦：会话内 memory 工具更新 `MEMORY.md` / `USER.md` 并落盘，但当前 system prompt 不重写；真正生效通常等到下一次会话或下一次完整重建（压缩事件触发 `invalidate_system_prompt`，`agent/system_prompt.py:496`）。这条边界可以简化成：
-
-```mermaid
-flowchart TB
-    Start["session start"] --> Load["load MEMORY.md / USER.md / SOUL.md"]
-    Load --> Build["build_system_prompt() 渲染稳定前缀，整体缓存"]
-    Build --> Reuse["整个会话复用同一稳定前缀（frozen snapshot）"]
-
-    Mid["mid-session memory update"] --> Write["更新 memory store，落盘 ✅"]
-    Write --> NoRewrite["当前 system prompt 不重写 🔒<br/>（保缓存前缀稳定）"]
-    NoRewrite --> Next["下次会话 / 压缩事件才重建<br/>并重新加载 memory"]
-
-    Start -. 首轮全价一次 .-> Reuse
-    Reuse -. 之后每轮折扣 .-> Mid
-```
-
----
+推理缓存通常可以复用前缀计算，但不能从客户端源码得知具体服务端物理存储、保留方式或每个节点的 KV 状态。记录逻辑请求 hash 与 usage 即可支持本场景审计，不应断言供应商“只存 KV 绝不存原文”。缓存命中也不验证任务约束是否仍正确。
 
 ### 27.4.4 Model Transport：统一消息如何落到 Provider 请求
 
@@ -1242,6 +946,8 @@ conversation_loop.py
 这条链说明 Hermes 先在运行时内部维护统一消息对象，再把 provider-specific 参数放到 transport 层处理。换句话说，Prompt System 组织的是统一上下文，transport 负责把它翻译成 OpenAI、Anthropic 或其他 provider 能接受的请求。
 
 ### 27.4.5 SessionDB：会话不只在上下文窗口里存在
+
+SessionDB 结构与权威存储以 Session Storage 文档为准。[[14]](#ref-14)
 
 Hermes 的会话不是只存在于上下文窗口里，而是落到 SQLite SessionDB，并通过 FTS5 支持跨 session 的全文检索。这样 session search 就不是“翻聊天记录”的 UI 功能，而是长期 runtime 的第二层记忆。
 
@@ -1280,45 +986,17 @@ Hermes 的会话不是只存在于上下文窗口里，而是落到 SQLite Sessi
 
 ---
 
-### 27.5.3 可插拔架构：MemoryProvider 抽象
+### 27.5.3 MemoryProvider：后端扩展与上下文职责
 
-Hermes 的 Memory 系统不是只有内置实现，而是通过 `MemoryProvider` 抽象把“长期记忆如何存、如何召回、如何同步”从具体后端里拆出来。内置 provider 对应 `~/.hermes/memories/MEMORY.md` 和 `~/.hermes/memories/USER.md`；外部 provider 则可以接管检索与持久化策略。这里新增的证据点不是再次讨论 frozen snapshot，而是 **Memory 的后端可以替换，但章节前面证明过的 prompt 组装机制并不需要跟着改写**。
+官方 Memory Provider 接口将初始化、稳定声明、按查询召回和同步挂到统一生命周期；具体 provider 可以有不同存储和权限边界。[[15]](#ref-15) 内置 Memory 管理短事实，Session Search 读取历史细节，Skills 保存程序性说明，不能因它们都返回文本就混成一套权威库。
 
-一个很有代表性的例子，是把 Markdown 知识库接成一个只读 `MemoryProvider`。在这个实现里，Hermes 启动时先从 `config.yaml` 的 `memory.provider` 读取 provider 名称，然后通过插件发现机制在 `plugins/memory/` 或用户目录下的 `~/.hermes/plugins/<name>/` 加载实现，再把得到的 provider 注册进 `MemoryManager`。这说明 `MemoryProvider` 抽象首先解决的不是“文件该存哪里”，而是 **Agent Core 如何在不关心具体后端的情况下，把任意记忆能力接进统一生命周期**。
-
-如果顺着这条只读 provider 的源码再往下看，会发现它并没有改写 Agent Loop，而只是接管了自己的初始化和召回逻辑：provider 在 `initialize()` 阶段读取独立配置，例如知识库根目录、`top_k` 和字符预算；随后递归扫描 Markdown 文件，按标题切段、按长度分块，并在内存中构建 TF-IDF 索引。换句话说，Hermes 允许某个 provider 自己决定“如何预处理知识”，只要它最终暴露的仍然是统一的 `initialize / system_prompt_block / prefetch / sync` 这组边界。
-
-这一点在运行时主线上尤其清楚。只读 Markdown provider 会在 `system_prompt_block()` 中向 system prompt 追加一段非常短的能力声明，例如“你有一个只读 Markdown 知识库可以参考”，并注明知识库根路径；真正的内容召回不在启动时整体塞入上下文，而是在每轮用户输入后由 `prefetch()` 触发。调用链可以简化成：
-
-```text
-memory.provider = "markdown_kb"
-  -> 插件发现并加载 provider
-  -> MemoryManager.add_provider()
-  -> provider.initialize() 构建 Markdown 索引
-  -> build_system_prompt() 注入只读 KB 的存在声明
-  -> 每轮用户输入触发 prefetch(query)
-  -> 返回 top-k 命中的 Markdown 片段
-  -> 以 <memory-context> 形式附加到本次 API 调用
-```
-
-这个例子非常适合说明 `MemoryProvider` 抽象的真正价值。Hermes 的 memory 后端不一定都像内置 provider 那样，把稳定事实写入 `MEMORY.md` / `USER.md`；有些 provider 更像长期事实层，有些更像只读检索层，还有些可以同时承担写入与召回。对 Agent Core 来说，这些差异都被压缩在 provider 边界之后：Core 只知道“启动时该初始化 provider，组 prompt 时该请求声明块，处理用户输入时该触发 prefetch，回合同步时再决定是否需要写回”。
-
-从架构上看，这也解释了为什么 `MemoryProvider` 不应该被狭义理解成“长期记忆文件的替身”。它更接近一个统一的记忆接入层，负责把不同形态的上下文资产挂接到同一条运行时主线上：
-
-- 内置 provider 负责把稳定事实冻结成 system prompt 前缀；
-- Session Search 负责在 SQLite + FTS5 中找回历史细节；
-- 只读知识库 provider 负责按当前 query 做动态 prefetch；
-- Skills 则继续承担程序性记忆，而不是通过 `MemoryProvider` 直接注入全文。
-
-因此，`MemoryProvider` 的抽象意义不只是“可替换后端”，而是 **让 Hermes 可以同时容纳 stable-prefix memory、query-time recall 和其他检索型记忆，而不把这些机制硬编码进单一存储实现**。
-
----
+如果教学上接入只读 Markdown 知识库，应由 provider 实现目录权限、分块、索引、召回和来源版本，然后只将允许内容交给上下文。这里是扩展设计，不声称固定提交自带`markdown_kb`、TF-IDF 或某一插件发现实现。企业 ACL 与组织数据仍由[第 24 章](02-enterprise-knowledge-assistant.md)负责，个人 provider 不能绕过其撤权和删除。
 
 ### 27.5.4 配置控制
 
 配置控制的不只是开关，也决定当前启用的是哪个 `MemoryProvider`。当 `provider: "builtin"` 时，Hermes 读取和写入的就是 `~/.hermes/memories/MEMORY.md` 与 `~/.hermes/memories/USER.md`；切到外部 provider 时，变化的是持久化后端和召回策略，而不是这两个文件在内置模式下承担的 stable-prefix 角色。
 
-Memory 系统的行为完全由 `~/.hermes/config.yaml` 控制：
+下列为部分配置示意；具体 provider 可有独立配置、环境和后端约束，不能用一段 YAML 代表全部行为：
 
 ```yaml
 memory:
@@ -1345,6 +1023,8 @@ Agent 通过统一的 `memory` 工具操作 MemoryStore，对 Agent 来说，"�
 ---
 
 ### 27.5.6 Skills：把经验变成可复用程序性记忆
+
+技能资料支持发现/加载/管理；后文 review/eval 推广管道是本书治理设计。[[16]](#ref-16)
 
 Hermes 最有代表性的设计是 Skills System。
 
@@ -1395,7 +1075,7 @@ Skills 也会占上下文预算，所以不能每次全部塞进 prompt。更合
 
 如果说 OpenClaw 更强调 Skill 的加载优先级和插件生态，那么 Hermes 更值得关注的是：**Skill 如何从长期使用轨迹中演化出来**。
 
-结合第 18 章对 Skills 的定义，Hermes 的成熟实现可以抽象成一条管道：
+结合[第 18 章](../part2/06-tool-calling-mcp.md)，本书建议在 Hermes 技能机制之外增加可验证推广管道；以下 review/eval/owner 字段是教学治理扩展：
 
 ```text
 Session Trace
@@ -1465,6 +1145,8 @@ Skills 的风险也很明显：如果一次任务的解法本身是错误的，A
 ---
 
 ## 27.6 行动主线：从 Tool Registry 到 Action Engine 的连续执行链
+
+工具类别/后端来自官方工具文档；执行授权仍须独立成立。[[17]](#ref-17)
 
 Hermes 的关键不在“能不能调用工具”，而在“模型选择工具以后，运行时如何可靠地行动”。因此 Tool Registry、Toolsets、Execution Backends 和 Action Engine 需要被当成一条连续的行动主线来理解。
 
@@ -1552,6 +1234,8 @@ Plugin 与 MCP 的价值，不是“又多了一批工具”，而是证明 Herm
 
 ## 27.7 多入口主线：Gateway、Cron、Profiles 与 Session 生命周期
 
+跨入口会话依据 Gateway SessionSource 和生命周期契约，不凭显示名称合并身份。[[18]](#ref-18)
+
 这一节不应该被读成四个并列特性，而应该被读成同一个答案：**一个长期运行的 Agent，如何在多个入口、不同任务类型和多重身份之间保持连续性，而不发生串线。** Hermes 的回答是让 Gateway、Cron、Profiles 和 Session Lifecycle 共同组成连续运行控制面。
 
 ```mermaid
@@ -1586,14 +1270,16 @@ Gateway 的架构意义，不是“支持 Telegram、Slack、Discord 等很多�
 
 ### 27.7.2 Cron：把时间也做成入口，而不是旁路脚本
 
-Hermes 的 Cron 值得强调，不是因为它能定时，而是因为它把时间触发也纳入了同一条运行时主线。一个 cron tick 并不会绕过 Gateway / Profile / Session 逻辑直接执行脚本；它更像“系统代表某个 profile 发起一次新的 Agent turn”。
+Cron 文档支持 Agent 任务及 no_agent 两条分支，不能将全部 tick 概括成模型 turn。[[19]](#ref-19)
+
+Hermes 的 Cron 值得强调，不是因为它能定时，而是因为它把时间触发也纳入了同一条运行时主线。Agent 模式可在新会话中执行任务；当前文档还支持`no_agent`脚本模式，脚本 stdout 可以直接投递而不调用 LLM。两者都要核对调度、身份、工作目录与投递范围，不能将脚本输出当模型已验证的结论。
 
 这带来两个后果：
 
 - 定时任务会复用同样的 memory、skills、toolsets 与后端选择逻辑；
 - 后台任务的输出不只是 stdout，还可以继续写回 session、回到消息入口、进入学习闭环。
 
-因此 Hermes Cron 更接近“定时 Agent Task”，而不是 Shell Cron。它把长期工作从“用户来问才回答”扩展到“时间到了就继续处理”，但连续性的基础仍然是同一套身份和会话边界。
+因此选用哪种 Cron 模式必须显式记录。它把长期工作从“用户来问才回答”扩展到“时间到了就继续处理”，但连续性的基础仍然是同一套身份和会话边界。
 
 ### 27.7.3 Profiles：连续性的前提是身份隔离
 
@@ -1634,6 +1320,8 @@ ingest event
 
 ## 27.8 安全主线：长期 Agent 的真实攻击面
 
+安全文档只证明相应控制及前提存在；这里的评审表属于本书归纳。[[20]](#ref-20)
+
 Hermes 的安全部分，不能只概括成“多层防御”四个字。更准确的理解方式是：前面那些让 Agent 保持连续行动的机制，本身也定义了长期 Agent 的主要攻击面。入口越多、身份越持久、工具越强、学习回流越深，越需要围绕具体失效路径布防。
 
 ### 27.8.1 五个最关键的攻击面
@@ -1664,6 +1352,8 @@ Hermes 的安全部分，不能只概括成“多层防御”四个字。更准�
 ---
 
 ## 27.9 学习闭环：从运行轨迹到能力资产
+
+轨迹格式说明可导出的运行材料，不证明它们已被脱敏、评测或训练使用。[[21]](#ref-21)
 
 Hermes 在学习闭环上的真正亮点，不是“Agent 会自动变强”这种宽泛叙事，而是它把一条更具体、也更工程化的链路暴露了出来：
 
@@ -1699,27 +1389,17 @@ trajectory
 
 ---
 
-## 27.10 Hermes 与 OpenClaw 的架构对比
+## 27.10 Hermes 与 OpenClaw：比较职责，分别核验保证
 
-Hermes 和 OpenClaw 很容易被放在一起比较，因为它们都强调个人 AI 助手、多渠道入口、本地运行和工具生态。但如果沿着本章一直使用的“长期 Runtime 主线”去看，两者回答的其实不是同一个核心问题。
+[第 26 章](04-openclaw-architecture.md)已固定 OpenClaw 提交并说明自有 Runtime；本章固定 Hermes 提交并关注会话/记忆/技能/轨迹。两者都可能接入多入口、工具与长期状态，不用 Gateway-first 或 Learning-first 推断缺少对方能力。
 
-| 维度 | OpenClaw | Hermes Agent |
-|:---|:---|:---|
-| 核心定位 | Personal Agent Gateway | Self-improving Long-running Agent |
-| 入口 | 多聊天平台、WebChat、CLI、节点 | CLI/TUI、Messaging Gateway、ACP、Cron、脚本化/服务化入口 |
-| 记忆 | 个人上下文和长期配置 | Persistent Memory、User Profile、SQLite Session Search、外部 Memory Provider |
-| 技能 | 技能与插件生态 | 支持创建/更新 Skills，并将验证过的经验沉淀为可复用流程，兼容 agentskills.io |
-| 工具 | 工具、技能、插件、MCP | Tool Registry、Toolsets、MCP、Plugins、执行后端 |
-| 执行环境 | 本地和沙箱为主 | local、Docker、SSH、Daytona、Modal、Singularity |
-| 研究闭环 | 更偏产品使用 | 轨迹生成、压缩、RL/eval 数据 |
-| 架构气质 | Gateway-first | Learning-loop-first |
+| 比较维度 | 核对方法 | 不应推断 |
+| --- | --- | --- |
+| 身份与连续性 | 入口账户、sender/thread、profile、session 关联及授权 | 显示名相同即可共用记忆 |
+| 行动与恢复 | 工具后端、操作 ID、投递 ledger 和异常轨迹分别取证 | 有 SQLite 或 Cron 即可通用 exactly-once |
+| 学习与反馈 | 原始轨迹、候选记忆/Skill、验证与发布分别检查 | 能写文件就已持续提升质量 |
 
-两者不是谁替代谁，而是代表两种长期 Agent 的设计方向：
-
-- 如果重点是“如何让用户从各种渠道触达 Agent”，OpenClaw 的 Gateway 思路更突出；
-- 如果重点是“如何让 Agent 在长期使用中积累能力”，Hermes 的 Memory + Skills + Session + Trajectory 思路更突出。
-
-因此，更准确的比较方式不是问“谁更完整”，而是先问“你的系统瓶颈在入口连续性，还是在能力沉淀与学习闭环”。前者更接近 OpenClaw，后者更接近 Hermes。
+选型要在相同任务、权限、预算与版本下验证。这里没有执行产品对比实验。
 
 ---
 
@@ -1742,48 +1422,9 @@ Hermes 和 OpenClaw 很容易被放在一起比较，因为它们都强调个人
 
 落地时也不该从“平台越多越好、工具越多越好、自动学习越快越好”开始，而应该先跑通一个受限但闭环完整的 Runtime：先证明单一入口、单一 profile 和 session 生命周期能够连续工作，再把 toolsets、隔离后端、最小安全护栏和验证后的 trajectory 记录补齐。反过来说，过早扩入口、给低信任入口开放高风险工具、或者在没有验证证据前自动升级 skill，都只是在放大失控半径，而不是在建设长期 Agent。
 
-### 27.11.2 工程治理：设计哲学如何变成合并准则
+### 27.11.2 从工程原则到审查证据
 
-前文的两条设计哲学（27.2.2 窄腰、27.2.3 缓存神圣）如果只停留在宣言，对真实的工程组织没有约束力。Hermes 的官方开发指南（AGENTS.md）把哲学落成了一份名为 **Contribution Rubric（贡献准则）** 的合并判据清单，分为 "What We Want"（合并项）与 "What We Don't"（拒绝项，且标注 *rejected even when well-built*——造得再好也拒）。这份准则本身是理解 Hermes "扩张边缘、保守在腰" 平衡的最好反例集。
-
-**哲学 → 准则 → 审查，三层闭环。** 两条哲学不是孤立的审美偏好，而是这样传导的：
-
-```text
-设计哲学（27.2.2 窄腰 / 27.2.3 缓存神圣）
-   ↓ 操作化为合并判据
-Contribution Rubric（什么 PR 进核心、什么被拒）
-   ↓ 自动化为审查纪律
-Triage Sweeper（机器人只在三种理由下关 PR，口味判断留给人）
-```
-
-**"要"的清单：边缘激进、腰上保守。** "What We Want" 九条里，最值得注意的是它与"激进"并不矛盾：新平台、新频道、新模型、新桌面特性都欢迎且常合并（Hermes 在产品面扩张是刻意且高效的）；保守只针对 core agent 与工具 schema 这一处——因为这里的每次新增都被乘上（用户数 × 调用数）。其中两条直接把前文哲学原样搬入审查："Keep the core narrow" 原样复刻 Footprint Ladder；"Cache-, alternation-, and invariant-safe" 原样复刻缓存神圣加角色交替约束。
-
-**"不要"的清单：八条红线都在守同一件事。** "What We Don't" 八条拒绝项，逐条都能追到一条工程约束，没有一条是口味问题：
-
-| 拒绝项 | 它守护的设计约束 | 对应哲学 |
-|:---|:---|:---|
-| 已有 `terminal+file` / skill 能做的事还加 core tool | 腰不能胖 | 27.2.2 窄腰 |
-| 第三方产品塞进核心树、插件碰核心文件 | 腰不被外部后端绑定、扩展靠接口不靠特例 | 27.2.2 扩张边缘但不进腰 |
-| 投机基础设施（无消费者的 hook）、裸 `HERMES_*` env var | 腰不预支扩展面、边缘接入要规范 | 27.2.2 最小足迹 |
-| 中途破坏缓存、死代码无 E2E 证明 | 腰不能动、缓存神圣 | 27.2.3 缓存神圣 |
-| instructional 工具的 `offset/limit` 懒读 | 模型会只读第 1 页就停下 | 27.2.3 同类行为红线 |
-| "修复"毁掉所保护特性 | 改限制前先 `git log -p -S` 读原始意图 | 27.2.3 对称：别误伤设计 |
-| 无 opt-in 的出站遥测 / 归因 | 用户数据主权是硬门槛 | 治理 / 信任 |
-
-**两条最值得自研团队借鉴的治理纪律。**
-
-第一，**"插件不碰核心"是耦合决策而非质量门槛。** 准则硬规定：插件只能工作在框架提供的 ABC / hooks 内；若需要更多能力，应当**扩宽通用 plugin surface**，绝不在 `run_agent.py` / `cli.py` / `gateway/run.py` 等核心文件里写 plugin 专属逻辑（PR #5295 为此删掉了 95 行硬编码的 argparse）。更极端的是第三方产品插件——可观测性后端、厂商 SaaS 集成、分析仪表盘等必须发布为独立 repo，用户装进 `~/.hermes/plugins/`，而非进本仓库的 `plugins/`。文档的原话点破了本质：*"This is a coupling-and-maintenance decision, not a quality bar — the plugin can be excellent and still be a close."*（这是耦合与维护决策，不是质量门槛；插件再好也会被关。）这对任何想做插件化 Agent 框架的团队都成立：把核心锁死、把扩展面做宽，比"来一个需求就特例塞核心"更可持续。
-
-第二，**"先验证前提，再修"是长期项目的改动纪律。** 准则明确反对建立在错误前提上的修复：修改任何限制性行为前，先用 `git log -p -S <symbol>` 读原始 commit 的意图，找"既修 bug 又保留特性"的解法，而不是用过度限制把特性阉割掉。这与 27.2.3 同源——都是"别为了一个看得见的问题，毁掉一个看不见的设计意图"。自研团队在重构长期运行的 Agent 核心时，这条尤其关键：核心一旦被误伤，代价是跨所有用户、所有会话的回归。
-
-**它对自动审查的治理设计也值得抄。** 准则开头特意给 triage sweeper（自动分类机器人）划了边界：它只在 `implemented_on_main` / `cannot_reproduce` / `incoherent` 三种客观理由下自动关 PR；而 "we don't want this / out of scope" 这种口味判断，**不归机器人管，必须留给人**。机器人唯一的任务恰恰是"识别设计意图、避免误关合法贡献"，而不是替人做"不实现"的决定。这种"客观红线自动化、主观取舍留给人"的分权，是开源 Agent 项目在贡献量爆炸时仍能守住设计一致性的关键机制。
-
-```text
-能客观判定的（腰胖了 / 缓存破了 / 插件碰核心）→ 写进 Rubric，可被机器人执行
-不能客观判定的（这个功能我们不想做）→ 留给人，机器人不代裁
-```
-
-把 Contribution Rubric 放回整章，它恰好证明了 27.11.1 那条原则——"一个系统即使接了很多平台、很多 MCP server，只要没有连续性控制、能力打包和验证约束，本质上仍然只是一个容易失控的工具调用器"。Hermes 不仅把约束写进了架构，还把同样的约束写进了**合并 PR 的门槛**：让"什么是好贡献"和"什么是好架构"服从同一套哲学。
+开发指南提供窄核心、缓存稳定、插件边界与变更前核对意图等原则；这属于项目贡献约束，不自动证明所有实现都满足约束。[[2]](#ref-2) 本书建议审查时要求：具体源码/版本、消费者、输入/输出契约、失败恢复与回归证据。能写出原则不能代替执行器测试，能自动总结也不能代替独立 Verifier。
 
 ---
 
@@ -1810,12 +1451,24 @@ Hermes Agent 展示了长期运行 Agent 的另一条成熟路径：不是只做
 
 ## 参考资料
 
-1. [Hermes Agent GitHub Repository - NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent)
-2. [Hermes Agent Documentation](https://hermes-agent.nousresearch.com/docs/)：官方文档入口，包含 Messaging Gateway、Tools & Toolsets、Skills、Architecture，以及 closed learning loop 的总体说明。
-3. [Hermes Agent Features Overview](https://hermes-agent.nousresearch.com/docs/user-guide/features/overview/)：功能总览，覆盖工具集、Skills、Persistent Memory、Context Files 等核心能力。
-4. [Hermes Agent Architecture](https://hermes-agent.nousresearch.com/docs/developer-guide/architecture)：开发者架构说明，覆盖 Prompt Builder、Tool Registry、Session Persistence、Gateway、Plugin、Cron、ACP、RL / Trajectory 等内部模块。
-5. [Hermes Agent Tools & Toolsets](https://hermes-agent.nousresearch.com/docs/user-guide/features/tools/)：工具与工具集说明，列出 web、terminal、file、browser、memory、session_search、cronjob、delegation、MCP 等常见能力类别。
-6. [Hermes Agent Toolsets Reference](https://hermes-agent.nousresearch.com/docs/reference/toolsets-reference)：工具集参考，说明 toolset 如何作为按平台、会话和任务控制能力边界的机制。
-7. [Hermes Agent Built-in Tools Reference](https://hermes-agent.nousresearch.com/docs/reference/tools-reference/)：内置工具参考，适合追踪当前代码派生出的工具注册表和 MCP 动态工具能力。
-8. [Hermes Agent Persistent Memory](https://hermes-agent.nousresearch.com/docs/user-guide/features/memory/)
-9. [Hermes Agent Security](https://hermes-agent.nousresearch.com/docs/user-guide/security)
+1. <a id="ref-1"></a> NousResearch / Hermes maintainers，[Architecture](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/developer-guide/architecture.md)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+2. <a id="ref-2"></a> NousResearch / Hermes maintainers，[Development guide](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/AGENTS.md)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+3. <a id="ref-3"></a> NousResearch / Hermes maintainers，[Conversation loop](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/agent/conversation_loop.py)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+4. <a id="ref-4"></a> NousResearch / Hermes maintainers，[System prompt](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/agent/system_prompt.py)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+5. <a id="ref-5"></a> NousResearch / Hermes maintainers，[Delivery ledger](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/gateway/delivery_ledger.py)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+6. <a id="ref-6"></a> NousResearch / Hermes maintainers，[Tool execution](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/agent/tool_executor.py)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+7. <a id="ref-7"></a> NousResearch / Hermes maintainers，[Mixture of agents](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/agent/moa_loop.py)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+8. <a id="ref-8"></a> NousResearch / Hermes maintainers，[Kanban database](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/hermes_cli/kanban_db.py)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+9. <a id="ref-9"></a> NousResearch / Hermes maintainers，[Delegation](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/tools/delegate_tool.py)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+10. <a id="ref-10"></a> NousResearch / Hermes maintainers，[Prompt caching planner](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/agent/prompt_caching.py)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+11. <a id="ref-11"></a> NousResearch / Hermes maintainers，[Prompt cache scope](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/agent/prompt_cache_scope.py)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+12. <a id="ref-12"></a> NousResearch / Hermes maintainers，[Persistent memory](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/user-guide/features/memory.md)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+13. <a id="ref-13"></a> NousResearch / Hermes maintainers，[Memory store](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/tools/memory_tool_store.py)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+14. <a id="ref-14"></a> NousResearch / Hermes maintainers，[Session storage](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/developer-guide/session-storage.md)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+15. <a id="ref-15"></a> NousResearch / Hermes maintainers，[Memory provider plugin](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/developer-guide/memory-provider-plugin.md)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+16. <a id="ref-16"></a> NousResearch / Hermes maintainers，[Skills](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/user-guide/features/skills.md)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+17. <a id="ref-17"></a> NousResearch / Hermes maintainers，[Tools and toolsets](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/user-guide/features/tools.md)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+18. <a id="ref-18"></a> NousResearch / Hermes maintainers，[Gateway session lifecycle](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/developer-guide/gateway-session-lifecycle.md)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+19. <a id="ref-19"></a> NousResearch / Hermes maintainers，[Cron](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/user-guide/features/cron.md)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+20. <a id="ref-20"></a> NousResearch / Hermes maintainers，[Security](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/user-guide/security.md)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+21. <a id="ref-21"></a> NousResearch / Hermes maintainers，[Trajectory format](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/developer-guide/trajectory-format.md)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。

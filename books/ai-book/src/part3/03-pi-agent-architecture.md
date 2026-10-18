@@ -6,7 +6,7 @@
 
 第 23 章已经从 Claude Code、Cursor、Codex 这类成熟产品出发，拆解了 AI Coding Agent 的系统设计模式。本章继续往下挖一层：如果不从“产品界面”看，而是从“Agent Runtime”看，一个终端原生 Coding Agent 应该怎样组织？
 
-Pi 是一个很好的观察对象。它的官方定位是 minimal terminal coding harness：核心保持很小，通过 TypeScript extensions、skills、prompt templates、themes、packages 和 SDK 扩展能力。它可以直接作为 CLI 使用，也可以通过 JSON / RPC / SDK 被其他系统集成。OpenClaw 的 Agent Runtime 就是一个典型例子：OpenClaw 没有把 Pi 当作子进程启动，而是通过 SDK 直接创建 `AgentSession`，再把自己的消息渠道、工具、沙箱和会话管理接进去。
+Pi 是一个很好的观察对象。它的官方定位是 minimal terminal coding harness：核心保持很小，通过 TypeScript extensions、skills、prompt templates、themes、packages 和 SDK 扩展能力。它可以直接作为 CLI 使用，也可以通过 JSON / RPC / SDK 被其他系统集成。SDK 提供进程内集成能力。[[1]](#ref-1) 旧稿曾把 OpenClaw 作为当前 Pi SDK 嵌入例子；本轮固定源码已不再支持该表述，版本边界在 25.13 单独说明。
 
 如果把 Pi 看成“终端里的 AI 编程助手”，会低估它的工程价值。更准确的理解是：
 
@@ -28,10 +28,10 @@ Pi = Terminal-native Coding Agent Runtime
 4. `read`、`write`、`edit`、`bash` 这类工具背后对应怎样的权限边界？
 5. TypeScript Extension 为什么是 Pi 的关键扩展机制？
 6. SDK 嵌入和 CLI 子进程集成有什么本质差异？
-7. OpenClaw 为什么选择直接嵌入 Pi？
+7. Pi 与 OpenClaw 的当前版本边界如何核对？
 8. 如果自研一个 Pi-like Coding Agent Runtime，最小可行架构是什么？
 
-本文基于 2026 年 5 月 6 日可访问的 Pi 官方文档、Pi SDK 文档和 OpenClaw 的 Pi 集成文档进行分析。Pi 仍在快速演进，具体命令、配置项和包版本以后可能变化，但它背后的 harness engineering 思路非常值得长期学习。
+本章于 2026-10-18 重新核验 Pi latest 官方文档；网页快照不是本地安装版本。当前 SDK 示例采用`@earendil-works/pi-coding-agent`，不沿用旧命名空间。架构分层和生产化建议是本书解读；代码展示接口形态，未安装、编译或实际执行。[[2]](#ref-2)[[1]](#ref-1)
 
 ---
 
@@ -93,7 +93,7 @@ Pi-style Coding Harness
 
 1. **个人终端 Agent**：开发者在仓库目录里直接运行 `pi`。
 2. **自动化 Agent Runtime**：脚本、CI、评测系统用非交互模式调用。
-3. **嵌入式 Agent 内核**：OpenClaw 这类系统用 SDK 嵌入 Pi 的 session、tool 和 event 能力。
+3. **嵌入式 Agent 内核**：宿主可通过 SDK 使用 Pi 的 session、tool 和 event 接口，具体产品依赖需独立核验。
 
 ### Harness 的边界
 
@@ -143,8 +143,8 @@ flowchart TB
     end
 
     subgraph Model["Model Layer"]
-        Auth["AuthStorage"]
-        Registry["ModelRegistry"]
+        Auth["Credentials / 配置"]
+        Registry["ModelRuntime"]
         Providers["Provider APIs"]
     end
 
@@ -181,7 +181,7 @@ flowchart TB
 | 层 | 职责 | 关键设计 |
 |:---|:---|:---|
 | Entry Surfaces | 提供交互式、非交互式、RPC、SDK 入口 | 同一运行时，多种使用形态 |
-| Agent Runtime | 管理 `AgentSession`、Agent Loop、事件和压缩 | 把模型调用和工具调用串成可恢复过程 |
+| Agent Runtime | 管理 `AgentSession`、Agent Loop、事件和压缩 | 把模型调用和工具调用串成可观察会话过程 |
 | Resource Loading | 加载上下文、技能、模板、扩展和主题 | 资源发现优先级清晰，支持全局和项目级 |
 | Model Layer | 管理 provider、model、auth 和 thinking level | provider-agnostic，模型可切换 |
 | Tool Runtime | 暴露读写文件、编辑、Shell 和自定义工具 | 工具是行动边界，不是普通函数 |
@@ -201,22 +201,22 @@ Pi 的价值在于把终端原生 Coding Agent 拆成可嵌入 Runtime。用第 
 | Task Planner | Agent Loop 内部生成步骤，复杂任务可由 prompt / skill 引导 | 隐式实现；计划通常存在于会话和模型输出中，而非独立 planner 服务 |
 | Context Builder | `ResourceLoader` 加载 context files、system prompt、skills、templates，并按优先级组装 | 强实现；这是 Pi 的核心设计之一 |
 | Memory Layer | JSONL session、配置、历史会话、可能的项目级上下文文件 | 部分实现；偏会话与文件上下文，不是完整长期记忆系统 |
-| Execution State & Checkpoint | `AgentSession`、event stream、session tree、compaction 和本地 session 存储 | 强实现；适合暂停、回放、分支和嵌入式调试 |
+| Execution State & Checkpoint | `AgentSession`、event stream、session tree、compaction 和本地 session 存储 | 提供会话存储与分支；不等同外部动作 checkpoint 或确定性重放 |
 | Capability Registry | Tool Runtime + Extension Host + Skills + Prompt Templates + Packages | 强实现；扩展系统是 Pi-like Runtime 的关键边界 |
 | Policy Engine & Human Control Plane | 工具风险分级、bash / edit 权限、extension 信任边界、本地配置 | 部分实现；本地优先，企业审批和多租户策略需要上层补齐 |
 | Agent Loop | `AgentSession` 驱动模型调用、工具调用、事件流和压缩 | 强实现；Agent Loop 是可嵌入 Runtime 的最小心跳 |
-| Model Router & Handoff Manager | `ModelRegistry`、Provider APIs、auth、thinking level | 中等实现；支持 provider/model 切换，但专家委派和多 Agent 不是核心重点 |
+| Model Router & Handoff Manager | `ModelRuntime`、Provider APIs、auth、thinking level | 中等实现；支持 provider/model 切换，但专家委派和多 Agent 不是核心重点 |
 | Verifier & Eval Harness | 工具结果、事件流、session tree 可作为验证和评测材料 | 部分实现；Pi 提供数据面，完整 Eval Harness 需要外部系统建设 |
 | Review Surface、Trace & Audit | TUI、JSON event stream、RPC 输出、session 文件 | 强在 trace 事件，弱在企业审计；适合开发者可观测，不等于合规审计 |
 | Learning Loop | Skills、Prompt Templates、Packages 可沉淀经验 | 部分实现；强调可扩展资产，自动学习和 owner review 流程不是内核职责 |
 
-因此，Pi 更像一个“终端原生 Agent Runtime 内核”，而不是完整企业 Agent 平台。它把第 13 章中的 Runtime 关键边界做薄、做清楚，让 OpenClaw 这类上层系统可以复用它，再补 Gateway、权限、长期记忆、审批和产品化交互。
+因此，Pi 更像一个“终端原生 Agent Runtime 内核”，而不是完整企业 Agent 平台。它把第 13 章中的 Runtime 关键边界做薄、做清楚，让宿主系统可复用其接口，再补 Gateway、权限、长期记忆、审批和产品交互；是否真实集成需逐版本核验。
 
 ---
 
 ## 25.3 运行形态：同一个 Runtime，多种入口
 
-Pi 不是只有一种启动方式。它至少支持四类运行形态。
+Pi 不是只有一种启动方式。以下入口及会话命令以核验日官方资料为准。[[2]](#ref-2)
 
 | 运行形态 | 典型用法 | 适用场景 |
 |:---|:---|:---|
@@ -279,35 +279,25 @@ pi --mode rpc
 SDK 是 Pi 架构里最有生产价值的入口。它让外部系统直接创建 `AgentSession`，而不是把 Pi 当作黑盒进程：
 
 ```ts
-import {
-  AuthStorage,
-  createAgentSession,
-  ModelRegistry,
-  SessionManager,
-} from "@mariozechner/pi-coding-agent";
-
-const authStorage = AuthStorage.create();
-const modelRegistry = ModelRegistry.create(authStorage);
+import { createAgentSession, SessionManager } from "@earendil-works/pi-coding-agent";
 
 const { session } = await createAgentSession({
   sessionManager: SessionManager.inMemory(),
-  authStorage,
-  modelRegistry,
 });
-
-session.subscribe((event) => {
-  if (
-    event.type === "message_update" &&
-    event.assistantMessageEvent.type === "text_delta"
-  ) {
+const unsubscribe = session.subscribe((event) => {
+  if (event.type === "message_update" && event.assistantMessageEvent.type === "text_delta") {
     process.stdout.write(event.assistantMessageEvent.delta);
   }
 });
-
-await session.prompt("What files are in the current directory?");
+try {
+  await session.prompt("What files are in the current directory?");
+} finally {
+  unsubscribe();
+  session.dispose();
+}
 ```
 
-这个接口说明 Pi 的核心抽象不是 `pi` 命令，而是 `AgentSession`。
+此处显式使用 in-memory 会话，不提供进程退出后的恢复；默认持久会话和临时会话不可混写。SDK 会话替换后需重新绑定订阅；`agent_end`可能仍跟随自动恢复或排队工作，宿主判断不再自动继续时应关注`agent_settled`。[[1]](#ref-1)
 
 ---
 
@@ -365,7 +355,7 @@ sequenceDiagram
 - 扩展注入的上下文；
 - 错误和中断。
 
-所以 Pi 使用 JSONL session 文件是一种自然选择：每个事件或消息追加一行，便于流式写入、恢复、浏览和导出。
+Pi 持久会话以 JSONL 条目树保存；不是每个瞬时事件都原样写入，模型上下文取活动分支。使用`--no-session`或 in-memory manager 时不能声称进程重启可恢复。会话树浏览也不会撤销已执行的 Shell、远端请求或文件修改。[[3]](#ref-3)
 
 ### Event Stream 是 Runtime 的可观测接口
 
@@ -373,7 +363,8 @@ sequenceDiagram
 
 | 事件类型 | 意义 |
 |:---|:---|
-| `agent_start` / `agent_end` | 一次用户 prompt 的生命周期 |
+| `agent_start` / `agent_end` | 一次底层 agent run；end 不保证没有后续自动工作 |
+| `agent_settled` | 不再自动继续的通知边界，仍非业务动作全部成功 |
 | `turn_start` / `turn_end` | 一轮模型调用和工具执行的生命周期 |
 | `message_start` / `message_update` / `message_end` | assistant 文本和思考流 |
 | `tool_execution_start` | 工具开始执行 |
@@ -387,13 +378,13 @@ sequenceDiagram
 2. **外部集成**：SDK、RPC、JSON mode 可以把事件交给上层系统。
 3. **生产诊断**：失败后能看到模型什么时候决定调用什么工具、工具返回了什么、压缩发生在哪里。
 
-第 29 章实现可观测 Coding Agent lab 时，也会复用这个思想：不要只存最终回答，要记录每一轮决策和工具执行。
+[第 29 章](08-mini-agent-observability.md)的最小 Coding Agent 教学闭环也采用这一思路：不要只存最终回答，要记录每一轮决策和工具执行。
 
 ---
 
 ## 25.5 从 `~/.pi/agent` 反推终端原生 Runtime
 
-第 23 章我们已经从 `~/.codex` 和 `~/.claude` 目录反推过终端原生 Agent Runtime。Pi 的目录约定也能透露出类似架构。
+第 23 章讨论了项目规则和会话状态；下文按 Pi 官方路径说明其资源组织。[[4]](#ref-4)Pi 的目录约定也能透露出类似架构。
 
 Pi 的全局配置目录默认是：
 
@@ -503,7 +494,7 @@ Project scope:
 
 ## 25.6 ResourceLoader：上下文不是拼字符串
 
-> 来源口径：本节关于 `DefaultResourceLoader`、`cwd`、`agentDir`、context files、system prompt files 和 settings 的描述，主要来自 [Pi SDK](https://pi.dev/docs/latest/sdk) 与 [Pi Usage](https://pi.dev/docs/latest/usage) 文档；“上下文分层”和“工程治理”是基于这些机制的作者抽象。
+> 来源口径：资源加载依据 SDK 与 Configuration；上下文分层和治理是本书抽象。项目资源在 trust 边界之后加载，受信项目的 SYSTEM/APPEND_SYSTEM 同名文件具有对应优先级，不是全局与项目文本一律相加。[[1]](#ref-1)[[4]](#ref-4)
 
 Pi SDK 文档里一个很重要的对象是 `DefaultResourceLoader`。它负责从 `cwd` 和 `agentDir` 发现 resources，并交给 `createAgentSession()` 使用。
 
@@ -568,7 +559,7 @@ Pi 支持用 `SYSTEM.md` 替换默认 system prompt，也支持用 `APPEND_SYSTE
 
 ### Skills 的渐进披露
 
-Pi 实现 Agent Skills 标准。Skill 不是每次都把所有文档塞进 prompt，而是先在系统提示里暴露名称和描述；当任务匹配时，模型再读取完整 `SKILL.md`。
+Pi Skills 资料描述渐进加载。[[5]](#ref-5)Skill 不是每次都把所有文档塞进 prompt，而是先在系统提示里暴露名称和描述；当任务匹配时，模型再读取完整 `SKILL.md`。
 
 这个机制解决了两个矛盾：
 
@@ -604,7 +595,7 @@ use scripts / references / assets
 
 ### Prompt Templates
 
-Prompt templates 则解决另一个问题：重复工作流的入口。
+Prompt Templates 将模板暴露为命令入口；下方 Front Matter 与调用示例是教学形式，参数和字段应核对所用版本。[[6]](#ref-6)
 
 一个模板可以类似这样：
 
@@ -640,7 +631,7 @@ Focus on:
 
 ## 25.7 Tool Runtime：工具是能力边界
 
-Pi 默认给模型的核心工具很克制：
+本章用下列基础工具说明行动边界；实际默认集合取决于配置和入口，CLI 加载的内置扩展不会全部自动进入 SDK。[[1]](#ref-1)
 
 - `read`：读取文件；
 - `write`：创建或覆盖文件；
@@ -750,7 +741,7 @@ Command Classifier
   └─ destructive: rm, sudo, chmod, docker prune
 ```
 
-Pi 的核心文档强调默认工具很小；真正生产化时，工具策略要由 harness、extension 或上层系统共同承担。OpenClaw 嵌入 Pi 后，也会在自己的沙箱、channel 和 gateway 语义下重新接管部分工具策略。
+Pi 的核心文档强调默认工具很小；真正生产化时，工具策略要由 harness、extension 或上层系统共同承担。宿主集成时仍需按自身沙箱与入口语义裁决权限，不能由 SDK 可调用推导出工具已获授权。
 
 ---
 
@@ -758,7 +749,9 @@ Pi 的核心文档强调默认工具很小；真正生产化时，工具策略�
 
 如果只支持 Skills 和 Prompt Templates，Pi 仍然只是一个可定制 prompt 的工具。真正让它变成 harness 的，是 TypeScript extensions。
 
-Pi extension 可以做几类事情：
+Extension 以 Pi 进程的操作系统权限运行；能力注册与资源生命周期依官方事件契约。以下代码是架构伪代码，不是已通过类型检查的完整 extension。[[7]](#ref-7)
+
+它可以做几类事情：
 
 - 注册自定义工具；
 - 订阅生命周期事件；
@@ -847,7 +840,7 @@ pi.registerCommand("deploy-check", {
 
 Extension 是代码，代码就有权限。安装一个恶意 extension，本质上类似在本机运行一个 npm 包。
 
-所以 Pi Packages 文档会强调：packages 和 extensions 可能以完整系统权限运行，安装第三方包前必须审查源码。
+Packages 分发扩展和资源，不形成权限沙箱；源码、依赖与更新都需审查。[[8]](#ref-8)
 
 在生产环境中，extension 应该遵守几条规则：
 
@@ -989,11 +982,13 @@ User prompt
 
 本轮上下文不一定应该永久进入未来所有轮次。比如图片输入、一次性命令输出、临时日志片段，都应该有生命周期。
 
-OpenClaw 的 Pi 集成文档中特别提到图片注入是 prompt-local：当前 prompt 加载图片，并不重新扫描旧历史重新注入图片 payload。这个细节很重要，因为大对象上下文如果无脑跨轮保留，会很快拖垮成本和稳定性。
+本书建议对图片等大对象按当前任务授权和来源版本按需加载；旧历史中的引用不自动意味着仍可读取原 payload。这个建议属于上下文治理设计，不作为当前 OpenClaw 内部实现事实。
 
 ### 压缩不是删除历史
 
-会话变长后，Pi 会进行 compaction。正确理解 compaction：
+会话变长后，Pi 可按设置进行 compaction，原持久条目仍在，模型只见活动分支与压缩上下文。压缩也可能因 provider 失败而失败。[[3]](#ref-3)[[9]](#ref-9)
+
+可将二者区分为：
 
 ```text
 Full Session History
@@ -1097,7 +1092,7 @@ Coding Agent 的 session 还有另一个价值：它是模型、prompt、tool �
 
 ## 25.12 SDK 嵌入：为什么不是启动子进程
 
-> 来源口径：本节关于 `createAgentSession()`、`AgentSession`、`SessionManager`、`AuthStorage`、`ModelRegistry` 和 `DefaultResourceLoader` 的对象边界，来自 [Pi SDK](https://pi.dev/docs/latest/sdk)；对子进程、RPC 与 SDK 嵌入的对比是作者从集成架构角度的归纳。
+> 来源口径：当前 SDK 以 ModelRuntime、SessionManager、SettingsManager 和 ResourceLoader 配置会话；旧稿 AuthStorage/ModelRegistry 组合不再作为当前 factory 接口推荐。子进程与 SDK 取舍为本书归纳。[[1]](#ref-1)
 
 外部系统集成 Pi 有两条路：
 
@@ -1106,7 +1101,7 @@ Subprocess Integration:
   spawn("pi", ["--mode", "rpc"])
 
 SDK Integration:
-  import { createAgentSession } from "@mariozechner/pi-coding-agent"
+  import { createAgentSession } from "@earendil-works/pi-coding-agent"
 ```
 
 两者都能工作，但适用场景不同。
@@ -1130,8 +1125,7 @@ Pi SDK 暴露了几个关键对象：
 | `createAgentSession()` | 创建 `AgentSession` |
 | `AgentSession` | prompt、事件订阅、agent loop |
 | `SessionManager` | session 存储和恢复 |
-| `AuthStorage` | provider 凭据存储 |
-| `ModelRegistry` | model 和 provider 管理 |
+| `ModelRuntime` | 模型访问与选择，凭据配置按对应声明核验 |
 | `DefaultResourceLoader` | resources 发现和加载 |
 | `SettingsManager` | settings 管理 |
 
@@ -1139,147 +1133,32 @@ Pi SDK 暴露了几个关键对象：
 
 ### 一个嵌入式运行器的形态
 
-自研系统嵌入 Pi 时，通常会包装成自己的 runner：
+宿主 runner 的职责可写成下列教学协议，避免把未核验的 helper 当 SDK 自带方法：
 
-```ts
-type RunCodingAgentParams = {
-  sessionId: string;
-  workspaceDir: string;
-  prompt: string;
-  provider: string;
-  model: string;
-  timeoutMs: number;
-  customTools: ToolDefinition[];
-  onEvent: (event: AgentEvent) => Promise<void>;
-};
-
-async function runCodingAgent(params: RunCodingAgentParams): Promise<RunResult> {
-  const authStorage = createAuthStorageForTenant(params.sessionId);
-  const modelRegistry = ModelRegistry.create(authStorage);
-  const sessionManager = createSessionManager(params.sessionId);
-  const resourceLoader = createResourceLoader(params.workspaceDir);
-
-  const { session } = await createAgentSession({
-    cwd: params.workspaceDir,
-    authStorage,
-    modelRegistry,
-    sessionManager,
-    resourceLoader,
-    tools: createBuiltInTools(params.workspaceDir),
-    customTools: params.customTools,
-    model: params.model,
-  });
-
-  const unsubscribe = session.subscribe(params.onEvent);
-
-  try {
-    await withTimeout(
-      session.prompt(params.prompt),
-      params.timeoutMs,
-    );
-
-    return { ok: true, sessionId: params.sessionId };
-  } finally {
-    unsubscribe();
-  }
-}
+```text
+1. Task输入固定workspace、权限、预算、模型与资源版本
+2. 创建受控SessionManager / ResourceLoader / ModelRuntime并注入会话
+3. 在prompt前订阅事件，绑定task_id与本轮输入版本
+4. 超时先abort并等待idle；Promise超时本身不会停止底层执行
+5. 独立Verifier读取实际diff、命令退出码和业务结果
+6. 无论成功失败都解除订阅并dispose；切换会话后重新绑定
 ```
 
-这个 runner 可以被 Web UI、聊天 Gateway、CI pipeline 或评测系统调用。
+这些宿主约束连接[第 11 章](../part2/infra-11-runtime.md)的 Run/Step/Event、[第 15 章](../part2/03-context-engineering.md)的上下文不变量及[第 18 章](../part2/06-tool-calling-mcp.md)的执行边界。SessionManager 在 Pi 会话范围内管理最终上下文；不能把它解释为远端副作用的权威账本。
 
 ---
 
-## 25.13 OpenClaw 如何嵌入 Pi
+## 25.13 Pi 与 OpenClaw：集成事实必须绑定版本
 
-> 来源口径：本节关于 OpenClaw 嵌入 Pi 的调用方式、package 分层和 messaging gateway 集成，来自 [OpenClaw Pi Integration Architecture](https://docs.openclaw.ai/pi)；其中“为什么不用子进程”和“Runtime 可复用”的判断是作者基于该集成方式的工程解读。
+本次核验固定 OpenClaw 源码提交`62cb03ac7a95f4b9cb435f8efc57f4034ba2649b`。其 Agent runtime architecture 明确声明内置运行时由 OpenClaw 维护，不再依赖外部 Agent 框架包；`pi`是归一到`openclaw`的 legacy runtime 别名，第三方 Pi TUI 仍作为终端组件依赖。别名和 TUI 依赖都不能证明当前在创建 Pi SDK 的`AgentSession`。[[10]](#ref-10)
 
-OpenClaw 是理解 Pi SDK 价值的最好案例。OpenClaw 的 Pi 集成文档明确描述：它使用 Pi SDK 把 AI coding agent 嵌入自己的 messaging gateway，而不是启动 Pi 子进程，也不是使用 RPC mode。
+| 问题 | 本轮可确认内容 | 不能外推的结论 |
+| --- | --- | --- |
+| Pi 能否进程内嵌入 | Pi SDK 提供会话、工具、模型和资源接口 | 任一 Gateway 已经使用了这组接口 |
+| OpenClaw 当前内核归谁 | 固定提交的自有 runtime、agent-core 及本地会话模块 | 旧`runEmbeddedPiAgent/createAgentSession`调用图仍有效 |
+| 两者有什么可比较性 | 入口与执行分层、会话/上下文/工具的责任划分 | API、包版本和持久状态格式可互换 |
 
-OpenClaw 的集成方式大致是：
-
-```text
-OpenClaw Gateway
-  receives channel message
-      │
-      ▼
-runEmbeddedPiAgent()
-      │
-      ▼
-createAgentSession()
-      │
-      ├─ custom tools: messaging, sandbox, channel actions
-      ├─ custom system prompt per channel/context
-      ├─ session persistence under OpenClaw state dir
-      ├─ auth profile rotation
-      └─ provider-agnostic model resolution
-      │
-      ▼
-subscribe AgentSession events
-      │
-      ▼
-send block replies / partial replies to channel
-```
-
-### Package 分层
-
-OpenClaw 文档把 Pi 相关包拆成四类：
-
-| 包 | 职责 |
-|:---|:---|
-| `pi-ai` | LLM 抽象、model、message types、provider API |
-| `pi-agent-core` | Agent loop、tool execution、AgentMessage types |
-| `pi-coding-agent` | 高层 SDK：`createAgentSession`、`SessionManager`、`AuthStorage`、`ModelRegistry`、内置工具 |
-| `pi-tui` | 终端 UI 组件 |
-
-这说明 Pi 自身也不是一个单体。它把模型、agent core、coding harness 和 TUI 拆开，方便上层系统只取需要的部分。
-
-### OpenClaw Embedded 与 Pi CLI 的差异
-
-| 维度 | Pi CLI | OpenClaw Embedded |
-|:---|:---|:---|
-| 调用方式 | `pi` 命令、print、JSON、RPC | SDK `createAgentSession()` |
-| 入口 | 本地终端 | WhatsApp、Telegram、Slack、WebChat、CLI 等 |
-| 工具 | 默认 coding tools | OpenClaw 自定义 messaging、sandbox、channel tools |
-| 系统提示 | AGENTS.md、prompts、skills | 按 channel、agent、session 动态构建 |
-| Session 位置 | Pi 默认 session 目录 | OpenClaw agent state 目录 |
-| Auth | Pi 自己的凭据管理 | OpenClaw 多 profile、rotation、failover |
-| 事件处理 | TUI 渲染 | callback 转发到消息渠道和控制台 |
-
-这恰好说明 Pi 的边界设计是成功的：同一个 Runtime 可以被终端直接用，也可以被 OpenClaw 嵌入成聊天 Gateway 背后的 Agent Core。
-
-### 为什么 OpenClaw 不用子进程
-
-如果 OpenClaw 只是启动 `pi --mode rpc`，它会遇到几个问题：
-
-- session lifecycle 不好精细控制；
-- custom tool injection 成本高；
-- channel-specific prompt 不好动态拼装；
-- block reply 和 partial reply 要绕一层协议；
-- auth profile failover 和 model resolution 难以接管；
-- gateway sandbox 和 Pi tool policy 容易分裂。
-
-SDK 嵌入让 OpenClaw 直接拥有运行时控制权：
-
-```text
-OpenClaw owns:
-  channel identity
-  session routing
-  auth profile
-  workspace sandbox
-  custom tools
-  reply formatting
-  timeout and failover
-
-Pi owns:
-  agent loop
-  model abstraction
-  built-in coding tools
-  resource loading
-  event protocol
-  compaction
-```
-
-这就是成熟系统之间正确的边界：OpenClaw 不重写 Coding Agent Runtime，Pi 也不承担 Messaging Gateway 的职责。
+旧版集成属于需要对应历史提交支持的历史事实；本章不再把旧路径描述成当前实现，也不依据失效的`/pi`文档跳转复原细节。SDK 复用是一种可选架构，同进程集成会共享宿主权限和故障域；RPC 隔离也有语言互操作价值，不能简单说 SDK 一定更成熟。下一章按其固定源码描述 OpenClaw 自己的 Gateway 与 Runtime 边界。
 
 ---
 
@@ -1287,12 +1166,7 @@ Pi owns:
 
 第 23 章已经详细分析了 Claude Code、Cursor 和 Codex。把 Pi 放进这张图里，可以看得更清楚。
 
-| 系统 | 核心入口 | 主要优势 | 典型边界 |
-|:---|:---|:---|:---|
-| Cursor | IDE | 深度编辑器集成、索引、补全、diff review | 主要围绕 IDE 工作流 |
-| Claude Code | Terminal Agent | 强终端体验、项目上下文、工具和计划模式 | 产品内置能力较强 |
-| Codex | CLI / App / Cloud | 任务隔离、审查、云端工作流、插件和技能 | 更像完整 agent platform |
-| Pi | Terminal Harness / SDK | 小内核、强扩展、SDK 嵌入、资源系统 | 需要用户或上层系统补生产治理 |
+产品入口与比较采用[第 23 章](01-coding-agent-systems.md)的版本化口径，不重复维护固定优劣表。Pi 在本章讨论的是可编程 harness，OpenClaw 在下一章讨论 Gateway 及其自有 Runtime；实现并不互为能力保证。
 
 Pi 的优势不是“默认产品体验最完整”，而是：
 
@@ -1302,7 +1176,7 @@ Pi 的优势不是“默认产品体验最完整”，而是：
 - skills 和 prompt templates 原生；
 - SDK 适合嵌入；
 - 与其他 harness 的 skills 有互操作空间；
-- 可以作为 OpenClaw 这类系统的 Agent Runtime。
+- 可通过 SDK 嵌入宿主；具体产品集成需独立取证。
 
 它的挑战也很明显：
 
@@ -1320,7 +1194,7 @@ Pi is not primarily an enterprise agent platform.
 Pi is a programmable terminal-native coding harness.
 ```
 
-这也是为什么它适合放在 OpenClaw 之前讲。先理解 Pi 的 Runtime，再看 OpenClaw 如何把这个 Runtime 放进 Personal Agent Gateway，会更顺。
+先理解 Pi 的 Runtime，再与 OpenClaw 的入口/执行分层对照，更容易识别共性与版本差异。
 
 ---
 
@@ -1579,7 +1453,7 @@ type ExtensionApi = {
 
 ### 亮点一：把 TUI 从 Runtime 中解耦
 
-很多终端 Agent 会把交互层和 Agent Loop 写死在一起，最后很难嵌入其他系统。Pi 把 TUI、JSON、RPC、SDK 都放在同一运行时之上，这让它可以被 OpenClaw 直接嵌入。
+很多终端 Agent 会把交互层和 Agent Loop 写死在一起，最后很难嵌入其他系统。Pi 把 TUI、JSON、RPC、SDK 放在可组合边界上，为宿主集成提供多种选择。
 
 ### 亮点二：资源发现是一等公民
 
@@ -1598,7 +1472,7 @@ Prompt Template、Skill、Extension、Package 解决的是不同颗粒度的问�
 
 ### 亮点四：SDK 让 Runtime 可嵌入
 
-Pi 的 SDK 把 `AgentSession` 暴露出来，让上层系统能直接控制会话、工具、模型、事件和资源加载。OpenClaw 的集成说明：一个好 Runtime 应该能从“产品”里被抽出来，成为另一个系统的内核。
+Pi 的 SDK 把 `AgentSession` 暴露出来，让上层系统能直接控制会话、工具、模型、事件和资源加载。SDK 可让 Runtime 与 UI 分离，但是否适合具体宿主还需评估故障隔离和接口成本。
 
 ### 亮点五：Session Tree 适合真实开发
 
@@ -1704,22 +1578,9 @@ SDK 需要暴露：
 
 Pi 在这点上很值得学习。
 
-### 启示四：OpenClaw 证明了 Runtime 可复用
+### 启示四：把可复用机制与产品依赖分别取证
 
-Pi 和 OpenClaw 的关系很有代表性：
-
-```text
-Pi:
-  focuses on coding agent runtime
-
-OpenClaw:
-  focuses on personal agent gateway
-
-Integration:
-  OpenClaw embeds Pi as the agent core
-```
-
-这比“一个系统什么都做”更健康。每个系统守住自己的边界，组合后反而更强。
+共同术语不代表同一实现。比较 Pi 和 OpenClaw 时先确认包/提交、入口、状态格式与执行 owner，再讨论上下文加载和扩展模式。二者的相似抽象不能证明互相嵌入，更不能由会话持久化推导出工具副作用的幂等或补偿。
 
 ---
 
@@ -1737,20 +1598,19 @@ Pi 值得单独作为成熟系统分析，不是因为它功能最多，而是�
 - 它用 Session Tree 承载真实开发中的试错路径；
 - 它用 SDK 让其他系统可以嵌入 Agent 能力。
 
-如果第 23 章回答的是“成熟 Coding Agent 产品如何组织工程工作流”，本章回答的就是“一个可嵌入、可扩展、可定制的 Coding Agent Runtime 应该长什么样”。下一章的 OpenClaw 会进一步展示：当一个 Personal Agent Gateway 需要 Agent Core 时，为什么可以把 Pi 嵌入进去，而不是重新实现一套 Coding Agent。
+如果第 23 章回答的是“成熟 Coding Agent 产品如何组织工程工作流”，本章回答的就是“一个可嵌入、可扩展、可定制的 Coding Agent Runtime 应该长什么样”。下一章进一步说明 OpenClaw 如何划分 Gateway 与其自有 Agent Runtime，并与 Hermes 教学案例对照。
 
 ---
 
 ## 参考资料
 
-1. [Pi Documentation](https://pi.dev/docs/latest)
-2. [Pi Quickstart](https://pi.dev/docs/latest/quickstart)
-3. [Pi Usage](https://pi.dev/docs/latest/usage)
-4. [Pi Settings](https://pi.dev/docs/latest/settings)
-5. [Pi Extensions](https://pi.dev/docs/latest/extensions)
-6. [Pi Skills](https://pi.dev/docs/latest/skills)
-7. [Pi Prompt Templates](https://pi.dev/docs/latest/prompt-templates)
-8. [Pi Packages](https://pi.dev/docs/latest/packages)
-9. [Pi SDK](https://pi.dev/docs/latest/sdk)
-10. [Pi Development](https://pi.dev/docs/latest/development)
-11. [OpenClaw Pi Integration Architecture](https://docs.openclaw.ai/pi)
+1. <a id="ref-1"></a> Pi / Earendil，[SDK](https://pi.dev/docs/latest/sdk)，2026-10-18 latest 文档快照。
+2. <a id="ref-2"></a> Pi / Earendil，[Use Pi in the terminal](https://pi.dev/docs/latest/usage)，2026-10-18 latest 文档快照。
+3. <a id="ref-3"></a> Pi / Earendil，[Sessions and Context](https://pi.dev/docs/latest/sessions)，2026-10-18 latest 文档快照。
+4. <a id="ref-4"></a> Pi / Earendil，[Configuration](https://pi.dev/docs/latest/configuration)，2026-10-18 latest 文档快照。
+5. <a id="ref-5"></a> Pi / Earendil，[Skills](https://pi.dev/docs/latest/skills)，2026-10-18 latest 文档快照。
+6. <a id="ref-6"></a> Pi / Earendil，[Prompt Templates](https://pi.dev/docs/latest/prompt-templates)，2026-10-18 latest 文档快照。
+7. <a id="ref-7"></a> Pi / Earendil，[Extensions](https://pi.dev/docs/latest/extensions)，2026-10-18 latest 文档快照。
+8. <a id="ref-8"></a> Pi / Earendil，[Pi Packages](https://pi.dev/docs/latest/packages)，2026-10-18 latest 文档快照。
+9. <a id="ref-9"></a> Pi / Earendil，[Settings Reference](https://pi.dev/docs/latest/settings)，2026-10-18 latest 文档快照。
+10. <a id="ref-10"></a> OpenClaw maintainers，[Agent runtime architecture](https://github.com/openclaw/openclaw/blob/62cb03ac7a95f4b9cb435f8efc57f4034ba2649b/docs/agent-runtime-architecture.md)，62cb03ac7a95f4b9cb435f8efc57f4034ba2649b。
