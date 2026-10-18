@@ -8,6 +8,12 @@
 
 
         <!-- Custom HTML head -->
+        <!-- Use MathJax web fonts rather than incomplete local STIX installations. -->
+        <script type="text/x-mathjax-config">
+        MathJax.Hub.Config({
+            "HTML-CSS": { availableFonts: [], preferredFont: "TeX", webFont: "TeX" }
+        });
+        </script>
 
         <meta name="description" content="面向软件工程师与架构师的 AI Engineering 指南，涵盖大模型原理、训练与推理基础设施、Agent 系统、应用实战、评估、可靠性与治理">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -38,10 +44,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-33cd3f1b.js";
+            window.path_to_searchindex_js = "searchindex-893e4698.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-a6d14fc8.js"></script>
+        <script src="toc-478849a1.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -190,14 +196,14 @@
 flowchart LR
     A["第一部分：大模型算法&lt;br/&gt;原理 / 训练 / 推理 / 能力"] --&gt; B["第二部分：大模型 Infra&lt;br/&gt;训练 / 推理 / 数据 / 治理"]
     B --&gt; C["第三部分：Agent 工程&lt;br/&gt;Prompt / Context / Runtime"]
-    C --&gt; D["第四部分：Agent 应用与实战&lt;br/&gt;Coding / 企业知识 / 告警"]
+    C --&gt; D["第四部分：Agent 应用与实战&lt;br/&gt;Coding / 企业知识 / Hermes"]
     D --&gt; E["第五部分：前沿与研究&lt;br/&gt;Research Agent / 多模态 / 具身"]
 </pre>
 
 <h2 id="本书解决什么问题"><a class="header" href="#本书解决什么问题">本书解决什么问题</a></h2>
 <p>AI 工程实践里最容易踩的坑，不只是模型输出不稳定，也包括训练、推理、数据、评估和应用之间缺少清晰边界。我们把不清楚的意图、不完整的上下文、没有边界的工具和没有验证回路的流程交给模型，结果往往是第一版看起来很聪明，后续版本不断补洞并引入新问题。</p>
 <p>本书的主线是把从模型能力到应用交付的过程，逐步收敛成可复用、可审查、可验证、可治理的工程系统。</p>
-<p>读完之后，你应该能够回答五类问题：</p>
+<p>读完之后，你应该能够回答六类问题：</p>
 <ul>
 <li><strong>模型边界</strong>：LLM 擅长什么、不擅长什么，这些边界如何影响系统设计？</li>
 <li><strong>能力交付</strong>：如何设计训练、推理、数据和评估基础设施，让模型能力稳定、经济地交付？</li>
@@ -225,11 +231,11 @@ flowchart LR
 </thead>
 <tbody>
 <tr><td>第1章</td><td><a href="#第1章-从-transformer-到-agent模型结构如何影响系统能力">从 Transformer 到 Agent：模型结构如何影响系统能力</a></td><td>从 token、Embedding 和 Transformer 出发，建立理解大模型算法与能力边界的基础。</td></tr>
-<tr><td>第2章</td><td><a href="#第2章-预训练能力的来源">预训练：数据、目标与能力形成</a></td><td>解释预训练数据、目标函数、规模定律和模型能力形成之间的关系。</td></tr>
-<tr><td>第3章</td><td><a href="#第3章-后训练行为的塑形">后训练与模型对齐</a></td><td>介绍 SFT、RLHF、DPO、RLAIF 和安全对齐如何改变模型行为。</td></tr>
-<tr><td>第4章</td><td><a href="#第4章-推理期扩展">推理能力与生成算法</a></td><td>讨论采样、推理预算、验证和生成算法如何影响模型输出。</td></tr>
-<tr><td>第5章</td><td><a href="#第5章-模型适配与能力扩展">微调、压缩与多模态算法</a></td><td>介绍参数高效微调、模型压缩和多模态模型算法。</td></tr>
-<tr><td>第6章</td><td><a href="#第6章-具身智能与-physical-ai">世界模型与具身智能：从预测世界到行动系统</a></td><td>介绍世界模型与具身智能的关系，理解“会说”如何走向“会做”。</td></tr>
+<tr><td>第2章</td><td><a href="#第2章-预训练能力的来源">预训练：能力的来源</a></td><td>解释预训练数据、目标函数、规模定律和模型能力形成之间的关系。</td></tr>
+<tr><td>第3章</td><td><a href="#第3章-后训练行为的塑形">后训练：行为的塑形</a></td><td>介绍 SFT、RLHF、DPO、RLAIF 和安全对齐如何改变模型行为。</td></tr>
+<tr><td>第4章</td><td><a href="#第4章-推理期扩展">推理期扩展</a></td><td>讨论采样、推理预算、验证和生成算法如何影响模型输出。</td></tr>
+<tr><td>第5章</td><td><a href="#第5章-模型适配与能力扩展">模型适配与能力扩展</a></td><td>介绍参数高效微调、模型压缩和多模态模型算法。</td></tr>
+<tr><td>第6章</td><td><a href="#第6章-具身智能与-physical-ai">具身智能与 Physical AI</a></td><td>介绍世界模型与具身智能的关系，理解“会说”如何走向“会做”。</td></tr>
 </tbody>
 </table>
 </div>
@@ -241,12 +247,12 @@ flowchart LR
 <tr><th>章</th><th>章节</th><th>一句话概述</th></tr>
 </thead>
 <tbody>
-<tr><td>第7章</td><td><a href="#第7章-ai-infra-全景">大模型 Infra 总览</a></td><td>建立从算法结果到可运行平台的资源、生命周期和验收边界。</td></tr>
-<tr><td>第8章</td><td><a href="#第8章-训练平台与数据管线">训练 Infra：数据管线、分布式训练与 Checkpoint</a></td><td>说明数据供给、并行训练、通信、恢复和训练制品如何形成闭环。</td></tr>
-<tr><td>第9章</td><td><a href="#第9章-推理服务与资源调度">推理 Infra：Serving、KV Cache、Batching 与模型并行</a></td><td>解释在线推理的请求调度、KV 管理、模型并行、容量和发布。</td></tr>
-<tr><td>第10章</td><td><a href="#第10章-评估与反馈闭环">数据与评估 Infra：治理、回归与反馈闭环</a></td><td>建立数据版本、评估、线上反馈和质量门禁的证据链。</td></tr>
-<tr><td>第11章</td><td><a href="#第11章-agent-runtime">Agent/模型运行时 Infra</a></td><td>讨论任务状态、工具、工作流、租户、重试、补偿和人工接管。</td></tr>
-<tr><td>第12章</td><td><a href="#第12章-生产运营与治理控制">可靠性与治理 Infra</a></td><td>连接 SLO、观测、成本、安全、供应链、发布和灾备。</td></tr>
+<tr><td>第7章</td><td><a href="#第7章-ai-infra-全景">AI Infra 全景</a></td><td>建立从算法结果到可运行平台的资源、生命周期和验收边界。</td></tr>
+<tr><td>第8章</td><td><a href="#第8章-训练平台与数据管线">训练平台与数据管线</a></td><td>说明数据供给、并行训练、通信、恢复和训练制品如何形成闭环。</td></tr>
+<tr><td>第9章</td><td><a href="#第9章-推理服务与资源调度">推理服务与资源调度</a></td><td>解释在线推理的请求调度、KV 管理、模型并行、容量和发布。</td></tr>
+<tr><td>第10章</td><td><a href="#第10章-评估与反馈闭环">评估与反馈闭环</a></td><td>建立数据版本、评估、线上反馈和质量门禁的证据链。</td></tr>
+<tr><td>第11章</td><td><a href="#第11章-agent-runtime">Agent Runtime</a></td><td>讨论任务状态、工具、工作流、租户、重试、补偿和人工接管。</td></tr>
+<tr><td>第12章</td><td><a href="#第12章-生产运营与治理控制">生产运营与治理控制</a></td><td>连接 SLO、观测、成本、安全、供应链、发布和灾备。</td></tr>
 </tbody>
 </table>
 </div>
@@ -283,7 +289,7 @@ flowchart LR
 <tr><td>第24章</td><td><a href="#第24章-企业知识助手rag搜索权限与知识治理落地实践">企业知识助手：RAG、搜索、权限与知识治理落地实践</a></td><td>展示企业知识助手如何把检索、权限和知识治理真正结合起来。</td></tr>
 <tr><td>第25章</td><td><a href="#第25章-pi-agent-架构解析终端原生-coding-agent-runtime扩展系统与上下文工程">Pi Agent 架构解析：终端原生 Coding Agent Runtime、扩展系统与上下文工程</a></td><td>分析一个终端原生 Coding Agent 如何组织运行时、扩展和上下文。</td></tr>
 <tr><td>第26章</td><td><a href="#第26章-openclaw-架构解析个人-ai-助手的-gatewayruntime-与工具生态">OpenClaw 架构解析：个人 AI 助手的 Gateway、Runtime 与工具生态</a></td><td>讲述个人 AI 助手如何通过 Gateway、Runtime 和工具生态协同工作。</td></tr>
-<tr><td>第27章</td><td><a href="#第27章-hermes-agent-架构解析长期运行自我进化与多入口-agent-runtime">Hermes Agent 架构解析：长期运行、自我进化与多入口 Agent Runtime</a></td><td>说明一个可自我进化的 Agent 如何通过记忆和入口管理持续扩展。</td></tr>
+<tr><td>第27章</td><td><a href="#第27章-hermes-agent-架构解析长期运行自我进化与多入口-agent-runtime">Hermes Agent 架构解析：长期运行、自我进化与多入口 Agent Runtime</a></td><td>通过记忆、Skill、多入口和版本化源码理解长期运行；教学扩展与已核验能力分别说明。</td></tr>
 <tr><td>第29章</td><td><a href="#第29章-从零实现一个可观测-coding-agent">从零实现一个可观测 Coding Agent</a></td><td>通过一个不附带配套源码的讲解性案例，展示 Coding Agent 的上下文、工具、权限、验证、观测与扩展方法。</td></tr>
 <tr><td>第30章</td><td><a href="#第30章-个人知识管理-agent-实践">个人知识管理 Agent 实践</a></td><td>说明个人知识管理如何借助 RAG、记忆和工作流形成闭环。</td></tr>
 <tr><td>第31章</td><td><a href="#第31章-持续进化的生活-agent从日常反馈到可信能力闭环">持续进化的生活 Agent：从日常反馈到可信能力闭环</a></td><td>讨论生活 Agent 如何在反馈、审批和回滚中安全地持续进化。</td></tr>
@@ -303,7 +309,22 @@ flowchart LR
 </table>
 </div>
 <h3 id="附录"><a class="header" href="#附录">附录</a></h3>
-<p>附录提供术语、参考资料、工具清单、系统设计思考题与项目实践模板。它们不再作为正文主线，而是作为随用随查的材料。</p>
+<p>附录只保留 <a href="#附录a-术语与符号速查">A：术语与符号速查</a>、<a href="#附录b-学习路径与延伸阅读">B：学习路径与延伸阅读</a>、<a href="#附录c-工具框架与版本导航">C：工具、框架与版本导航</a>。章末练习由附录 B 提供短链接，论点来源以各章末参考资料为准。</p>
+<h2 id="贯穿案例与练习的阅读方式"><a class="header" href="#贯穿案例与练习的阅读方式">贯穿案例与练习的阅读方式</a></h2>
+<p>全书保留五部分、31 个公开章节，沿用原编号与源码路径，编号不连续处不重排。三个教学案例分别检验不同责任边界：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>案例</th><th>先建立机制</th><th>再看应用</th><th>重点核对</th></tr>
+</thead>
+<tbody>
+<tr><td>企业知识助手</td><td><a href="#第19章-agent-知识系统从知识源到可验证证据">第19章知识系统</a></td><td><a href="#第24章-企业知识助手rag搜索权限与知识治理落地实践">第24章企业案例</a></td><td>摄取/检索/证据/回答分层，动态商品事实、视频定位、ACL与删除失效</td></tr>
+<tr><td>Coding Agent</td><td><a href="#第15章-context-engineering从上下文注入到信息架构">第15章上下文</a>、<a href="#第18章-agent-工具系统工程tool-callingskills-与-mcp">第18章工具</a></td><td><a href="#第23章-ai-coding-agent-系统解析从工作协议到-harness-工程">第23章产品与Harness</a>、<a href="#第29章-从零实现一个可观测-coding-agent">第29章最小案例</a></td><td>代码版本、工作区、工具权限、候选完成与独立Verifier</td></tr>
+<tr><td>Hermes 长期助手</td><td><a href="#第11章-agent-runtime">第11章状态</a>、<a href="#第20章-agent-记忆系统memory会话与长期上下文">第20章记忆</a>、<a href="#第21章-执行编排与多-agent-协作任务图交接与平台边界">第21章编排</a></td><td><a href="#第27章-hermes-agent-架构解析长期运行自我进化与多入口-agent-runtime">第27章贯穿简报</a></td><td>Session、Memory、缓存与特定投递ledger分别取证；通用业务Outbox、Checkpoint、幂等和补偿是另行标明的教学扩展</td></tr>
+</tbody>
+</table>
+</div>
+<p>章节包含原理推导、文档核验、教学轨迹与实验设计，验收层次分别标明。第1/3/5/8/9章的练习卡可从<a href="#附录b-学习路径与延伸阅读">附录B</a>进入；卡片完成不代表已经提供完整可运行代码、GPU测量或生产验证。选型先查<a href="#附录c-工具框架与版本导航">附录C</a>的版本和未知项，再回到章末原始来源。</p>
 <h2 id="在线阅读"><a class="header" href="#在线阅读">在线阅读</a></h2>
 <ul>
 <li><strong>GitHub Pages</strong>：https://wxquare.github.io/ai-book/</li>
@@ -320,6 +341,7 @@ flowchart LR
 <ul>
 <li><strong>当前版本</strong>：v1.0</li>
 <li><strong>发布日期</strong>：2026 年 4 月</li>
+<li><strong>本轮编辑复核</strong>：2026 年 10 月 18 日；来源核验日期按各章记录，不代表所有产品当天重新测试。</li>
 <li><strong>更新计划</strong>：持续更新，优先深化大模型基础、AI 基础设施、Agent 运行时、成熟系统解析、案例、评估体系和生产治理实践。</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
@@ -861,7 +883,7 @@ D_{KL}(p\Vert q)=\sum_i p_i\log\frac{p_i}{q_i}
 <h3 id="sft-的数据结构与损失"><a class="header" href="#sft-的数据结构与损失">SFT 的数据结构与损失</a></h3>
 <p>监督微调通常使用 \((x,y)\) 样本，其中 \(x\) 是系统、用户和上下文，\(y\) 是目标助手回答。对多轮对话，训练一般只对 assistant token 计算损失，避免模型把用户问题也当作需要模仿的输出。目标为：</p>
 <p>\[
-\mathcal{L}<em>{SFT}(\theta)=-\sum</em>{t\in\mathcal{A}}\log \pi_\theta(y_t\mid x,y_{&lt;t}),
+\mathcal{L}_{SFT}(\theta)=-\sum_{t\in\mathcal{A}}\log \pi_\theta(y_t\mid x,y_{&lt;t}),
 \]</p>
 <p>其中 \(\mathcal{A}\) 表示被监督的 assistant token 位置。mask 设计很重要：如果系统消息、工具结果、用户内容和助手答案边界处理错误，模型会学到错误的角色关系，表现为复读用户输入、泄露隐藏提示或把工具返回内容当成自己的指令。</p>
 <p>SFT 数据不必是“知识百科”。它主要塑造输入到输出的映射，包括任务分解、回答结构、拒答模板、工具调用格式、引用方式和不确定性表达。Self-Instruct 通过模型生成和筛选指令数据，展示了如何在人工种子有限时扩展任务覆盖 <a href="#ref-4-2">[4]</a>；LIMA 则指出，少量但一致、高质量的示范也能带来显著的对齐效果 <a href="#ref-5-2">[5]</a>。这两项工作共同提醒我们：数量和质量不是简单替代关系，数据覆盖与示范一致性必须一起看。</p>
@@ -878,9 +900,9 @@ D_{KL}(p\Vert q)=\sum_i p_i\log\frac{p_i}{q_i}
 <h2 id="34-rlhf-与-ppo"><a class="header" href="#34-rlhf-与-ppo">3.4 RLHF 与 PPO</a></h2>
 <h3 id="偏好数据与-reward-model"><a class="header" href="#偏好数据与-reward-model">偏好数据与 Reward Model</a></h3>
 <p>当一个问题存在多个都能接受的答案时，很难写出唯一标准答案。例如代码解释可以简洁或详细，开放问题可以有不同论证方式，安全回答需要同时考虑帮助性和风险。RLHF 将问题转成排序：给定 prompt，让标注者比较候选回答，记录 chosen 与 rejected。</p>
-<p>偏好学习的经典工作展示了如何从人类比较中学习奖励函数 <a href="#ref-7-2">[7]</a>。对语言模型而言，Reward Model 接收 prompt 和 response，输出一个标量 (r_\phi(x,y))。它的训练可写成 Bradley-Terry 风格的损失：</p>
+<p>偏好学习的经典工作展示了如何从人类比较中学习奖励函数 <a href="#ref-7-2">[7]</a>。对语言模型而言，Reward Model 接收 prompt 和 response，输出一个标量 \(r_\phi(x,y)\)。它的训练可写成 Bradley-Terry 风格的损失：</p>
 <p>\[
-\mathcal{L}<em>{RM}=-\log\sigma(r</em>\phi(x,y^+)-r_\phi(x,y^-)).
+\mathcal{L}_{RM}=-\log\sigma(r_\phi(x,y^+)-r_\phi(x,y^-)).
 \]</p>
 <p>这个分数是标注偏好的代理，不是真实质量本身。标注者之间可能不一致，短回答与长回答的偏好可能混杂，安全和帮助性可能冲突，同一领域的专家标准也可能不同。安全评估实践还表明，偏好标准必须把“回答有用”和“回答安全”拆成可讨论的维度，而不能把所有差异压成一个没有解释的总分 <a href="#ref-8-2">[8]</a>。数据中必须记录标注指南、样本来源、分歧率、比较难度和拒标比例，不能只保存最终的 chosen/rejected 字符串。</p>
 <h3 id="ppo的四种模型角色"><a class="header" href="#ppo的四种模型角色">PPO的四种模型角色</a></h3>
@@ -940,7 +962,7 @@ J_{clip}=\mathbb E_t\left[\min\left(\rho_t\hat A_t,
 <h3 id="dpo-的核心思想"><a class="header" href="#dpo-的核心思想">DPO 的核心思想</a></h3>
 <p>DPO 观察到，在特定的 KL 正则化奖励模型设定下，最优 policy 与 reward 存在解析关系，可以直接用偏好对训练 policy，而不显式拟合 Reward Model 和运行完整 PPO <a href="#ref-12-2">[12]</a>。常见目标形式为：</p>
 <p>\[
-\mathcal{L}<em>{DPO}=-\log\sigma\left(\beta\left[\log\frac{\pi</em>\theta(y^+\mid x)}{\pi_{ref}(y^+\mid x)}-\log\frac{\pi_\theta(y^-\mid x)}{\pi_{ref}(y^-\mid x)}\right]\right).
+\mathcal{L}_{DPO}=-\log\sigma\left(\beta\left[\log\frac{\pi_\theta(y^+\mid x)}{\pi_{ref}(y^+\mid x)}-\log\frac{\pi_\theta(y^-\mid x)}{\pi_{ref}(y^-\mid x)}\right]\right).
 \]</p>
 <p>直觉是：提高 chosen 相对于 reference 的相对概率，同时降低 rejected 的相对概率。DPO 的优点是使用熟悉的监督训练基础设施，批处理简单，训练曲线更易观察，适合拥有静态偏好数据的团队。它并没有消除对齐问题，只是把 reward model 和在线策略优化的复杂度部分转移到了偏好数据质量和超参数上。</p>
 <h3 id="ipokto-与-orpo"><a class="header" href="#ipokto-与-orpo">IPO、KTO 与 ORPO</a></h3>
@@ -1360,7 +1382,7 @@ Fine-tuning：以后更稳定地表现出哪种任务模式
 <p>监督微调用输入到标准输出的样本学习行为，适合格式、分类、摘要和示范式回答；偏好优化用同一输入下的 chosen/rejected 学习排序，适合多个答案都可行但质量有差异的任务；强化式优化用状态、动作和奖励处理多步环境反馈。三者的选择取决于监督信号，而不是模型规模。</p>
 <p>SFT 的目标可以写为：</p>
 <p>\[
-\mathcal{L}<em>{SFT}=-\sum</em>{t\in\mathcal{A}}\log p_\theta(y_t\mid x,y_{&lt;t}),
+\mathcal{L}_{SFT}=-\sum_{t\in\mathcal{A}}\log p_\theta(y_t\mid x,y_{&lt;t}),
 \]</p>
 <p>其中只对 assistant 输出位置 \(\mathcal{A}\) 计算损失；中文教材中的softmax与交叉熵定义可用于复习这个目标。<a href="#ref-2-4">[2]</a> 角色边界、工具结果、系统消息和用户输入的 mask 一旦错误，模型可能学习复读用户、泄露隐藏指令或把工具返回内容当成新指令。偏好优化的目标不是复制某个答案，而是让更优答案相对概率提高；环境反馈则要求奖励与真实任务完成有可靠关联。</p>
 <h3 id="数据集的分层和切分"><a class="header" href="#数据集的分层和切分">数据集的分层和切分</a></h3>
@@ -1469,7 +1491,7 @@ W’=W+\frac{\alpha}{r}BA,
 <h3 id="teacherstudent-目标"><a class="header" href="#teacherstudent-目标">Teacher—Student 目标</a></h3>
 <p>知识蒸馏让 student 学习 teacher 的软分布，而不仅是硬标签。经典形式为：</p>
 <p>\[
-\mathcal{L}=\alpha\mathcal{L}<em>{hard}+(1-\alpha)\tau</em>{distill}^2D_{KL}(p_{teacher}^{\tau_{distill}}\Vert p_{student}^{\tau_{distill}}),
+\mathcal{L}=\alpha\mathcal{L}_{hard}+(1-\alpha)\tau_{distill}^2D_{KL}(p_{teacher}^{\tau_{distill}}\Vert p_{student}^{\tau_{distill}}),
 \]</p>
 <p>其中 \(\tau_{distill}&gt;0\) 是蒸馏softmax温度，teacher 的软概率包含类别相似性和暗知识 <a href="#ref-21-4">[21]</a>。对语言模型，蒸馏可以使用 teacher 的 token 分布、生成轨迹、偏好排序、中间表示或工具动作。</p>
 <h3 id="distilbertmobilebert-与生成模型"><a class="header" href="#distilbertmobilebert-与生成模型">DistilBERT、MobileBERT 与生成模型</a></h3>
@@ -26515,521 +26537,162 @@ Agent 方式: 持续压缩 → 理解加深
 <li><a id="ref-23-12"></a> NIST，<a href="https://www.nist.gov/itl/ai-risk-management-framework">AI Risk Management Framework</a>，AI RMF 1.0；2023；2026-10-18 访问。</li>
 </ol>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="附录a-术语表"><a class="header" href="#附录a-术语表">附录A 术语表</a></h1>
-<p>本术语表收录了书中出现的核心术语和概念，按字母顺序排列。</p>
-<hr>
-<h2 id="a"><a class="header" href="#a">A</a></h2>
-<p><strong>Agent（智能体）</strong><br>能够感知环境、做出决策并执行操作的自主系统。在AI领域，通常指基于LLM的自主任务执行系统。</p>
-<p><strong>Attention Mechanism（注意力机制）</strong><br>Transformer架构的核心，通过计算序列内部元素之间的关联权重，捕获长距离依赖关系。</p>
-<hr>
-<h2 id="b"><a class="header" href="#b">B</a></h2>
-<p><strong>Backlinks（反向链接）</strong><br>在知识管理系统中，指向当前页面的所有链接。用于建立概念之间的双向关联。</p>
-<p><strong>BM25</strong><br>一种基于词频和逆文档频率的关键词检索算法，常用于混合检索策略。</p>
-<hr>
-<h2 id="c"><a class="header" href="#c">C</a></h2>
-<p><strong>Chain-of-Thought（思维链）</strong><br>一种Prompt Engineering技术，要求LLM逐步展示推理过程，提高复杂推理任务的准确性。</p>
-<p><strong>Chunking（分块）</strong><br>将长文档切分为较小片段的过程，用于RAG系统中的文档索引和检索。</p>
-<p><strong>Context Window（上下文窗口）</strong><br>LLM一次可以处理的最大token数量。现代LLM的上下文窗口从16k到1M tokens不等。</p>
-<p><strong>Cosine Similarity（余弦相似度）</strong><br>衡量两个向量方向相似程度的指标，常用于计算文本Embedding之间的语义相似度。</p>
-<hr>
-<h2 id="d"><a class="header" href="#d">D</a></h2>
-<p><strong>Decision Tree（决策树）</strong><br>在Agent系统中，用于判断是否应使用Agent的决策框架，通过一系列Yes/No问题评估任务特征。</p>
-<hr>
-<h2 id="e"><a class="header" href="#e">E</a></h2>
-<p><strong>Embedding（嵌入向量）</strong><br>将文本转换为固定维度的数值向量的技术，捕获文本的语义信息。</p>
-<p><strong>Early Stopping（提前停止）</strong><br>检测Agent陷入无效循环时及时终止执行的机制。</p>
-<hr>
-<h2 id="f"><a class="header" href="#f">F</a></h2>
-<p><strong>Few-Shot Learning（少样本学习）</strong><br>在Prompt中提供少量示例，帮助LLM理解任务格式和期望输出。</p>
-<p><strong>Fingerprint（指纹）</strong><br>告警的唯一标识符，用于去重和关联相同的告警。</p>
-<hr>
-<h2 id="g"><a class="header" href="#g">G</a></h2>
-<p><strong>GAS（Go Application Server）</strong><br>Shopee内部的Go语言应用开发框架。</p>
-<hr>
-<h2 id="h"><a class="header" href="#h">H</a></h2>
-<p><strong>Hallucination（幻觉）</strong><br>LLM生成看似合理但实际错误的内容，包括事实性幻觉、逻辑性幻觉和引用性幻觉。</p>
-<p><strong>Harness Engineering（驾驭工程）</strong><br>通过构建可靠的基础设施和约束系统来驾驭AI的工程方法论。</p>
-<p><strong>Hybrid Search（混合检索）</strong><br>结合向量检索和关键词检索的方法，提高检索的召回率和精确度。</p>
-<hr>
-<h2 id="i"><a class="header" href="#i">I</a></h2>
-<p><strong>Inference（推理）</strong><br>模型根据输入数据生成输出的过程。在机器学习中指模型的预测阶段。</p>
-<hr>
-<h2 id="l"><a class="header" href="#l">L</a></h2>
-<p><strong>LLM（Large Language Model，大语言模型）</strong><br>基于Transformer架构的大规模预训练语言模型，如GPT-4、Claude等。</p>
-<p><strong>Loop Detection（循环检测）</strong><br>检测Agent重复执行相同操作的机制，用于防止无限循环。</p>
-<hr>
-<h2 id="m"><a class="header" href="#m">M</a></h2>
-<p><strong>MCP（Model Context Protocol）</strong><br>Anthropic提出的协议，用于AI工具连接外部数据源和服务。</p>
-<p><strong>MTTR（Mean Time To Resolution，平均恢复时间）</strong><br>从问题发生到解决的平均时间，运维领域的关键指标。</p>
-<p><strong>Multi-Agent System（多Agent系统）</strong><br>由多个Agent协作完成复杂任务的系统架构。</p>
-<hr>
-<h2 id="p"><a class="header" href="#p">P</a></h2>
-<p><strong>Plan-and-Execute（计划-执行）</strong><br>一种Agent架构模式，先制定详细计划，再逐步执行。</p>
-<p><strong>Positional Encoding（位置编码）</strong><br>在Transformer中注入序列位置信息的机制。</p>
-<p><strong>Prompt Caching（Prompt缓存）</strong><br>缓存长System Prompt以节省token成本的技术。</p>
-<p><strong>Prompt Engineering（提示工程）</strong><br>设计和优化Prompt以提高LLM输出质量的技术。</p>
-<hr>
-<h2 id="r"><a class="header" href="#r">R</a></h2>
-<p><strong>RAG（Retrieval-Augmented Generation，检索增强生成）</strong><br>结合信息检索和语言模型生成的方法，通过检索外部知识增强LLM能力。</p>
-<p><strong>ReACT（Reasoning and Acting）</strong><br>一种Agent架构模式，交替进行推理（Thought）和行动（Action）。</p>
-<p><strong>Reciprocal Rank Fusion（倒数排名融合）</strong><br>一种融合多个检索结果的算法，用于混合检索。</p>
-<p><strong>Reranking（重排序）</strong><br>使用专门模型重新排序检索结果，提高精确度。</p>
-<hr>
-<h2 id="s"><a class="header" href="#s">S</a></h2>
-<p><strong>Self-Consistency（自我一致性）</strong><br>多次采样LLM输出，选择最一致的结果以提高准确性。</p>
-<p><strong>Sliding Window（滑动窗口）</strong><br>保留最近N条消息的上下文管理策略。</p>
-<p><strong>SOP（Standard Operating Procedure，标准操作流程）</strong><br>标准化的问题处理流程。</p>
-<p><strong>Spec Coding（规格编程）</strong><br>先定义清晰规格，再让AI生成代码的编程范式。</p>
-<p><strong>State Machine（状态机）</strong><br>管理系统状态转换的设计模式，用于控制Agent工作流。</p>
-<hr>
-<h2 id="t"><a class="header" href="#t">T</a></h2>
-<p><strong>Token</strong><br>LLM处理文本的基本单位，通常一个token约等于0.75个英文单词或0.5个中文字符。</p>
-<p><strong>Tool Call（工具调用）</strong><br>Agent调用外部工具（API、数据库、命令行等）执行操作。</p>
-<p><strong>Transformer</strong><br>基于Self-Attention机制的神经网络架构，现代LLM的基础。</p>
-<hr>
-<h2 id="v"><a class="header" href="#v">V</a></h2>
-<p><strong>Vector Database（向量数据库）</strong><br>专门存储和检索高维向量的数据库，用于RAG系统。</p>
-<p><strong>Vibe Coding（感觉编程）</strong><br>依赖直觉和经验，与AI反复迭代的编程方式。</p>
-<hr>
-<h2 id="z"><a class="header" href="#z">Z</a></h2>
-<p><strong>Zero-Shot Learning（零样本学习）</strong><br>不提供示例，直接让LLM完成任务。</p>
-<hr>
-<h2 id="中文术语"><a class="header" href="#中文术语">中文术语</a></h2>
-<p><strong>分级决策</strong><br>根据风险等级采用不同决策策略的方法。</p>
-<p><strong>幻觉</strong><br>见 Hallucination。</p>
-<p><strong>混合架构</strong><br>结合多种设计模式的系统架构，如状态机 + ReACT。</p>
-<p><strong>可观测性</strong><br>通过指标、日志、追踪等方式了解系统运行状态的能力。</p>
-<p><strong>上下文管理</strong><br>管理LLM上下文窗口中信息的策略和技术。</p>
-<p><strong>状态机</strong><br>见 State Machine。</p>
-<p><strong>向量数据库</strong><br>见 Vector Database。</p>
-<p><strong>知识编译</strong><br>LLM将原始数据转换为结构化知识的过程。</p>
-<hr>
-<p><em>本术语表持续更新中</em></p>
+<h1 id="附录a-术语与符号速查"><a class="header" href="#附录a-术语与符号速查">附录A 术语与符号速查</a></h1>
+<p>本附录帮助定位正文中的定义。具体机制、来源与版本边界以表内责任章为准；同一个词在模型计算、任务运行和业务系统中可能指不同对象。</p>
+<h2 id="易混概念与责任边界"><a class="header" href="#易混概念与责任边界">易混概念与责任边界</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>术语</th><th>本书约定</th><th>责任章</th></tr>
+</thead>
+<tbody>
+<tr><td>Context / Context Package</td><td>当前一步装配给模型的指令、材料、约束与结果视图；受窗口、权限和版本限制</td><td><a href="#第15章-context-engineering从上下文注入到信息架构">第15章</a></td></tr>
+<tr><td>Memory / Memory Item</td><td>跨步骤或会话保存的候选经验、偏好和摘要；有来源、作用域、失效与写入门控</td><td><a href="#第20章-agent-记忆系统memory会话与长期上下文">第20章</a></td></tr>
+<tr><td>State / Run、Step、Event</td><td>权威执行事实、版本及事件；模型摘要和 Todo 只能引用，不能代替账本</td><td><a href="#第11章-agent-runtime">第11章</a></td></tr>
+<tr><td>Evidence</td><td>能支撑特定论点、可回读原位置且当前有权访问的版本化证据；不等于任意 chunk</td><td><a href="#第19章-agent-知识系统从知识源到可验证证据">第19章</a></td></tr>
+<tr><td>Operation</td><td>一次业务副作用的稳定身份与状态；超时后可为 unknown，不能直接按失败重做</td><td><a href="#第11章-agent-runtime">第11章</a></td></tr>
+<tr><td>Checkpoint</td><td>已提交状态与恢复位置；不回滚已经发生的外部副作用。训练 checkpoint 另含优化器、随机数和数据位置</td><td><a href="#第11章-agent-runtime">运行时第11章</a>、<a href="#第8章-训练平台与数据管线">训练第8章</a></td></tr>
+<tr><td>KV Cache</td><td>前向计算中各层的键和值；用于复用历史计算，仍占用设备或分层存储资源</td><td><a href="#第9章-推理服务与资源调度">第9章 §9.3</a></td></tr>
+<tr><td>Prefix / Prompt Cache</td><td>复用兼容的前缀计算；自托管实现与商业 API 的命中、计费、保留语义分别核验</td><td><a href="#第9章-推理服务与资源调度">第9章</a>、<a href="#第27章-hermes-agent-架构解析长期运行自我进化与多入口-agent-runtime">Hermes 第27章</a></td></tr>
+<tr><td>精确响应缓存 / 语义响应缓存</td><td>前者匹配请求及其依赖版本，后者先召回相似候选再验证答案等价；两者都需授权、新鲜度和失效控制</td><td><a href="#第9章-推理服务与资源调度">第9章 §9.3</a></td></tr>
+<tr><td>Tool Calling / Skill / MCP</td><td>分别是结构化行动请求、可复用方法上下文、能力连接协议；实际执行、权限和审计由 Runtime 承担</td><td><a href="#第18章-agent-工具系统工程tool-callingskills-与-mcp">第18章</a></td></tr>
+<tr><td>MCP / A2A</td><td>本书 MCP 主体按 2025-11-25，连接工具、资源和提示；A2A 按 v0.3.0，描述独立 Agent 的任务/消息/产物协作。自建 mailbox 不自动兼容 A2A</td><td><a href="#第18章-agent-工具系统工程tool-callingskills-与-mcp">第18章</a>、<a href="#第21章-执行编排与多-agent-协作任务图交接与平台边界">第21章 §21.7</a></td></tr>
+<tr><td>Triton 语言 / Triton Inference Server</td><td>前者用于编写 GPU 计算程序；后者负责模型服务与模型管理，二者不是同一层的软件</td><td><a href="#第8章-训练平台与数据管线">第8章 §8.4</a>、<a href="#第9章-推理服务与资源调度">第9章</a></td></tr>
+<tr><td>Model Manifest / Eval Case</td><td>前者绑定模型、模板、格式与执行兼容条件；后者绑定输入、预期、不变量和版本化评估配置</td><td><a href="#第7章-ai-infra-全景">第7章 §7.8</a>、<a href="#第10章-评估与反馈闭环">第10章</a></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="模型计算符号"><a class="header" href="#模型计算符号">模型计算符号</a></h2>
+<p>下表沿用<a href="#第1章-从-transformer-到-agent模型结构如何影响系统能力">第1章</a>及<a href="#第9章-推理服务与资源调度">第9章</a>的记账口径。其他章节可用局部符号，但须重新定义。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>符号</th><th>含义与单位</th></tr>
+</thead>
+<tbody>
+<tr><td>B、T、S</td><td>batch 大小、当前查询长度、可见键/历史长度；不是字符数</td></tr>
+<tr><td>D、L</td><td>残差宽度、层数</td></tr>
+<tr><td>H_q、H_kv、d_h</td><td>查询头数、KV 头数、单头维度；GQA 不减少查询头数</td></tr>
+<tr><td>s</td><td>每元素字节数；量化还需计入 scale、布局、工作区等开销</td></tr>
+<tr><td>logits / labels / loss mask</td><td>预测分数、目标 token、有效监督位置；标签与预测错位只对齐一次</td></tr>
+<tr><td>TTFT / TPOT</td><td>首 token 时间 / 每输出 token 时间；是否包含排队、网络和重试须说明</td></tr>
+<tr><td>prefill / decode</td><td>处理输入序列 / 增量生成；两阶段的资源瓶颈和缓存收益不同</td></tr>
+<tr><td>token / Context Window</td><td>tokenizer 产生的模型单位 / 模型及接口允许的输入输出边界；汉字与 token 无固定比例，预算用目标 tokenizer 与实际 usage</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="常用术语索引"><a class="header" href="#常用术语索引">常用术语索引</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>术语</th><th>速查定义</th><th>详解</th></tr>
+</thead>
+<tbody>
+<tr><td>Agent / Harness</td><td>在反馈中推进任务的系统 / 包围模型的控制、工具、状态、验证与观测环境</td><td><a href="#第13章-agent-的演化与架构总纲从对话应用到可治理-runtime">第13章</a>、<a href="#第16章-harness-engineering从模型调用到-agent-运行环境">第16章</a></td></tr>
+<tr><td>Attention / Transformer / Positional Encoding</td><td>内容匹配和加权 / 以注意力及逐位置网络组成的结构 / 注入顺序信息的方法</td><td><a href="#第1章-从-transformer-到-agent模型结构如何影响系统能力">第1章</a></td></tr>
+<tr><td>Embedding / Cosine Similarity</td><td>向量表示 / 方向相似度；相似不等于事实正确或业务等价</td><td><a href="#第19章-agent-知识系统从知识源到可验证证据">第19章</a></td></tr>
+<tr><td>Chunking / BM25 / Hybrid Search / RRF / Reranking</td><td>文档切分 / 词法排序 / 多路召回 / 排名融合 / 候选重排</td><td><a href="#第19章-agent-知识系统从知识源到可验证证据">第19章</a></td></tr>
+<tr><td>RAG / GraphRAG / Agentic RAG</td><td>检索辅助生成 / 关系型组织的检索 / 受控循环中的检索决策；都需证据与权限验收</td><td><a href="#第19章-agent-知识系统从知识源到可验证证据">第19章</a></td></tr>
+<tr><td>CoT / ReAct / Self-Consistency</td><td>分步推理提示 / 交替行动与外部观察 / 多次采样后聚合；不保证答案正确，也不要求暴露隐藏内部推理</td><td><a href="#第4章-推理期扩展">第4章</a>、<a href="#第21章-执行编排与多-agent-协作任务图交接与平台边界">第21章</a></td></tr>
+<tr><td>Zero-shot / Few-shot / Prompt Engineering</td><td>无示例 / 有少量示例 / 设计输入和输出契约；这里不表示权重已训练更新</td><td><a href="#第14章-prompt-engineering-与结构化输出从提示词到任务协议">第14章</a></td></tr>
+<tr><td>Plan-and-Execute / State Machine / Decision Tree</td><td>计划与执行分工 / 显式状态迁移 / 条件决策树；可与模型循环组合</td><td><a href="#第21章-执行编排与多-agent-协作任务图交接与平台边界">第21章</a></td></tr>
+<tr><td>Sliding Window / Loop Detection / Early Stopping</td><td>保留近期材料 / 按状态与观察检测空转 / 按预算、质量或停止条件结束</td><td><a href="#第15章-context-engineering从上下文注入到信息架构">第15章</a>、<a href="#第11章-agent-runtime">第11章</a></td></tr>
+<tr><td>Fingerprint</td><td>为内容、状态或请求构造的识别值；去重范围、碰撞和版本规则需定义，不天然代表同一业务操作</td><td><a href="#第11章-agent-runtime">第11章</a></td></tr>
+<tr><td>Hallucination / Guardrail / Observability</td><td>缺少事实支持的生成 / 模型外可执行约束 / 通过事件与信号复盘系统行为</td><td><a href="#第22章-agent-生产治理evalsguardrails-与可观测性">第22章</a></td></tr>
+<tr><td>MTTR / SLO / SOP</td><td>恢复时间指标（须定义起止）/ 服务目标 / 标准操作流程</td><td><a href="#第12章-生产运营与治理控制">第12章</a></td></tr>
+<tr><td>Backlink / 知识编译 / Vector Database</td><td>反向引用 / 将材料变成有来源的可用知识 / 向量索引与检索存储；均不代替原始事实源</td><td><a href="#第30章-个人知识管理-agent-实践">第30章</a>、<a href="#第19章-agent-知识系统从知识源到可验证证据">第19章</a></td></tr>
+<tr><td>Spec Coding / Vibe Coding</td><td>以规格验收驱动的协作 / 快速对话试探的工作方式；两者都需要版本、测试与授权</td><td><a href="#第23章-ai-coding-agent-系统解析从工作协议到-harness-工程">第23章</a></td></tr>
+<tr><td>多 Agent / 分级决策 / 混合架构</td><td>职责可分的多个执行主体 / 按风险选择控制方式 / 确定性流程与开放推理组合</td><td><a href="#第21章-执行编排与多-agent-协作任务图交接与平台边界">第21章</a>、<a href="#第22章-agent-生产治理evalsguardrails-与可观测性">第22章</a></td></tr>
+</tbody>
+</table>
+</div>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="附录b-参考资料与延伸阅读"><a class="header" href="#附录b-参考资料与延伸阅读">附录B 参考资料与延伸阅读</a></h1>
-<p>本附录整理了书中引用的论文、文章、文档和其他学习资源，按主题分类。</p>
-<hr>
-<h2 id="-核心论文"><a class="header" href="#-核心论文">📚 核心论文</a></h2>
-<h3 id="transformer--attention"><a class="header" href="#transformer--attention">Transformer &amp; Attention</a></h3>
-<p><strong>Attention is All You Need</strong> (2017)<br>Vaswani et al.<br>https://arxiv.org/abs/1706.03762<br><em>Transformer架构的开创性论文</em></p>
-<p><strong>BERT: Pre-training of Deep Bidirectional Transformers</strong> (2018)<br>Devlin et al.<br>https://arxiv.org/abs/1810.04805<br><em>双向预训练语言模型</em></p>
-<p><strong>Language Models are Few-Shot Learners</strong> (2020)<br>Brown et al. (GPT-3)<br>https://arxiv.org/abs/2005.14165<br><em>Few-Shot Learning的里程碑</em></p>
-<h3 id="prompt-engineering"><a class="header" href="#prompt-engineering">Prompt Engineering</a></h3>
-<p><strong>Chain-of-Thought Prompting</strong> (2022)<br>Wei et al.<br>https://arxiv.org/abs/2201.11903<br><em>思维链提示技术</em></p>
-<p><strong>ReACT: Synergizing Reasoning and Acting</strong> (2023)<br>Yao et al.<br>https://arxiv.org/abs/2210.03629<br><em>ReACT Agent架构</em></p>
-<h3 id="rag--retrieval"><a class="header" href="#rag--retrieval">RAG &amp; Retrieval</a></h3>
-<p><strong>Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks</strong> (2020)<br>Lewis et al.<br>https://arxiv.org/abs/2005.11401<br><em>RAG的原始论文</em></p>
-<p><strong>Dense Passage Retrieval for Open-Domain QA</strong> (2020)<br>Karpukhin et al.<br>https://arxiv.org/abs/2004.04906<br><em>密集向量检索</em></p>
-<hr>
-<h2 id="-推荐书籍"><a class="header" href="#-推荐书籍">📖 推荐书籍</a></h2>
-<p><strong>《Designing Data-Intensive Applications》</strong><br>Martin Kleppmann<br>https://dataintensive.net/<br><em>构建可扩展系统的必读书籍</em></p>
-<p><strong>《Building a Second Brain》</strong><br>Tiago Forte<br>https://www.buildingasecondbrain.com/<br><em>个人知识管理方法论</em></p>
-<p><strong>《The Pragmatic Programmer》</strong><br>David Thomas &amp; Andrew Hunt<br><em>软件工程实践指南</em></p>
-<p><strong>《How to Take Smart Notes》</strong><br>Sönke Ahrens<br><em>卡片笔记法，知识管理的经典</em></p>
-<hr>
-<h2 id="-官方文档"><a class="header" href="#-官方文档">🌐 官方文档</a></h2>
-<h3 id="llm-providers"><a class="header" href="#llm-providers">LLM Providers</a></h3>
-<p><strong>OpenAI API Documentation</strong><br>https://platform.openai.com/docs<br><em>GPT-4、Embedding等API文档</em></p>
-<p><strong>Anthropic Claude Documentation</strong><br>https://docs.anthropic.com/<br><em>Claude API和Prompt Engineering指南</em></p>
-<p><strong>Google Gemini API</strong><br>https://ai.google.dev/docs<br><em>Gemini模型文档</em></p>
-<h3 id="tools--frameworks"><a class="header" href="#tools--frameworks">Tools &amp; Frameworks</a></h3>
-<p><strong>LangChain Documentation</strong><br>https://python.langchain.com/<br><em>LLM应用开发框架</em></p>
-<p><strong>LlamaIndex Documentation</strong><br>https://docs.llamaindex.ai/<br><em>RAG和数据索引框架</em></p>
-<p><strong>Cursor Documentation</strong><br>https://docs.cursor.com/<br><em>Cursor IDE官方文档</em></p>
-<p><strong>OpenAI Agents SDK</strong><br>https://openai.github.io/openai-agents-python/<br><em>Agent tracing、guardrails、handoff 和工具调用参考</em></p>
-<p><strong>OpenAI Agent Evals</strong><br>https://platform.openai.com/docs/guides/agent-evals<br><em>Agent 质量评估与 trace grading</em></p>
-<p><strong>Model Context Protocol Documentation</strong><br>https://modelcontextprotocol.io/<br><em>MCP 协议、Server 和 Client 文档</em></p>
-<p><strong>Anthropic MCP Documentation</strong><br>https://docs.anthropic.com/en/docs/mcp<br><em>Claude 与 MCP 集成说明</em></p>
-<p><strong>LangSmith Documentation</strong><br>https://docs.langchain.com/langsmith/<br><em>Agent observability、tracing 和 evaluation</em></p>
-<hr>
-<h2 id="-在线课程"><a class="header" href="#-在线课程">🎓 在线课程</a></h2>
-<p><strong>DeepLearning.AI - ChatGPT Prompt Engineering</strong><br>https://www.deeplearning.ai/short-courses/chatgpt-prompt-engineering-for-developers/<br><em>Andrew Ng的Prompt Engineering课程</em></p>
-<p><strong>LangChain for LLM Application Development</strong><br>https://www.deeplearning.ai/short-courses/langchain-for-llm-application-development/<br><em>LangChain实战课程</em></p>
-<p><strong>Building Systems with the ChatGPT API</strong><br>https://www.deeplearning.ai/short-courses/building-systems-with-chatgpt/<br><em>构建ChatGPT系统</em></p>
-<hr>
-<h2 id="-技术博客"><a class="header" href="#-技术博客">📝 技术博客</a></h2>
-<h3 id="个人博客"><a class="header" href="#个人博客">个人博客</a></h3>
-<p><strong>Lil’Log (Lilian Weng - OpenAI)</strong><br>https://lilianweng.github.io/<br><em>高质量的AI技术博客</em></p>
-<p><strong>Jay Alammar’s Blog</strong><br>https://jalammar.github.io/<br><em>可视化解释深度学习</em></p>
-<p><strong>Andrej Karpathy’s Blog</strong><br>https://karpathy.github.io/<br><em>AI领域领军人物的博客</em></p>
-<h3 id="公司博客"><a class="header" href="#公司博客">公司博客</a></h3>
-<p><strong>OpenAI Blog</strong><br>https://openai.com/blog<br><em>GPT、ChatGPT等产品发布</em></p>
-<p><strong>Anthropic Research</strong><br>https://www.anthropic.com/research<br><em>Claude和Constitutional AI</em></p>
-<p><strong>DeepMind Blog</strong><br>https://deepmind.google/discover/blog/<br><em>AlphaGo、Gemini等研究</em></p>
-<hr>
-<h2 id="-工具资源"><a class="header" href="#-工具资源">🛠️ 工具资源</a></h2>
-<h3 id="vector-databases"><a class="header" href="#vector-databases">Vector Databases</a></h3>
-<p><strong>Chroma</strong><br>https://www.trychroma.com/<br><em>轻量级向量数据库</em></p>
-<p><strong>Pinecone</strong><br>https://www.pinecone.io/<br><em>托管向量数据库服务</em></p>
-<p><strong>Weaviate</strong><br>https://weaviate.io/<br><em>开源向量搜索引擎</em></p>
-<p><strong>Milvus</strong><br>https://milvus.io/<br><em>高性能向量数据库</em></p>
-<h3 id="embedding-models"><a class="header" href="#embedding-models">Embedding Models</a></h3>
-<p><strong>Sentence Transformers</strong><br>https://www.sbert.net/<br><em>开源Embedding模型库</em></p>
-<p><strong>Voyage AI</strong><br>https://www.voyageai.com/<br><em>专业Embedding服务</em></p>
-<p><strong>Cohere Embed</strong><br>https://cohere.com/embed<br><em>多语言Embedding API</em></p>
-<h3 id="knowledge-management"><a class="header" href="#knowledge-management">Knowledge Management</a></h3>
-<p><strong>Obsidian</strong><br>https://obsidian.md/<br><em>本地优先的知识管理工具</em></p>
-<p><strong>Notion</strong><br>https://www.notion.so/<br><em>在线协作知识库</em></p>
-<p><strong>Roam Research</strong><br>https://roamresearch.com/<br><em>双向链接笔记</em></p>
-<hr>
-<h2 id="-实战项目"><a class="header" href="#-实战项目">🎯 实战项目</a></h2>
-<h3 id="open-source-projects"><a class="header" href="#open-source-projects">Open Source Projects</a></h3>
-<p><strong>AutoGPT</strong><br>https://github.com/Significant-Gravitas/AutoGPT<br><em>自主Agent实现</em></p>
-<p><strong>LangChain Templates</strong><br>https://github.com/langchain-ai/langchain/tree/master/templates<br><em>LangChain应用模板</em></p>
-<p><strong>PrivateGPT</strong><br>https://github.com/imartinez/privateGPT<br><em>私有RAG系统</em></p>
-<p><strong>Quivr</strong><br>https://github.com/StanGirard/quivr<br><em>个人知识管理Agent</em></p>
-<hr>
-<h2 id="-研究资源"><a class="header" href="#-研究资源">📊 研究资源</a></h2>
-<h3 id="papers-with-code"><a class="header" href="#papers-with-code">Papers with Code</a></h3>
-<p><strong>Papers with Code - NLP</strong><br>https://paperswithcode.com/area/natural-language-processing<br><em>NLP论文和代码</em></p>
-<p><strong>Hugging Face Papers</strong><br>https://huggingface.co/papers<br><em>每日AI论文推荐</em></p>
-<h3 id="benchmarks"><a class="header" href="#benchmarks">Benchmarks</a></h3>
-<p><strong>MMLU (Massive Multitask Language Understanding)</strong><br>https://github.com/hendrycks/test<br><em>LLM综合能力评测</em></p>
-<p><strong>HumanEval</strong><br>https://github.com/openai/human-eval<br><em>代码生成能力评测</em></p>
-<p><strong>MTEB (Massive Text Embedding Benchmark)</strong><br>https://github.com/embeddings-benchmark/mteb<br><em>Embedding模型评测</em></p>
-<hr>
-<h2 id="-视频资源"><a class="header" href="#-视频资源">🎤 视频资源</a></h2>
-<h3 id="youtube-channels"><a class="header" href="#youtube-channels">YouTube Channels</a></h3>
-<p><strong>Andrej Karpathy</strong><br>https://www.youtube.com/@AndrejKarpathy<br><em>从零构建GPT等教学视频</em></p>
-<p><strong>3Blue1Brown</strong><br>https://www.youtube.com/@3blue1brown<br><em>神经网络可视化讲解</em></p>
-<p><strong>Two Minute Papers</strong><br>https://www.youtube.com/@TwoMinutePapers<br><em>AI论文快速解读</em></p>
-<hr>
-<h2 id="-资讯订阅"><a class="header" href="#-资讯订阅">📰 资讯订阅</a></h2>
-<h3 id="newsletters"><a class="header" href="#newsletters">Newsletters</a></h3>
-<p><strong>The Batch (DeepLearning.AI)</strong><br>https://www.deeplearning.ai/the-batch/<br><em>每周AI新闻</em></p>
-<p><strong>Import AI (Jack Clark)</strong><br>https://importai.substack.com/<br><em>AI研究进展</em></p>
-<p><strong>The Gradient</strong><br>https://thegradient.pub/<br><em>深度AI评论</em></p>
-<h3 id="podcasts"><a class="header" href="#podcasts">Podcasts</a></h3>
-<p><strong>Lex Fridman Podcast</strong><br>https://lexfridman.com/podcast/<br><em>AI领域深度访谈</em></p>
-<p><strong>The TWIML AI Podcast</strong><br>https://twimlai.com/<br><em>机器学习技术讨论</em></p>
-<hr>
-<h2 id="-搜索引擎"><a class="header" href="#-搜索引擎">🔍 搜索引擎</a></h2>
-<p><strong>Perplexity AI</strong><br>https://www.perplexity.ai/<br><em>AI驱动的搜索引擎</em></p>
-<p><strong>Phind</strong><br>https://www.phind.com/<br><em>面向开发者的AI搜索</em></p>
-<hr>
-<h2 id="-延伸阅读建议"><a class="header" href="#-延伸阅读建议">📚 延伸阅读建议</a></h2>
-<h3 id="初学者路径"><a class="header" href="#初学者路径">初学者路径</a></h3>
-<ol>
-<li>先读 OpenAI 和 Anthropic 的 Prompt Engineering 指南</li>
-<li>学习 LangChain 或 LlamaIndex 框架</li>
-<li>实践小型 RAG 项目</li>
-<li>阅读经典论文（Transformer、BERT、GPT-3）</li>
-</ol>
-<h3 id="进阶路径"><a class="header" href="#进阶路径">进阶路径</a></h3>
-<ol>
-<li>深入学习 ReACT、Chain-of-Thought 等论文</li>
-<li>研究生产级 Agent 系统设计</li>
-<li>优化 RAG 系统性能</li>
-<li>贡献开源项目</li>
-</ol>
-<h3 id="专家路径"><a class="header" href="#专家路径">专家路径</a></h3>
-<ol>
-<li>阅读最新研究论文</li>
-<li>实验新模型和技术</li>
-<li>构建领域特定 Agent 系统</li>
-<li>分享经验和最佳实践</li>
-</ol>
-<hr>
-<p><em>本参考资料持续更新，欢迎补充</em></p>
+<h1 id="附录b-学习路径与延伸阅读"><a class="header" href="#附录b-学习路径与延伸阅读">附录B 学习路径与延伸阅读</a></h1>
+<p>本附录按学习目的导航。<strong>每章末尾的参考资料是该章论点、数字和产品行为的权威来源清单</strong>；本页不维护第二套全集，也不把论文名或工具名当作覆盖证明。先读机制，再沿章末原始论文、标准或官方文档阅读，最后用练习检验理解。</p>
+<h2 id="按问题选择阅读路径"><a class="header" href="#按问题选择阅读路径">按问题选择阅读路径</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>学习目的</th><th>先读</th><th>再读与原始来源入口</th><th>阅读时核对什么</th></tr>
+</thead>
+<tbody>
+<tr><td>从张量理解模型</td><td><a href="#第1章-从-transformer-到-agent模型结构如何影响系统能力">第1章</a></td><td><a href="#第2章-预训练能力的来源">第2章</a>的目标函数及两章参考资料</td><td>Attention 的维度、mask、位置、GQA/MLA 与任务目标</td></tr>
+<tr><td>理解行为如何塑形</td><td><a href="#第3章-后训练行为的塑形">第3章</a></td><td><a href="#第5章-模型适配与能力扩展">第5章</a>的适配数据与量化来源</td><td>监督位置、PPO/GAE、DPO/GRPO、数据独立性</td></tr>
+<tr><td>评估推理与多模态</td><td><a href="#第4章-推理期扩展">第4章</a></td><td><a href="#第5章-模型适配与能力扩展">第5章</a>、<a href="#第6章-具身智能与-physical-ai">第6章</a></td><td>额外预算、验证器、未观察范围与物理安全</td></tr>
+<tr><td>建立资源账本</td><td><a href="#第7章-ai-infra-全景">第7章</a></td><td><a href="#第8章-训练平台与数据管线">第8章</a>、<a href="#第9章-推理服务与资源调度">第9章</a></td><td>并行切分轴、通信、瞬时峰值、工作负载与版本</td></tr>
+<tr><td>设计可恢复运行时</td><td><a href="#第11章-agent-runtime">第11章</a></td><td><a href="#第17章-llm-api-协议模型能力如何被系统消费">第17章</a>、<a href="#第21章-执行编排与多-agent-协作任务图交接与平台边界">第21章</a></td><td>提交、投递、幂等、unknown、owner、断线与迟到结果</td></tr>
+<tr><td>组织 Prompt 与信息</td><td><a href="#第14章-prompt-engineering-与结构化输出从提示词到任务协议">第14章</a></td><td><a href="#第15章-context-engineering从上下文注入到信息架构">第15章</a>、<a href="#第20章-agent-记忆系统memory会话与长期上下文">第20章</a></td><td>指令权威、摘要保真、来源失效与事实状态</td></tr>
+<tr><td>选择工具与协议</td><td><a href="#第18章-agent-工具系统工程tool-callingskills-与-mcp">第18章</a></td><td><a href="#第21章-执行编排与多-agent-协作任务图交接与平台边界">第21章</a>及<a href="#附录c-工具框架与版本导航">附录C</a></td><td>Schema、执行权、MCP 传输迁移、A2A 版本与未知能力</td></tr>
+<tr><td>构建知识助手</td><td><a href="#第19章-agent-知识系统从知识源到可验证证据">第19章</a></td><td><a href="#第24章-企业知识助手rag搜索权限与知识治理落地实践">第24章</a>、<a href="#第30章-个人知识管理-agent-实践">第30章</a></td><td>检索/证据/生成分层、ACL、乱序更新、撤权和血缘</td></tr>
+<tr><td>理解 Coding 系统</td><td><a href="#第23章-ai-coding-agent-系统解析从工作协议到-harness-工程">第23章</a></td><td><a href="#第25章-pi-agent-架构解析终端原生-coding-agent-runtime扩展系统与上下文工程">第25章 Pi</a>、<a href="#第29章-从零实现一个可观测-coding-agent">第29章</a></td><td>运行时与产品分层、版本化检索、候选完成与独立验证</td></tr>
+<tr><td>观察长期助手</td><td><a href="#第27章-hermes-agent-架构解析长期运行自我进化与多入口-agent-runtime">第27章 Hermes</a></td><td><a href="#第26章-openclaw-架构解析个人-ai-助手的-gatewayruntime-与工具生态">第26章 OpenClaw</a>、<a href="#第31章-持续进化的生活-agent从日常反馈到可信能力闭环">第31章</a></td><td>身份、会话、记忆、投递与业务副作用分别取证</td></tr>
+<tr><td>形成质量与发布闭环</td><td><a href="#第10章-评估与反馈闭环">第10章</a></td><td><a href="#第12章-生产运营与治理控制">第12章</a>、<a href="#第22章-agent-生产治理evalsguardrails-与可观测性">第22章</a></td><td>固定评估集、Judge 校准、回归、成本及回滚证据</td></tr>
+<tr><td>阅读研究报告</td><td><a href="#第32章-ai-智能体研究现状工程瓶颈与未来理想能力架构报告">第32章</a></td><td>沿其参考资料回到对应论文版本、任务和评测协议</td><td>历史结果、研究提案、公开实现与实测结论的区别</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="章末练习入口"><a class="header" href="#章末练习入口">章末练习入口</a></h2>
+<p>以下仅链接原练习，不复制答案或创建另一套题库。卡片定义输入、输出与验收条件；<strong>设计完成不表示代码实现、GPU 实测或性能验证完成</strong>。</p>
+<ul>
+<li><a href="#第1章-从-transformer-到-agent模型结构如何影响系统能力">第1章 Attention / GQA 练习卡</a>：张量、mask 与增量一致性。</li>
+<li><a href="#第3章-后训练行为的塑形">第3章 SFT 对齐练习卡</a>：固定模板、监督位置与单次 shift。</li>
+<li><a href="#第5章-模型适配与能力扩展">第5章校准练习卡</a>：零块、异常值、尾组及误差报告。</li>
+<li><a href="#第8章-训练平台与数据管线">第8章 GPU 与规约练习卡组</a>：层级、同步、布局、正确性与环境化性能。</li>
+<li><a href="#第9章-推理服务与资源调度">第9章显存账本练习卡</a>：固定模型配置、长度、并发、预留与敏感性分析。</li>
+</ul>
+<h2 id="如何继续找资料"><a class="header" href="#如何继续找资料">如何继续找资料</a></h2>
+<p>稳定概念优先读经典教材、原始论文和正式标准；实现行为读对应版本的官方文档与源码。课程、博客、演讲、论文聚合页和厂商主页可用于发现问题，不能代替支撑具体结论的原始材料。收藏链接时记录作者/机构、标题、版本或年份、原始 URL、访问日期及可支撑范围。</p>
+<p>产品排名、价格、模型窗口、硬件支持与基准分数变化很快。无法取得同版本证据就保留未知；不要把别的模型、硬件或评测集上的结果迁移为自己的结论。工具候选从<a href="#附录c-工具框架与版本导航">附录C</a>进入，论点依据回到相应章节的参考资料。</p>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="附录c-常用工具与框架"><a class="header" href="#附录c-常用工具与框架">附录C 常用工具与框架</a></h1>
-<p>本附录整理了AI Agent开发中常用的工具、框架和服务，方便快速查找和选择。</p>
-<hr>
-<h2 id="-llm-provider-apis"><a class="header" href="#-llm-provider-apis">🤖 LLM Provider APIs</a></h2>
-<h3 id="openai"><a class="header" href="#openai">OpenAI</a></h3>
-<p><strong>产品</strong>：GPT-4 Turbo, GPT-4, GPT-3.5 Turbo<br><strong>优势</strong>：生态完善、API稳定、工具调用成熟<br><strong>定价</strong>：$0.01-0.03/1K tokens（输入）<br><strong>链接</strong>：https://platform.openai.com/</p>
-<p><strong>推荐场景</strong>：</p>
-<ul>
-<li>复杂推理任务</li>
-<li>工具调用密集型Agent</li>
-<li>需要高稳定性的生产环境</li>
-</ul>
-<hr>
-<h3 id="anthropic"><a class="header" href="#anthropic">Anthropic</a></h3>
-<p><strong>产品</strong>：Claude 3.5 Sonnet, Claude 3 Opus<br><strong>优势</strong>：代码生成强、上下文200k、Prompt Caching<br><strong>定价</strong>：$0.003-0.015/1K tokens（输入）<br><strong>链接</strong>：https://www.anthropic.com/</p>
-<p><strong>推荐场景</strong>：</p>
-<ul>
-<li>代码生成和审查</li>
-<li>长文档处理</li>
-<li>需要Prompt Caching降低成本</li>
-</ul>
-<hr>
-<h3 id="google"><a class="header" href="#google">Google</a></h3>
-<p><strong>产品</strong>：Gemini 1.5 Pro, Gemini 1.5 Flash<br><strong>优势</strong>：上下文1M tokens、多模态、价格低<br><strong>定价</strong>：$0.00125-0.005/1K tokens<br><strong>链接</strong>：https://ai.google.dev/</p>
-<p><strong>推荐场景</strong>：</p>
-<ul>
-<li>超长文档处理</li>
-<li>多模态任务（图片+文本）</li>
-<li>成本敏感的应用</li>
-</ul>
-<hr>
-<h3 id="本地部署"><a class="header" href="#本地部署">本地部署</a></h3>
-<p><strong>Ollama</strong><br>https://ollama.ai/<br><em>本地运行Llama、Mistral等开源模型</em></p>
-<p><strong>LM Studio</strong><br>https://lmstudio.ai/<br><em>图形化界面的本地LLM工具</em></p>
-<p><strong>vLLM</strong><br>https://github.com/vllm-project/vllm<br><em>高性能LLM推理引擎</em></p>
-<hr>
-<h2 id="-开发框架"><a class="header" href="#-开发框架">🧰 开发框架</a></h2>
-<h3 id="langchain"><a class="header" href="#langchain">LangChain</a></h3>
-<p><strong>描述</strong>：最流行的LLM应用开发框架<br><strong>语言</strong>：Python, JavaScript<br><strong>链接</strong>：https://www.langchain.com/</p>
-<p><strong>核心功能</strong>：</p>
-<ul>
-<li>Prompt模板和管理</li>
-<li>Agent和工具调用</li>
-<li>RAG系统</li>
-<li>记忆和上下文管理</li>
-<li>LangSmith（可观测性平台）</li>
-</ul>
-<p><strong>适用场景</strong>：</p>
-<ul>
-<li>快速原型开发</li>
-<li>复杂的多步骤工作流</li>
-<li>需要丰富的集成生态</li>
-</ul>
-<p><strong>示例代码</strong>：</p>
-<pre><code class="language-python">from langchain.agents import create_openai_functions_agent
-from langchain_openai import ChatOpenAI
-from langchain.tools import Tool
-
-llm = ChatOpenAI(model="gpt-4")
-tools = [Tool(name="search", func=search_function, description="...")]
-agent = create_openai_functions_agent(llm, tools, prompt)
-</code></pre>
-<hr>
-<h3 id="llamaindex"><a class="header" href="#llamaindex">LlamaIndex</a></h3>
-<p><strong>描述</strong>：专注于RAG和数据索引的框架<br><strong>语言</strong>：Python, TypeScript<br><strong>链接</strong>：https://www.llamaindex.ai/</p>
-<p><strong>核心功能</strong>：</p>
-<ul>
-<li>数据加载和解析</li>
-<li>索引构建和管理</li>
-<li>查询引擎</li>
-<li>多种检索策略</li>
-</ul>
-<p><strong>适用场景</strong>：</p>
-<ul>
-<li>RAG系统</li>
-<li>企业知识库</li>
-<li>文档问答</li>
-</ul>
-<p><strong>示例代码</strong>：</p>
-<pre><code class="language-python">from llama_index import VectorStoreIndex, SimpleDirectoryReader
-
-documents = SimpleDirectoryReader('data').load_data()
-index = VectorStoreIndex.from_documents(documents)
-query_engine = index.as_query_engine()
-response = query_engine.query("What is...?")
-</code></pre>
-<hr>
-<h3 id="autogpt--autogen"><a class="header" href="#autogpt--autogen">AutoGPT / AutoGen</a></h3>
-<p><strong>AutoGPT</strong><br>https://github.com/Significant-Gravitas/AutoGPT<br><em>自主Agent实现</em></p>
-<p><strong>AutoGen (Microsoft)</strong><br>https://microsoft.github.io/autogen/<br><em>多Agent协作框架</em></p>
-<p><strong>适用场景</strong>：</p>
-<ul>
-<li>自主任务执行</li>
-<li>多Agent协作</li>
-<li>复杂工作流</li>
-</ul>
-<hr>
-<h3 id="semantic-kernel-microsoft"><a class="header" href="#semantic-kernel-microsoft">Semantic Kernel (Microsoft)</a></h3>
-<p><strong>描述</strong>：微软的LLM编排框架<br><strong>语言</strong>：C#, Python, Java<br><strong>链接</strong>：https://learn.microsoft.com/en-us/semantic-kernel/</p>
-<p><strong>适用场景</strong>：</p>
-<ul>
-<li>企业级应用</li>
-<li>.NET生态集成</li>
-<li>Azure云服务</li>
-</ul>
-<hr>
-<h2 id="-向量数据库"><a class="header" href="#-向量数据库">📊 向量数据库</a></h2>
-<h3 id="chroma"><a class="header" href="#chroma">Chroma</a></h3>
-<p><strong>类型</strong>：本地/嵌入式<br><strong>语言</strong>：Python, JavaScript<br><strong>链接</strong>：https://www.trychroma.com/</p>
-<p><strong>特点</strong>：</p>
-<ul>
-<li>轻量级、易用</li>
-<li>适合原型开发</li>
-<li>支持内存和持久化模式</li>
-</ul>
-<p><strong>使用</strong>：</p>
-<pre><code class="language-python">import chromadb
-client = chromadb.PersistentClient(path="./chroma_db")
-collection = client.create_collection("docs")
-collection.add(documents=[...], embeddings=[...])
-</code></pre>
-<hr>
-<h3 id="pinecone"><a class="header" href="#pinecone">Pinecone</a></h3>
-<p><strong>类型</strong>：云服务（托管）<br><strong>链接</strong>：https://www.pinecone.io/</p>
-<p><strong>特点</strong>：</p>
-<ul>
-<li>高性能、可扩展</li>
-<li>托管服务，无需运维</li>
-<li>付费服务</li>
-</ul>
-<p><strong>定价</strong>：Starter免费，标准版$70/月起</p>
-<hr>
-<h3 id="weaviate"><a class="header" href="#weaviate">Weaviate</a></h3>
-<p><strong>类型</strong>：本地/云<br><strong>链接</strong>：https://weaviate.io/</p>
-<p><strong>特点</strong>：</p>
-<ul>
-<li>功能丰富</li>
-<li>支持GraphQL</li>
-<li>混合检索（向量+关键词）</li>
-</ul>
-<hr>
-<h3 id="milvus--zilliz"><a class="header" href="#milvus--zilliz">Milvus / Zilliz</a></h3>
-<p><strong>类型</strong>：本地/云<br><strong>链接</strong>：https://milvus.io/</p>
-<p><strong>特点</strong>：</p>
-<ul>
-<li>高性能、分布式</li>
-<li>支持大规模数据</li>
-<li>企业级功能</li>
-</ul>
-<hr>
-<h3 id="qdrant"><a class="header" href="#qdrant">Qdrant</a></h3>
-<p><strong>类型</strong>：本地/云<br><strong>链接</strong>：https://qdrant.tech/</p>
-<p><strong>特点</strong>：</p>
-<ul>
-<li>Rust实现，高性能</li>
-<li>丰富的过滤功能</li>
-<li>支持多向量</li>
-</ul>
-<hr>
-<h3 id="pgvector"><a class="header" href="#pgvector">pgvector</a></h3>
-<p><strong>类型</strong>：PostgreSQL扩展<br><strong>链接</strong>：https://github.com/pgvector/pgvector</p>
-<p><strong>特点</strong>：</p>
-<ul>
-<li>与SQL集成</li>
-<li>适合已有PG数据库的项目</li>
-<li>开源免费</li>
-</ul>
-<hr>
-<h2 id="-embedding服务"><a class="header" href="#-embedding服务">🔍 Embedding服务</a></h2>
-<h3 id="openai-embeddings"><a class="header" href="#openai-embeddings">OpenAI Embeddings</a></h3>
-<p><strong>模型</strong>：text-embedding-3-small, text-embedding-3-large<br><strong>维度</strong>：1536, 3072<br><strong>定价</strong>：$0.02-0.13/1M tokens<br><strong>链接</strong>：https://platform.openai.com/docs/guides/embeddings</p>
-<hr>
-<h3 id="cohere-embed"><a class="header" href="#cohere-embed">Cohere Embed</a></h3>
-<p><strong>模型</strong>：embed-v3<br><strong>维度</strong>：1024<br><strong>特点</strong>：多语言支持<br><strong>链接</strong>：https://cohere.com/embed</p>
-<hr>
-<h3 id="voyage-ai"><a class="header" href="#voyage-ai">Voyage AI</a></h3>
-<p><strong>特点</strong>：专业领域优化<br><strong>链接</strong>：https://www.voyageai.com/</p>
-<hr>
-<h3 id="开源embedding模型"><a class="header" href="#开源embedding模型">开源Embedding模型</a></h3>
-<p><strong>Sentence Transformers</strong><br>https://www.sbert.net/<br><em>开源Embedding模型库</em></p>
-<p><strong>推荐模型</strong>：</p>
-<ul>
-<li><code>all-MiniLM-L6-v2</code>：轻量快速</li>
-<li><code>all-mpnet-base-v2</code>：平衡性能</li>
-<li><code>bge-large-zh-v1.5</code>：中文优化</li>
-</ul>
-<hr>
-<h2 id="-ai编程工具"><a class="header" href="#-ai编程工具">🎨 AI编程工具</a></h2>
-<h3 id="cursor"><a class="header" href="#cursor">Cursor</a></h3>
-<p><strong>描述</strong>：AI优先的代码编辑器<br><strong>基于</strong>：VS Code<br><strong>链接</strong>：https://cursor.com/</p>
-<p><strong>核心功能</strong>：</p>
-<ul>
-<li>Cmd+K 行内编辑</li>
-<li>Composer 多文件编辑</li>
-<li>Chat 对话式编程</li>
-<li>Claude Code Terminal Agent</li>
-</ul>
-<p><strong>定价</strong>：免费试用，Pro $20/月</p>
-<hr>
-<h3 id="github-copilot"><a class="header" href="#github-copilot">GitHub Copilot</a></h3>
-<p><strong>描述</strong>：GitHub官方AI编程助手<br><strong>支持</strong>：VS Code, JetBrains等<br><strong>链接</strong>：https://github.com/features/copilot</p>
-<p><strong>定价</strong>：$10/月（个人），$19/月（Pro）</p>
-<hr>
-<h3 id="cline-vs-code-extension"><a class="header" href="#cline-vs-code-extension">Cline (VS Code Extension)</a></h3>
-<p><strong>描述</strong>：开源的自主编程Agent<br><strong>链接</strong>：https://github.com/cline/cline</p>
-<p><strong>特点</strong>：</p>
-<ul>
-<li>开源免费</li>
-<li>支持多种LLM Provider</li>
-<li>自主编辑文件和执行命令</li>
-</ul>
-<hr>
-<h2 id="-知识管理工具"><a class="header" href="#-知识管理工具">📝 知识管理工具</a></h2>
-<h3 id="obsidian"><a class="header" href="#obsidian">Obsidian</a></h3>
-<p><strong>描述</strong>：本地优先的笔记软件<br><strong>特点</strong>：双向链接、Graph View、插件生态<br><strong>链接</strong>：https://obsidian.md/</p>
-<p><strong>推荐插件</strong>：</p>
-<ul>
-<li>Dataview：数据查询</li>
-<li>Templater：模板系统</li>
-<li>Excalidraw：画图</li>
-<li>Marp：幻灯片</li>
-</ul>
-<hr>
-<h3 id="notion"><a class="header" href="#notion">Notion</a></h3>
-<p><strong>描述</strong>：在线协作知识库<br><strong>特点</strong>：数据库、团队协作、AI助手<br><strong>链接</strong>：https://www.notion.so/</p>
-<hr>
-<h3 id="logseq"><a class="header" href="#logseq">Logseq</a></h3>
-<p><strong>描述</strong>：开源的双向链接笔记<br><strong>特点</strong>：本地优先、大纲式、开源<br><strong>链接</strong>：https://logseq.com/</p>
-<hr>
-<h2 id="-开发工具"><a class="header" href="#-开发工具">🔧 开发工具</a></h2>
-<h3 id="langsmith"><a class="header" href="#langsmith">LangSmith</a></h3>
-<p><strong>描述</strong>：LangChain的可观测性平台<br><strong>功能</strong>：追踪、调试、评估<br><strong>链接</strong>：https://smith.langchain.com/</p>
-<hr>
-<h3 id="helicone"><a class="header" href="#helicone">Helicone</a></h3>
-<p><strong>描述</strong>：LLM可观测性平台<br><strong>功能</strong>：日志、缓存、成本追踪<br><strong>链接</strong>：https://www.helicone.ai/</p>
-<hr>
-<h3 id="weights--biases"><a class="header" href="#weights--biases">Weights &amp; Biases</a></h3>
-<p><strong>描述</strong>：机器学习实验平台<br><strong>功能</strong>：实验追踪、超参数优化<br><strong>链接</strong>：https://wandb.ai/</p>
-<hr>
-<h2 id="-测试与评估"><a class="header" href="#-测试与评估">🧪 测试与评估</a></h2>
-<h3 id="braintrust"><a class="header" href="#braintrust">Braintrust</a></h3>
-<p><strong>描述</strong>：LLM应用评估平台<br><strong>功能</strong>：数据集管理、自动评估<br><strong>链接</strong>：https://www.braintrustdata.com/</p>
-<hr>
-<h3 id="promptfoo"><a class="header" href="#promptfoo">PromptFoo</a></h3>
-<p><strong>描述</strong>：开源Prompt测试工具<br><strong>功能</strong>：批量测试、自动评估<br><strong>链接</strong>：https://promptfoo.dev/</p>
-<hr>
-<h2 id="-模型部署"><a class="header" href="#-模型部署">📦 模型部署</a></h2>
-<h3 id="replicate"><a class="header" href="#replicate">Replicate</a></h3>
-<p><strong>描述</strong>：模型托管和API服务<br><strong>特点</strong>：按使用付费、丰富的模型库<br><strong>链接</strong>：https://replicate.com/</p>
-<hr>
-<h3 id="modal"><a class="header" href="#modal">Modal</a></h3>
-<p><strong>描述</strong>：无服务器Python运行时<br><strong>特点</strong>：GPU支持、自动扩展<br><strong>链接</strong>：https://modal.com/</p>
-<hr>
-<h3 id="together-ai"><a class="header" href="#together-ai">Together AI</a></h3>
-<p><strong>描述</strong>：开源模型推理API<br><strong>特点</strong>：多种开源模型、价格低<br><strong>链接</strong>：https://www.together.ai/</p>
-<hr>
-<h2 id="-工具选择建议"><a class="header" href="#-工具选择建议">🎯 工具选择建议</a></h2>
-<h3 id="快速原型个人项目"><a class="header" href="#快速原型个人项目">快速原型（个人项目）</a></h3>
-<ul>
-<li><strong>LLM</strong>：OpenAI GPT-4 或 Claude 3.5</li>
-<li><strong>框架</strong>：LangChain</li>
-<li><strong>向量数据库</strong>：Chroma</li>
-<li><strong>Embedding</strong>：OpenAI text-embedding-3-small</li>
-<li><strong>编程工具</strong>：Cursor</li>
-</ul>
-<h3 id="生产环境小型团队"><a class="header" href="#生产环境小型团队">生产环境（小型团队）</a></h3>
-<ul>
-<li><strong>LLM</strong>：OpenAI + Claude（双provider）</li>
-<li><strong>框架</strong>：LangChain + 自定义代码</li>
-<li><strong>向量数据库</strong>：Pinecone 或 Weaviate</li>
-<li><strong>Embedding</strong>：OpenAI 或 Voyage AI</li>
-<li><strong>可观测性</strong>：LangSmith + Helicone</li>
-</ul>
-<h3 id="企业级大型公司"><a class="header" href="#企业级大型公司">企业级（大型公司）</a></h3>
-<ul>
-<li><strong>LLM</strong>：私有部署（Llama）+ 云服务（OpenAI/Azure）</li>
-<li><strong>框架</strong>：自研框架 + Semantic Kernel</li>
-<li><strong>向量数据库</strong>：Milvus（自部署）</li>
-<li><strong>Embedding</strong>：自训练模型 + 商业API</li>
-<li><strong>可观测性</strong>：自建监控系统</li>
-</ul>
-<hr>
-<h2 id="-成本优化建议"><a class="header" href="#-成本优化建议">💡 成本优化建议</a></h2>
-<h3 id="开发阶段"><a class="header" href="#开发阶段">开发阶段</a></h3>
-<ul>
-<li>使用 GPT-3.5 Turbo 或 Gemini Flash</li>
-<li>本地向量数据库（Chroma）</li>
-<li>开源Embedding模型</li>
-</ul>
-<h3 id="生产阶段"><a class="header" href="#生产阶段">生产阶段</a></h3>
-<ul>
-<li>模型分层（简单任务用便宜模型）</li>
-<li>Prompt Caching（Claude）</li>
-<li>Batch API（OpenAI）</li>
-<li>向量数据库按需选择</li>
-</ul>
-<hr>
-<p><em>本工具清单持续更新，欢迎补充</em></p>
+<h1 id="附录c-工具框架与版本导航"><a class="header" href="#附录c-工具框架与版本导航">附录C 工具、框架与版本导航</a></h1>
+<p>本附录提供候选入口和选型记录，具体机制以责任章和其章末来源为准。表中的“核验”指公开文档/源码所支持的限定范围，<strong>没有运行兼容性、生产负载或价格测试</strong>。“滚动文档”不是已安装包版本；落地时须另锁包版本、模型、端点、配置、权限和工作负载。未知表示没有足够证据，不等于不支持。</p>
+<h2 id="已有正文依据的分层目录"><a class="header" href="#已有正文依据的分层目录">已有正文依据的分层目录</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>工具/协议</th><th>层次与已核验能力范围</th><th>版本/日期</th><th>原始来源</th><th>仍需验证的边界</th></tr>
+</thead>
+<tbody>
+<tr><td>OpenAI API / 模型 SDK</td><td>模型请求与工具配置；应用仍需处理自定义工具执行与状态</td><td>滚动官方文档；2026-10-18</td><td><a href="https://developers.openai.com/api/docs/guides/tools">Using tools</a>；<a href="#第17章-llm-api-协议模型能力如何被系统消费">第17章</a></td><td>具体模型/工具/区域/账户可用性、SDK 版本和费用未知</td></tr>
+<tr><td>Anthropic 模型 SDK</td><td>消息、流和工具的供应商适配入口</td><td><a href="#第17章-llm-api-协议模型能力如何被系统消费">第17章</a>核验；2026-10-18</td><td><a href="https://docs.anthropic.com/en/api/overview">API 文档</a></td><td>不由模型 SDK 推出持久任务、审批或业务幂等</td></tr>
+<tr><td>OpenAI Agents SDK</td><td>代码式 Agent 循环、工具和交接</td><td><a href="#第21章-执行编排与多-agent-协作任务图交接与平台边界">第21章</a>核验；滚动文档，2026-10-17</td><td><a href="https://developers.openai.com/api/docs/guides/agents/sdk">官方 SDK 指南</a></td><td>应用自己的状态、工具实现及部署保证需另验</td></tr>
+<tr><td>Claude Agent SDK</td><td>嵌入 Coding 循环、工具与上下文能力</td><td>第21章核验；滚动文档，2026-10-18</td><td><a href="https://code.claude.com/docs/en/agent-sdk/overview">官方概览</a></td><td>进程、工作区、凭据与权限边界</td></tr>
+<tr><td>LangChain / LangGraph</td><td>高层 Agent 抽象 / 显式状态图和 checkpoint 组合</td><td>第21章核验；滚动文档，2026-10-17–18</td><td><a href="https://docs.langchain.com/oss/python/langchain/overview">LangChain</a>、<a href="https://docs.langchain.com/oss/python/langgraph/persistence">Persistence</a></td><td>内存 saver 不证明重启恢复；业务幂等由应用承担</td></tr>
+<tr><td>AutoGen Core / Microsoft Agent Framework</td><td>异步消息执行 / Agent 与 Workflow 抽象</td><td>第21章核验；stable/滚动文档，2026-10-18</td><td><a href="https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/index.html">Core</a>、<a href="https://learn.microsoft.com/en-us/agent-framework/overview/">Framework</a></td><td>分布式存储、owner、取消和重复副作用</td></tr>
+<tr><td>MCP</td><td>Host/Client/Server 能力连接协议</td><td><a href="#第18章-agent-工具系统工程tool-callingskills-与-mcp">第18章</a>；2025-11-25，核验2026-10-18</td><td><a href="https://modelcontextprotocol.io/specification/2025-11-25">版本化规范</a></td><td>版本/能力协商、认证与传输；发现不等于授权</td></tr>
+<tr><td>A2A</td><td>独立 Agent 的任务、消息与产物协议</td><td>第21章；v0.3.0，非“最新版”承诺</td><td><a href="https://a2a-protocol.org/v0.3.0/specification/">版本化规范</a></td><td>本书未实现或测试兼容；自建消息不是兼容证明</td></tr>
+<tr><td>vLLM</td><td>推理执行、调度和 KV 管理参考</td><td><a href="#第9章-推理服务与资源调度">第9章</a>核验；V1 缓存设计/滚动文档，2026-10-17</td><td><a href="https://docs.vllm.ai/en/latest/features/automatic_prefix_caching/">APC</a>、<a href="https://docs.vllm.ai/en/latest/design/prefix_caching/">设计</a></td><td>具体模型、量化、GPU 与 shape 的支持及收益</td></tr>
+<tr><td>Triton 语言</td><td>GPU 计算程序与算子层</td><td><a href="#第8章-训练平台与数据管线">第8章</a>核验；main 文档，2026-10-17</td><td><a href="https://triton-lang.org/main/programming-guide/chapter-1/introduction.html">语言介绍</a></td><td>生成 kernel 的正确性与性能未实测</td></tr>
+<tr><td>Triton Inference Server</td><td>模型仓库、版本与服务生命周期</td><td>第9章核验；滚动文档，2026-10-17</td><td><a href="https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/model_management.html">Model Management</a></td><td>不是 Triton 语言；模型后端能力分别核验</td></tr>
+<tr><td>Claude Code / Cursor / Codex</td><td>终端、IDE、本地/云任务产品形态</td><td><a href="#第23章-ai-coding-agent-系统解析从工作协议到-harness-工程">第23章</a>核验；滚动文档，2026-10-18</td><td>原始产品文档及限定论点见第23章参考资料</td><td>无永久优劣榜；功能、套餐与本机开关分别核验</td></tr>
+<tr><td>Pi</td><td>终端 Runtime 与 SDK、扩展及会话资源</td><td><a href="#第25章-pi-agent-架构解析终端原生-coding-agent-runtime扩展系统与上下文工程">第25章</a>核验；2026-10-18</td><td><a href="https://pi.dev/docs/latest/sdk">Pi SDK</a>；具体包与来源见该章</td><td>以该章 @earendil-works 命名空间与 ModelRuntime 为准；不外推旧 SDK 示例</td></tr>
+<tr><td>OpenClaw</td><td>Gateway、自有 Runtime、工具和会话历史</td><td>提交 <code>62cb03ac7a95f4b9cb435f8efc57f4034ba2649b</code>；2026-10-18</td><td><a href="https://github.com/openclaw/openclaw/tree/62cb03ac7a95f4b9cb435f8efc57f4034ba2649b">固定源码</a>；<a href="#第26章-openclaw-架构解析个人-ai-助手的-gatewayruntime-与工具生态">第26章</a></td><td>活动历史与旧 JSONL 区分；profile 不自动提供隔离</td></tr>
+<tr><td>Hermes</td><td>入口、Memory、Skill、delegate 与限定投递记录</td><td>提交 <code>18c525b669b6ea4ba62e6967d228af21d89aa9d3</code>；2026-10-18</td><td><a href="https://github.com/NousResearch/hermes-agent/tree/18c525b669b6ea4ba62e6967d228af21d89aa9d3">固定源码</a>；<a href="#第27章-hermes-agent-架构解析长期运行自我进化与多入口-agent-runtime">第27章</a></td><td>特定 Gateway 投递 ledger 不证明任意业务 Outbox/Checkpoint/补偿；教学扩展单列</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="其他候选入口"><a class="header" href="#其他候选入口">其他候选入口</a></h2>
+<p>以下承接原工具清单，<strong>仅保留检索入口，没有在本批核验版本和功能支持</strong>。各行版本、核验日期和兼容状态统一为未知；不得把分类当作配置建议、许可证结论或性能推荐。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>调研目的</th><th>原始入口</th><th>需补的版本、日期与能力证据</th></tr>
+</thead>
+<tbody>
+<tr><td>模型 API 与 Embedding</td><td><a href="https://ai.google.dev/">Gemini</a>、<a href="https://cohere.com/">Cohere</a>、<a href="https://www.voyageai.com/">Voyage AI</a>、<a href="https://www.sbert.net/">Sentence Transformers</a></td><td>精确模型与 revision、维度、tokenizer、非对称编码、限额与定价：未知</td></tr>
+<tr><td>本地模型工作台</td><td><a href="https://ollama.com/">Ollama</a>、<a href="https://lmstudio.ai/">LM Studio</a></td><td>版本、模型格式、工具协议与硬件组合：未知</td></tr>
+<tr><td>数据/RAG 框架</td><td><a href="https://docs.llamaindex.ai/">LlamaIndex</a>、<a href="https://learn.microsoft.com/en-us/semantic-kernel/">Semantic Kernel</a>、<a href="https://github.com/Significant-Gravitas/AutoGPT">AutoGPT</a></td><td>具体 API、持久性、权限和恢复边界：未知</td></tr>
+<tr><td>向量检索存储</td><td><a href="https://www.trychroma.com/">Chroma</a>、<a href="https://www.pinecone.io/">Pinecone</a>、<a href="https://weaviate.io/">Weaviate</a>、<a href="https://milvus.io/">Milvus</a>、<a href="https://zilliz.com/">Zilliz</a>、<a href="https://qdrant.tech/">Qdrant</a>、<a href="https://github.com/pgvector/pgvector">pgvector</a></td><td>索引、过滤、删除一致性、量级、HA 与费用：未知；按第19/24章方法实验</td></tr>
+<tr><td>Coding 辅助产品</td><td><a href="https://github.com/features/copilot">Copilot</a>、<a href="https://github.com/cline/cline">Cline</a>、<a href="https://www.trae.ai/">Trae</a></td><td>版本、权限、执行模式、工作区和价格：未知；不能套用其他产品结论</td></tr>
+<tr><td>个人知识工作台</td><td><a href="https://obsidian.md/">Obsidian</a>、<a href="https://www.notion.so/">Notion</a>、<a href="https://logseq.com/">Logseq</a></td><td>插件/同步/导出、ACL 与数据生命周期：未知；插件单独核验</td></tr>
+<tr><td>观测与评估</td><td><a href="https://docs.langchain.com/langsmith/">LangSmith</a>、<a href="https://www.helicone.ai/">Helicone</a>、<a href="https://wandb.ai/">Weights &amp; Biases</a>、<a href="https://www.braintrustdata.com/">Braintrust</a>、<a href="https://www.promptfoo.dev/">Promptfoo</a></td><td>采样、脱敏、留存、数据驻留、评估与计费能力：未知</td></tr>
+<tr><td>托管与执行平台</td><td><a href="https://replicate.com/">Replicate</a>、<a href="https://modal.com/">Modal</a>、<a href="https://www.together.ai/">Together AI</a></td><td>镜像、GPU、扩缩容、数据路径、配额与费用：未知</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="一次选型的最小记录"><a class="header" href="#一次选型的最小记录">一次选型的最小记录</a></h2>
+<p>先给出任务、质量底线、数据权限和故障模型，再选择所在层；不要按团队大小直接绑定某个产品。模型 SDK、Agent SDK、图运行时、IDE/CLI 产品与托管平台可以组合，但重试、状态、取消、预算和完成判定必须各有一个明确责任方。</p>
+<p>记录产品/包/模型版本、官方来源与日期、已验证能力、未知项、权限范围、输入输出协议、依赖版本及固定回归集。运行时另测断线、重启、重复投递、撤权、部分输出与回滚；计费按当日模型和合同逐项核对输入、输出、缓存、工具、存储与失败重试，不沿用固定单价。只有文档支持而未运行的能力仍标为“文档核验”，实验数据另附环境与证据。</p>
 
                     </main>
 

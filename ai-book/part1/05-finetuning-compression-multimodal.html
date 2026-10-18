@@ -3,10 +3,16 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第5章 模型适配与能力扩展：怎样为具体场景定制、压缩或扩展能力？ - AI Engineering：大模型与智能体系统工程</title>
+        <title>第5章 模型适配与能力扩展 - AI Engineering：大模型与智能体系统工程</title>
 
 
         <!-- Custom HTML head -->
+        <!-- Use MathJax web fonts rather than incomplete local STIX installations. -->
+        <script type="text/x-mathjax-config">
+        MathJax.Hub.Config({
+            "HTML-CSS": { availableFonts: [], preferredFont: "TeX", webFont: "TeX" }
+        });
+        </script>
 
         <meta name="description" content="面向软件工程师与架构师的 AI Engineering 指南，涵盖大模型原理、训练与推理基础设施、Agent 系统、应用实战、评估、可靠性与治理">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -37,10 +43,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-33cd3f1b.js";
+            window.path_to_searchindex_js = "../searchindex-893e4698.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a6d14fc8.js"></script>
+        <script src="../toc-478849a1.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -217,7 +223,7 @@ Fine-tuning：以后更稳定地表现出哪种任务模式
 <p>监督微调用输入到标准输出的样本学习行为，适合格式、分类、摘要和示范式回答；偏好优化用同一输入下的 chosen/rejected 学习排序，适合多个答案都可行但质量有差异的任务；强化式优化用状态、动作和奖励处理多步环境反馈。三者的选择取决于监督信号，而不是模型规模。</p>
 <p>SFT 的目标可以写为：</p>
 <p>\[
-\mathcal{L}<em>{SFT}=-\sum</em>{t\in\mathcal{A}}\log p_\theta(y_t\mid x,y_{&lt;t}),
+\mathcal{L}_{SFT}=-\sum_{t\in\mathcal{A}}\log p_\theta(y_t\mid x,y_{&lt;t}),
 \]</p>
 <p>其中只对 assistant 输出位置 \(\mathcal{A}\) 计算损失；中文教材中的softmax与交叉熵定义可用于复习这个目标。<a href="#ref-2">[2]</a> 角色边界、工具结果、系统消息和用户输入的 mask 一旦错误，模型可能学习复读用户、泄露隐藏指令或把工具返回内容当成新指令。偏好优化的目标不是复制某个答案，而是让更优答案相对概率提高；环境反馈则要求奖励与真实任务完成有可靠关联。</p>
 <h3 id="数据集的分层和切分"><a class="header" href="#数据集的分层和切分">数据集的分层和切分</a></h3>
@@ -326,7 +332,7 @@ W’=W+\frac{\alpha}{r}BA,
 <h3 id="teacherstudent-目标"><a class="header" href="#teacherstudent-目标">Teacher—Student 目标</a></h3>
 <p>知识蒸馏让 student 学习 teacher 的软分布，而不仅是硬标签。经典形式为：</p>
 <p>\[
-\mathcal{L}=\alpha\mathcal{L}<em>{hard}+(1-\alpha)\tau</em>{distill}^2D_{KL}(p_{teacher}^{\tau_{distill}}\Vert p_{student}^{\tau_{distill}}),
+\mathcal{L}=\alpha\mathcal{L}_{hard}+(1-\alpha)\tau_{distill}^2D_{KL}(p_{teacher}^{\tau_{distill}}\Vert p_{student}^{\tau_{distill}}),
 \]</p>
 <p>其中 \(\tau_{distill}&gt;0\) 是蒸馏softmax温度，teacher 的软概率包含类别相似性和暗知识 <a href="#ref-21">[21]</a>。对语言模型，蒸馏可以使用 teacher 的 token 分布、生成轨迹、偏好排序、中间表示或工具动作。</p>
 <h3 id="distilbertmobilebert-与生成模型"><a class="header" href="#distilbertmobilebert-与生成模型">DistilBERT、MobileBERT 与生成模型</a></h3>

@@ -3,10 +3,16 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第3章 后训练：行为的塑形：如何把原始能力塑造成可用行为？ - AI Engineering：大模型与智能体系统工程</title>
+        <title>第3章 后训练：行为的塑形 - AI Engineering：大模型与智能体系统工程</title>
 
 
         <!-- Custom HTML head -->
+        <!-- Use MathJax web fonts rather than incomplete local STIX installations. -->
+        <script type="text/x-mathjax-config">
+        MathJax.Hub.Config({
+            "HTML-CSS": { availableFonts: [], preferredFont: "TeX", webFont: "TeX" }
+        });
+        </script>
 
         <meta name="description" content="面向软件工程师与架构师的 AI Engineering 指南，涵盖大模型原理、训练与推理基础设施、Agent 系统、应用实战、评估、可靠性与治理">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -37,10 +43,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-33cd3f1b.js";
+            window.path_to_searchindex_js = "../searchindex-893e4698.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a6d14fc8.js"></script>
+        <script src="../toc-478849a1.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -230,7 +236,7 @@
 <h3 id="sft-的数据结构与损失"><a class="header" href="#sft-的数据结构与损失">SFT 的数据结构与损失</a></h3>
 <p>监督微调通常使用 \((x,y)\) 样本，其中 \(x\) 是系统、用户和上下文，\(y\) 是目标助手回答。对多轮对话，训练一般只对 assistant token 计算损失，避免模型把用户问题也当作需要模仿的输出。目标为：</p>
 <p>\[
-\mathcal{L}<em>{SFT}(\theta)=-\sum</em>{t\in\mathcal{A}}\log \pi_\theta(y_t\mid x,y_{&lt;t}),
+\mathcal{L}_{SFT}(\theta)=-\sum_{t\in\mathcal{A}}\log \pi_\theta(y_t\mid x,y_{&lt;t}),
 \]</p>
 <p>其中 \(\mathcal{A}\) 表示被监督的 assistant token 位置。mask 设计很重要：如果系统消息、工具结果、用户内容和助手答案边界处理错误，模型会学到错误的角色关系，表现为复读用户输入、泄露隐藏提示或把工具返回内容当成自己的指令。</p>
 <p>SFT 数据不必是“知识百科”。它主要塑造输入到输出的映射，包括任务分解、回答结构、拒答模板、工具调用格式、引用方式和不确定性表达。Self-Instruct 通过模型生成和筛选指令数据，展示了如何在人工种子有限时扩展任务覆盖 <a href="#ref-4">[4]</a>；LIMA 则指出，少量但一致、高质量的示范也能带来显著的对齐效果 <a href="#ref-5">[5]</a>。这两项工作共同提醒我们：数量和质量不是简单替代关系，数据覆盖与示范一致性必须一起看。</p>
@@ -247,9 +253,9 @@
 <h2 id="34-rlhf-与-ppo"><a class="header" href="#34-rlhf-与-ppo">3.4 RLHF 与 PPO</a></h2>
 <h3 id="偏好数据与-reward-model"><a class="header" href="#偏好数据与-reward-model">偏好数据与 Reward Model</a></h3>
 <p>当一个问题存在多个都能接受的答案时，很难写出唯一标准答案。例如代码解释可以简洁或详细，开放问题可以有不同论证方式，安全回答需要同时考虑帮助性和风险。RLHF 将问题转成排序：给定 prompt，让标注者比较候选回答，记录 chosen 与 rejected。</p>
-<p>偏好学习的经典工作展示了如何从人类比较中学习奖励函数 <a href="#ref-7">[7]</a>。对语言模型而言，Reward Model 接收 prompt 和 response，输出一个标量 (r_\phi(x,y))。它的训练可写成 Bradley-Terry 风格的损失：</p>
+<p>偏好学习的经典工作展示了如何从人类比较中学习奖励函数 <a href="#ref-7">[7]</a>。对语言模型而言，Reward Model 接收 prompt 和 response，输出一个标量 \(r_\phi(x,y)\)。它的训练可写成 Bradley-Terry 风格的损失：</p>
 <p>\[
-\mathcal{L}<em>{RM}=-\log\sigma(r</em>\phi(x,y^+)-r_\phi(x,y^-)).
+\mathcal{L}_{RM}=-\log\sigma(r_\phi(x,y^+)-r_\phi(x,y^-)).
 \]</p>
 <p>这个分数是标注偏好的代理，不是真实质量本身。标注者之间可能不一致，短回答与长回答的偏好可能混杂，安全和帮助性可能冲突，同一领域的专家标准也可能不同。安全评估实践还表明，偏好标准必须把“回答有用”和“回答安全”拆成可讨论的维度，而不能把所有差异压成一个没有解释的总分 <a href="#ref-8">[8]</a>。数据中必须记录标注指南、样本来源、分歧率、比较难度和拒标比例，不能只保存最终的 chosen/rejected 字符串。</p>
 <h3 id="ppo的四种模型角色"><a class="header" href="#ppo的四种模型角色">PPO的四种模型角色</a></h3>
@@ -309,7 +315,7 @@ J_{clip}=\mathbb E_t\left[\min\left(\rho_t\hat A_t,
 <h3 id="dpo-的核心思想"><a class="header" href="#dpo-的核心思想">DPO 的核心思想</a></h3>
 <p>DPO 观察到，在特定的 KL 正则化奖励模型设定下，最优 policy 与 reward 存在解析关系，可以直接用偏好对训练 policy，而不显式拟合 Reward Model 和运行完整 PPO <a href="#ref-12">[12]</a>。常见目标形式为：</p>
 <p>\[
-\mathcal{L}<em>{DPO}=-\log\sigma\left(\beta\left[\log\frac{\pi</em>\theta(y^+\mid x)}{\pi_{ref}(y^+\mid x)}-\log\frac{\pi_\theta(y^-\mid x)}{\pi_{ref}(y^-\mid x)}\right]\right).
+\mathcal{L}_{DPO}=-\log\sigma\left(\beta\left[\log\frac{\pi_\theta(y^+\mid x)}{\pi_{ref}(y^+\mid x)}-\log\frac{\pi_\theta(y^-\mid x)}{\pi_{ref}(y^-\mid x)}\right]\right).
 \]</p>
 <p>直觉是：提高 chosen 相对于 reference 的相对概率，同时降低 rejected 的相对概率。DPO 的优点是使用熟悉的监督训练基础设施，批处理简单，训练曲线更易观察，适合拥有静态偏好数据的团队。它并没有消除对齐问题，只是把 reward model 和在线策略优化的复杂度部分转移到了偏好数据质量和超参数上。</p>
 <h3 id="ipokto-与-orpo"><a class="header" href="#ipokto-与-orpo">IPO、KTO 与 ORPO</a></h3>
