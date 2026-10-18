@@ -62,7 +62,7 @@ SFT本身就是后训练的一部分，不应把“做完SFT再开始后训练�
 监督微调通常使用 \\((x,y)\\) 样本，其中 \\(x\\) 是系统、用户和上下文，\\(y\\) 是目标助手回答。对多轮对话，训练一般只对 assistant token 计算损失，避免模型把用户问题也当作需要模仿的输出。目标为：
 
 \\[
-\mathcal{L}_{SFT}(\theta)=-\sum_{t\in\mathcal{A}}\log \pi_\theta(y_t\mid x,y_{<t}),
+\mathcal{L}\_{SFT}(\theta)=-\sum\_{t\in\mathcal{A}}\log \pi\_\theta(y\_t\mid x,y\_{<t}),
 \\]
 
 其中 \\(\mathcal{A}\\) 表示被监督的 assistant token 位置。mask 设计很重要：如果系统消息、工具结果、用户内容和助手答案边界处理错误，模型会学到错误的角色关系，表现为复读用户输入、泄露隐藏提示或把工具返回内容当成自己的指令。
@@ -96,10 +96,10 @@ SFT 是模仿学习，不直接知道哪个答案在真实环境中产生了更�
 
 当一个问题存在多个都能接受的答案时，很难写出唯一标准答案。例如代码解释可以简洁或详细，开放问题可以有不同论证方式，安全回答需要同时考虑帮助性和风险。RLHF 将问题转成排序：给定 prompt，让标注者比较候选回答，记录 chosen 与 rejected。
 
-偏好学习的经典工作展示了如何从人类比较中学习奖励函数 [[7]](#ref-7)。对语言模型而言，Reward Model 接收 prompt 和 response，输出一个标量 (r_\phi(x,y))。它的训练可写成 Bradley-Terry 风格的损失：
+偏好学习的经典工作展示了如何从人类比较中学习奖励函数 [[7]](#ref-7)。对语言模型而言，Reward Model 接收 prompt 和 response，输出一个标量 \\(r\_\phi(x,y)\\)。它的训练可写成 Bradley-Terry 风格的损失：
 
 \\[
-\mathcal{L}_{RM}=-\log\sigma(r_\phi(x,y^+)-r_\phi(x,y^-)).
+\mathcal{L}\_{RM}=-\log\sigma(r\_\phi(x,y^+)-r\_\phi(x,y^-)).
 \\]
 
 这个分数是标注偏好的代理，不是真实质量本身。标注者之间可能不一致，短回答与长回答的偏好可能混杂，安全和帮助性可能冲突，同一领域的专家标准也可能不同。安全评估实践还表明，偏好标准必须把“回答有用”和“回答安全”拆成可讨论的维度，而不能把所有差异压成一个没有解释的总分 [[8]](#ref-8)。数据中必须记录标注指南、样本来源、分歧率、比较难度和拒标比例，不能只保存最终的 chosen/rejected 字符串。
@@ -174,7 +174,7 @@ RLHF 需要候选生成、标注平台、偏好数据库、Reward Model 训练�
 DPO 观察到，在特定的 KL 正则化奖励模型设定下，最优 policy 与 reward 存在解析关系，可以直接用偏好对训练 policy，而不显式拟合 Reward Model 和运行完整 PPO [[12]](#ref-12)。常见目标形式为：
 
 \\[
-\mathcal{L}_{DPO}=-\log\sigma\left(\beta\left[\log\frac{\pi_\theta(y^+\mid x)}{\pi_{ref}(y^+\mid x)}-\log\frac{\pi_\theta(y^-\mid x)}{\pi_{ref}(y^-\mid x)}\right]\right).
+\mathcal{L}\_{DPO}=-\log\sigma\left(\beta\left[\log\frac{\pi\_\theta(y^+\mid x)}{\pi\_{ref}(y^+\mid x)}-\log\frac{\pi\_\theta(y^-\mid x)}{\pi\_{ref}(y^-\mid x)}\right]\right).
 \\]
 
 直觉是：提高 chosen 相对于 reference 的相对概率，同时降低 rejected 的相对概率。DPO 的优点是使用熟悉的监督训练基础设施，批处理简单，训练曲线更易观察，适合拥有静态偏好数据的团队。它并没有消除对齐问题，只是把 reward model 和在线策略优化的复杂度部分转移到了偏好数据质量和超参数上。

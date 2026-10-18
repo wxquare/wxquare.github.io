@@ -14,7 +14,7 @@
 flowchart LR
     A["第一部分：大模型算法<br/>原理 / 训练 / 推理 / 能力"] --> B["第二部分：大模型 Infra<br/>训练 / 推理 / 数据 / 治理"]
     B --> C["第三部分：Agent 工程<br/>Prompt / Context / Runtime"]
-    C --> D["第四部分：Agent 应用与实战<br/>Coding / 企业知识 / 告警"]
+    C --> D["第四部分：Agent 应用与实战<br/>Coding / 企业知识 / Hermes"]
     D --> E["第五部分：前沿与研究<br/>Research Agent / 多模态 / 具身"]
 ```
 
@@ -24,7 +24,7 @@ AI 工程实践里最容易踩的坑，不只是模型输出不稳定，也包�
 
 本书的主线是把从模型能力到应用交付的过程，逐步收敛成可复用、可审查、可验证、可治理的工程系统。
 
-读完之后，你应该能够回答五类问题：
+读完之后，你应该能够回答六类问题：
 
 - **模型边界**：LLM 擅长什么、不擅长什么，这些边界如何影响系统设计？
 - **能力交付**：如何设计训练、推理、数据和评估基础设施，让模型能力稳定、经济地交付？
@@ -54,11 +54,11 @@ AI 工程实践里最容易踩的坑，不只是模型输出不稳定，也包�
 | 章 | 章节 | 一句话概述 |
 | --- | --- | --- |
 | 第1章 | [从 Transformer 到 Agent：模型结构如何影响系统能力](part1/01-llm-foundations-transformer.md) | 从 token、Embedding 和 Transformer 出发，建立理解大模型算法与能力边界的基础。 |
-| 第2章 | [预训练：数据、目标与能力形成](part1/02-pretraining-data-scaling.md) | 解释预训练数据、目标函数、规模定律和模型能力形成之间的关系。 |
-| 第3章 | [后训练与模型对齐](part1/03-post-training-alignment.md) | 介绍 SFT、RLHF、DPO、RLAIF 和安全对齐如何改变模型行为。 |
-| 第4章 | [推理能力与生成算法](part1/04-reasoning-generation-algorithms.md) | 讨论采样、推理预算、验证和生成算法如何影响模型输出。 |
-| 第5章 | [微调、压缩与多模态算法](part1/05-finetuning-compression-multimodal.md) | 介绍参数高效微调、模型压缩和多模态模型算法。 |
-| 第6章 | [世界模型与具身智能：从预测世界到行动系统](part1/06-world-models-embodied-ai.md) | 介绍世界模型与具身智能的关系，理解“会说”如何走向“会做”。 |
+| 第2章 | [预训练：能力的来源](part1/02-pretraining-data-scaling.md) | 解释预训练数据、目标函数、规模定律和模型能力形成之间的关系。 |
+| 第3章 | [后训练：行为的塑形](part1/03-post-training-alignment.md) | 介绍 SFT、RLHF、DPO、RLAIF 和安全对齐如何改变模型行为。 |
+| 第4章 | [推理期扩展](part1/04-reasoning-generation-algorithms.md) | 讨论采样、推理预算、验证和生成算法如何影响模型输出。 |
+| 第5章 | [模型适配与能力扩展](part1/05-finetuning-compression-multimodal.md) | 介绍参数高效微调、模型压缩和多模态模型算法。 |
+| 第6章 | [具身智能与 Physical AI](part1/06-world-models-embodied-ai.md) | 介绍世界模型与具身智能的关系，理解“会说”如何走向“会做”。 |
 
 ### 第二部分：大模型基础设施
 
@@ -66,12 +66,12 @@ AI 工程实践里最容易踩的坑，不只是模型输出不稳定，也包�
 
 | 章 | 章节 | 一句话概述 |
 | --- | --- | --- |
-| 第7章 | [大模型 Infra 总览](part1/07-llm-boundaries.md) | 建立从算法结果到可运行平台的资源、生命周期和验收边界。 |
-| 第8章 | [训练 Infra：数据管线、分布式训练与 Checkpoint](part2/infra-08-training.md) | 说明数据供给、并行训练、通信、恢复和训练制品如何形成闭环。 |
-| 第9章 | [推理 Infra：Serving、KV Cache、Batching 与模型并行](part2/infra-09-inference.md) | 解释在线推理的请求调度、KV 管理、模型并行、容量和发布。 |
-| 第10章 | [数据与评估 Infra：治理、回归与反馈闭环](part2/infra-10-data-eval.md) | 建立数据版本、评估、线上反馈和质量门禁的证据链。 |
-| 第11章 | [Agent/模型运行时 Infra](part2/infra-11-runtime.md) | 讨论任务状态、工具、工作流、租户、重试、补偿和人工接管。 |
-| 第12章 | [可靠性与治理 Infra](part2/infra-12-reliability-governance.md) | 连接 SLO、观测、成本、安全、供应链、发布和灾备。 |
+| 第7章 | [AI Infra 全景](part1/07-llm-boundaries.md) | 建立从算法结果到可运行平台的资源、生命周期和验收边界。 |
+| 第8章 | [训练平台与数据管线](part2/infra-08-training.md) | 说明数据供给、并行训练、通信、恢复和训练制品如何形成闭环。 |
+| 第9章 | [推理服务与资源调度](part2/infra-09-inference.md) | 解释在线推理的请求调度、KV 管理、模型并行、容量和发布。 |
+| 第10章 | [评估与反馈闭环](part2/infra-10-data-eval.md) | 建立数据版本、评估、线上反馈和质量门禁的证据链。 |
+| 第11章 | [Agent Runtime](part2/infra-11-runtime.md) | 讨论任务状态、工具、工作流、租户、重试、补偿和人工接管。 |
+| 第12章 | [生产运营与治理控制](part2/infra-12-reliability-governance.md) | 连接 SLO、观测、成本、安全、供应链、发布和灾备。 |
 
 ### 第三部分：Agent 系统工程
 
@@ -100,7 +100,7 @@ AI 工程实践里最容易踩的坑，不只是模型输出不稳定，也包�
 | 第24章 | [企业知识助手：RAG、搜索、权限与知识治理落地实践](part3/02-enterprise-knowledge-assistant.md) | 展示企业知识助手如何把检索、权限和知识治理真正结合起来。 |
 | 第25章 | [Pi Agent 架构解析：终端原生 Coding Agent Runtime、扩展系统与上下文工程](part3/03-pi-agent-architecture.md) | 分析一个终端原生 Coding Agent 如何组织运行时、扩展和上下文。 |
 | 第26章 | [OpenClaw 架构解析：个人 AI 助手的 Gateway、Runtime 与工具生态](part3/04-openclaw-architecture.md) | 讲述个人 AI 助手如何通过 Gateway、Runtime 和工具生态协同工作。 |
-| 第27章 | [Hermes Agent 架构解析：长期运行、自我进化与多入口 Agent Runtime](part3/05-hermes-agent-architecture.md) | 说明一个可自我进化的 Agent 如何通过记忆和入口管理持续扩展。 |
+| 第27章 | [Hermes Agent 架构解析：长期运行、自我进化与多入口 Agent Runtime](part3/05-hermes-agent-architecture.md) | 通过记忆、Skill、多入口和版本化源码理解长期运行；教学扩展与已核验能力分别说明。 |
 | 第29章 | [从零实现一个可观测 Coding Agent](part3/08-mini-agent-observability.md) | 通过一个不附带配套源码的讲解性案例，展示 Coding Agent 的上下文、工具、权限、验证、观测与扩展方法。 |
 | 第30章 | [个人知识管理 Agent 实践](part3/07-pkm-agent-case-study.md) | 说明个人知识管理如何借助 RAG、记忆和工作流形成闭环。 |
 | 第31章 | [持续进化的生活 Agent：从日常反馈到可信能力闭环](part3/10-daily-life-evolving-agent.md) | 讨论生活 Agent 如何在反馈、审批和回滚中安全地持续进化。 |
@@ -115,7 +115,19 @@ AI 工程实践里最容易踩的坑，不只是模型输出不稳定，也包�
 
 ### 附录
 
-附录提供术语、参考资料、工具清单、系统设计思考题与项目实践模板。它们不再作为正文主线，而是作为随用随查的材料。
+附录只保留 [A：术语与符号速查](appendix/glossary.md)、[B：学习路径与延伸阅读](appendix/references.md)、[C：工具、框架与版本导航](appendix/tools.md)。章末练习由附录 B 提供短链接，论点来源以各章末参考资料为准。
+
+## 贯穿案例与练习的阅读方式
+
+全书保留五部分、31 个公开章节，沿用原编号与源码路径，编号不连续处不重排。三个教学案例分别检验不同责任边界：
+
+| 案例 | 先建立机制 | 再看应用 | 重点核对 |
+| --- | --- | --- | --- |
+| 企业知识助手 | [第19章知识系统](part2/07-agent-knowledge-systems.md) | [第24章企业案例](part3/02-enterprise-knowledge-assistant.md) | 摄取/检索/证据/回答分层，动态商品事实、视频定位、ACL与删除失效 |
+| Coding Agent | [第15章上下文](part2/03-context-engineering.md)、[第18章工具](part2/06-tool-calling-mcp.md) | [第23章产品与Harness](part3/01-coding-agent-systems.md)、[第29章最小案例](part3/08-mini-agent-observability.md) | 代码版本、工作区、工具权限、候选完成与独立Verifier |
+| Hermes 长期助手 | [第11章状态](part2/infra-11-runtime.md)、[第20章记忆](part2/08-agent-memory.md)、[第21章编排](part2/09-workflow-orchestration.md) | [第27章贯穿简报](part3/05-hermes-agent-architecture.md) | Session、Memory、缓存与特定投递ledger分别取证；通用业务Outbox、Checkpoint、幂等和补偿是另行标明的教学扩展 |
+
+章节包含原理推导、文档核验、教学轨迹与实验设计，验收层次分别标明。第1/3/5/8/9章的练习卡可从[附录B](appendix/references.md)进入；卡片完成不代表已经提供完整可运行代码、GPU测量或生产验证。选型先查[附录C](appendix/tools.md)的版本和未知项，再回到章末原始来源。
 
 ## 在线阅读
 
@@ -134,4 +146,5 @@ AI 工程实践里最容易踩的坑，不只是模型输出不稳定，也包�
 
 - **当前版本**：v1.0
 - **发布日期**：2026 年 4 月
+- **本轮编辑复核**：2026 年 10 月 18 日；来源核验日期按各章记录，不代表所有产品当天重新测试。
 - **更新计划**：持续更新，优先深化大模型基础、AI 基础设施、Agent 运行时、成熟系统解析、案例、评估体系和生产治理实践。

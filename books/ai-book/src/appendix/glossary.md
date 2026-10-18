@@ -1,229 +1,56 @@
-# 附录A 术语表
-
-本术语表收录了书中出现的核心术语和概念，按字母顺序排列。
-
----
-
-## A
-
-**Agent（智能体）**  
-能够感知环境、做出决策并执行操作的自主系统。在AI领域，通常指基于LLM的自主任务执行系统。
-
-**Attention Mechanism（注意力机制）**  
-Transformer架构的核心，通过计算序列内部元素之间的关联权重，捕获长距离依赖关系。
-
----
-
-## B
-
-**Backlinks（反向链接）**  
-在知识管理系统中，指向当前页面的所有链接。用于建立概念之间的双向关联。
-
-**BM25**  
-一种基于词频和逆文档频率的关键词检索算法，常用于混合检索策略。
-
----
-
-## C
-
-**Chain-of-Thought（思维链）**  
-一种Prompt Engineering技术，要求LLM逐步展示推理过程，提高复杂推理任务的准确性。
-
-**Chunking（分块）**  
-将长文档切分为较小片段的过程，用于RAG系统中的文档索引和检索。
-
-**Context Window（上下文窗口）**  
-LLM一次可以处理的最大token数量。现代LLM的上下文窗口从16k到1M tokens不等。
-
-**Cosine Similarity（余弦相似度）**  
-衡量两个向量方向相似程度的指标，常用于计算文本Embedding之间的语义相似度。
-
----
-
-## D
-
-**Decision Tree（决策树）**  
-在Agent系统中，用于判断是否应使用Agent的决策框架，通过一系列Yes/No问题评估任务特征。
-
----
-
-## E
-
-**Embedding（嵌入向量）**  
-将文本转换为固定维度的数值向量的技术，捕获文本的语义信息。
-
-**Early Stopping（提前停止）**  
-检测Agent陷入无效循环时及时终止执行的机制。
-
----
-
-## F
-
-**Few-Shot Learning（少样本学习）**  
-在Prompt中提供少量示例，帮助LLM理解任务格式和期望输出。
-
-**Fingerprint（指纹）**  
-告警的唯一标识符，用于去重和关联相同的告警。
-
----
-
-## G
-
-**GAS（Go Application Server）**  
-Shopee内部的Go语言应用开发框架。
-
----
-
-## H
-
-**Hallucination（幻觉）**  
-LLM生成看似合理但实际错误的内容，包括事实性幻觉、逻辑性幻觉和引用性幻觉。
-
-**Harness Engineering（驾驭工程）**  
-通过构建可靠的基础设施和约束系统来驾驭AI的工程方法论。
-
-**Hybrid Search（混合检索）**  
-结合向量检索和关键词检索的方法，提高检索的召回率和精确度。
-
----
-
-## I
-
-**Inference（推理）**  
-模型根据输入数据生成输出的过程。在机器学习中指模型的预测阶段。
-
----
-
-## L
-
-**LLM（Large Language Model，大语言模型）**  
-基于Transformer架构的大规模预训练语言模型，如GPT-4、Claude等。
-
-**Loop Detection（循环检测）**  
-检测Agent重复执行相同操作的机制，用于防止无限循环。
-
----
-
-## M
-
-**MCP（Model Context Protocol）**  
-Anthropic提出的协议，用于AI工具连接外部数据源和服务。
-
-**MTTR（Mean Time To Resolution，平均恢复时间）**  
-从问题发生到解决的平均时间，运维领域的关键指标。
-
-**Multi-Agent System（多Agent系统）**  
-由多个Agent协作完成复杂任务的系统架构。
-
----
-
-## P
-
-**Plan-and-Execute（计划-执行）**  
-一种Agent架构模式，先制定详细计划，再逐步执行。
-
-**Positional Encoding（位置编码）**  
-在Transformer中注入序列位置信息的机制。
-
-**Prompt Caching（Prompt缓存）**  
-缓存长System Prompt以节省token成本的技术。
-
-**Prompt Engineering（提示工程）**  
-设计和优化Prompt以提高LLM输出质量的技术。
-
----
-
-## R
-
-**RAG（Retrieval-Augmented Generation，检索增强生成）**  
-结合信息检索和语言模型生成的方法，通过检索外部知识增强LLM能力。
-
-**ReACT（Reasoning and Acting）**  
-一种Agent架构模式，交替进行推理（Thought）和行动（Action）。
-
-**Reciprocal Rank Fusion（倒数排名融合）**  
-一种融合多个检索结果的算法，用于混合检索。
-
-**Reranking（重排序）**  
-使用专门模型重新排序检索结果，提高精确度。
-
----
-
-## S
-
-**Self-Consistency（自我一致性）**  
-多次采样LLM输出，选择最一致的结果以提高准确性。
-
-**Sliding Window（滑动窗口）**  
-保留最近N条消息的上下文管理策略。
-
-**SOP（Standard Operating Procedure，标准操作流程）**  
-标准化的问题处理流程。
-
-**Spec Coding（规格编程）**  
-先定义清晰规格，再让AI生成代码的编程范式。
-
-**State Machine（状态机）**  
-管理系统状态转换的设计模式，用于控制Agent工作流。
-
----
-
-## T
-
-**Token**  
-LLM处理文本的基本单位，通常一个token约等于0.75个英文单词或0.5个中文字符。
-
-**Tool Call（工具调用）**  
-Agent调用外部工具（API、数据库、命令行等）执行操作。
-
-**Transformer**  
-基于Self-Attention机制的神经网络架构，现代LLM的基础。
-
----
-
-## V
-
-**Vector Database（向量数据库）**  
-专门存储和检索高维向量的数据库，用于RAG系统。
-
-**Vibe Coding（感觉编程）**  
-依赖直觉和经验，与AI反复迭代的编程方式。
-
----
-
-## Z
-
-**Zero-Shot Learning（零样本学习）**  
-不提供示例，直接让LLM完成任务。
-
----
-
-## 中文术语
-
-**分级决策**  
-根据风险等级采用不同决策策略的方法。
-
-**幻觉**  
-见 Hallucination。
-
-**混合架构**  
-结合多种设计模式的系统架构，如状态机 + ReACT。
-
-**可观测性**  
-通过指标、日志、追踪等方式了解系统运行状态的能力。
-
-**上下文管理**  
-管理LLM上下文窗口中信息的策略和技术。
-
-**状态机**  
-见 State Machine。
-
-**向量数据库**  
-见 Vector Database。
-
-**知识编译**  
-LLM将原始数据转换为结构化知识的过程。
-
----
-
-*本术语表持续更新中*
+# 附录A 术语与符号速查
+
+本附录帮助定位正文中的定义。具体机制、来源与版本边界以表内责任章为准；同一个词在模型计算、任务运行和业务系统中可能指不同对象。
+
+## 易混概念与责任边界
+
+| 术语 | 本书约定 | 责任章 |
+| --- | --- | --- |
+| Context / Context Package | 当前一步装配给模型的指令、材料、约束与结果视图；受窗口、权限和版本限制 | [第15章](../part2/03-context-engineering.md) |
+| Memory / Memory Item | 跨步骤或会话保存的候选经验、偏好和摘要；有来源、作用域、失效与写入门控 | [第20章](../part2/08-agent-memory.md) |
+| State / Run、Step、Event | 权威执行事实、版本及事件；模型摘要和 Todo 只能引用，不能代替账本 | [第11章](../part2/infra-11-runtime.md) |
+| Evidence | 能支撑特定论点、可回读原位置且当前有权访问的版本化证据；不等于任意 chunk | [第19章](../part2/07-agent-knowledge-systems.md) |
+| Operation | 一次业务副作用的稳定身份与状态；超时后可为 unknown，不能直接按失败重做 | [第11章](../part2/infra-11-runtime.md) |
+| Checkpoint | 已提交状态与恢复位置；不回滚已经发生的外部副作用。训练 checkpoint 另含优化器、随机数和数据位置 | [运行时第11章](../part2/infra-11-runtime.md)、[训练第8章](../part2/infra-08-training.md) |
+| KV Cache | 前向计算中各层的键和值；用于复用历史计算，仍占用设备或分层存储资源 | [第9章 §9.3](../part2/infra-09-inference.md) |
+| Prefix / Prompt Cache | 复用兼容的前缀计算；自托管实现与商业 API 的命中、计费、保留语义分别核验 | [第9章](../part2/infra-09-inference.md)、[Hermes 第27章](../part3/05-hermes-agent-architecture.md) |
+| 精确响应缓存 / 语义响应缓存 | 前者匹配请求及其依赖版本，后者先召回相似候选再验证答案等价；两者都需授权、新鲜度和失效控制 | [第9章 §9.3](../part2/infra-09-inference.md) |
+| Tool Calling / Skill / MCP | 分别是结构化行动请求、可复用方法上下文、能力连接协议；实际执行、权限和审计由 Runtime 承担 | [第18章](../part2/06-tool-calling-mcp.md) |
+| MCP / A2A | 本书 MCP 主体按 2025-11-25，连接工具、资源和提示；A2A 按 v0.3.0，描述独立 Agent 的任务/消息/产物协作。自建 mailbox 不自动兼容 A2A | [第18章](../part2/06-tool-calling-mcp.md)、[第21章 §21.7](../part2/09-workflow-orchestration.md) |
+| Triton 语言 / Triton Inference Server | 前者用于编写 GPU 计算程序；后者负责模型服务与模型管理，二者不是同一层的软件 | [第8章 §8.4](../part2/infra-08-training.md)、[第9章](../part2/infra-09-inference.md) |
+| Model Manifest / Eval Case | 前者绑定模型、模板、格式与执行兼容条件；后者绑定输入、预期、不变量和版本化评估配置 | [第7章 §7.8](../part1/07-llm-boundaries.md)、[第10章](../part2/infra-10-data-eval.md) |
+
+## 模型计算符号
+
+下表沿用[第1章](../part1/01-llm-foundations-transformer.md)及[第9章](../part2/infra-09-inference.md)的记账口径。其他章节可用局部符号，但须重新定义。
+
+| 符号 | 含义与单位 |
+| --- | --- |
+| B、T、S | batch 大小、当前查询长度、可见键/历史长度；不是字符数 |
+| D、L | 残差宽度、层数 |
+| H_q、H_kv、d_h | 查询头数、KV 头数、单头维度；GQA 不减少查询头数 |
+| s | 每元素字节数；量化还需计入 scale、布局、工作区等开销 |
+| logits / labels / loss mask | 预测分数、目标 token、有效监督位置；标签与预测错位只对齐一次 |
+| TTFT / TPOT | 首 token 时间 / 每输出 token 时间；是否包含排队、网络和重试须说明 |
+| prefill / decode | 处理输入序列 / 增量生成；两阶段的资源瓶颈和缓存收益不同 |
+| token / Context Window | tokenizer 产生的模型单位 / 模型及接口允许的输入输出边界；汉字与 token 无固定比例，预算用目标 tokenizer 与实际 usage |
+
+## 常用术语索引
+
+| 术语 | 速查定义 | 详解 |
+| --- | --- | --- |
+| Agent / Harness | 在反馈中推进任务的系统 / 包围模型的控制、工具、状态、验证与观测环境 | [第13章](../part2/01-agent-architecture.md)、[第16章](../part2/04-harness-engineering.md) |
+| Attention / Transformer / Positional Encoding | 内容匹配和加权 / 以注意力及逐位置网络组成的结构 / 注入顺序信息的方法 | [第1章](../part1/01-llm-foundations-transformer.md) |
+| Embedding / Cosine Similarity | 向量表示 / 方向相似度；相似不等于事实正确或业务等价 | [第19章](../part2/07-agent-knowledge-systems.md) |
+| Chunking / BM25 / Hybrid Search / RRF / Reranking | 文档切分 / 词法排序 / 多路召回 / 排名融合 / 候选重排 | [第19章](../part2/07-agent-knowledge-systems.md) |
+| RAG / GraphRAG / Agentic RAG | 检索辅助生成 / 关系型组织的检索 / 受控循环中的检索决策；都需证据与权限验收 | [第19章](../part2/07-agent-knowledge-systems.md) |
+| CoT / ReAct / Self-Consistency | 分步推理提示 / 交替行动与外部观察 / 多次采样后聚合；不保证答案正确，也不要求暴露隐藏内部推理 | [第4章](../part1/04-reasoning-generation-algorithms.md)、[第21章](../part2/09-workflow-orchestration.md) |
+| Zero-shot / Few-shot / Prompt Engineering | 无示例 / 有少量示例 / 设计输入和输出契约；这里不表示权重已训练更新 | [第14章](../part2/02-prompt-engineering.md) |
+| Plan-and-Execute / State Machine / Decision Tree | 计划与执行分工 / 显式状态迁移 / 条件决策树；可与模型循环组合 | [第21章](../part2/09-workflow-orchestration.md) |
+| Sliding Window / Loop Detection / Early Stopping | 保留近期材料 / 按状态与观察检测空转 / 按预算、质量或停止条件结束 | [第15章](../part2/03-context-engineering.md)、[第11章](../part2/infra-11-runtime.md) |
+| Fingerprint | 为内容、状态或请求构造的识别值；去重范围、碰撞和版本规则需定义，不天然代表同一业务操作 | [第11章](../part2/infra-11-runtime.md) |
+| Hallucination / Guardrail / Observability | 缺少事实支持的生成 / 模型外可执行约束 / 通过事件与信号复盘系统行为 | [第22章](../part2/10-agent-evals-guardrails-observability.md) |
+| MTTR / SLO / SOP | 恢复时间指标（须定义起止）/ 服务目标 / 标准操作流程 | [第12章](../part2/infra-12-reliability-governance.md) |
+| Backlink / 知识编译 / Vector Database | 反向引用 / 将材料变成有来源的可用知识 / 向量索引与检索存储；均不代替原始事实源 | [第30章](../part3/07-pkm-agent-case-study.md)、[第19章](../part2/07-agent-knowledge-systems.md) |
+| Spec Coding / Vibe Coding | 以规格验收驱动的协作 / 快速对话试探的工作方式；两者都需要版本、测试与授权 | [第23章](../part3/01-coding-agent-systems.md) |
+| 多 Agent / 分级决策 / 混合架构 | 职责可分的多个执行主体 / 按风险选择控制方式 / 确定性流程与开放推理组合 | [第21章](../part2/09-workflow-orchestration.md)、[第22章](../part2/10-agent-evals-guardrails-observability.md) |

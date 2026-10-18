@@ -50,7 +50,7 @@ Fine-tuning：以后更稳定地表现出哪种任务模式
 SFT 的目标可以写为：
 
 \\[
-\mathcal{L}_{SFT}=-\sum_{t\in\mathcal{A}}\log p_\theta(y_t\mid x,y_{<t}),
+\mathcal{L}\_{SFT}=-\sum\_{t\in\mathcal{A}}\log p\_\theta(y\_t\mid x,y\_{<t}),
 \\]
 
 其中只对 assistant 输出位置 \\(\mathcal{A}\\) 计算损失；中文教材中的softmax与交叉熵定义可用于复习这个目标。[[2]](#ref-2) 角色边界、工具结果、系统消息和用户输入的 mask 一旦错误，模型可能学习复读用户、泄露隐藏指令或把工具返回内容当成新指令。偏好优化的目标不是复制某个答案，而是让更优答案相对概率提高；环境反馈则要求奖励与真实任务完成有可靠关联。
@@ -226,7 +226,7 @@ GPTQ优化局部权重误差并补偿，AWQ利用激活统计选择等价缩放�
 知识蒸馏让 student 学习 teacher 的软分布，而不仅是硬标签。经典形式为：
 
 \\[
-\mathcal{L}=\alpha\mathcal{L}_{hard}+(1-\alpha)\tau_{distill}^2D_{KL}(p_{teacher}^{\tau_{distill}}\Vert p_{student}^{\tau_{distill}}),
+\mathcal{L}=\alpha\mathcal{L}\_{hard}+(1-\alpha)\tau\_{distill}^2D\_{KL}(p\_{teacher}^{\tau\_{distill}}\Vert p\_{student}^{\tau\_{distill}}),
 \\]
 
 其中 \\(\tau_{distill}>0\\) 是蒸馏softmax温度，teacher 的软概率包含类别相似性和暗知识 [[21]](#ref-21)。对语言模型，蒸馏可以使用 teacher 的 token 分布、生成轨迹、偏好排序、中间表示或工具动作。
