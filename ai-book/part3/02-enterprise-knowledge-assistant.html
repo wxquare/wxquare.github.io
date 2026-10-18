@@ -37,10 +37,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-33f54a4b.js";
+            window.path_to_searchindex_js = "../searchindex-33cd3f1b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ff756377.js"></script>
+        <script src="../toc-a6d14fc8.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -194,7 +194,7 @@
 <li>反馈不能只变成“调 prompt”，而要能路由到连接器、索引、排序、权限、文档治理和生成策略；</li>
 <li>企业上线需要审计、数据保留、SSO、SCIM、DLP、数据驻留和可追责机制。</li>
 </ul>
-<p>Glean、Microsoft 365 Copilot、Perplexity Enterprise 这类系统的成熟之处，不是某个模型更强，而是把企业搜索、RAG、权限同步、引用证据、连接器生态、反馈治理和组织管理组合成完整系统。</p>
+<p>Glean 连接器资料说明了内容摄取、权限镜像与更新职责；Microsoft 的 externalItem 接口也将 ACL、properties 和 content 分别建模。这里只引用这些公开机制，不推断厂商未公开的完整内部架构。<a href="#ref-1">[1]</a><a href="#ref-2">[2]</a></p>
 <p>本章按一个企业内部落地案例展开：假设我们要为一家中大型研发和运营组织建设“企业知识助手”。它需要接入 Confluence / SharePoint、Slack / Teams、Jira / Linear、GitHub、BI 报表和内部 Runbook，让员工可以安全地搜索、提问、分析和追溯证据。</p>
 <p>这个案例的目标不是做一个“更会总结文档的聊天机器人”，而是落地一个可上线的知识工作台：</p>
 <ul>
@@ -269,7 +269,7 @@
 </tbody>
 </table>
 </div>
-<p>这个边界让项目可以在 6-10 周内交付一个可用版本，而不是陷入平台大而全。</p>
+<p>6–10 周可作为团队估算的教学假设；真实交付周期取决于源接口、身份治理、迁移与验收，不是本章实测结论。</p>
 <hr>
 <h2 id="242-端到端架构两条链路和四个控制面"><a class="header" href="#242-端到端架构两条链路和四个控制面">24.2 端到端架构：两条链路和四个控制面</a></h2>
 <p>企业知识助手可以拆成两条主链路：</p>
@@ -427,6 +427,7 @@ Online Serving Plane
 </tbody>
 </table>
 </div>
+<p>Microsoft 接口明确 deny 优先及 external group 用途；本书 KnowledgeItem 是统一教学契约，不是所有连接器都能原样返回的 API。源系统的 allow/deny/继承必须通过适配器等价转换，映射未知则隔离该 item。<a href="#ref-2">[2]</a><a href="#ref-3">[3]</a></p>
 <p>查询时再结合用户身份做过滤：</p>
 <pre><code class="language-text">candidate_docs
   │
@@ -438,6 +439,9 @@ visible_docs
 </code></pre>
 <p>这意味着企业知识助手的检索系统必须同时处理“相关性”和“可见性”。</p>
 <hr>
+<h3 id="增量更新撤权与索引迁移"><a class="header" href="#增量更新撤权与索引迁移">增量更新、撤权与索引迁移</a></h3>
+<p>以下是本书在接口之上的设计，不是 Graph 或 Glean 自动提供的事务保证。内容、ACL、删除各带源版本；ETag 只可相等比较时，不能把字符串大小当时序。优先使用源序号/变更游标，并记录消费者水位；无可比序号则回源读当前状态，不能按到达时间覆盖。假设同一 item 依次产生 upsert v7、delete v8，队列却先投递 v8 再 v7：先保存 v8 墓碑并拒绝低版本复活；内容已删但 ACL 缓存仍旧也必须拒答。数据可合法重建时使用新的 generation 与明确授权，避免与旧重试混淆。</p>
+<p>chunk 键包含<code>tenant/source/item/generation/version/chunk_id</code>。构建新版本时先验证所有 chunk 及 ACL，最后切换可见 manifest；旧 chunk 随后按保留策略清理，不能让一次回答拼接两个版本。索引迁移使用新旧 index 版本及同源数据水位做影子检索，比较权限、证据支持和召回；切换后若回滚，新旧索引都必须消费最新撤权/墓碑，不能回退权限。重嵌入期间预留双写与回填容量。接口支持更新删除并不意味着多索引原子发布已实现。<a href="#ref-2">[2]</a></p>
 <h2 id="244-文档处理chunk-不是切字符串"><a class="header" href="#244-文档处理chunk-不是切字符串">24.4 文档处理：Chunk 不是切字符串</a></h2>
 <p>文档处理决定 RAG 上限。企业知识库里的内容很脏：</p>
 <ul>
@@ -506,6 +510,30 @@ lifecycle:
 </code></pre>
 <p>上线后常见的幻觉不是模型凭空编造，而是系统检索到过期文档，模型基于过期证据给出了“看起来有引用”的错误答案。</p>
 <hr>
+<h3 id="商品变体sku--版本--chunk-的容量账本"><a class="header" href="#商品变体sku--版本--chunk-的容量账本">商品变体：SKU × 版本 × chunk 的容量账本</a></h3>
+<p>商品描述仍走同一摄取/索引链路；价格和可售库存改走带权限的权威 API。容量先按对象和生命周期估计，而不是只报“千万商品”：</p>
+<pre><code class="language-text">有效chunk数 N = SKU数 S × 平均保留版本 V × 每版本chunk数 C
+单副本原始向量字节 = N × 维度 d × 每维字节 b
+峰值容量还包括：副本、ANN结构、正文/metadata、关键词索引、墓碑、双索引迁移及临时回填
+</code></pre>
+<p>教学假设 S=1000 万、V=2、C=4、d=1024、b=2，则 N=8000 万，单副本原始向量约 163.84 GB（十进制）。这不是总磁盘或内存需求；副本 3 份仅向量原值约 491.52 GB，再加索引与运行余量。量化损失、召回率、缓存命中与分片路由必须用实际数据测量。更新吞吐还取决于每日变更 SKU 数×重切 chunk 数；只有价格变化时不应无意义地重嵌入整段描述。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段</th><th>权威源/查询方式</th><th>回答与交易边界</th></tr>
+</thead>
+<tbody>
+<tr><td>商品描述、规格</td><td>带版本的商品主数据/文档索引</td><td>返回 source_version 及适用地区，过期时回源</td></tr>
+<tr><td>展示价格</td><td>Pricing API，绑定 SKU/地区/币种/用户资格/报价时间与有效期</td><td>可展示有时效的报价；旧 chunk 价格仅作历史证据</td></tr>
+<tr><td>库存与可售</td><td>Inventory API，绑定渠道和库存口径</td><td>查询结果不等于预留；不能承诺下单时仍有货</td></tr>
+<tr><td>成交价和预留</td><td>交易服务校验并记录订单/报价/预留 ID</td><td>需要业务授权、并发控制与幂等；由权威业务账本确认</td></tr>
+</tbody>
+</table>
+</div>
+<p>比如描述 v12 说支持某配件，而实时 API 已下架 SKU：回答可以解释历史规格，却不能继续推荐购买。价格缓存必须含租户、地区、币种、资格与有效期，用户切换身份后重查。故障时可返回“无法确认当前价格/库存”，不可用 embedding 里的旧值填补。</p>
+<h3 id="视频变体证据位置与权限沿同一链路传播"><a class="header" href="#视频变体证据位置与权限沿同一链路传播">视频变体：证据位置与权限沿同一链路传播</a></h3>
+<p>Graph 的内容接口可将视频等材料解析成文本后摄取；它并不自动证明视频帧、转录或操作步骤正确。<a href="#ref-2">[2]</a> 本书设计每个证据保存<code>media_id/source_version/start_ms/end_ms/frame_id/transcript_version/acl_epoch</code>，截图 OCR、转录和模型概括分别标来源。回答“如何操作设备”时链接到可访问的时间窗；只能听到口述而画面未覆盖的步骤标为未确认，字幕与画面冲突时并列保留。</p>
+<p>所有派生 chunk 继承原视频 ACL，并按附件/片段更严格的限制取交集。链接签名有效不等于用户有读取权限；播放时重新授权。视频撤权或删除触发转录、帧、摘要、向量、回答缓存与会话证据失效。个人记忆也不能绕过企业权限长期保留派生事实。多模态检索机制见<a href="../part2/07-agent-knowledge-systems.html">第 19 章</a>，此处只定义企业接入边界。</p>
 <h2 id="245-检索层hybrid-search-是默认选择"><a class="header" href="#245-检索层hybrid-search-是默认选择">24.5 检索层：Hybrid Search 是默认选择</a></h2>
 <p>单纯向量检索不适合企业知识场景，因为企业问题经常包含精确实体：</p>
 <ul>
@@ -519,7 +547,8 @@ lifecycle:
 <li>指标名；</li>
 <li>发布版本。</li>
 </ul>
-<p>成熟系统通常使用 Hybrid Search：</p>
+<p>Azure AI Search 把全文和向量查询融合，semantic ranker 在已有候选上次级排序；这是可选实现依据，不保证任何配置都比关键词基线好。<a href="#ref-4">[4]</a><a href="#ref-5">[5]</a></p>
+<p>本案例候选架构为：</p>
 <pre><code class="language-text">Query
   ├─ BM25 / Keyword Search
   ├─ Dense Vector Search
@@ -563,7 +592,7 @@ lifecycle:
 </tbody>
 </table>
 </div>
-<p>Source Routing 能显著减少无关召回，也能降低成本。</p>
+<p>Source Routing 旨在减少无关召回；效果和成本需与无路由基线比较。</p>
 <h3 id="排序信号"><a class="header" href="#排序信号">排序信号</a></h3>
 <p>企业知识排序不能只看语义相似度，还要考虑：</p>
 <div class="table-wrapper">
@@ -611,7 +640,7 @@ Rerank
 <p>注意顺序：权限过滤应该在模型看到内容之前完成。不要把无权限文档召回后再让模型“忽略它”。</p>
 <hr>
 <h2 id="246-evidence-package让答案有证据边界"><a class="header" href="#246-evidence-package让答案有证据边界">24.6 Evidence Package：让答案有证据边界</a></h2>
-<p>RAG 的关键中间产物不应该是“拼接后的上下文”，而应该是 Evidence Package。</p>
+<p>RAG 的关键中间产物不应该只是“拼接后的上下文”，而应该是 Evidence Package。以下数字、日期、工单和延迟均为合成教学数据。<code>permission_checked</code>仅是显示投影；执行时需绑定 principal、tenant、acl_epoch、检查时间和允许操作，不能永久信任一个布尔值。</p>
 <pre><code class="language-json">{
   "question": "为什么日本站订单取消率上周升高？",
   "query_understanding": {
@@ -716,9 +745,9 @@ Rerank
 <li>不确定性；</li>
 <li>下一步动作。</li>
 </ol>
-<h3 id="好的答案结构"><a class="header" href="#好的答案结构">好的答案结构</a></h3>
+<h3 id="有边界的答案结构合成示例"><a class="header" href="#有边界的答案结构合成示例">有边界的答案结构（合成示例）</a></h3>
 <pre><code class="language-text">结论：
-日本站订单取消率升高，最可能与 payment-router-v3 发布后的支付超时增加有关。
+日本站订单取消率升高与支付超时及发布在时间上相关；现有证据不足以确认根因。
 
 证据：
 1. BI 报表显示取消率从 2.1% 升至 4.8%。
@@ -835,7 +864,7 @@ Rerank
 </tbody>
 </table>
 </div>
-<p>权限不是一个检索参数，而是企业知识助手的生命线。</p>
+<p>权限不是一个检索参数。缓存命中也要重新裁决：键至少包含 tenant/principal 或等价权限集合、acl_epoch、文档版本和查询参数。撤权使缓存、摘要及引用失效，不能等内容更新才刷新。无法确认权限水位时停止访问，记录缺口并交连接器 owner 修复；不能让未知 ACL 只作为排序降权。重新授权只允许之后的新读取，不会把已经泄露的数据收回。</p>
 <hr>
 <h2 id="249-知识治理让组织知识持续可用"><a class="header" href="#249-知识治理让组织知识持续可用">24.9 知识治理：让组织知识持续可用</a></h2>
 <p>很多企业知识助手上线后，最大问题不是模型，而是知识本身质量差。</p>
@@ -1044,6 +1073,28 @@ user_uploaded
 <li>审计日志和 DLP 完整接入。</li>
 </ul>
 <p>目标是从“给答案”升级为“辅助行动”。</p>
+<h3 id="受控-text-to-sql语法安全和业务正确分别验收"><a class="header" href="#受控-text-to-sql语法安全和业务正确分别验收">受控 Text-to-SQL：语法安全和业务正确分别验收</a></h3>
+<p>SQL 沿同一 source router 进入受控结构化数据支路，结果转成带快照、口径与权限的 Evidence Package，不另外搭一套“数据库 Agent 平台”。以下是教学流水线，未连接真实数据库：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>门禁</th><th>输入与检查</th><th>失败处理</th></tr>
+</thead>
+<tbody>
+<tr><td>澄清和 schema linking</td><td>指标定义、地区、时区、时间窗、实体/列/单位、快照版本</td><td>“销售额”不明是下单/支付/退款口径时先澄清</td></tr>
+<tr><td>AST 静态检查</td><td>只接收单条允许的查询 AST；解析 CTE/子查询，拒绝写操作、DDL、COPY、危险函数和未授权表/列</td><td>不靠正则或仅看 SELECT 前缀；拒绝后给明确错误</td></tr>
+<tr><td>身份与隔离</td><td>服务端从登录身份绑定 tenant；最小权限只读角色、RLS、受控视图、固定 search_path、函数 allowlist</td><td>不采用模型传入的 tenant；禁止 owner/superuser/BYPASSRLS 执行</td></tr>
+<tr><td>资源预算</td><td>非 ANALYZE 的 EXPLAIN 检查候选计划，再设 statement_timeout、行数/字节/扫描预算</td><td>LIMIT 不限制全部聚合扫描成本；超限取消并反馈</td></tr>
+<tr><td>语义验收</td><td>join 关系、数据粒度、去重、空值、币种、时区及分母；用已知样例与权威报表对照</td><td>SQL 执行成功仍可判业务错误；不能自动放宽权限修复</td></tr>
+<tr><td>结果交付</td><td>查询 hash、schema/指标版本、快照时间、行数、截断标记和引用</td><td>不把部分结果称完整结论；保存可重查证据</td></tr>
+</tbody>
+</table>
+</div>
+<p>PostgreSQL 18 的 RLS 有表 owner、superuser 与 BYPASSRLS 等绕过边界；必须选择受约束执行角色并核验 policy。<a href="#ref-6">[6]</a> 只读事务是额外防线，不能证明任意 SELECT 无副作用；临时对象例外、可调用函数及扩展还需收窄，不能允许模型选择外部 IO 函数。<a href="#ref-7">[7]</a><a href="#ref-8">[8]</a> EXPLAIN 成本是估算，EXPLAIN ANALYZE 会实际执行；资源控制使用执行器限制，不能靠模型自报便宜。<a href="#ref-9">[9]</a><a href="#ref-10">[10]</a></p>
+<p><strong>错误 join 例：</strong> 合成订单表一行一订单，明细表一行一商品，直接 join 后 SUM(order.total)会将多商品订单重复计入。修复应按业务键先聚合明细或选订单粒度，不能用<code>SUM(DISTINCT total)</code>掩盖相同金额的不同订单。测试夹具放两张金额相同、其中一张有两条明细的订单，核验总额及订单数；另加入退款、零分母、跨午夜和跨租户样本。AST 合法、RLS 通过和数值正确是三个独立条件。通用执行边界见<a href="../part2/06-tool-calling-mcp.html">第 18 章</a>。</p>
+<h3 id="客服短案例转人工后的迟到结果"><a class="header" href="#客服短案例转人工后的迟到结果">客服短案例：转人工后的迟到结果</a></h3>
+<p>假设用户询问订单退款，助手仅可读取本人订单与政策。先构造带 owner、订单范围、权限快照、已知事实、缺失字段和允许动作的 handoff envelope；用户允许查询不等于允许退款。转人工以<code>handoff_id/owner_epoch</code>确认接收，在 ack 前不能说“人工已处理”。接收后 Agent 停止新的退款动作，人工从同一权威操作账本接管。</p>
+<p>若转接后先前的退款请求才返回成功，按 operation_id 写入真实结果并通知当前 owner，旧 Agent 不能再次退款、覆写人工结论或把成功丢弃。超时结果保持 unknown，先查询状态而非盲重试。取消、补偿和费用需独立业务授权；用户会话断开不等于业务操作撤销。教学账本、持久交接和幂等设计复用<a href="../part2/infra-11-runtime.html">第 11 章</a>及<a href="../part2/09-workflow-orchestration.html">第 21 章</a>，未声称某客服产品已实现这套协议。</p>
 <h3 id="第五阶段knowledge-governance-platform"><a class="header" href="#第五阶段knowledge-governance-platform">第五阶段：Knowledge Governance Platform</a></h3>
 <ul>
 <li>owner 工作台；</li>
@@ -1126,12 +1177,16 @@ flowchart TD
 <hr>
 <h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
 <ol>
-<li><a href="https://docs.glean.com/connectors/about">Glean Connectors - Glean Docs</a></li>
-<li><a href="https://learn.microsoft.com/en-us/graph/connecting-external-content-connectors-api-overview">Microsoft 365 Copilot Connectors API Overview - Microsoft Learn</a></li>
-<li><a href="https://learn.microsoft.com/en-us/graph/connecting-external-content-manage-items">Create, update, and delete items in a Microsoft Graph connection - Microsoft Learn</a></li>
-<li><a href="https://learn.microsoft.com/en-us/graph/connecting-external-content-external-groups">Use external groups to manage permissions to Microsoft 365 Copilot connectors data sources - Microsoft Learn</a></li>
-<li><a href="https://learn.microsoft.com/en-us/azure/search/hybrid-search-overview">Hybrid search using vectors and full text in Azure AI Search - Microsoft Learn</a></li>
-<li><a href="https://learn.microsoft.com/en-us/azure/search/semantic-search-overview">Semantic ranking in Azure AI Search - Microsoft Learn</a></li>
+<li><a id="ref-1"></a> Glean，<a href="https://docs.glean.com/connectors/about">About connectors</a>，2026-09-23 页面；2026-10-18 访问。</li>
+<li><a id="ref-2"></a> Microsoft，<a href="https://learn.microsoft.com/en-us/graph/connecting-external-content-manage-items">Create, update, and delete items in a Microsoft Graph connection</a>，2024-11-07 页面；2026-10-18 访问。</li>
+<li><a id="ref-3"></a> Microsoft，<a href="https://learn.microsoft.com/en-us/graph/connecting-external-content-external-groups">Use external groups to manage permissions</a>，2026-10-18 文档快照。</li>
+<li><a id="ref-4"></a> Microsoft，<a href="https://learn.microsoft.com/en-us/azure/search/hybrid-search-overview">Hybrid search overview</a>，2026-10-18 文档快照。</li>
+<li><a id="ref-5"></a> Microsoft，<a href="https://learn.microsoft.com/en-us/azure/search/semantic-search-overview">Semantic ranking overview</a>，2026-10-18 文档快照。</li>
+<li><a id="ref-6"></a> PostgreSQL Global Development Group，<a href="https://www.postgresql.org/docs/18/ddl-rowsecurity.html">Row Security Policies</a>，18。</li>
+<li><a id="ref-7"></a> PostgreSQL Global Development Group，<a href="https://www.postgresql.org/docs/18/sql-set-transaction.html">SET TRANSACTION</a>，18。</li>
+<li><a id="ref-8"></a> PostgreSQL Global Development Group，<a href="https://www.postgresql.org/docs/18/xfunc-volatility.html">Function Volatility Categories</a>，18。</li>
+<li><a id="ref-9"></a> PostgreSQL Global Development Group，<a href="https://www.postgresql.org/docs/18/sql-explain.html">EXPLAIN</a>，18。</li>
+<li><a id="ref-10"></a> PostgreSQL Global Development Group，<a href="https://www.postgresql.org/docs/18/runtime-config-client.html">Client Connection Defaults</a>，18。</li>
 </ol>
 
                     </main>

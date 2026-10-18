@@ -37,10 +37,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-33f54a4b.js";
+            window.path_to_searchindex_js = "../searchindex-33cd3f1b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ff756377.js"></script>
+        <script src="../toc-a6d14fc8.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -518,8 +518,8 @@ Delivery Surface
 </tbody>
 </table>
 </div>
-<h3 id="2324-claude-code终端原生-runtime"><a class="header" href="#2324-claude-code终端原生-runtime">23.2.4 Claude Code：终端原生 Runtime</a></h3>
-<p>Claude Code 的核心选择是：把 Agent 放在终端里，而不是只放在 IDE 里。</p>
+<h3 id="2324-claude-code以终端工作流解释-runtime"><a class="header" href="#2324-claude-code以终端工作流解释-runtime">23.2.4 Claude Code：以终端工作流解释 Runtime</a></h3>
+<p>Claude Code 官方资料包含多个入口；本节选择终端路径来解释文件、命令与权限的组合，不将其限定为单一界面。<a href="#ref-1">[1]</a></p>
 <p>这带来几个工程优势：</p>
 <ul>
 <li>终端天然连接真实工具链；</li>
@@ -539,10 +539,10 @@ Delivery Surface
 <li>对前端、UI、组件级开发体验更顺；</li>
 <li>diff review 和 checkpoint 更贴近人的编辑习惯。</li>
 </ul>
-<p>从系统角度看，Cursor 的强项是 IDE 原生 Context Control Plane。它知道用户正在看什么、改什么、选择了什么，也能把 Project Rules、User Rules、代码索引和编辑器状态组合成上下文。</p>
+<p>从系统角度看，Cursor 的强项是 IDE 原生 Context Control Plane。编辑器状态可作为候选上下文，但是否读取和发送取决于实际工具与权限。核验日 Search 文档将搜索说明为本地 Instant Grep，并明确搜索索引不保存代码 embedding；打开匹配文件后的内容仍可能进入模型请求。因此不能继续把旧版向量索引说明当作当前搜索实现。<a href="#ref-2">[2]</a></p>
 <p>它的主要风险是上下文过度贴近当前焦点：用户正在看的文件不一定是任务的全部边界。IDE Agent 很容易做出“局部看起来合理、全局破坏约束”的修改。</p>
-<h3 id="2326-codex云端任务型-sandbox"><a class="header" href="#2326-codex云端任务型-sandbox">23.2.6 Codex：云端任务型 Sandbox</a></h3>
-<p>Codex 的核心选择是：同时支持本地配对编程和云端任务委托。</p>
+<h3 id="2326-codex本地与云端任务入口"><a class="header" href="#2326-codex本地与云端任务入口">23.2.6 Codex：本地与云端任务入口</a></h3>
+<p>Codex 官方术语覆盖 app、CLI、IDE 与 cloud 等入口；入口、执行位置和工作树需要分别记录，不能由产品名推断隔离位置。<a href="#ref-3">[3]</a></p>
 <p>本地形态里，Agent 在开发者工作区中读取仓库、编辑文件、运行命令。云端形态里，Agent 在隔离 sandbox 中接收任务，基于仓库和环境完成修改，生成 patch、PR 或可拉回本地继续工作的结果。</p>
 <p>这种形态适合：</p>
 <ul>
@@ -554,29 +554,24 @@ Delivery Surface
 </ul>
 <p>它的主要风险是环境复现、权限边界、私有依赖、云端数据治理和并行任务状态管理。</p>
 <h3 id="2327-三类-coding-agent-的架构对比"><a class="header" href="#2327-三类-coding-agent-的架构对比">23.2.7 三类 Coding Agent 的架构对比</a></h3>
+<p>下面是 <strong>2026-10-18 官方文档快照的选型表</strong>，不是同条件运行的产品评测。实际使用时还需记录安装版本、账户权限、模型、操作系统与配置；文档访问日期不能代替二进制版本。</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th style="text-align: left">维度</th><th style="text-align: left">Claude Code</th><th style="text-align: left">Cursor</th><th style="text-align: left">Codex</th></tr>
+<tr><th>维度</th><th>Claude Code</th><th>Cursor</th><th>Codex</th></tr>
 </thead>
 <tbody>
-<tr><td style="text-align: left">核心界面</td><td style="text-align: left">终端</td><td style="text-align: left">IDE</td><td style="text-align: left">CLI / IDE / App / Cloud</td></tr>
-<tr><td style="text-align: left">最强场景</td><td style="text-align: left">端到端任务、脚本、测试、Git</td><td style="text-align: left">交互式编辑、局部重构、前端开发</td><td style="text-align: left">并行 issue、PR 生成、后台任务</td></tr>
-<tr><td style="text-align: left">上下文来源</td><td style="text-align: left">文件系统、命令、项目规则、MCP、hooks</td><td style="text-align: left">编辑器、选区、代码索引、Rules、checkpoints</td><td style="text-align: left">仓库快照、任务描述、本地状态、worktree、sandbox 结果</td></tr>
-<tr><td style="text-align: left">执行环境</td><td style="text-align: left">本地或远程终端</td><td style="text-align: left">本地 IDE + 远程 background agent</td><td style="text-align: left">本地工作区 + 云端 sandbox</td></tr>
-<tr><td style="text-align: left">权限模型</td><td style="text-align: left">permissions、hooks、工具权限、MCP 权限</td><td style="text-align: left">模式、review、checkpoint、GitHub app</td><td style="text-align: left">approval modes、sandbox、RBAC、仓库授权</td></tr>
-<tr><td style="text-align: left">审查表面</td><td style="text-align: left">终端总结、diff、hooks、subagent review</td><td style="text-align: left">文件级 diff review、selective accept</td><td style="text-align: left">patch、PR、app review、CI、review agent</td></tr>
-<tr><td style="text-align: left">风险重点</td><td style="text-align: left">Shell 和文件权限</td><td style="text-align: left">错误上下文、误编辑、远程 Agent 外传风险</td><td style="text-align: left">数据边界、环境复现、并行任务治理</td></tr>
+<tr><td>本章观察入口</td><td>终端；官方另有编辑器等入口</td><td>编辑器内 Agent；官方另有 CLI/Cloud</td><td>app/CLI/IDE/cloud</td></tr>
+<tr><td>已核验事实</td><td>工具循环、会话延续与压缩、权限控制</td><td>Search 描述本地精确检索与独立探索上下文</td><td>产品线程、compaction、worktree 和 cloud 为不同概念</td></tr>
+<tr><td>选型时检查</td><td>Shell 权限、压缩后约束、文件 checkpoint 范围</td><td>当前文件是否掩盖跨模块影响、搜索范围与数据发送</td><td>本地/云端输入版本、权限与环境能否复现</td></tr>
+<tr><td>当前证据边界</td><td>未证明内部采用本章全部控制面</td><td>未证明任一搜索结果包含所有调用者</td><td>未证明所有入口共享同一恢复语义</td></tr>
 </tbody>
 </table>
 </div>
-<p>成熟团队不一定只选择一种形态。更现实的组合是：</p>
-<ul>
-<li>Cursor 负责高频交互式开发；</li>
-<li>Claude Code 负责终端原生任务和本地自动化；</li>
-<li>Codex 负责并行 issue 和云端 PR 任务；</li>
-<li>统一用 Spec、测试、代码审查和 CI 把它们约束到同一工程标准。</li>
-</ul>
+<p>前三列事实分别来自官方资料；检查项是本书推导，未比较成功率、价格或速度。<a href="#ref-1">[1]</a><a href="#ref-4">[4]</a><a href="#ref-2">[2]</a><a href="#ref-3">[3]</a></p>
+<p><strong>SDK 与产品要分层比较。</strong> 模型 SDK 负责请求/响应和工具调用消息；Agent SDK 组织循环与工具；Runtime 承担执行、权限、状态和恢复；产品再提供编辑、审查与交付界面。Codex SDK 可程序化开始、继续或恢复线程，app-server 面向自建客户端；这不等于裸模型 SDK 会自动获得完整 Coding 产品。线程可恢复也不能证明外部支付或 Git 推送只执行一次。<a href="#ref-5">[5]</a> 通用分层见<a href="../part2/09-workflow-orchestration.html">第 21 章</a>。</p>
+<h3 id="版本化选读如何比较-trae-等其他产品"><a class="header" href="#版本化选读如何比较-trae-等其他产品">版本化选读：如何比较 Trae 等其他产品</a></h3>
+<p>对其他产品沿用同一任务、仓库版本、验收集合、权限与预算，记录完成率、越界行为、人工接管和重跑成本。Trae 的不同地区/入口需要分别取证；本次未取得足以支撑机制比较的完整官方页面，故保留为延伸核验项，不凭宣传或搜索摘要排列优劣。产品排名不能替代任务级证据。</p>
 <h3 id="2328-共同失败模式上下文工具验证权限与协作"><a class="header" href="#2328-共同失败模式上下文工具验证权限与协作">23.2.8 共同失败模式：上下文、工具、验证、权限与协作</a></h3>
 <p>不同产品形态不同，但失败模式高度相似。</p>
 <div class="table-wrapper">
@@ -608,8 +603,8 @@ Delivery Surface
 <p>第五，<strong>长任务必须外置状态</strong>。计划、待办、工具结果、失败原因、修改文件和验证结果，不能只存在模型上下文里。</p>
 <p>第六，<strong>并行必须隔离</strong>。多 Agent、多任务、云端并行和后台任务，都需要 branch、worktree、sandbox 或任务目录隔离。</p>
 <hr>
-<h2 id="233-真实工作流codex--mcp--日志--代码仓库生成架构图"><a class="header" href="#233-真实工作流codex--mcp--日志--代码仓库生成架构图">23.3 真实工作流：Codex + MCP + 日志 + 代码仓库生成架构图</a></h2>
-<p>在深入 Claude Code 之前，先看一个真实工作流。Coding Agent 的价值不只是“改代码”，还可以把外部事实源和本地实现源串成一条可审查的工程分析链路。</p>
+<h2 id="233-教学工作流codex--mcp--日志--代码仓库生成架构图"><a class="header" href="#233-教学工作流codex--mcp--日志--代码仓库生成架构图">23.3 教学工作流：Codex + MCP + 日志 + 代码仓库生成架构图</a></h2>
+<p>在深入 Claude Code 之前，先看一个教学工作流。Coding Agent 的价值不只是“改代码”，还可以把外部事实源和本地实现源串成一条可审查的工程分析链路。</p>
 <p>一个典型场景是：</p>
 <pre><code class="language-text">用户给出线上 trace id
   ↓
@@ -794,6 +789,22 @@ rg "inventory availability"
 rg "promotion eligibility"
 </code></pre>
 <p>日志告诉我们“线上发生了什么”，代码告诉我们“为什么会这么走”。两者必须对齐，才能形成可靠结论。</p>
+<h3 id="检索路径grep符号和-rag-如何配合"><a class="header" href="#检索路径grep符号和-rag-如何配合">检索路径：grep、符号和 RAG 如何配合</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>路径</th><th>最适合的线索</th><th>新鲜度与精确性</th><th>成本与失败边界</th></tr>
+</thead>
+<tbody>
+<tr><td>grep/ripgrep</td><td>错误字面量、路径、精确标识符</td><td>直接读当前磁盘；未保存 buffer 另行处理</td><td>无 embedding 构建；ignore、二进制、子模块和大小写可能漏搜</td></tr>
+<tr><td>AST/LSP 符号检索</td><td>定义、引用、继承与类型</td><td>区分同名实体；需确认索引与构建配置</td><td>语言服务器有能力差异；反射、生成代码和动态分派需补证</td></tr>
+<tr><td>语义 RAG</td><td>只知道“取消订单后返库存”而不知道命名</td><td>召回概念相近片段；必须绑定 repo/commit/path/hash</td><td>增加切分、embedding、ACL 与增量同步成本；可能召回旧版本</td></tr>
+</tbody>
+</table>
+</div>
+<p>ripgrep 的过滤行为与 LSP 接口来自各自资料；选择顺序是本书场景推导。<a href="#ref-6">[6]</a><a href="#ref-7">[7]</a> 有错误码时先精确搜索，有可解析符号时扩展引用，没有标识符时用语义召回找入口；随后都要读取当前源码。语义 RAG 并非必选依赖，也不能因为 grep 无需向量索引就宣称它必然便宜或完整。索引生命周期见<a href="../part2/07-agent-knowledge-systems.html">第 19 章</a>。</p>
+<p><strong>失败—恢复轨迹（教学设计，未运行）：</strong> Task 要求修复重复释放库存，基线为 commit A、工作区 diff D1；Context 的 RAG 索引仍指向 A 之前的旧函数<code>ReleaseStock</code>。若直接按旧片段改文件，会漏掉 D1 中新加入的<code>ReleaseReservation</code>。Tool 先核验候选<code>repo/commit/path/content_hash</code>，发现不匹配后将它降为线索，按错误字面量运行<code>rg -n -F 'duplicate release' service tests</code>；无结果先查 ignore 和目录，不认定不存在。找到当前日志点后用定义/引用定位调用者，读取对应代码及测试，再生成 patch。若日志所部署 commit 不是 A，应取得有权限的对应源码，否则线上因果结论仍未确认。</p>
+<p>Verifier 独立检查重复取消、并发取消、失败重试及库存副作用次数，记录测试命令、退出码、环境和修改后 hash；仅有 patch 或一次通过的旧测试都不足以关闭 Task。若测试失败，回到候选修改；若缺依赖，标记 blocked 而非编造通过。检索命中率和修复成功率属于不同指标。</p>
 <h3 id="2337-证据等级哪些能写进图里"><a class="header" href="#2337-证据等级哪些能写进图里">23.3.7 证据等级：哪些能写进图里</a></h3>
 <p>从日志到架构图，最容易犯的错误是把推断画成事实。建议把证据分成三档：</p>
 <div class="table-wrapper">
@@ -816,7 +827,7 @@ rg "promotion eligibility"
 </code></pre>
 <p>这样图不是“看起来完整”，而是“知道哪里有证据，哪里只是推断”。</p>
 <h3 id="2338-脱敏后的示例图"><a class="header" href="#2338-脱敏后的示例图">23.3.8 脱敏后的示例图</a></h3>
-<p>下面是一个公开可用的脱敏示例：</p>
+<p>下面是合成的教学示例，服务名、日志和调用边均为假设，并非生产实测：</p>
 <pre class="mermaid">
 flowchart TD
     Client["Client"] --&gt; API["order-api\nPOST /api/order/query"]
@@ -904,10 +915,10 @@ flowchart TD
 </code></pre>
 <p>当 Agent 能同时连接“线上事实”和“代码实现”，它就可以完成传统 IDE 很难完成的任务：从一次真实请求出发，还原系统行为，并生成可以 review 的架构解释。</p>
 <hr>
-<h2 id="234-claude-code-深度解析终端原生-coding-agent-harness"><a class="header" href="#234-claude-code-深度解析终端原生-coding-agent-harness">23.4 Claude Code 深度解析：终端原生 Coding Agent Harness</a></h2>
+<h2 id="234-以-claude-code-为例推导终端-harness"><a class="header" href="#234-以-claude-code-为例推导终端-harness">23.4 以 Claude Code 为例推导终端 Harness</a></h2>
 <p>Claude Code 是理解 Coding Agent Harness 的好样本。它不是把模型塞进一个聊天窗口，而是把模型放进终端、文件系统、代码仓库、工具链和权限系统组成的工作环境。</p>
 <p>本节不会把 Claude Code 当成产品说明书来讲，而是从 Harness 工程角度拆解它代表的核心机制。</p>
-<h3 id="2341-claude-code-的产品定位不是-ide-插件而是终端-runtime"><a class="header" href="#2341-claude-code-的产品定位不是-ide-插件而是终端-runtime">23.4.1 Claude Code 的产品定位：不是 IDE 插件，而是终端 Runtime</a></h3>
+<h3 id="2341-本节选择终端路径的原因"><a class="header" href="#2341-本节选择终端路径的原因">23.4.1 本节选择终端路径的原因</a></h3>
 <p>Claude Code 的核心定位是终端原生 Runtime。</p>
 <p>这意味着它的默认工作场景不是“补全当前文件”，而是：</p>
 <pre><code class="language-text">在一个真实代码仓库中，
@@ -923,7 +934,8 @@ flowchart TD
 <p>第一，<strong>它贴近真实工程工具链</strong>。测试、构建、包管理、Git、脚本、日志工具、MCP server，本来就通过终端工作。把 Agent 放在终端里，可以让模型参与真实开发流程，而不是只能生成片段。</p>
 <p>第二，<strong>它必须面对真实权限风险</strong>。终端可以删除文件、联网、提交代码、读取配置、运行危险脚本。终端 Agent 的设计难点不是“能不能执行命令”，而是“如何让命令执行可裁决、可审计、可恢复”。</p>
 <h3 id="2342-claude-code-的核心架构model--harness"><a class="header" href="#2342-claude-code-的核心架构model--harness">23.4.2 Claude Code 的核心架构：Model + Harness</a></h3>
-<p>可以把 Claude Code 抽象为：</p>
+<p>以下是本书根据公开行为提出的教学分解，模块名、状态 schema 和伪代码不是未公开内部实现。官方资料只证明其工具循环、上下文和权限等可观察机制。<a href="#ref-4">[4]</a></p>
+<p>可以抽象为：</p>
 <pre><code class="language-text">Claude Code
   = Model
   + Agent Loop
@@ -1041,7 +1053,7 @@ def execute_tool(call):
     handler = TOOL_HANDLERS[call.name]
     return handler(**call.arguments)
 </code></pre>
-<p>但生产系统不能只停在 dispatch map。每个工具都需要 schema、权限、超时、错误封装和审计。</p>
+<p>下方 allowlist/denied_tokens 仅示意策略字段，字符串匹配不构成安全隔离；解释器、包脚本、路径链接和网络仍必须由执行沙箱限制。生产系统不能只停在 dispatch map。每个工具都需要 schema、权限、超时、错误封装和审计。</p>
 <pre><code class="language-yaml">tool:
   name: run_shell
   description: "Run a command in the current workspace"
@@ -1191,7 +1203,8 @@ Task State:
   forbidden:
     - "不要重构整个订单状态机"
 </code></pre>
-<p>这比“我们已经修了一些代码，还需要跑测试”可靠得多。</p>
+<p>这比“我们已经修了一些代码，还需要跑测试”更可检查，但仍不是恢复证明。会话 ID 标识交互历史，Task ID 标识交付目标，worktree 标识文件目录，模型上下文窗口只包含本轮所见内容，四者不得混用。官方会话恢复/压缩机制只提供产品层语义，不能保证摘要完整。<a href="#ref-4">[4]</a></p>
+<p>本书在摘要外补<code>base_commit</code>、<code>diff_hash</code>、证据路径/版本、已授权范围、最后验证结果与未完成项。恢复时比较当前 HEAD、dirty diff 及权限；文件或授权发生变化则相关结论失效并回源。token 预算按目标模型 tokenizer 预估系统消息、schema、历史与工具结果，预留输出与后续工具空间，再用供应商 usage 校准；汉字数和字符数均不能替代 token 计数。压缩前后必须保持目标、禁止事项、已证事实与待验证状态，详细契约归<a href="../part2/03-context-engineering.html">第 15 章</a>。</p>
 <h3 id="2347-skill--command--workflow把工程经验变成可复用流程"><a class="header" href="#2347-skill--command--workflow把工程经验变成可复用流程">23.4.7 Skill / Command / Workflow：把工程经验变成可复用流程</a></h3>
 <p>Skill 是介于“规则文件”和“工具调用”之间的一层能力抽象。</p>
 <pre><code class="language-text">Tool:
@@ -1350,9 +1363,9 @@ Skill:
 <p>Worktree Isolation 解决四个问题：</p>
 <ol>
 <li><strong>文件修改隔离</strong>：不同任务不会在同一目录互相覆盖；</li>
-<li><strong>依赖状态隔离</strong>：构建产物、临时文件、测试状态不混在一起；</li>
+<li><strong>目录内状态隔离</strong>：仅在产物确实落入各自目录时成立；共享缓存、端口和数据库需另行隔离；</li>
 <li><strong>Git diff 清晰</strong>：每个任务有独立 diff；</li>
-<li><strong>失败可丢弃</strong>：某个任务失败，可以直接删除对应 worktree。</li>
+<li><strong>可审查后清理</strong>：先保存用户修改、未提交文件与所需证据，再按 Git 规则移除 worktree；不能直接删除目录。<a href="#ref-8">[8]</a></li>
 </ol>
 <p>Task 和 worktree 应该绑定：</p>
 <pre><code class="language-yaml">task:
@@ -1365,7 +1378,7 @@ Skill:
 <p>设计原则是：</p>
 <pre><code class="language-text">Task 管目标，worktree 管目录。
 </code></pre>
-<p>任务系统负责分配、依赖和状态；worktree 负责文件系统隔离。把两者混在一起，会导致任务状态和目录状态互相污染。</p>
+<p>Git worktree 共享仓库对象及部分配置，并不隔离外部副作用。<a href="#ref-8">[8]</a> 任务系统负责分配、依赖和状态；worktree 提供独立工作目录。把两者混在一起，会导致任务状态和目录状态互相污染。</p>
 <h3 id="23411-permission-与安全边界"><a class="header" href="#23411-permission-与安全边界">23.4.11 Permission 与安全边界</a></h3>
 <p>终端 Agent 的权限模型必须比普通聊天产品严格得多。</p>
 <p>至少要区分四类权限：</p>
@@ -1481,7 +1494,7 @@ Skill:
 <li>应该怎么改；</li>
 <li>需要哪些测试。</li>
 </ul>
-<p>Read-only Agent 是最安全的第一步，适合接入真实大仓库。</p>
+<p>Read-only Agent 可降低误写风险，但读取机密、发送模型请求和恶意文档注入仍需权限与数据边界。</p>
 <h3 id="2352-mvp-2patch-agent"><a class="header" href="#2352-mvp-2patch-agent">23.5.2 MVP 2：Patch Agent</a></h3>
 <p>第二阶段开放局部编辑，但不开放任意 shell。</p>
 <p>开放工具：</p>
@@ -1788,20 +1801,14 @@ Agent Loop 让模型在每一轮选择工具行动，Runtime 对工具调用做 
 <hr>
 <h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
 <ol>
-<li><a href="https://docs.anthropic.com/en/docs/claude-code">Claude Code Documentation - Anthropic Docs</a></li>
-<li><a href="https://docs.anthropic.com/en/docs/claude-code/sub-agents">Claude Code Subagents - Anthropic Docs</a></li>
-<li><a href="https://docs.anthropic.com/en/docs/claude-code/hooks">Claude Code Hooks - Anthropic Docs</a></li>
-<li><a href="https://docs.anthropic.com/en/docs/claude-code/memory">Claude Code Memory - Anthropic Docs</a></li>
-<li><a href="https://docs.anthropic.com/en/docs/claude-code/slash-commands">Claude Code Slash Commands - Anthropic Docs</a></li>
-<li><a href="https://docs.anthropic.com/en/docs/claude-code/settings">Claude Code Settings - Anthropic Docs</a></li>
-<li><a href="https://docs.anthropic.com/en/docs/claude-code/mcp">Claude Code MCP - Anthropic Docs</a></li>
-<li><a href="https://docs.cursor.com/context/rules">Cursor Rules - Cursor Docs</a></li>
-<li><a href="https://docs.cursor.com/en/chat/agent">Cursor Agent Modes - Cursor Docs</a></li>
-<li><a href="https://docs.cursor.com/en/agent/review">Cursor Diffs &amp; Review - Cursor Docs</a></li>
-<li><a href="https://docs.cursor.com/en/background-agents">Cursor Background Agents - Cursor Docs</a></li>
-<li><a href="https://help.openai.com/en/articles/11096431-openai-codex-cli-getting-started">OpenAI Codex CLI Getting Started - OpenAI Help Center</a></li>
-<li><a href="https://help.openai.com/en/articles/11369540-codex-in-chatgpt">Using Codex with your ChatGPT plan - OpenAI Help Center</a></li>
-<li><a href="https://github.com/shareAI-lab/learn-claude-code">shareAI-lab/learn-claude-code - GitHub</a></li>
+<li><a id="ref-1"></a> Anthropic，<a href="https://code.claude.com/docs/en/overview">Claude Code overview</a>，2026-10-18 文档快照。</li>
+<li><a id="ref-2"></a> Cursor，<a href="https://cursor.com/docs/agent/tools/search">Search</a>，2026-10-18 文档快照。</li>
+<li><a id="ref-3"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/glossary">Codex glossary</a>，2026-10-18 文档快照。</li>
+<li><a id="ref-4"></a> Anthropic，<a href="https://code.claude.com/docs/en/how-claude-code-works">How Claude Code works</a>，2026-10-18 文档快照。</li>
+<li><a id="ref-5"></a> OpenAI，<a href="https://developers.openai.com/codex/sdk">Codex SDK</a>，2026-10-18 文档快照。</li>
+<li><a id="ref-6"></a> BurntSushi/ripgrep，<a href="https://github.com/BurntSushi/ripgrep/blob/master/GUIDE.md">ripgrep guide</a>，2026-10-18 master 文档快照。</li>
+<li><a id="ref-7"></a> Microsoft，<a href="https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/">Language Server Protocol specification</a>，3.17。</li>
+<li><a id="ref-8"></a> Git，<a href="https://git-scm.com/docs/git-worktree">git-worktree</a>，2.56.0 manual。</li>
 </ol>
 
                     </main>
