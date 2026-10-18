@@ -43,7 +43,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-893e4698.js";
+            window.path_to_searchindex_js = "../searchindex-97989176.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-478849a1.js"></script>
@@ -512,6 +512,21 @@ Input -&gt; -&gt; Branch B -&gt; Aggregator -&gt; Output
 <p>教学输入为十万余词及固定分类体系版本。先定义单/多标签、层级、歧义和拒判，人工标注分层基线；规范化保留original_word与稳定item_id，去重项保留原位置映射。规则/词典处理确定项，轻量分类或embedding给候选，LLM只处理难例；不按每个词创建自主Agent。</p>
 <p>代码按token预算与输出长度确定batch，教学候选每批128项仅作起点，不能当通用最优值。每项输出item_id、taxonomy_version、labels、evidence/reason及abstain；检查输入输出一一对应、无缺/重项、枚举/层级/多标签约束。按batch_id/input_hash/model/prompt/taxonomy版本保存结果，失败只重跑未完成或失效项，重启按账本恢复。</p>
 <p>标签更新保留旧版与迁移映射，低置信阈值在独立标注集校准，LLM自报分数不是概率。评价macro/micro、长尾混淆、层级一致、拒判、尾延迟和单位成功成本。仅独立领域判断确有收益时用专家Agent；机械切批、限速、join和结果去重由确定性调度器完成。此案例未运行。</p>
+<h3 id="漫剧创作工作流从需求到可审查产物"><a class="header" href="#漫剧创作工作流从需求到可审查产物">漫剧创作工作流：从需求到可审查产物</a></h3>
+<p>下面是将本书编排方法迁移到创作场景的教学设计，不是已经实现的生成平台。先确认受众、时长、风格、角色与素材使用范围，再建立产物依赖：需求版本 → 剧本 → 角色资产与分镜 → 图像/配音 → 镜头片段 → 剪辑 → 成片。图像与配音可在依赖满足后并行，剪辑必须引用已经验收的片段版本。模型调用负责产生候选，推进节点由外部验收决定。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>节点组</th><th>输入与产物契约</th><th>反馈后的处理</th></tr>
+</thead>
+<tbody>
+<tr><td>剧本、角色与分镜</td><td>约束版本、角色 ID、镜头 ID、台词与时序；交付可预览的结构化草稿</td><td>剧情或服装改变，沿资产依赖标记受影响节点失效</td></tr>
+<tr><td>图像、配音与片段</td><td>固定角色引用、模型配置和输入产物 hash；持久保存候选本体与失败原因</td><td>限额重试失败镜头，独立检查身份、音画及连续性；不能只改 Prompt 宣告修复</td></tr>
+<tr><td>剪辑与成片</td><td>已验收镜头清单、顺序、字幕和音轨版本；交付预览与检查记录</td><td>用户确认新版本后再替换，旧版本可回滚；实际发布须单独授权</td></tr>
+</tbody>
+</table>
+</div>
+<p>每次调用保存 <code>operation_id</code>、依赖版本、状态与费用；超时先查结果，不能把重复生成当免费重试。用户改服装后，旧版本的迟到成功仍进入产物账本，但不覆盖当前分镜。对象存储保存媒体，任务状态保存引用；seed 与参数帮助追溯，不能代替已验收媒体。按任务预算限制候选数量，失败时交付缺口与可继续的检查点。持久执行、补偿和人工接管复用<a href="infra-11-runtime.html">第11章 Agent Runtime</a>，任务图与节点验收沿用本章。生成后端训练、专用身份控制算法与实际成片质量仍需独立项目验证。</p>
 <h2 id="214-多-agent-的职责与交接协议"><a class="header" href="#214-多-agent-的职责与交接协议">21.4 多 Agent 的职责与交接协议</a></h2>
 <h3 id="2141-多-agent-什么时候才必要"><a class="header" href="#2141-多-agent-什么时候才必要">21.4.1 多 Agent 什么时候才必要</a></h3>
 <p>多 Agent 的价值不是“看起来更智能”，而是解决单 Agent 难以同时满足的工程诉求：</p>

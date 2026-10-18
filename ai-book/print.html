@@ -44,7 +44,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-893e4698.js";
+            window.path_to_searchindex_js = "searchindex-97989176.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-478849a1.js"></script>
@@ -325,6 +325,24 @@ flowchart LR
 </table>
 </div>
 <p>章节包含原理推导、文档核验、教学轨迹与实验设计，验收层次分别标明。第1/3/5/8/9章的练习卡可从<a href="#附录b-学习路径与延伸阅读">附录B</a>进入；卡片完成不代表已经提供完整可运行代码、GPU测量或生产验证。选型先查<a href="#附录c-工具框架与版本导航">附录C</a>的版本和未知项，再回到章末原始来源。</p>
+<h2 id="与工程面试题库配合阅读"><a class="header" href="#与工程面试题库配合阅读">与工程面试题库配合阅读</a></h2>
+<p>本书也可作为 <a href="https://github.com/wxquare/leetcode-primer/blob/master/system-design-interview/question-bank/ai-agent-engineering.md#书稿覆盖与定位">AI 与 AI Agent 工程面试题库</a>的原理与设计参考。题库保留每题的章节、小节链接、覆盖状态与缺口原因；本书按模型能力、基础设施和应用系统组织论证，不复制另一套逐题答案。定位以活动目录中的正文为准，归档材料、论文名或工具名本身不算覆盖。</p>
+<p>“已覆盖”表示书中能找到主要原理和设计依据，可以组合相邻章节回答；它不表示已提供所有 SDK 的最新实现、个人项目经历或生产性能数据。“部分覆盖”会说明缺少的实现、实测或完整领域案例。阅读时应区分以下边界：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>题目类型</th><th>本书承担的内容</th><th>需要另外完成的部分</th></tr>
+</thead>
+<tbody>
+<tr><td>模型、Agent、RAG 与生产治理</td><td>机制、约束、选型、失败语义与验证方法</td><td>将具体业务规模和环境代入，并补充真实证据</td></tr>
+<tr><td>Attention、SFT Loss、校准与 CUDA 手写</td><td>公式、输入输出、边界与练习验收卡</td><td>完整代码、编译、执行与硬件测试；练习卡不等于参考实现</td></tr>
+<tr><td>产品比较、Qdrant 性能及模型格式部署</td><td>职责分层、版本化核验与受控比较方法</td><td>同版本、同质量、同硬件的实测；不提供永久排名</td></tr>
+<tr><td>客服、报告与漫剧扩展</td><td>通用机制与明确标注的短案例或产物工作流</td><td>完整领域平台及专用后端实现；短案例不等于端到端交付</td></tr>
+<tr><td>K-means、CSV 读取与基础 MLP 手写</td><td>仅保留索引聚类、FFN 等相关背景</td><td>属于通用机器学习编程入门，不为题量扩张本书主线；保留题库原解答</td></tr>
+</tbody>
+</table>
+</div>
+<p>书中案例与练习没有运行证据时，保持“教学设计”或“未实测”标识。外部接口、模型卡与硬件支持仍须核验具体版本；用户自己的经历不能用书稿案例代替。</p>
 <h2 id="在线阅读"><a class="header" href="#在线阅读">在线阅读</a></h2>
 <ul>
 <li><strong>GitHub Pages</strong>：https://wxquare.github.io/ai-book/</li>
@@ -1453,10 +1471,14 @@ W’=W+\frac{\alpha}{r}BA,
 <p>若裸编码位数为b、每组scale占\(s_b\)位且zero point占\(z_b\)位，则未计padding的有效位宽约为 \(b+(s_b+z_b)/G\)。教学例：对称四位、每组128项、半精度16位scale，无零点时约4.125位/权重；这是容量算术，不是文件实测。尾组只有实际元素参与范围估计，padding不得引入伪极值；写盘按真实pack对齐计算，不能直接用这个平均数冒充制品大小。</p>
 <h3 id="离群值与格式选读"><a class="header" href="#离群值与格式选读">离群值与格式选读</a></h3>
 <p>一个极大值可能把整组scale拉大，让多数小值舍入到零。裁掉离群点能改善主体分辨率，却可能损伤少见关键语义；应比较保留异常通道、减小组、混合精度和裁剪，不只比较平均重建误差。若只保存量化码却丢失scale轴或广播规则，即使形状相同也会解出错误模型。</p>
-<p>FP8与NVFP4等浮点低精度格式还涉及指数/尾数、块缩放和多级scale；它们不能套用上述整数步长公式。作为版本化选读，查目标设备和库的正式格式说明，并记录编码、块形状、scale dtype/层级、布局、算子与累加精度、软件版本及验证日期。本章没有核验一套FP8/NVFP4支持矩阵，故不写固定块宽、全设备兼容或自动提速结论；第9章应在具体后端证据就绪后补齐。只有名称相同远不足以判定可执行和可互换。</p>
+<p>FP8与NVFP4等浮点低精度格式还涉及指数/尾数、块缩放和多级scale；它们不能套用上述整数步长公式。格式、训练配方和推理后端布局必须分别核对。下面补充一种有官方依据的表示；本章仍不提供跨设备、跨引擎的支持矩阵或自动提速结论。</p>
+<h3 id="nvfp4表示缩放轴与存储账本"><a class="header" href="#nvfp4表示缩放轴与存储账本">NVFP4：表示、缩放轴与存储账本</a></h3>
+<p>NVIDIA 介绍的 NVFP4 采用 E2M1 数值、每 16 个值共享一个 E4M3 块 scale，再配一个张量级 FP32 scale。Transformer Engine 2.20.2 文档将重建关系写为 <code>x ≈ q_e2m1 × s_block × s_global</code>；其训练配方还区分一维块与二维权重缩放，不能把一种布局套到所有张量。<a href="#ref-14-4">[14]</a><a href="#ref-15-4">[15]</a></p>
+<p>量化时，先从张量和块的统计量确定两级 scale，再把原值除以有效 scale，按配方的舍入与裁剪规则映射到 E2M1 码本；scale 自身也有表示误差。零块须走约定分支，非有限值不能混入 amax；推理转换与训练配方的随机舍入也不能混同。<a href="#ref-14-4">[14]</a><a href="#ref-15-4">[15]</a></p>
+<p>作为本书一维行分组的教学账本，设矩阵为 <code>M×K</code>、K 可被 16 整除：量化码占 <code>M×K/2</code> 字节，逻辑块 scale 形状为 <code>M×(K/16)</code>、占 <code>M×K/16</code> 字节，另加 4 字节张量 scale；未计对齐时约为 <code>4.5 + 32/(M×K)</code> bit/值。这个推导不是导出文件的实际大小。两个四位码装进一个字节后，仍须约定高低位次序、转置、尾块和 scale 的物理排布；目标 kernel 的对齐或重排会增加开销。</p>
 <h2 id="55-校准与训练后量化"><a class="header" href="#55-校准与训练后量化">5.5 校准与训练后量化</a></h2>
 <h3 id="四种范围选择优化不同的代理"><a class="header" href="#四种范围选择优化不同的代理">四种范围选择优化不同的代理</a></h3>
-<p>Wu等比较Max、Percentile和Entropy校准；其结果说明不同网络适合的范围方法不同。<a href="#ref-14-4">[14]</a> 本书将一般非对称极值法称minmax，对称情形就是最大绝对值法。下表是方法区别，阈值搜索和误差记录必须与5.4的编码约定绑定：</p>
+<p>Wu等比较Max、Percentile和Entropy校准；其结果说明不同网络适合的范围方法不同。<a href="#ref-16-4">[16]</a> 本书将一般非对称极值法称minmax，对称情形就是最大绝对值法。下表是方法区别，阈值搜索和误差记录必须与5.4的编码约定绑定：</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -1474,16 +1496,16 @@ W’=W+\frac{\alpha}{r}BA,
 <p>KL方法先固定原始直方图p，对各阈值把尾部计数折入边界，将保留区间合并到低位码桶，再按明确规则展开到与p相同的bin支持集，归一化得到\(q_a\)。计算 \(D_{KL}(p\Vert q_a)=\sum_{j:p_j&gt;0}p_j\log(p_j/q_{a,j})\)后选阈值。若正概率bin对应零\(q\)，应记无穷或按约定平滑后重新归一化；不能直接跳过该项。不同实现对零bin分配不同，报告必须保存规则，不能声称只写一个KL式就复现了某后端。</p>
 <p>这里KL比较的是激活直方图，不是第3章策略相对参考模型的KL，也不是输出语义正确率。MSE与KL最优阈值可能不同，最终用独立开发任务选型，冻结测试集只用于最终验收。校准数据覆盖中文、代码、数字、工具模板、长上下文与异常输入；分层抽样记录比例，不把私密字符串无限复制进缓存。权重范围统计和激活校准也应区分，GPTQ/AWQ用激活信息并不意味着二者都在量化激活。</p>
 <h3 id="gptq基于误差补偿的权重量化"><a class="header" href="#gptq基于误差补偿的权重量化">GPTQ：基于误差补偿的权重量化</a></h3>
-<p>GPTQ 使用少量校准数据，逐层选择量化权重，并利用近似二阶信息补偿已经产生的误差 <a href="#ref-15-4">[15]</a>。它适合离线压缩大模型权重，尤其关注在固定 bit 数下保持输出误差。优点是无需重新训练，缺点是量化结果依赖校准数据、group size、排序策略和推理 kernel。</p>
+<p>GPTQ 使用少量校准数据，逐层选择量化权重，并利用近似二阶信息补偿已经产生的误差 <a href="#ref-17-4">[17]</a>。它适合离线压缩大模型权重，尤其关注在固定 bit 数下保持输出误差。优点是无需重新训练，缺点是量化结果依赖校准数据、group size、排序策略和推理 kernel。</p>
 <h3 id="awq激活感知的权重缩放"><a class="header" href="#awq激活感知的权重缩放">AWQ：激活感知的权重缩放</a></h3>
-<p>AWQ 观察到，与激活相关的部分显著权重通道对质量影响更大，通过等价缩放降低敏感权重的量化误差，而非直接把所有重要权重保留高精度 <a href="#ref-16-4">[16]</a>。这体现了一个重要原则：权重量化不能只看权重本身，还要看模型在真实输入上的激活分布。不同业务数据会导致“重要通道”不同，因此公开校准集的最佳 bit 配置未必适合线上。</p>
+<p>AWQ 观察到，与激活相关的部分显著权重通道对质量影响更大，通过等价缩放降低敏感权重的量化误差，而非直接把所有重要权重保留高精度 <a href="#ref-18-4">[18]</a>。这体现了一个重要原则：权重量化不能只看权重本身，还要看模型在真实输入上的激活分布。不同业务数据会导致“重要通道”不同，因此公开校准集的最佳 bit 配置未必适合线上。</p>
 <h3 id="smoothquant-与-w8a8"><a class="header" href="#smoothquant-与-w8a8">SmoothQuant 与 W8A8</a></h3>
-<p>SmoothQuant 把激活中的离群值通过等价变换迁移到权重侧，使权重和激活都更容易做 INT8 量化 <a href="#ref-17-4">[17]</a>。它适合对追求端到端整数矩阵乘法的系统进行优化。难点是平滑系数、校准分布和算子支持；如果某个层或某类输入仍有离群值，整体 W8A8 质量可能显著下降。</p>
+<p>SmoothQuant 把激活中的离群值通过等价变换迁移到权重侧，使权重和激活都更容易做 INT8 量化 <a href="#ref-19-4">[19]</a>。它适合对追求端到端整数矩阵乘法的系统进行优化。难点是平滑系数、校准分布和算子支持；如果某个层或某类输入仍有离群值，整体 W8A8 质量可能显著下降。</p>
 <h3 id="zeroquantllmint8-与稀疏格式"><a class="header" href="#zeroquantllmint8-与稀疏格式">ZeroQuant、LLM.int8 与稀疏格式</a></h3>
-<p>LLM.int8 通过混合精度处理异常值，说明极少数 outlier 不能简单与普通通道同样量化 <a href="#ref-18-4">[18]</a>。ZeroQuant 探索训练后低比特量化和硬件友好实现 <a href="#ref-19-4">[19]</a>；SpQR 进一步结合稀疏性和量化，以较低存储成本保留敏感权重 <a href="#ref-20-4">[20]</a>。这些方案的共同挑战是算法格式必须与硬件 kernel、编译器和 serving engine 匹配。</p>
+<p>LLM.int8 通过混合精度处理异常值，说明极少数 outlier 不能简单与普通通道同样量化 <a href="#ref-20-4">[20]</a>。ZeroQuant 探索训练后低比特量化和硬件友好实现 <a href="#ref-21-4">[21]</a>；SpQR 进一步结合稀疏性和量化，以较低存储成本保留敏感权重 <a href="#ref-22-4">[22]</a>。这些方案的共同挑战是算法格式必须与硬件 kernel、编译器和 serving engine 匹配。</p>
 <h3 id="方法差别与反量化的成本账本"><a class="header" href="#方法差别与反量化的成本账本">方法差别与反量化的成本账本</a></h3>
-<p>GPTQ优化局部权重误差并补偿，AWQ利用激活统计选择等价缩放，SmoothQuant用输入通道的缩放把激活量化难度迁移到权重。以后者为例，列向量约定下 \(Wx=(WS)(S^{-1}x)\)，S是输入通道正对角矩阵；浮点等价不保证两端量化后无误差。平滑缩放轴与最终量化scale轴也不是同一概念。GPTQ/AWQ常见路线以权重低比特为中心，SmoothQuant论文主要面向W8A8；具体组大小与激活粒度依配置而定，不虚构统一后端支持表。<a href="#ref-15-4">[15]</a><a href="#ref-16-4">[16]</a><a href="#ref-17-4">[17]</a></p>
-<p>低位权重可能减少HBM读取，融合kernel可在片上解包/缩放再参与计算，避免先展开整块浮点权重写回显存。小batch解码若受权重带宽限制，节省传输可能超过反量化成本；大batch复用提高后，计算、布局转换和调度可能更重要。这是解释AWQ类部署为何可能更快的条件，不是算法名字带来的保证。<a href="#ref-16-4">[16]</a> 实验需固定质量、形状和负载，分别计pack、scale读取、反量化、矩阵乘法及未量化算子。若某一可减半的传输项原占延迟f，理想总加速仅为 \(1/(1-f/2)\)，再扣额外开销；此式为串行时间账本的教学推导。</p>
+<p>GPTQ优化局部权重误差并补偿，AWQ利用激活统计选择等价缩放，SmoothQuant用输入通道的缩放把激活量化难度迁移到权重。以后者为例，列向量约定下 \(Wx=(WS)(S^{-1}x)\)，S是输入通道正对角矩阵；浮点等价不保证两端量化后无误差。平滑缩放轴与最终量化scale轴也不是同一概念。GPTQ/AWQ常见路线以权重低比特为中心，SmoothQuant论文主要面向W8A8；具体组大小与激活粒度依配置而定，不虚构统一后端支持表。<a href="#ref-17-4">[17]</a><a href="#ref-18-4">[18]</a><a href="#ref-19-4">[19]</a></p>
+<p>低位权重可能减少HBM读取，融合kernel可在片上解包/缩放再参与计算，避免先展开整块浮点权重写回显存。小batch解码若受权重带宽限制，节省传输可能超过反量化成本；大batch复用提高后，计算、布局转换和调度可能更重要。这是解释AWQ类部署为何可能更快的条件，不是算法名字带来的保证。<a href="#ref-18-4">[18]</a> 实验需固定质量、形状和负载，分别计pack、scale读取、反量化、矩阵乘法及未量化算子。若某一可减半的传输项原占延迟f，理想总加速仅为 \(1/(1-f/2)\)，再扣额外开销；此式为串行时间账本的教学推导。</p>
 <h3 id="校准练习卡先实现可检查的范围估计"><a class="header" href="#校准练习卡先实现可检查的范围估计">校准练习卡：先实现可检查的范围估计</a></h3>
 <p>输入为有限浮点数组、b、共享轴/组、对称选项及分位参数；先只实现上述对称minmax和绝对值percentile，再扩展非对称双尾。输出阈值、scale、零点、量化码、反量化值、饱和率、MSE和元数据位数，并保存分位插值及round约定。用同一数组比较两法，不能为每法更换输入分布。</p>
 <p>边界至少包括全零、非零常数、正负不对称、单个强离群点、长度不足G和不整除G的尾组；空输入、NaN/Inf要明确失败。以手工小数组核对每个码，再确认组间广播不串行。拓展实现MSE阈值搜索与直方图KL，检查零概率与归一化。练习只规定输入输出和验收，尚无配套代码、模型量化或GPU实测；不要用一次数组误差下降声称模型成功。</p>
@@ -1493,22 +1515,22 @@ W’=W+\frac{\alpha}{r}BA,
 <p>\[
 \mathcal{L}=\alpha\mathcal{L}_{hard}+(1-\alpha)\tau_{distill}^2D_{KL}(p_{teacher}^{\tau_{distill}}\Vert p_{student}^{\tau_{distill}}),
 \]</p>
-<p>其中 \(\tau_{distill}&gt;0\) 是蒸馏softmax温度，teacher 的软概率包含类别相似性和暗知识 <a href="#ref-21-4">[21]</a>。对语言模型，蒸馏可以使用 teacher 的 token 分布、生成轨迹、偏好排序、中间表示或工具动作。</p>
+<p>其中 \(\tau_{distill}&gt;0\) 是蒸馏softmax温度，teacher 的软概率包含类别相似性和暗知识 <a href="#ref-23-4">[23]</a>。对语言模型，蒸馏可以使用 teacher 的 token 分布、生成轨迹、偏好排序、中间表示或工具动作。</p>
 <h3 id="distilbertmobilebert-与生成模型"><a class="header" href="#distilbertmobilebert-与生成模型">DistilBERT、MobileBERT 与生成模型</a></h3>
-<p>DistilBERT 通过蒸馏和结构简化降低 encoder 模型成本 <a href="#ref-22-4">[22]</a>；MobileBERT 进一步围绕移动设备的延迟和内存设计结构 <a href="#ref-23-4">[23]</a>。这里encoder结果不能直接外推到decoder聊天模型。生成式大模型蒸馏则更复杂：student 需要学习长序列概率、停止行为、工具格式和安全边界，teacher 生成的错误和偏好也会被复制。</p>
+<p>DistilBERT 通过蒸馏和结构简化降低 encoder 模型成本 <a href="#ref-24-4">[24]</a>；MobileBERT 进一步围绕移动设备的延迟和内存设计结构 <a href="#ref-25-4">[25]</a>。这里encoder结果不能直接外推到decoder聊天模型。生成式大模型蒸馏则更复杂：student 需要学习长序列概率、停止行为、工具格式和安全边界，teacher 生成的错误和偏好也会被复制。</p>
 <p>蒸馏数据应混合真实数据、teacher 高质量输出和独立验证样本。只用 teacher 生成数据会产生模型自我复制；只用硬标签又浪费 teacher 的软信息。代码蒸馏要运行测试，数学蒸馏要验证答案，工具蒸馏要检查环境状态，不能只比较 token-level loss。</p>
 <h3 id="蒸馏的目标选择"><a class="header" href="#蒸馏的目标选择">蒸馏的目标选择</a></h3>
 <p>如果目标是低延迟分类，logit 蒸馏可能足够；如果目标是聊天和代码，轨迹蒸馏更重要；如果目标是 reasoning，必须考虑过程、结果和预算；如果目标是多模态，student 还要学习跨模态对齐。蒸馏不是简单把大模型“缩小”，而是选择哪些能力值得保留、哪些推理成本可以削减。</p>
 <h2 id="57-多模态输入与能力扩展"><a class="header" href="#57-多模态输入与能力扩展">5.7 多模态输入与能力扩展</a></h2>
 <h3 id="图文对齐的起点"><a class="header" href="#图文对齐的起点">图文对齐的起点</a></h3>
-<p>CLIP 用图像—文本对比学习把视觉和语言映射到共享空间，展示了大规模弱标注数据可以学习通用视觉语义 <a href="#ref-24-4">[24]</a>。对比损失鼓励正确图文配对相似、错误配对分离，适合检索和零样本分类，但不能直接完成长文本生成和复杂对话。</p>
-<p>ViLT 直接在 Transformer 中处理图像 patch 与文本 token，减少了重型视觉区域特征的依赖 <a href="#ref-25-4">[25]</a>。这类模型解决的是视觉和语言的联合表示，仍需要额外训练才能稳定完成视觉问答、文档理解、空间关系和指令执行。</p>
+<p>CLIP 用图像—文本对比学习把视觉和语言映射到共享空间，展示了大规模弱标注数据可以学习通用视觉语义 <a href="#ref-26-4">[26]</a>。对比损失鼓励正确图文配对相似、错误配对分离，适合检索和零样本分类，但不能直接完成长文本生成和复杂对话。</p>
+<p>ViLT 直接在 Transformer 中处理图像 patch 与文本 token，减少了重型视觉区域特征的依赖 <a href="#ref-27-3">[27]</a>。这类模型解决的是视觉和语言的联合表示，仍需要额外训练才能稳定完成视觉问答、文档理解、空间关系和指令执行。</p>
 <h3 id="flamingoblip-2-与连接器"><a class="header" href="#flamingoblip-2-与连接器">Flamingo、BLIP-2 与连接器</a></h3>
-<p>Flamingo 通过冻结视觉编码器和语言模型，引入跨模态层支持少样本视觉语言任务 <a href="#ref-26-4">[26]</a>。BLIP-2 使用 Q-Former 从视觉特征中抽取与语言模型相关的信息，再连接冻结的大语言模型 <a href="#ref-27-3">[27]</a>。它们共同体现了“冻结大模块、训练小连接器”的工程思想：减少训练成本和灾难性遗忘，同时让视觉信息以语言模型能利用的形式进入上下文。</p>
+<p>Flamingo 通过冻结视觉编码器和语言模型，引入跨模态层支持少样本视觉语言任务 <a href="#ref-28-3">[28]</a>。BLIP-2 使用 Q-Former 从视觉特征中抽取与语言模型相关的信息，再连接冻结的大语言模型 <a href="#ref-29-1">[29]</a>。它们共同体现了“冻结大模块、训练小连接器”的工程思想：减少训练成本和灾难性遗忘，同时让视觉信息以语言模型能利用的形式进入上下文。</p>
 <p>连接器的瓶颈在于信息压缩。视觉 token 太少会丢失细节，太多会占用上下文和推理成本；冻结语言模型可能无法理解某些视觉概念；视觉编码器和语言模型的坐标、位置与时间尺度不一致。连接器训练必须配合图文对齐、指令数据和任务评估。</p>
 <h3 id="llavaqwen-vl-与视觉指令微调"><a class="header" href="#llavaqwen-vl-与视觉指令微调">LLaVA、Qwen-VL 与视觉指令微调</a></h3>
-<p>LLaVA 把视觉特征投影到语言模型输入空间，再使用视觉指令数据训练对话能力 <a href="#ref-28-3">[28]</a>。Qwen-VL 进一步覆盖中文、多语言、细粒度定位和文档理解，展示了中文多模态模型在数据配比和评估上的特殊要求 <a href="#ref-29-1">[29]</a>。这类模型的能力不只来自视觉编码器，还来自图像分辨率、OCR、位置表示、指令质量和语言模型本身。</p>
-<p>InternVL 等工作探索更高分辨率和更大视觉基础模型，说明视觉 token 数和细节能力存在明显权衡 <a href="#ref-30">[30]</a>。高分辨率可以提升小文字和局部目标识别，却增加显存、上下文和延迟；多图和视频还要处理帧采样、时间顺序和跨帧一致性。</p>
+<p>LLaVA 把视觉特征投影到语言模型输入空间，再使用视觉指令数据训练对话能力 <a href="#ref-30">[30]</a>。Qwen-VL 进一步覆盖中文、多语言、细粒度定位和文档理解，展示了中文多模态模型在数据配比和评估上的特殊要求 <a href="#ref-31">[31]</a>。这类模型的能力不只来自视觉编码器，还来自图像分辨率、OCR、位置表示、指令质量和语言模型本身。</p>
+<p>InternVL 等工作探索更高分辨率和更大视觉基础模型，说明视觉 token 数和细节能力存在明显权衡 <a href="#ref-32">[32]</a>。高分辨率可以提升小文字和局部目标识别，却增加显存、上下文和延迟；多图和视频还要处理帧采样、时间顺序和跨帧一致性。</p>
 <h3 id="多模态数据与失败模式"><a class="header" href="#多模态数据与失败模式">多模态数据与失败模式</a></h3>
 <p>多模态训练数据至少包括图文描述、视觉问答、OCR、表格和文档、定位、图表、视频事件和安全边界。图像描述正确，不代表模型能可靠读取数字；能识别物体，不代表能理解空间关系；能回答图片问题，不代表引用了真实视觉证据。评估要把视觉感知、语言推理、定位精度、OCR、跨模态幻觉和安全分别统计。</p>
 <p>常见失败包括图像不存在时幻觉描述、文字太小导致数字错误、把相似物体混淆、忽略图像局部、视觉内容与文本提示冲突，以及被图片中的恶意指令注入。多模态系统需要输入预处理、内容安全、证据定位和输出校验，不能把图片当作天然可信上下文。</p>
@@ -1522,7 +1544,7 @@ W’=W+\frac{\alpha}{r}BA,
 <p>语言模型的先验可能覆盖视觉信号：当图片模糊或不存在时，模型仍会凭语言概率编造描述；当图像中有少见物体时，模型会用常见类别替代；当用户问题带有错误前提时，模型可能顺着文本而非图像回答。解决这类问题需要让模型显式指出证据区域、置信不足和需要更高分辨率的原因。</p>
 <p>可以在输出中保留 bounding box、页码、时间戳、OCR span 或截图区域，再由程序检查引用是否存在。对于关键数字、金额、合同条款和监控指标，应使用专用 OCR、表格解析或领域工具复核，不把通用视觉语言模型当成唯一事实源。图像中的文字也可能包含提示注入，视觉内容必须和用户指令一样经过信任边界处理。</p>
 <h3 id="多模态微调与文本能力保持"><a class="header" href="#多模态微调与文本能力保持">多模态微调与文本能力保持</a></h3>
-<p>视觉指令微调可能让模型更会描述图片，却损伤纯文本代码和数学能力；高分辨率数据可能提高视觉细节，却增加回答冗长和成本。训练时应保留文本回放集合，并按视觉任务、纯文本、中文、代码和安全分层评估。LLaVA 的视觉指令路线、BLIP-2 的连接器设计和 Qwen-VL 的中文多模态实践，分别说明数据、连接器和语言模型底座都会影响最终能力 <a href="#ref-27-3">[27]</a><a href="#ref-28-3">[28]</a><a href="#ref-29-1">[29]</a>。</p>
+<p>视觉指令微调可能让模型更会描述图片，却损伤纯文本代码和数学能力；高分辨率数据可能提高视觉细节，却增加回答冗长和成本。训练时应保留文本回放集合，并按视觉任务、纯文本、中文、代码和安全分层评估。LLaVA 的视觉指令路线、BLIP-2 的连接器设计和 Qwen-VL 的中文多模态实践，分别说明数据、连接器和语言模型底座都会影响最终能力 <a href="#ref-29-1">[29]</a><a href="#ref-30">[30]</a><a href="#ref-31">[31]</a>。</p>
 <p>多模态模型还要做输入缺失测试：只有文本、只有图片、图片损坏、图片尺寸异常、OCR 为空、多图顺序改变、视频帧丢失。模型应能识别输入不足并请求补充，而不是用语言先验填满空白。把这种“正确失败”纳入 SFT 和偏好数据，通常比单纯增加正常图文问答更能提高生产可靠性。</p>
 <h3 id="音频视频证据与可选创作延伸"><a class="header" href="#音频视频证据与可选创作延伸">音频、视频证据与可选创作延伸</a></h3>
 <p>本书把输入处理视为有损证据链：原文件标识与授权范围、解码、采样/裁剪、感知结果和答案引用要对应。音频转写丢失音调、说话人重叠和非语音事件，需保留时间区间、语言和识别不确定性；不让模型把听不清的金额自动补全。视频抽帧会漏掉短事件，帧的顺序、时间戳和音画同步必须保留；只看到两个端点不能断言中间动作发生。这里描述应用契约，不宣称前述视觉模型都原生支持音频或任意时长视频。</p>
@@ -1548,7 +1570,7 @@ W’=W+\frac{\alpha}{r}BA,
 </div>
 <h3 id="训练路径与真实服务路径"><a class="header" href="#训练路径与真实服务路径">训练路径与真实服务路径</a></h3>
 <p>训练时评估的模型可能是 BF16 主权重加 adapter，线上却是合并后 INT4 权重；训练时使用单轮 chat template，线上却是多轮工具模板；训练时图像分辨率固定，线上却是不同尺寸和压缩格式。所有这些差异都可能被误认为数据或模型问题。</p>
-<p>因此必须建立真实服务路径的离线回放：使用线上 tokenizer、模板、量化、adapter 加载、采样和 schema 校验，记录同一批输入的输出差异。只有训练路径和服务路径都通过，才能进入 shadow mode。Llama 2 的开放模型实践说明，基础模型、聊天适配、安全评估和发布条件需要联合考虑 <a href="#ref-31">[31]</a>。</p>
+<p>因此必须建立真实服务路径的离线回放：使用线上 tokenizer、模板、量化、adapter 加载、采样和 schema 校验，记录同一批输入的输出差异。只有训练路径和服务路径都通过，才能进入 shadow mode。Llama 2 的开放模型实践说明，基础模型、聊天适配、安全评估和发布条件需要联合考虑 <a href="#ref-33">[33]</a>。</p>
 <h3 id="一次完整量化实验的交付规格"><a class="header" href="#一次完整量化实验的交付规格">一次完整量化实验的交付规格</a></h3>
 <p>以下是企业知识助手的教学实验方案，尚未运行。固定基础checkpoint及hash、tokenizer、模板、检索证据快照和停止条件，先得到浮点基线；把校准集、调参开发集、最终测试集分开，按文档/事件实体和时间去重切分。测试覆盖中文知识问答、代码片段、工具参数、长上下文和关键数字；RAG证据相同，防止把检索改变归因给量化。</p>
 <p>第一轮只改权重精度与粒度，记录tensor/channel/row-group、G、zero point、scale dtype、pack和尾组；第二轮固定可行布局比较校准方法；第三轮再比较敏感层回退及可选激活量化。GPTQ/AWQ内部优化与范围法并非全部可自由互换，不能强行把所有组合放进同一个矩阵。先确认所选实现真正支持该组合，再导出候选，并进行序列化、重载和真实kernel回放。</p>
@@ -1579,24 +1601,26 @@ W’=W+\frac{\alpha}{r}BA,
 <p><a id="ref-11-4"></a>[11] Liu, S.-Y., et al. <em>DoRA: Weight-Decomposed Low-Rank Adaptation</em>. ICML, 2024. https://arxiv.org/abs/2402.09353 访问日期：2026-10-16</p>
 <p><a id="ref-12-4"></a>[12] Dettmers, T., et al. <em>QLoRA: Efficient Finetuning of Quantized LLMs</em>. NeurIPS, 2023. https://arxiv.org/abs/2305.14314 访问日期：2026-10-16</p>
 <p><a id="ref-13-4"></a>[13] Nagel, M., et al. <em>A White Paper on Neural Network Quantization</em>. arXiv, 2021. https://arxiv.org/abs/2106.08295 访问日期：2026-10-16</p>
-<p><a id="ref-14-4"></a>[14] Wu, H., Judd, P., Zhang, X., Isaev, M., &amp; Micikevicius, P. <em>Integer Quantization for Deep Learning Inference: Principles and Empirical Evaluation</em>. arXiv, 2020. https://arxiv.org/abs/2004.09602 访问日期：2026-10-16</p>
-<p><a id="ref-15-4"></a>[15] Frantar, E., et al. <em>GPTQ: Accurate Post-Training Quantization for Generative Pre-trained Transformers</em>. arXiv, 2022. https://arxiv.org/abs/2210.17323 访问日期：2026-10-16</p>
-<p><a id="ref-16-4"></a>[16] Lin, J., et al. <em>AWQ: Activation-aware Weight Quantization for LLM Compression and Acceleration</em>. MLSys, 2024. https://arxiv.org/abs/2306.00978 访问日期：2026-10-16</p>
-<p><a id="ref-17-4"></a>[17] Xiao, G., et al. <em>SmoothQuant: Accurate and Efficient Post-Training Quantization for Large Language Models</em>. ICML, 2023. https://arxiv.org/abs/2211.10438 访问日期：2026-10-16</p>
-<p><a id="ref-18-4"></a>[18] Dettmers, T., et al. <em>LLM.int8(): 8-bit Matrix Multiplication for Transformers at Scale</em>. NeurIPS, 2022. https://arxiv.org/abs/2208.07339 访问日期：2026-10-16</p>
-<p><a id="ref-19-4"></a>[19] Yao, Z., et al. <em>ZeroQuant: Efficient and Affordable Post-Training Quantization for Large-Scale Transformers</em>. NeurIPS, 2022. https://arxiv.org/abs/2206.01861 访问日期：2026-10-16</p>
-<p><a id="ref-20-4"></a>[20] Dettmers, T., et al. <em>SpQR: A Sparse-Quantized Representation for Near-Lossless LLM Weight Compression</em>. ICLR, 2024. https://arxiv.org/abs/2306.03078 访问日期：2026-10-16</p>
-<p><a id="ref-21-4"></a>[21] Hinton, G., Vinyals, O., &amp; Dean, J. <em>Distilling the Knowledge in a Neural Network</em>. NeurIPS Deep Learning Workshop, 2015. https://arxiv.org/abs/1503.02531 访问日期：2026-10-16</p>
-<p><a id="ref-22-4"></a>[22] Sanh, V., Debut, L., Chaumond, J., &amp; Wolf, T. <em>DistilBERT, a Distilled Version of BERT</em>. arXiv, 2019. https://arxiv.org/abs/1910.01108 访问日期：2026-10-16</p>
-<p><a id="ref-23-4"></a>[23] Sun, Z., et al. <em>MobileBERT: a Compact Task-Agnostic BERT for Resource-Limited Devices</em>. ACL, 2020. https://arxiv.org/abs/2004.02984 访问日期：2026-10-16</p>
-<p><a id="ref-24-4"></a>[24] Radford, A., et al. <em>Learning Transferable Visual Models From Natural Language Supervision</em>. ICML, 2021. https://arxiv.org/abs/2103.00020 访问日期：2026-10-16</p>
-<p><a id="ref-25-4"></a>[25] Kim, W., Son, B., &amp; Kim, I. <em>ViLT: Vision-and-Language Transformer Without Convolution or Region Supervision</em>. ICML, 2021. https://arxiv.org/abs/2102.03334 访问日期：2026-10-16</p>
-<p><a id="ref-26-4"></a>[26] Alayrac, J.-B., et al. <em>Flamingo: a Visual Language Model for Few-Shot Learning</em>. NeurIPS, 2022. https://arxiv.org/abs/2204.14198 访问日期：2026-10-16</p>
-<p><a id="ref-27-3"></a>[27] Li, J., et al. <em>BLIP-2: Bootstrapping Language-Image Pre-training with Frozen Image Encoders and Large Language Models</em>. ICML, 2023. https://arxiv.org/abs/2301.12597 访问日期：2026-10-16</p>
-<p><a id="ref-28-3"></a>[28] Liu, H., Li, C., Wu, Q., &amp; Lee, Y. J. <em>Visual Instruction Tuning</em>. NeurIPS, 2023. https://arxiv.org/abs/2304.08485 访问日期：2026-10-16</p>
-<p><a id="ref-29-1"></a>[29] Bai, J., et al. <em>Qwen-VL: A Versatile Vision-Language Model for Understanding, Localization, Text Reading, and Beyond</em>. arXiv, 2023. https://arxiv.org/abs/2308.12966 访问日期：2026-10-16</p>
-<p><a id="ref-30"></a>[30] Chen, Z., et al. <em>InternVL: Scaling up Vision Foundation Models and Aligning for Generic Visual-Linguistic Tasks</em>. arXiv, 2023. https://arxiv.org/abs/2312.14238 访问日期：2026-10-16</p>
-<p><a id="ref-31"></a>[31] Touvron, H., et al. <em>Llama 2: Open Foundation and Fine-Tuned Chat Models</em>. arXiv, 2023. https://arxiv.org/abs/2307.09288 访问日期：2026-10-16</p>
+<p><a id="ref-14-4"></a>[14] NVIDIA. <em>Introducing NVFP4 for Efficient and Accurate Low-Precision Inference</em>. NVIDIA Technical Blog, 2025. <a href="https://developer.nvidia.com/blog/introducing-nvfp4-for-efficient-and-accurate-low-precision-inference/">原文</a>。核验日期：2026-10-18</p>
+<p><a id="ref-15-4"></a>[15] NVIDIA. <em>NVFP4</em>. Transformer Engine 2.20.2 documentation. <a href="https://docs.nvidia.com/deeplearning/transformer-engine/features/low_precision_training/nvfp4/nvfp4.html">官方文档</a>。核验日期：2026-10-18</p>
+<p><a id="ref-16-4"></a>[16] Wu, H., Judd, P., Zhang, X., Isaev, M., &amp; Micikevicius, P. <em>Integer Quantization for Deep Learning Inference: Principles and Empirical Evaluation</em>. arXiv, 2020. https://arxiv.org/abs/2004.09602 访问日期：2026-10-16</p>
+<p><a id="ref-17-4"></a>[17] Frantar, E., et al. <em>GPTQ: Accurate Post-Training Quantization for Generative Pre-trained Transformers</em>. arXiv, 2022. https://arxiv.org/abs/2210.17323 访问日期：2026-10-16</p>
+<p><a id="ref-18-4"></a>[18] Lin, J., et al. <em>AWQ: Activation-aware Weight Quantization for LLM Compression and Acceleration</em>. MLSys, 2024. https://arxiv.org/abs/2306.00978 访问日期：2026-10-16</p>
+<p><a id="ref-19-4"></a>[19] Xiao, G., et al. <em>SmoothQuant: Accurate and Efficient Post-Training Quantization for Large Language Models</em>. ICML, 2023. https://arxiv.org/abs/2211.10438 访问日期：2026-10-16</p>
+<p><a id="ref-20-4"></a>[20] Dettmers, T., et al. <em>LLM.int8(): 8-bit Matrix Multiplication for Transformers at Scale</em>. NeurIPS, 2022. https://arxiv.org/abs/2208.07339 访问日期：2026-10-16</p>
+<p><a id="ref-21-4"></a>[21] Yao, Z., et al. <em>ZeroQuant: Efficient and Affordable Post-Training Quantization for Large-Scale Transformers</em>. NeurIPS, 2022. https://arxiv.org/abs/2206.01861 访问日期：2026-10-16</p>
+<p><a id="ref-22-4"></a>[22] Dettmers, T., et al. <em>SpQR: A Sparse-Quantized Representation for Near-Lossless LLM Weight Compression</em>. ICLR, 2024. https://arxiv.org/abs/2306.03078 访问日期：2026-10-16</p>
+<p><a id="ref-23-4"></a>[23] Hinton, G., Vinyals, O., &amp; Dean, J. <em>Distilling the Knowledge in a Neural Network</em>. NeurIPS Deep Learning Workshop, 2015. https://arxiv.org/abs/1503.02531 访问日期：2026-10-16</p>
+<p><a id="ref-24-4"></a>[24] Sanh, V., Debut, L., Chaumond, J., &amp; Wolf, T. <em>DistilBERT, a Distilled Version of BERT</em>. arXiv, 2019. https://arxiv.org/abs/1910.01108 访问日期：2026-10-16</p>
+<p><a id="ref-25-4"></a>[25] Sun, Z., et al. <em>MobileBERT: a Compact Task-Agnostic BERT for Resource-Limited Devices</em>. ACL, 2020. https://arxiv.org/abs/2004.02984 访问日期：2026-10-16</p>
+<p><a id="ref-26-4"></a>[26] Radford, A., et al. <em>Learning Transferable Visual Models From Natural Language Supervision</em>. ICML, 2021. https://arxiv.org/abs/2103.00020 访问日期：2026-10-16</p>
+<p><a id="ref-27-3"></a>[27] Kim, W., Son, B., &amp; Kim, I. <em>ViLT: Vision-and-Language Transformer Without Convolution or Region Supervision</em>. ICML, 2021. https://arxiv.org/abs/2102.03334 访问日期：2026-10-16</p>
+<p><a id="ref-28-3"></a>[28] Alayrac, J.-B., et al. <em>Flamingo: a Visual Language Model for Few-Shot Learning</em>. NeurIPS, 2022. https://arxiv.org/abs/2204.14198 访问日期：2026-10-16</p>
+<p><a id="ref-29-1"></a>[29] Li, J., et al. <em>BLIP-2: Bootstrapping Language-Image Pre-training with Frozen Image Encoders and Large Language Models</em>. ICML, 2023. https://arxiv.org/abs/2301.12597 访问日期：2026-10-16</p>
+<p><a id="ref-30"></a>[30] Liu, H., Li, C., Wu, Q., &amp; Lee, Y. J. <em>Visual Instruction Tuning</em>. NeurIPS, 2023. https://arxiv.org/abs/2304.08485 访问日期：2026-10-16</p>
+<p><a id="ref-31"></a>[31] Bai, J., et al. <em>Qwen-VL: A Versatile Vision-Language Model for Understanding, Localization, Text Reading, and Beyond</em>. arXiv, 2023. https://arxiv.org/abs/2308.12966 访问日期：2026-10-16</p>
+<p><a id="ref-32"></a>[32] Chen, Z., et al. <em>InternVL: Scaling up Vision Foundation Models and Aligning for Generic Visual-Linguistic Tasks</em>. arXiv, 2023. https://arxiv.org/abs/2312.14238 访问日期：2026-10-16</p>
+<p><a id="ref-33"></a>[33] Touvron, H., et al. <em>Llama 2: Open Foundation and Fine-Tuned Chat Models</em>. arXiv, 2023. https://arxiv.org/abs/2307.09288 访问日期：2026-10-16</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="第6章-具身智能与-physical-ai"><a class="header" href="#第6章-具身智能与-physical-ai">第6章 具身智能与 Physical AI</a></h1>
 <p>前面几章讨论的大模型，大多运行在文本、图像、代码、检索结果和工具调用这些“数字空间”里。世界模型和具身智能把问题推进了一步：模型不仅要回答“下一句话是什么”，还要理解“下一秒世界会怎样变化”“如果我采取这个动作，会发生什么”“这个动作在当前身体和环境里是否可行”。</p>
@@ -2578,11 +2602,44 @@ goodput = successful requests / time under SLO
 <p>CUDA的逻辑Grid包含Block，Block包含Thread；线程以warp参与执行，block驻留于SM但一个SM可容纳多个block，数量受寄存器、共享内存和线程资源约束。普通block之间无默认执行顺序，也不能靠某个block自旋等待全Grid完成；跨块汇总可用分阶段kernel等有明确定序的机制。shared memory共享于块内，需要按真实参与线程保证同步。<a href="#ref-23-7">[23]</a></p>
 <p>同stream有操作顺序，跨stream需用event表达依赖，硬件有资源才可能重叠。异步API返回不表示数据已经可用；主机传输要核对pinned memory、拷贝引擎和buffer生命周期，计时前后的同步口径也要说明。<a href="#ref-24-6">[24]</a> 同步太广会损害性能，同步缺失则是正确性错误，二者不能混为一个调参问题。</p>
 <p>本书用32个bank、4字节float和32线程warp作教学映射：连续访问通常分散到不同bank，32×32 tile按列读取的步长32可能使不同地址落同bank；改32×33可改变映射。这里不把同地址广播当不同地址冲突，也不推广到任意向量宽度与硬件。padding增加共享空间，可能减少驻留block；它解决的是特定性能冲突，不能修复越界、未初始化或race。<a href="#ref-23-7">[23]</a></p>
+<h3 id="shared-memory故障先证明正确再诊断bank冲突"><a class="header" href="#shared-memory故障先证明正确再诊断bank冲突">Shared Memory故障：先证明正确，再诊断bank冲突</a></h3>
+<p>某个 shape 才出错时，先固定输入、dtype、stride、block/tile 和工具链，缩减成可复现的最小尺寸，并与可靠参考逐元素比较。以下是本书诊断顺序；Sanitizer 工具职责依据 NVIDIA 官方手册：memcheck 检查内存访问，racecheck 检查共享内存访问竞争，synccheck 检查同步原语使用。它们只覆盖已执行路径，并不能证明所有尺寸正确。<a href="#ref-25-6">[25]</a></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>现象或证据</th><th>优先核对</th><th>修复后的验收</th></tr>
+</thead>
+<tbody>
+<tr><td>非整 tile 或短行出错</td><td>全局/共享索引、尾线程读写、有效元素数、对齐和越界；先运行 memcheck</td><td>同时测试 tile 前后相邻尺寸、非连续 stride 与空维度</td></tr>
+<tr><td>结果随运行变化</td><td>共享位置是否先写后读、是否复用上轮残值；按需运行 racecheck</td><td>消费路径只读本轮已写位置，循环复用前后依赖明确</td></tr>
+<tr><td>部分尺寸挂起或同步报错</td><td>分支和提前 return 是否使部分线程跳过块屏障；运行 synccheck</td><td>无效线程可屏蔽访存，但仍按算法要求参与同步</td></tr>
+<tr><td>结果正确、访问明显变慢</td><td>区分同地址广播和不同地址落同 bank；检查布局、元素宽度及资源占用</td><td>padding 前后输出等价，同时比较共享空间、驻留度和耗时</td></tr>
+</tbody>
+</table>
+</div>
+<p>自动门禁配置非零错误退出码并保存报告，缺少设备时记录未验证；padding 不能修复越界、竞争或错误屏障。</p>
 <h3 id="融合编译与瓶颈的受控实验"><a class="header" href="#融合编译与瓶颈的受控实验">融合、编译与瓶颈的受控实验</a></h3>
-<p>融合常减少launch和中间HBM读写，却可能增加寄存器、spill、共享内存和同步，破坏独立库核的tile或Tensor Core路径。回退时先固定形状、dtype、预热、计时同步与数据，再比寄存器、local spill、占用、访存合并和kernel时间；缩小融合范围也应作为候选，而非只继续加融合。Triton语言以blocked program描述计算，CUDA给出较显式的线程与同步控制；此Triton不是第7章的Triton Inference Server。<a href="#ref-25-6">[25]</a></p>
-<p>TVM涉及图与算子程序及运行时，XLA是张量计算编译器，TensorRT面向NVIDIA推理部署，三者不是训练并行框架的同义词。<a href="#ref-26-5">[26]</a><a href="#ref-27-4">[27]</a><a href="#ref-28-4">[28]</a> 图级做等价变换、常量折叠、死代码消除、布局协调与融合；算子级安排tiling、循环、线程与存储层级。局部最佳布局可能让相邻算子多出转置，需接受局部牺牲来减少全图搬运。浮点重排按明确误差而非文本相同验收。</p>
+<p>融合常减少launch和中间HBM读写，却可能增加寄存器、spill、共享内存和同步，破坏独立库核的tile或Tensor Core路径。回退时先固定形状、dtype、预热、计时同步与数据，再比寄存器、local spill、占用、访存合并和kernel时间；缩小融合范围也应作为候选，而非只继续加融合。Triton语言以blocked program描述计算，CUDA给出较显式的线程与同步控制；此Triton不是第7章的Triton Inference Server。<a href="#ref-26-5">[26]</a></p>
+<p>TVM涉及图与算子程序及运行时，XLA是张量计算编译器，TensorRT面向NVIDIA推理部署，三者不是训练并行框架的同义词。<a href="#ref-27-4">[27]</a><a href="#ref-28-4">[28]</a><a href="#ref-29-2">[29]</a> 图级做等价变换、常量折叠、死代码消除、布局协调与融合；算子级安排tiling、循环、线程与存储层级。局部最佳布局可能让相邻算子多出转置，需接受局部牺牲来减少全图搬运。浮点重排按明确误差而非文本相同验收。</p>
 <p>动态图可捕获局部静态IR并做符号维或shape特化；图断裂、数据依赖分支和新形状可能回退或重编译。静态IR不等于全部尺寸固定，也不等于CUDA Graph的launch捕获。记录编译、预热、缓存命中和长尾形状成本，限制特化缓存，罕见shape走经过验证的通用路径。一次导出成功不能证明训练或Serving端到端更快。</p>
-<p>Nsight的Roofline用算术强度与带宽/计算上限帮助解释核的瓶颈。<a href="#ref-29-2">[29]</a> 本书粗略模型为性能不超过min(峰值算力,带宽×FLOPs/字节)，但计数器须对应所用精度、访存层和真实指令。SM低且DRAM低也可能是launch、同步、CPU供给、小grid或依赖链；不能据此二分为“计算”或“显存”。先从时间线看空闲还是核内低效，再改batch、分块或融合检验假设，报告kernel和端到端两个层级。</p>
+<p>Nsight的Roofline用算术强度与带宽/计算上限帮助解释核的瓶颈。<a href="#ref-30-1">[30]</a> 本书粗略模型为性能不超过min(峰值算力,带宽×FLOPs/字节)，但计数器须对应所用精度、访存层和真实指令。SM低且DRAM低也可能是launch、同步、CPU供给、小grid或依赖链；不能据此二分为“计算”或“显存”。先从时间线看空闲还是核内低效，再改batch、分块或融合检验假设，报告kernel和端到端两个层级。</p>
+<h3 id="编译工具比较抽象层次与验收对象"><a class="header" href="#编译工具比较抽象层次与验收对象">编译工具比较：抽象层次与验收对象</a></h3>
+<p>下表比较开发者控制的对象，描述依据维护方文档；验收要求为本书推导。<a href="#ref-23-7">[23]</a><a href="#ref-26-5">[26]</a><a href="#ref-27-4">[27]</a><a href="#ref-28-4">[28]</a><a href="#ref-29-2">[29]</a></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>路线</th><th>主要控制对象与用途</th><th>比较时需要验证的代价</th></tr>
+</thead>
+<tbody>
+<tr><td>CUDA</td><td>显式线程、块、同步与内存访问；适合需要细致控制的设备程序</td><td>开发调试、边界与同步正确性、架构适配，以及实际占用和访存</td></tr>
+<tr><td>Triton</td><td>用分块张量程序表达自定义计算，由编译器生成设备代码</td><td>mask、布局、编译特化和调优；表达简洁不保证比成熟 CUDA 库更快</td></tr>
+<tr><td>TVM</td><td>连接模型/图表示、张量程序变换、目标代码与运行时，可组合图和算子优化</td><td>前端与目标支持、优化与搜索成本、布局转换和外部库边界</td></tr>
+<tr><td>XLA</td><td>对张量计算图进行编译、优化与目标代码生成</td><td>可编译区域、动态控制流/shape、重编译与回退，连同首次编译时间</td></tr>
+<tr><td>TensorRT</td><td>针对 NVIDIA 推理进行网络优化、执行方案选择与 engine 构建</td><td>算子与精度支持、动态 shape 配置、插件维护、构建时间及部署兼容性</td></tr>
+</tbody>
+</table>
+</div>
+<p>以 <code>matmul → bias → activation</code> 为教学例，图级先识别数据依赖、消去无效节点，并决定是否融合及如何衔接布局；不能跨越有副作用或不满足语义的边界任意重排。算子级再选择分块、循环顺序、线程绑定和存储位置。TVM 的图与张量程序层、Pass 基础设施支持这种分层变换，具体入口随版本核对。<a href="#ref-27-4">[27]</a>这里给出的是优化职责与执行次序，不是一段已经运行的 TVM 程序。</p>
 <h2 id="85-checkpoint与恢复协议"><a class="header" href="#85-checkpoint与恢复协议">8.5 Checkpoint与恢复协议</a></h2>
 <h3 id="checkpoint-的完整状态"><a class="header" href="#checkpoint-的完整状态">Checkpoint 的完整状态</a></h3>
 <p>可训练checkpoint通常包含模型参数、必要的master weights、optimizer moments、学习率调度器、gradient scaler、随机数状态、数据游标、训练配置、并行拓扑、tokenizer、数据 manifest、代码版本和评估结果。权重连同所需模型配置/模板可用于推理，却不能保证继续训练等价。若在optimizer step边界保存且无未提交梯度累积，梯度未必需要持久化；若保存中间累积状态则应包含梯度与累积进度。对于分片训练，文件名不是状态语义，必须用 manifest 描述逻辑参数、shard 范围、dtype、shape 和校验和。</p>
@@ -2594,7 +2651,7 @@ goodput = successful requests / time under SLO
 <p>异步 checkpoint 可以让训练继续计算，但需要处理内存快照、写入期间的状态一致性和 GPU/CPU 拷贝。若 checkpoint 线程读取正在变化的 optimizer state，得到的可能是跨 step 混合状态。安全做法是使用冻结的 state snapshot、copy-on-write 或在逻辑 step 边界建立一致快照。异步并不意味着可以取消一致性约束。</p>
 <h3 id="故障分类与恢复策略"><a class="header" href="#故障分类与恢复策略">故障分类与恢复策略</a></h3>
 <p>常见故障包括 GPU Xid、节点重启、网络分区、NCCL hang、对象存储限流、文件系统不可写、容器驱逐、OOM、NaN 和数据 shard 损坏。单卡故障可能需要替换节点并重建 communicator；存储抖动可以退避重试；NaN 应停止并恢复健康点；rank 卡死需要 watchdog 和全局超时。不同故障必须有不同的 runbook，不能把“自动重启”当作统一方案。</p>
-<p>弹性恢复可以等待原节点、替换节点后保持 world size、缩小 world size 继续，或回滚并重新分配。改变 world size 可能改变 global batch、学习率、数据顺序和 optimizer 行为。平台应让恢复策略显式化，并在报告中记录丢失步数、重算 token、恢复耗时和最终质量差异。SRE 的错误预算思想可用于决定何时继续重试、何时停止作业并人工处理 <a href="#ref-30-1">[30]</a>。</p>
+<p>弹性恢复可以等待原节点、替换节点后保持 world size、缩小 world size 继续，或回滚并重新分配。改变 world size 可能改变 global batch、学习率、数据顺序和 optimizer 行为。平台应让恢复策略显式化，并在报告中记录丢失步数、重算 token、恢复耗时和最终质量差异。SRE 的错误预算思想可用于决定何时继续重试、何时停止作业并人工处理 <a href="#ref-31-1">[31]</a>。</p>
 <h3 id="训练状态与推理制品分离"><a class="header" href="#训练状态与推理制品分离">训练状态与推理制品分离</a></h3>
 <p>训练 checkpoint 的目标是继续优化，推理制品的目标是快速加载和稳定服务。训练状态包含 optimizer 和分片元数据，推理制品通常只包含参数、tokenizer、模板、量化和运行时配置。两者应使用不同目录、权限和生命周期，但通过一个发布 manifest 关联。直接把训练目录挂载到 serving，容易暴露不必要状态，也容易让线上误读一个未完成版本。</p>
 <p>转换器要处理参数命名、分片布局、dtype、权重共享、词表、位置编码和模型 schema。转换后应做参数总量、shape、均值方差、hash 和小 batch 输出对比。对量化模型，还要比较校准集质量、最大误差、生成稳定性和特殊 token。转换脚本要固定版本并产生日志，不能依赖某个开发者机器上的临时命令。</p>
@@ -2608,7 +2665,7 @@ goodput = successful requests / time under SLO
 <p>取消长训练需要定义边界。用户点击停止后，控制面发出取消事件，worker 在安全 step 边界停止接收新 batch，必要时保存一个可恢复 checkpoint，再关闭数据流和通信组。若节点即将被抢占，平台可以提前发送 preemption notice，让作业尽量完成一次保存。直接 kill 进程虽然快，却可能留下无法判断的新旧状态和大量孤儿资源。</p>
 <p>优雅停止的时间也要有上限。checkpoint 长时间卡住时，平台要选择等待、切换存储路径或保留最近健康点；不能因为保存新点而让整个集群无限占用。最终状态应区分 USER_CANCELLED、PREEMPTED、BUDGET_EXCEEDED、FAILED_RECOVERABLE 和 FAILED_PERMANENT。不同状态决定是否自动重试、是否计入实验失败、是否需要人工审批。</p>
 <h3 id="异步快照时间线与完整性发布"><a class="header" href="#异步快照时间线与完整性发布">异步快照时间线与完整性发布</a></h3>
-<p>PyTorch DCP2.9明确把staging目标定义为training-safe表示：staging完成后，后续参数更新不应改动被保存的表示；自定义stager若不自动同步，调用者负责选择正确同步点。<a href="#ref-31-1">[31]</a> 这里区分设备拷贝完成与持久化完成，不能把Future存在当保存已提交。以下是本书通用协议设计，不是DDP自动具备的API行为：</p>
+<p>PyTorch DCP2.9明确把staging目标定义为training-safe表示：staging完成后，后续参数更新不应改动被保存的表示；自定义stager若不自动同步，调用者负责选择正确同步点。<a href="#ref-32-1">[32]</a> 这里区分设备拷贝完成与持久化完成，不能把Future存在当保存已提交。以下是本书通用协议设计，不是DDP自动具备的API行为：</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -2630,7 +2687,7 @@ goodput = successful requests / time under SLO
 <p>分布式训练需要一组 GPU 同时可用，部分分配往往只能让 job 长期 pending。调度器应识别 gang，并根据节点、GPU、NVLink、网络和本地数据做拓扑感知。大 job 需要反碎片化，小 job 可以填充空洞；训练、推理、评估和开发应有不同资源池与优先级。抢占时要考虑 checkpoint 是否完成，不能在不可恢复的阶段直接杀死作业。</p>
 <h3 id="配额优先级与公平"><a class="header" href="#配额优先级与公平">配额、优先级与公平</a></h3>
 <p>配额应同时按 GPU 数、GPU 小时、显存、优先级和项目预算表达。一个团队占用少量高端 GPU 训练很久，可能比另一个团队使用更多低端 GPU 更昂贵。成本系统要记录预约、实际使用、空闲等待、通信等待、恢复重算、评估和 checkpoint。按有效 token 和成功实验归因，才能比较不同团队的真实效率。</p>
-<p>多租户环境应隔离数据凭证、checkpoint 路径、日志、缓存和调试权限。训练 worker 只获得访问具体 manifest 和 shard 的短期凭证，不能拥有整个 bucket 的写权限；checkpoint 目录与原始数据隔离；样本抽样和错误日志默认脱敏。OpenTelemetry 与 Prometheus 可以提供统一的运行指标和追踪基础，但敏感数据是否记录仍需平台策略 <a href="#ref-11-7">[11]</a><a href="#ref-32">[32]</a><a href="#ref-33">[33]</a>。</p>
+<p>多租户环境应隔离数据凭证、checkpoint 路径、日志、缓存和调试权限。训练 worker 只获得访问具体 manifest 和 shard 的短期凭证，不能拥有整个 bucket 的写权限；checkpoint 目录与原始数据隔离；样本抽样和错误日志默认脱敏。OpenTelemetry 与 Prometheus 可以提供统一的运行指标和追踪基础，但敏感数据是否记录仍需平台策略 <a href="#ref-11-7">[11]</a><a href="#ref-33-1">[33]</a><a href="#ref-34">[34]</a>。</p>
 <h3 id="成本预算与容量计划"><a class="header" href="#成本预算与容量计划">成本预算与容量计划</a></h3>
 <p>训练计划应在启动前估算 token、step、GPU 小时、checkpoint 次数、评估次数和重试余量。理想扩展效率公式为：</p>
 <pre><code class="language-text">E(N) = throughput(N) / (N × throughput(1))
@@ -2638,7 +2695,7 @@ goodput = successful requests / time under SLO
 <p>当扩展效率随 GPU 数快速下降时，继续扩大集群可能比优化数据、kernel 或并行策略更贵。平台应把扩展曲线作为门禁，记录有效 token/s、通信比例、数据等待、峰值显存和节点故障恢复。PaLM 和 Megatron-LM 的规模化经验表明，训练规模越大，系统效率和故障管理越是模型质量的一部分 <a href="#ref-1-7">[1]</a><a href="#ref-17-7">[17]</a><a href="#ref-9-7">[9]</a>。</p>
 <h3 id="资源泄漏与作业清理"><a class="header" href="#资源泄漏与作业清理">资源泄漏与作业清理</a></h3>
 <p>训练作业失败后，常见残留包括 Kubernetes Pod、NCCL 进程、共享内存、Pinned Memory、对象存储临时目录、租约、GPU reservation 和告警。控制面应有终止流程：先发送取消事件，等待 worker 上报 checkpoint 或停止原因，再清理通信组、释放分配、关闭数据流、删除临时文件并写最终状态。清理流程需要超时和人工兜底，不能无限等待一个失联 worker。</p>
-<p>资源回收要幂等。重复执行清理不会删除其他 job 的路径，不会释放错误的 GPU，也不会覆盖成功的最终状态。临时目录命名必须包含不可猜测的 run_id 和版本；清理器根据 manifest 校验归属，而不是使用宽泛的通配符。Prometheus 可以监测 reservation 与实际 Pod 的差异，及时发现资源泄漏 <a href="#ref-32">[32]</a>。</p>
+<p>资源回收要幂等。重复执行清理不会删除其他 job 的路径，不会释放错误的 GPU，也不会覆盖成功的最终状态。临时目录命名必须包含不可猜测的 run_id 和版本；清理器根据 manifest 校验归属，而不是使用宽泛的通配符。Prometheus 可以监测 reservation 与实际 Pod 的差异，及时发现资源泄漏 <a href="#ref-33-1">[33]</a>。</p>
 <h3 id="训练与后训练的资源差异"><a class="header" href="#训练与后训练的资源差异">训练与后训练的资源差异</a></h3>
 <p>预训练通常以稳定的大 batch 和长时间运行换取高吞吐；监督微调和偏好优化的 batch 更小、序列长度更不稳定，评估和生成式 verifier 可能成为瓶颈。统一的训练平台可以复用控制面、数据 manifest 和 checkpoint，但应允许 workload profile 声明不同的资源需求。后训练不能直接套用预训练的扩展曲线，因为生成、采样、奖励模型和验证器会改变 GPU 与 CPU 的比例。</p>
 <p>例如 RLVR 训练可能需要并行生成多个候选，再执行 verifier；如果只给训练 worker 配 GPU，CPU verifier、队列和网络会成为隐性瓶颈。平台应把辅助模型、评估模型、tokenizer、验证器和数据服务纳入 job graph，统一记录版本与成本。否则看到的“训练吞吐”可能只是主模型 forward 速度，真实的每个有效样本成本却不断上升。</p>
@@ -2651,13 +2708,13 @@ goodput = successful requests / time under SLO
 <h2 id="87-观测排障与故障演练"><a class="header" href="#87-观测排障与故障演练">8.7 观测、排障与故障演练</a></h2>
 <h3 id="指标日志与追踪"><a class="header" href="#指标日志与追踪">指标、日志与追踪</a></h3>
 <p>训练指标包括 loss、学习率、梯度范数、有效 token、device token、GPU 利用率、显存、kernel 时间、通信、数据等待、checkpoint、恢复和节点健康。指标要按 rank、节点、数据桶和并行维度聚合，同时保留最大值和方差，避免平均值掩盖一个慢 rank。日志记录错误上下文，trace 连接控制面、数据服务、worker 和 checkpoint 服务。</p>
-<p>Dapper 的分布式追踪思想适合把训练控制面和数据面关联起来 <a href="#ref-33">[33]</a>。训练 trace 不应默认记录完整样本和隐私文本，而应记录 manifest、shard、batch、step、request id、错误类型和 hash。OpenTelemetry 提供跨组件的语义约定，Prometheus 适合时间序列与告警；二者结合后，平台能从“GPU 下降”追到“某类 shard 解压变慢”或“某个 rank 通信抖动”。</p>
+<p>Dapper 的分布式追踪思想适合把训练控制面和数据面关联起来 <a href="#ref-34">[34]</a>。训练 trace 不应默认记录完整样本和隐私文本，而应记录 manifest、shard、batch、step、request id、错误类型和 hash。OpenTelemetry 提供跨组件的语义约定，Prometheus 适合时间序列与告警；二者结合后，平台能从“GPU 下降”追到“某类 shard 解压变慢”或“某个 rank 通信抖动”。</p>
 <h3 id="验收矩阵"><a class="header" href="#验收矩阵">验收矩阵</a></h3>
 <p>训练 Infra 的验收至少包含五类测试：数据正确性、性能扩展、故障恢复、数值稳定和安全治理。数据正确性验证 token 统计、样本边界、loss mask、manifest 和重复率；性能验证单机、单节点、多节点扩展曲线；恢复验证中断、节点替换、checkpoint 损坏和数据不可读；数值验证 loss 连续、梯度无异常和不同精度在容差内；治理验证权限、审计、成本和数据删除。</p>
 <p>每项测试都要固定模型 hash、数据 manifest、容器镜像、硬件、驱动、并行度、global batch 和测试时间。报告不仅写“通过”，还要保存原始指标与失败样本。若性能提高但 loss 曲线异常，不能接受；若恢复成功但重复了大量数据，也不能只算功能通过。训练平台的交付标准是可解释、可重现和可恢复，而不是某一次 demo 的最高吞吐。</p>
 <h3 id="故障注入"><a class="header" href="#故障注入">故障注入</a></h3>
 <p>训练平台至少要演练五类注入：杀死一个 rank、关闭一台节点、阻断集合通信、让对象存储返回超时、损坏一个 checkpoint shard。每次注入要记录检测时间、作业状态、用户可见影响、自动恢复、重算 token、恢复后的 loss 和资源释放。若系统只在单进程退出时能恢复，而一个 rank 卡死会让其他进程永久等待，那么它并不具备生产级弹性。</p>
-<p>故障注入不能只发生在非高峰环境。高峰期的队列、配额和发布动作会改变恢复路径。可以先在隔离资源池做小规模演练，再在生产影子作业验证指标与告警，最后安排可控的真实节点维护。本书结合SRE错误预算的决策方法 <a href="#ref-30-1">[30]</a> 设计演练与停止条件，不把该书当特定训练平台已经恢复成功的证据。</p>
+<p>故障注入不能只发生在非高峰环境。高峰期的队列、配额和发布动作会改变恢复路径。可以先在隔离资源池做小规模演练，再在生产影子作业验证指标与告警，最后安排可控的真实节点维护。本书结合SRE错误预算的决策方法 <a href="#ref-31-1">[31]</a> 设计演练与停止条件，不把该书当特定训练平台已经恢复成功的证据。</p>
 <h3 id="数据与模型治理"><a class="header" href="#数据与模型治理">数据与模型治理</a></h3>
 <p>训练数据需要来源、授权、保留期、删除流程和审计。数据处理 worker 获得最小读权限，输出 shard 写入独立路径；日志中的样本文本默认脱敏；调试抽样需要临时授权。模型 checkpoint 可能记忆训练数据或包含内部能力，因此下载、复制、转换和对外发布都应登记。</p>
 <p>治理信息不应只存在文档中。manifest、job spec、checkpoint manifest 和发布记录都应机器可读，评估系统和权限系统可以据此阻断不合规任务。例如数据 license 不允许某种用途时，控制面在分配 GPU 前拒绝 job；checkpoint 使用了已撤回的数据版本时，注册表阻止发布。治理越晚介入，返工成本越高。</p>
@@ -2677,7 +2734,7 @@ goodput = successful requests / time under SLO
 <p>为了让性能分析能够落地，可以把每个 step 的时间线固定为：数据游标推进、CPU 预取、Pinned Memory 拷贝、H2D 拷贝、forward、activation 保存或重算、backward、梯度 bucket ready、collective、optimizer update、日志和 checkpoint。每个区间记录开始与结束时间，并以 global step、rank 和 node 关联。这样当吞吐下降时，可以直接回答是数据迟到、GPU kernel 变慢、通信不重叠，还是保存状态引起了暂停。</p>
 <p>时间线也能帮助比较不同优化。改变 packing 主要影响有效 token 和数据阶段；改变 FlashAttention 主要影响 attention kernel 与显存；改变 FSDP 主要影响 all-gather、reduce-scatter 和显存峰值；改变 checkpoint 主要影响 I/O 与同步。把所有优化都归结为 GPU utilization，会丢失这些因果关系。性能报告应给出端到端收益以及每个区间的变化，方便后续回归。</p>
 <h3 id="nccl-timeout先找未到达的rank"><a class="header" href="#nccl-timeout先找未到达的rank">NCCL timeout先找未到达的rank</a></h3>
-<p>PyTorch分布式文档给出通信组与辅助诊断机制，NCCL也按拓扑、运行时与网络分层提供排障入口。<a href="#ref-34">[34]</a><a href="#ref-35">[35]</a> 本书诊断流程从最早异常开始：关联所有rank的run/step、collective序号、组、shape、dtype与进入/退出时间，而非只读最后超时的节点。某rank先OOM、CUDA错误、进程退出或卡在数据读取，其他rank可能只是等待它而最后报timeout。</p>
+<p>PyTorch分布式文档给出通信组与辅助诊断机制，NCCL也按拓扑、运行时与网络分层提供排障入口。<a href="#ref-35">[35]</a><a href="#ref-36">[36]</a> 本书诊断流程从最早异常开始：关联所有rank的run/step、collective序号、组、shape、dtype与进入/退出时间，而非只读最后超时的节点。某rank先OOM、CUDA错误、进程退出或卡在数据读取，其他rank可能只是等待它而最后报timeout。</p>
 <p>若同一collective序号的调用或张量不一致，检查条件分支、尾批、异常处理和组创建；若某rank在进入collective前长期数据等待，检查其shard、解压、NUMA和CPU；若顺序一致但特定链路反复慢，再查GPU/Xid、NIC/RDMA、拓扑与独立通信复现。监测用barrier也有后端与版本限制，不把它插到所有生产step里制造新等待。</p>
 <p>教学故障例：rank3读取坏shard未上报异常，其他rank均停在梯度同步。正确动作是保留rank3的数据等待与最早错误，隔离坏输入，按一致checkpoint重启，并确认后续有效token和游标；只把timeout调大不会修复数据源。若独立通信也复现链路故障，先隔离节点再做长稳/恢复验证。只有证明合法操作确实更长时才调整超时，不能用更长等待掩盖死锁。</p>
 <h2 id="88-训练平台验收与交付"><a class="header" href="#88-训练平台验收与交付">8.8 训练平台验收与交付</a></h2>
@@ -2702,7 +2759,7 @@ goodput = successful requests / time under SLO
 <p>这些检查不是行政清单，而是系统边界的外化。缺少其中任何一项，都可能把故障推迟到更昂贵的阶段：数据问题会在训练几天后才暴露，checkpoint 问题会在节点故障时暴露，权限问题会在审计时暴露，吞吐问题会在扩大集群后暴露。把它们前置到小规模验证，通常是训练 Infra 最便宜的优化。</p>
 <h3 id="训练结果的可审计性"><a class="header" href="#训练结果的可审计性">训练结果的可审计性</a></h3>
 <p>一次训练结果至少需要能回答四个问题：使用了什么数据，执行了什么计算，经历了哪些故障，为什么可以发布。数据由 manifest、授权和统计回答；计算由 job spec、代码 hash、并行拓扑和运行时镜像回答；故障由事件、trace、重试和恢复记录回答；发布由评估报告、质量门禁和审批记录回答。把这些信息分散在聊天记录、机器本地日志和手工表格中，短期看似灵活，长期一定无法复盘。</p>
-<p>可审计不等于保存所有原始内容。审计记录可以使用带权限控制的hash（敏感低熵字段不能依赖裸hash匿名化）、版本号、长度、来源、权限和时间，敏感文本单独受控。关键事件使用追加式日志，修正通过新事件表达而不是覆盖旧记录。这样既能支持事故调查和合规审查，又不会把训练数据复制到每个监控系统。Dapper 的 trace 关联思想和 OpenTelemetry 的上下文传播可以帮助连接不同服务，但数据最小化仍然是平台责任 <a href="#ref-11-7">[11]</a><a href="#ref-33">[33]</a>。</p>
+<p>可审计不等于保存所有原始内容。审计记录可以使用带权限控制的hash（敏感低熵字段不能依赖裸hash匿名化）、版本号、长度、来源、权限和时间，敏感文本单独受控。关键事件使用追加式日志，修正通过新事件表达而不是覆盖旧记录。这样既能支持事故调查和合规审查，又不会把训练数据复制到每个监控系统。Dapper 的 trace 关联思想和 OpenTelemetry 的上下文传播可以帮助连接不同服务，但数据最小化仍然是平台责任 <a href="#ref-11-7">[11]</a><a href="#ref-34">[34]</a>。</p>
 <h3 id="gpu与规约练习卡组设计未实现未实测"><a class="header" href="#gpu与规约练习卡组设计未实现未实测">GPU与规约练习卡组（设计，未实现未实测）</a></h3>
 <p>下面只规定配套项目的输入输出与验收；本章没有CUDA编译、Sanitizer运行或目标GPU性能结果。所有卡先与CPU/可靠库的高精度参考比较，再在明确硬件和同步口径下测速，不承诺超过成熟库。</p>
 <div class="table-wrapper">
@@ -2750,17 +2807,18 @@ goodput = successful requests / time under SLO
 <p><a id="ref-22-7"></a>[22] PyTorch. <em>torch.utils.checkpoint</em>. 2.9. https://docs.pytorch.org/docs/2.9/checkpoint.html 核验日期：2026-10-17</p>
 <p><a id="ref-23-7"></a>[23] NVIDIA. <em>CUDA Programming Guide: Writing SIMT Kernels</em>. 2026-09-10. https://docs.nvidia.com/cuda/cuda-programming-guide/02-basics/writing-cuda-kernels.html 核验日期：2026-10-17</p>
 <p><a id="ref-24-6"></a>[24] NVIDIA. <em>CUDA Programming Guide: Asynchronous Execution</em>. 2026-09-10. https://docs.nvidia.com/cuda/cuda-programming-guide/02-basics/asynchronous-execution.html 核验日期：2026-10-17</p>
-<p><a id="ref-25-6"></a>[25] Triton Contributors. <em>Triton Language Introduction</em>. online checked 2026-10-17. https://triton-lang.org/main/programming-guide/chapter-1/introduction.html 核验日期：2026-10-17</p>
-<p><a id="ref-26-5"></a>[26] Apache TVM. <em>Design and Architecture</em>. online checked 2026-10-17. https://tvm.apache.org/docs/arch/index.html 核验日期：2026-10-17</p>
-<p><a id="ref-27-4"></a>[27] OpenXLA. <em>XLA</em>. online checked 2026-10-17. https://openxla.org/xla 核验日期：2026-10-17</p>
-<p><a id="ref-28-4"></a>[28] NVIDIA. <em>TensorRT Architecture Overview</em>. online checked 2026-10-17. https://docs.nvidia.com/deeplearning/tensorrt/latest/architecture/architecture-overview.html 核验日期：2026-10-17</p>
-<p><a id="ref-29-2"></a>[29] NVIDIA. <em>Nsight Compute Profiling Guide</em>. online checked 2026-10-17. https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html 核验日期：2026-10-17</p>
-<p><a id="ref-30-1"></a>[30] Beyer, B., et al. <em>The Site Reliability Workbook: Implementing SLOs</em>. O’Reilly, 2018. https://sre.google/workbook/implementing-slos/ 核验日期：2026-10-17</p>
-<p><a id="ref-31-1"></a>[31] PyTorch. <em>Distributed Checkpoint</em>. 2.9. https://docs.pytorch.org/docs/2.9/distributed.checkpoint.html 核验日期：2026-10-17</p>
-<p><a id="ref-32"></a>[32] Prometheus Authors. <em>Prometheus Documentation</em>. https://prometheus.io/docs/introduction/overview/ 访问日期：2026-10-17</p>
-<p><a id="ref-33"></a>[33] Sigelman, B. H., et al. <em>Dapper, a Large-Scale Distributed Systems Tracing Infrastructure</em>. Google Research, 2010. https://research.google/pubs/dapper-a-large-scale-distributed-systems-tracing-infrastructure/ 访问日期：2026-10-17</p>
-<p><a id="ref-34"></a>[34] PyTorch. <em>Distributed communication package</em>. 2.9文档. https://docs.pytorch.org/docs/2.9/distributed.html 核验日期：2026-10-17</p>
-<p><a id="ref-35"></a>[35] NVIDIA. <em>NCCL Troubleshooting</em>. 2.32.3. https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/troubleshooting.html 核验日期：2026-10-17</p>
+<p><a id="ref-25-6"></a>[25] NVIDIA. <em>Compute Sanitizer User Manual</em>. <a href="https://docs.nvidia.com/compute-sanitizer/ComputeSanitizer/index.html">官方文档</a>。核验日期：2026-10-18</p>
+<p><a id="ref-26-5"></a>[26] Triton Contributors. <em>Triton Language Introduction</em>. https://triton-lang.org/main/programming-guide/chapter-1/introduction.html 核验日期：2026-10-18</p>
+<p><a id="ref-27-4"></a>[27] Apache TVM. <em>Design and Architecture</em>. https://tvm.apache.org/docs/arch/index.html 核验日期：2026-10-18</p>
+<p><a id="ref-28-4"></a>[28] OpenXLA. <em>XLA</em>. https://openxla.org/xla 核验日期：2026-10-18</p>
+<p><a id="ref-29-2"></a>[29] NVIDIA. <em>TensorRT Architecture Overview</em>. https://docs.nvidia.com/deeplearning/tensorrt/latest/architecture/architecture-overview.html 核验日期：2026-10-18</p>
+<p><a id="ref-30-1"></a>[30] NVIDIA. <em>Nsight Compute Profiling Guide</em>. online checked 2026-10-17. https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html 核验日期：2026-10-17</p>
+<p><a id="ref-31-1"></a>[31] Beyer, B., et al. <em>The Site Reliability Workbook: Implementing SLOs</em>. O’Reilly, 2018. https://sre.google/workbook/implementing-slos/ 核验日期：2026-10-17</p>
+<p><a id="ref-32-1"></a>[32] PyTorch. <em>Distributed Checkpoint</em>. 2.9. https://docs.pytorch.org/docs/2.9/distributed.checkpoint.html 核验日期：2026-10-17</p>
+<p><a id="ref-33-1"></a>[33] Prometheus Authors. <em>Prometheus Documentation</em>. https://prometheus.io/docs/introduction/overview/ 访问日期：2026-10-17</p>
+<p><a id="ref-34"></a>[34] Sigelman, B. H., et al. <em>Dapper, a Large-Scale Distributed Systems Tracing Infrastructure</em>. Google Research, 2010. https://research.google/pubs/dapper-a-large-scale-distributed-systems-tracing-infrastructure/ 访问日期：2026-10-17</p>
+<p><a id="ref-35"></a>[35] PyTorch. <em>Distributed communication package</em>. 2.9文档. https://docs.pytorch.org/docs/2.9/distributed.html 核验日期：2026-10-17</p>
+<p><a id="ref-36"></a>[36] NVIDIA. <em>NCCL Troubleshooting</em>. 2.32.3. https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/troubleshooting.html 核验日期：2026-10-17</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="第9章-推理服务与资源调度"><a class="header" href="#第9章-推理服务与资源调度">第9章 推理服务与资源调度</a></h1>
 <p>训练完成并不意味着模型已经可以被用户使用。训练输出是一个需要转换、装载、调度和观测的制品；在线推理则是一个同时面对突发流量、长尾上下文、流式连接、动态 batch、显存限制和版本发布的分布式服务。本章聚焦从一次 <code>forward</code> 到生产级 serving 的完整链路，重点解释 prefill 与 decode 的资源差异、KV cache 的内存管理、连续批处理、模型并行、长上下文、公平调度、量化、投机解码以及服务 SLO。</p>
@@ -16071,6 +16129,21 @@ Input -&gt; -&gt; Branch B -&gt; Aggregator -&gt; Output
 <p>教学输入为十万余词及固定分类体系版本。先定义单/多标签、层级、歧义和拒判，人工标注分层基线；规范化保留original_word与稳定item_id，去重项保留原位置映射。规则/词典处理确定项，轻量分类或embedding给候选，LLM只处理难例；不按每个词创建自主Agent。</p>
 <p>代码按token预算与输出长度确定batch，教学候选每批128项仅作起点，不能当通用最优值。每项输出item_id、taxonomy_version、labels、evidence/reason及abstain；检查输入输出一一对应、无缺/重项、枚举/层级/多标签约束。按batch_id/input_hash/model/prompt/taxonomy版本保存结果，失败只重跑未完成或失效项，重启按账本恢复。</p>
 <p>标签更新保留旧版与迁移映射，低置信阈值在独立标注集校准，LLM自报分数不是概率。评价macro/micro、长尾混淆、层级一致、拒判、尾延迟和单位成功成本。仅独立领域判断确有收益时用专家Agent；机械切批、限速、join和结果去重由确定性调度器完成。此案例未运行。</p>
+<h3 id="漫剧创作工作流从需求到可审查产物"><a class="header" href="#漫剧创作工作流从需求到可审查产物">漫剧创作工作流：从需求到可审查产物</a></h3>
+<p>下面是将本书编排方法迁移到创作场景的教学设计，不是已经实现的生成平台。先确认受众、时长、风格、角色与素材使用范围，再建立产物依赖：需求版本 → 剧本 → 角色资产与分镜 → 图像/配音 → 镜头片段 → 剪辑 → 成片。图像与配音可在依赖满足后并行，剪辑必须引用已经验收的片段版本。模型调用负责产生候选，推进节点由外部验收决定。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>节点组</th><th>输入与产物契约</th><th>反馈后的处理</th></tr>
+</thead>
+<tbody>
+<tr><td>剧本、角色与分镜</td><td>约束版本、角色 ID、镜头 ID、台词与时序；交付可预览的结构化草稿</td><td>剧情或服装改变，沿资产依赖标记受影响节点失效</td></tr>
+<tr><td>图像、配音与片段</td><td>固定角色引用、模型配置和输入产物 hash；持久保存候选本体与失败原因</td><td>限额重试失败镜头，独立检查身份、音画及连续性；不能只改 Prompt 宣告修复</td></tr>
+<tr><td>剪辑与成片</td><td>已验收镜头清单、顺序、字幕和音轨版本；交付预览与检查记录</td><td>用户确认新版本后再替换，旧版本可回滚；实际发布须单独授权</td></tr>
+</tbody>
+</table>
+</div>
+<p>每次调用保存 <code>operation_id</code>、依赖版本、状态与费用；超时先查结果，不能把重复生成当免费重试。用户改服装后，旧版本的迟到成功仍进入产物账本，但不覆盖当前分镜。对象存储保存媒体，任务状态保存引用；seed 与参数帮助追溯，不能代替已验收媒体。按任务预算限制候选数量，失败时交付缺口与可继续的检查点。持久执行、补偿和人工接管复用<a href="#第11章-agent-runtime">第11章 Agent Runtime</a>，任务图与节点验收沿用本章。生成后端训练、专用身份控制算法与实际成片质量仍需独立项目验证。</p>
 <h2 id="214-多-agent-的职责与交接协议"><a class="header" href="#214-多-agent-的职责与交接协议">21.4 多 Agent 的职责与交接协议</a></h2>
 <h3 id="2141-多-agent-什么时候才必要"><a class="header" href="#2141-多-agent-什么时候才必要">21.4.1 多 Agent 什么时候才必要</a></h3>
 <p>多 Agent 的价值不是“看起来更智能”，而是解决单 Agent 难以同时满足的工程诉求：</p>
@@ -20473,6 +20546,24 @@ user_uploaded
 </div>
 <p>PostgreSQL 18 的 RLS 有表 owner、superuser 与 BYPASSRLS 等绕过边界；必须选择受约束执行角色并核验 policy。<a href="#ref-6-21">[6]</a> 只读事务是额外防线，不能证明任意 SELECT 无副作用；临时对象例外、可调用函数及扩展还需收窄，不能允许模型选择外部 IO 函数。<a href="#ref-7-19">[7]</a><a href="#ref-8-19">[8]</a> EXPLAIN 成本是估算，EXPLAIN ANALYZE 会实际执行；资源控制使用执行器限制，不能靠模型自报便宜。<a href="#ref-9-16">[9]</a><a href="#ref-10-15">[10]</a></p>
 <p><strong>错误 join 例：</strong> 合成订单表一行一订单，明细表一行一商品，直接 join 后 SUM(order.total)会将多商品订单重复计入。修复应按业务键先聚合明细或选订单粒度，不能用<code>SUM(DISTINCT total)</code>掩盖相同金额的不同订单。测试夹具放两张金额相同、其中一张有两条明细的订单，核验总额及订单数；另加入退款、零分母、跨午夜和跨租户样本。AST 合法、RLS 通过和数值正确是三个独立条件。通用执行边界见<a href="#第18章-agent-工具系统工程tool-callingskills-与-mcp">第 18 章</a>。</p>
+<h3 id="客服与工单从渠道请求到业务收敛"><a class="header" href="#客服与工单从渠道请求到业务收敛">客服与工单：从渠道请求到业务收敛</a></h3>
+<p>将只读知识助手扩展为客服时，必须把“回答政策”“创建工单”和“退款赔付”拆开。以下以日均十万会话为题设假设；它不能直接换算峰值模型并发，还要确认渠道、到达分布、每会话轮数、工具耗时与人工响应目标。以只读政策问答建立基线，明确哪些事项可自动办理，哪些只能登记或转人工。</p>
+<p>正常链路是：渠道鉴权与身份映射 → 提取用户目标和事项 → 查询有权限的政策与实时业务状态 → 返回证据，或经确认创建工单 → 查询权威工单状态 → 告知结果和后续入口。渠道身份不可靠时先完成验证，不能由模型按文本猜账户。退款、赔付和处理时限只有获得业务规则与真实回执支持时才能承诺。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>对象或节点</th><th>必要状态与不变量</th><th>故障与恢复</th></tr>
+</thead>
+<tbody>
+<tr><td>会话与事项</td><td>分别保存会话、用户、事项和工单关联；个人资料最小化</td><td>用户再次提问先重验身份，再读取同一事项；相似文本不证明同用户或同工单</td></tr>
+<tr><td>工单创建</td><td>稳定业务请求键与 operation_id；草稿、待确认、创建中、unknown、已创建分别表达</td><td>创建超时先查原键；已成功则关联原单，重试保持同键，下游不支持查询/防重时转人工核验</td></tr>
+<tr><td>后续查询</td><td>工单系统是处理状态的事实源；通知不等于已解决</td><td>重连后查权威状态，不从旧摘要推断完成；通知失败可补发，不回滚创建事实</td></tr>
+<tr><td>人工交接</td><td>保存 handoff_id、owner_epoch、已做动作、未决操作和证据，接收确认后转移执行权</td><td>人工未接收前不宣告完成；接收后自动 Agent 停止冲突动作，晚到结果交当前 owner 核对</td></tr>
+</tbody>
+</table>
+</div>
+<p>意图不明、证据不足、授权缺失或用户要求人工时，按明确定义的路由进入澄清或交接；人工积压有等待状态与升级入口，不能用客套兜底文案替代。转人工摘要是视图，真实动作仍在<a href="#第11章-agent-runtime">第11章 Agent Runtime</a>的操作账本中。知识与权限链路沿用本章，交接协议沿用<a href="#第21章-执行编排与多-agent-协作任务图交接与平台边界">第21章 执行编排与多 Agent 协作：任务图、交接与平台边界</a>。</p>
+<p>验收分别统计问题解决率及其确认窗口、无依据承诺率、重复工单、转人工接收与等待、人工返工、越权和单位成功成本；不能把未再次投诉当作已解决。用独立样本注入创建成功但回执丢失、身份过期、人工未确认及人工接管后的迟到成功，检查业务最终收敛。上述是可供实现的教学设计，尚无真实客服负载、自动解决率或生产测量。</p>
 <h3 id="客服短案例转人工后的迟到结果"><a class="header" href="#客服短案例转人工后的迟到结果">客服短案例：转人工后的迟到结果</a></h3>
 <p>假设用户询问订单退款，助手仅可读取本人订单与政策。先构造带 owner、订单范围、权限快照、已知事实、缺失字段和允许动作的 handoff envelope；用户允许查询不等于允许退款。转人工以<code>handoff_id/owner_epoch</code>确认接收，在 ack 前不能说“人工已处理”。接收后 Agent 停止新的退款动作，人工从同一权威操作账本接管。</p>
 <p>若转接后先前的退款请求才返回成功，按 operation_id 写入真实结果并通知当前 owner，旧 Agent 不能再次退款、覆写人工结论或把成功丢弃。超时结果保持 unknown，先查询状态而非盲重试。取消、补偿和费用需独立业务授权；用户会话断开不等于业务操作撤销。教学账本、持久交接和幂等设计复用<a href="#第11章-agent-runtime">第 11 章</a>及<a href="#第21章-执行编排与多-agent-协作任务图交接与平台边界">第 21 章</a>，未声称某客服产品已实现这套协议。</p>
@@ -26447,6 +26538,24 @@ Agent 方式: 持续压缩 → 理解加深
 </table>
 </div>
 <p>Plan-and-Act 的论文结果绑定其网页设置；Agent Lightning 研究执行训练解耦及信用分配；TinyAgent 研究特定函数调用的小模型部署。<a href="#ref-19-13">[19]</a><a href="#ref-20-13">[20]</a><a href="#ref-21-13">[21]</a> 浏览器注入防御需在明确威胁模型下检验，风险治理需持续识别、测量和管理。<a href="#ref-22-12">[22]</a><a href="#ref-23-12">[23]</a> “多想几步”是否更可靠是可证伪问题，不能假定更长推理必然更好。因果与协作两行是待验证的研究问题，不宣称已有统一解法；多模态证据仍限于原文环境。</p>
+<h3 id="研究报告预算状态与故障闭环"><a class="header" href="#研究报告预算状态与故障闭环">研究报告：预算、状态与故障闭环</a></h3>
+<p>研究 Agent 的任务不是“尽可能多抓网页”，而是在证据与预算边界内形成可审查结论。以下把“最多读取 200 个来源、允许执行 20 分钟”作为教学题设假设，不是通用推荐值。开始时确认问题范围、时间边界、允许来源、隐私与交付格式；将总时限分给检索、阅读、综合与独立核验，并给最后交付保留时间。到达上限也必须返回当前可用报告与缺口。</p>
+<p>正常链路是：任务合同 → 子问题与证据要求 → 有界并行只读检索 → 来源去重与原文读取 → 主张—证据表 → 综合草稿 → 引用与结论核验 → 版本化报告。研究者可以并行收集互不依赖的证据，最终综合者负责消解冲突和检查覆盖；不能把多个摘要简单拼成结论。来源归一化需识别转载与同一资料的多个版本，但保留原始 URL、读取时间、版本、原文位置与访问范围，避免把转载票数当独立支持。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>状态或事件</th><th>应持久化的事实</th><th>收敛方式</th></tr>
+</thead>
+<tbody>
+<tr><td>子问题推进</td><td>owner、查询、候选来源、已读位置、支持/反证与缺口、预算消耗</td><td>新证据不再增加或预算用尽时停止；来源数量不替代问题覆盖</td></tr>
+<tr><td>关键来源不可访问</td><td>错误类型、尝试、受影响主张与替代来源</td><td>有界重试或找可核验替代；仍无证据则保留未决，不引用未读页面证明结论</td></tr>
+<tr><td>网页要求上传文件或改变任务</td><td>不可信文本及被拦截动作，最小化保存敏感内容</td><td>执行层依据用户授权与出口策略阻断；资料的权威身份不授予它行动权限</td></tr>
+<tr><td>进程退出或部分任务失败</td><td>已提交证据、报告草稿、产物版本与检查点</td><td>从持久任务继续并重验来源和权限，不重跑全部已完成检索</td></tr>
+<tr><td>到达时限</td><td>已验证主张、冲突、缺失来源和未完成检查</td><td>交付范围明确的局部报告与后续建议，不伪装完整研究</td></tr>
+</tbody>
+</table>
+</div>
+<p>这一流程复用<a href="#第19章-agent-知识系统从知识源到可验证证据">第19章 Agent 知识系统：从知识源到可验证证据</a>的证据包、<a href="#第11章-agent-runtime">第11章 Agent Runtime</a>的恢复边界与<a href="#第21章-执行编排与多-agent-协作任务图交接与平台边界">第21章 执行编排与多 Agent 协作：任务图、交接与平台边界</a>的交接协议，是本书结合研究场景的设计推导，不是下列论文已经交付的通用报告平台。评估须分别检查事实准确、子问题覆盖、引用是否支持相邻主张、来源独立性、时效、成本和安全违例；抓取成功率或报告长度不能单独证明研究成功。外部发布属于另一个有授权与验收的步骤。</p>
 <h3 id="研究报告短案例浏览器agent能否自主承担企业工作"><a class="header" href="#研究报告短案例浏览器agent能否自主承担企业工作">研究/报告短案例：浏览器Agent能否自主承担企业工作</a></h3>
 <p>任务合同为：“只基于可访问的一手证据，解释网页、桌面与模拟企业任务的进展和限制；输出论点、来源、冲突、缺口，不给未经测试的采购或部署排名。”检索与 Evidence Package 沿用<a href="#第19章-agent-知识系统从知识源到可验证证据">第 19 章</a>；此处给出报告交付设计，未运行一个报告 Agent 或重跑论文。</p>
 <p>先限定“企业工作”的对象：是浏览填表、跨应用文件操作，还是带沟通/审批/隐性约束的流程？对每个子问题保存 query、来源版本、原文位置、提取论点和适用设置。网页中的指令按不可信材料处理，来源权威不等于它能改变报告任务权限。</p>
@@ -26640,6 +26749,9 @@ Agent 方式: 持续压缩 → 理解加深
 <li><a href="#第8章-训练平台与数据管线">第8章 GPU 与规约练习卡组</a>：层级、同步、布局、正确性与环境化性能。</li>
 <li><a href="#第9章-推理服务与资源调度">第9章显存账本练习卡</a>：固定模型配置、长度、并发、预留与敏感性分析。</li>
 </ul>
+<h2 id="从面试题定位正文"><a class="header" href="#从面试题定位正文">从面试题定位正文</a></h2>
+<p><a href="https://github.com/wxquare/leetcode-primer/blob/master/system-design-interview/question-bank/ai-agent-engineering.md#书稿覆盖与定位">题库的书稿覆盖与定位说明</a>定义覆盖口径；每个题目下方给出对应章节和具体小节，以及无法由本书回答的部分。逐题映射只在题库维护，本附录提供学习路径，不复制题目与答案。</p>
+<p>做题时先读主定位，跨层问题再读补充章节。例如工具成功但响应丢失，应先读第11章的 Operation 与 Attempt，再读工具运行时的重试分类；不能只看 MCP 协议。手写题则必须自行完成实现和验证，章末练习卡仅定义验收要求。</p>
 <h2 id="如何继续找资料"><a class="header" href="#如何继续找资料">如何继续找资料</a></h2>
 <p>稳定概念优先读经典教材、原始论文和正式标准；实现行为读对应版本的官方文档与源码。课程、博客、演讲、论文聚合页和厂商主页可用于发现问题，不能代替支撑具体结论的原始材料。收藏链接时记录作者/机构、标题、版本或年份、原始 URL、访问日期及可支撑范围。</p>
 <p>产品排名、价格、模型窗口、硬件支持与基准分数变化很快。无法取得同版本证据就保留未知；不要把别的模型、硬件或评测集上的结果迁移为自己的结论。工具候选从<a href="#附录c-工具框架与版本导航">附录C</a>进入，论点依据回到相应章节的参考资料。</p>
