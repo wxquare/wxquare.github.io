@@ -378,7 +378,7 @@ Pi 持久会话以 JSONL 条目树保存；不是每个瞬时事件都原样写�
 2. **外部集成**：SDK、RPC、JSON mode 可以把事件交给上层系统。
 3. **生产诊断**：失败后能看到模型什么时候决定调用什么工具、工具返回了什么、压缩发生在哪里。
 
-[第 29 章](08-mini-agent-observability.md)的最小 Coding Agent 教学闭环也采用这一思路：不要只存最终回答，要记录每一轮决策和工具执行。
+[第28章](06-claude-code-internals.md)的 Claude Code 分析也强调这一边界：模型声明、工具调用和实际执行结果需要分开核对，不能只保存最终回答。
 
 ---
 
@@ -678,7 +678,7 @@ Execution Plane:
   shell, test, package manager, external tools
 ```
 
-第 29 章的 lab 里会把 `auto_edit` 和 `auto_shell` 分开，也是同一个思想：文件编辑和命令执行的风险不同，审批策略也应该不同。
+[第28章](06-claude-code-internals.md)进一步区分权限判断与执行隔离：文件编辑和命令执行的风险、约束及恢复范围需要分别说明。
 
 ### Tool Result 也是上下文
 
@@ -1445,7 +1445,7 @@ type ExtensionApi = {
 - 是否评估上下文压缩后的性能？
 - 是否能重放失败 session？
 
-这张清单也是第 29 章 lab 走向生产级的路线图。第 29 章会实现的是最小闭环；Pi 展示的是这个闭环如何扩展成一个可定制的 Runtime。
+这张清单可用于检查自研 Coding Agent 的运行边界；[第28章](06-claude-code-internals.md)从 Claude Code 的公开机制补充执行、权限与验证视角，Pi 则展示运行时如何提供可定制的扩展面。
 
 ---
 

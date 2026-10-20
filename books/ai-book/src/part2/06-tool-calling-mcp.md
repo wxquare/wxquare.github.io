@@ -962,6 +962,22 @@ Execution Channel
 
 MCP Server 不应该读取完整对话，也不应该知道其他 Server 的存在。它只接收 Host 决定传给它的最小上下文。这个隔离设计非常重要，因为工具服务器往往连接真实系统和敏感数据。
 
+**从 Server 编写到模型调用的全链路**
+
+通常所说的“写一个 MCP”，是编写一个 **MCP Server**：把业务能力实现为工具，定义输入契约，并把工具名绑定到执行函数（handler）。下面将开发阶段、连接后的工具发现，以及 LLM 的调用闭环放在同一张图中。Host 的工具注册、模型 API 适配和结果处理是应用侧的工程设计；Client 与 Server 之间的初始化、发现和调用遵循 MCP 协议。[[3]](#ref-3)[[4]](#ref-4)[[7]](#ref-7)
+
+[![MCP 全链路架构图：开发者定义工具并注册 handler，Host 经 MCP Client 初始化连接并发现工具，再将工具契约提供给 LLM，校验调用提案后执行并回填结果](../images/mcp-authoring-discovery-llm-loop.png)](../images/mcp-authoring-discovery-llm-loop.svg)
+
+图为本书依据 MCP 2025-11-25 规范绘制的教学架构；点击图片可查看 SVG 原图。
+
+按图中的三个阶段阅读：
+
+1. **编写与接入（A）**：例如实现一个 `query_logs` 函数，为它声明 `name`、`description` 和 `inputSchema`，再注册对应 handler。Server 可以作为 stdio 子进程运行，也可以提供 Streamable HTTP 服务；Host 配置启动命令或服务 URL，建立连接入口。
+2. **工具发现（B）**：Client 发起 `initialize`，核对协议版本和 Server 的 `tools` 能力，再发送 `notifications/initialized`。随后通过 `tools/list` 获取工具定义，必要时翻页。Host 记录工具所属 Server，按权限和当前任务筛选，并将定义适配为模型 API 接受的 `tools`。发现得到的是工具契约，业务函数仍在 Server 中执行。
+3. **调用与反馈（C，①—⑨）**：Host 把任务和可用工具交给 LLM；LLM 返回工具名与参数。Host 校验参数、检查权限并完成必要审批后，Client 才发送 `tools/call`。Server 再校验并执行 handler，返回结果或错误；Host 处理输出、记录 Trace，将结果回填模型上下文。LLM 据此继续调用工具或生成最终回答。
+
+这里有两种不同的“发现”：查找可接入的 **Server**，可通过目录或 Registry 完成；发现已连接 Server 暴露的 **Tools**，则使用 `tools/list`。在这条调用链中，LLM 负责提出调用意图，Host 与 Server 分别承担调用控制和业务执行责任。
+
 ### 18.5.5 MCP 的能力模型：Tools、Resources、Prompts
 
 工具Schema/调用语义、资源读取及模板能力各自有协议定义。[[4]](#ref-4)[[5]](#ref-5)[[6]](#ref-6)

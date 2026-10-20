@@ -51,6 +51,6 @@
 | Fingerprint | 为内容、状态或请求构造的识别值；去重范围、碰撞和版本规则需定义，不天然代表同一业务操作 | [第11章](../part2/infra-11-runtime.md) |
 | Hallucination / Guardrail / Observability | 缺少事实支持的生成 / 模型外可执行约束 / 通过事件与信号复盘系统行为 | [第22章](../part2/10-agent-evals-guardrails-observability.md) |
 | MTTR / SLO / SOP | 恢复时间指标（须定义起止）/ 服务目标 / 标准操作流程 | [第12章](../part2/infra-12-reliability-governance.md) |
-| Backlink / 知识编译 / Vector Database | 反向引用 / 将材料变成有来源的可用知识 / 向量索引与检索存储；均不代替原始事实源 | [第30章](../part3/07-pkm-agent-case-study.md)、[第19章](../part2/07-agent-knowledge-systems.md) |
+| Backlink / 知识编译 / Vector Database | 反向引用 / 将材料变成有来源的可用知识 / 向量索引与检索存储；均不代替原始事实源 | [第19章](../part2/07-agent-knowledge-systems.md) |
 | Spec Coding / Vibe Coding | 以规格验收驱动的协作 / 快速对话试探的工作方式；两者都需要版本、测试与授权 | [第23章](../part3/01-coding-agent-systems.md) |
 | 多 Agent / 分级决策 / 混合架构 | 职责可分的多个执行主体 / 按风险选择控制方式 / 确定性流程与开放推理组合 | [第21章](../part2/09-workflow-orchestration.md)、[第22章](../part2/10-agent-evals-guardrails-observability.md) |

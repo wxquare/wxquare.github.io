@@ -2217,7 +2217,7 @@ flowchart TD
 
 ### 13.6.2 Coding Agent
 
-教学链路为 Issue → 任务协议 → 文件/符号检索 → 补丁提案 → 受限编辑与测试 → 独立验收 → 用户审查。模型解释“修改成功”只是一项声明；Verifier 必须核对实际 diff、测试范围和产物。文件变更前后使用版本或哈希确认，过时上下文先回源。产品比较由[第23章](../part3/01-coding-agent-systems.md)负责，最小闭环见[第29章](../part3/08-mini-agent-observability.md)。
+教学链路为 Issue → 任务协议 → 文件/符号检索 → 补丁提案 → 受限编辑与测试 → 独立验收 → 用户审查。模型解释“修改成功”只是一项声明；Verifier 必须核对实际 diff、测试范围和产物。文件变更前后使用版本或哈希确认，过时上下文先回源。产品比较由[第23章](../part3/01-coding-agent-systems.md)负责，执行与验证的教学轨迹见[第28章](../part3/06-claude-code-internals.md)。
 
 ### 13.6.3 Hermes Agent
 

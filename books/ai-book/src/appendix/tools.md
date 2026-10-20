@@ -18,6 +18,7 @@
 | Triton 语言 | GPU 计算程序与算子层 | [第8章](../part2/infra-08-training.md)核验；main 文档，2026-10-17 | [语言介绍](https://triton-lang.org/main/programming-guide/chapter-1/introduction.html) | 生成 kernel 的正确性与性能未实测 |
 | Triton Inference Server | 模型仓库、版本与服务生命周期 | 第9章核验；滚动文档，2026-10-17 | [Model Management](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/model_management.html) | 不是 Triton 语言；模型后端能力分别核验 |
 | Claude Code / Cursor / Codex | 终端、IDE、本地/云任务产品形态 | [第23章](../part3/01-coding-agent-systems.md)核验；滚动文档，2026-10-18 | 原始产品文档及限定论点见第23章参考资料 | 无永久优劣榜；功能、套餐与本机开关分别核验 |
+| Claude Code | Coding Agent 执行循环、上下文、扩展与行动控制 | [第28章](../part3/06-claude-code-internals.md)；官方滚动文档，2026-10-19 | 机制与来源映射见第28章参考资料 | 未运行产品；默认行为依赖版本、入口和配置，Shell 沙箱不覆盖全部组件 |
 | Pi | 终端 Runtime 与 SDK、扩展及会话资源 | [第25章](../part3/03-pi-agent-architecture.md)核验；2026-10-18 | [Pi SDK](https://pi.dev/docs/latest/sdk)；具体包与来源见该章 | 以该章 @earendil-works 命名空间与 ModelRuntime 为准；不外推旧 SDK 示例 |
 | OpenClaw | Gateway、自有 Runtime、工具和会话历史 | 提交 `62cb03ac7a95f4b9cb435f8efc57f4034ba2649b`；2026-10-18 | [固定源码](https://github.com/openclaw/openclaw/tree/62cb03ac7a95f4b9cb435f8efc57f4034ba2649b)；[第26章](../part3/04-openclaw-architecture.md) | 活动历史与旧 JSONL 区分；profile 不自动提供隔离 |
 | Hermes | 入口、Memory、Skill、delegate 与限定投递记录 | 提交 `18c525b669b6ea4ba62e6967d228af21d89aa9d3`；2026-10-18 | [固定源码](https://github.com/NousResearch/hermes-agent/tree/18c525b669b6ea4ba62e6967d228af21d89aa9d3)；[第27章](../part3/05-hermes-agent-architecture.md) | 特定 Gateway 投递 ledger 不证明任意业务 Outbox/Checkpoint/补偿；教学扩展单列 |

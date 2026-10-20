@@ -345,7 +345,7 @@ Agent 执行
 | Review Surface、Trace & Audit | diff、patch、PR、commit message、summary、tool trace、失败原因 | IDE review 最直观，终端 review 依赖 diff/summary，云端 review 依赖 PR、CI 和任务 trace |
 | Learning Loop | 从失败任务、review comment、测试失败和用户反馈沉淀规则、Skill、Eval case | 大多数产品都有部分闭环，但“自动学习”通常要受 owner review 和 release gate 约束 |
 
-这张表说明一个关键点：Coding Agent 的成熟度不取决于它会不会写代码，而取决于它能否把代码修改放进**任务契约、上下文治理、权限裁决、验证门禁和审查表面**里。第 29 章会把这些组件落成一个最小可运行版本。
+这张表说明一个关键点：Coding Agent 的成熟度不取决于它会不会写代码，而取决于它能否把代码修改放进**任务契约、上下文治理、权限裁决、验证门禁和审查表面**里。[第28章](06-claude-code-internals.md)将以 Claude Code 的公开机制和分页修复教学轨迹，解释这些组件如何协同。
 
 ### 23.2.3 Coding Agent 的实现分层
 

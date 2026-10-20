@@ -13,11 +13,11 @@
 | 设计可恢复运行时 | [第11章](../part2/infra-11-runtime.md) | [第17章](../part2/05-llm-api-protocol.md)、[第21章](../part2/09-workflow-orchestration.md) | 提交、投递、幂等、unknown、owner、断线与迟到结果 |
 | 组织 Prompt 与信息 | [第14章](../part2/02-prompt-engineering.md) | [第15章](../part2/03-context-engineering.md)、[第20章](../part2/08-agent-memory.md) | 指令权威、摘要保真、来源失效与事实状态 |
 | 选择工具与协议 | [第18章](../part2/06-tool-calling-mcp.md) | [第21章](../part2/09-workflow-orchestration.md)及[附录C](tools.md) | Schema、执行权、MCP 传输迁移、A2A 版本与未知能力 |
-| 构建知识助手 | [第19章](../part2/07-agent-knowledge-systems.md) | [第24章](../part3/02-enterprise-knowledge-assistant.md)、[第30章](../part3/07-pkm-agent-case-study.md) | 检索/证据/生成分层、ACL、乱序更新、撤权和血缘 |
-| 理解 Coding 系统 | [第23章](../part3/01-coding-agent-systems.md) | [第25章 Pi](../part3/03-pi-agent-architecture.md)、[第29章](../part3/08-mini-agent-observability.md) | 运行时与产品分层、版本化检索、候选完成与独立验证 |
-| 观察长期助手 | [第27章 Hermes](../part3/05-hermes-agent-architecture.md) | [第26章 OpenClaw](../part3/04-openclaw-architecture.md)、[第31章](../part3/10-daily-life-evolving-agent.md) | 身份、会话、记忆、投递与业务副作用分别取证 |
+| 构建知识助手 | [第19章](../part2/07-agent-knowledge-systems.md) | [第24章](../part3/02-enterprise-knowledge-assistant.md) | 检索/证据/生成分层、ACL、乱序更新、撤权和血缘 |
+| 理解 Coding 系统 | [第23章](../part3/01-coding-agent-systems.md) | [第25章 Pi](../part3/03-pi-agent-architecture.md)、[第28章 Claude Code](../part3/06-claude-code-internals.md) | 运行时与产品分层、版本化检索、候选完成与独立验证 |
+| 观察长期助手 | [第27章 Hermes](../part3/05-hermes-agent-architecture.md) | [第26章 OpenClaw](../part3/04-openclaw-architecture.md) | 身份、会话、记忆、投递与业务副作用分别取证 |
 | 形成质量与发布闭环 | [第10章](../part2/infra-10-data-eval.md) | [第12章](../part2/infra-12-reliability-governance.md)、[第22章](../part2/10-agent-evals-guardrails-observability.md) | 固定评估集、Judge 校准、回归、成本及回滚证据 |
-| 阅读研究报告 | [第32章](../part4/01-agent-frontier-research.md) | 沿其参考资料回到对应论文版本、任务和评测协议 | 历史结果、研究提案、公开实现与实测结论的区别 |
+| 阅读研究报告 | [第29章](../part4/01-agent-frontier-research.md) | 沿其参考资料回到对应论文版本、任务和评测协议 | 历史结果、研究提案、公开实现与实测结论的区别 |
 
 ## 章末练习入口
 

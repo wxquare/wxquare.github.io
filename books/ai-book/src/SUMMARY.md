@@ -48,15 +48,13 @@
 - [第25章 Pi Agent 架构解析：终端原生 Coding Agent Runtime、扩展系统与上下文工程](part3/03-pi-agent-architecture.md)
 - [第26章 OpenClaw 架构解析：个人 AI 助手的 Gateway、Runtime 与工具生态](part3/04-openclaw-architecture.md)
 - [第27章 Hermes Agent 架构解析：长期运行、自我进化与多入口 Agent Runtime](part3/05-hermes-agent-architecture.md)
-- [第29章 从零实现一个可观测 Coding Agent](part3/08-mini-agent-observability.md)
-- [第30章 个人知识管理 Agent 实践](part3/07-pkm-agent-case-study.md)
-- [第31章 持续进化的生活 Agent：从日常反馈到可信能力闭环](part3/10-daily-life-evolving-agent.md)
+- [第28章 Claude Code 原理剖析：执行循环、上下文工程与可控行动](part3/06-claude-code-internals.md)
 
 ---
 
 # 第五部分：前沿与研究
 
-- [第32章 AI 智能体研究现状、工程瓶颈与未来理想能力架构报告](part4/01-agent-frontier-research.md)
+- [第29章 AI 智能体研究现状、工程瓶颈与未来理想能力架构报告](part4/01-agent-frontier-research.md)
 
 ---
 

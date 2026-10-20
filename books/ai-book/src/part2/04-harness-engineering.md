@@ -918,7 +918,7 @@ Gradual Rollout
 | 独立验收 | [第10章](infra-10-data-eval.md)Eval Case与[第22章](10-agent-evals-guardrails-observability.md)行为断言 | 检查真实diff/测试输出、越界和部署尝试，失败有界修复 |
 | 观测交付 | 版本、工具结果、策略裁决与产物引用 | 报告通过/未运行项目，隐藏敏感载荷；Trace缺失另报 |
 
-Verifier独立首先指判据和数据独立：固定验收、不可被生成者随意改写的测试、实际执行结果及必要人工复核；只换一个模型并让它读取同一份自述并不足够。生成者建议删测试时，执行层仍按原验收核对。这个闭环服务[第23章](../part3/01-coding-agent-systems.md)与[第29章](../part3/08-mini-agent-observability.md)，没有宣称Hermes已经具备其中的耐久恢复扩展。
+Verifier独立首先指判据和数据独立：固定验收、不可被生成者随意改写的测试、实际执行结果及必要人工复核；只换一个模型并让它读取同一份自述并不足够。生成者建议删测试时，执行层仍按原验收核对。这个闭环服务[第23章](../part3/01-coding-agent-systems.md)与[第28章](../part3/06-claude-code-internals.md)，没有宣称Hermes已经具备其中的耐久恢复扩展。
 
 ### 工程师角色的转变
 

@@ -31,7 +31,7 @@ AI 工程实践里最容易踩的坑，不只是模型输出不稳定，也包�
 - **任务协议**：如何通过 Prompt、结构化输出和 Context 降低任务歧义与输出漂移？
 - **系统落地**：如何通过 Harness、工具、知识、记忆和工作流构建 Agent Runtime？
 - **生产治理**：如何评估、监控、调试、回滚并持续优化一个 Agent 系统？
-- **现实应用**：如何把大模型与 Agent 用到编程、告警处理、企业知识、个人知识管理和研究任务中？
+- **现实应用**：如何把大模型与 Agent 用到编程、告警处理、企业知识、长期助手和研究任务中？
 
 ## 适合谁读
 
@@ -101,9 +101,7 @@ AI 工程实践里最容易踩的坑，不只是模型输出不稳定，也包�
 | 第25章 | [Pi Agent 架构解析：终端原生 Coding Agent Runtime、扩展系统与上下文工程](part3/03-pi-agent-architecture.md) | 分析一个终端原生 Coding Agent 如何组织运行时、扩展和上下文。 |
 | 第26章 | [OpenClaw 架构解析：个人 AI 助手的 Gateway、Runtime 与工具生态](part3/04-openclaw-architecture.md) | 讲述个人 AI 助手如何通过 Gateway、Runtime 和工具生态协同工作。 |
 | 第27章 | [Hermes Agent 架构解析：长期运行、自我进化与多入口 Agent Runtime](part3/05-hermes-agent-architecture.md) | 通过记忆、Skill、多入口和版本化源码理解长期运行；教学扩展与已核验能力分别说明。 |
-| 第29章 | [从零实现一个可观测 Coding Agent](part3/08-mini-agent-observability.md) | 通过一个不附带配套源码的讲解性案例，展示 Coding Agent 的上下文、工具、权限、验证、观测与扩展方法。 |
-| 第30章 | [个人知识管理 Agent 实践](part3/07-pkm-agent-case-study.md) | 说明个人知识管理如何借助 RAG、记忆和工作流形成闭环。 |
-| 第31章 | [持续进化的生活 Agent：从日常反馈到可信能力闭环](part3/10-daily-life-evolving-agent.md) | 讨论生活 Agent 如何在反馈、审批和回滚中安全地持续进化。 |
+| 第28章 | [Claude Code 原理剖析：执行循环、上下文工程与可控行动](part3/06-claude-code-internals.md) | 从官方公开机制理解执行循环、上下文、工具扩展、协作、权限与验证，并贯穿一次分页修复教学案例。 |
 
 ### 第五部分：前沿研究与工程展望
 
@@ -111,7 +109,7 @@ AI 工程实践里最容易踩的坑，不只是模型输出不稳定，也包�
 
 | 章 | 章节 | 一句话概述 |
 | --- | --- | --- |
-| 第32章 | [AI 智能体研究现状、工程瓶颈与未来理想能力架构报告](part4/01-agent-frontier-research.md) | 从研究和工程两条线梳理智能体的现状、瓶颈与未来方向。 |
+| 第29章 | [AI 智能体研究现状、工程瓶颈与未来理想能力架构报告](part4/01-agent-frontier-research.md) | 从研究和工程两条线梳理智能体的现状、瓶颈与未来方向。 |
 
 ### 附录
 
@@ -119,12 +117,12 @@ AI 工程实践里最容易踩的坑，不只是模型输出不稳定，也包�
 
 ## 贯穿案例与练习的阅读方式
 
-全书保留五部分、31 个公开章节，沿用原编号与源码路径，编号不连续处不重排。三个教学案例分别检验不同责任边界：
+全书包含五部分、29 个公开章节；第四部分以 Claude Code 原理剖析收束，第五部分承接前沿研究。三个教学案例分别检验不同责任边界：
 
 | 案例 | 先建立机制 | 再看应用 | 重点核对 |
 | --- | --- | --- | --- |
 | 企业知识助手 | [第19章知识系统](part2/07-agent-knowledge-systems.md) | [第24章企业案例](part3/02-enterprise-knowledge-assistant.md) | 摄取/检索/证据/回答分层，动态商品事实、视频定位、ACL与删除失效 |
-| Coding Agent | [第15章上下文](part2/03-context-engineering.md)、[第18章工具](part2/06-tool-calling-mcp.md) | [第23章产品与Harness](part3/01-coding-agent-systems.md)、[第29章最小案例](part3/08-mini-agent-observability.md) | 代码版本、工作区、工具权限、候选完成与独立Verifier |
+| Coding Agent | [第15章上下文](part2/03-context-engineering.md)、[第18章工具](part2/06-tool-calling-mcp.md) | [第23章产品与Harness](part3/01-coding-agent-systems.md)、[第28章Claude Code](part3/06-claude-code-internals.md) | 代码版本、工作区、工具权限、候选完成与独立Verifier |
 | Hermes 长期助手 | [第11章状态](part2/infra-11-runtime.md)、[第20章记忆](part2/08-agent-memory.md)、[第21章编排](part2/09-workflow-orchestration.md) | [第27章贯穿简报](part3/05-hermes-agent-architecture.md) | Session、Memory、缓存与特定投递ledger分别取证；通用业务Outbox、Checkpoint、幂等和补偿是另行标明的教学扩展 |
 
 章节包含原理推导、文档核验、教学轨迹与实验设计，验收层次分别标明。第1/3/5/8/9章的练习卡可从[附录B](appendix/references.md)进入；卡片完成不代表已经提供完整可运行代码、GPU测量或生产验证。选型先查[附录C](appendix/tools.md)的版本和未知项，再回到章末原始来源。
