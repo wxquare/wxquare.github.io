@@ -1,0 +1,153 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="1640" viewBox="0 0 1280 1640" role="img" aria-labelledby="title desc">
+<title id="title">MCP Server 编写、工具发现与 LLM 调用闭环</title>
+<desc id="desc">三阶段架构图：开发者定义工具并注册 handler 后运行 Server；Host 内的 MCP Client 初始化连接并通过 tools/list 获取工具定义；Host 将可用工具 Schema 提供给 LLM，校验模型调用提案后经 tools/call 执行，处理结果后回填模型上下文并回答用户。</desc>
+<style>text { font-family: "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif; } .mono { font-family: Menlo, Consolas, monospace; }</style>
+<defs>
+<marker id="arrow-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto" markerUnits="userSpaceOnUse"><polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/></marker>
+<marker id="arrow-purple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto" markerUnits="userSpaceOnUse"><polygon points="0 0, 10 3.5, 0 7" fill="#7c3aed"/></marker>
+<marker id="arrow-gray" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto" markerUnits="userSpaceOnUse"><polygon points="0 0, 10 3.5, 0 7" fill="#6b7280"/></marker>
+</defs>
+<rect x="0" y="0" width="1280" height="1640" rx="0" fill="#f8fafc" stroke="none" stroke-width="1.5"/>
+<text x="64" y="52" font-size="32" fill="#111827" font-weight="600" text-anchor="start">MCP：从编写 Server 到 LLM 使用工具</text>
+<text x="64" y="84" font-size="20" fill="#6b7280" font-weight="400" text-anchor="start">工具实现留在 Server；工具契约进入模型上下文；实际调用由 Host 控制。</text>
+<rect x="32" y="110" width="1216" height="240" rx="16" fill="#ffffff" stroke="#dbe1e8" stroke-width="1.5"/>
+<rect x="64" y="134" width="32" height="32" rx="8" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1.5"/>
+<text x="80" y="157" font-size="20" fill="#2563eb" font-weight="600" text-anchor="middle">A</text>
+<text x="112" y="157" font-size="24" fill="#111827" font-weight="600" text-anchor="start">编写与接入</text>
+<text x="1216" y="157" font-size="17" fill="#6b7280" font-weight="400" text-anchor="end">开发阶段 · 连接入口先由 Host 配置</text>
+<rect x="64" y="184" width="232" height="104" rx="10" fill="#f9fafb" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="180" y="214" font-size="21" fill="#111827" font-weight="600" text-anchor="middle">业务能力</text>
+<text x="180" y="244" font-size="17" fill="#4b5563" font-weight="400" text-anchor="middle">查询日志 / 读取文件</text>
+<text x="180" y="271" font-size="17" fill="#4b5563" font-weight="400" text-anchor="middle">API、SDK 或本地函数</text>
+<rect x="370" y="184" width="232" height="104" rx="10" fill="#f9fafb" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="486" y="214" font-size="21" fill="#111827" font-weight="600" text-anchor="middle">定义 Tool 契约</text>
+<text x="486" y="244" font-size="17" fill="#4b5563" font-weight="400" text-anchor="middle">name + description</text>
+<text x="486" y="271" font-size="17" fill="#4b5563" font-weight="400" text-anchor="middle">inputSchema</text>
+<rect x="676" y="184" width="232" height="104" rx="10" fill="#f9fafb" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="792" y="214" font-size="21" fill="#111827" font-weight="600" text-anchor="middle">注册 handler</text>
+<text x="792" y="244" font-size="17" fill="#4b5563" font-weight="400" text-anchor="middle">绑定工具名与执行函数</text>
+<text x="792" y="271" font-size="17" fill="#4b5563" font-weight="400" text-anchor="middle">校验 / 执行 / 返回结果</text>
+<rect x="982" y="184" width="232" height="104" rx="10" fill="#f9fafb" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="1098" y="214" font-size="21" fill="#111827" font-weight="600" text-anchor="middle">运行与接入</text>
+<text x="1098" y="244" font-size="17" fill="#4b5563" font-weight="400" text-anchor="middle">stdio 子进程 / HTTP 服务</text>
+<text x="1098" y="271" font-size="17" fill="#4b5563" font-weight="400" text-anchor="middle">Host 配置 command 或 URL</text>
+<path d="M 296 236 H 370" fill="none" stroke="#6b7280" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#arrow-gray)"/>
+<rect x="307.0" y="198" width="52" height="26" rx="4" fill="#ffffff" opacity="0.98"/>
+<text x="333.0" y="218" font-size="17" fill="#6b7280" font-weight="400" text-anchor="middle">定义</text>
+<path d="M 602 236 H 676" fill="none" stroke="#6b7280" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#arrow-gray)"/>
+<rect x="613.0" y="198" width="52" height="26" rx="4" fill="#ffffff" opacity="0.98"/>
+<text x="639.0" y="218" font-size="17" fill="#6b7280" font-weight="400" text-anchor="middle">绑定</text>
+<path d="M 908 236 H 982" fill="none" stroke="#6b7280" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#arrow-gray)"/>
+<rect x="919.0" y="198" width="52" height="26" rx="4" fill="#ffffff" opacity="0.98"/>
+<text x="945.0" y="218" font-size="17" fill="#6b7280" font-weight="400" text-anchor="middle">运行</text>
+<text x="64" y="326" font-size="19" fill="#4b5563" font-weight="400" text-anchor="start">开发者编写 Server；通过 SDK 或协议处理器，把工具契约和业务函数注册为可调用能力。</text>
+<rect x="32" y="376" width="1216" height="450" rx="16" fill="#ffffff" stroke="#dbe1e8" stroke-width="1.5"/>
+<rect x="64" y="400" width="32" height="32" rx="8" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1.5"/>
+<text x="80" y="423" font-size="20" fill="#2563eb" font-weight="600" text-anchor="middle">B</text>
+<text x="112" y="423" font-size="24" fill="#111827" font-weight="600" text-anchor="start">工具发现</text>
+<text x="1216" y="423" font-size="17" fill="#6b7280" font-weight="400" text-anchor="end">建立会话 · 此时还未执行业务工具</text>
+<rect x="64" y="450" width="282" height="286" rx="12" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="205" y="484" font-size="23" fill="#1d4ed8" font-weight="600" text-anchor="middle">MCP Host</text>
+<rect x="84" y="512" width="242" height="200" rx="10" fill="#ffffff" stroke="#93c5fd" stroke-width="1.5"/>
+<text x="205" y="553" font-size="23" fill="#111827" font-weight="600" text-anchor="middle">MCP Client</text>
+<text x="205" y="594" font-size="19" fill="#4b5563" font-weight="400" text-anchor="middle">管理协议与会话</text>
+<text x="205" y="630" font-size="17" fill="#4b5563" font-weight="400" text-anchor="middle">每个连接对应一个 Server</text>
+<text x="205" y="677" font-size="18" fill="#1d4ed8" font-weight="400" text-anchor="middle" class="mono">JSON-RPC</text>
+<rect x="934" y="450" width="282" height="286" rx="12" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1.5"/>
+<text x="1075" y="484" font-size="23" fill="#166534" font-weight="600" text-anchor="middle">MCP Server</text>
+<text x="1075" y="551" font-size="20" fill="#4b5563" font-weight="400" text-anchor="middle">声明 tools 能力</text>
+<text x="1075" y="596" font-size="20" fill="#4b5563" font-weight="400" text-anchor="middle">持有工具定义</text>
+<text x="1075" y="637" font-size="20" fill="#4b5563" font-weight="400" text-anchor="middle">与 handler 映射</text>
+<text x="1075" y="696" font-size="16" fill="#4b5563" font-weight="400" text-anchor="middle">支持 stdio / Streamable HTTP</text>
+<path d="M 326 532 H 934" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+<rect x="560.0" y="503" width="140" height="26" rx="4" fill="#ffffff" opacity="0.98"/>
+<text x="630" y="523" font-size="18" fill="#2563eb" font-weight="400" text-anchor="middle">initialize</text>
+<path d="M 934 574 H 326" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+<rect x="435.0" y="545" width="390" height="26" rx="4" fill="#ffffff" opacity="0.98"/>
+<text x="630" y="565" font-size="18" fill="#2563eb" font-weight="400" text-anchor="middle">protocolVersion + capabilities.tools</text>
+<path d="M 326 616 H 934" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+<rect x="485.0" y="587" width="290" height="26" rx="4" fill="#ffffff" opacity="0.98"/>
+<text x="630" y="607" font-size="18" fill="#2563eb" font-weight="400" text-anchor="middle">notifications/initialized</text>
+<path d="M 326 658 H 934" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+<rect x="515.0" y="629" width="230" height="26" rx="4" fill="#ffffff" opacity="0.98"/>
+<text x="630" y="649" font-size="18" fill="#2563eb" font-weight="400" text-anchor="middle">tools/list（可分页）</text>
+<path d="M 934 700 H 326" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+<rect x="445.0" y="671" width="370" height="26" rx="4" fill="#ffffff" opacity="0.98"/>
+<text x="630" y="691" font-size="18" fill="#2563eb" font-weight="400" text-anchor="middle">name + description + inputSchema</text>
+<text x="64" y="773" font-size="19" fill="#4b5563" font-weight="400" text-anchor="start">Host 工具注册表：缓存工具定义与 Server 路由，按权限和任务筛选，再适配为模型 API 的 tools。</text>
+<text x="64" y="804" font-size="18" fill="#6b7280" font-weight="400" text-anchor="start">若协商支持 listChanged，Server 可发 notifications/tools/list_changed，Client 再刷新列表。</text>
+<rect x="32" y="852" width="1216" height="714" rx="16" fill="#ffffff" stroke="#dbe1e8" stroke-width="1.5"/>
+<rect x="64" y="876" width="32" height="32" rx="8" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1.5"/>
+<text x="80" y="899" font-size="20" fill="#2563eb" font-weight="600" text-anchor="middle">C</text>
+<text x="112" y="899" font-size="24" fill="#111827" font-weight="600" text-anchor="start">LLM 调用与反馈</text>
+<text x="1216" y="899" font-size="17" fill="#6b7280" font-weight="400" text-anchor="end">运行阶段 · 可重复多轮，直到形成回答</text>
+<rect x="504" y="948" width="296" height="480" rx="12" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="652" y="975" font-size="20" fill="#1d4ed8" font-weight="600" text-anchor="middle">MCP Host / Agent Runtime</text>
+<rect x="524" y="992" width="256" height="198" rx="10" fill="#ffffff" stroke="#93c5fd" stroke-width="1.5"/>
+<text x="652" y="1024" font-size="22" fill="#111827" font-weight="600" text-anchor="middle">编排与治理</text>
+<text x="652" y="1063" font-size="18" fill="#4b5563" font-weight="400" text-anchor="middle">工具注册 / Schema 适配</text>
+<text x="652" y="1099" font-size="18" fill="#4b5563" font-weight="400" text-anchor="middle">参数校验 / 权限审批</text>
+<text x="652" y="1135" font-size="18" fill="#4b5563" font-weight="400" text-anchor="middle">结果处理 / Trace 审计</text>
+<text x="652" y="1170" font-size="17" fill="#4b5563" font-weight="400" text-anchor="middle">拒绝或失败也形成可控反馈</text>
+<rect x="64" y="992" width="220" height="198" rx="12" fill="#faf5ff" stroke="#d8b4fe" stroke-width="1.5"/>
+<text x="174" y="1028" font-size="28" fill="#7e22ce" font-weight="600" text-anchor="middle">LLM</text>
+<text x="174" y="1075" font-size="20" fill="#4b5563" font-weight="400" text-anchor="middle">理解工具描述</text>
+<text x="174" y="1113" font-size="20" fill="#4b5563" font-weight="400" text-anchor="middle">选择工具与参数</text>
+<text x="174" y="1151" font-size="19" fill="#4b5563" font-weight="400" text-anchor="middle">根据结果继续推理</text>
+<path d="M 524 1036 H 284" fill="none" stroke="#7c3aed" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#arrow-purple)"/>
+<rect x="320.0" y="1006" width="168" height="26" rx="4" fill="#ffffff" opacity="0.98"/>
+<text x="404" y="1026" font-size="18" fill="#7c3aed" font-weight="400" text-anchor="middle">① 任务 + tools</text>
+<path d="M 284 1102 H 524" fill="none" stroke="#7c3aed" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#arrow-purple)"/>
+<rect x="299.0" y="1072" width="210" height="26" rx="4" fill="#ffffff" opacity="0.98"/>
+<text x="404" y="1092" font-size="18" fill="#7c3aed" font-weight="400" text-anchor="middle">② name + arguments</text>
+<path d="M 524 1168 H 284" fill="none" stroke="#7c3aed" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#arrow-purple)"/>
+<rect x="312.0" y="1138" width="184" height="26" rx="4" fill="#ffffff" opacity="0.98"/>
+<text x="404" y="1158" font-size="18" fill="#7c3aed" font-weight="400" text-anchor="middle">⑧ 工具结果回填</text>
+<rect x="524" y="1260" width="256" height="100" rx="10" fill="#ffffff" stroke="#93c5fd" stroke-width="1.5"/>
+<text x="652" y="1297" font-size="23" fill="#111827" font-weight="600" text-anchor="middle">MCP Client</text>
+<text x="652" y="1335" font-size="18" fill="#4b5563" font-weight="400" text-anchor="middle">会话管理 / 工具调用路由</text>
+<path d="M 720 1190 V 1260" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+<rect x="662.0" y="1208" width="116" height="26" rx="4" fill="#ffffff" opacity="0.98"/>
+<text x="720" y="1228" font-size="17" fill="#2563eb" font-weight="400" text-anchor="middle">③ 校验通过</text>
+<path d="M 584 1260 V 1190" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+<rect x="526.0" y="1208" width="116" height="26" rx="4" fill="#ffffff" opacity="0.98"/>
+<text x="584" y="1228" font-size="17" fill="#2563eb" font-weight="400" text-anchor="middle">⑦ 结果处理</text>
+<rect x="1020" y="1200" width="196" height="160" rx="12" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1.5"/>
+<text x="1118" y="1235" font-size="22" fill="#166534" font-weight="600" text-anchor="middle">MCP Server</text>
+<text x="1118" y="1274" font-size="18" fill="#4b5563" font-weight="400" text-anchor="middle">⑤ 校验 → handler</text>
+<text x="1118" y="1307" font-size="18" fill="#4b5563" font-weight="400" text-anchor="middle">服务端鉴权与执行</text>
+<text x="1118" y="1341" font-size="18" fill="#4b5563" font-weight="400" text-anchor="middle">封装结果或错误</text>
+<path d="M 780 1284 H 1020" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+<rect x="822.0" y="1252" width="156" height="26" rx="4" fill="#ffffff" opacity="0.98"/>
+<text x="900" y="1272" font-size="18" fill="#2563eb" font-weight="400" text-anchor="middle">④ tools/call</text>
+<path d="M 1020 1336 H 780" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+<rect x="822.0" y="1304" width="156" height="26" rx="4" fill="#ffffff" opacity="0.98"/>
+<text x="900" y="1324" font-size="18" fill="#2563eb" font-weight="400" text-anchor="middle">⑥ ToolResult</text>
+<rect x="1020" y="1460" width="196" height="76" rx="10" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="1118" y="1492" font-size="19" fill="#111827" font-weight="600" text-anchor="middle">业务 API / 数据库</text>
+<text x="1118" y="1520" font-size="17" fill="#4b5563" font-weight="400" text-anchor="middle">或本地系统能力</text>
+<path d="M 1072 1360 V 1460" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+<rect x="1044.0" y="1394" width="56" height="26" rx="4" fill="#ffffff" opacity="0.98"/>
+<text x="1072" y="1414" font-size="17" fill="#2563eb" font-weight="400" text-anchor="middle">执行</text>
+<path d="M 1164 1460 V 1360" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+<rect x="1136.0" y="1394" width="56" height="26" rx="4" fill="#ffffff" opacity="0.98"/>
+<text x="1164" y="1414" font-size="17" fill="#2563eb" font-weight="400" text-anchor="middle">返回</text>
+<rect x="64" y="1336" width="220" height="76" rx="10" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="174" y="1368" font-size="22" fill="#111827" font-weight="600" text-anchor="middle">用户</text>
+<text x="174" y="1396" font-size="18" fill="#4b5563" font-weight="400" text-anchor="middle">发起任务 / 接收回答</text>
+<path d="M 174 1190 V 1336" fill="none" stroke="#7c3aed" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#arrow-purple)"/>
+<rect x="112.0" y="1251" width="124" height="26" rx="4" fill="#ffffff" opacity="0.98"/>
+<text x="174" y="1271" font-size="18" fill="#7c3aed" font-weight="400" text-anchor="middle">⑨ 最终回答</text>
+<path d="M 284 1378 H 504" fill="none" stroke="#7c3aed" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#arrow-purple)"/>
+<rect x="338.0" y="1347" width="112" height="26" rx="4" fill="#ffffff" opacity="0.98"/>
+<text x="394" y="1367" font-size="18" fill="#7c3aed" font-weight="400" text-anchor="middle">用户任务</text>
+<text x="64" y="1488" font-size="20" fill="#7c3aed" font-weight="400" text-anchor="start">模型侧：任务、工具契约、调用提案与结果</text>
+<text x="64" y="1523" font-size="20" fill="#2563eb" font-weight="400" text-anchor="start">执行侧：Host 控制调用，Server 执行业务</text>
+<path d="M 64 1603 H 100" fill="none" stroke="#6b7280" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#arrow-gray)"/>
+<text x="114" y="1609" font-size="18" fill="#4b5563" font-weight="400" text-anchor="start">编写与接入</text>
+<path d="M 360 1603 H 396" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+<text x="410" y="1609" font-size="18" fill="#4b5563" font-weight="400" text-anchor="start">工具发现与执行</text>
+<path d="M 720 1603 H 756" fill="none" stroke="#7c3aed" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#arrow-purple)"/>
+<text x="770" y="1609" font-size="18" fill="#4b5563" font-weight="400" text-anchor="start">模型交互与反馈</text>
+<text x="1216" y="1609" font-size="16" fill="#6b7280" font-weight="400" text-anchor="end">MCP 2025-11-25 · 教学设计</text>
+</svg>

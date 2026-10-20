@@ -1,0 +1,576 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第28章 Claude Code 原理剖析：执行循环、上下文工程与可控行动 - AI Engineering：大模型与智能体系统工程</title>
+
+
+        <!-- Custom HTML head -->
+        <!-- Use MathJax web fonts rather than incomplete local STIX installations. -->
+        <script type="text/x-mathjax-config">
+        MathJax.Hub.Config({
+            "HTML-CSS": { availableFonts: [], preferredFont: "TeX", webFont: "TeX" }
+        });
+        </script>
+
+        <meta name="description" content="面向软件工程师与架构师的 AI Engineering 指南，涵盖大模型原理、训练与推理基础设施、Agent 系统、应用实战、评估、可靠性与治理">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-2459343d.css">
+        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-d12effe5.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-c6471750.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">AI Engineering：大模型与智能体系统工程</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第28章-claude-code-原理剖析执行循环上下文工程与可控行动"><a class="header" href="#第28章-claude-code-原理剖析执行循环上下文工程与可控行动">第28章 Claude Code 原理剖析：执行循环、上下文工程与可控行动</a></h1>
+<blockquote>
+<p>Claude Code 的关键，不是把聊天框搬进终端，而是让模型在代码、命令和验证结果之间持续工作，并由运行时管理每一步行动的上下文、权限与反馈。</p>
+</blockquote>
+<p>前面的 <a href="03-pi-agent-architecture.html">Pi</a>、<a href="04-openclaw-architecture.html">OpenClaw</a> 与 <a href="05-hermes-agent-architecture.html">Hermes</a> 分别提供了理解终端运行时、多入口接入和长期状态的视角。本章延续 Hermes 章的分析方法，沿着“输入如何进入系统、模型如何获得上下文、行动如何执行、结果如何回流”的主线，拆解一个面向软件工程的产品。</p>
+<p>设想一个普通需求：“修复订单列表翻页时重复显示的问题，补充回归测试。”真正的工作包含理解分页约定、定位查询逻辑、分析排序稳定性、修改代码、运行测试以及解释残余风险。Claude Code 为什么能连续完成这些动作？为什么有时反复搜索，有时主动调用子 Agent，有时又停下来请求授权？这些行为需要放到同一套运行机制里理解。</p>
+<p>本文面向了解 LLM、工具调用与基本软件开发流程的工程师。阅读后应能区分模型推理、运行时控制与工程验收的职责，并据此判断自己的 Coding Agent 缺少哪一环，而不只是记住一组命令。</p>
+<p><strong>资料核验日期为 2026-10-19。</strong> 本章依据 Anthropic 官方工程文章、Claude Code 滚动文档和官方公开仓库解释产品行为，未安装运行 Claude Code，未做性能或成功率实验。官方公开仓库不能直接当作完整核心运行时的源码快照；本文不以泄露代码、非官方逆向或传闻为证据。涉及工具调度、上下文装配和恢复的抽象，若没有公开实现依据，均作为本书的教学模型，而非内部函数、类名或数据库结构。<a href="#ref-1">[1]</a></p>
+<h2 id="系统定位把模型放进软件工程的反馈回路"><a class="header" href="#系统定位把模型放进软件工程的反馈回路">系统定位：把模型放进软件工程的反馈回路</a></h2>
+<h3 id="从回答问题到改变工作区"><a class="header" href="#从回答问题到改变工作区">从回答问题到改变工作区</a></h3>
+<p>聊天应用通常以一段回答作为交付。Coding Agent 的交付往往存在于对话之外：工作区里的文件发生变化，命令在特定环境中执行，测试产生可以核对的结果。自然语言回答只是这些事实的说明。官方将 Claude Code 的核心过程概括为收集上下文、采取行动、验证结果，且这些阶段会按任务需要反复交替。<a href="#ref-2">[2]</a></p>
+<p>因此，理解系统时应同时观察两个对象：模型在对话里知道什么，外部环境实际上变成了什么。模型生成了一段正确补丁，不代表补丁已经写入正确文件；文件修改成功，不代表程序行为正确；测试通过，也不代表覆盖了用户真正遇到的情况。可靠交付要求这些对象逐步对齐。</p>
+<p>可以用一个教学等式概括本章视角：</p>
+<pre><code class="language-text">Claude Code = 模型决策 + 上下文管理 + 工具执行 + 行动约束 + 反馈验证
+</code></pre>
+<p>等式里的加号表示责任组合，不表示五个公开源码模块。换模型主要改变决策质量，换搜索工具主要改变证据获取方式，换权限配置则改变能够执行的行动集合。它们相互影响，却不能相互代替。</p>
+<h3 id="模型运行时与产品界面"><a class="header" href="#模型运行时与产品界面">模型、运行时与产品界面</a></h3>
+<p>Claude 模型负责理解需求、形成假设、选择下一步行动和解释观察结果。运行时负责把工具声明交给模型、接收工具请求、执行权限判断、管理调用与会话，并把结果带回后续上下文。终端、IDE 等产品界面则负责呈现状态和接收人的纠正。三层分工解释了为什么同一个模型接到不同工具后，实际工作能力会明显不同。</p>
+<p>Anthropic 对工作流与 Agent 的区分是：前者主要沿预先定义的代码路径推进，后者由模型动态决定过程和工具使用。Claude Code 适合用后一个视角理解，但它也包含确定性的配置、权限检查与工具执行。动态决策与确定性边界可以同时存在。<a href="#ref-3">[3]</a></p>
+<p>例如，“先找分页查询在哪里”可能由模型决定；“这个进程能否连接某个域名”不能只依赖模型自律。模型的开放性解决未知任务路径，运行时的约束则控制路径上的实际行为。把所有步骤硬编码成固定流水线，容易失去探索能力；把所有规则写成提示词，又缺少强制执行点。</p>
+<h3 id="为什么软件工程适合这种循环"><a class="header" href="#为什么软件工程适合这种循环">为什么软件工程适合这种循环</a></h3>
+<p>代码仓库有可搜索的符号、明确的文件边界、可以重复执行的构建与测试，也有可以比较的 Git 差异。这些条件让抽象判断较容易转化为环境反馈。模型可以提出“排序字段不唯一”的假设，然后读取查询、构造相同时间戳的数据，并通过失败测试校验假设。</p>
+<p>但反馈丰富不意味着反馈总是可靠。测试可能依赖本地时区、数据库版本或缓存状态，构建脚本还可能触发远程操作。因此，本书将 Coding Agent 看作“在可观察环境中推进工程任务的系统”，而不是自动正确的程序员。输入目标、可用工具和验证信号共同决定它的有效范围。</p>
+<p>这也说明本章与 <a href="01-coding-agent-systems.html">第23章</a> 的关系：前者讨论产品与 Harness 的共性，本章使用 Claude Code 的公开机制，把这些共性落实到一个可分析的工作过程。</p>
+<h2 id="执行循环模型提出行动环境返回事实"><a class="header" href="#执行循环模型提出行动环境返回事实">执行循环：模型提出行动，环境返回事实</a></h2>
+<h3 id="一轮工具调用到底发生了什么"><a class="header" href="#一轮工具调用到底发生了什么">一轮工具调用到底发生了什么</a></h3>
+<p>从外部可观察行为建立教学模型，一轮工作可以拆成以下步骤：</p>
+<ol>
+<li>运行时组织当前可用的指令、历史、工具定义和环境信息。</li>
+<li>模型生成面向用户的内容，或提出一个带参数的工具调用请求。</li>
+<li>运行时处理请求，进行适用的校验、权限判断与生命周期扩展。</li>
+<li>获准的工具在其执行环境中运行，产生结果或失败信息。</li>
+<li>结果进入后续对话，模型依据新观察继续、改变策略或结束。</li>
+</ol>
+<p>这里最重要的分界是：<strong>工具请求是一项行动提案，执行结果才是环境观察。</strong> 模型写出“运行测试”几个字，不代表工具已经启动。工具已经返回，也不代表业务操作成功。读者在观察日志时，应把模型说明、调用请求和实际结果分开。</p>
+<p>这个模型用于解释控制责任，不声称 Claude Code 内部严格按这五个串行函数实现。权限、Hook 和执行器的确切处理顺序、并发策略与版本细节，要以对应文档和实际会话证据为准。</p>
+<h3 id="为什么通常不预先生成全部步骤"><a class="header" href="#为什么通常不预先生成全部步骤">为什么通常不预先生成全部步骤</a></h3>
+<p>修复问题时，下一步经常依赖上一条结果。搜索结果为空，可能意味着关键词错误、目录错误或相关逻辑生成于构建阶段；读取实现后，也可能发现最初怀疑的分页层没有问题，重复数据来自前端状态合并。提前写死所有工具调用，会把尚未验证的假设变成执行计划。</p>
+<p>开放循环允许模型在新证据下改变路径，但代价是会产生额外轮次，也可能在错误假设上徘徊。因此，计划应表达目标、约束和阶段性验收，而不是伪装成已知的事实。官方最佳实践强调给 Claude 提供可以运行的验证方式，让环境结果形成反馈。<a href="#ref-4">[4]</a></p>
+<p>对自研系统而言，可迁移的设计是：每个阶段都应知道自己在减少哪种不确定性。搜索减少位置不确定性，读取减少实现不确定性，复现减少因果不确定性，测试减少行为不确定性。连续几轮行动没有减少任何不确定性，就应重新检查任务假设。</p>
+<h3 id="工具输出是证据也可能是不完整观察"><a class="header" href="#工具输出是证据也可能是不完整观察">工具输出是证据，也可能是不完整观察</a></h3>
+<p>一个搜索工具可能只返回匹配行，读取工具可能只提供文件片段，命令输出也可能被截断。模型看到“没有错误”时，必须先知道自己是否拿到了完整退出状态和必要输出。没有看到错误，与确认程序成功，语义不同。</p>
+<p>以测试为例：测试进程仍在运行时，当前输出只能说明进展；进程退出后，还要核对退出码、实际执行的测试集合以及是否出现跳过。若用户要求修复服务端分页，却只运行了前端格式检查，这条工具结果真实存在，但对核心验收的支撑很弱。</p>
+<p>本书建议把观察结果至少理解为四类：已成功、已失败、仍运行、结果未知。这是设计执行器时的状态划分，不是对 Claude Code 返回字段的宣称。特别是网络中断和进程被取消后，不应默认操作没有发生。模型需要先恢复事实，再决定是否重试。</p>
+<h3 id="人的纠正如何改变后续行动"><a class="header" href="#人的纠正如何改变后续行动">人的纠正如何改变后续行动</a></h3>
+<p>用户在运行中补充“这个问题只出现在筛选后翻页”，会改变任务假设和验证范围。可靠的下一步应重新审视已读证据与已改文件，而不是把新要求简单附加在最终回答。对话交互的价值正在于：人能在事实逐步显现时修正目标。</p>
+<p>中断同样属于控制输入。终止当前生成或调用，不能推出所有外部副作用都已撤回。假设命令已经发送了一个远程请求，再取消本地进程，远程服务仍可能完成处理。运行时要给人机会介入，工程流程还要保存足够证据判断介入后的真实状态。</p>
+<h2 id="上下文工程决定模型这一轮能看见什么"><a class="header" href="#上下文工程决定模型这一轮能看见什么">上下文工程：决定模型这一轮能看见什么</a></h2>
+<h3 id="工作区上下文与会话历史不是同一个集合"><a class="header" href="#工作区上下文与会话历史不是同一个集合">工作区、上下文与会话历史不是同一个集合</a></h3>
+<p>文件存在于磁盘，不代表模型已经读取；文件曾在历史里出现，也不代表它的完整内容仍在当前上下文中。上下文窗口是当前模型调用能够消费的信息范围，会话历史是可供继续对话的记录，而工作区是持续变化的外部事实源。</p>
+<p>这三个集合的区别可以解释一种常见现象：模型刚刚改过的文件，在压缩或长时间探索之后可能需要重新读取。重新读取未必是无效重复，它可能是在恢复被压缩的细节，或核对文件是否被其他进程修改。真正需要避免的是毫无目标地反复读取相同材料。</p>
+<p>Anthropic 的上下文工程文章强调，应组织足以支持下一步判断的高信号信息，而不是持续堆积材料。其长任务方法讨论了压缩、结构化笔记和多 Agent 等机制；这些方法提供分析思路，并不公开 Claude Code 当前所有内部策略。<a href="#ref-5">[5]</a></p>
+<h3 id="指令文件承担稳定约束代码承担当前事实"><a class="header" href="#指令文件承担稳定约束代码承担当前事实">指令文件承担稳定约束，代码承担当前事实</a></h3>
+<p>Claude Code 支持通过 <code>CLAUDE.md</code> 保存项目说明，也支持按路径组织规则。适合常驻的内容包括构建入口、目录职责和不能破坏的兼容约束。容易从代码实时读取的实现细节，则不应不断复制进项目指令，否则代码变了，说明仍保留旧结论。<a href="#ref-6">[6]</a></p>
+<p>截至核验日，官方文档还描述了有条件的 <code>AGENTS.md</code> 加载：默认情况下，工作目录及其上级不存在相应 <code>CLAUDE.md</code> 类文件时，才选择读取 <code>AGENTS.md</code>；可通过项目指令配置调整。支持情况有版本前提，不能沿用“永远不读”或“总会同时读”的旧说法。<a href="#ref-6">[6]</a></p>
+<p>因此，项目采用统一规范文件时，需要检查实际加载结果，而不是只看文件名存在。更深一层的设计问题是来源职责：项目规则说明“应该怎样做”，源代码和运行结果说明“当前实际上怎样”。两者冲突时，应明确指出冲突并核对，不能把文档文字当成已经验证的运行事实。</p>
+<h3 id="即时检索先找位置再读必要内容"><a class="header" href="#即时检索先找位置再读必要内容">即时检索：先找位置，再读必要内容</a></h3>
+<p>对一个陌生仓库，直接塞入全部代码通常缺少可操作性。更合理的认知路径是先观察目录和构建入口，再搜索与任务相关的路由、符号、错误消息或配置，随后读取调用链附近的内容。这里的检索可以依赖文件和文本搜索，也可以借助代码智能工具；不必假设每次理解都经过向量数据库。</p>
+<p>以分页案例为例，搜索接口路径能找到控制器，搜索返回字段能找到数据转换层，搜索排序配置能找到查询构造。每次阅读都带着具体问题：游标包含哪些字段？相同时间戳如何排序？下一页边界是否包含上一页末项？问题明确，返回给模型的证据就更集中。</p>
+<p>不过，局部检索也会遗漏隐含约束。排序字段看似局部，实际上可能影响导出、缓存键或客户端游标解码。因此，从局部发现问题之后，还需要扩大到调用方和测试约定。上下文工程不是一味缩短输入，而是在不同阶段选择合适范围。</p>
+<h3 id="压缩是有损状态迁移"><a class="header" href="#压缩是有损状态迁移">压缩是有损状态迁移</a></h3>
+<p>官方说明 Claude Code 会在上下文接近限制时管理旧工具输出并压缩对话，用户也可使用 <code>/compact</code> 指定关注点。压缩能延续工作，但早期细节或指令可能丢失，所以持久规则应放进项目说明。<a href="#ref-2">[2]</a></p>
+<p>本书进一步把压缩理解为一次有损状态迁移。一个有用的任务摘要应保留目标、已确认事实、仍未证实的假设、修改范围、运行过的验证与下一步。只保留“正在修复分页问题”没有足够恢复价值，因为无法知道哪种失败已经排除，也不知道测试是否真的运行。</p>
+<p>尤其不能把失败假设压缩成结论。原记录是“怀疑排序不稳定，待复现”，摘要若写成“根因是排序不稳定”，后续工作就会继承一个虚假的前提。摘要需要保留认识状态，必要时保留回源路径，让模型能够重新检查。</p>
+<p>同样，摘要中的“测试通过”应附带测试范围和对应代码状态。否则压缩之后又修改了代码，旧结论很容易被误用为新版本的验收证据。篇幅缩短不应牺牲事实与时间的关联。</p>
+<h3 id="提示缓存长期记忆与当前正确性"><a class="header" href="#提示缓存长期记忆与当前正确性">提示缓存、长期记忆与当前正确性</a></h3>
+<p>提示缓存复用的是符合匹配条件的已有输入处理，作用主要在成本与延迟；它不表示模型保存了新的项目知识。Claude API 的缓存文档描述了前缀匹配等条件，不能据此断言 Claude Code 每次请求的具体缓存布局。<a href="#ref-7">[7]</a></p>
+<p>长期记忆则是跨会话保存的可读材料。Claude Code 的自动记忆与人工编写的项目指令承担不同职责：前者沉淀偏好或经验，后者声明长期约束；两者都是上下文，不是不可绕过的执行配置。<a href="#ref-6">[6]</a></p>
+<p>由此推导，记忆应当保留可失效性。曾经有效的测试命令可能在项目迁移后失效，曾经的模块负责人也可能变化。恢复任务时应优先核对仓库当前配置和新观察，而不是让历史笔记压过现场事实。缓存解决重复计算，记忆解决重复说明，回源验证解决事实变化，三者的价值并不相同。</p>
+<h2 id="工具与扩展能力如何进入执行循环"><a class="header" href="#工具与扩展能力如何进入执行循环">工具与扩展：能力如何进入执行循环</a></h2>
+<h3 id="内置工具提供高频工程动作"><a class="header" href="#内置工具提供高频工程动作">内置工具提供高频工程动作</a></h3>
+<p>文件读取、搜索、编辑和命令执行构成 Coding Agent 最常用的行动面。专门工具有助于表达明确意图：读取文件比任意 Shell 更容易限定输入输出，局部编辑也更容易呈现差异。Shell 则接通已有构建、测试和开发工具，覆盖专门工具未封装的能力。官方工具与运行机制文档提供了这些能力的公开说明。<a href="#ref-2">[2]</a></p>
+<p>从系统设计看，工具不是越多越好。两个描述高度重叠的搜索入口，可能让模型把时间花在选择工具上；一个过度通用的执行入口，又会让参数与结果难以约束。工具设计需要在可表达能力和可判断边界之间取得平衡。</p>
+<p>编辑动作尤其需要注意版本条件。模型读到的文件可能在随后被用户修改，本书建议在执行侧核对目标内容或版本，失败时重新读取。这里并不假设 Claude Code 所有工具都使用同一种并发协议，而是说明为什么文件编辑不能只靠模型记住旧文本。</p>
+<h3 id="skills把程序性知识按需装入"><a class="header" href="#skills把程序性知识按需装入">Skills：把程序性知识按需装入</a></h3>
+<p>Skill 的核心是可复用的任务说明和配套资源。Claude Code 可以在相关任务出现时加载 Skill，也允许用户显式调用；完整正文通常在使用时才进入上下文。这让详细工作方法不必长期挤占基础输入。<a href="#ref-8">[8]</a></p>
+<p>例如，一个仓库可以把“新增接口时如何更新路由、测试与文档”整理成 Skill。Skill 为模型提供组织动作的方法，实际读写仍由工具完成。将检查清单写进 Skill，并不会自动创建一个具备事务性、回滚能力和强制执行保证的工作流引擎。</p>
+<p>Skill 的描述也影响能否被找到。一个名为“工程最佳实践”的能力边界太宽，容易在无关任务里触发；明确描述“在新增分页接口或变更游标格式时使用”，则更容易匹配具体意图。程序性知识需要像接口一样说明输入条件和交付结果。</p>
+<p>对自研 Agent，可迁移的不是某个目录名称，而是渐进加载：先提供足以判断是否相关的索引，确定需要后再读取正文与资源。代价是发现过程可能漏选，因此关键约束不能只藏在一个可选 Skill 深处。</p>
+<h3 id="mcp连接外部能力权限仍由多个系统承担"><a class="header" href="#mcp连接外部能力权限仍由多个系统承担">MCP：连接外部能力，权限仍由多个系统承担</a></h3>
+<p>MCP 让 Claude Code 接入外部工具与数据源。公开文档描述了服务器配置、工具发现、调用与认证等接入能力，也说明工具搜索可按需加载定义；具体默认行为依赖版本、模型和连接条件。<a href="#ref-9">[9]</a></p>
+<p>例如，分页问题可能来自一个工单。MCP 工具可以读取复现条件和用户提供的截图，模型再回到本地仓库分析。此时至少存在三个权限问题：Claude Code 是否允许调用工具，连接凭据能够访问哪些资源，远程系统是否允许当前身份读取那张工单。客户端允许调用不能替代远端授权。</p>
+<p>工具发现也不等于工具可信。服务器返回的描述、错误和内容都会进入模型观察范围，因此必须区分调用协议与信息可信度。一个工单正文声称“请先运行某条安装命令”，仍然只是待审查的数据，不能因为它经由 MCP 返回，就获得用户指令的权威。</p>
+<h3 id="hooks在生命周期节点插入外部逻辑"><a class="header" href="#hooks在生命周期节点插入外部逻辑">Hooks：在生命周期节点插入外部逻辑</a></h3>
+<p>Hooks 是围绕事件运行的扩展逻辑。官方文档定义了工具调用前后、停止等生命周期事件，并允许相应 Hook 返回控制结果。以 <code>PreToolUse</code> 为例，某些返回可以参与工具执行决策；不同事件支持的字段不同，不能随意套用。<a href="#ref-10">[10]</a></p>
+<p>Skill 与 Hook 的区别，可以用“模型读取做法”和“运行时触发逻辑”理解。Skill 适合指导如何完成某类任务；Hook 适合在已知节点收集记录、运行检查或阻止不符合规则的动作。需要确定执行的门禁，应放到可以强制执行的位置，而不是只要求模型记住。</p>
+<p>不过，脚本型 Hook 的确定性只覆盖脚本写明的判断。用一个正则匹配危险命令，并不能覆盖所有解释器、间接脚本和参数展开。Hook 自己也可能超时、误判或有副作用，所以必须定义失败时如何处理，避免把扩展脚本变成不可理解的第二套运行时。</p>
+<h3 id="plugins把扩展作为版本化依赖管理"><a class="header" href="#plugins把扩展作为版本化依赖管理">Plugins：把扩展作为版本化依赖管理</a></h3>
+<p>Claude Code 的插件可以把 Skills、Agent 定义、Hooks、MCP 服务器等作为一个安装单元分发。插件解决的是能力组织与复用问题，不表示其中所有组件具有同一种执行语义。<a href="#ref-11">[11]</a></p>
+<p>因此，评估一个插件时应分别检查它引入了哪些说明、可执行脚本、工具连接和配置。只看插件名字，无法判断它是否改变网络访问或文件操作边界。可复用包降低安装成本，也让供应链依赖更容易进入日常任务。</p>
+<p>对团队而言，值得长期维护的是明确版本、适用仓库和回归任务，而不是不断增加插件数量。升级后如果行为改变，需要能追溯到底是模型、规则、Skill、Hook 还是工具服务变化。能力打包的收益，只有在依赖边界可见时才能稳定获得。</p>
+<h2 id="子-agent-与协作先管理上下文再考虑并行"><a class="header" href="#子-agent-与协作先管理上下文再考虑并行">子 Agent 与协作：先管理上下文，再考虑并行</a></h2>
+<h3 id="子-agent-首先是一次职责委托"><a class="header" href="#子-agent-首先是一次职责委托">子 Agent 首先是一次职责委托</a></h3>
+<p>主 Agent 调查问题时，可能需要读取大量与实现主线关系不大的材料。把这部分探索委托给子 Agent，可以让主上下文保留需求、约束和决策，而不承接所有搜索过程。官方文档说明子 Agent 有自己的上下文、可配置的工具和任务说明，工作结果再返回调用方。<a href="#ref-12">[12]</a></p>
+<p>例如，主 Agent 负责分析分页查询，子 Agent 只读检查客户端如何保存游标。委托应明确：检查哪些入口、回答哪些问题、是否允许修改文件、结果需要哪些出处。返回“前端没有问题”过于粗糙；返回组件路径、游标更新条件和覆盖不到的分支，才适合作为下一步决策依据。</p>
+<p>本书由此把子 Agent 看作信息加工边界。它的价值并不完全取决于是否并行，而在于是否能把一片高噪声探索压缩为可核对的结论。若子任务本身需要完整主线背景，传递成本就可能高于隔离收益。</p>
+<h3 id="新上下文与继承上下文各有代价"><a class="header" href="#新上下文与继承上下文各有代价">新上下文与继承上下文各有代价</a></h3>
+<p>不能把所有子 Agent 都解释成“从零开始”。核验日的官方文档区分了普通子 Agent 与 fork：前者根据委托和定义开始工作，后者继承分叉时的对话背景。具体可用性和默认设置存在版本及会话类型差异。<a href="#ref-12">[12]</a></p>
+<p>新上下文适合边界清楚的调查，输入少、目标集中，也能避免继承无关猜测。继承上下文适合背景非常重要的任务，但也会一起带走主会话的错误前提。继承更多历史不意味着理解更准确，新开上下文也不意味着具有独立判断。</p>
+<p>选择时应问：子任务缺少哪些必要背景？这些背景能否用一段明确交接说明代替？如果能，窄委托通常更容易审查；如果不能，再考虑继承。这里的结论属于本书的任务设计方法，而不是对某一模式的普遍性能排名。</p>
+<h3 id="上下文隔离不等于文件系统隔离"><a class="header" href="#上下文隔离不等于文件系统隔离">上下文隔离不等于文件系统隔离</a></h3>
+<p>两个 Agent 即使拥有独立上下文，仍可能修改同一工作区。如果一个正在重命名函数，另一个依据旧名称补测试，双方都会把自己看到的局部状态当成前提。这类冲突无法靠“各自认真工作”解决。</p>
+<p>因此，本书建议将并行读和并行写分开设计。多个只读调查通常易于合并；并行修改需要划分文件归属、稳定接口和集成顺序，必要时使用独立 worktree。独立工作区避免直接覆盖，却不会自动解决语义冲突，最终仍要在集成后的代码上验证。</p>
+<p>一份子任务完成报告也不应自动推进整个任务状态。调用方需要核对产物是否存在、是否与当前版本兼容，以及子任务声称运行的检查覆盖了什么。职责可以委托，最终交付责任仍要有明确归属。</p>
+<h3 id="配置入口先决定让-claude-扮演什么角色"><a class="header" href="#配置入口先决定让-claude-扮演什么角色">配置入口：先决定让 Claude 扮演什么角色</a></h3>
+<p>实际使用时，先区分三种需求：让主会话持续完成一个任务、把专项调查交给子 Agent，以及让多个会话互相协作。通常从主会话加一个职责明确的子 Agent 开始，等任务确有协调需求时，再引入 Agent teams。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>使用目标</th><th>配置入口</th><th>适合的任务</th></tr>
+</thead>
+<tbody>
+<tr><td>主会话负责实现，专项角色负责调查</td><td>项目中的 <code>.claude/agents/</code></td><td>分页审查、接口兼容检查、只读代码分析</td></tr>
+<tr><td>个人角色跨项目复用</td><td><code>~/.claude/agents/</code></td><td>通用阅读助手、个人审查习惯</td></tr>
+<tr><td>当前会话整体采用专项角色</td><td><code>claude --agent &lt;name&gt;</code></td><td>持续进行某类分析，而非一次委托</td></tr>
+<tr><td>多个成员需要交流和协调</td><td>Agent teams 的环境配置</td><td>边界明确且确实需要协作的大任务</td></tr>
+</tbody>
+</table>
+</div>
+<p>先在终端运行 <code>claude --version</code> 记录版本，再从目标仓库启动 Claude Code。以下是供读者使用的配置片段，已按官方文档核对字段，但本文没有实际启动 Claude 验证；文件路径相对于读者自己的目标项目，不表示需要修改本书仓库的工具配置。</p>
+<h3 id="创建一个只读的分页审查-agent"><a class="header" href="#创建一个只读的分页审查-agent">创建一个只读的分页审查 Agent</a></h3>
+<p>在目标项目中创建 <code>.claude/agents/pagination-auditor.md</code>。官方使用带 YAML Front Matter 的 Markdown 定义自定义子 Agent，前面的字段描述身份和能力，后面的正文描述职责。项目级与用户级文件分别服务于当前项目和跨项目复用。<a href="#ref-12">[12]</a></p>
+<p>下面的角色说明由本书编写，用于贯穿案例；它没有执行测试所需的 Shell 能力，因此应提供分析和测试建议，不能宣称已经复现或通过测试。</p>
+<pre><code class="language-markdown">---
+name: pagination-auditor
+description: 检查分页排序、游标边界和调用方兼容性；分析分页重复或遗漏时使用。
+tools: Read, Grep, Glob
+model: inherit
+---
+
+你是分页逻辑审查员，只分析代码，不修改文件。
+
+收到任务后：
+1. 找出接口、查询、游标编解码和调用方。
+2. 检查排序字段、并列值、边界比较和筛选条件。
+3. 区分已确认事实、待验证假设和缺少的信息。
+4. 为每个发现提供文件路径、相关符号和原因。
+5. 给出建议的回归场景，注明没有执行测试。
+
+输出：检查范围、发现与证据、验证建议、未覆盖范围。
+不要把推测写成已确认根因；没有发现也要说明检查范围。
+</code></pre>
+<p>这个例子的关键是职责、能力和输出相互一致。“只读”不只写在正文，还通过列出的工具收窄行动面；“提供回归建议”也没有被写成“自动修复所有问题”。主 Agent 收到结果后，再决定是否修改与运行测试。</p>
+<p>配置字段可以按下表逐步增加，不必在第一个定义里启用所有能力。字段名称和取值有产品语义，拼写不能随意改成近义词。<a href="#ref-12">[12]</a></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段</th><th>配置时要回答的问题</th><th>本例的取舍</th></tr>
+</thead>
+<tbody>
+<tr><td><code>name</code></td><td>如何唯一识别角色？</td><td>使用 <code>pagination-auditor</code>，避免同名定义</td></tr>
+<tr><td><code>description</code></td><td>什么任务需要它？</td><td>写具体触发条件，便于选择</td></tr>
+<tr><td><code>tools</code></td><td>实际需要哪些动作？</td><td>只给文件读取和搜索工具</td></tr>
+<tr><td><code>model</code></td><td>继承还是单独选择模型？</td><td>用 <code>inherit</code>，减少首次配置变量</td></tr>
+<tr><td><code>permissionMode</code></td><td>是否需要指定权限模式？</td><td>暂不设置，按主会话的有效模式运行</td></tr>
+<tr><td><code>skills</code></td><td>是否有必须预载的方法？</td><td>有稳定检查规范后再加入</td></tr>
+<tr><td><code>isolation</code></td><td>是否需要独立工作区？</td><td>只读角色暂不需要；并行写入时再评估</td></tr>
+</tbody>
+</table>
+</div>
+<p>若以后增加测试执行能力，应同步修改职责、工具和验收。例如，开放 <code>Bash</code> 后要说明使用哪个测试入口、允许哪些写入以及如何报告退出状态。不能只增加一个工具名，就假设角色获得了可靠的测试环境。</p>
+<h3 id="调用方式自动选择显式指定与专项会话"><a class="header" href="#调用方式自动选择显式指定与专项会话">调用方式：自动选择、显式指定与专项会话</a></h3>
+<p>先在普通 Claude Code 会话中，用自然语言提出一次范围清楚的委托：</p>
+<pre><code class="language-text">请使用 pagination-auditor 子 Agent 检查订单列表的分页逻辑。
+目标：解释相同创建时间下可能出现重复或遗漏的位置。
+范围：订单列表接口、游标解析、客户端追加列表的代码。
+本轮只分析，不修改文件；返回路径、符号、证据和待验证假设。
+</code></pre>
+<p>自然语言中的名字帮助模型选择角色；如果需要明确指定，可在输入框键入 <code>@</code>，从候选项选择该 Agent，再输入任务。核验日文档区分了这种显式调用和由模型决定是否委托的自然语言请求。<a href="#ref-12">[12]</a></p>
+<p>要让整个会话采用这个角色，可从目标项目目录启动：</p>
+<pre><code class="language-bash">claude --agent pagination-auditor
+</code></pre>
+<p>此时运行的是采用该定义的主会话，不能把它理解成普通主会话旁边又多了一个子任务。需要修复代码时，应回到具有实现能力的普通会话，或另行设计实现角色；不要期待上面的只读角色自行突破工具限制。<code>--agent</code> 指定会话角色，<code>--agents</code> 则通过 JSON 临时定义可用的子 Agent，两者用途不同。<a href="#ref-13">[13]</a></p>
+<p>本书建议先用文件定义，便于审查与版本管理；只有一次性角色才考虑临时定义。无论选择哪个入口，都要在会话记录中确认实际调用了目标角色，而不能仅凭回答使用了“审查员”的语气判断配置已经生效。</p>
+<h3 id="从调查交接到实现再交回验证"><a class="header" href="#从调查交接到实现再交回验证">从调查交接到实现，再交回验证</a></h3>
+<p>子 Agent 返回后，可以继续给主会话如下指令，把分析结果接回工程主线：</p>
+<pre><code class="language-text">依据 pagination-auditor 的发现继续处理：
+先核对相关实现，给出能够区分候选根因的回归场景。
+确认根因后做最小修改，保持现有接口兼容要求。
+运行项目已有的相关测试，并检查最终差异。
+交付时分别列出已通过、失败和未运行的检查。
+不要因为子 Agent 的推测就直接宣布根因已确认。
+</code></pre>
+<p>如果调查已经提供充分证据，主 Agent 不必机械重做全部搜索；它需要核对足以影响修改的关键事实。若实现过程中改变了游标结构，则应把新结构和差异交给审查角色，要求检查原有兼容约束，而不是让它只评价实现者的总结。</p>
+<p>这套使用方式体现了前文的分层：Agent 文件保存角色契约，具体消息提供当前任务，工具执行获得现场事实，测试与差异支撑最终验收。角色定义可以复用，每次任务中的目标、版本和证据仍需更新。</p>
+<h3 id="排查配置先确认加载再确认委托和权限"><a class="header" href="#排查配置先确认加载再确认委托和权限">排查配置：先确认加载，再确认委托和权限</a></h3>
+<p>“没有调用我写的 Agent”可能发生在不同层次：文件没有被加载、名字被其他定义遮盖、描述与任务不匹配，或者实际工具调用被限制。按这个顺序排查，比反复把角色提示写得更长更有效。</p>
+<p>先检查文件开头是否直接是 <code>---</code>，YAML 是否有效，<code>name</code> 与 <code>description</code> 是否齐全，再确认当前工作目录和定义范围。首次创建原本不存在的 <code>agents</code> 目录后，核验日官方文档要求重启会话；已有受监视目录中的修改则可被后续委托加载。<a href="#ref-12">[12]</a></p>
+<p>接着用一次显式调用，核对记录里的角色名、工具与返回结果。若能加载却不能执行，应检查有效权限，而不是删掉约束。特别是 <code>permissionMode</code> 还受主会话模式影响，不能将它当成一定覆盖父会话的独立开关；规则细节以权限章节和对应版本为准。</p>
+<p>最后，不要照搬旧教程的界面步骤。核验日文档说明，新版本的 <code>/agents</code> 已不再沿用早期的交互创建向导。本文以定义文件和明确调用为主，遇到界面差异时回到当前版本文档核对。</p>
+<h3 id="agent-teams-是另一种协调形态"><a class="header" href="#agent-teams-是另一种协调形态">Agent teams 是另一种协调形态</a></h3>
+<p>官方将 Agent teams 与普通子 Agent 区分：团队成员拥有独立上下文，可以通过消息和共享任务机制协调，而普通委托主要由主 Agent 汇总结果。核验日文档仍将 Agent teams 标为实验能力，存在恢复和任务状态等限制。<a href="#ref-14">[14]</a></p>
+<p>如需尝试团队协作，可在目标项目的 <code>.claude/settings.json</code> 中合并以下片段，保留原有其他配置：</p>
+<pre><code class="language-json">{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  }
+}
+</code></pre>
+<p>然后在交互会话中提出明确的分工，例如：</p>
+<pre><code class="language-text">创建一个 Agent team 调查分页重复问题。
+成员一只读检查服务端查询，成员二只读检查客户端状态合并。
+由主会话汇总双方证据、处理分歧并决定修改方案。
+本轮所有成员不修改文件，不把各自假设当成已确认根因。
+</code></pre>
+<p>开启实验能力可能改变普通委托的行为，所以应在会话中确认实际创建的是子 Agent 还是团队成员。只想使用前面的单个审查角色时，无须启用团队配置；具体启用条件与限制以官方文档为准。<a href="#ref-14">[14]</a></p>
+<p>这意味着“支持多个 Agent”不能直接推出“具备可靠的分布式工作流”。成员失联、消息迟到、任务状态滞后和文件冲突，都需要具体处理。一个界面显示任务完成，不能替代集成产物与验证记录。</p>
+<p>对分页案例，通常没有必要先建立团队。只有当服务端实现、客户端兼容和数据库查询优化能够形成边界明确的独立工作时，多人协作才可能值得。否则，把一个短问题拆成许多角色，只会增加背景传递和结果整合。</p>
+<h2 id="行动控制与恢复授权隔离和撤销分别负责什么"><a class="header" href="#行动控制与恢复授权隔离和撤销分别负责什么">行动控制与恢复：授权、隔离和撤销分别负责什么</a></h2>
+<h3 id="权限决定哪些提案能够执行"><a class="header" href="#权限决定哪些提案能够执行">权限决定哪些提案能够执行</a></h3>
+<p>Claude Code 的权限系统通过模式和规则控制工具行为。官方文档描述了显式允许、询问、拒绝以及不同权限模式；自动模式还会由独立分类器审查部分行动。默认模式和适用入口会随版本变化，不能把过去某个终端截图当成长期契约。<a href="#ref-15">[15]</a></p>
+<p>解释权限时，最容易混淆的是工具能力、用户授权和操作系统能力。工具存在，只说明运行时有这个入口；用户授权，只说明某项工作在任务范围内；操作系统允许，只说明进程技术上能够执行。三者共同成立，才能把一次行动当作合适的下一步。</p>
+<p>例如，用户要求本地修复分页逻辑，并不自动授权把测试数据写入生产数据库。工具即使已经登录生产环境，仍应确认目标是否在任务范围内。这个判断来自任务语义，而不是简单地看某个命令是否在允许列表里。</p>
+<h3 id="设置来源影响实际生效的边界"><a class="header" href="#设置来源影响实际生效的边界">设置来源影响实际生效的边界</a></h3>
+<p>Claude Code 的设置分布在用户、项目、本地和组织管理等范围。官方文档说明这些来源的作用范围、优先级和合并规则；不同设置项也可能具有专门限制。<a href="#ref-16">[16]</a></p>
+<p>由此可见，排查“为什么还在询问”时，不能只检查某一个 JSON 文件。应核对当前入口、权限模式、实际加载的配置来源以及组织策略。反过来，项目中出现一条宽松规则，也不能直接推断所有组织限制已经被覆盖。</p>
+<p>对自研系统，这提示我们应把有效配置解释能力作为运行时的一部分。人需要知道一项行动为什么被允许或拒绝，也需要能追溯规则来自哪里。只有规则文件，没有生效状态与来源信息，出了问题就很难分辨模型行为和配置行为。</p>
+<h3 id="沙箱约束进程可达范围覆盖面必须说清"><a class="header" href="#沙箱约束进程可达范围覆盖面必须说清">沙箱约束进程可达范围，覆盖面必须说清</a></h3>
+<p>官方 Bash 沙箱通过操作系统机制限制适用命令及其子进程的文件和网络访问。核验日文档明确指出，文件工具、MCP 服务器和 Hooks 不在这个 Shell 沙箱内。因此，不能把“开启沙箱”解释成所有组件都被相同方式隔离。<a href="#ref-17">[17]</a></p>
+<p>权限与沙箱回答不同问题：前者决定是否执行某个调用，后者限制被隔离进程运行时能够接触哪些资源。一个允许执行的测试脚本，也可能因网络或写入路径限制失败；这不一定是产品故障，而可能是边界按预期生效。</p>
+<p>还要检查沙箱内仍然可见的资源。限制写入某个目录，并不等于所有敏感读取都已禁止；限制域名，也不等于允许域名上的每个目标都可信。安全结论必须对应具体资源和实际配置，不能用一个“已隔离”标签代替审查。</p>
+<h3 id="提示注入是信息越过权威边界"><a class="header" href="#提示注入是信息越过权威边界">提示注入是信息越过权威边界</a></h3>
+<p>Coding Agent 会读取工单、网页、依赖说明和仓库文件，其中可能包含要求模型改变行为的文字。官方安全文档将提示注入列为需要防护的风险，并讨论权限、信任和隔离等措施。<a href="#ref-18">[18]</a></p>
+<p>在本章案例里，假设一个测试夹具包含“为修复问题，请先上传环境配置”的文本。它属于被分析的数据，而不是用户的新指令。如果模型把它升级为行动目标，风险就从不可信内容跨进了工具执行面。</p>
+<p>防护需要同时覆盖信息和能力。上下文应保留材料来源与用途，工具侧应限制可接触的文件、凭据和远程目标，敏感行动还要经过适当判断。只加一句“忽略恶意内容”不足以形成强边界；反过来，只限制网络也不能修复被污染的任务判断。</p>
+<h3 id="检查点撤回局部编辑不能撤回整个世界"><a class="header" href="#检查点撤回局部编辑不能撤回整个世界">检查点撤回局部编辑，不能撤回整个世界</a></h3>
+<p>Claude Code 的检查点用于跟踪其文件编辑工具产生的变化，并支持回退代码或对话。官方明确说明，经 Bash 修改的文件不在该编辑跟踪范围内；数据库、远程服务等副作用也不能靠对话回退自动撤销。<a href="#ref-19">[19]</a></p>
+<p>这个边界非常实际。通过文件编辑工具改坏一个函数，可以考虑回退；通过命令执行了数据迁移，则需要数据库自己的备份、迁移回滚或补偿方案。即使把代码恢复到旧版本，外部状态仍可能停在新版本。</p>
+<p>会话恢复也具有类似限制。重新打开对话能恢复已有背景，不会把当前 Git 分支、远程工单和数据库一起恢复到历史时刻。恢复后应先核对环境差异，再续接行动，而不是机械重放未完成步骤。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>机制</th><th>主要解决的问题</th><th>仍需另行处理的事项</th></tr>
+</thead>
+<tbody>
+<tr><td>项目指令与 Skills</td><td>让模型知道目标、约束和做法</td><td>是否遵守、是否过时以及强制执行</td></tr>
+<tr><td>权限规则与审批</td><td>控制具体工具请求能否执行</td><td>请求执行后的进程能力与远程授权</td></tr>
+<tr><td>Shell 沙箱</td><td>限制适用进程的文件和网络范围</td><td>沙箱外组件、业务正确性和所有凭据通道</td></tr>
+<tr><td>文件检查点</td><td>撤回被跟踪的编辑</td><td>Shell 改动、数据库与外部副作用</td></tr>
+<tr><td>Git 与 worktree</td><td>保存版本、隔离工作区、比较差异</td><td>对话状态、语义冲突和远程事务</td></tr>
+</tbody>
+</table>
+</div>
+<p>表中的机制可以组合，但没有哪一行能替代其他行。对高影响操作，恢复设计必须在执行前明确，因为发生不确定结果后再临时发明补偿流程，往往已经缺少必要证据。</p>
+<h2 id="贯穿案例一次分页修复如何成为可审查交付"><a class="header" href="#贯穿案例一次分页修复如何成为可审查交付">贯穿案例：一次分页修复如何成为可审查交付</a></h2>
+<h3 id="先固定目标与验收而不是接受根因猜测"><a class="header" href="#先固定目标与验收而不是接受根因猜测">先固定目标与验收，而不是接受根因猜测</a></h3>
+<p>以下是本书设计的教学轨迹，不是 Claude Code 的实测记录，也不承诺某个版本会生成相同调用序列。假设仓库中有订单列表接口，使用时间戳作为游标；当多笔订单时间相同，分页结果偶尔重复。这里的时间戳冲突是用于解释机制的场景假设。</p>
+<p>用户只描述重复现象时，Agent 不应立即宣布根因。它需要先确认请求、筛选条件、排序方向、重复发生在接口响应还是页面展示，以及是否存在并发新增订单。不同条件会导向不同问题：排序不稳定、边界比较错误、状态合并重复或快照语义不一致。</p>
+<p>本书为这个案例设定的验收是：同一静态数据集下连续翻页不重复、不遗漏；筛选条件持续生效；现有游标调用方有明确兼容策略。关于翻页期间新增或删除数据，则先澄清接口承诺。不能用静态夹具上的通过，证明动态列表具有快照一致性。</p>
+<h3 id="探索阶段建立可核对的因果链"><a class="header" href="#探索阶段建立可核对的因果链">探索阶段建立可核对的因果链</a></h3>
+<p>主 Agent 先读取项目规则与构建配置，确认接口实现、测试入口和数据库类型，再查找分页查询及游标解析逻辑。它读取的是和问题相关的局部内容，而不是从仓库第一行读到最后一行。</p>
+<p>假设查询只按创建时间排序，游标也只保存创建时间。这支持“并列值缺少稳定次序”的假设，却还不能独立证明重复原因。Agent 还需要检查比较操作符和客户端是否重复追加同一页。若使用子 Agent 检查客户端，应要求它给出具体更新逻辑与路径。</p>
+<p>阶段输出应该是一条可复查的链：观察到哪种现象、读取了哪段实现、哪些解释已排除、下一步要验证什么。这样即便后面修改失败，也能回到一个明确的证据节点，而不是重新猜测整个系统。</p>
+<h3 id="复现与修改保持同一条验收主线"><a class="header" href="#复现与修改保持同一条验收主线">复现与修改保持同一条验收主线</a></h3>
+<p>接下来构造包含相同时间戳的静态数据，并在明确的分页大小下复现问题。测试应首先表现出与用户现象对应的失败，避免把依赖缺失、连接失败或夹具错误当成复现成功。测试进程的退出原因必须被解释。</p>
+<p>如果证据确认问题来自排序与游标不匹配，一种候选方案是使用时间和唯一标识形成复合次序，并让游标边界与排序方向保持一致。但这只是候选设计，还需检查字段唯一性、数据库比较语义、索引以及旧游标兼容。不是给排序追加一个字段就自动获得完整正确性。</p>
+<p>在这个过程中，模型负责提出方案和生成修改，工具负责实际落盘，验证负责检查行为。若编辑工具报告目标文本不匹配，正确反应是重新读取文件并理解变化，而不是不断扩大替换范围。若测试失败，则回到观察结果修正判断。</p>
+<p>这里也需要保留用户已有改动。Agent 开始时应观察工作区状态，审查差异时区分自己的修改与原有内容。未经核对就清空工作区，即使随后通过测试，也破坏了协作前提。</p>
+<h3 id="验证要对准合并后的状态"><a class="header" href="#验证要对准合并后的状态">验证要对准合并后的状态</a></h3>
+<p>局部回归至少应覆盖同时间戳、多页边界、空结果和筛选条件。是否扩展到其他列表接口，应由共享查询代码的影响范围决定。若修改了游标编码，还需要检查旧请求会怎样处理，不能只验证新客户端与新服务端同时部署的理想路径。</p>
+<p>之后审查整体差异，确认没有为了让测试通过而删除验收、弱化断言或绕过权限。若引入新的排序字段，也要说明查询计划是否已经检查；没有实际数据库环境时，索引与性能影响应保留为待验证范围。</p>
+<p>独立验证首先是判据和证据独立。再调用一个模型阅读主 Agent 的总结，不能自动形成独立验收；它需要检查实际差异、原始要求和可执行结果。测试与业务规格若同时被修改，还应说明原要求为何改变。</p>
+<h3 id="异常分支决定任务能否可靠收敛"><a class="header" href="#异常分支决定任务能否可靠收敛">异常分支决定任务能否可靠收敛</a></h3>
+<p>如果测试需要当前环境无法提供的数据库，应报告环境阻塞，并继续完成静态审查或可执行的局部检查。不能把“没有办法运行”改写成“预计通过”。如果网络调用超时，则先确认请求类型：只读查询可重新获取，写入操作需要先核对是否已经生效。</p>
+<p>若任务中途压缩上下文，摘要应保存已确认根因、当前差异、失败与通过的检查以及仍未解决的兼容问题。恢复之后先检查文件是否仍与记录一致，再执行剩余步骤。重复测试的理由应来自代码变化或未决问题，而不是仪式性地反复运行。</p>
+<p>最终交付应回答四件事：改了什么、为什么这样改、拿到了哪些验证证据、还存在哪些影响使用的限制。若仅静态验证，就明确说静态验证；若测试只覆盖单一数据库版本，也不能扩大成跨环境保证。这个交付形式让人能够基于证据决定是否合并和发布。</p>
+<h2 id="可编程运行与工程取舍如何把经验迁移到自己的系统"><a class="header" href="#可编程运行与工程取舍如何把经验迁移到自己的系统">可编程运行与工程取舍：如何把经验迁移到自己的系统</a></h2>
+<h3 id="非交互入口改变的是接入方式"><a class="header" href="#非交互入口改变的是接入方式">非交互入口改变的是接入方式</a></h3>
+<p>Claude Code 提供非交互调用与结构化输出能力，例如通过 <code>-p</code> 输入任务，并选择 JSON 等输出格式。官方文档还说明了按 JSON Schema 约束输出的方式。<a href="#ref-20">[20]</a></p>
+<p>这类入口便于脚本集成，但结构化结果只解决接口形状的一部分问题。一个字段写着“完成”，仍需与工具结果和产物对应；一个进程正常退出，也不能替代项目自己的质量标准。在自动化里，应先定义输出契约，再定义如何核对其中声明。</p>
+<p>尤其需要区分“启动一个 Agent 进程”与“建立可靠的任务平台”。后者还要处理身份、任务归属、重复执行、结果保存、取消和预算。无交互环境中无法现场回答的问题，应通过预先限定能力与明确失败出口解决，而不是一律开放执行权限。</p>
+<h3 id="agent-sdk-复用已有运行能力"><a class="header" href="#agent-sdk-复用已有运行能力">Agent SDK 复用已有运行能力</a></h3>
+<p>官方 Agent SDK 提供 Python 与 TypeScript 接入，让应用复用支撑 Claude Code 的工具、执行循环与上下文管理。它与直接调用模型 API 的客户端 SDK 具有不同抽象层次：前者承接更多 Agent 运行职责，后者提供更底层的模型接口。<a href="#ref-21">[21]</a></p>
+<p>选择前者，可以减少自行实现通用循环和工具集成的工作；选择后者，则有更大的协议与调度控制空间，也要承担更多维护责任。这里没有与场景无关的更优答案。关键是明确哪些状态由库管理，哪些业务事实仍由应用负责。</p>
+<p>例如，嵌入已有运行时，并不会自动让“创建远程工单”成为幂等操作。应用仍要定义业务标识、重复检查和结果未知时的处理。复用运行能力能减少基础工作，却不能替应用定义业务不变量。</p>
+<h3 id="成本优化应观察整条任务链"><a class="header" href="#成本优化应观察整条任务链">成本优化应观察整条任务链</a></h3>
+<p>官方成本文档将上下文管理、模型选择、工具开销和协作方式列为控制资源的方向。具体收费与额度受入口、套餐和合同影响，本章不提供固定单价或人均预算。<a href="#ref-22">[22]</a></p>
+<p>从任务结构推导，总成本可以按模型调用、工具运行、重试和人工审查分别观察。一次单价更低的模型调用，如果造成更多错误编辑和复查，最终可能更贵；一次更长的上下文，如果包含大量无关日志，也未必降低总轮次。</p>
+<p>因此，优先消除无效工作：搜索前限定问题，输出保留必要错误，复用稳定规则，委托时交代清楚目标。对相同材料反复压缩、多个 Agent 重复调查或工具输出被截断后反复重跑，应当先检查流程设计，再考虑增加上下文或并发。</p>
+<p>提示缓存能降低部分重复输入成本，但不应为了缓存命中而保留过时事实。同样，减少测试次数必须以验收覆盖仍足够为前提。经济性与正确性需要在同一任务上衡量，而不是分别追求最低 token 和最高测试数量。</p>
+<h3 id="选型先看责任边界与可观察失败"><a class="header" href="#选型先看责任边界与可观察失败">选型先看责任边界与可观察失败</a></h3>
+<p>延续 Hermes 章的写法，Claude Code 最值得迁移的是分工：模型处理开放问题，工具提供明确动作，运行时管理行动边界，项目环境返回验证证据。不同产品可以共享这些思想，但具体实现、开放程度与部署方式需要分别核验。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>设计问题</th><th>可借鉴的方法</th><th>必须付出的代价或补充条件</th></tr>
+</thead>
+<tbody>
+<tr><td>未知问题路径很多</td><td>让模型在环境反馈中选择下一步</td><td>明确停止条件，识别空转和证据不足</td></tr>
+<tr><td>仓库很大、材料很杂</td><td>即时检索、渐进加载、任务摘要</td><td>管理遗漏、失效与回源成本</td></tr>
+<tr><td>重复流程越来越多</td><td>Skills、Hooks 与插件分别承接</td><td>区分说明与执行，维护版本和回归</td></tr>
+<tr><td>单一上下文承载过重</td><td>窄委托或继承式子任务</td><td>支付交接、整合和写入冲突成本</td></tr>
+<tr><td>需要更长时间自主运行</td><td>权限、隔离与验证共同约束</td><td>检查覆盖面，设计未知结果与人工接管</td></tr>
+<tr><td>需要接入业务平台</td><td>非交互入口或 Agent SDK</td><td>应用负责业务幂等、状态与最终验收</td></tr>
+</tbody>
+</table>
+</div>
+<p>这张表不是功能评分，而是一组设计交换。获得更大自主空间，就要更明确地定义边界；获得更多并行能力，就要支付协调成本；获得更长连续性，就要处理摘要失真和现场变化。架构讨论只有把这些代价一起摆出来，才有实际意义。</p>
+<h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
+<p>Claude Code 展示的是一个以软件工程环境为反馈源的 Agent 系统。模型不断提出行动，运行时把行动连接到工具、权限、上下文和会话，环境再把真实结果带回模型。程序最终是否满足要求，要由代码差异、测试和其他明确证据确认。</p>
+<p>上下文管理决定模型能看到什么，Skills 决定可复用的方法如何进入任务，MCP 扩大可接入的能力面，Hooks 提供生命周期扩展，子 Agent 提供职责与信息边界。它们都能提高可用性，也分别引入发现、信任、维护和协调问题。</p>
+<p>对自研 Coding Agent，合理起点是一条能够审查的最小链路：明确任务与验收，获得当前证据，提出受限行动，执行并观察，在同一代码状态上验证，再向人说明结果。先让这条链路处理失败和未知，再扩展长期记忆、更多工具与并行协作。</p>
+<p>Hermes 章关注长期助手如何保持连续性，本章关注工程任务如何在连续行动中保持可验证性。两者共同提示我们：Agent 的价值来自模型与运行环境的配合，而可靠性来自对事实、权限、状态和完成条件的持续区分。</p>
+<h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
+<p>以下均为官方来源；滚动文档访问与核验日期统一为 2026-10-19。本文的教学分层、分页轨迹与自研建议为作者综合推导，不是官方内部实现说明。</p>
+<ol>
+<li><a id="ref-1"></a> Anthropic，<a href="https://github.com/anthropics/claude-code">Claude Code 官方公开仓库</a>，GitHub。用于确认公开项目入口，不作为完整核心源码审计依据。</li>
+<li><a id="ref-2"></a> Anthropic，<a href="https://code.claude.com/docs/en/how-claude-code-works">How Claude Code works</a>，Claude Code Docs。执行循环、工具、上下文与会话行为。</li>
+<li><a id="ref-3"></a> Anthropic，<a href="https://www.anthropic.com/engineering/building-effective-agents">Building effective agents</a>，Anthropic Engineering，2024-12-19。工作流与 Agent 的区分、组合方式及反馈原则。</li>
+<li><a id="ref-4"></a> Anthropic，<a href="https://code.claude.com/docs/en/best-practices">Best practices for Claude Code</a>，Claude Code Docs。探索、验证与工程协作方法。</li>
+<li><a id="ref-5"></a> Anthropic，<a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents">Effective context engineering for AI agents</a>，Anthropic Engineering。上下文选择、压缩与长任务组织。</li>
+<li><a id="ref-6"></a> Anthropic，<a href="https://code.claude.com/docs/en/memory">How Claude remembers your project</a>，Claude Code Docs。项目指令、规则、自动记忆与有条件的 <code>AGENTS.md</code> 加载。</li>
+<li><a id="ref-7"></a> Anthropic，<a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching">Prompt caching</a>，Claude Platform Docs。API 缓存条件与边界，不证明 CLI 的具体请求布局。</li>
+<li><a id="ref-8"></a> Anthropic，<a href="https://code.claude.com/docs/en/skills">Extend Claude with skills</a>，Claude Code Docs。Skill 的发现、加载、调用与资源组织。</li>
+<li><a id="ref-9"></a> Anthropic，<a href="https://code.claude.com/docs/en/mcp">Connect Claude Code to tools via MCP</a>，Claude Code Docs。服务器接入、工具发现与调用。</li>
+<li><a id="ref-10"></a> Anthropic，<a href="https://code.claude.com/docs/en/hooks">Hooks reference</a>，Claude Code Docs。生命周期事件、输入输出与决策语义。</li>
+<li><a id="ref-11"></a> Anthropic，<a href="https://code.claude.com/docs/en/plugins">Plugins overview</a>，Claude Code Docs。扩展组件打包与分发。</li>
+<li><a id="ref-12"></a> Anthropic，<a href="https://code.claude.com/docs/en/sub-agents">Create custom subagents</a>，Claude Code Docs。子 Agent 定义、工具、上下文及 fork 差异。</li>
+<li><a id="ref-13"></a> Anthropic，<a href="https://code.claude.com/docs/en/cli-reference">CLI reference</a>，Claude Code Docs。<code>--agent</code> 与 <code>--agents</code> 的用途及命令行参数。</li>
+<li><a id="ref-14"></a> Anthropic，<a href="https://code.claude.com/docs/en/agent-teams">Orchestrate teams of Claude Code sessions</a>，Claude Code Docs。团队协调机制及实验限制。</li>
+<li><a id="ref-15"></a> Anthropic，<a href="https://code.claude.com/docs/en/permissions">Configure permissions</a>，Claude Code Docs。权限模式、规则与适用边界。</li>
+<li><a id="ref-16"></a> Anthropic，<a href="https://code.claude.com/docs/en/settings">Settings files and precedence</a>，Claude Code Docs。配置范围、生效与合并规则。</li>
+<li><a id="ref-17"></a> Anthropic，<a href="https://code.claude.com/docs/en/sandboxing">Configure the sandboxed Bash tool</a>，Claude Code Docs。Shell 隔离、资源限制与覆盖范围。</li>
+<li><a id="ref-18"></a> Anthropic，<a href="https://code.claude.com/docs/en/security">Security</a>，Claude Code Docs。信任边界、提示注入与安全防护。</li>
+<li><a id="ref-19"></a> Anthropic，<a href="https://code.claude.com/docs/en/checkpointing">Checkpointing</a>，Claude Code Docs。编辑跟踪、回退及 Shell 与外部状态限制。</li>
+<li><a id="ref-20"></a> Anthropic，<a href="https://code.claude.com/docs/en/headless">Run Claude Code programmatically</a>，Claude Code Docs。非交互入口、结构化输出与集成方式。</li>
+<li><a id="ref-21"></a> Anthropic，<a href="https://code.claude.com/docs/en/agent-sdk/overview">Agent SDK overview</a>，Claude Code Docs。SDK 能力及与客户端 SDK 的抽象差异。</li>
+<li><a id="ref-22"></a> Anthropic，<a href="https://code.claude.com/docs/en/costs">Manage costs effectively</a>，Claude Code Docs。用量观察与上下文、模型和协作成本管理。</li>
+</ol>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part3/05-hermes-agent-architecture.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part4/01-agent-frontier-research.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part3/05-hermes-agent-architecture.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part4/01-agent-frontier-research.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-c2a407aa.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-1ddef08b.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
