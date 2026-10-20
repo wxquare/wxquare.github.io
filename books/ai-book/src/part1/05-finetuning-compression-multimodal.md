@@ -170,13 +170,21 @@ row-group在每行内细分时比per-channel细；跨行分组可能反而更粗
 
 一个极大值可能把整组scale拉大，让多数小值舍入到零。裁掉离群点能改善主体分辨率，却可能损伤少见关键语义；应比较保留异常通道、减小组、混合精度和裁剪，不只比较平均重建误差。若只保存量化码却丢失scale轴或广播规则，即使形状相同也会解出错误模型。
 
-FP8与NVFP4等浮点低精度格式还涉及指数/尾数、块缩放和多级scale；它们不能套用上述整数步长公式。作为版本化选读，查目标设备和库的正式格式说明，并记录编码、块形状、scale dtype/层级、布局、算子与累加精度、软件版本及验证日期。本章没有核验一套FP8/NVFP4支持矩阵，故不写固定块宽、全设备兼容或自动提速结论；第9章应在具体后端证据就绪后补齐。只有名称相同远不足以判定可执行和可互换。
+FP8与NVFP4等浮点低精度格式还涉及指数/尾数、块缩放和多级scale；它们不能套用上述整数步长公式。格式、训练配方和推理后端布局必须分别核对。下面补充一种有官方依据的表示；本章仍不提供跨设备、跨引擎的支持矩阵或自动提速结论。
+
+### NVFP4：表示、缩放轴与存储账本
+
+NVIDIA 介绍的 NVFP4 采用 E2M1 数值、每 16 个值共享一个 E4M3 块 scale，再配一个张量级 FP32 scale。Transformer Engine 2.20.2 文档将重建关系写为 `x ≈ q_e2m1 × s_block × s_global`；其训练配方还区分一维块与二维权重缩放，不能把一种布局套到所有张量。[[14]](#ref-14)[[15]](#ref-15)
+
+量化时，先从张量和块的统计量确定两级 scale，再把原值除以有效 scale，按配方的舍入与裁剪规则映射到 E2M1 码本；scale 自身也有表示误差。零块须走约定分支，非有限值不能混入 amax；推理转换与训练配方的随机舍入也不能混同。[[14]](#ref-14)[[15]](#ref-15)
+
+作为本书一维行分组的教学账本，设矩阵为 `M×K`、K 可被 16 整除：量化码占 `M×K/2` 字节，逻辑块 scale 形状为 `M×(K/16)`、占 `M×K/16` 字节，另加 4 字节张量 scale；未计对齐时约为 `4.5 + 32/(M×K)` bit/值。这个推导不是导出文件的实际大小。两个四位码装进一个字节后，仍须约定高低位次序、转置、尾块和 scale 的物理排布；目标 kernel 的对齐或重排会增加开销。
 
 ## 5.5 校准与训练后量化
 
 ### 四种范围选择优化不同的代理
 
-Wu等比较Max、Percentile和Entropy校准；其结果说明不同网络适合的范围方法不同。[[14]](#ref-14) 本书将一般非对称极值法称minmax，对称情形就是最大绝对值法。下表是方法区别，阈值搜索和误差记录必须与5.4的编码约定绑定：
+Wu等比较Max、Percentile和Entropy校准；其结果说明不同网络适合的范围方法不同。[[16]](#ref-16) 本书将一般非对称极值法称minmax，对称情形就是最大绝对值法。下表是方法区别，阈值搜索和误差记录必须与5.4的编码约定绑定：
 
 | 方法 | 范围选择 | 优点 | 风险与需记录项 |
 |:---|:---|:---|:---|
@@ -193,25 +201,25 @@ KL方法先固定原始直方图p，对各阈值把尾部计数折入边界，�
 
 ### GPTQ：基于误差补偿的权重量化
 
-GPTQ 使用少量校准数据，逐层选择量化权重，并利用近似二阶信息补偿已经产生的误差 [[15]](#ref-15)。它适合离线压缩大模型权重，尤其关注在固定 bit 数下保持输出误差。优点是无需重新训练，缺点是量化结果依赖校准数据、group size、排序策略和推理 kernel。
+GPTQ 使用少量校准数据，逐层选择量化权重，并利用近似二阶信息补偿已经产生的误差 [[17]](#ref-17)。它适合离线压缩大模型权重，尤其关注在固定 bit 数下保持输出误差。优点是无需重新训练，缺点是量化结果依赖校准数据、group size、排序策略和推理 kernel。
 
 ### AWQ：激活感知的权重缩放
 
-AWQ 观察到，与激活相关的部分显著权重通道对质量影响更大，通过等价缩放降低敏感权重的量化误差，而非直接把所有重要权重保留高精度 [[16]](#ref-16)。这体现了一个重要原则：权重量化不能只看权重本身，还要看模型在真实输入上的激活分布。不同业务数据会导致“重要通道”不同，因此公开校准集的最佳 bit 配置未必适合线上。
+AWQ 观察到，与激活相关的部分显著权重通道对质量影响更大，通过等价缩放降低敏感权重的量化误差，而非直接把所有重要权重保留高精度 [[18]](#ref-18)。这体现了一个重要原则：权重量化不能只看权重本身，还要看模型在真实输入上的激活分布。不同业务数据会导致“重要通道”不同，因此公开校准集的最佳 bit 配置未必适合线上。
 
 ### SmoothQuant 与 W8A8
 
-SmoothQuant 把激活中的离群值通过等价变换迁移到权重侧，使权重和激活都更容易做 INT8 量化 [[17]](#ref-17)。它适合对追求端到端整数矩阵乘法的系统进行优化。难点是平滑系数、校准分布和算子支持；如果某个层或某类输入仍有离群值，整体 W8A8 质量可能显著下降。
+SmoothQuant 把激活中的离群值通过等价变换迁移到权重侧，使权重和激活都更容易做 INT8 量化 [[19]](#ref-19)。它适合对追求端到端整数矩阵乘法的系统进行优化。难点是平滑系数、校准分布和算子支持；如果某个层或某类输入仍有离群值，整体 W8A8 质量可能显著下降。
 
 ### ZeroQuant、LLM.int8 与稀疏格式
 
-LLM.int8 通过混合精度处理异常值，说明极少数 outlier 不能简单与普通通道同样量化 [[18]](#ref-18)。ZeroQuant 探索训练后低比特量化和硬件友好实现 [[19]](#ref-19)；SpQR 进一步结合稀疏性和量化，以较低存储成本保留敏感权重 [[20]](#ref-20)。这些方案的共同挑战是算法格式必须与硬件 kernel、编译器和 serving engine 匹配。
+LLM.int8 通过混合精度处理异常值，说明极少数 outlier 不能简单与普通通道同样量化 [[20]](#ref-20)。ZeroQuant 探索训练后低比特量化和硬件友好实现 [[21]](#ref-21)；SpQR 进一步结合稀疏性和量化，以较低存储成本保留敏感权重 [[22]](#ref-22)。这些方案的共同挑战是算法格式必须与硬件 kernel、编译器和 serving engine 匹配。
 
 ### 方法差别与反量化的成本账本
 
-GPTQ优化局部权重误差并补偿，AWQ利用激活统计选择等价缩放，SmoothQuant用输入通道的缩放把激活量化难度迁移到权重。以后者为例，列向量约定下 \\(Wx=(WS)(S^{-1}x)\\)，S是输入通道正对角矩阵；浮点等价不保证两端量化后无误差。平滑缩放轴与最终量化scale轴也不是同一概念。GPTQ/AWQ常见路线以权重低比特为中心，SmoothQuant论文主要面向W8A8；具体组大小与激活粒度依配置而定，不虚构统一后端支持表。[[15]](#ref-15)[[16]](#ref-16)[[17]](#ref-17)
+GPTQ优化局部权重误差并补偿，AWQ利用激活统计选择等价缩放，SmoothQuant用输入通道的缩放把激活量化难度迁移到权重。以后者为例，列向量约定下 \\(Wx=(WS)(S^{-1}x)\\)，S是输入通道正对角矩阵；浮点等价不保证两端量化后无误差。平滑缩放轴与最终量化scale轴也不是同一概念。GPTQ/AWQ常见路线以权重低比特为中心，SmoothQuant论文主要面向W8A8；具体组大小与激活粒度依配置而定，不虚构统一后端支持表。[[17]](#ref-17)[[18]](#ref-18)[[19]](#ref-19)
 
-低位权重可能减少HBM读取，融合kernel可在片上解包/缩放再参与计算，避免先展开整块浮点权重写回显存。小batch解码若受权重带宽限制，节省传输可能超过反量化成本；大batch复用提高后，计算、布局转换和调度可能更重要。这是解释AWQ类部署为何可能更快的条件，不是算法名字带来的保证。[[16]](#ref-16) 实验需固定质量、形状和负载，分别计pack、scale读取、反量化、矩阵乘法及未量化算子。若某一可减半的传输项原占延迟f，理想总加速仅为 \\(1/(1-f/2)\\)，再扣额外开销；此式为串行时间账本的教学推导。
+低位权重可能减少HBM读取，融合kernel可在片上解包/缩放再参与计算，避免先展开整块浮点权重写回显存。小batch解码若受权重带宽限制，节省传输可能超过反量化成本；大batch复用提高后，计算、布局转换和调度可能更重要。这是解释AWQ类部署为何可能更快的条件，不是算法名字带来的保证。[[18]](#ref-18) 实验需固定质量、形状和负载，分别计pack、scale读取、反量化、矩阵乘法及未量化算子。若某一可减半的传输项原占延迟f，理想总加速仅为 \\(1/(1-f/2)\\)，再扣额外开销；此式为串行时间账本的教学推导。
 
 ### 校准练习卡：先实现可检查的范围估计
 
@@ -229,11 +237,11 @@ GPTQ优化局部权重误差并补偿，AWQ利用激活统计选择等价缩放�
 \mathcal{L}=\alpha\mathcal{L}\_{hard}+(1-\alpha)\tau\_{distill}^2D\_{KL}(p\_{teacher}^{\tau\_{distill}}\Vert p\_{student}^{\tau\_{distill}}),
 \\]
 
-其中 \\(\tau_{distill}>0\\) 是蒸馏softmax温度，teacher 的软概率包含类别相似性和暗知识 [[21]](#ref-21)。对语言模型，蒸馏可以使用 teacher 的 token 分布、生成轨迹、偏好排序、中间表示或工具动作。
+其中 \\(\tau_{distill}>0\\) 是蒸馏softmax温度，teacher 的软概率包含类别相似性和暗知识 [[23]](#ref-23)。对语言模型，蒸馏可以使用 teacher 的 token 分布、生成轨迹、偏好排序、中间表示或工具动作。
 
 ### DistilBERT、MobileBERT 与生成模型
 
-DistilBERT 通过蒸馏和结构简化降低 encoder 模型成本 [[22]](#ref-22)；MobileBERT 进一步围绕移动设备的延迟和内存设计结构 [[23]](#ref-23)。这里encoder结果不能直接外推到decoder聊天模型。生成式大模型蒸馏则更复杂：student 需要学习长序列概率、停止行为、工具格式和安全边界，teacher 生成的错误和偏好也会被复制。
+DistilBERT 通过蒸馏和结构简化降低 encoder 模型成本 [[24]](#ref-24)；MobileBERT 进一步围绕移动设备的延迟和内存设计结构 [[25]](#ref-25)。这里encoder结果不能直接外推到decoder聊天模型。生成式大模型蒸馏则更复杂：student 需要学习长序列概率、停止行为、工具格式和安全边界，teacher 生成的错误和偏好也会被复制。
 
 蒸馏数据应混合真实数据、teacher 高质量输出和独立验证样本。只用 teacher 生成数据会产生模型自我复制；只用硬标签又浪费 teacher 的软信息。代码蒸馏要运行测试，数学蒸馏要验证答案，工具蒸馏要检查环境状态，不能只比较 token-level loss。
 
@@ -245,21 +253,21 @@ DistilBERT 通过蒸馏和结构简化降低 encoder 模型成本 [[22]](#ref-22
 
 ### 图文对齐的起点
 
-CLIP 用图像—文本对比学习把视觉和语言映射到共享空间，展示了大规模弱标注数据可以学习通用视觉语义 [[24]](#ref-24)。对比损失鼓励正确图文配对相似、错误配对分离，适合检索和零样本分类，但不能直接完成长文本生成和复杂对话。
+CLIP 用图像—文本对比学习把视觉和语言映射到共享空间，展示了大规模弱标注数据可以学习通用视觉语义 [[26]](#ref-26)。对比损失鼓励正确图文配对相似、错误配对分离，适合检索和零样本分类，但不能直接完成长文本生成和复杂对话。
 
-ViLT 直接在 Transformer 中处理图像 patch 与文本 token，减少了重型视觉区域特征的依赖 [[25]](#ref-25)。这类模型解决的是视觉和语言的联合表示，仍需要额外训练才能稳定完成视觉问答、文档理解、空间关系和指令执行。
+ViLT 直接在 Transformer 中处理图像 patch 与文本 token，减少了重型视觉区域特征的依赖 [[27]](#ref-27)。这类模型解决的是视觉和语言的联合表示，仍需要额外训练才能稳定完成视觉问答、文档理解、空间关系和指令执行。
 
 ### Flamingo、BLIP-2 与连接器
 
-Flamingo 通过冻结视觉编码器和语言模型，引入跨模态层支持少样本视觉语言任务 [[26]](#ref-26)。BLIP-2 使用 Q-Former 从视觉特征中抽取与语言模型相关的信息，再连接冻结的大语言模型 [[27]](#ref-27)。它们共同体现了“冻结大模块、训练小连接器”的工程思想：减少训练成本和灾难性遗忘，同时让视觉信息以语言模型能利用的形式进入上下文。
+Flamingo 通过冻结视觉编码器和语言模型，引入跨模态层支持少样本视觉语言任务 [[28]](#ref-28)。BLIP-2 使用 Q-Former 从视觉特征中抽取与语言模型相关的信息，再连接冻结的大语言模型 [[29]](#ref-29)。它们共同体现了“冻结大模块、训练小连接器”的工程思想：减少训练成本和灾难性遗忘，同时让视觉信息以语言模型能利用的形式进入上下文。
 
 连接器的瓶颈在于信息压缩。视觉 token 太少会丢失细节，太多会占用上下文和推理成本；冻结语言模型可能无法理解某些视觉概念；视觉编码器和语言模型的坐标、位置与时间尺度不一致。连接器训练必须配合图文对齐、指令数据和任务评估。
 
 ### LLaVA、Qwen-VL 与视觉指令微调
 
-LLaVA 把视觉特征投影到语言模型输入空间，再使用视觉指令数据训练对话能力 [[28]](#ref-28)。Qwen-VL 进一步覆盖中文、多语言、细粒度定位和文档理解，展示了中文多模态模型在数据配比和评估上的特殊要求 [[29]](#ref-29)。这类模型的能力不只来自视觉编码器，还来自图像分辨率、OCR、位置表示、指令质量和语言模型本身。
+LLaVA 把视觉特征投影到语言模型输入空间，再使用视觉指令数据训练对话能力 [[30]](#ref-30)。Qwen-VL 进一步覆盖中文、多语言、细粒度定位和文档理解，展示了中文多模态模型在数据配比和评估上的特殊要求 [[31]](#ref-31)。这类模型的能力不只来自视觉编码器，还来自图像分辨率、OCR、位置表示、指令质量和语言模型本身。
 
-InternVL 等工作探索更高分辨率和更大视觉基础模型，说明视觉 token 数和细节能力存在明显权衡 [[30]](#ref-30)。高分辨率可以提升小文字和局部目标识别，却增加显存、上下文和延迟；多图和视频还要处理帧采样、时间顺序和跨帧一致性。
+InternVL 等工作探索更高分辨率和更大视觉基础模型，说明视觉 token 数和细节能力存在明显权衡 [[32]](#ref-32)。高分辨率可以提升小文字和局部目标识别，却增加显存、上下文和延迟；多图和视频还要处理帧采样、时间顺序和跨帧一致性。
 
 ### 多模态数据与失败模式
 
@@ -287,7 +295,7 @@ InternVL 等工作探索更高分辨率和更大视觉基础模型，说明视�
 
 ### 多模态微调与文本能力保持
 
-视觉指令微调可能让模型更会描述图片，却损伤纯文本代码和数学能力；高分辨率数据可能提高视觉细节，却增加回答冗长和成本。训练时应保留文本回放集合，并按视觉任务、纯文本、中文、代码和安全分层评估。LLaVA 的视觉指令路线、BLIP-2 的连接器设计和 Qwen-VL 的中文多模态实践，分别说明数据、连接器和语言模型底座都会影响最终能力 [[27]](#ref-27)[[28]](#ref-28)[[29]](#ref-29)。
+视觉指令微调可能让模型更会描述图片，却损伤纯文本代码和数学能力；高分辨率数据可能提高视觉细节，却增加回答冗长和成本。训练时应保留文本回放集合，并按视觉任务、纯文本、中文、代码和安全分层评估。LLaVA 的视觉指令路线、BLIP-2 的连接器设计和 Qwen-VL 的中文多模态实践，分别说明数据、连接器和语言模型底座都会影响最终能力 [[29]](#ref-29)[[30]](#ref-30)[[31]](#ref-31)。
 
 多模态模型还要做输入缺失测试：只有文本、只有图片、图片损坏、图片尺寸异常、OCR 为空、多图顺序改变、视频帧丢失。模型应能识别输入不足并请求补充，而不是用语言先验填满空白。把这种“正确失败”纳入 SFT 和偏好数据，通常比单纯增加正常图文问答更能提高生产可靠性。
 
@@ -319,7 +327,7 @@ InternVL 等工作探索更高分辨率和更大视觉基础模型，说明视�
 
 训练时评估的模型可能是 BF16 主权重加 adapter，线上却是合并后 INT4 权重；训练时使用单轮 chat template，线上却是多轮工具模板；训练时图像分辨率固定，线上却是不同尺寸和压缩格式。所有这些差异都可能被误认为数据或模型问题。
 
-因此必须建立真实服务路径的离线回放：使用线上 tokenizer、模板、量化、adapter 加载、采样和 schema 校验，记录同一批输入的输出差异。只有训练路径和服务路径都通过，才能进入 shadow mode。Llama 2 的开放模型实践说明，基础模型、聊天适配、安全评估和发布条件需要联合考虑 [[31]](#ref-31)。
+因此必须建立真实服务路径的离线回放：使用线上 tokenizer、模板、量化、adapter 加载、采样和 schema 校验，记录同一批输入的输出差异。只有训练路径和服务路径都通过，才能进入 shadow mode。Llama 2 的开放模型实践说明，基础模型、聊天适配、安全评估和发布条件需要联合考虑 [[33]](#ref-33)。
 
 ### 一次完整量化实验的交付规格
 
@@ -382,38 +390,42 @@ InternVL 等工作探索更高分辨率和更大视觉基础模型，说明视�
 
 <a id="ref-13"></a>[13] Nagel, M., et al. *A White Paper on Neural Network Quantization*. arXiv, 2021. https://arxiv.org/abs/2106.08295 访问日期：2026-10-16
 
-<a id="ref-14"></a>[14] Wu, H., Judd, P., Zhang, X., Isaev, M., & Micikevicius, P. *Integer Quantization for Deep Learning Inference: Principles and Empirical Evaluation*. arXiv, 2020. https://arxiv.org/abs/2004.09602 访问日期：2026-10-16
+<a id="ref-14"></a>[14] NVIDIA. *Introducing NVFP4 for Efficient and Accurate Low-Precision Inference*. NVIDIA Technical Blog, 2025. [原文](https://developer.nvidia.com/blog/introducing-nvfp4-for-efficient-and-accurate-low-precision-inference/)。核验日期：2026-10-18
 
-<a id="ref-15"></a>[15] Frantar, E., et al. *GPTQ: Accurate Post-Training Quantization for Generative Pre-trained Transformers*. arXiv, 2022. https://arxiv.org/abs/2210.17323 访问日期：2026-10-16
+<a id="ref-15"></a>[15] NVIDIA. *NVFP4*. Transformer Engine 2.20.2 documentation. [官方文档](https://docs.nvidia.com/deeplearning/transformer-engine/features/low_precision_training/nvfp4/nvfp4.html)。核验日期：2026-10-18
 
-<a id="ref-16"></a>[16] Lin, J., et al. *AWQ: Activation-aware Weight Quantization for LLM Compression and Acceleration*. MLSys, 2024. https://arxiv.org/abs/2306.00978 访问日期：2026-10-16
+<a id="ref-16"></a>[16] Wu, H., Judd, P., Zhang, X., Isaev, M., & Micikevicius, P. *Integer Quantization for Deep Learning Inference: Principles and Empirical Evaluation*. arXiv, 2020. https://arxiv.org/abs/2004.09602 访问日期：2026-10-16
 
-<a id="ref-17"></a>[17] Xiao, G., et al. *SmoothQuant: Accurate and Efficient Post-Training Quantization for Large Language Models*. ICML, 2023. https://arxiv.org/abs/2211.10438 访问日期：2026-10-16
+<a id="ref-17"></a>[17] Frantar, E., et al. *GPTQ: Accurate Post-Training Quantization for Generative Pre-trained Transformers*. arXiv, 2022. https://arxiv.org/abs/2210.17323 访问日期：2026-10-16
 
-<a id="ref-18"></a>[18] Dettmers, T., et al. *LLM.int8(): 8-bit Matrix Multiplication for Transformers at Scale*. NeurIPS, 2022. https://arxiv.org/abs/2208.07339 访问日期：2026-10-16
+<a id="ref-18"></a>[18] Lin, J., et al. *AWQ: Activation-aware Weight Quantization for LLM Compression and Acceleration*. MLSys, 2024. https://arxiv.org/abs/2306.00978 访问日期：2026-10-16
 
-<a id="ref-19"></a>[19] Yao, Z., et al. *ZeroQuant: Efficient and Affordable Post-Training Quantization for Large-Scale Transformers*. NeurIPS, 2022. https://arxiv.org/abs/2206.01861 访问日期：2026-10-16
+<a id="ref-19"></a>[19] Xiao, G., et al. *SmoothQuant: Accurate and Efficient Post-Training Quantization for Large Language Models*. ICML, 2023. https://arxiv.org/abs/2211.10438 访问日期：2026-10-16
 
-<a id="ref-20"></a>[20] Dettmers, T., et al. *SpQR: A Sparse-Quantized Representation for Near-Lossless LLM Weight Compression*. ICLR, 2024. https://arxiv.org/abs/2306.03078 访问日期：2026-10-16
+<a id="ref-20"></a>[20] Dettmers, T., et al. *LLM.int8(): 8-bit Matrix Multiplication for Transformers at Scale*. NeurIPS, 2022. https://arxiv.org/abs/2208.07339 访问日期：2026-10-16
 
-<a id="ref-21"></a>[21] Hinton, G., Vinyals, O., & Dean, J. *Distilling the Knowledge in a Neural Network*. NeurIPS Deep Learning Workshop, 2015. https://arxiv.org/abs/1503.02531 访问日期：2026-10-16
+<a id="ref-21"></a>[21] Yao, Z., et al. *ZeroQuant: Efficient and Affordable Post-Training Quantization for Large-Scale Transformers*. NeurIPS, 2022. https://arxiv.org/abs/2206.01861 访问日期：2026-10-16
 
-<a id="ref-22"></a>[22] Sanh, V., Debut, L., Chaumond, J., & Wolf, T. *DistilBERT, a Distilled Version of BERT*. arXiv, 2019. https://arxiv.org/abs/1910.01108 访问日期：2026-10-16
+<a id="ref-22"></a>[22] Dettmers, T., et al. *SpQR: A Sparse-Quantized Representation for Near-Lossless LLM Weight Compression*. ICLR, 2024. https://arxiv.org/abs/2306.03078 访问日期：2026-10-16
 
-<a id="ref-23"></a>[23] Sun, Z., et al. *MobileBERT: a Compact Task-Agnostic BERT for Resource-Limited Devices*. ACL, 2020. https://arxiv.org/abs/2004.02984 访问日期：2026-10-16
+<a id="ref-23"></a>[23] Hinton, G., Vinyals, O., & Dean, J. *Distilling the Knowledge in a Neural Network*. NeurIPS Deep Learning Workshop, 2015. https://arxiv.org/abs/1503.02531 访问日期：2026-10-16
 
-<a id="ref-24"></a>[24] Radford, A., et al. *Learning Transferable Visual Models From Natural Language Supervision*. ICML, 2021. https://arxiv.org/abs/2103.00020 访问日期：2026-10-16
+<a id="ref-24"></a>[24] Sanh, V., Debut, L., Chaumond, J., & Wolf, T. *DistilBERT, a Distilled Version of BERT*. arXiv, 2019. https://arxiv.org/abs/1910.01108 访问日期：2026-10-16
 
-<a id="ref-25"></a>[25] Kim, W., Son, B., & Kim, I. *ViLT: Vision-and-Language Transformer Without Convolution or Region Supervision*. ICML, 2021. https://arxiv.org/abs/2102.03334 访问日期：2026-10-16
+<a id="ref-25"></a>[25] Sun, Z., et al. *MobileBERT: a Compact Task-Agnostic BERT for Resource-Limited Devices*. ACL, 2020. https://arxiv.org/abs/2004.02984 访问日期：2026-10-16
 
-<a id="ref-26"></a>[26] Alayrac, J.-B., et al. *Flamingo: a Visual Language Model for Few-Shot Learning*. NeurIPS, 2022. https://arxiv.org/abs/2204.14198 访问日期：2026-10-16
+<a id="ref-26"></a>[26] Radford, A., et al. *Learning Transferable Visual Models From Natural Language Supervision*. ICML, 2021. https://arxiv.org/abs/2103.00020 访问日期：2026-10-16
 
-<a id="ref-27"></a>[27] Li, J., et al. *BLIP-2: Bootstrapping Language-Image Pre-training with Frozen Image Encoders and Large Language Models*. ICML, 2023. https://arxiv.org/abs/2301.12597 访问日期：2026-10-16
+<a id="ref-27"></a>[27] Kim, W., Son, B., & Kim, I. *ViLT: Vision-and-Language Transformer Without Convolution or Region Supervision*. ICML, 2021. https://arxiv.org/abs/2102.03334 访问日期：2026-10-16
 
-<a id="ref-28"></a>[28] Liu, H., Li, C., Wu, Q., & Lee, Y. J. *Visual Instruction Tuning*. NeurIPS, 2023. https://arxiv.org/abs/2304.08485 访问日期：2026-10-16
+<a id="ref-28"></a>[28] Alayrac, J.-B., et al. *Flamingo: a Visual Language Model for Few-Shot Learning*. NeurIPS, 2022. https://arxiv.org/abs/2204.14198 访问日期：2026-10-16
 
-<a id="ref-29"></a>[29] Bai, J., et al. *Qwen-VL: A Versatile Vision-Language Model for Understanding, Localization, Text Reading, and Beyond*. arXiv, 2023. https://arxiv.org/abs/2308.12966 访问日期：2026-10-16
+<a id="ref-29"></a>[29] Li, J., et al. *BLIP-2: Bootstrapping Language-Image Pre-training with Frozen Image Encoders and Large Language Models*. ICML, 2023. https://arxiv.org/abs/2301.12597 访问日期：2026-10-16
 
-<a id="ref-30"></a>[30] Chen, Z., et al. *InternVL: Scaling up Vision Foundation Models and Aligning for Generic Visual-Linguistic Tasks*. arXiv, 2023. https://arxiv.org/abs/2312.14238 访问日期：2026-10-16
+<a id="ref-30"></a>[30] Liu, H., Li, C., Wu, Q., & Lee, Y. J. *Visual Instruction Tuning*. NeurIPS, 2023. https://arxiv.org/abs/2304.08485 访问日期：2026-10-16
 
-<a id="ref-31"></a>[31] Touvron, H., et al. *Llama 2: Open Foundation and Fine-Tuned Chat Models*. arXiv, 2023. https://arxiv.org/abs/2307.09288 访问日期：2026-10-16
+<a id="ref-31"></a>[31] Bai, J., et al. *Qwen-VL: A Versatile Vision-Language Model for Understanding, Localization, Text Reading, and Beyond*. arXiv, 2023. https://arxiv.org/abs/2308.12966 访问日期：2026-10-16
+
+<a id="ref-32"></a>[32] Chen, Z., et al. *InternVL: Scaling up Vision Foundation Models and Aligning for Generic Visual-Linguistic Tasks*. arXiv, 2023. https://arxiv.org/abs/2312.14238 访问日期：2026-10-16
+
+<a id="ref-33"></a>[33] Touvron, H., et al. *Llama 2: Open Foundation and Fine-Tuned Chat Models*. arXiv, 2023. https://arxiv.org/abs/2307.09288 访问日期：2026-10-16
