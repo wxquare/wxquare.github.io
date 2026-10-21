@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="620" viewBox="0 0 1280 620" role="img" aria-labelledby="title desc">
+<title id="title">多个 session 共用可写目录：一次调查混入两个版本</title><desc id="desc">同一个 Agent 服务并行处理 session A 与 B。A 读取提交 v2，B 在共享目录 checkout 到 v1，A 继续读取 v1。对话历史彼此独立，但文件内容被共享修改。</desc>
+<style>text{font-family:Helvetica Neue, Arial, PingFang SC, Microsoft YaHei, sans-serif}</style>
+<defs>
+<marker id="blue" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L10 4 L0 8 Z" fill="#2563eb"/></marker>
+<marker id="green" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L10 4 L0 8 Z" fill="#059669"/></marker>
+<marker id="red" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L10 4 L0 8 Z" fill="#dc2626"/></marker>
+<marker id="gray" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L10 4 L0 8 Z" fill="#6b7280"/></marker>
+</defs>
+<rect width="1280" height="620" fill="#ffffff"/>
+<text x="48" y="57" font-size="30" fill="#111827" font-weight="600" text-anchor="start">风险：session 分开了，工作目录仍然共用</text>
+<text x="48" y="95" font-size="21" fill="#6b7280" font-weight="400" text-anchor="start">同一个 Agent 服务 · 两个 session 都在排查支付超时</text>
+<rect x="48" y="135" width="1184" height="110" rx="12" fill="#fef2f2" stroke="#fecaca" stroke-width="1.6"/>
+<text x="77" y="177" font-size="24" fill="#111827" font-weight="600" text-anchor="start">共享可写目录 /workspace/payment</text>
+<text x="77" y="216" font-size="21" fill="#6b7280" font-weight="400" text-anchor="start">Session A 与 B 的文件工具、shell、检索工具都访问这里</text>
+<text x="50" y="316" font-size="23" fill="#111827" font-weight="600" text-anchor="start">Session A</text>
+<text x="50" y="442" font-size="23" fill="#111827" font-weight="600" text-anchor="start">Session B</text>
+<path d="M 228 330 H 1210" fill="none" stroke="#6b7280" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#gray)"/>
+<path d="M 228 456 H 1210" fill="none" stroke="#6b7280" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#gray)"/>
+<rect x="250" y="275" width="250" height="86" rx="12" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1.6"/>
+<text x="375" y="309" font-size="23" fill="#111827" font-weight="600" text-anchor="middle">读支付入口</text>
+<text x="375" y="341" font-size="20" fill="#6b7280" font-weight="400" text-anchor="middle">来自提交 v2</text>
+<rect x="600" y="401" width="250" height="86" rx="12" fill="#fef2f2" stroke="#fecaca" stroke-width="1.6"/>
+<text x="725" y="435" font-size="23" fill="#111827" font-weight="600" text-anchor="middle">checkout v1</text>
+<text x="725" y="467" font-size="20" fill="#6b7280" font-weight="400" text-anchor="middle">改变共享目录</text>
+<rect x="950" y="275" width="250" height="86" rx="12" fill="#fef2f2" stroke="#fecaca" stroke-width="1.6"/>
+<text x="1075" y="309" font-size="23" fill="#111827" font-weight="600" text-anchor="middle">读适配层</text>
+<text x="1075" y="341" font-size="20" fill="#6b7280" font-weight="400" text-anchor="middle">已来自提交 v1</text>
+<path d="M 725 401 V 338 C 713 338 713 322 725 322 V 204" fill="none" stroke="#ffffff" stroke-width="8"/>
+<path d="M 725 401 V 338 C 713 338 713 322 725 322 V 204" fill="none" stroke="#dc2626" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#red)" stroke-dasharray="6 5"/>
+<rect x="663.0" y="249" width="124" height="28" rx="4" fill="#ffffff" stroke="none" stroke-width="1.6"/>
+<text x="725" y="267" font-size="18" fill="#dc2626" font-weight="400" text-anchor="middle">切换文件内容</text>
+<rect x="48" y="525" width="1184" height="56" rx="12" fill="#fff7ed" stroke="#fed7aa" stroke-width="1.6"/>
+<text x="76" y="561" font-size="21" fill="#9a3412" font-weight="400" text-anchor="start">结果：A 拼出的调用链不属于任何一个提交；给 checkout 单次加锁也无法保护后续读取。</text>
+<text x="76" y="610" font-size="18" fill="#6b7280" font-weight="400" text-anchor="start">灰色箭头：会话执行时间 →    红色虚线：修改共享文件</text>
+</svg>
