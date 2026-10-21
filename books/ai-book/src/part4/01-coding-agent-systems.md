@@ -1,4 +1,4 @@
-# 第23章 AI Coding Agent 系统解析：从工作协议到 Harness 工程
+# 第18章 AI Coding Agent 系统解析：从工作协议到 Harness 工程
 
 > AI Coding Agent 的本质，不是“自动写代码”，而是把软件工程任务转化为可规划、可执行、可验证、可隔离、可审查的工程闭环。
 
@@ -46,7 +46,7 @@ Harness:
 
 ---
 
-## 23.1 从 AI 编程范式到 Coding Agent 工作协议
+## 18.1 从 AI 编程范式到 Coding Agent 工作协议
 
 AI 编程工具不是突然从“代码补全”跳到“自动程序员”的。它经历了从局部辅助到闭环执行的演进。
 
@@ -62,7 +62,7 @@ Coding Agent 闭环执行
 
 这条演进线的关键变化，不是模型一次能写多少代码，而是模型是否被放进了一个能观察、行动、验证和修复的工程环境里。
 
-### 23.1.1 从代码补全到闭环执行
+### 18.1.1 从代码补全到闭环执行
 
 第一阶段是代码补全。模型根据当前文件和光标附近上下文预测下一段代码。这类工具的优势是低延迟、低风险、低学习成本；局限是只能处理局部代码，不理解完整任务。
 
@@ -92,7 +92,7 @@ Review
 
 这就是 Coding Agent 和普通 Chatbot 的分界线。
 
-### 23.1.2 Vibe Coding：探索式编程的价值
+### 18.1.2 Vibe Coding：探索式编程的价值
 
 Vibe Coding 指的是开发者通过即兴 prompt、多轮对话和模型共同探索实现方案。
 
@@ -119,7 +119,7 @@ Vibe Coding 的优势是启动快、反馈快、心理负担低。它把“先�
 
 这种阶段的目标不是交付，而是学习。
 
-### 23.1.3 Vibe Coding 的天花板
+### 18.1.3 Vibe Coding 的天花板
 
 Vibe Coding 一旦被误用为生产交付方式，问题会快速积累。
 
@@ -154,7 +154,7 @@ Vibe Coding 一旦被误用为生产交付方式，问题会快速积累。
 
 Vibe Coding 的本质是探索工具，不是交付协议。探索阶段允许混沌，交付阶段必须有约束。
 
-### 23.1.4 Spec Coding：把意图变成任务协议
+### 18.1.4 Spec Coding：把意图变成任务协议
 
 Spec Coding 的核心思想是：先把人的意图写成可执行、可验证、可审查的任务协议，再让 Agent 执行。
 
@@ -212,7 +212,7 @@ Spec 不是为了写更多文档，而是为了把隐性判断显式化。
 
 这个 Spec 不长，但它已经足够让 Agent 规划修改、寻找相关代码、补测试和判断完成。
 
-### 23.1.5 Spec 不是瀑布，而是探索到交付的转换
+### 18.1.5 Spec 不是瀑布，而是探索到交付的转换
 
 Spec Coding 不意味着一开始写出完美方案。更健康的流程是：
 
@@ -234,7 +234,7 @@ Agent 执行
 
 ---
 
-## 23.2 从成熟 Coding Agent 产品抽象通用 Harness 架构
+## 18.2 从成熟 Coding Agent 产品抽象通用 Harness 架构
 
 如果只看表面，Coding Agent 像是“LLM + 工具调用”。但这个理解太浅。
 
@@ -252,7 +252,7 @@ Agent 执行
 
 这些问题合在一起，才是 Coding Agent Harness。
 
-### 23.2.1 为什么不能只把 Coding Agent 理解成 “LLM + 工具”
+### 18.2.1 为什么不能只把 Coding Agent 理解成 “LLM + 工具”
 
 “LLM + 工具”只能解释 Agent 如何行动，不能解释 Agent 如何可靠行动。
 
@@ -281,7 +281,7 @@ Agent 执行
 
 工具调用只是一个动作意图。Harness 才负责把动作意图变成受控执行。
 
-### 23.2.2 成熟 Coding Agent 的核心模块
+### 18.2.2 成熟 Coding Agent 的核心模块
 
 成熟 Coding Agent 通常可以拆成九个模块。
 
@@ -325,11 +325,11 @@ Agent 执行
 
 这些模块的边界要清楚。模型可以建议行动，但工具和权限由 Runtime 控制；模型可以总结结果，但完成判定必须由 Verifier 和人审共同支撑。
 
-### 与第13章组件地图的对应关系
+### 与第15章组件地图的对应关系
 
-第 13 章把生产级 Agent Runtime 拆成 13 个核心组件。放到 Coding Agent 场景里，这些组件会更具体：入口不再只是聊天，而是 issue、diff、终端、IDE、PR、CI；上下文不再只是文档，而是代码仓库、Git 状态、测试输出、项目规则和历史变更。
+第15章把生产级 Agent Runtime 拆成 13 个核心组件。放到 Coding Agent 场景里，这些组件会更具体：入口不再只是聊天，而是 issue、diff、终端、IDE、PR、CI；上下文不再只是文档，而是代码仓库、Git 状态、测试输出、项目规则和历史变更。
 
-| 第13章组件 | Coding Agent 中的典型实现 | Claude Code / Cursor / Codex 的差异 |
+| 第15章组件 | Coding Agent 中的典型实现 | Claude Code / Cursor / Codex 的差异 |
 |:---|:---|:---|
 | Event & Intake Router | 接收自然语言任务、issue、PR 评论、终端命令、IDE 操作和后台任务 | Claude Code 偏终端入口，Cursor 偏 IDE 入口，Codex 同时覆盖本地任务和云端任务队列 |
 | Intent Normalizer | 把“修一下这个问题”转成 bugfix、refactor、test、review、explain、migration 等任务类型 | IDE 产品更依赖当前文件和选区，终端/云端产品更依赖任务说明、仓库和分支 |
@@ -345,9 +345,9 @@ Agent 执行
 | Review Surface、Trace & Audit | diff、patch、PR、commit message、summary、tool trace、失败原因 | IDE review 最直观，终端 review 依赖 diff/summary，云端 review 依赖 PR、CI 和任务 trace |
 | Learning Loop | 从失败任务、review comment、测试失败和用户反馈沉淀规则、Skill、Eval case | 大多数产品都有部分闭环，但“自动学习”通常要受 owner review 和 release gate 约束 |
 
-这张表说明一个关键点：Coding Agent 的成熟度不取决于它会不会写代码，而取决于它能否把代码修改放进**任务契约、上下文治理、权限裁决、验证门禁和审查表面**里。[第28章](06-claude-code-internals.md)将以 Claude Code 的公开机制和分页修复教学轨迹，解释这些组件如何协同。
+这张表说明一个关键点：Coding Agent 的成熟度不取决于它会不会写代码，而取决于它能否把代码修改放进**任务契约、上下文治理、权限裁决、验证门禁和审查表面**里。[第23章](06-claude-code-internals.md)将以 Claude Code 的公开机制和分页修复教学轨迹，解释这些组件如何协同。
 
-### 23.2.3 Coding Agent 的实现分层
+### 18.2.3 Coding Agent 的实现分层
 
 从产品实现看，Coding Agent 不是一个单独的聊天窗口，而是一组围绕模型建立的控制面。
 
@@ -390,7 +390,7 @@ Delivery Surface
 | Verification Gate | 完成由谁判定 | 测试、diff、CI、review 比 final answer 更可信 |
 | Delivery Surface | 人如何理解结果 | diff、PR、trace、风险说明和回滚路径是交付的一部分 |
 
-### 23.2.4 Claude Code：以终端工作流解释 Runtime
+### 18.2.4 Claude Code：以终端工作流解释 Runtime
 
 Claude Code 官方资料包含多个入口；本节选择终端路径来解释文件、命令与权限的组合，不将其限定为单一界面。[[1]](#ref-1)
 
@@ -406,7 +406,7 @@ Claude Code 官方资料包含多个入口；本节选择终端路径来解释�
 
 它的关键风险也来自终端：Shell 权限过强、secret 误读、危险 Git 操作、项目规则污染、外部工具信任边界不清。
 
-### 23.2.5 Cursor：IDE 原生 Context Control Plane
+### 18.2.5 Cursor：IDE 原生 Context Control Plane
 
 Cursor 的核心选择是：把 Agent 放在开发者正在编辑代码的界面里。
 
@@ -421,7 +421,7 @@ Cursor 的核心选择是：把 Agent 放在开发者正在编辑代码的界面
 
 它的主要风险是上下文过度贴近当前焦点：用户正在看的文件不一定是任务的全部边界。IDE Agent 很容易做出“局部看起来合理、全局破坏约束”的修改。
 
-### 23.2.6 Codex：本地与云端任务入口
+### 18.2.6 Codex：本地与云端任务入口
 
 Codex 官方术语覆盖 app、CLI、IDE 与 cloud 等入口；入口、执行位置和工作树需要分别记录，不能由产品名推断隔离位置。[[3]](#ref-3)
 
@@ -437,7 +437,7 @@ Codex 官方术语覆盖 app、CLI、IDE 与 cloud 等入口；入口、执行�
 
 它的主要风险是环境复现、权限边界、私有依赖、云端数据治理和并行任务状态管理。
 
-### 23.2.7 三类 Coding Agent 的架构对比
+### 18.2.7 三类 Coding Agent 的架构对比
 
 下面是 **2026-10-18 官方文档快照的选型表**，不是同条件运行的产品评测。实际使用时还需记录安装版本、账户权限、模型、操作系统与配置；文档访问日期不能代替二进制版本。
 
@@ -450,13 +450,13 @@ Codex 官方术语覆盖 app、CLI、IDE 与 cloud 等入口；入口、执行�
 
 前三列事实分别来自官方资料；检查项是本书推导，未比较成功率、价格或速度。[[1]](#ref-1)[[4]](#ref-4)[[2]](#ref-2)[[3]](#ref-3)
 
-**SDK 与产品要分层比较。** 模型 SDK 负责请求/响应和工具调用消息；Agent SDK 组织循环与工具；Runtime 承担执行、权限、状态和恢复；产品再提供编辑、审查与交付界面。Codex SDK 可程序化开始、继续或恢复线程，app-server 面向自建客户端；这不等于裸模型 SDK 会自动获得完整 Coding 产品。线程可恢复也不能证明外部支付或 Git 推送只执行一次。[[5]](#ref-5) 通用分层见[第 21 章](../part2/09-workflow-orchestration.md)。
+**SDK 与产品要分层比较。** 模型 SDK 负责请求/响应和工具调用消息；Agent SDK 组织循环与工具；Runtime 承担执行、权限、状态和恢复；产品再提供编辑、审查与交付界面。Codex SDK 可程序化开始、继续或恢复线程，app-server 面向自建客户端；这不等于裸模型 SDK 会自动获得完整 Coding 产品。线程可恢复也不能证明外部支付或 Git 推送只执行一次。[[5]](#ref-5) 通用分层见[第15章](../part3/03-agent-runtime.md#implementation-validation)。
 
 ### 版本化选读：如何比较 Trae 等其他产品
 
 对其他产品沿用同一任务、仓库版本、验收集合、权限与预算，记录完成率、越界行为、人工接管和重跑成本。Trae 的不同地区/入口需要分别取证；本次未取得足以支撑机制比较的完整官方页面，故保留为延伸核验项，不凭宣传或搜索摘要排列优劣。产品排名不能替代任务级证据。
 
-### 23.2.8 共同失败模式：上下文、工具、验证、权限与协作
+### 18.2.8 共同失败模式：上下文、工具、验证、权限与协作
 
 不同产品形态不同，但失败模式高度相似。
 
@@ -475,7 +475,7 @@ Codex 官方术语覆盖 app、CLI、IDE 与 cloud 等入口；入口、执行�
 
 这些失败模式说明：Coding Agent 的可靠性不是靠一个更强模型单独解决的，而是靠上下文、工具、策略、验证、隔离和审查共同收敛。
 
-### 23.2.9 从产品取舍反推 Harness 设计原则
+### 18.2.9 从产品取舍反推 Harness 设计原则
 
 从成熟产品反推，可以得到几个通用原则。
 
@@ -493,7 +493,7 @@ Codex 官方术语覆盖 app、CLI、IDE 与 cloud 等入口；入口、执行�
 
 ---
 
-## 23.3 教学工作流：Codex + MCP + 日志 + 代码仓库生成架构图
+## 18.3 教学工作流：Codex + MCP + 日志 + 代码仓库生成架构图
 
 在深入 Claude Code 之前，先看一个教学工作流。Coding Agent 的价值不只是“改代码”，还可以把外部事实源和本地实现源串成一条可审查的工程分析链路。
 
@@ -515,7 +515,7 @@ Codex 通过 MCP 查询日志和 trace
 
 这类任务非常适合观察成熟 Coding Agent 的系统边界：模型不直接访问生产系统，Runtime 执行工具，MCP 连接外部平台，日志平台返回事实，代码仓库提供实现结构，最终输出必须标注证据等级。
 
-### 23.3.1 任务背景：为什么这个工作流适合观察 Coding Agent
+### 18.3.1 任务背景：为什么这个工作流适合观察 Coding Agent
 
 这个工作流同时包含五种能力：
 
@@ -529,7 +529,7 @@ Codex 通过 MCP 查询日志和 trace
 
 它比“修一个 bug”更能暴露 Agent 的架构能力，因为它要求 Agent 区分事实、代码确认和推断。
 
-### 23.3.2 端到端架构
+### 18.3.2 端到端架构
 
 ```mermaid
 flowchart LR
@@ -569,7 +569,7 @@ flowchart LR
 模型负责推理，Runtime 负责执行，MCP 负责连接，日志平台负责事实，代码仓库负责结构。
 ```
 
-### 23.3.3 一次请求的生命周期
+### 18.3.3 一次请求的生命周期
 
 假设用户提出一个脱敏后的请求：
 
@@ -610,7 +610,7 @@ Agent 不会直接知道答案，而是经历多轮循环：
 
 这就是 Agent Loop 在真实排障中的样子：每一轮不是闲聊，而是围绕证据继续推进。
 
-### 23.3.4 MCP 工具调用不是网络请求本身
+### 18.3.4 MCP 工具调用不是网络请求本身
 
 模型生成的通常不是 HTTP 请求，而是结构化工具调用意图：
 
@@ -639,7 +639,7 @@ Agent 不会直接知道答案，而是经历多轮循环：
 
 这个边界非常重要。模型没有直接访问日志平台的能力，它只是提出“我需要调用哪个工具”。能不能执行、怎么执行、执行结果是什么，都由 Runtime 和工具系统决定。
 
-### 23.3.5 Runtime 每一轮给模型什么
+### 18.3.5 Runtime 每一轮给模型什么
 
 一次模型调用前，Runtime 会把当前任务打包成上下文：
 
@@ -675,7 +675,7 @@ context_package:
 
 模型看不到全量代码仓库，也看不到全量日志平台数据。它只能基于 Runtime 放进上下文的材料推理；材料不够时，就要继续调用工具收集证据。
 
-### 23.3.6 日志事实如何变成代码搜索线索
+### 18.3.6 日志事实如何变成代码搜索线索
 
 日志平台返回的通常是事实字段：
 
@@ -710,13 +710,13 @@ rg "promotion eligibility"
 | AST/LSP 符号检索 | 定义、引用、继承与类型 | 区分同名实体；需确认索引与构建配置 | 语言服务器有能力差异；反射、生成代码和动态分派需补证 |
 | 语义 RAG | 只知道“取消订单后返库存”而不知道命名 | 召回概念相近片段；必须绑定 repo/commit/path/hash | 增加切分、embedding、ACL 与增量同步成本；可能召回旧版本 |
 
-ripgrep 的过滤行为与 LSP 接口来自各自资料；选择顺序是本书场景推导。[[6]](#ref-6)[[7]](#ref-7) 有错误码时先精确搜索，有可解析符号时扩展引用，没有标识符时用语义召回找入口；随后都要读取当前源码。语义 RAG 并非必选依赖，也不能因为 grep 无需向量索引就宣称它必然便宜或完整。索引生命周期见[第 19 章](../part2/07-agent-knowledge-systems.md)。
+ripgrep 的过滤行为与 LSP 接口来自各自资料；选择顺序是本书场景推导。[[6]](#ref-6)[[7]](#ref-7) 有错误码时先精确搜索，有可解析符号时扩展引用，没有标识符时用语义召回找入口；随后都要读取当前源码。语义 RAG 并非必选依赖，也不能因为 grep 无需向量索引就宣称它必然便宜或完整。索引生命周期见[第14章](../part3/02-context-engineering.md#knowledge)。
 
 **失败—恢复轨迹（教学设计，未运行）：** Task 要求修复重复释放库存，基线为 commit A、工作区 diff D1；Context 的 RAG 索引仍指向 A 之前的旧函数`ReleaseStock`。若直接按旧片段改文件，会漏掉 D1 中新加入的`ReleaseReservation`。Tool 先核验候选`repo/commit/path/content_hash`，发现不匹配后将它降为线索，按错误字面量运行`rg -n -F 'duplicate release' service tests`；无结果先查 ignore 和目录，不认定不存在。找到当前日志点后用定义/引用定位调用者，读取对应代码及测试，再生成 patch。若日志所部署 commit 不是 A，应取得有权限的对应源码，否则线上因果结论仍未确认。
 
 Verifier 独立检查重复取消、并发取消、失败重试及库存副作用次数，记录测试命令、退出码、环境和修改后 hash；仅有 patch 或一次通过的旧测试都不足以关闭 Task。若测试失败，回到候选修改；若缺依赖，标记 blocked 而非编造通过。检索命中率和修复成功率属于不同指标。
 
-### 23.3.7 证据等级：哪些能写进图里
+### 18.3.7 证据等级：哪些能写进图里
 
 从日志到架构图，最容易犯的错误是把推断画成事实。建议把证据分成三档：
 
@@ -737,7 +737,7 @@ Verifier 独立检查重复取消、并发取消、失败重试及库存副作�
 
 这样图不是“看起来完整”，而是“知道哪里有证据，哪里只是推断”。
 
-### 23.3.8 脱敏后的示例图
+### 18.3.8 脱敏后的示例图
 
 下面是合成的教学示例，服务名、日志和调用边均为假设，并非生产实测：
 
@@ -767,7 +767,7 @@ flowchart TD
 - `promotion-service` 的 WARN 来自日志；
 - `inventory-service` 只在代码里确认，当前 trace 未必覆盖。
 
-### 23.3.9 公开发布时必须脱敏
+### 18.3.9 公开发布时必须脱敏
 
 如果把这类案例写进公开文章，必须做脱敏。
 
@@ -785,7 +785,7 @@ flowchart TD
 
 脱敏不是简单替换几个字符串，而是要避免通过组合信息反推出业务、组织和系统结构。
 
-### 23.3.10 最佳实践 Prompt
+### 18.3.10 最佳实践 Prompt
 
 用户可以这样向 Coding Agent 提需求：
 
@@ -804,7 +804,7 @@ flowchart TD
 
 这类 prompt 的关键不是“画个图”，而是要求 Agent 保持证据边界。
 
-### 23.3.11 常见失败点
+### 18.3.11 常见失败点
 
 | 现象 | 可能原因 | 修复方式 |
 |:---|:---|:---|
@@ -815,7 +815,7 @@ flowchart TD
 | 调用链缺边 | trace 只覆盖同步路径，异步链路缺失 | 标注为未确认异步路径 |
 | 暴露敏感信息 | 原样贴日志或配置 | 输出前做字段级脱敏 |
 
-### 23.3.12 对 Coding Agent 设计的启示
+### 18.3.12 对 Coding Agent 设计的启示
 
 这个案例说明，一个成熟 Coding Agent 不只是代码编辑器里的自动补丁生成器。它还可以成为工程分析工作台：
 
@@ -831,13 +831,13 @@ flowchart TD
 
 ---
 
-## 23.4 以 Claude Code 为例推导终端 Harness
+## 18.4 以 Claude Code 为例推导终端 Harness
 
 Claude Code 是理解 Coding Agent Harness 的好样本。它不是把模型塞进一个聊天窗口，而是把模型放进终端、文件系统、代码仓库、工具链和权限系统组成的工作环境。
 
 本节不会把 Claude Code 当成产品说明书来讲，而是从 Harness 工程角度拆解它代表的核心机制。
 
-### 23.4.1 本节选择终端路径的原因
+### 18.4.1 本节选择终端路径的原因
 
 Claude Code 的核心定位是终端原生 Runtime。
 
@@ -860,7 +860,7 @@ Claude Code 的核心定位是终端原生 Runtime。
 
 第二，**它必须面对真实权限风险**。终端可以删除文件、联网、提交代码、读取配置、运行危险脚本。终端 Agent 的设计难点不是“能不能执行命令”，而是“如何让命令执行可裁决、可审计、可恢复”。
 
-### 23.4.2 Claude Code 的核心架构：Model + Harness
+### 18.4.2 Claude Code 的核心架构：Model + Harness
 
 以下是本书根据公开行为提出的教学分解，模块名、状态 schema 和伪代码不是未公开内部实现。官方资料只证明其工具循环、上下文和权限等可观察机制。[[4]](#ref-4)
 
@@ -899,7 +899,7 @@ Harness:
 
 这个边界很关键。不要试图用代码写死“Agent 应该如何思考”；Harness 的职责是让模型能看见正确材料、调用正确工具、被正确约束、接受正确验证。
 
-### 23.4.3 Agent Loop：Coding Agent 的最小心跳
+### 18.4.3 Agent Loop：Coding Agent 的最小心跳
 
 所有 Coding Agent 的内核都可以简化为一个循环：
 
@@ -961,7 +961,7 @@ Agent Loop 的设计原则是：**循环保持简单，控制面保持强。**
 
 如果把太多业务规则写进 loop，系统会变得难以扩展；如果 loop 周围没有控制面，Agent 就会变成一个能执行任意命令的聊天模型。
 
-### 23.4.4 Tool Execution Plane：给模型一组受控的手
+### 18.4.4 Tool Execution Plane：给模型一组受控的手
 
 Coding Agent 的工具不是越多越好，而是要原子化、可组合、可描述、可裁决。
 
@@ -1059,7 +1059,7 @@ trace + next context
 
 这样模型下一轮才能判断是继续修复、换工具、请求人工，还是停止。
 
-### 23.4.5 Task State：让多步任务不偏航
+### 18.4.5 Task State：让多步任务不偏航
 
 模型可以临场规划，但长任务不能只靠模型上下文里的自然语言计划。
 
@@ -1118,7 +1118,7 @@ Task State:
   Runtime 维护的任务状态，影响后续行动和恢复
 ```
 
-### 23.4.6 Context Control Plane：让模型看到该看的内容
+### 18.4.6 Context Control Plane：让模型看到该看的内容
 
 模型无法天然“读懂仓库”。所谓读懂，实际上是 Runtime 不断替模型选择上下文。
 
@@ -1168,9 +1168,9 @@ compact_summary:
 
 这比“我们已经修了一些代码，还需要跑测试”更可检查，但仍不是恢复证明。会话 ID 标识交互历史，Task ID 标识交付目标，worktree 标识文件目录，模型上下文窗口只包含本轮所见内容，四者不得混用。官方会话恢复/压缩机制只提供产品层语义，不能保证摘要完整。[[4]](#ref-4)
 
-本书在摘要外补`base_commit`、`diff_hash`、证据路径/版本、已授权范围、最后验证结果与未完成项。恢复时比较当前 HEAD、dirty diff 及权限；文件或授权发生变化则相关结论失效并回源。token 预算按目标模型 tokenizer 预估系统消息、schema、历史与工具结果，预留输出与后续工具空间，再用供应商 usage 校准；汉字数和字符数均不能替代 token 计数。压缩前后必须保持目标、禁止事项、已证事实与待验证状态，详细契约归[第 15 章](../part2/03-context-engineering.md)。
+本书在摘要外补`base_commit`、`diff_hash`、证据路径/版本、已授权范围、最后验证结果与未完成项。恢复时比较当前 HEAD、dirty diff 及权限；文件或授权发生变化则相关结论失效并回源。token 预算按目标模型 tokenizer 预估系统消息、schema、历史与工具结果，预留输出与后续工具空间，再用供应商 usage 校准；汉字数和字符数均不能替代 token 计数。压缩前后必须保持目标、禁止事项、已证事实与待验证状态，详细契约归[第14章](../part3/02-context-engineering.md)。
 
-### 23.4.7 Skill / Command / Workflow：把工程经验变成可复用流程
+### 18.4.7 Skill / Command / Workflow：把工程经验变成可复用流程
 
 Skill 是介于“规则文件”和“工具调用”之间的一层能力抽象。
 
@@ -1236,7 +1236,7 @@ Skill 的关键是“按需加载”。不要把所有 Skill 都塞进 system pr
 
 这让工程经验从“人脑经验”变成“可版本化、可审查、可评估的上下文资产”。
 
-### 23.4.8 Verification Gate：完成不是模型说了算
+### 18.4.8 Verification Gate：完成不是模型说了算
 
 Coding Agent 最危险的幻觉，不是编造事实，而是“没有完成却宣布完成”。
 
@@ -1275,7 +1275,7 @@ done criteria > model final answer
 
 Agent 看到这个结果后，不应该解释失败为成功，而应该进入 repair loop。
 
-### 23.4.9 Async、Subagent 与 Multi-Agent 协作
+### 18.4.9 Async、Subagent 与 Multi-Agent 协作
 
 终端任务中有很多慢操作：
 
@@ -1337,7 +1337,7 @@ message:
 
 没有协议的多 Agent，很快会变成多个聊天窗口互相制造噪声。
 
-### 23.4.10 Worktree Isolation：并行执行的隔离层
+### 18.4.10 Worktree Isolation：并行执行的隔离层
 
 当 Agent 支持并行任务时，只靠“请小心不要互相覆盖”是不够的。并行需要文件系统级隔离。
 
@@ -1376,7 +1376,7 @@ Task 管目标，worktree 管目录。
 
 Git worktree 共享仓库对象及部分配置，并不隔离外部副作用。[[8]](#ref-8) 任务系统负责分配、依赖和状态；worktree 提供独立工作目录。把两者混在一起，会导致任务状态和目录状态互相污染。
 
-### 23.4.11 Permission 与安全边界
+### 18.4.11 Permission 与安全边界
 
 终端 Agent 的权限模型必须比普通聊天产品严格得多。
 
@@ -1425,7 +1425,7 @@ permission_policy:
 
 权限系统的目标不是让 Agent 什么都不能做，而是让风险动作从“模型自觉”变成“系统裁决”。
 
-### 23.4.12 Claude Code 的优势、局限与适用场景
+### 18.4.12 Claude Code 的优势、局限与适用场景
 
 Claude Code 的优势很明确：
 
@@ -1461,7 +1461,7 @@ Claude Code 的优势很明确：
 - 需要大量产品判断或组织协调的任务；
 - 测试环境无法复现的业务变更。
 
-### 23.4.13 从 Claude Code 反推 Coding Agent Harness 设计原则
+### 18.4.13 从 Claude Code 反推 Coding Agent Harness 设计原则
 
 从 Claude Code 这类终端原生 Agent 可以反推出一组通用设计原则。
 
@@ -1487,11 +1487,11 @@ Claude Code 的优势很明确：
 
 ---
 
-## 23.5 从 MVP 到生产级 Coding Agent
+## 18.5 从 MVP 到生产级 Coding Agent
 
 如果要从零实现 Coding Agent，不要一开始就追求“全自动程序员”。更稳妥的路线是按风险递增。
 
-### 23.5.1 MVP 1：Read-only Agent
+### 18.5.1 MVP 1：Read-only Agent
 
 第一阶段只允许读取和搜索，不允许修改。
 
@@ -1512,7 +1512,7 @@ Claude Code 的优势很明确：
 
 Read-only Agent 可降低误写风险，但读取机密、发送模型请求和恶意文档注入仍需权限与数据边界。
 
-### 23.5.2 MVP 2：Patch Agent
+### 18.5.2 MVP 2：Patch Agent
 
 第二阶段开放局部编辑，但不开放任意 shell。
 
@@ -1532,7 +1532,7 @@ Read-only Agent 可降低误写风险，但读取机密、发送模型请求和�
 
 这一阶段的目标不是自动完成，而是生成小范围 patch 供人审查。
 
-### 23.5.3 MVP 3：Verified Agent
+### 18.5.3 MVP 3：Verified Agent
 
 第三阶段开放测试类 Shell 命令，让 Agent 形成“修改 -> 测试 -> 修复”的闭环。
 
@@ -1562,7 +1562,7 @@ summarize diff and verification
 
 这一阶段必须明确：验证失败时，Agent 不能假装完成。
 
-### 23.5.4 MVP 4：Workflow Agent
+### 18.5.4 MVP 4：Workflow Agent
 
 第四阶段加入计划、任务状态和多步骤工作流。
 
@@ -1583,7 +1583,7 @@ summarize diff and verification
 - 任务暂停和恢复；
 - 变更范围控制。
 
-### 23.5.5 MVP 5：Skill-enabled Agent
+### 18.5.5 MVP 5：Skill-enabled Agent
 
 第五阶段加入 Skill Registry，让 Agent 复用团队工程经验。
 
@@ -1600,7 +1600,7 @@ summarize diff and verification
 
 这一阶段要重点做 Skill 的触发条件、版本管理、加载 trace 和 regression eval。
 
-### 23.5.6 MVP 6：Team Agent
+### 18.5.6 MVP 6：Team Agent
 
 第六阶段加入 subagent、background task、worktree、reviewer 和 CI 集成。
 
@@ -1619,7 +1619,7 @@ summarize diff and verification
 
 Team Agent 的关键不是“多几个模型”，而是任务边界、通信协议、工作区隔离和质量门禁。
 
-### 23.5.7 从原型到生产系统还缺什么
+### 18.5.7 从原型到生产系统还缺什么
 
 MVP 能跑，不代表可以生产使用。生产级 Coding Agent 还需要：
 
@@ -1639,11 +1639,11 @@ MVP 能跑，不代表可以生产使用。生产级 Coding Agent 还需要：
 
 ---
 
-## 23.6 设计清单与常见反模式
+## 18.6 设计清单与常见反模式
 
 这一节把本章收束成设计清单。你可以用它评估一个 Coding Agent 系统，也可以用它准备系统设计评审。
 
-### 23.6.1 Coding Agent Harness 设计清单
+### 18.6.1 Coding Agent Harness 设计清单
 
 **任务入口**
 
@@ -1717,7 +1717,7 @@ MVP 能跑，不代表可以生产使用。生产级 Coding Agent 还需要：
 - 是否有 prompt、Skill、Tool、Policy 的版本管理；
 - 是否能回滚配置变更。
 
-### 23.6.2 常见反模式：Prompt 堆叠、无验证、无隔离、无状态
+### 18.6.2 常见反模式：Prompt 堆叠、无验证、无隔离、无状态
 
 **反模式一：把所有规则塞进 system prompt**
 
@@ -1803,7 +1803,7 @@ MVP 能跑，不代表可以生产使用。生产级 Coding Agent 还需要：
 - 每个任务独立验证；
 - 合并前统一 review。
 
-### 23.6.3 设计评审表达：如何讲清一个 Coding Agent 系统
+### 18.6.3 设计评审表达：如何讲清一个 Coding Agent 系统
 
 如果评审者问“你如何设计一个 Coding Agent”，不要只回答“接入 LLM 和工具调用”。可以这样表达：
 

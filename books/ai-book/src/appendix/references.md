@@ -9,15 +9,15 @@
 | 从张量理解模型 | [第1章](../part1/01-llm-foundations-transformer.md) | [第2章](../part1/02-pretraining-data-scaling.md)的目标函数及两章参考资料 | Attention 的维度、mask、位置、GQA/MLA 与任务目标 |
 | 理解行为如何塑形 | [第3章](../part1/03-post-training-alignment.md) | [第5章](../part1/05-finetuning-compression-multimodal.md)的适配数据与量化来源 | 监督位置、PPO/GAE、DPO/GRPO、数据独立性 |
 | 评估推理与多模态 | [第4章](../part1/04-reasoning-generation-algorithms.md) | [第5章](../part1/05-finetuning-compression-multimodal.md)、[第6章](../part1/06-world-models-embodied-ai.md) | 额外预算、验证器、未观察范围与物理安全 |
-| 建立资源账本 | [第7章](../part1/07-llm-boundaries.md) | [第8章](../part2/infra-08-training.md)、[第9章](../part2/infra-09-inference.md) | 并行切分轴、通信、瞬时峰值、工作负载与版本 |
-| 设计可恢复运行时 | [第11章](../part2/infra-11-runtime.md) | [第17章](../part2/05-llm-api-protocol.md)、[第21章](../part2/09-workflow-orchestration.md) | 提交、投递、幂等、unknown、owner、断线与迟到结果 |
-| 组织 Prompt 与信息 | [第14章](../part2/02-prompt-engineering.md) | [第15章](../part2/03-context-engineering.md)、[第20章](../part2/08-agent-memory.md) | 指令权威、摘要保真、来源失效与事实状态 |
-| 选择工具与协议 | [第18章](../part2/06-tool-calling-mcp.md) | [第21章](../part2/09-workflow-orchestration.md)及[附录C](tools.md) | Schema、执行权、MCP 传输迁移、A2A 版本与未知能力 |
-| 构建知识助手 | [第19章](../part2/07-agent-knowledge-systems.md) | [第24章](../part3/02-enterprise-knowledge-assistant.md) | 检索/证据/生成分层、ACL、乱序更新、撤权和血缘 |
-| 理解 Coding 系统 | [第23章](../part3/01-coding-agent-systems.md) | [第25章 Pi](../part3/03-pi-agent-architecture.md)、[第28章 Claude Code](../part3/06-claude-code-internals.md) | 运行时与产品分层、版本化检索、候选完成与独立验证 |
-| 观察长期助手 | [第27章 Hermes](../part3/05-hermes-agent-architecture.md) | [第26章 OpenClaw](../part3/04-openclaw-architecture.md) | 身份、会话、记忆、投递与业务副作用分别取证 |
-| 形成质量与发布闭环 | [第10章](../part2/infra-10-data-eval.md) | [第12章](../part2/infra-12-reliability-governance.md)、[第22章](../part2/10-agent-evals-guardrails-observability.md) | 固定评估集、Judge 校准、回归、成本及回滚证据 |
-| 阅读研究报告 | [第29章](../part4/01-agent-frontier-research.md) | 沿其参考资料回到对应论文版本、任务和评测协议 | 历史结果、研究提案、公开实现与实测结论的区别 |
+| 建立资源账本 | [第7章](../part2/01-ai-infra-overview.md) | [第8章](../part2/02-training.md)、[第9章](../part2/03-inference.md) | 并行切分轴、通信、瞬时峰值、工作负载与版本 |
+| 设计可恢复运行时 | [第11章](../part2/05-runtime.md) | [第13章](../part3/01-llm-api-protocol.md)、[第15章恢复机制](../part3/03-agent-runtime.md#recovery) | 提交、投递、幂等、unknown、owner、断线与迟到结果 |
+| 组织任务与上下文 | [第14章](../part3/02-context-engineering.md) | [任务协议](../part3/02-context-engineering.md#task-protocol)、[装配与预算](../part3/02-context-engineering.md#context-builder)、[长期记忆](../part3/02-context-engineering.md#memory) | 指令权威、摘要保真、来源失效与事实状态 |
+| 选择工具与协议 | [第16章](../part3/04-skills-tools-mcp-connectors.md) | [第15章](../part3/03-agent-runtime.md#implementation-validation)及[附录C](tools.md) | Schema、执行权、MCP 传输迁移、A2A 版本与未知能力 |
+| 构建知识助手 | [第14章](../part3/02-context-engineering.md#knowledge) | [第19章](../part4/02-enterprise-knowledge-assistant.md) | 检索/证据/生成分层、ACL、乱序更新、撤权和血缘 |
+| 理解 Coding 系统 | [第18章](../part4/01-coding-agent-systems.md) | [第20章 Pi](../part4/03-pi-agent-architecture.md)、[第23章 Claude Code](../part4/06-claude-code-internals.md) | 运行时与产品分层、版本化检索、候选完成与独立验证 |
+| 观察长期助手 | [第22章 Hermes](../part4/05-hermes-agent-architecture.md) | [第21章 OpenClaw](../part4/04-openclaw-architecture.md) | 身份、会话、记忆、投递与业务副作用分别取证 |
+| 形成质量与发布闭环 | [第10章](../part2/04-data-eval.md) | [第12章](../part2/06-reliability-governance.md)、[第17章](../part3/05-agent-governance-optimization.md) | 固定评估集、Judge 校准、回归、成本及回滚证据 |
+| 阅读研究报告 | [第24章](../part5/01-agent-frontier-research.md) | 沿其参考资料回到对应论文版本、任务和评测协议 | 历史结果、研究提案、公开实现与实测结论的区别 |
 
 ## 章末练习入口
 
@@ -26,8 +26,8 @@
 - [第1章 Attention / GQA 练习卡](../part1/01-llm-foundations-transformer.md)：张量、mask 与增量一致性。
 - [第3章 SFT 对齐练习卡](../part1/03-post-training-alignment.md)：固定模板、监督位置与单次 shift。
 - [第5章校准练习卡](../part1/05-finetuning-compression-multimodal.md)：零块、异常值、尾组及误差报告。
-- [第8章 GPU 与规约练习卡组](../part2/infra-08-training.md)：层级、同步、布局、正确性与环境化性能。
-- [第9章显存账本练习卡](../part2/infra-09-inference.md)：固定模型配置、长度、并发、预留与敏感性分析。
+- [第8章 GPU 与规约练习卡组](../part2/02-training.md)：层级、同步、布局、正确性与环境化性能。
+- [第9章显存账本练习卡](../part2/03-inference.md)：固定模型配置、长度、并发、预留与敏感性分析。
 
 ## 从面试题定位正文
 
