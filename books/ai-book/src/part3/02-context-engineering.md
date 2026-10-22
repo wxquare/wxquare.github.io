@@ -720,7 +720,7 @@ Workflow:
 
 教学请求：“把这个仓库登录问题修好，顺便上线。”先读取已有Issue、约定和失败日志；仍缺信息时追问失败路径、预期行为和交付范围。部署目标环境、版本与授权必须明确，不能猜测后修改生产配置。答案写回Task Contract的confirmed、open_questions、allowed_actions与acceptance，保留来源和版本；后续只追问仍阻塞的缺项。
 
-该过程连接[第17章Coding架构](../part4/01-coding-agent-systems.md)与[第22章Claude Code执行与验证案例](../part4/06-claude-code-internals.md)。
+该过程连接[第17章Coding架构](../part4/01-coding-agent-systems.md)与[第21章Claude Code执行与验证案例](../part4/05-claude-code-internals.md)。
 
 ### 角色、职责与工具权限对齐
 
@@ -1021,7 +1021,7 @@ if action.risk == "forbidden":
 | 语义 | 字段关系、单位、证据引用 | 补证据或停止，不制造来源 |
 | 业务 | 当前身份、归属、余额、状态、审批对象/参数/期限 | 阻止执行；需要新授权则进入审批 |
 
-通过校验仍需[第15章工具契约](04-skills-tools-mcp-connectors.md)与[Agent Runtime](03-agent-runtime.md#delivery-idempotency)落实执行前重验、原子业务检查和幂等。余额快照不替代提交时检查。知识助手同样核对可见文档和版本，见[第18章](../part4/02-enterprise-knowledge-assistant.md)。
+通过校验仍需[第15章工具契约](04-skills-tools-mcp-connectors.md)与[Agent Runtime](03-agent-runtime.md#delivery-idempotency)落实执行前重验、原子业务检查和幂等。余额快照不替代提交时检查。知识助手同样核对可见文档和版本。
 
 #### Repair Prompt
 
@@ -2255,7 +2255,7 @@ VideoRAG研究将跨视频文本关系与多模态编码组合，说明只做字
 
 问题“谁把红盒放到门边？”即使没有字幕也需要视觉动作路；ASR只说“放这里”不能证明颜色/人物。检查动作前后相邻片段，字幕偏移须校准；OCR读到人名不等于该人出现在画面。同名人物、同款衣服或相似背景不能作为跨视频同一身份/事件的充分证据。
 
-跨视频问题先按租户、时间、来源和权限过滤，再按video_id/version合并片段；保留每条局部证据与冲突。V7去年上海与V8今年北京不能拼成同一会议；身份不明就明确未知。撤权/删除使原片、索引、缓存与派生摘要一起失效。端到端评测同时看片段覆盖、时间定位、身份混淆、答案忠实、拒答与预算。企业落地由[第18章](../part4/02-enterprise-knowledge-assistant.md)展开。
+跨视频问题先按租户、时间、来源和权限过滤，再按video_id/version合并片段；保留每条局部证据与冲突。V7去年上海与V8今年北京不能拼成同一会议；身份不明就明确未知。撤权/删除使原片、索引、缓存与派生摘要一起失效。端到端评测同时看片段覆盖、时间定位、身份混淆、答案忠实、拒答与预算。
 
 <a id="memory"></a>
 
@@ -5081,7 +5081,7 @@ Agent 的上下文工程以每次决策的信息需求为起点。任务协议�
 
 这些机制共享一个原则：转换信息的表示，不应暗中改变其权限和事实效力。检索相似不代表事实正确，工具成功不代表覆盖完整，摘要不能把假设变成结论，长期记忆不能覆盖当前授权，缓存命中不能免除有效性检查。执行状态和外部副作用仍由 Runtime 与业务系统维护。
 
-工程验证应沿协议、来源、证据、记忆、装配、压缩和生成逐层进行，并观察最终任务收益。更长上下文、更高压缩率和更多记忆都只是手段；是否保留了正确决策所需的信息，才是验收依据。[Harness Engineering](03-agent-runtime.md#execution-loop)进一步讨论这些决策如何进入可控执行循环，[企业知识助手](../part4/02-enterprise-knowledge-assistant.md)展示检索、权限和知识治理在产品中的落点。
+工程验证应沿协议、来源、证据、记忆、装配、压缩和生成逐层进行，并观察最终任务收益。更长上下文、更高压缩率和更多记忆都只是手段；是否保留了正确决策所需的信息，才是验收依据。[Harness Engineering](03-agent-runtime.md#execution-loop)进一步讨论这些决策如何进入可控执行循环。
 
 ## 参考资料
 

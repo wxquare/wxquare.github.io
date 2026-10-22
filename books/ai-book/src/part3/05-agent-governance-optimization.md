@@ -186,7 +186,7 @@ Agent Eval 要持续回答：
 | Coding：修复登录过期边界，范围限于 src/auth | 实际 Diff 和固定测试通过，未执行的测试要明确标出 | 关联文件 hash、补丁和测试版本；旧摘要先回源 | 越界修改、删除验收或部署提案被阻止 |
 | 长任务：压缩会话后继续处理结果未知的操作 | 查询真实 Operation 状态，不重复提交 | 保留 Operation ID、调用与结果配对、会话作用域和恢复边界 | 取消后的晚到成功仍记录为事实，并按业务规则收敛 |
 
-第一例延伸到[第13章上下文工程](02-context-engineering.md)和[第18章企业知识助手](../part4/02-enterprise-knowledge-assistant.md)；第二例对应[第17章 Coding Agent](../part4/01-coding-agent-systems.md)与[第22章 Claude Code](../part4/06-claude-code-internals.md)；长任务的状态基础见[Agent Runtime](03-agent-runtime.md#delivery-idempotency)。评估用例应固定输入、工具结果、权限和版本，并记录预期证据与失败标签。
+第一例延伸到[第13章上下文工程](02-context-engineering.md)；第二例对应[第17章 Coding Agent](../part4/01-coding-agent-systems.md)与[第21章 Claude Code](../part4/05-claude-code-internals.md)；长任务的状态基础见[Agent Runtime](03-agent-runtime.md#delivery-idempotency)。评估用例应固定输入、工具结果、权限和版本，并记录预期证据与失败标签。
 
 ### 16.2.3 评估对象
 

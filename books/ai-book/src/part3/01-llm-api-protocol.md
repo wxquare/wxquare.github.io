@@ -772,7 +772,7 @@ SSE、WebSocket 和 WebRTC 是传输选择，后台与 Batch 是执行和交付�
 
 如果断的是模型供应商连接且工具参数只收到一半，adapter把生成attempt记为stream_incomplete，不能据半个JSON执行工具。若已执行工具但结果未知，先查询Operation而不是重新生成后再执行一次。取消只表达停止意图，迟到结果仍需要写入事实账本。
 
-Anthropic文档的续写策略随模型版本区分，部分工具/思考块不能按文本方式恢复；这种“带部分输出重新请求”不是从旧SSE事件ID重放，也不保证续写逐字相同。[[23]](#ref-23)应用事件回放的保留期、权限、重复和过期语义仍由[Agent Runtime](03-agent-runtime.md#result-delivery)负责；[OpenClaw Gateway](../part4/04-openclaw-architecture.md)的具体实现需独立核验。
+Anthropic文档的续写策略随模型版本区分，部分工具/思考块不能按文本方式恢复；这种“带部分输出重新请求”不是从旧SSE事件ID重放，也不保证续写逐字相同。[[23]](#ref-23)应用事件回放的保留期、权限、重复和过期语义仍由[Agent Runtime](03-agent-runtime.md#result-delivery)负责；[OpenClaw Gateway](../part4/03-openclaw-architecture.md)的具体实现需独立核验。
 
 ## 12.6 完整案例：构建退款核查 Agent 的有效输入与输出
 

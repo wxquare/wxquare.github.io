@@ -13,7 +13,7 @@
 | Operation | 一次业务副作用的稳定身份与状态；超时后可为 unknown，不能直接按失败重做 | [Agent Runtime](../part3/03-agent-runtime.md#delivery-idempotency) |
 | Checkpoint | 已提交状态与恢复位置；不回滚已经发生的外部副作用。训练 checkpoint 另含优化器、随机数和数据位置 | [Agent Runtime](../part3/03-agent-runtime.md#recovery)、[训练第8章](../part2/02-training.md) |
 | KV Cache | 前向计算中各层的键和值；用于复用历史计算，仍占用设备或分层存储资源 | [第9章 §9.3](../part2/03-inference.md) |
-| Prefix / Prompt Cache | 复用兼容的前缀计算；自托管实现与商业 API 的命中、计费、保留语义分别核验 | [第9章](../part2/03-inference.md)、[Hermes 第21章](../part4/05-hermes-agent-architecture.md) |
+| Prefix / Prompt Cache | 复用兼容的前缀计算；自托管实现与商业 API 的命中、计费、保留语义分别核验 | [第9章](../part2/03-inference.md)、[Hermes 第20章](../part4/04-hermes-agent-architecture.md) |
 | 精确响应缓存 / 语义响应缓存 | 前者匹配请求及其依赖版本，后者先召回相似候选再验证答案等价；两者都需授权、新鲜度和失效控制 | [第9章 §9.3](../part2/03-inference.md) |
 | Tool Calling / Skill / MCP | 分别是结构化行动请求、可复用方法上下文、能力连接协议；实际执行、权限和审计由 Runtime 承担 | [第15章](../part3/04-skills-tools-mcp-connectors.md) |
 | MCP / A2A | 本书 MCP 主体按 2025-11-25，连接工具、资源和提示；A2A 按 v0.3.0，描述独立 Agent 的任务/消息/产物协作。自建 mailbox 不自动兼容 A2A | [第15章](../part3/04-skills-tools-mcp-connectors.md)、[Runtime 框架与 A2A 选型](../part3/03-agent-runtime.md#implementation-validation) |

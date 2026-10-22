@@ -1,8 +1,8 @@
-# 第22章 Claude Code 原理剖析：执行循环、上下文工程与可控行动
+# 第21章 Claude Code 原理剖析：执行循环、上下文工程与可控行动
 
 > Claude Code 的关键，不是把聊天框搬进终端，而是让模型在代码、命令和验证结果之间持续工作，并由运行时管理每一步行动的上下文、权限与反馈。
 
-前面的 [Pi](03-pi-agent-architecture.md)、[OpenClaw](04-openclaw-architecture.md) 与 [Hermes](05-hermes-agent-architecture.md) 分别提供了理解终端运行时、多入口接入和长期状态的视角。本章延续 Hermes 章的分析方法，沿着“输入如何进入系统、模型如何获得上下文、行动如何执行、结果如何回流”的主线，拆解一个面向软件工程的产品。
+前面的 [Pi](02-pi-agent-architecture.md)、[OpenClaw](03-openclaw-architecture.md) 与 [Hermes](04-hermes-agent-architecture.md) 分别提供了理解终端运行时、多入口接入和长期状态的视角。本章延续 Hermes 章的分析方法，沿着“输入如何进入系统、模型如何获得上下文、行动如何执行、结果如何回流”的主线，拆解一个面向软件工程的产品。
 
 设想一个普通需求：“修复订单列表翻页时重复显示的问题，补充回归测试。”真正的工作包含理解分页约定、定位查询逻辑、分析排序稳定性、修改代码、运行测试以及解释残余风险。Claude Code 为什么能连续完成这些动作？为什么有时反复搜索，有时主动调用子 Agent，有时又停下来请求授权？这些行为需要放到同一套运行机制里理解。
 
