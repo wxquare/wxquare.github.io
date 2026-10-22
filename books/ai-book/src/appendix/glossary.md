@@ -16,7 +16,7 @@
 | Prefix / Prompt Cache | 复用兼容的前缀计算；自托管实现与商业 API 的命中、计费、保留语义分别核验 | [第9章](../part2/03-inference.md)、[Hermes 第20章](../part4/04-hermes-agent-architecture.md) |
 | 精确响应缓存 / 语义响应缓存 | 前者匹配请求及其依赖版本，后者先召回相似候选再验证答案等价；两者都需授权、新鲜度和失效控制 | [第9章 §9.3](../part2/03-inference.md) |
 | Tool Calling / Skill / MCP | 分别是结构化行动请求、可复用方法上下文、能力连接协议；实际执行、权限和审计由 Runtime 承担 | [第15章](../part3/04-skills-tools-mcp-connectors.md) |
-| MCP / A2A | 本书 MCP 主体按 2025-11-25，连接工具、资源和提示；A2A 按 v0.3.0，描述独立 Agent 的任务/消息/产物协作。自建 mailbox 不自动兼容 A2A | [第15章](../part3/04-skills-tools-mcp-connectors.md)、[Runtime 框架与 A2A 选型](../part3/03-agent-runtime.md#implementation-validation) |
+| MCP / A2A | 本书 MCP 主体按 2025-11-25，连接工具、资源和提示；A2A 按 v0.3.0，描述独立 Agent 的任务/消息/产物协作。自建 mailbox 不自动兼容 A2A | [第15章](../part3/04-skills-tools-mcp-connectors.md) |
 | Triton 语言 / Triton Inference Server | 前者用于编写 GPU 计算程序；后者负责模型服务与模型管理，二者不是同一层的软件 | [第8章 §8.4](../part2/02-training.md)、[第9章](../part2/03-inference.md) |
 | Model Manifest / Eval Case | 前者绑定模型、模板、格式与执行兼容条件；后者绑定输入、预期、不变量和版本化评估配置 | [第7章 §7.8](../part2/01-ai-infra-overview.md)、[第10章](../part2/04-data-eval.md) |
 

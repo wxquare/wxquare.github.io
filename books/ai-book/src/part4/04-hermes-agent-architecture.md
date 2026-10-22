@@ -13,7 +13,7 @@ OpenClaw 更强调“Agent 如何到达用户所在的平台”
 Hermes 更强调“Agent 如何在长期使用中变得更懂用户、更会做事”
 ```
 
-本章于 2026-10-18 核验官方仓库提交`18c525b669b6ea4ba62e6967d228af21d89aa9d3`；源码路径均对应此版本，未安装运行 Hermes、未产生成功率或成本实测。Architecture 说明多入口复用核心；本文六边界、三层上下文和治理协议属于本书解读，不是官方模块名或能力保证。[[1]](#ref-1)
+本章以官方仓库提交 `18c525b669b6ea4ba62e6967d228af21d89aa9d3` 为分析基线，最初于 2026-10-18 核验；2026-10-22 补充核验该提交的入口、Gateway 启动、`AIAgent` 装配与首轮请求源码。以下描述针对这一固定版本，未安装运行 Hermes，未产生成功率、启动耗时或成本实测。Architecture 说明多入口复用核心；本文的组件图、生命周期划分、六边界、三层上下文和治理协议属于本书解读，不是官方模块名或能力保证。[[1]](#ref-1)
 
 ## 20.1 系统定位：Hermes 解决的不是聊天，而是长期 Agent Runtime
 
@@ -70,152 +70,155 @@ Hermes 的设计隐含了一个重要判断：
 
 ---
 
-## 20.2 总体架构：一个可长期运行的个人 Agent 操作系统
+## 20.2 Runtime 的组成与启动：从前端连接到首轮执行
 
-### 20.2.1 结论先行：Hermes 的六个运行时边界
+### 20.2.1 先看实际组件：Gateway 管会话，AIAgent 管执行
 
-先给结论。Hermes 更适合被理解成一个长期运行的 Agent Runtime，而不是一组并列功能模块。它的关键不是“支持多少工具”或“接了多少平台”，而是把长期 Agent 的复杂性稳定地压缩成六个运行时边界：入口负责把事件送进来，大脑中枢负责理解与推理，小脑负责维持任务推进，工具中心负责声明能力边界，执行引擎负责把决策变成行动，记忆系统负责把结果回流成长期资产。后文的所有证据，都会回到这六个运行时边界。
+理解 Hermes Runtime，首先要分清三个对象：**前端负责交互，Gateway 持有共享会话运行时，`AIAgent` 负责一次用户回合中的模型与工具循环**。这里的“回合”可以包含多次模型请求和多轮工具调用；它不等于一次 HTTP 请求，也不等于整个长期会话。官方 Architecture 展示的是共享 `AIAgent` 核心，实际部署还要结合入口源码确定进程和状态归属。[[1]](#ref-1)
 
-```mermaid
-flowchart TB
-    Input["用户输入 / 平台事件 / 定时任务"] --> Brain["大脑中枢<br/>LLM / Prompt / 推理"]
-    Brain --> Planner["小脑<br/>规划 / 状态 / 工作流 / 反思"]
-    Planner --> Tools["工具中心<br/>Tool Registry / Toolsets / MCP / Skills"]
-    Tools --> Action["执行引擎<br/>解析 / 调度 / 结果处理 / 重试"]
-    Action --> Env["外部环境<br/>Gateway / Cron / ACP / Backends"]
-    Env --> Action
-    Action --> Memory["记忆系统<br/>Memory / Sessions / Skills / Profiles"]
-    Memory --> Brain
-    Memory --> Planner
-```
+特别需要注意版本差异：在本章固定提交中，普通 CLI 的 `_init_agent()` 将 `GatewayAgent` 导入为本地别名 `AIAgent`；这个对象是代理，`run_conversation()` 提交 `prompt.submit` 并消费 Gateway 事件，真正的模型调用、工具执行和会话写入在 Gateway 所管理的执行路径中完成。不能因为前端变量叫 `agent`，就推断 CLI 进程持有真正的 `run_agent.AIAgent`。Python 直接嵌入仍然可以自行构造真实 `AIAgent`，但那是另一条入口路径。[[2]](#ref-2)[[3]](#ref-3)
 
-这里的“大脑中枢”“小脑”“工具中心”等说法，是为了分析运行时边界而使用的抽象，不是 Hermes 源码里的官方模块命名：
+![Hermes Runtime 组件架构：前端、Gateway 会话所有者、AIAgent 执行组件、持久状态和工具后端](../images/hermes-runtime-components.svg)
 
-| 组件 | 解决的问题 | Hermes 中的代表实现 |
-|:---|:---|:---|
-| 大脑中枢 | 理解输入、生成推理、决定下一步行动 | LLM Provider、Prompt Builder、Context Compressor、Callbacks |
-| 小脑 | 把复杂任务拆成步骤，维持状态，必要时反思和重规划 | AIAgent Loop、Cron 任务配置、脚本化/服务化调用入口、Context Compressor |
-| 工具中心 | 定义 Agent 能使用哪些能力，以及这些能力如何注册和治理 | Tool Registry、Toolsets、Plugins、MCP Tools、Skills |
-| 执行引擎 | 把模型输出的工具调用变成真实执行，并处理结果、异常和回退 | Tool Dispatch、Execution Backends、Streaming Callbacks、Result Persistence |
-| 外部环境 | 让 Agent 接入真实世界，包括消息平台、IDE、文件系统、远程环境和自动化任务 | CLI / TUI、Messaging Gateway、ACP、Cron、local / Docker / SSH / Modal |
-| 记忆系统 | 保存长期事实、历史会话、用户偏好和可复用经验 | Persistent Memory / User Profile、SQLite Sessions + FTS5、Skills、Profiles |
+*图 20-1：本书依据固定提交源码绘制。框表示逻辑职责；Gateway 管理的执行可以涉及 worker，不能把每个框直接视为一个独立进程。蓝色为主要调用，紫色为工具观察回路，绿色为状态读写。*
 
-把这六个运行时边界连起来，Hermes 讲的是同一个架构命题：输入先被接入，随后被整理成稳定上下文，再通过工具与执行链路落到真实环境，最后以记忆、会话和技能的形式回流为长期状态。
-
-### 20.2.2 设计哲学：窄腰与能力边缘
-
-固定版本的开发指南建议把核心保持克制，新能力依次考虑复用代码、CLI 加 Skill、按可达性/opt-in 启用的工具、Plugin 和 MCP 等边缘接口，最后才新增常驻 core tool。[[2]](#ref-2) 这是一项维护原则，不是所有工具必须永远同时发送的协议定律；延迟发现、按会话工具策略和 provider 适配都可能改变实际请求。
-
-| 设计选择 | 获得的能力 | 需要承担的代价 |
+| 组成 | 代表源码与对象 | 输入、输出与职责 |
 | --- | --- | --- |
-| 常驻核心 schema | 调用接口直接、稳定 | 活跃请求可能增加输入、选择歧义和缓存变化 |
-| CLI 加 Skill | 不必为每个子命令新增 schema | 命令与脚本仍按执行权限审核 |
-| Plugin/MCP | 接口化扩展、可单独配置 | 凭据、供应链、版本与发现成本 |
+| 交互与事件入口 | `hermes_cli/main.py`、`cli.HermesCLI`、`hermes_cli/gateway_agent.py`、平台 Adapter、ACP / Python 调用方 | 接收文本、平台事件或协议消息，提交请求，显示流式事件与审批交互；入口类型不决定全部执行细节 |
+| 会话与运行时所有者 | `gateway/run.py`、`gateway/run_runtime.py`、`gateway/session.py` | 持有 profile 对应的会话 authority、SessionStore、运行实例身份和接入端点，协调会话准入、恢复与投递 |
+| Agent 装配门面 | `run_agent.AIAgent` → `agent.agent_init.init_agent()` | 把模型路由、client、工具快照、session 状态、记忆和上下文引擎装配为可执行对象 |
+| 回合控制器 | `agent/turn_facade.py`、`agent/conversation_loop.py`、`agent/turn_*.py` | 接收用户输入与历史，处理回合准入、中断、迭代预算、模型请求、工具结果、重试与回合收尾 |
+| 上下文子系统 | `agent/system_prompt.py`、`agent/prompt_builder.py`、`agent/context_engine.py` | 生成或恢复 system prompt，管理当前消息、上下文容量、压缩和缓存布局；默认引擎是 `ContextCompressor` |
+| 模型接入子系统 | `hermes_cli/runtime_provider.py`、client 与 transport / adapter | 将 provider、model、凭据和配置解析为实际 client 与 API 模式，把统一消息转换为供应商请求 |
+| 能力发现与执行 | `model_tools.py`、`tools/registry.py`、`toolsets.py`、`agent/tool_executor.py` | 发现并注册工具，筛选当前会话可见 schema，验证和调度 tool call，把结果送回模型 |
+| 长期状态与执行资源 | `hermes_state.py`、MemoryStore、Skills 文件、`tools/*` 与后端生命周期模块 | 保存会话、事实和程序性知识；按调用需要连接本地、容器、SSH 或外部服务 |
 
-本书据此建议先确定真正消费者，再增加接口。`check_fn`用于可达性/opt-in 检查，不应被误读成逐用户授权裁决；工具出现在目录或 schema 里也不等于当前动作被允许。增删 schema 可能降低可复用前缀，但“成本翻倍”需要特定请求、价格与命中记录才能成立。
+这些职责分别由入口、装配器、回合门面、工具运行时和 Gateway 源码支撑。表中的分组是阅读地图，不能据此假设每个目录都独立运行，或所有入口都共享同一个 Python 对象。[[2]](#ref-2)[[4]](#ref-4)[[5]](#ref-5)[[6]](#ref-6)[[7]](#ref-7)
 
-### 20.2.3 缓存稳定不能压过事实与权限
+### 20.2.2 再看生命周期：哪些状态常驻，哪些按会话或任务创建
 
-开发指南强调保持长期会话前缀稳定；源码还包含恢复与失效边界。[[2]](#ref-2)[[3]](#ref-3)[[4]](#ref-4) 因而不能写成“任何状态变化都禁止，只有压缩例外”：配置切换、显式更新、撤权和安全纠错都可能要求重建或新会话。缓存优化必须服从正确性与授权，不能因为命中更便宜而继续使用已撤销权限或错误记忆。
+“长期运行”并不意味着一个 `AIAgent` 对象永不销毁。长期性主要由持久会话、记忆、技能和运行时所有者提供；执行实例可以缓存、释放 client、重建，随后继续同一条持久会话。Gateway 的 agent cache 和 `TurnRunner` 会区分复用实例与新建实例，因此 **session 的寿命不能用对象的寿命代替**。[[8]](#ref-8)
 
-持久 Memory、当前 prompt 快照和 provider 侧缓存是三种状态。文件落盘后，当前会话可能仍使用旧快照；若本轮必须知道更正，通过有来源的工具结果或新上下文呈现，并核对重建边界。不能假定写 Memory 后下一轮就已刷新，也不能把所有摘要当成权威事实。
+| 生命周期 | 典型内容 | 创建或恢复边界 | 结束后的语义 |
+| --- | --- | --- | --- |
+| 进程 / Gateway | 事件循环、接入端点、平台连接、后台 watcher、工具发现缓存 | Gateway 冷启动；已运行时前端直接连接 | 进程退出释放连接与所有权；磁盘状态仍可用于恢复 |
+| Profile | `HERMES_HOME`、配置、凭据作用域、记忆、Skills、会话数据库 | 选定 profile 后解析；多 profile 场景仍分别维护 authority | profile 共享进程不等于共享身份、记忆或写入权限 |
+| Session | session ID、历史、system prompt / tools 快照、模型选择、累计用量 | 创建、恢复、分支、压缩切换等会话边界 | 可以跨前端、跨进程生命周期恢复；不保证外部操作自动重放安全 |
+| AIAgent 实例 | client、工具列表、MemoryStore、上下文引擎、callbacks | 新执行实例装配；后续回合可能复用 | 重建不应把已有历史和长期记忆重置为空 |
+| Turn / Task | 用户输入、执行标识、准入租约、预算、中断状态、工具调用结果 | 每次 `run_conversation()` 和具体工具任务 | 回合收尾与资源清理；关键历史按持久化路径保存 |
+| 工具后端资源 | terminal 环境、容器、SSH 连接、浏览器 session | 首次真正需要相应后端时创建或复用 | 按任务映射、超时或显式清理策略释放 |
 
-### 20.2.4 证据一：工程分层确实围绕运行时边界展开
+Gateway 为所服务的 profile 建立 `SessionAuthorities` 与相应运行时身份；这与仅仅打开一个 SQLite 文件不是同一层职责。`AIAgent` 则可以接收调用方提供的 `session_db` 句柄，构造时不会因此自动拥有整个 Gateway 的生命周期。[[4]](#ref-4)[[5]](#ref-5)
 
-下列目录/入口以 Architecture 为依据，分层图是本书抽象。[[1]](#ref-1)
+### 20.2.3 启动入口：先确定由谁拥有实际执行
 
-如果从源码和运行时模块看，Hermes Agent 可以进一步分成几层工程分工：
+`pyproject.toml` 将 `hermes` console script 指向 `hermes_cli.main:main`。入口模块在分派命令前处理 profile 覆盖和环境加载；`main()` 还执行必要的启动修复与运行环境检查，再进入 chat、Gateway 等路径。**profile 必须先确定，再加载其配置、凭据和状态路径**，否则后续对象即使都创建成功，也可能绑定到错误身份。[[9]](#ref-9)[[10]](#ref-10)
 
-```mermaid
-flowchart TB
-    subgraph Entry["Entry Points"]
-        CLI["CLI / TUI"]
-        Gateway["Messaging Gateway"]
-        ACP["ACP / IDE Integration"]
-        Cron["Cron Jobs"]
-        Batch["脚本化 / 服务化入口"]
-    end
+| 入口路径 | 前端 / 触发方做什么 | 实际执行如何开始 |
+| --- | --- | --- |
+| 普通 `hermes` / `hermes chat` | 初始化 `HermesCLI`，使用 `GatewaySessionStore` 创建或恢复会话；构建 `GatewayAgent` 代理 | 连接共享 Gateway；没有可用实例时由连接流程启动，再通过协议提交用户回合 |
+| `hermes gateway run` / 后台服务 | 进入 Gateway 管理与启动路径 | 启动运行时所有者、接入平台和后台服务，之后等待消息、客户端请求或调度事件 |
+| Python 直接嵌入 | 调用方显式构造 `run_agent.AIAgent(...)` | 在调用 `run_conversation()` 时执行；调用方负责自己的入口、持久化接线和资源关闭 |
+| Cron / ACP / 其他集成 | 各自准备身份、任务、历史和回调 | 复用 Agent 核心，但不能假定其前端启动、会话创建和 worker 策略都与普通 CLI 完全相同 |
 
-    subgraph Core["Agent Core"]
-        Agent["AIAgent Loop"]
-        Prompt["Prompt Builder"]
-        Provider["Provider Resolver"]
-        Compressor["Context Compressor"]
-        Callbacks["Callbacks / Streaming"]
-    end
+普通 CLI 中，`_init_session_store()` 获取 Gateway 会话代理，`_ensure_gateway_session()` 负责创建或恢复远端会话并采用返回的 session ID。前端连接失败时，`GatewayAgent` 和连接层会报错，不能把它描述为“自动退回 CLI 本地执行”。[[3]](#ref-3)[[11]](#ref-11)
 
-    subgraph Context["Context & Learning"]
-        Memory["Persistent Memory / User Profile"]
-        Sessions["SQLite Sessions + FTS5"]
-        Skills["Skills / SKILL.md"]
-        ContextFiles["AGENTS.md / CLAUDE.md / .cursorrules / 其他项目规则"]
-        Profiles["Profiles"]
-    end
+这样区分后，启动可以分为两个阶段：**先让会话运行时达到可接入状态，再为实际回合取得或装配执行实例**。热连接可以跳过 Gateway 冷启动；缓存命中可以跳过 `AIAgent` 重新装配；仅仅显示出 CLI 界面，则不证明模型和工具已经成功执行过。
 
-    subgraph Tools["Tool Runtime"]
-        Registry["Tool Registry"]
-        Toolsets["Toolsets"]
-        MCP["MCP Tools"]
-        Plugins["Plugins"]
-    end
+### 20.2.4 Gateway 冷启动：从进程所有权到 READY
 
-    subgraph Execution["Execution Backends"]
-        Local["Local"]
-        Docker["Docker"]
-        SSH["SSH"]
-        Daytona["Daytona"]
-        Modal["Modal"]
-        Singularity["Singularity"]
-    end
+![Hermes Gateway 启动流程：前端选择 profile，连接或启动 Gateway，初始化 authority，接通平台与后台服务后发布 READY](../images/hermes-runtime-startup.svg)
 
-    subgraph Storage["State Storage"]
-        Config["config.yaml"]
-        StateDB["state.db"]
-        SkillStore["~/.hermes/skills"]
-        MemoryStore["~/.hermes/memories"]
-    end
+*图 20-2：普通 CLI 的接入路径与 Gateway 冷启动主线。恢复、预热和平台连接有并行与有界等待，图中按职责阶段排列，并不声称所有内部调用严格串行。*
 
-    Entry --> Agent
-    Agent --> Prompt
-    Prompt --> Context
-    Agent --> Provider
-    Agent --> Registry
-    Registry --> Toolsets
-    Registry --> MCP
-    Registry --> Plugins
-    Toolsets --> Execution
-    Agent --> Compressor
-    Agent --> Callbacks
-    Context --> Storage
-    Agent --> Storage
-```
+Gateway 的公开入口 `gateway.run.start_gateway()` 转交 `gateway.run_bootstrap.start_gateway()`；`GatewayRunner.start()` 的具体实现位于 `gateway/run_startup.py`。阅读启动顺序时，要沿着这些委托继续追踪，而不能停在 `run.py` 的门面函数。[[12]](#ref-12)[[13]](#ref-13)
 
-这张工程分层图最重要的意义，不是再增加一套抽象，而是说明前面的六个运行时边界在代码组织上确实彼此分离：
+| 阶段 | 主要动作 | 完成后具备什么能力 |
+| --- | --- | --- |
+| 确定启动作用域 | 解析 Gateway 配置、profile 与可能服务的多个 home；检查现有宿主实例与重复启动 | 知道本进程准备服务哪些身份，以及应连接、替换还是拒绝重复实例 |
+| 取得运行所有权 | 为相应 profile 保留运行时所有权并认领 PID；发生冲突则按明确规则处理 | 防止两个实例无约束地争用同一运行时；此时仍未宣告服务就绪 |
+| 创建共享运行时 | 构造 `GatewayRunner`，初始化 `SessionAuthorities`、profile 数据库与本次启动的 runtime descriptor / ticket store | 建立会话状态的所有者、运行实例身份和接入认证所需状态 |
+| 接通控制与请求端点 | 注册停止 / 重启处理，启动控制 listener 与 runtime API | 本地前端具备接入通道；端点存在仍不等于完整 READY |
+| 恢复与预热 | 恢复上次运行状态，启动 turn machinery 预热，并在恢复期间暂存新入站事件 | 让已有会话恢复与新消息有明确边界；预热失败可以退回首次调用时初始化 |
+| 连接平台 | 筛选启用的 Adapter，连接平台并汇总成功、暂时失败与不可重试错误；处理多 profile 接入 | 形成实际可服务的平台集合；部分失败可表现为 degraded，而非假称全部正常 |
+| 完成后台接线 | 建立 delivery 路由、hooks、watcher，启动 Cron ticker 与 housekeeping | 会话投递、后台调度和维护进入服务生命周期 |
+| 发布 READY | 在启动主线完成后发布 runtime READY，并进入等待 / 服务阶段 | 前端可以按协议进入正常交互；它不保证每个外部模型、MCP 和沙箱均已成功调用 |
 
-| 分离点 | 设计含义 |
-|:---|:---|
-| Entry 与 Core 分离 | CLI、Gateway、ACP、Cron 都复用同一个 Agent Core |
-| Context 与 Tools 分离 | 记忆和技能决定“知道什么”，工具系统决定“能做什么” |
-| Toolsets 与 Execution 分离 | 同一个 terminal 工具可以跑在 local、Docker、SSH 或云端后端 |
+以上阶段直接对应 bootstrap、runtime 初始化与 startup 实现；其中恢复与工具预热会和网络连接重叠。`_finish_startup_restore()` 对恢复任务与预热使用有界等待，并最终释放入站门控，防止某个后台初始化永远卡住全部新消息。`READY` 也应结合实际 served profiles 与 degraded 状态解读，不能只看“PID 还活着”。[[4]](#ref-4)[[12]](#ref-12)[[13]](#ref-13)
 
-这种分层说明 Hermes 不是把所有逻辑塞进单一 Agent Loop，而是在入口、上下文、工具、执行和存储之间刻意维持边界。换句话说，前面的六个运行时边界不是人为硬拆，而是能被工程分层反向验证的 Runtime 结构。
+工具发现需要单独说明。`model_tools.py` 导入时会触发内置工具发现与插件发现，但**不会在模块顶层执行可能长时间阻塞的 MCP 发现**。Gateway 预热会物化部分工具 schema；MCP 的发现与刷新由具体入口和运行路径安排。于是“进程已启动”“工具已注册”“当前会话拿到工具快照”“外部 MCP 调用成功”是四个不同的检查点。[[6]](#ref-6)
 
-### 20.2.5 证据二：目录结构如何落到这套架构
+### 20.2.5 AIAgent 装配：构造函数具体创建了什么
 
-如果把分析抽象进一步压到工程落点，Hermes 的目录结构可以读成一张简洁的证据表：
+真正的 `run_agent.AIAgent.__init__()` 将参数交给 `agent.agent_init.init_agent()`。这一层把可执行对象接好，尚不等于已经完成首个模型请求。下图将实例装配与首轮执行放在同一时间轴上，明确两者的分界。[[5]](#ref-5)
 
-| 目录或模块 | 对应架构角色 | 证据含义 |
-|:---|:---|:---|
-| `agent/` | Agent Core | 对话循环、Prompt Builder、压缩和回调集中在这里，证明 Hermes 有共享智能核心 |
-| `tools/` | Capability Runtime | terminal、browser、file、memory 等能力与护栏逻辑同处一层，说明“能力”与“治理”一起被 Runtime 管理 |
-| `gateway/` | Event Intake & Delivery | 多平台事件、session 路由和流式分发都从这里进入，证明入口与核心循环分离 |
-| `hermes_cli/` | Operator Control Plane | `model`、`tools`、`skills`、`gateway`、`cron`、`profile` 等命令集中在这里，说明运行时存在明确控制面 |
+![Hermes AIAgent 初始化与首轮执行时序：创建 client 和工具快照，绑定 session，加载记忆与上下文引擎，再执行准入、prompt、模型和工具循环](../images/hermes-runtime-first-turn.svg)
 
-其他区域如 `plugins/`、`skills/`、`providers/` 与 `tests/` / `docs/`，可以继续被理解为这四条主干之外的扩展层、记忆层、模型接入层和验证层，但它们不改变前面的主判断。接下来的重点因此不再是逐个目录介绍，而是沿着这套边界继续往下追踪运行时主线。
+*图 20-3：新建执行实例的主要装配顺序与首轮执行。参与者表示逻辑调用对象；热会话复用实例时不会重复执行全部构造步骤，图中也省略了具体 API 模式的条件分支。*
 
-### 20.2.6 与第14章 Agent 组件地图的对应关系
+| 构造顺序 | 源码中的主要动作 | 得到的对象或状态 |
+| --- | --- | --- |
+| 1. 绑定执行身份与控制状态 | 保存 platform、用户 / chat / thread、cwd、callbacks；创建或继承 `IterationBudget`，初始化中断、活动跟踪与流式状态 | 知道这次执行属于谁、结果回到哪里、何时停止；子 Agent 可继承共享迭代预算 |
+| 2. 确定路由并建立 client | 解析 API mode，完成路由，执行 `_build_client()` 和 `_init_fallback_chain()` | 获得实际模型访问 client 及回退配置；凭据缺失或配置不匹配可在这里失败 |
+| 3. 获取当前工具快照 | `_load_tools()` 发现当前 profile 插件，调用 `get_tool_definitions()`，应用 enabled / disabled toolsets 和会话过滤 | 得到 `agent.tools` 与 `valid_tool_names`；不是把仓库所有工具无条件交给模型 |
+| 4. 绑定 session 与任务辅助状态 | `_init_session_state()` 采用传入 session ID 或生成新 ID，记录数据库句柄与 parent ID，创建 `TodoStore` 和 checkpoint manager | 获得当前执行的会话身份、待办状态与可选文件快照能力；这里不意味着把全部历史自动读入 |
+| 5. 加载记忆与配置 | 读取 agent 配置，执行 `_init_memory()`，按开关加载 `MEMORY.md` / `USER.md`，初始化或复用外部 memory manager | 得到内置记忆快照和可选外部记忆能力；MemoryStore 与会话 transcript 仍是两类数据 |
+| 6. 建立上下文引擎 | 解析压缩配置与模型窗口，执行 `_build_context_engine()`，注入引擎扩展工具，检查上下文限制 | 默认使用 `ContextCompressor`，也可加载所选 context engine；引擎可持有 session 状态 |
+| 7. 完成执行基线 | 初始化用量计数，保存 primary runtime 快照 | 为运行时回退 / 恢复和后续观测准备基线；完整 prompt 与首轮请求仍在后面 |
 
-这一节只做一个交叉校验：如果放回本书通用 Agent 组件地图，Hermes 最强的覆盖仍然是长期运行最关键的几条主线，也就是多入口事件接入、稳定上下文构建、工具与执行边界、长期记忆与学习回流。它因此更适合作为 Learning Loop、Memory Layer 和长期 Agent 的系统案例；至于企业生产所需的审批、合规审计、发布门禁和严格 Eval Harness，则仍然需要在这条 Runtime 主线之外额外补强。这里的目的只是确认前面的判断成立，而不改变后文继续沿着“输入、上下文、执行、回流”展开的叙事顺序。
+顺序来自 `init_agent()` 的实际调用链；表中第 1、2 步合并了穿插的控制字段初始化，没有把每一条赋值都画成一个子系统。尤其是工具快照先于记忆与上下文引擎的扩展工具注入，最终 schema 不一定只来自最初那次 registry 查询。[[5]](#ref-5)
+
+模型路由也不是简单读取一个模型字符串。共享 resolver 会结合 provider、model、配置和凭据解析运行参数，随后 client / transport 决定如何发起请求。`_build_client()` 成功只能说明访问对象已建立，不能代替真实网络请求、额度与模型可用性的验证。[[14]](#ref-14)
+
+### 20.2.6 首轮执行：装配结束后还要经过哪些边界
+
+收到输入后，回合门面 `TurnFacadeMixin.run_conversation()` 先协调后台 review 与前台执行，建立 task / session 上下文并申请持久回合租约，再进入 `agent.conversation_loop.run_conversation()`。租约与准入失败可能让请求提前结束，而不是总能进入模型循环。[[7]](#ref-7)
+
+进入循环后，Runtime 使用调用方传入或加载的会话历史，恢复或创建 system prompt。`_restore_or_build_system_prompt()` 会尝试复用数据库中持久化的 prompt 与工具快照，并校验运行身份；没有可用快照或需要重建时，才调用 builder，再持久化新的 prompt / tools。之后每次迭代准备请求、调用模型，遇到 tool call 则执行工具并追加观察结果，直到形成最终回答、被中断或触发失败边界。[[15]](#ref-15)[[16]](#ref-16)
+
+这意味着“启动时加载上下文”至少有三种不同含义，不能混为一谈：
+
+| 初始化时机 | 实际发生的事情 | 不应据此假定 |
+| --- | --- | --- |
+| 构造执行实例 | 加载内置记忆文件、建立 client、选择工具、创建上下文引擎 | 已调用模型，或已把所有 Skill 全文放进 prompt |
+| 首轮 / 恢复会话 | 取历史，恢复或构建 prompt，固定相应上下文快照，准备当前用户消息 | 每个回合都会重新读取全部项目规则、记忆和 Skills |
+| 第一次调用相关能力 | 按需加载 Skill 内容、执行工具、创建或连接具体后端 | terminal schema 已出现就证明 Docker / SSH 环境已经就绪 |
+
+例如 `tools/terminal_tool_lifecycle.py` 的 `ensure_task_env()` 会先查询 task 对应的活跃环境，命中则复用，否则按配置创建非本地环境并登记到缓存；它也允许需要沙箱路径的其他工具触发创建。因此后端创建的准确边界是**首次需要该环境的能力调用**，不能简化成“Gateway 启动时创建全部容器”，也不能限定为“必定由第一条 terminal 命令创建”。[[17]](#ref-17)
+
+Skills 同样按渐进披露进入上下文：启动 / prompt 构建阶段可以收集目录、说明和配置要求的预加载内容，其余技能正文按需读取。Memory 更新、历史持久化和当前 prompt 快照则各有生命周期，后文 20.4、20.5 再分别展开。[[18]](#ref-18)
+
+### 20.2.7 启动失败与恢复：分清失败发生在哪一层
+
+下面是本书依据源码整理的排查顺序，不是新增的一套官方健康检查协议。诊断时先找到最后一个已完成的阶段，再沿它的下一条依赖检查，避免把所有问题都归到“模型没回复”。
+
+| 现象 | 优先核对的边界 | 恢复时的判断 |
+| --- | --- | --- |
+| CLI 出现界面，但发不出请求 | Gateway 连接、接入认证、READY、会话创建 | 普通 CLI 依赖 Gateway；前端界面可用不证明实际执行已就绪 |
+| Gateway 重复启动失败 | profile home、宿主实例、运行时所有权与 PID 认领 | 先确认原实例与所服务 profile；不能靠随意删除锁文件代替生命周期处理 |
+| Gateway 显示 degraded | 实际 Adapter 连接结果、可重试 / 配置错误、served profiles | 部分服务已可用与全部入口健康需要分别判断 |
+| 第一条消息很慢 | turn machinery 预热、工具 / MCP 发现、首次 client 请求、后端惰性创建 | 首轮冷启动与后续热回合不同；本文没有实测耗时，不给通用阈值 |
+| 能回复，但恢复后历史缺失 | SessionStore / authority、数据库写入及 prompt 快照持久化 | 能访问模型不等于会话已可靠落盘 |
+| 请求发送后前端断连 | 会话准入记录、执行代次与持久化结果 | Gateway 代理明确区分“尚未发送”与“结果未知”；先恢复会话核对，不盲目重放外部写操作 |
+
+前端代理、Gateway bootstrap / startup 与会话运行时分别提供上述诊断依据；其中外部操作的重放还必须结合操作本身的幂等与查询能力，不能从会话恢复能力推导出通用 exactly-once 保证。[[3]](#ref-3)[[4]](#ref-4)[[12]](#ref-12)[[13]](#ref-13)
+
+### 20.2.8 从源码组件回到六个分析边界
+
+前面的组件、生命周期和启动过程确定后，才适合使用“大脑中枢”“小脑”等教学比喻。它们帮助归纳职责，**并不是 Hermes 官方定义的六个模块或六个服务**。
+
+| 本书的分析边界 | 实际组成 | 阅读时需要保留的区分 |
+| --- | --- | --- |
+| 入口 | 前端、Adapter、Gateway 接入、Cron / ACP 等触发方 | 输入与会话所有权、实际执行是不同职责 |
+| 推理与上下文 | client、Prompt Builder、Context Engine | 模型访问、prompt 快照、压缩策略各自有状态 |
+| 任务推进 | 回合控制、预算、中断、TodoStore、按需委派与持久任务 | 不存在一个包办所有任务规划的独立“小脑进程” |
+| 工具中心 | Registry、Toolsets、Plugin / MCP schema | 注册、会话可见性、可用性检查和用户授权不能互相替代 |
+| 执行引擎 | Tool Executor、dispatch、具体工具与后端 | 选择工具与创建执行环境有不同生命周期 |
+| 长期状态与学习 | SessionDB、Memory、Skills、轨迹 | 历史、稳定事实、可复用过程不能存成同一种无边界的记忆 |
+
+固定版本的开发指南建议保持核心克制，优先考虑复用代码、CLI 加 Skill、按需工具、Plugin 和 MCP 等扩展方式。这个“窄核心、能力在边缘”的原则，落实到 Runtime 就是：共享执行协议保持稳定，入口、工具、记忆和后端通过明确接口接入。它不要求所有工具永远出现在每次请求中，也不把 `check_fn` 解释成逐用户授权裁决。[[19]](#ref-19)[[6]](#ref-6)
+
+最后，缓存稳定必须服从事实与权限。持久 Memory、当前会话 prompt 快照与供应商侧缓存是三种状态；写文件不会自动证明当前请求已经刷新。配置切换、撤权、安全纠错或运行身份变化可能要求重建上下文，不能为了复用前缀继续使用错误事实。[[19]](#ref-19)[[15]](#ref-15)[[16]](#ref-16)
 
 ---
 
@@ -268,7 +271,7 @@ Hermes 的关键点是：**Memory 不只是输入层，也在输出后参与回�
 | 投递 | 固定源码存在 Gateway delivery ledger 及 delivery_obligations | 只证明特定回复投递义务机制，不能推导任何业务消息都不会重复 |
 | 回流 | 记忆和 Skills 可更新；trajectory 可保存 | 经用户确认的事实、候选经验和独立评测结果分开；不自动晋升为规则 |
 
-投递 ledger 的存在有独立源码证据。[[5]](#ref-5) 其与外部业务的一致性仍需单独验证。以下通用`operation_id/outbox/checkpoint/compensation`状态机均为**教学扩展**；不能由 ledger 名字、SQLite WAL checkpoint 或会话恢复推导它们已经完整实现。
+投递 ledger 的存在有独立源码证据。[[20]](#ref-20) 其与外部业务的一致性仍需单独验证。以下通用`operation_id/outbox/checkpoint/compensation`状态机均为**教学扩展**；不能由 ledger 名字、SQLite WAL checkpoint 或会话恢复推导它们已经完整实现。
 
 **连续轨迹：** 用户先从 CLI 要求周五前准备简报，系统保存 Task 范围与只读授权；Cron 触发合成新会话，读取授权资料 v8，生成草稿 v1。用户从消息入口补充“暂时不要发”，先验证关联身份，再把禁止发送写入当前权威约束；不能只改长期 Memory、让冻结 prompt 继续沿用旧要求。长工具输出触发压缩后，恢复摘要核验资料版本、deadline 与禁止事项，漏字段即回源。
 
@@ -332,14 +335,13 @@ sequenceDiagram
 
 ### 20.3.2 Agent Loop：统一多入口的运行核心
 
-Hermes 的核心是一个同步编排引擎，可以理解为：
+完成 20.2 节的入口连接与实例装配后，Hermes 的核心回合由同步编排引擎推进。下面描述的是回合内主线，不表示每次输入都要重新启动 Gateway、加载全部记忆或重建 client：
 
 ```text
-load profile
-  -> load config / memory / skills / context files
-  -> assemble system prompt
-  -> resolve provider and model
-  -> receive user turn
+receive user turn + session history
+  -> admit turn and bind execution scope
+  -> restore or build system prompt / tool snapshot
+  -> prepare request using the active provider / client
   -> call model
   -> dispatch tool calls
   -> stream progress via callbacks
@@ -348,36 +350,26 @@ load profile
   -> update memory / skills when appropriate
 ```
 
-伪代码如下：
+教学伪代码如下；`runtime` 表示已完成装配的执行对象，`session` 表示已创建或恢复的会话。它省略了源码中的租约续期、错误分类、压缩分支和投递逻辑：
 
 ```python
-def run_turn(user_message, profile, entry_point):
-    config = load_config(profile)
-    memory = load_memory(profile)
-    skills = select_relevant_skills(user_message, profile)
-    context_files = discover_context_files()
-    sessions = load_session_state(entry_point, profile)
+def run_turn(user_message, runtime, session):
+    with runtime.admit_turn(session):
+        prompt, tools = runtime.restore_or_build_prompt_snapshot(session)
+        messages = session.history_with(user_message)
 
-    prompt = build_prompt(
-        personality=config.personality,
-        memory=memory,
-        skills=skills,
-        context_files=context_files,
-        tools=enabled_toolsets(entry_point),
-        session=sessions.current,
-    )
-
-    while not done:
-        response = model.complete(prompt)
-        if response.tool_calls:
-            results = tool_registry.dispatch(response.tool_calls)
-            callbacks.stream_tool_results(results)
-            prompt = append_observations(prompt, results)
-            persist(results)
-        else:
-            callbacks.stream_answer(response.text)
-            persist(response)
-            done = True
+        while runtime.can_continue():
+            messages = runtime.context_engine.prepare(messages)
+            response = runtime.call_model(prompt, messages, tools)
+            session.persist_assistant(response)
+            if response.tool_calls:
+                results = runtime.execute_tools(response.tool_calls)
+                runtime.callbacks.stream_tool_results(results)
+                messages = append_observations(messages, response, results)
+                session.persist_tool_results(results)
+            else:
+                runtime.callbacks.stream_answer(response.text)
+                return response
 ```
 
 这个循环和第17章 Coding Agent 的循环很像，但 Hermes 多了三个面向长期运行的能力：
@@ -399,7 +391,7 @@ def run_turn(user_message, profile, entry_point):
 
 ### 20.3.4 复杂任务不是单一机制，而是四层运行时能力叠加
 
-下表按固定提交的工具执行、委派、MoA 与 Kanban 分别取证，不是统一恢复保证。[[6]](#ref-6)
+下表按固定提交的工具执行、委派、MoA 与 Kanban 分别取证，不是统一恢复保证。[[21]](#ref-21)
 
 Hermes 处理复杂任务时，最容易被误读的地方是：源码里确实同时出现了 `delegate_task`、Kanban、MoA 和并发工具调用，但它们解决的不是同一个问题。更准确地说，Hermes 不是只有一种“复杂任务模式”，而是把复杂任务拆成四层不同的运行时能力：
 
@@ -433,7 +425,7 @@ Hermes 处理复杂任务时，最容易被误读的地方是：源码里确实�
 
 #### 20.3.4.1 MoA 解决的是推理增强，不是任务编排
 
-MoA 参考视图与聚合代码支持机制描述；参考意见不是独立事实或验证结果。[[7]](#ref-7)
+MoA 参考视图与聚合代码支持机制描述；参考意见不是独立事实或验证结果。[[22]](#ref-22)
 
 MoA 这个名字很容易让人误以为它和 `delegate_task` 一样，也是在运行多个会“行动”的 Agent。实际上源码里的 MoA 更像“多参考模型咨询机制”，而不是任务调度器。
 
@@ -631,7 +623,7 @@ Hermes 不会把它当成一次问答，而是当成一个单 Agent 工具链循
 
 ### 20.3.6 Kanban Board：如何把复杂任务变成持久化工作流
 
-依赖状态与 claim 事务来自 Kanban DB，worker 运行要求另见 Kanban 文档。[[8]](#ref-8)
+依赖状态与 claim 事务来自 Kanban DB，worker 运行要求另见 Kanban 文档。[[23]](#ref-23)
 
 如果说单 Agent 工具链解决的是“**同一个会话里，如何把很多步骤持续做完**”，那么 Kanban Board 解决的就是另一个层级的问题：**任务不再依附某一轮对话，而是被提升为可持久化、可恢复、可依赖编排的工作项**。
 
@@ -749,7 +741,7 @@ task C: 更新发布说明（parents=[A, B]）
 
 ### 20.3.7 多 Agent 机制：`delegate_task` 驱动的子 Agent 扇出与汇总
 
-下文委派描述只针对该工具路径，不覆盖其他显式调度器。[[9]](#ref-9)
+下文委派描述只针对该工具路径，不覆盖其他显式调度器。[[24]](#ref-24)
 
 Hermes 的多 Agent 不是默认运行模式，也不是在一个会话里让多个“人格”轮流发言。它的触发条件很明确：**本节只讨论父 Agent 通过`delegate_task`工具触发的委派路径，Kanban 等其他调度入口另见前文。**
 
@@ -882,7 +874,7 @@ orchestrator 子 Agent:
 
 ### 20.3.8 上下文与缓存的三本账
 
-上下文窗口衡量模型可见信息量；会话持久化保留历史；provider 缓存影响前缀复用和计费。三者分别核验，不能互相替代。Hermes 源码把缓存规划绑定到具体请求目的地，并按 provider 兼容布局构造标记。[[10]](#ref-10)[[11]](#ref-11) 其节省效果需记录 usage、命中、TTL、模型和实际计价；本章不沿用固定折扣或“75%成本下降”的未经复现实测。
+上下文窗口衡量模型可见信息量；会话持久化保留历史；provider 缓存影响前缀复用和计费。三者分别核验，不能互相替代。Hermes 源码把缓存规划绑定到具体请求目的地，并按 provider 兼容布局构造标记。[[25]](#ref-25)[[26]](#ref-26) 其节省效果需记录 usage、命中、TTL、模型和实际计价；本章不沿用固定折扣或“75%成本下降”的未经复现实测。
 
 ## 20.4 上下文主线：Prompt System 如何保持长期稳定
 
@@ -917,7 +909,7 @@ Prompt System 的关键不是“资料越多越好”，而是“稳定前缀尽
 
 ### 20.4.3 Prompt Caching：快照、标记与实际命中
 
-Memory 资料和 store 实现支持会话开始时加载冻结快照、工具写入更新 live store 的分工；prompt 整体的构建与复用还由 conversation/system prompt 模块控制。[[12]](#ref-12)[[13]](#ref-13)[[3]](#ref-3)[[4]](#ref-4) 不用某个字段名推导所有重建时机。
+Memory 资料和 store 实现支持会话开始时加载冻结快照、工具写入更新 live store 的分工；prompt 整体的构建与复用还由 conversation/system prompt 模块控制。[[27]](#ref-27)[[28]](#ref-28)[[15]](#ref-15)[[16]](#ref-16) 不用某个字段名推导所有重建时机。
 
 固定提交的缓存规划已超出旧稿单一`system_and_3`说明：
 
@@ -927,7 +919,7 @@ Memory 资料和 store 实现支持会话开始时加载冻结快照、工具写
 | 无静态前缀 | 保留 system 加尾部三条的 legacy 路径 | 不能写成所有请求的唯一布局 |
 | 特定原生工具缓存路径 | 静态前缀、工具数组尾部及已完成事务端点分配预算 | 必须核对实际 destination 与适配器支持 |
 
-源码会清理旧装饰，避免重复规划积累标记；部分代理对 tool result 的标记位置有限制。[[10]](#ref-10) 这些是客户端构造事实，不证明服务端接受、命中或采用同一价格。供应商 API、TTL、阈值与折扣归[第12章](../part3/01-llm-api-protocol.md)的版本化 adapter 核验，不在本章维护固定厂商计费表。
+源码会清理旧装饰，避免重复规划积累标记；部分代理对 tool result 的标记位置有限制。[[25]](#ref-25) 这些是客户端构造事实，不证明服务端接受、命中或采用同一价格。供应商 API、TTL、阈值与折扣归[第12章](../part3/01-llm-api-protocol.md)的版本化 adapter 核验，不在本章维护固定厂商计费表。
 
 推理缓存通常可以复用前缀计算，但不能从客户端源码得知具体服务端物理存储、保留方式或每个节点的 KV 状态。记录逻辑请求 hash 与 usage 即可支持本场景审计，不应断言供应商“只存 KV 绝不存原文”。缓存命中也不验证任务约束是否仍正确。
 
@@ -947,7 +939,7 @@ conversation_loop.py
 
 ### 20.4.5 SessionDB：会话不只在上下文窗口里存在
 
-SessionDB 结构与权威存储以 Session Storage 文档为准。[[14]](#ref-14)
+SessionDB 结构与权威存储以 Session Storage 文档为准。[[29]](#ref-29)
 
 Hermes 的会话不是只存在于上下文窗口里，而是落到 SQLite SessionDB，并通过 FTS5 支持跨 session 的全文检索。这样 session search 就不是“翻聊天记录”的 UI 功能，而是长期 runtime 的第二层记忆。
 
@@ -988,7 +980,7 @@ Hermes 的会话不是只存在于上下文窗口里，而是落到 SQLite Sessi
 
 ### 20.5.3 MemoryProvider：后端扩展与上下文职责
 
-官方 Memory Provider 接口将初始化、稳定声明、按查询召回和同步挂到统一生命周期；具体 provider 可以有不同存储和权限边界。[[15]](#ref-15) 内置 Memory 管理短事实，Session Search 读取历史细节，Skills 保存程序性说明，不能因它们都返回文本就混成一套权威库。
+官方 Memory Provider 接口将初始化、稳定声明、按查询召回和同步挂到统一生命周期；具体 provider 可以有不同存储和权限边界。[[30]](#ref-30) 内置 Memory 管理短事实，Session Search 读取历史细节，Skills 保存程序性说明，不能因它们都返回文本就混成一套权威库。
 
 如果教学上接入只读 Markdown 知识库，应由 provider 实现目录权限、分块、索引、召回和来源版本，然后只将允许内容交给上下文。这里是扩展设计，不声称固定提交自带`markdown_kb`、TF-IDF 或某一插件发现实现。企业 ACL 与组织数据必须由企业级权限与治理系统负责，个人 provider 不能绕过撤权和删除。
 
@@ -1024,7 +1016,7 @@ Agent 通过统一的 `memory` 工具操作 MemoryStore，对 Agent 来说，"�
 
 ### 20.5.6 Skills：把经验变成可复用程序性记忆
 
-技能资料支持发现/加载/管理；后文 review/eval 推广管道是本书治理设计。[[16]](#ref-16)
+技能资料支持发现/加载/管理；后文 review/eval 推广管道是本书治理设计。[[18]](#ref-18)
 
 Hermes 最有代表性的设计是 Skills System。
 
@@ -1146,7 +1138,7 @@ Skills 的风险也很明显：如果一次任务的解法本身是错误的，A
 
 ## 20.6 行动主线：从 Tool Registry 到 Action Engine 的连续执行链
 
-工具类别/后端来自官方工具文档；执行授权仍须独立成立。[[17]](#ref-17)
+工具类别/后端来自官方工具文档；执行授权仍须独立成立。[[31]](#ref-31)
 
 Hermes 的关键不在“能不能调用工具”，而在“模型选择工具以后，运行时如何可靠地行动”。因此 Tool Registry、Toolsets、Execution Backends 和 Action Engine 需要被当成一条连续的行动主线来理解。
 
@@ -1234,7 +1226,7 @@ Plugin 与 MCP 的价值，不是“又多了一批工具”，而是证明 Herm
 
 ## 20.7 多入口主线：Gateway、Cron、Profiles 与 Session 生命周期
 
-跨入口会话依据 Gateway SessionSource 和生命周期契约，不凭显示名称合并身份。[[18]](#ref-18)
+跨入口会话依据 Gateway SessionSource 和生命周期契约，不凭显示名称合并身份。[[32]](#ref-32)
 
 这一节不应该被读成四个并列特性，而应该被读成同一个答案：**一个长期运行的 Agent，如何在多个入口、不同任务类型和多重身份之间保持连续性，而不发生串线。** Hermes 的回答是让 Gateway、Cron、Profiles 和 Session Lifecycle 共同组成连续运行控制面。
 
@@ -1270,7 +1262,7 @@ Gateway 的架构意义，不是“支持 Telegram、Slack、Discord 等很多�
 
 ### 20.7.2 Cron：把时间也做成入口，而不是旁路脚本
 
-Cron 文档支持 Agent 任务及 no_agent 两条分支，不能将全部 tick 概括成模型 turn。[[19]](#ref-19)
+Cron 文档支持 Agent 任务及 no_agent 两条分支，不能将全部 tick 概括成模型 turn。[[33]](#ref-33)
 
 Hermes 的 Cron 值得强调，不是因为它能定时，而是因为它把时间触发也纳入了同一条运行时主线。Agent 模式可在新会话中执行任务；当前文档还支持`no_agent`脚本模式，脚本 stdout 可以直接投递而不调用 LLM。两者都要核对调度、身份、工作目录与投递范围，不能将脚本输出当模型已验证的结论。
 
@@ -1320,7 +1312,7 @@ ingest event
 
 ## 20.8 安全主线：长期 Agent 的真实攻击面
 
-安全文档只证明相应控制及前提存在；这里的评审表属于本书归纳。[[20]](#ref-20)
+安全文档只证明相应控制及前提存在；这里的评审表属于本书归纳。[[34]](#ref-34)
 
 Hermes 的安全部分，不能只概括成“多层防御”四个字。更准确的理解方式是：前面那些让 Agent 保持连续行动的机制，本身也定义了长期 Agent 的主要攻击面。入口越多、身份越持久、工具越强、学习回流越深，越需要围绕具体失效路径布防。
 
@@ -1353,7 +1345,7 @@ Hermes 的安全部分，不能只概括成“多层防御”四个字。更准�
 
 ## 20.9 学习闭环：从运行轨迹到能力资产
 
-轨迹格式说明可导出的运行材料，不证明它们已被脱敏、评测或训练使用。[[21]](#ref-21)
+轨迹格式说明可导出的运行材料，不证明它们已被脱敏、评测或训练使用。[[35]](#ref-35)
 
 Hermes 在学习闭环上的真正亮点，不是“Agent 会自动变强”这种宽泛叙事，而是它把一条更具体、也更工程化的链路暴露了出来：
 
@@ -1424,7 +1416,7 @@ trajectory
 
 ### 20.11.2 从工程原则到审查证据
 
-开发指南提供窄核心、缓存稳定、插件边界与变更前核对意图等原则；这属于项目贡献约束，不自动证明所有实现都满足约束。[[2]](#ref-2) 本书建议审查时要求：具体源码/版本、消费者、输入/输出契约、失败恢复与回归证据。能写出原则不能代替执行器测试，能自动总结也不能代替独立 Verifier。
+开发指南提供窄核心、缓存稳定、插件边界与变更前核对意图等原则；这属于项目贡献约束，不自动证明所有实现都满足约束。[[19]](#ref-19) 本书建议审查时要求：具体源码/版本、消费者、输入/输出契约、失败恢复与回归证据。能写出原则不能代替执行器测试，能自动总结也不能代替独立 Verifier。
 
 ---
 
@@ -1435,7 +1427,8 @@ Hermes Agent 展示了长期运行 Agent 的另一条成熟路径：不是只做
 本章核心结论：
 
 - Hermes 的本质是一个可长期运行、可持续学习的 Agent Runtime；
-- 它的底层架构可以拆成大脑中枢、记忆系统、小脑、工具中心、执行引擎和外部环境六个核心组件；
+- 实际组件包括前端、Gateway 会话运行时、AIAgent、上下文引擎、模型 client、工具运行时和持久状态；六个分析边界用于归纳职责，不是六个官方模块；
+- 启动应分清前端接入、Gateway 冷启动、AIAgent 装配与首轮执行，READY 不等于所有模型和后端已验证可用；
 - Memory 保存关键事实，Session Search 保存历史细节，Skills 保存可复用做法；
 - 核心数据流不是单向问答，而是用户输入、上下文构建、工具执行、外部结果和记忆回流组成的闭环；
 - Gateway 让同一个 Agent 活在 CLI、消息平台和自动化任务中；
@@ -1452,23 +1445,37 @@ Hermes Agent 展示了长期运行 Agent 的另一条成熟路径：不是只做
 ## 参考资料
 
 1. <a id="ref-1"></a> NousResearch / Hermes maintainers，[Architecture](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/developer-guide/architecture.md)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
-2. <a id="ref-2"></a> NousResearch / Hermes maintainers，[Development guide](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/AGENTS.md)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
-3. <a id="ref-3"></a> NousResearch / Hermes maintainers，[Conversation loop](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/agent/conversation_loop.py)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
-4. <a id="ref-4"></a> NousResearch / Hermes maintainers，[System prompt](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/agent/system_prompt.py)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
-5. <a id="ref-5"></a> NousResearch / Hermes maintainers，[Delivery ledger](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/gateway/delivery_ledger.py)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
-6. <a id="ref-6"></a> NousResearch / Hermes maintainers，[Tool execution](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/agent/tool_executor.py)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
-7. <a id="ref-7"></a> NousResearch / Hermes maintainers，[Mixture of agents](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/agent/moa_loop.py)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
-8. <a id="ref-8"></a> NousResearch / Hermes maintainers，[Kanban database](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/hermes_cli/kanban_db.py)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
-9. <a id="ref-9"></a> NousResearch / Hermes maintainers，[Delegation](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/tools/delegate_tool.py)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
-10. <a id="ref-10"></a> NousResearch / Hermes maintainers，[Prompt caching planner](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/agent/prompt_caching.py)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
-11. <a id="ref-11"></a> NousResearch / Hermes maintainers，[Prompt cache scope](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/agent/prompt_cache_scope.py)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
-12. <a id="ref-12"></a> NousResearch / Hermes maintainers，[Persistent memory](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/user-guide/features/memory.md)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
-13. <a id="ref-13"></a> NousResearch / Hermes maintainers，[Memory store](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/tools/memory_tool_store.py)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
-14. <a id="ref-14"></a> NousResearch / Hermes maintainers，[Session storage](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/developer-guide/session-storage.md)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
-15. <a id="ref-15"></a> NousResearch / Hermes maintainers，[Memory provider plugin](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/developer-guide/memory-provider-plugin.md)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
-16. <a id="ref-16"></a> NousResearch / Hermes maintainers，[Skills](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/user-guide/features/skills.md)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
-17. <a id="ref-17"></a> NousResearch / Hermes maintainers，[Tools and toolsets](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/user-guide/features/tools.md)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
-18. <a id="ref-18"></a> NousResearch / Hermes maintainers，[Gateway session lifecycle](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/developer-guide/gateway-session-lifecycle.md)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
-19. <a id="ref-19"></a> NousResearch / Hermes maintainers，[Cron](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/user-guide/features/cron.md)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
-20. <a id="ref-20"></a> NousResearch / Hermes maintainers，[Security](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/user-guide/security.md)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
-21. <a id="ref-21"></a> NousResearch / Hermes maintainers，[Trajectory format](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/developer-guide/trajectory-format.md)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+2. <a id="ref-2"></a> NousResearch / Hermes maintainers，[CLI agent setup](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/hermes_cli/cli_agent_setup_mixin.py)，提交 `18c525b669b6ea4ba62e6967d228af21d89aa9d3`，核验于 2026-10-22。
+3. <a id="ref-3"></a> NousResearch / Hermes maintainers，[Gateway-backed CLI agent](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/hermes_cli/gateway_agent.py)，提交 `18c525b669b6ea4ba62e6967d228af21d89aa9d3`，核验于 2026-10-22。
+4. <a id="ref-4"></a> NousResearch / Hermes maintainers，[Gateway runtime ownership and session authorities](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/gateway/run_runtime.py)，提交 `18c525b669b6ea4ba62e6967d228af21d89aa9d3`，核验于 2026-10-22。
+5. <a id="ref-5"></a> NousResearch / Hermes maintainers，[AIAgent facade and initialization](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/agent/agent_init.py)，提交 `18c525b669b6ea4ba62e6967d228af21d89aa9d3`，核验于 2026-10-22。
+6. <a id="ref-6"></a> NousResearch / Hermes maintainers，[Tool discovery and dispatch](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/model_tools.py)，提交 `18c525b669b6ea4ba62e6967d228af21d89aa9d3`，核验于 2026-10-22。
+7. <a id="ref-7"></a> NousResearch / Hermes maintainers，[Turn admission facade](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/agent/turn_facade.py)，提交 `18c525b669b6ea4ba62e6967d228af21d89aa9d3`，核验于 2026-10-22。
+8. <a id="ref-8"></a> NousResearch / Hermes maintainers，[Gateway turn runner](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/gateway/run_turn_runner.py)，提交 `18c525b669b6ea4ba62e6967d228af21d89aa9d3`，核验于 2026-10-22。
+9. <a id="ref-9"></a> NousResearch / Hermes maintainers，[Console script entry points](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/pyproject.toml)，提交 `18c525b669b6ea4ba62e6967d228af21d89aa9d3`，核验于 2026-10-22。
+10. <a id="ref-10"></a> NousResearch / Hermes maintainers，[CLI entry and startup dispatch](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/hermes_cli/main.py)，提交 `18c525b669b6ea4ba62e6967d228af21d89aa9d3`，核验于 2026-10-22。
+11. <a id="ref-11"></a> NousResearch / Hermes maintainers，[CLI session initialization](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/hermes_cli/cli_init_mixin.py)，提交 `18c525b669b6ea4ba62e6967d228af21d89aa9d3`，核验于 2026-10-22。
+12. <a id="ref-12"></a> NousResearch / Hermes maintainers，[Gateway process bootstrap](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/gateway/run_bootstrap.py)，提交 `18c525b669b6ea4ba62e6967d228af21d89aa9d3`，核验于 2026-10-22。
+13. <a id="ref-13"></a> NousResearch / Hermes maintainers，[Gateway startup and restore gates](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/gateway/run_startup.py)，提交 `18c525b669b6ea4ba62e6967d228af21d89aa9d3`，核验于 2026-10-22。
+14. <a id="ref-14"></a> NousResearch / Hermes maintainers，[Provider runtime resolution](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/hermes_cli/runtime_provider.py)，提交 `18c525b669b6ea4ba62e6967d228af21d89aa9d3`，核验于 2026-10-22。
+15. <a id="ref-15"></a> NousResearch / Hermes maintainers，[Conversation loop](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/agent/conversation_loop.py)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+16. <a id="ref-16"></a> NousResearch / Hermes maintainers，[System prompt](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/agent/system_prompt.py)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+17. <a id="ref-17"></a> NousResearch / Hermes maintainers，[Lazy terminal environment lifecycle](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/tools/terminal_tool_lifecycle.py)，提交 `18c525b669b6ea4ba62e6967d228af21d89aa9d3`，核验于 2026-10-22。
+18. <a id="ref-18"></a> NousResearch / Hermes maintainers，[Skills](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/user-guide/features/skills.md)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+19. <a id="ref-19"></a> NousResearch / Hermes maintainers，[Development guide](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/AGENTS.md)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+20. <a id="ref-20"></a> NousResearch / Hermes maintainers，[Delivery ledger](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/gateway/delivery_ledger.py)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+21. <a id="ref-21"></a> NousResearch / Hermes maintainers，[Tool execution](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/agent/tool_executor.py)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+22. <a id="ref-22"></a> NousResearch / Hermes maintainers，[Mixture of agents](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/agent/moa_loop.py)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+23. <a id="ref-23"></a> NousResearch / Hermes maintainers，[Kanban database](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/hermes_cli/kanban_db.py)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+24. <a id="ref-24"></a> NousResearch / Hermes maintainers，[Delegation](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/tools/delegate_tool.py)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+25. <a id="ref-25"></a> NousResearch / Hermes maintainers，[Prompt caching planner](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/agent/prompt_caching.py)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+26. <a id="ref-26"></a> NousResearch / Hermes maintainers，[Prompt cache scope](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/agent/prompt_cache_scope.py)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+27. <a id="ref-27"></a> NousResearch / Hermes maintainers，[Persistent memory](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/user-guide/features/memory.md)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+28. <a id="ref-28"></a> NousResearch / Hermes maintainers，[Memory store](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/tools/memory_tool_store.py)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+29. <a id="ref-29"></a> NousResearch / Hermes maintainers，[Session storage](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/developer-guide/session-storage.md)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+30. <a id="ref-30"></a> NousResearch / Hermes maintainers，[Memory provider plugin](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/developer-guide/memory-provider-plugin.md)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+31. <a id="ref-31"></a> NousResearch / Hermes maintainers，[Tools and toolsets](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/user-guide/features/tools.md)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+32. <a id="ref-32"></a> NousResearch / Hermes maintainers，[Gateway session lifecycle](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/developer-guide/gateway-session-lifecycle.md)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+33. <a id="ref-33"></a> NousResearch / Hermes maintainers，[Cron](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/user-guide/features/cron.md)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+34. <a id="ref-34"></a> NousResearch / Hermes maintainers，[Security](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/user-guide/security.md)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。
+35. <a id="ref-35"></a> NousResearch / Hermes maintainers，[Trajectory format](https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/developer-guide/trajectory-format.md)，18c525b669b6ea4ba62e6967d228af21d89aa9d3。

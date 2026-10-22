@@ -186,7 +186,7 @@ Agent Eval 要持续回答：
 | Coding：修复登录过期边界，范围限于 src/auth | 实际 Diff 和固定测试通过，未执行的测试要明确标出 | 关联文件 hash、补丁和测试版本；旧摘要先回源 | 越界修改、删除验收或部署提案被阻止 |
 | 长任务：压缩会话后继续处理结果未知的操作 | 查询真实 Operation 状态，不重复提交 | 保留 Operation ID、调用与结果配对、会话作用域和恢复边界 | 取消后的晚到成功仍记录为事实，并按业务规则收敛 |
 
-第一例延伸到[第13章上下文工程](02-context-engineering.md)；第二例对应[第17章 Coding Agent](../part4/01-coding-agent-systems.md)与[第21章 Claude Code](../part4/05-claude-code-internals.md)；长任务的状态基础见[Agent Runtime](03-agent-runtime.md#delivery-idempotency)。评估用例应固定输入、工具结果、权限和版本，并记录预期证据与失败标签。
+第一例延伸到[第13章上下文工程](02-context-engineering.md)；第二例对应[第17章成熟 Coding Agent 内部实现](../part4/01-coding-agent-systems.md)；长任务的状态基础见[Agent Runtime](03-agent-runtime.md#delivery-idempotency)。评估用例应固定输入、工具结果、权限和版本，并记录预期证据与失败标签。
 
 ### 16.2.3 评估对象
 
@@ -1645,7 +1645,7 @@ flowchart TB
 
 ### 16.8.2 Runtime 接管的治理验收
 
-长任务接管的完整串联案例见[Agent Runtime：接管与故障收敛](03-agent-runtime.md#long-task-takeover)。执行归属、`owner_epoch`、Claim、Operation、Outbox 与恢复时序沿用该章定义。本章从治理侧检查这些状态是否留下可审计证据，并能进入回归和发布门禁。
+长任务接管的执行权与交付约束见[Agent Runtime：执行权异常](03-agent-runtime.md#failure-ownership)及[交付异常](03-agent-runtime.md#failure-result-delivery)。执行归属、`owner_epoch`、Operation、Outbox 与恢复语义沿用该章定义。本章从治理侧检查这些状态是否留下可审计证据，并能进入回归和发布门禁。
 
 | 场景 | 必须保留的证据 | 验收结果 |
 | --- | --- | --- |

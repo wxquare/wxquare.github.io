@@ -1,1861 +1,444 @@
-# 第17章 AI Coding Agent 系统解析：从工作协议到 Harness 工程
+# 第17章 成熟 Coding Agent 内部实现：Codex CLI、Claude Code 与 OpenCode
 
-> AI Coding Agent 的本质，不是“自动写代码”，而是把软件工程任务转化为可规划、可执行、可验证、可隔离、可审查的工程闭环。
+> 成熟的 Coding Agent 不是“会改代码的模型”，而是一个持续组织上下文、调度工具、约束副作用并验证结果的工程运行时。
 
-## 引言
+**资料核验日期：2026-10-22。** 本章从三个产品观察 Coding Agent 的运行机制，但开源状态并不相同：Codex CLI 与 OpenCode 有公开源码；Claude Code 核心程序闭源。本章对 Codex CLI、OpenCode 的实现描述以对应公开仓库为依据，对 Claude Code 只描述 Anthropic 官方文档公开的产品行为与接口。无法由公开源码或官方资料确认的模块边界、数据结构和内部算法，会明确标为“系统推导”，不作为实现事实。[[1]](#ref-1)
 
-前两部分已经讨论了 LLM 能力边界、Prompt Engineering、Context Engineering、Harness Engineering，以及 Agent 的工具调用、工作流、RAG、Memory、Eval、Guardrails 和可观测性。从本章开始，我们进入成熟系统解析。
+## 17.1 先看共同问题：让模型参与工程闭环
 
-本章选择 AI Coding Agent 作为第一个成熟系统案例，因为它几乎包含了 Agent 工程的全部核心问题：
+### 17.1.1 从代码生成到可审查交付
 
-- 它要理解自然语言需求；
-- 它要读取和筛选大型代码库上下文；
-- 它要规划多步修改；
-- 它要调用搜索、文件、Shell、Git、测试等工具；
-- 它要处理权限、失败、回滚和用户中断；
-- 它要把人的意图转化为可审查的代码变更。
+普通代码生成器以文本片段为主要产物。Coding Agent 的产物则存在于仓库和执行环境：它读取文件、发起模型请求、调用工具修改代码、运行命令，再把工作结果交给人审查。模型回答只是交付说明，不能代替真实的文件差异和验证结果。
 
-Claude Code、Cursor 和 Codex 的产品形态不同：一个偏终端，一个偏 IDE，一个偏本地与云端任务执行。但从系统设计视角看，它们都在回答同一个问题：
+对比三个产品时，可以先抽象出一条不绑定具体实现的工作路径：
 
-```text
-如何让一个概率模型可靠地参与确定性的软件工程流程？
-```
-
-这个问题不能只靠模型能力解决。模型负责理解、推理、规划和生成行动意图；真正让 Agent 能在真实工程环境中工作的，是模型外部的 Harness。
-
-可以把 Coding Agent 看成下面这个组合：
-
-```text
-Coding Agent = Model + Harness
-
-Model:
-  理解任务、推理方案、选择行动、解释结果
-
-Harness:
-  工具、上下文、状态、权限、验证、隔离、审计、交付界面
-```
-
-本章的目标不是做产品评测，而是从成熟产品中抽象出可迁移的工程原则。读完本章，你应该能回答：
-
-1. Vibe Coding 和 Spec Coding 分别适合什么阶段；
-2. 一个成熟 Coding Agent Harness 由哪些模块组成；
-3. Claude Code、Cursor、Codex 的架构取舍有什么差异；
-4. 终端原生 Coding Agent 为什么需要 Agent Loop、Tool Plane、Task State、Context Compact、Subagent、Worktree Isolation；
-5. 如何从 MVP 演进到生产级 Coding Agent；
-6. 如何评价一个 Coding Agent 系统是否可靠。
-
----
-
-## 17.1 从 AI 编程范式到 Coding Agent 工作协议
-
-AI 编程工具不是突然从“代码补全”跳到“自动程序员”的。它经历了从局部辅助到闭环执行的演进。
-
-```text
-代码补全
-   ↓
-对话式代码生成
-   ↓
-项目级上下文编程
-   ↓
-Coding Agent 闭环执行
-```
-
-这条演进线的关键变化，不是模型一次能写多少代码，而是模型是否被放进了一个能观察、行动、验证和修复的工程环境里。
-
-### 17.1.1 从代码补全到闭环执行
-
-第一阶段是代码补全。模型根据当前文件和光标附近上下文预测下一段代码。这类工具的优势是低延迟、低风险、低学习成本；局限是只能处理局部代码，不理解完整任务。
-
-第二阶段是对话式代码生成。开发者用自然语言描述需求，模型生成代码片段、解释方案、给出调试建议。相比补全，它开始参与设计和分析，但仍然主要停留在“建议者”角色。
-
-第三阶段是项目级上下文编程。IDE Agent 能读取打开文件、选区、诊断信息、项目规则、代码索引和相关文件。这一步的变化是：模型不再只看一个文件，而是开始围绕代码库工作。
-
-第四阶段是 Coding Agent 闭环执行。Agent 能搜索代码、读取文件、修改文件、运行测试、分析失败、继续修复，并输出 diff、验证结果和剩余风险。这时模型不再只是生成答案，而是进入一个由工具、权限、状态、验证和审计组成的运行环境。
-
-闭环执行可以抽象为：
-
-```text
-Intent
-  ↓
-Plan
-  ↓
-Context Gathering
-  ↓
-Tool Use
-  ↓
-Patch
-  ↓
-Verification
-  ↓
-Review
-```
-
-这就是 Coding Agent 和普通 Chatbot 的分界线。
-
-### 17.1.2 Vibe Coding：探索式编程的价值
-
-Vibe Coding 指的是开发者通过即兴 prompt、多轮对话和模型共同探索实现方案。
-
-它不是坏方法。在探索阶段，它非常有效：
-
-- 快速了解新框架；
-- 验证一个技术方案是否可行；
-- 生成一次性脚本；
-- 做原型和 Demo；
-- 解释陌生代码；
-- 比较几种实现路径。
-
-Vibe Coding 的优势是启动快、反馈快、心理负担低。它把“先想清楚再写”变成“边试边看”，特别适合需求还不稳定、技术空间还不清楚的阶段。
-
-例如你想验证“能否把一段日志转成 Mermaid 调用链图”，用 Vibe Coding 很合适：
-
-```text
-先让模型写一个解析 demo；
-再贴一段脱敏日志；
-再让模型生成图；
-再观察哪些字段不稳定；
-最后决定是否值得工程化。
-```
-
-这种阶段的目标不是交付，而是学习。
-
-### 17.1.3 Vibe Coding 的天花板
-
-Vibe Coding 一旦被误用为生产交付方式，问题会快速积累。
-
-典型过程是：
-
-```text
-用户：实现一个用户注册功能
-模型：生成基础代码
-
-用户：加邮箱验证
-模型：补一段逻辑
-
-用户：密码要加密
-模型：继续修改
-
-用户：还要防重复注册
-模型：再改一轮
-
-用户：补测试
-模型：补测试，但只覆盖快乐路径
-```
-
-几轮之后，代码可能“看起来能跑”，但系统性问题已经出现：
-
-- 需求边界不清；
-- 安全约束靠后补；
-- 错误处理不完整；
-- 测试覆盖滞后；
-- 文件结构随着对话漂移；
-- 模型为了满足最新指令破坏早期约束；
-- 人很难判断最终代码是否满足最初目标。
-
-Vibe Coding 的本质是探索工具，不是交付协议。探索阶段允许混沌，交付阶段必须有约束。
-
-### 17.1.4 Spec Coding：把意图变成任务协议
-
-Spec Coding 的核心思想是：先把人的意图写成可执行、可验证、可审查的任务协议，再让 Agent 执行。
-
-```text
-Intent
-  ↓
-Spec
-  ↓
-Plan
-  ↓
-Implementation
-  ↓
-Verification
-  ↓
-Review
-```
-
-Spec 不是为了写更多文档，而是为了把隐性判断显式化。
-
-一个高质量 Spec 至少回答八个问题：
-
-| 问题 | 说明 |
-|:---|:---|
-| 做什么 | 功能目标是什么 |
-| 不做什么 | 当前任务边界在哪里 |
-| 输入是什么 | API、参数、事件、用户操作 |
-| 输出是什么 | 返回值、状态变化、UI 行为 |
-| 业务规则是什么 | 状态机、权限、幂等、并发 |
-| 失败模式有哪些 | 校验失败、外部依赖失败、超时 |
-| 安全要求是什么 | 权限、脱敏、审计、高风险动作 |
-| 什么算完成 | 测试、构建、diff、人工验收 |
-
-对 Coding Agent 来说，Spec 是任务接口。它类似传统系统里的 API Contract：输入、输出、约束、错误和验收标准都必须清楚。
-
-一个简化的 Spec 可以这样写：
-
-```markdown
-# 功能：订单取消
-
-## 目标
-用户可以在订单未支付前取消订单。
-
-## 业务规则
-- 只有 `pending_payment` 状态可以取消；
-- 已支付订单不能直接取消；
-- 取消后释放库存；
-- 重复取消必须幂等。
-
-## 验收测试
-- pending_payment -> canceled 成功；
-- paid -> canceled 失败；
-- 重复取消返回相同结果；
-- 库存释放只执行一次。
-```
-
-这个 Spec 不长，但它已经足够让 Agent 规划修改、寻找相关代码、补测试和判断完成。
-
-### 17.1.5 Spec 不是瀑布，而是探索到交付的转换
-
-Spec Coding 不意味着一开始写出完美方案。更健康的流程是：
-
-```text
-Vibe 探索
-  ↓
-提炼 Spec
-  ↓
-Agent 执行
-  ↓
-验证反馈
-  ↓
-修订 Spec
-```
-
-探索阶段可以用 Vibe Coding 打开问题空间；一旦要进入交付，就要把探索结果收束成 Spec。
-
-这也是成熟 Coding Agent 的工作方式：它可以和你一起探索，但当它要修改真实代码、运行命令、提交 diff 时，必须进入任务协议和验证闭环。
-
----
-
-## 17.2 从成熟 Coding Agent 产品抽象通用 Harness 架构
-
-如果只看表面，Coding Agent 像是“LLM + 工具调用”。但这个理解太浅。
-
-一个能真正参与软件工程的 Coding Agent，至少要解决九类问题：
-
-1. 用户意图如何变成任务；
-2. 模型每轮应该看到什么上下文；
-3. 模型可以调用哪些工具；
-4. 工具调用如何被校验和执行；
-5. 高风险动作如何审批；
-6. 长任务状态如何维护；
-7. 修改如何验证；
-8. 结果如何交付给人审查；
-9. 失败如何沉淀成规则、Skill 或 eval。
-
-这些问题合在一起，才是 Coding Agent Harness。
-
-### 17.2.1 为什么不能只把 Coding Agent 理解成 “LLM + 工具”
-
-“LLM + 工具”只能解释 Agent 如何行动，不能解释 Agent 如何可靠行动。
-
-例如，模型可以提出：
-
-```json
-{
-  "tool": "run_shell",
-  "arguments": {
-    "command": "npm test"
-  }
-}
-```
-
-但真正的系统要回答更多问题：
-
-- 这个命令是否允许执行；
-- 当前目录是否正确；
-- 是否会访问网络；
-- 是否会修改文件；
-- 超时多久；
-- stdout / stderr 如何截断；
-- 失败结果如何回填给模型；
-- 测试失败时是否允许继续改代码；
-- 最终是否可以声称完成。
-
-工具调用只是一个动作意图。Harness 才负责把动作意图变成受控执行。
-
-### 17.2.2 成熟 Coding Agent 的核心模块
-
-成熟 Coding Agent 通常可以拆成九个模块。
-
-```text
-┌──────────────────────────────────────────────────────────────┐
-│                    Coding Agent Runtime                       │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│  User Intent / Issue / Spec                                   │
-│      ↓                                                        │
-│  Task Planner                                                 │
-│      ↓                                                        │
-│  Context Builder ─────► Code Index / Git / Docs / Rules       │
-│      ↓                                                        │
-│  Skill Registry ──────► bugfix / test / refactor / incident   │
-│      ↓                                                        │
-│  Tool Registry ───────► read / search / edit / shell / git    │
-│      ↓                                                        │
-│  Policy Engine ───────► allow / deny / ask / sandbox          │
-│      ↓                                                        │
-│  Agent Loop ──────────► observe / decide / act / repair       │
-│      ↓                                                        │
-│  Verifier ────────────► test / lint / typecheck / build       │
-│      ↓                                                        │
-│  Review Surface ──────► diff / PR / summary / trace           │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
-```
-
-| 模块 | 职责 | 最小原型 | 关键风险 |
-|:---|:---|:---|:---|
-| Task Planner | 把需求拆成步骤 | JSON plan / todo list | 计划过粗、遗漏验证 |
-| Context Builder | 找相关代码和规则 | repo map + search + read | 上下文过多或漏掉关键文件 |
-| Skill Registry | 加载任务流程 | `skills/*/SKILL.md` | 规则冲突、误触发 |
-| Tool Registry | 暴露可调用能力 | 函数注册表 | 工具语义模糊 |
-| Policy Engine | 裁决危险动作 | allowlist + sandbox | 越权、破坏用户修改 |
-| Agent Loop | 驱动多轮执行 | while loop + tool result | 死循环、偏航 |
-| Verifier | 判断是否完成 | test / lint / build | 只验证快乐路径 |
-| Review Surface | 展示变更 | git diff + summary | 解释和实际 diff 不一致 |
-| Eval Loop | 复盘失败样本 | trace + case store | 没有持续改进闭环 |
-
-这些模块的边界要清楚。模型可以建议行动，但工具和权限由 Runtime 控制；模型可以总结结果，但完成判定必须由 Verifier 和人审共同支撑。
-
-### 与第14章组件地图的对应关系
-
-第14章把生产级 Agent Runtime 拆成 13 个核心组件。放到 Coding Agent 场景里，这些组件会更具体：入口不再只是聊天，而是 issue、diff、终端、IDE、PR、CI；上下文不再只是文档，而是代码仓库、Git 状态、测试输出、项目规则和历史变更。
-
-| 第14章组件 | Coding Agent 中的典型实现 | Claude Code / Cursor / Codex 的差异 |
-|:---|:---|:---|
-| Event & Intake Router | 接收自然语言任务、issue、PR 评论、终端命令、IDE 操作和后台任务 | Claude Code 偏终端入口，Cursor 偏 IDE 入口，Codex 同时覆盖本地任务和云端任务队列 |
-| Intent Normalizer | 把“修一下这个问题”转成 bugfix、refactor、test、review、explain、migration 等任务类型 | IDE 产品更依赖当前文件和选区，终端/云端产品更依赖任务说明、仓库和分支 |
-| Task Planner | 生成 todo、计划、文件阅读顺序、修改路径和验证步骤 | Claude Code / Codex 更强调长任务计划，Cursor 更强调人机共编中的局部计划 |
-| Context Builder | 选择代码片段、规则文件、Git diff、测试输出、日志、文档和工具结果 | Cursor 的 IDE 上下文更细，Claude Code 的终端上下文更宽，Codex 的 sandbox 上下文更任务化 |
-| Memory Layer | 项目规则、用户偏好、历史会话、失败样本、常用 workflow | Claude Code / Cursor 偏项目规则和用户设置，Codex 更强调任务状态、会话、日志和云端任务历史 |
-| Execution State & Checkpoint | 计划、已读文件、已改文件、工具结果、验证结果、checkpoint、worktree | Cursor 的 checkpoint 面向编辑体验，Codex 的 worktree/sandbox 面向并行任务，终端 Agent 依赖会话状态和 Git |
-| Capability Registry | 读文件、搜索、编辑、Shell、Git、MCP、浏览器、测试、review agent | 终端 Agent 的 Shell 能力最强，IDE Agent 的编辑能力最贴近人，云端 Agent 的环境隔离和批量能力更强 |
-| Policy Engine & Human Control Plane | read-before-edit、路径沙箱、命令 allowlist、网络限制、secret 保护、人工审批 | Claude Code 侧重 permission/hooks，Cursor 侧重 review/checkpoint，Codex 侧重 approval mode、sandbox 和 PR review |
-| Agent Loop | 多轮“读代码 -> 推理 -> 改动 -> 运行验证 -> 修复” | 三类产品都有 loop，但 UI 和执行节奏不同：终端偏连续执行，IDE 偏交互接管，云端偏异步任务 |
-| Model Router & Handoff Manager | 根据任务选择模型、子 Agent、reviewer、后台任务或人工接管 | Cursor / Codex 更容易接入后台任务和 review agent，Claude Code 更偏终端内 subagent 与 hooks |
-| Verifier & Eval Harness | 测试、lint、typecheck、build、CI、diff check、回归样本 | 成熟 Coding Agent 的分水岭是能否把“完成”绑定到验证结果，而不是 final answer |
-| Review Surface、Trace & Audit | diff、patch、PR、commit message、summary、tool trace、失败原因 | IDE review 最直观，终端 review 依赖 diff/summary，云端 review 依赖 PR、CI 和任务 trace |
-| Learning Loop | 从失败任务、review comment、测试失败和用户反馈沉淀规则、Skill、Eval case | 大多数产品都有部分闭环，但“自动学习”通常要受 owner review 和 release gate 约束 |
-
-这张表说明一个关键点：Coding Agent 的成熟度不取决于它会不会写代码，而取决于它能否把代码修改放进**任务契约、上下文治理、权限裁决、验证门禁和审查表面**里。[第21章](05-claude-code-internals.md)将以 Claude Code 的公开机制和分页修复教学轨迹，解释这些组件如何协同。
-
-### 17.2.3 Coding Agent 的实现分层
-
-从产品实现看，Coding Agent 不是一个单独的聊天窗口，而是一组围绕模型建立的控制面。
-
-```text
-User Surface
-  │  CLI / IDE / Web / GitHub / Slack
-  ▼
-Task Envelope
-  │  用户请求、issue、branch、cwd、权限、预算
-  ▼
-Context Control Plane
-  │  规则、代码索引、检索片段、终端输出、Git 状态、Skill
-  ▼
-Model Reasoning Loop
-  │  规划、选择工具、解释工具结果、修复失败
-  ▼
-Tool Execution Plane
-  │  file / search / edit / shell / git / MCP / browser / CI
-  ▼
-Policy & Sandbox
-  │  路径、命令、网络、secret、审批、租户隔离
-  ▼
-Verification Gate
-  │  test / lint / typecheck / build / diff / review / eval
-  ▼
-Delivery Surface
-     patch / PR / commit / review comment / report / trace
-```
-
-不同产品的差异，本质上是这些层的取舍不同。
-
-| 层次 | 关键问题 | 设计判断 |
-|:---|:---|:---|
-| User Surface | 用户在哪里发起任务，在哪里接管结果 | CLI 适合闭环任务，IDE 适合共编，云端适合异步并行 |
-| Task Envelope | 每次任务的边界是什么 | cwd、branch、repo、模型、权限、预算、时区都要显式化 |
-| Context Control Plane | 模型每轮看到什么 | 规则、证据、工具结果和历史状态要分层 |
-| Reasoning Loop | 模型如何推进任务 | action schema、max steps、repair loop、stop condition 缺一不可 |
-| Tool Execution Plane | 外部能力如何被调用 | schema、错误返回、超时、幂等和审计是基础能力 |
-| Policy & Sandbox | 哪些动作必须系统裁决 | 写文件、Shell、网络、secret、Git 操作不能只靠模型自觉 |
-| Verification Gate | 完成由谁判定 | 测试、diff、CI、review 比 final answer 更可信 |
-| Delivery Surface | 人如何理解结果 | diff、PR、trace、风险说明和回滚路径是交付的一部分 |
-
-### 17.2.4 Claude Code：以终端工作流解释 Runtime
-
-Claude Code 官方资料包含多个入口；本节选择终端路径来解释文件、命令与权限的组合，不将其限定为单一界面。[[1]](#ref-1)
-
-这带来几个工程优势：
-
-- 终端天然连接真实工具链；
-- 可以执行测试、构建、脚本、Git 命令；
-- 不绑定特定 IDE；
-- 适合远程开发和自动化工作流；
-- 容易与 MCP、Hooks、Subagents、Skills 等机制组合。
-
-从系统角度看，它更像一个终端原生 Agent Runtime：围绕当前工作目录启动，加载项目规则，读取文件和工具结果，通过 Bash、文件编辑、搜索、Git、MCP 等工具推进任务。
-
-它的关键风险也来自终端：Shell 权限过强、secret 误读、危险 Git 操作、项目规则污染、外部工具信任边界不清。
-
-### 17.2.5 Cursor：IDE 原生 Context Control Plane
-
-Cursor 的核心选择是：把 Agent 放在开发者正在编辑代码的界面里。
-
-它的优势在于：
-
-- 与当前文件、选区、打开 tab、诊断信息天然结合；
-- 适合局部修改和交互式重构；
-- 对前端、UI、组件级开发体验更顺；
-- diff review 和 checkpoint 更贴近人的编辑习惯。
-
-从系统角度看，Cursor 的强项是 IDE 原生 Context Control Plane。编辑器状态可作为候选上下文，但是否读取和发送取决于实际工具与权限。核验日 Search 文档将搜索说明为本地 Instant Grep，并明确搜索索引不保存代码 embedding；打开匹配文件后的内容仍可能进入模型请求。因此不能继续把旧版向量索引说明当作当前搜索实现。[[2]](#ref-2)
-
-它的主要风险是上下文过度贴近当前焦点：用户正在看的文件不一定是任务的全部边界。IDE Agent 很容易做出“局部看起来合理、全局破坏约束”的修改。
-
-### 17.2.6 Codex：本地与云端任务入口
-
-Codex 官方术语覆盖 app、CLI、IDE 与 cloud 等入口；入口、执行位置和工作树需要分别记录，不能由产品名推断隔离位置。[[3]](#ref-3)
-
-本地形态里，Agent 在开发者工作区中读取仓库、编辑文件、运行命令。云端形态里，Agent 在隔离 sandbox 中接收任务，基于仓库和环境完成修改，生成 patch、PR 或可拉回本地继续工作的结果。
-
-这种形态适合：
-
-- 修复明确 bug；
-- 实现小到中等规模功能；
-- 批量处理 issue；
-- 并行探索多个方案；
-- 把任务从“一个终端会话”提升到“任务队列和工程工作台”。
-
-它的主要风险是环境复现、权限边界、私有依赖、云端数据治理和并行任务状态管理。
-
-### 17.2.7 三类 Coding Agent 的架构对比
-
-下面是 **2026-10-18 官方文档快照的选型表**，不是同条件运行的产品评测。实际使用时还需记录安装版本、账户权限、模型、操作系统与配置；文档访问日期不能代替二进制版本。
-
-| 维度 | Claude Code | Cursor | Codex |
-| --- | --- | --- | --- |
-| 本章观察入口 | 终端；官方另有编辑器等入口 | 编辑器内 Agent；官方另有 CLI/Cloud | app/CLI/IDE/cloud |
-| 已核验事实 | 工具循环、会话延续与压缩、权限控制 | Search 描述本地精确检索与独立探索上下文 | 产品线程、compaction、worktree 和 cloud 为不同概念 |
-| 选型时检查 | Shell 权限、压缩后约束、文件 checkpoint 范围 | 当前文件是否掩盖跨模块影响、搜索范围与数据发送 | 本地/云端输入版本、权限与环境能否复现 |
-| 当前证据边界 | 未证明内部采用本章全部控制面 | 未证明任一搜索结果包含所有调用者 | 未证明所有入口共享同一恢复语义 |
-
-前三列事实分别来自官方资料；检查项是本书推导，未比较成功率、价格或速度。[[1]](#ref-1)[[4]](#ref-4)[[2]](#ref-2)[[3]](#ref-3)
-
-**SDK 与产品要分层比较。** 模型 SDK 负责请求/响应和工具调用消息；Agent SDK 组织循环与工具；Runtime 承担执行、权限、状态和恢复；产品再提供编辑、审查与交付界面。Codex SDK 可程序化开始、继续或恢复线程，app-server 面向自建客户端；这不等于裸模型 SDK 会自动获得完整 Coding 产品。线程可恢复也不能证明外部支付或 Git 推送只执行一次。[[5]](#ref-5) 通用分层见[第14章](../part3/03-agent-runtime.md#implementation-validation)。
-
-### 版本化选读：如何比较 Trae 等其他产品
-
-对其他产品沿用同一任务、仓库版本、验收集合、权限与预算，记录完成率、越界行为、人工接管和重跑成本。Trae 的不同地区/入口需要分别取证；本次未取得足以支撑机制比较的完整官方页面，故保留为延伸核验项，不凭宣传或搜索摘要排列优劣。产品排名不能替代任务级证据。
-
-### 17.2.8 共同失败模式：上下文、工具、验证、权限与协作
-
-不同产品形态不同，但失败模式高度相似。
-
-| 失败模式 | 表现 | 应该在哪一层修 |
-|:---|:---|:---|
-| 上下文误召回 | 修改了相似但无关的文件 | Context Control Plane：改索引、规则、检索和引用 |
-| 未读文件直接改 | 生成 patch 覆盖现有逻辑 | Tool Policy：强制 read-before-edit |
-| 工具结果误解 | 测试失败被当作通过 | Tool Result Envelope + Verifier |
-| 长任务偏航 | 越做越偏，开始重构无关模块 | Task State：计划、预算、stop condition |
-| Shell 权限过大 | 执行危险命令或联网外传 | Sandbox + command allowlist + approval |
-| Diff 过大 | 大范围格式化或重写文件 | Patch Policy：diff size limit、路径范围、人工确认 |
-| 解释和变更不一致 | summary 说改了 A，diff 实际改了 B | Review Surface：自动 diff summary 校验 |
-| Prompt injection | README、issue、日志诱导 Agent 忽略规则 | Context Firewall：外部内容降级为 data |
-| 版本漂移 | 换模型后老任务变差 | Eval Loop：固定回归集和 release gate |
-| 本地状态污染 | 旧会话、旧缓存或旧规则影响新任务 | State Store：作用域、TTL、显式清理 |
-
-这些失败模式说明：Coding Agent 的可靠性不是靠一个更强模型单独解决的，而是靠上下文、工具、策略、验证、隔离和审查共同收敛。
-
-### 17.2.9 从产品取舍反推 Harness 设计原则
-
-从成熟产品反推，可以得到几个通用原则。
-
-第一，**模型负责决策，Harness 负责边界**。模型可以选择工具，但能否执行、如何执行、失败后如何恢复，必须由 Runtime 控制。
-
-第二，**上下文是产品能力，不是 prompt 拼接**。IDE、终端、云端 sandbox 的差异，本质上是上下文来源和上下文控制方式的差异。
-
-第三，**工具是权限边界，不是函数列表**。文件编辑、Shell、Git、网络、MCP、浏览器都必须有 schema、超时、审计和审批策略。
-
-第四，**完成必须可验证**。没有测试、diff、CI、review 或 trace 支撑的“完成”，只是模型声明。
-
-第五，**长任务必须外置状态**。计划、待办、工具结果、失败原因、修改文件和验证结果，不能只存在模型上下文里。
-
-第六，**并行必须隔离**。多 Agent、多任务、云端并行和后台任务，都需要 branch、worktree、sandbox 或任务目录隔离。
-
----
-
-## 17.3 教学工作流：Codex + MCP + 日志 + 代码仓库生成架构图
-
-在深入 Claude Code 之前，先看一个教学工作流。Coding Agent 的价值不只是“改代码”，还可以把外部事实源和本地实现源串成一条可审查的工程分析链路。
-
-一个典型场景是：
-
-```text
-用户给出线上 trace id
-  ↓
-Codex 通过 MCP 查询日志和 trace
-  ↓
-从日志里提取服务、接口、错误、耗时和关键字段
-  ↓
-再搜索本地代码仓库
-  ↓
-把日志事实和代码结构对齐
-  ↓
-生成接口调用链、数据流程图或排查报告
-```
-
-这类任务非常适合观察成熟 Coding Agent 的系统边界：模型不直接访问生产系统，Runtime 执行工具，MCP 连接外部平台，日志平台返回事实，代码仓库提供实现结构，最终输出必须标注证据等级。
-
-### 17.3.1 任务背景：为什么这个工作流适合观察 Coding Agent
-
-这个工作流同时包含五种能力：
-
-| 能力 | 具体表现 |
-|:---|:---|
-| 外部工具 | 通过 MCP 查询日志和 trace |
-| 本地上下文 | 搜索和读取代码仓库 |
-| 证据抽取 | 从日志中提取时间线、服务名、错误码、span |
-| 推理合成 | 把日志事实与代码调用关系对齐 |
-| 可审查输出 | 生成图、结论、不确定性和脱敏说明 |
-
-它比“修一个 bug”更能暴露 Agent 的架构能力，因为它要求 Agent 区分事实、代码确认和推断。
-
-### 17.3.2 端到端架构
-
-```mermaid
+~~~mermaid
 flowchart LR
-    User["用户\n自然语言排查目标"] --> App["Coding Agent UI\nCLI / IDE / Web"]
-    App --> Runtime["Agent Runtime\n上下文组装 / 工具调度 / 权限控制"]
-    Runtime --> Model["远端大模型\n理解 / 规划 / 总结"]
-    Model --> Runtime
+    A[用户任务] --> B[建立会话和任务上下文]
+    B --> C[读取规则与代码证据]
+    C --> D[模型选择下一步]
+    D --> E{需要工具吗？}
+    E -- 是 --> F[权限裁决与工具执行]
+    F --> G[记录结果并反馈给模型]
+    G --> D
+    E -- 否 --> H[候选完成]
+    H --> I[检查差异和验证证据]
+    I --> J[向用户交付]
+~~~
 
-    Runtime --> MCPClient["MCP Client\n结构化 tool call"]
-    MCPClient --> MCPServer["Log MCP Server\n本地进程"]
-    MCPServer --> LogAPI["Log / Trace Platform\nOpenAPI / SSE"]
-    LogAPI --> Store["日志、Trace、Span、Service Map"]
-    Store --> LogAPI
-    LogAPI --> MCPServer
-    MCPServer --> MCPClient
-    MCPClient --> Runtime
+这是本书用于分析产品的共同模型，不代表任何一个产品的源码模块图。它把关注点分成四层：
 
-    Runtime --> Repo["本地代码仓库\nsearch / read / grep"]
-    Repo --> Runtime
-    Runtime --> Diagram["架构图 / 调用链 / 排查报告"]
-```
+| 层次 | 核心问题 | 不能混为一谈的事实 |
+| --- | --- | --- |
+| 任务与上下文 | 这一轮模型要解决什么、能看到哪些信息？ | 磁盘文件存在，不代表已进入上下文 |
+| 模型与工具 | 模型提出什么行动，运行时如何执行？ | 模型生成工具调用，不代表工具已经成功 |
+| 权限与隔离 | 哪些动作可以执行，动作影响到什么范围？ | 获得审批不等于进程被沙箱约束 |
+| 验证与交付 | 哪些证据足以支持“完成”？ | 模型说测试通过，不等于测试进程实际成功 |
 
-各层职责要分清：
+### 17.1.2 一轮工具调用不是整项任务
 
-| 层 | 职责 | 不是 |
-|:---|:---|:---|
-| 大模型 | 理解目标、规划步骤、选择工具、解释证据 | 不是日志存储，也不直接访问生产系统 |
-| Agent Runtime | 组装上下文、校验工具调用、执行工具、维护 trace | 不是业务事实源 |
-| MCP Server | 把工具调用转换成日志平台 API 请求 | 不负责判断业务含义 |
-| Log / Trace Platform | 返回日志、span、service map 等事实 | 不理解本地代码实现 |
-| 本地代码仓库 | 提供 route、handler、processor、client、日志打印点 | 不代表线上一定部署同一版本 |
-| 绘图流程 | 把分析结果转成可读图形 | 不制造新事实 |
+一次模型响应可以只含解释，也可以含一个或多个工具请求。运行时要把工具请求解析为可执行操作，检查参数与权限，调用本地或外部能力，将结果归入会话，再决定是否继续采样。Coding Agent 的主循环因此是一个受控状态机，不是单次提示词调用。
 
-这条链路的本质是：
+可以把一次任务视作以下状态迁移：
 
-```text
-模型负责推理，Runtime 负责执行，MCP 负责连接，日志平台负责事实，代码仓库负责结构。
-```
+~~~text
+输入任务
+  → 整理当前上下文
+  → 请求模型产生下一步
+  → 若有工具调用：授权、执行、记录结果
+  → 将观察结果带回后续上下文
+  → 继续循环或形成候选完成
+  → 对照需求、差异和验证结果审查
+~~~
 
-### 17.3.3 一次请求的生命周期
+工具可能失败、超时、被用户拒绝或被中断。可靠运行时必须把这些情况作为不同结果回送，而不是把失败输出包装成成功。取消也不一定撤回已经发生的外部副作用；远端请求、数据库写入和命令进程都需要自己的恢复语义。
 
-假设用户提出一个脱敏后的请求：
+### 17.1.3 本章采用的证据等级
 
-```text
-请用 live 日志工具查询 trace_id=<trace-id> 最近 20 分钟的日志，
-并结合当前代码仓库画出订单查询接口的调用链。
-```
+后面的产品章节会把陈述分成三类：
 
-Agent 不会直接知道答案，而是经历多轮循环：
+- **源码事实**：可以定位到公开仓库中的实现或类型定义；
+- **官方文档事实**：官方文档描述的功能、调用方式或边界；
+- **系统推导**：根据公开证据抽象出的架构解释，便于学习，但不能当作产品内部的精确实现。
 
-```text
-第 1 轮：解析任务
-  环境: live
-  查询对象: trace_id
-  时间范围: now - 20min 到 now
-  输出目标: 日志摘要 + 调用链图
+产品资料会持续变化。Codex 的链接指向 OpenAI 官方文档和公开仓库主分支；OpenCode 部分采用官方 V2 文档和公开开发分支；Claude Code 部分按官方滚动文档记录。讨论默认值、权限模式和功能开关时，应以对应版本和入口为准，不从一篇文章推断所有部署。
 
-第 2 轮：调用 MCP 日志工具
-  search_log_by_trace_id(trace_id, start_time, end_time)
+<a id="coding-agent-runtime-startup"></a>
 
-第 3 轮：分析日志结果
-  提取入口 API、服务名、错误级别、时间线、span 信息
+### 17.1.4 运行时组成：界面、会话、模型与执行环境
 
-第 4 轮：搜索代码仓库
-  search_code("/api/order/query")
-  search_code("OrderQueryHandler")
-  search_code("CalculatePrice")
+[第14章](../part3/03-agent-runtime.md#architecture)给出了通用 Runtime 组件参考设计。本章把它对应到三个产品，回答两个具体问题：**哪些组件留在本机或服务进程中，输入第一条任务前后分别发生什么？** 本节以本地编码场景为边界，资料核验于 2026-10-22；Codex 采用公开 App Server 接口，Claude Code 采用官方行为文档，OpenCode 采用 V2 文档。下面分别展开每个产品的实现边界与启动过程。
 
-第 5 轮：读取关键文件
-  route -> handler -> processor -> rpc client -> log statement
+先分开三个时间尺度：**进程启动**准备服务与连接，**会话初始化**选择工作区、配置并建立或恢复历史，**轮次启动**把新输入送入模型与工具循环。它们可以连续发生，也可以相隔很久。一个后台服务能承载多个会话，一个会话可以执行多轮；恢复历史不会自动恢复旧命令进程，更不会把磁盘文件恢复到历史时刻。
 
-第 6 轮：合成图
-  标注哪些节点来自日志，哪些边来自代码
+[![Codex、Claude Code 与 OpenCode 的运行时组成对照：客户端、运行时职责、模型服务与执行后端](../images/coding-agent-runtime-comparison.png)](../images/coding-agent-runtime-comparison.svg)
 
-第 7 轮：输出结论
-  请求是否成功、异常是否影响主流程、剩余不确定性
-```
+*运行时组成对照。虚线框表示逻辑职责分组，不代表三款产品具有相同的进程划分；框内卡片不表示调用顺序。蓝色双向箭头表示模型请求与响应，橙色箭头表示受控动作。Claude Code 一列采用官方行为文档，不推测私有模块。点击图片查看可缩放、可点击来源标注的 SVG。*
 
-这就是 Agent Loop 在真实排障中的样子：每一轮不是闲聊，而是围绕证据继续推进。
+下表按职责归纳产品的公开组成；同一格内的职责不意味着同一个进程或同一个源码模块。
 
-### 17.3.4 MCP 工具调用不是网络请求本身
-
-模型生成的通常不是 HTTP 请求，而是结构化工具调用意图：
-
-```json
-{
-  "tool": "log_live.search_log_by_trace_id",
-  "arguments": {
-    "trace_id": "<redacted-trace-id>",
-    "start_time": "2026-04-30T10:00:00+08:00",
-    "end_time": "2026-04-30T10:20:00+08:00",
-    "limit": 100
-  }
-}
-```
-
-真正执行链路是：
-
-```text
-模型输出 tool call
-  -> Runtime 校验工具名和参数
-  -> MCP Client 找到对应 MCP Server
-  -> 本地 MCP Server 请求远端日志平台
-  -> 日志平台返回结果
-  -> Runtime 把 tool result 放回下一轮模型上下文
-```
-
-这个边界非常重要。模型没有直接访问日志平台的能力，它只是提出“我需要调用哪个工具”。能不能执行、怎么执行、执行结果是什么，都由 Runtime 和工具系统决定。
-
-### 17.3.5 Runtime 每一轮给模型什么
-
-一次模型调用前，Runtime 会把当前任务打包成上下文：
-
-```yaml
-context_package:
-  instruction_layers:
-    - system_contract
-    - developer_policy
-    - project_rules
-  user_request:
-    goal: "基于 trace id 还原调用链"
-  environment:
-    cwd: "/workspace/order-service"
-    timezone: "Asia/Shanghai"
-    approval_mode: "ask_for_network_and_shell"
-  available_tools:
-    - log_live.search_log_by_trace_id
-    - search_code
-    - read_file
-    - render_mermaid
-  selected_skill:
-    name: "trace_to_architecture"
-  evidence:
-    logs: []
-    code_snippets: []
-  process_state:
-    plan:
-      - "查询日志"
-      - "提取线索"
-      - "搜索代码"
-      - "生成图"
-```
-
-模型看不到全量代码仓库，也看不到全量日志平台数据。它只能基于 Runtime 放进上下文的材料推理；材料不够时，就要继续调用工具收集证据。
-
-### 17.3.6 日志事实如何变成代码搜索线索
-
-日志平台返回的通常是事实字段：
-
-| 日志字段 | 模型可提取的信息 |
-|:---|:---|
-| timestamp | 请求时间线和相对顺序 |
-| application | 涉及服务列表 |
-| severity | ERROR / WARN / FATAL 过滤 |
-| message | 错误类型、业务语义、关键函数名 |
-| trace_id / span_id | 同一次请求关联 |
-| path / method | 入口接口 |
-| source file / line | 代码定位线索 |
-| status / error code | 请求是否失败 |
-
-这些字段会被模型转换成代码搜索任务：
-
-```bash
-rg "/api/order/query"
-rg "OrderQueryHandler"
-rg "CalculatePrice"
-rg "inventory availability"
-rg "promotion eligibility"
-```
-
-日志告诉我们“线上发生了什么”，代码告诉我们“为什么会这么走”。两者必须对齐，才能形成可靠结论。
-
-### 检索路径：grep、符号和 RAG 如何配合
-
-| 路径 | 最适合的线索 | 新鲜度与精确性 | 成本与失败边界 |
+| 职责 | Codex：以本地 App Server 接入为例 | Claude Code：以本地终端会话为例 | OpenCode V2：以本地 CLI 为例 |
 | --- | --- | --- | --- |
-| grep/ripgrep | 错误字面量、路径、精确标识符 | 直接读当前磁盘；未保存 buffer 另行处理 | 无 embedding 构建；ignore、二进制、子模块和大小写可能漏搜 |
-| AST/LSP 符号检索 | 定义、引用、继承与类型 | 区分同名实体；需确认索引与构建配置 | 语言服务器有能力差异；反射、生成代码和动态分派需补证 |
-| 语义 RAG | 只知道“取消订单后返库存”而不知道命名 | 召回概念相近片段；必须绑定 repo/commit/path/hash | 增加切分、embedding、ACL 与增量同步成本；可能召回旧版本 |
+| 入口与交互 | TUI 或其他客户端；App Server 提供结构化请求、审批与流式事件 | 终端交互入口；Harness 围绕 Claude 模型提供上下文和工具 | TUI、Mini 或非交互 CLI；默认连接当前用户的共享后台服务 |
+| 会话与执行对象 | 对外使用 Thread → Turn → Item：会话包含轮次，轮次包含消息、工具调用、命令或文件变化等条目 | Session 保存对话、工具调用与结果；核心内部对象和调度结构未公开 | 后台服务持有 Session、配置、集成、权限与工具执行；客户端发起操作并显示状态 |
+| 配置与上下文 | 分层 `config.toml`、项目可信状态、`AGENTS.md` 指令链，以及会话历史 | 分层 Settings、项目指令、Auto memory、会话历史与按需加载的 Skills | 全局、项目与系统配置，`AGENTS.md`，Agent 配置与模型选择 |
+| 模型接入 | 模型配置与认证；App Server 的轮次接口驱动生成 | 配置选定的 Claude 模型；本地执行工具不表示本地运行模型 | Provider / Model 目录、凭证与适配包；运行时按选定模型调用供应商 |
+| 扩展与工具 | 命令、文件变化、MCP 等工具过程通过事件回传；工具可用性由配置与环境决定 | 内置文件、搜索、Shell 等工具；MCP、Skills、Hooks、Subagents 提供扩展 | 文件、搜索、Shell 等工具，MCP、Skills 和插件；Permissions / Policies 控制调用 |
+| 权限与实际执行 | 审批与沙箱策略分别控制动作放行与执行资源边界；可连接独立执行环境 | 权限规则与模式控制动作；Shell、外部服务和可配置沙箱承担实际执行 | 服务端等待客户端审批或拒绝动作；Shell 和外部服务执行副作用，角色权限不能替代系统隔离 |
+| 持久化与恢复 | Thread 接口支持读取、恢复、分叉与归档；不等于重放所有外部操作 | 本地 JSONL 会话文件支持继续与分叉；文件 Checkpoint 有独立边界 | Session API 与本地数据存储承载历史；快照和会话恢复不覆盖所有外部副作用 |
 
-ripgrep 的过滤行为与 LSP 接口来自各自资料；选择顺序是本书场景推导。[[6]](#ref-6)[[7]](#ref-7) 有错误码时先精确搜索，有可解析符号时扩展引用，没有标识符时用语义召回找入口；随后都要读取当前源码。语义 RAG 并非必选依赖，也不能因为 grep 无需向量索引就宣称它必然便宜或完整。索引生命周期见[第13章](../part3/02-context-engineering.md#knowledge)。
-
-**失败—恢复轨迹（教学设计，未运行）：** Task 要求修复重复释放库存，基线为 commit A、工作区 diff D1；Context 的 RAG 索引仍指向 A 之前的旧函数`ReleaseStock`。若直接按旧片段改文件，会漏掉 D1 中新加入的`ReleaseReservation`。Tool 先核验候选`repo/commit/path/content_hash`，发现不匹配后将它降为线索，按错误字面量运行`rg -n -F 'duplicate release' service tests`；无结果先查 ignore 和目录，不认定不存在。找到当前日志点后用定义/引用定位调用者，读取对应代码及测试，再生成 patch。若日志所部署 commit 不是 A，应取得有权限的对应源码，否则线上因果结论仍未确认。
-
-Verifier 独立检查重复取消、并发取消、失败重试及库存副作用次数，记录测试命令、退出码、环境和修改后 hash；仅有 patch 或一次通过的旧测试都不足以关闭 Task。若测试失败，回到候选修改；若缺依赖，标记 blocked 而非编造通过。检索命中率和修复成功率属于不同指标。
-
-### 17.3.7 证据等级：哪些能写进图里
+Codex 的接口与配置依据官方 App Server、配置及指令发现文档；Claude Code 的组成依据官方 Harness、Settings、Memory 与 Skills 说明；OpenCode 的服务归属、配置和 Provider 依据 V2 文档。表格是跨产品的职责映射，不是三家通用的模块命名规范。[[2]](#ref-2)[[3]](#ref-3)[[4]](#ref-4)[[5]](#ref-5)[[6]](#ref-6)[[7]](#ref-7)[[8]](#ref-8)[[9]](#ref-9)[[10]](#ref-10)[[11]](#ref-11)[[12]](#ref-12)
 
-从日志到架构图，最容易犯的错误是把推断画成事实。建议把证据分成三档：
+**图示的文档与源码依据**
 
-| 证据等级 | 来源 | 图中表达 |
-|:---|:---|:---|
-| 强证据 | 日志包含 source file / line，代码中能找到同一日志打印点 | “日志确认” |
-| 中证据 | 日志 message 与代码中的 log format 匹配 | “代码匹配” |
-| 弱证据 | 服务名、方法名、业务名相似，但没有直接日志点 | “推断路径” |
-
-架构图最好显式区分：
-
-```text
-实线：日志和代码都确认
-虚线：代码推断，日志未直接覆盖
-红色标注：日志中出现的 ERROR / WARN
-灰色节点：可能的异步或外部依赖
-```
+两张图使用统一的证据标注。源码固定为 Codex `86e17e98c7f9` 与 OpenCode `c93aaae37157`（均核验于 2026-10-22），避免主分支后续变化使图中入口无法回查。连线、逻辑角色和时序排列是本书依据公开接口和实现归纳的说明；源码事实对应下表的可定位入口，不把图中的每个中文职责名当成产品内部类名。[[13]](#ref-13)[[14]](#ref-14)
 
-这样图不是“看起来完整”，而是“知道哪里有证据，哪里只是推断”。
+| 图中标注 | 外部文档或代码入口 | 支撑的节点与关系 |
+| --- | --- | --- |
+| C1：Codex 服务与会话 | `app-server/src/lib.rs::run_main_with_transport_options`、`message_processor.rs`、`core/src/thread_manager.rs::ThreadManager` | 服务启动、初始化请求检查、Thread/Turn 请求分发、进程级存储与会话管理；配置和指令规则另见官方文档。[[13]](#ref-13)[[3]](#ref-3)[[4]](#ref-4) |
+| C2：Codex 循环与工具 | `core/src/session/turn.rs::run_turn`、`core/src/tools/router.rs::ToolRouter` | 模型采样、工具分发、结果进入下一轮；审批和执行环境在相邻控制路径落实。[[15]](#ref-15)[[16]](#ref-16) |
+| O1：OpenCode 连接路径 | `packages/cli/src/services/server-connection.ts::resolve`、`standalone.ts::start` | 指定服务检查、共享服务发现与确保启动、私有子进程及 Ready 输出等待。[[14]](#ref-14) |
+| O2：OpenCode 会话与工具 | `packages/core/src/session/runner/llm.ts::drain`、`packages/core/src/tool.ts::snapshot` / `execute` | 待处理输入、SessionStore、模型传输、Step、事件和工具结果归一化；配置、Provider 与权限语义另见官方文档。[[17]](#ref-17)[[10]](#ref-10)[[11]](#ref-11)[[12]](#ref-12)[[18]](#ref-18) |
+| D1：Codex 公开协议 | 官方 App Server 文档 | 每连接一次的握手、Thread/Turn/Item、审批与流式事件；不把客户端元数据视为模型服务认证。[[2]](#ref-2) |
+| D2：Claude Code 公开职责 | 官方 How Claude Code works、Settings、Memory、Skills、Permissions | Harness、配置与指令、会话历史、按需能力加载、循环和工具权限；不证明私有线程模型或模块边界。[[5]](#ref-5)[[6]](#ref-6)[[7]](#ref-7)[[8]](#ref-8)[[19]](#ref-19) |
+| D3：Claude Code 生命周期 | 官方 Hooks reference 的 `SessionStart` 与 `Setup` | 启动和恢复的 Hook、首个模型请求的等待条件，以及 Setup 需要明确触发的边界。[[20]](#ref-20) |
+| D4：OpenCode V2 产品约定 | 官方 CLI、Config、Providers、Instructions | 共享服务的职责、工作区配置、Agent/Model 选择与项目指令；不是内部函数调用顺序。[[9]](#ref-9)[[10]](#ref-10)[[11]](#ref-11)[[12]](#ref-12) |
 
-### 17.3.8 脱敏后的示例图
+## 17.2 Codex CLI：公开源码中的 Runtime 与协议边界
 
-下面是合成的教学示例，服务名、日志和调用边均为假设，并非生产实测：
+### 17.2.1 先划清 Codex 的开源范围
 
-```mermaid
-flowchart TD
-    Client["Client"] --> API["order-api\nPOST /api/order/query"]
-    API --> Handler["OrderQueryHandler\nbind / validate / enrich context"]
-    Handler --> OrderSvc["order-service\nQueryOrder"]
-    OrderSvc --> Inventory["inventory-service\ncheck availability"]
-    OrderSvc --> Pricing["pricing-service\ncalculate price"]
-    Pricing --> Promotion["promotion-service\napply campaign"]
-    Promotion --> User["user-service\nuser segment"]
-    Inventory --> OrderSvc
-    Pricing --> OrderSvc
-    OrderSvc --> API
-    API --> Client
+OpenAI 将 Codex CLI、Codex SDK 和 App Server 等列为开源组件，同时明确 IDE 扩展与 Codex Cloud 不开源。因此，准确的说法是“Codex CLI 开源”，而不是“Codex 的所有产品和服务都开源”。公开仓库让人能追踪 CLI/runtime 的代码，但不意味着云端模型或托管服务实现也在仓库内。[[1]](#ref-1)
 
-    Promotion -.-> Note1["WARN: eligibility not matched<br/>日志确认"]
-    Inventory -.-> Note2["推断依赖<br/>代码确认，日志未覆盖"]
-```
+仓库中的 Rust 核心 crate 自述为 Codex 的业务逻辑实现，并面向多种 Rust UI 使用。由此可以从源码分析 CLI 的会话、工具与安全边界；分析范围仍要限制在仓库实际公开的组件。[[21]](#ref-21)
 
-这个图的价值不在于节点多，而在于它能说明：
+### 17.2.2 Session 与 Turn：运行时的两个时间尺度
 
-- 入口接口来自日志 path 和 route 代码；
-- `order-service` 来自 trace application 和 handler 调用；
-- `pricing-service` 来自代码中的 client 调用；
-- `promotion-service` 的 WARN 来自日志；
-- `inventory-service` 只在代码里确认，当前 trace 未必覆盖。
+Codex 的源码把长期会话和一次执行轮次分开管理。Session 保有线程、历史、配置、上下文和服务等生命周期较长的状态；Turn 则承接当前用户输入、模型采样、工具执行和中断等短期状态。源码中的 Session 与 Turn 结构、相关队列和取消令牌可以直接检视。[[15]](#ref-15)
 
-### 17.3.9 公开发布时必须脱敏
+在核心执行路径中，turn 逻辑反复向模型发起 sampling。若返回工具调用，运行时执行相应工具并把结果送回后续采样；若返回助手消息，则记录并检查该轮是否结束。这个源码注释给出了最小 Agent Loop 的清晰实现证据。[[22]](#ref-22)
 
-如果把这类案例写进公开文章，必须做脱敏。
+这个区分很有用：会话可以继续存在，而某个 turn 已经结束；turn 也可以被中断或接收追加输入，而无需把整段会话重建。对持久化、统计、恢复和取消而言，Session 与 Turn 不是同一个状态对象。
 
-| 类型 | 不要公开 | 推荐替换 |
-|:---|:---|:---|
-| 公司和组织 | 真实公司名、团队名、仓库名 | `ExampleCorp`、`demo-repo` |
-| 内网域名 | 真实日志平台域名、内部 API 域名 | `log.example.internal` |
-| Token 和配置 | API key、cookie、secret、内部代理配置 | `<redacted>` |
-| Trace 信息 | 真实 trace id、span id、request id | `<trace-id>` |
-| 服务名 | 真实应用名、CMDB 名 | `order-api`、`pricing-service` |
-| 接口路径 | 真实业务 path | `/api/order/query` |
-| 代码路径 | 真实仓库目录和文件名 | `api/router.go`、`service/handler.go` |
-| 日志内容 | 真实用户、订单、价格、商户、权益信息 | 摘要化错误类型 |
-| 图产物 | 内部文件路径 | `docs/diagrams/example-trace-flow.svg` |
+### 17.2.3 Core、TUI 与 App Server：同一 Runtime 的不同接入面
 
-脱敏不是简单替换几个字符串，而是要避免通过组合信息反推出业务、组织和系统结构。
+Codex 的协议 crate 定义 UI 与核心之间使用的类型，并描述内部 Core/TUI 通信和外部 App Server 通信。文档还说明，该协议尽量承载数据类型，而不把主要业务逻辑塞入协议层。[[23]](#ref-23)
 
-### 17.3.10 最佳实践 Prompt
+App Server 暴露结构化协议，供更丰富的界面和客户端驱动 Codex。CLI/TUI 与外部客户端因此可以围绕相对稳定的请求、事件和状态同步协作。App Server 的源码与 README 可用于确认公开的传输方式和协议边界。[[24]](#ref-24)
 
-用户可以这样向 Coding Agent 提需求：
+从系统设计上看，这种边界把“如何呈现任务”与“如何执行任务”解耦：前端不需要复制一套模型循环，Runtime 也不必绑定单一 UI。这里的“解耦”是对公开协议和 crate 职责的架构总结，不代表所有界面共享完全相同的功能。
 
-```text
-请基于 trace_id=<trace-id> 查询最近 20 分钟日志，
-并结合当前代码仓库还原调用链。
+### 17.2.4 Tool Router：工具声明不等于执行权限
 
-要求：
-1. 先按时间线列出日志事实；
-2. 再用代码搜索定位 route、handler、processor、client；
-3. 区分“日志确认”“代码确认”“模型推断”；
-4. 生成 Mermaid 调用链图；
-5. 输出剩余不确定性；
-6. 不输出任何 token、内部域名、真实用户数据。
-```
+Codex 核心包含 Tool Router，负责把模型可见的工具请求关联到具体执行路径。工具输入在执行前还可能经过审批、环境选择、沙箱和策略检查。相关源码把路由、审批与沙箱分别放在不同文件中，能观察到它们是多个相邻的责任点，而不是一个“工具权限开关”。[[16]](#ref-16)
 
-这类 prompt 的关键不是“画个图”，而是要求 Agent 保持证据边界。
+这体现了两种不同的控制：
 
-### 17.3.11 常见失败点
+1. **审批控制**回答某个动作是否需要用户或策略决策；
+2. **执行隔离**回答获准动作实际能读写哪些路径、连接哪些目标或启动什么进程。
 
-| 现象 | 可能原因 | 修复方式 |
-|:---|:---|:---|
-| 日志为空 | 时间窗口错、环境错、trace id 错、权限不足 | 明确时区，扩大窗口，检查 live / test 环境 |
-| 图很完整但不可信 | 模型用常识补全太多 | 要求标注证据等级 |
-| ERROR 被误判成请求失败 | 业务诊断日志也可能用 ERROR 打印 | 同时检查 status、error code、最终响应 |
-| 代码搜索不到 | 关键词来自日志但代码命名不同 | 改搜 path、日志 message、RPC method |
-| 调用链缺边 | trace 只覆盖同步路径，异步链路缺失 | 标注为未确认异步路径 |
-| 暴露敏感信息 | 原样贴日志或配置 | 输出前做字段级脱敏 |
-
-### 17.3.12 对 Coding Agent 设计的启示
-
-这个案例说明，一个成熟 Coding Agent 不只是代码编辑器里的自动补丁生成器。它还可以成为工程分析工作台：
+同意运行一个命令，不会让该命令自动变安全；沙箱允许某个路径，也不代表命令本身符合业务意图。审查时应分别看决策和执行环境。
 
-```text
-外部事实源  -> MCP / API / Browser / DB
-本地实现源  -> Code Search / File Read / AST / LSP
-推理与表达  -> Model
-执行与边界  -> Runtime / Policy / Sandbox
-证据沉淀    -> Trace / Report / Diagram
-```
+### 17.2.5 Context Compaction：保存任务连续性，不是无损记忆
 
-当 Agent 能同时连接“线上事实”和“代码实现”，它就可以完成传统 IDE 很难完成的任务：从一次真实请求出发，还原系统行为，并生成可以 review 的架构解释。
-
----
-
-## 17.4 以 Claude Code 为例推导终端 Harness
-
-Claude Code 是理解 Coding Agent Harness 的好样本。它不是把模型塞进一个聊天窗口，而是把模型放进终端、文件系统、代码仓库、工具链和权限系统组成的工作环境。
-
-本节不会把 Claude Code 当成产品说明书来讲，而是从 Harness 工程角度拆解它代表的核心机制。
-
-### 17.4.1 本节选择终端路径的原因
-
-Claude Code 的核心定位是终端原生 Runtime。
-
-这意味着它的默认工作场景不是“补全当前文件”，而是：
-
-```text
-在一个真实代码仓库中，
-围绕一个任务，
-读取上下文，
-调用工具，
-修改文件，
-运行命令，
-分析失败，
-输出可审查结果。
-```
-
-终端原生带来两个特点。
-
-第一，**它贴近真实工程工具链**。测试、构建、包管理、Git、脚本、日志工具、MCP server，本来就通过终端工作。把 Agent 放在终端里，可以让模型参与真实开发流程，而不是只能生成片段。
-
-第二，**它必须面对真实权限风险**。终端可以删除文件、联网、提交代码、读取配置、运行危险脚本。终端 Agent 的设计难点不是“能不能执行命令”，而是“如何让命令执行可裁决、可审计、可恢复”。
-
-### 17.4.2 Claude Code 的核心架构：Model + Harness
-
-以下是本书根据公开行为提出的教学分解，模块名、状态 schema 和伪代码不是未公开内部实现。官方资料只证明其工具循环、上下文和权限等可观察机制。[[4]](#ref-4)
-
-可以抽象为：
+Codex 源码中包含上下文窗口、自动压缩和压缩任务等实现。压缩需要在上下文预算受限时继续推进对话，它对历史做选择或归纳，必然可能丢失细节。公开代码可用于追踪压缩的触发与恢复流程，但不能把摘要当成工作区当前状态的事实来源。[[25]](#ref-25)
 
-```text
-Claude Code
-  = Model
-  + Agent Loop
-  + Tool Registry
-  + Context Loader
-  + Task State
-  + Permission Engine
-  + Verification Surface
-  + Session / Trace
-```
-
-其中 Model 提供理解和决策能力，Harness 提供行动空间。
-
-```text
-Model:
-  - 理解需求
-  - 制定计划
-  - 选择工具
-  - 解释工具结果
-  - 生成修复策略
-
-Harness:
-  - 暴露文件、搜索、编辑、Shell、Git、MCP 等工具
-  - 加载项目规则和任务上下文
-  - 维护任务状态和会话状态
-  - 执行权限裁决
-  - 运行测试和构建
-  - 输出 diff、trace 和总结
-```
-
-这个边界很关键。不要试图用代码写死“Agent 应该如何思考”；Harness 的职责是让模型能看见正确材料、调用正确工具、被正确约束、接受正确验证。
-
-### 17.4.3 Agent Loop：Coding Agent 的最小心跳
-
-所有 Coding Agent 的内核都可以简化为一个循环：
-
-```text
-messages
-  ↓
-LLM
-  ↓
-response
-  ↓
-stop_reason == tool_use ?
-  ├─ yes: execute tool -> append tool_result -> loop
-  └─ no: return final answer
-```
-
-伪代码如下：
-
-```python
-def agent_loop(messages, tools):
-    while True:
-        response = model.generate(messages=messages, tools=tools)
-        messages.append(response.as_assistant_message())
-
-        if response.stop_reason != "tool_use":
-            return response.final_text
-
-        tool_results = []
-        for call in response.tool_calls:
-            result = tool_runtime.execute(call)
-            tool_results.append(result.as_tool_result())
-
-        messages.append({
-            "role": "user",
-            "content": tool_results,
-        })
-```
-
-这个循环看起来简单，但它定义了 Agent 的基本生命形式：
-
-- 模型观察当前上下文；
-- 模型决定下一步行动；
-- Runtime 执行工具；
-- 工具结果成为下一轮观察；
-- 循环直到模型停止或 Runtime 终止。
-
-真正复杂的不是 loop 本身，而是 loop 周围的 Harness。
-
-| 周边机制 | 解决什么问题 |
-|:---|:---|
-| Tool Registry | 模型能调用什么 |
-| Permission Engine | 哪些调用允许执行 |
-| Context Builder | 每轮模型看到什么 |
-| Task State | 长任务如何不偏航 |
-| Verifier | 什么时候算完成 |
-| Trace Store | 为什么这么做可复盘 |
-| Budget Control | 防止无限循环和成本失控 |
-
-Agent Loop 的设计原则是：**循环保持简单，控制面保持强。**
-
-如果把太多业务规则写进 loop，系统会变得难以扩展；如果 loop 周围没有控制面，Agent 就会变成一个能执行任意命令的聊天模型。
-
-### 17.4.4 Tool Execution Plane：给模型一组受控的手
-
-Coding Agent 的工具不是越多越好，而是要原子化、可组合、可描述、可裁决。
-
-一个终端原生 Coding Agent 至少需要这些工具：
-
-| 工具 | 用途 | 风险 |
-|:---|:---|:---|
-| `list_files` | 了解仓库结构 | 输出过大 |
-| `search_code` | 找符号、错误、调用链 | 误召回相似代码 |
-| `read_file` | 阅读相关文件 | 读取 secret 或无关文件 |
-| `edit_file` | 局部修改代码 | 覆盖用户改动 |
-| `run_shell` | 测试、构建、脚本 | 危险命令、联网、长时间阻塞 |
-| `git_diff` | 查看变更 | diff 太大或误读 |
-| `git_status` | 识别工作区状态 | 忽略用户未提交改动 |
-| `mcp_tool` | 连接外部系统 | 权限、数据泄露、工具结果污染 |
-
-工具注册可以抽象为 dispatch map：
-
-```python
-TOOL_HANDLERS = {
-    "read_file": read_file,
-    "search_code": search_code,
-    "edit_file": edit_file,
-    "run_shell": run_shell,
-}
-
-def execute_tool(call):
-    handler = TOOL_HANDLERS[call.name]
-    return handler(**call.arguments)
-```
-
-下方 allowlist/denied_tokens 仅示意策略字段，字符串匹配不构成安全隔离；解释器、包脚本、路径链接和网络仍必须由执行沙箱限制。生产系统不能只停在 dispatch map。每个工具都需要 schema、权限、超时、错误封装和审计。
-
-```yaml
-tool:
-  name: run_shell
-  description: "Run a command in the current workspace"
-  parameters:
-    command:
-      type: string
-    timeout_seconds:
-      type: integer
-      maximum: 120
-  policy:
-    allowed_commands:
-      - npm
-      - pytest
-      - make
-      - go
-    denied_tokens:
-      - rm
-      - sudo
-      - curl
-      - ssh
-      - chmod
-  audit:
-    record_stdout: true
-    redact_secrets: true
-```
-
-工具调用执行链应该是：
-
-```text
-model proposes tool call
-  ↓
-schema validation
-  ↓
-policy decision
-  ├─ deny -> return rejection as observation
-  ├─ ask  -> wait for human approval
-  └─ allow
-      ↓
-sandbox execution
-      ↓
-tool result envelope
-      ↓
-trace + next context
-```
-
-工具结果也应该标准化，而不是把 stdout 原样丢回模型：
-
-```json
-{
-  "tool": "run_shell",
-  "ok": false,
-  "exit_code": 1,
-  "stdout": "...",
-  "stderr": "...",
-  "truncated": true,
-  "duration_ms": 12403,
-  "retryable": true,
-  "risk": "low"
-}
-```
-
-这样模型下一轮才能判断是继续修复、换工具、请求人工，还是停止。
-
-### 17.4.5 Task State：让多步任务不偏航
-
-模型可以临场规划，但长任务不能只靠模型上下文里的自然语言计划。
-
-Coding Agent 需要显式 Task State：
-
-```yaml
-task_state:
-  task_id: "fix-order-cancel-idempotency"
-  goal: "修复订单取消重复调用导致库存重复释放"
-  todos:
-    - id: "t1"
-      content: "阅读订单取消逻辑"
-      status: "completed"
-    - id: "t2"
-      content: "定位库存释放调用"
-      status: "completed"
-    - id: "t3"
-      content: "增加幂等保护"
-      status: "in_progress"
-    - id: "t4"
-      content: "补充重复取消测试"
-      status: "pending"
-    - id: "t5"
-      content: "运行订单相关测试"
-      status: "pending"
-  changed_files:
-    - "service/order_cancel.go"
-  blockers: []
-```
-
-Task State 的价值有三点。
-
-第一，**让目标持久化**。上下文压缩、子任务切换、工具输出很长时，模型容易忘记原始目标。Task State 是任务锚点。
-
-第二，**让进度可观察**。人可以看到 Agent 当前在做什么，是否偏离目标。
-
-第三，**让 Runtime 能约束行为**。例如同一时间只允许一个 `in_progress`，任务完成前必须有验证步骤，长时间没有更新计划时提醒模型修正。
-
-一个好的 Task State 不应该保存模型的全部推理，而应该保存可执行状态：
-
-| 不该长期保存 | 应该保存 |
-|:---|:---|
-| 模型临时猜测 | 当前目标 |
-| 未验证根因 | 已确认事实 |
-| 大段思考过程 | 当前步骤 |
-| 无来源摘要 | 工具结果引用 |
-| 模糊计划 | 可检查 todo |
-
-这也解释了 Task State 和 Scratchpad 的区别：
-
-```text
-Scratchpad:
-  模型临时思考空间，可信度低，通常不长期保存
-
-Task State:
-  Runtime 维护的任务状态，影响后续行动和恢复
-```
-
-### 17.4.6 Context Control Plane：让模型看到该看的内容
-
-模型无法天然“读懂仓库”。所谓读懂，实际上是 Runtime 不断替模型选择上下文。
-
-终端原生 Coding Agent 的上下文通常来自七类来源：
-
-| 来源 | 示例 | 风险 |
-|:---|:---|:---|
-| 项目规则 | `AGENTS.md`、`CLAUDE.md`、团队规范 | 规则过期、互相冲突 |
-| 代码索引 | 文件树、符号、引用、测试名 | 索引滞后、召回错误 |
-| 活动上下文 | 当前目录、Git 状态、最近命令 | 焦点不等于任务边界 |
-| 工具结果 | search、read、test、lint、MCP 返回 | 工具错误被当事实 |
-| 任务状态 | plan、todos、changed files、blockers | 状态不更新导致误导 |
-| 历史摘要 | previous steps、trace、memory | 摘要污染 |
-| Skill / Workflow | bugfix、test-writing、trace-to-architecture | 误触发、规则过泛 |
-
-成熟 Context Control Plane 至少做五件事。
-
-第一，**分层注入**。系统指令、项目规则、用户请求、工具结果、任务状态和历史摘要不能混成一段文本。它们的可信度、优先级和生命周期不同。
-
-第二，**按需检索**。大仓库不能一次性塞进上下文。通常先给 repo map，再让模型通过 search / read 逐步取证。
-
-第三，**上下文预算管理**。工具结果、测试输出、diff 和日志都可能很长。Runtime 要截断、摘要、去重，并保留来源和时间。
-
-第四，**污染控制**。README、issue、外部网页、日志都可能包含指令式文本。它们应该作为 data，而不是 instruction。
-
-第五，**压缩与恢复**。长任务上下文总会满。压缩不是把聊天记录缩短，而是把任务重构成稳定状态。
-
-一个更可靠的压缩结果应该像这样：
-
-```yaml
-compact_summary:
-  original_goal: "修复订单取消重复释放库存"
-  confirmed_facts:
-    - "重复取消会再次调用 release_inventory"
-    - "订单状态 canceled 没有提前返回"
-  changed_files:
-    - "service/order_cancel.go"
-    - "service/order_cancel_test.go"
-  current_todos:
-    - "运行订单相关测试"
-    - "确认库存释放只调用一次"
-  open_risks:
-    - "未检查并发重复取消"
-  forbidden:
-    - "不要重构整个订单状态机"
-```
-
-这比“我们已经修了一些代码，还需要跑测试”更可检查，但仍不是恢复证明。会话 ID 标识交互历史，Task ID 标识交付目标，worktree 标识文件目录，模型上下文窗口只包含本轮所见内容，四者不得混用。官方会话恢复/压缩机制只提供产品层语义，不能保证摘要完整。[[4]](#ref-4)
-
-本书在摘要外补`base_commit`、`diff_hash`、证据路径/版本、已授权范围、最后验证结果与未完成项。恢复时比较当前 HEAD、dirty diff 及权限；文件或授权发生变化则相关结论失效并回源。token 预算按目标模型 tokenizer 预估系统消息、schema、历史与工具结果，预留输出与后续工具空间，再用供应商 usage 校准；汉字数和字符数均不能替代 token 计数。压缩前后必须保持目标、禁止事项、已证事实与待验证状态，详细契约归[第13章](../part3/02-context-engineering.md)。
-
-### 17.4.7 Skill / Command / Workflow：把工程经验变成可复用流程
-
-Skill 是介于“规则文件”和“工具调用”之间的一层能力抽象。
-
-```text
-Tool:
-  Agent 能调用什么能力
-
-Skill:
-  遇到某一类工程任务，应该按什么可靠流程完成
-```
-
-例如，修 bug 的稳定流程不是“直接改代码”，而是：
-
-```text
-先复现或读取失败证据
-  ↓
-搜索错误信息和调用链
-  ↓
-阅读最小相关文件
-  ↓
-形成根因假设
-  ↓
-做最小修改
-  ↓
-补回归测试
-  ↓
-运行验证
-  ↓
-输出 diff 和剩余风险
-```
-
-这个流程就适合沉淀成 Skill：
-
-```markdown
-# Bugfix Skill
-
-## Trigger
-当用户要求修复缺陷、失败测试、异常日志或线上报错时使用。
-
-## Procedure
-1. 先复现或读取失败证据，不要直接修改代码；
-2. 搜索错误信息、函数名、测试名和相关调用链；
-3. 阅读最小相关文件，避免一次性加载整个仓库；
-4. 做最小修改，优先保持现有接口和行为；
-5. 新增或更新回归测试；
-6. 运行最小验证命令；
-7. 输出 diff、验证结果和剩余风险。
-
-## Stop Conditions
-- 无法复现；
-- 缺少权限；
-- 验证命令持续失败且原因不明；
-- 修改范围超过原始任务边界。
-```
-
-Skill 的关键是“按需加载”。不要把所有 Skill 都塞进 system prompt。成熟 Runtime 应该：
-
-1. 发现可用 Skill；
-2. 根据任务选择少量相关 Skill；
-3. 把 Skill 的触发条件、步骤、验证要求注入当前上下文；
-4. 记录本次任务加载了哪个 Skill、哪个版本、是否有效；
-5. 任务失败后决定是否修改 Skill 或新增 eval case。
-
-这让工程经验从“人脑经验”变成“可版本化、可审查、可评估的上下文资产”。
-
-### 17.4.8 Verification Gate：完成不是模型说了算
-
-Coding Agent 最危险的幻觉，不是编造事实，而是“没有完成却宣布完成”。
-
-成熟系统要把完成判定拆成多层：
-
-| 层级 | 检查内容 | 失败时怎么办 |
-|:---|:---|:---|
-| 格式层 | final schema 是否完整 | 要求模型修复输出 |
-| 变更层 | diff 是否存在、是否超范围 | 阻止提交或请求人工确认 |
-| 语法层 | format、lint、typecheck | 把错误回填给模型 |
-| 行为层 | unit / integration / regression tests | 进入 repair loop |
-| 风险层 | secret scan、权限、依赖、迁移影响 | 阻止自动完成 |
-| 人审层 | review summary、PR comment、owner approval | 交给 reviewer |
-
-Verification Gate 的核心原则是：
-
-```text
-done criteria > model final answer
-```
-
-也就是说，模型说“我完成了”只是一个候选结论。真正的完成必须由测试、构建、diff、CI、审查或用户验收支撑。
-
-验证结果也应该进入下一轮上下文：
-
-```json
-{
-  "verification": {
-    "command": "go test ./service -run TestCancelOrder",
-    "status": "failed",
-    "exit_code": 1,
-    "summary": "TestCancelOrder_Idempotent failed: inventory released twice",
-    "retry_budget_remaining": 2
-  }
-}
-```
-
-Agent 看到这个结果后，不应该解释失败为成功，而应该进入 repair loop。
-
-### 17.4.9 Async、Subagent 与 Multi-Agent 协作
-
-终端任务中有很多慢操作：
-
-- 安装依赖；
-- 跑完整测试；
-- 构建前端产物；
-- 查远端日志；
-- 运行大规模搜索；
-- 等待 CI。
-
-如果主 Agent 被这些操作阻塞，它就无法继续规划。更好的方式是把慢操作变成 background task：
-
-```text
-main agent:
-  start background test
-  continue reading related files
-  receive notification when test finishes
-```
-
-后台任务需要三个机制：
-
-1. **任务句柄**：Agent 能知道哪个后台任务还在跑；
-2. **通知队列**：任务完成后把结果注入上下文；
-3. **超时和取消**：防止长命令无限运行。
-
-Subagent 则解决另一个问题：上下文隔离。
-
-大任务可以拆给专门角色：
-
-| Subagent | 适合职责 | 权限 |
-|:---|:---|:---|
-| Explorer | 阅读代码、找相关文件、总结调用链 | read / search |
-| Debugger | 复现失败、定位根因 | read / search / shell |
-| Test Runner | 运行测试、分析失败输出 | shell limited |
-| Reviewer | 检查 diff 风险、遗漏测试、安全问题 | read / diff |
-| Doc Writer | 更新文档和说明 | read / edit docs |
-
-Subagent 的价值不是“多开几个模型更强”，而是：
-
-- 每个子任务有干净上下文；
-- 每个角色有更窄权限；
-- 主 Agent 不被探索过程污染；
-- 多个独立方向可以并行推进。
-
-多 Agent 协作进一步需要协议。最小协议至少包括：
-
-```yaml
-message:
-  from: "main"
-  to: "reviewer"
-  task_id: "review-diff-001"
-  request: "检查当前 diff 是否遗漏测试或破坏接口"
-  expected_output:
-    - findings
-    - severity
-    - suggested_fix
-  deadline: "10m"
-```
-
-没有协议的多 Agent，很快会变成多个聊天窗口互相制造噪声。
-
-### 17.4.10 Worktree Isolation：并行执行的隔离层
-
-当 Agent 支持并行任务时，只靠“请小心不要互相覆盖”是不够的。并行需要文件系统级隔离。
-
-Git worktree 是 Coding Agent 很自然的隔离手段：
-
-```text
-main repo
-  ├─ task-101 worktree: fix-login-bug
-  ├─ task-102 worktree: refactor-payment-client
-  └─ task-103 worktree: add-order-tests
-```
-
-Worktree Isolation 解决四个问题：
-
-1. **文件修改隔离**：不同任务不会在同一目录互相覆盖；
-2. **目录内状态隔离**：仅在产物确实落入各自目录时成立；共享缓存、端口和数据库需另行隔离；
-3. **Git diff 清晰**：每个任务有独立 diff；
-4. **可审查后清理**：先保存用户修改、未提交文件与所需证据，再按 Git 规则移除 worktree；不能直接删除目录。[[8]](#ref-8)
-
-Task 和 worktree 应该绑定：
-
-```yaml
-task:
-  id: "task-102"
-  branch: "agent/task-102-refactor-payment-client"
-  worktree: "/workspace/.worktrees/task-102"
-  status: "in_progress"
-  owner: "worker-agent-2"
-```
-
-设计原则是：
-
-```text
-Task 管目标，worktree 管目录。
-```
-
-Git worktree 共享仓库对象及部分配置，并不隔离外部副作用。[[8]](#ref-8) 任务系统负责分配、依赖和状态；worktree 提供独立工作目录。把两者混在一起，会导致任务状态和目录状态互相污染。
-
-### 17.4.11 Permission 与安全边界
-
-终端 Agent 的权限模型必须比普通聊天产品严格得多。
-
-至少要区分四类权限：
-
-| 权限 | 示例 | 风险 |
-|:---|:---|:---|
-| Read | 读代码、读文档、读 Git 状态 | secret 泄露、越权读取 |
-| Write | 修改文件、创建文件 | 覆盖用户改动、误改生成文件 |
-| Execute | 运行测试、构建、脚本 | 危险命令、长时间阻塞 |
-| Network / External | MCP、浏览器、API、数据库 | 数据外传、权限扩大 |
-
-权限裁决不应该只依赖 prompt。Runtime 应该有明确策略：
-
-```yaml
-permission_policy:
-  read:
-    allowed_paths:
-      - "src/**"
-      - "tests/**"
-      - "docs/**"
-    denied_paths:
-      - ".env"
-      - "secrets/**"
-  write:
-    allowed_paths:
-      - "src/**"
-      - "tests/**"
-      - "docs/**"
-    require_approval:
-      - "package-lock.json"
-      - "migrations/**"
-  shell:
-    allowlist:
-      - "npm test"
-      - "npm run build"
-      - "go test ./..."
-    require_approval:
-      - "git push"
-      - "npm install"
-    deny:
-      - "rm -rf"
-      - "sudo"
-      - "curl | sh"
-```
-
-权限系统的目标不是让 Agent 什么都不能做，而是让风险动作从“模型自觉”变成“系统裁决”。
-
-### 17.4.12 Claude Code 的优势、局限与适用场景
-
-Claude Code 的优势很明确：
-
-- 适合真实仓库中的端到端任务；
-- 贴近测试、构建、脚本和 Git；
-- 容易把团队流程沉淀成命令、规则、Skill 和 Hook；
-- 适合后端、基础设施、CLI、工具链和跨文件修改；
-- 能和 MCP 等外部工具结合，形成工程分析工作流。
-
-它的局限也很明确：
-
-- 终端权限风险高；
-- 对项目规则和上下文质量敏感；
-- 长任务需要压缩、状态和验证机制支撑；
-- 不如 IDE Agent 贴近用户当前选区和可视化编辑体验；
-- 多 Agent 和并行任务必须有隔离，否则容易污染工作区。
-
-适合使用 Claude Code 的任务：
-
-- 修复明确 bug；
-- 补测试；
-- 跨文件重构；
-- 运行和分析测试失败；
-- 生成脚本和工具；
-- 根据日志、trace、代码生成排查报告；
-- 自动化重复性工程流程。
-
-不适合完全交给它自动执行的任务：
-
-- 高风险生产变更；
-- 无明确验收标准的大型重构；
-- 涉及敏感数据或凭据的操作；
-- 需要大量产品判断或组织协调的任务；
-- 测试环境无法复现的业务变更。
-
-### 17.4.13 从 Claude Code 反推 Coding Agent Harness 设计原则
-
-从 Claude Code 这类终端原生 Agent 可以反推出一组通用设计原则。
-
-第一，**相信模型的推理能力，但不要相信模型能自我约束所有风险**。让模型决策，让系统裁决。
-
-第二，**工具要小而清楚**。新增工具时，最好只是新增 handler，不要改 Agent Loop。
-
-第三，**计划要外置**。没有计划的 Agent 会走哪算哪；计划外置后，Runtime 才能提醒、恢复和审查。
-
-第四，**知识按需加载**。用到什么 Skill、规则、文档，就加载什么；不要把所有知识塞进 system prompt。
-
-第五，**上下文总会满**。必须有 compact、summary、task state 和 trace 引用，而不是无限追加聊天记录。
-
-第六，**慢操作异步化**。测试、构建、日志查询应该能后台运行，结果通过通知回到 Agent Loop。
-
-第七，**多 Agent 需要协议**。没有消息协议、任务边界和权限边界的多 Agent，只会放大混乱。
-
-第八，**并行执行必须隔离目录**。worktree、branch、sandbox 是并行 Coding Agent 的基础设施。
-
-第九，**验证是交付的一部分**。没有验证结果的代码生成，只能算候选 patch。
-
-第十，**trace 是系统资产**。失败任务、工具调用、权限裁决、测试结果和人类反馈都应该能进入复盘和 eval。
-
----
-
-## 17.5 从 MVP 到生产级 Coding Agent
-
-如果要从零实现 Coding Agent，不要一开始就追求“全自动程序员”。更稳妥的路线是按风险递增。
-
-### 17.5.1 MVP 1：Read-only Agent
-
-第一阶段只允许读取和搜索，不允许修改。
-
-开放工具：
-
-- `list_files`
-- `read_file`
-- `search_code`
-- `git_status`
-- `git_diff`
-
-目标是让 Agent 能回答：
-
-- 这个需求可能涉及哪些文件；
-- 当前代码是怎么工作的；
-- 应该怎么改；
-- 需要哪些测试。
-
-Read-only Agent 可降低误写风险，但读取机密、发送模型请求和恶意文档注入仍需权限与数据边界。
-
-### 17.5.2 MVP 2：Patch Agent
-
-第二阶段开放局部编辑，但不开放任意 shell。
-
-开放工具：
-
-- `replace_in_file`
-- `create_file`
-- `format_patch`
-
-重点能力：
-
-- path sandbox；
-- read-before-edit；
-- old text 精确匹配；
-- diff 输出；
-- 人工确认。
-
-这一阶段的目标不是自动完成，而是生成小范围 patch 供人审查。
-
-### 17.5.3 MVP 3：Verified Agent
-
-第三阶段开放测试类 Shell 命令，让 Agent 形成“修改 -> 测试 -> 修复”的闭环。
-
-新增能力：
-
-- command allowlist；
-- timeout；
-- stdout / stderr 截断；
-- 失败摘要；
-- retry budget。
-
-典型流程：
-
-```text
-edit file
-  ↓
-run targeted test
-  ↓
-observe failure
-  ↓
-repair
-  ↓
-run test again
-  ↓
-summarize diff and verification
-```
-
-这一阶段必须明确：验证失败时，Agent 不能假装完成。
-
-### 17.5.4 MVP 4：Workflow Agent
-
-第四阶段加入计划、任务状态和多步骤工作流。
-
-目标是支持更长的任务：
-
-- 重构一个模块；
-- 迁移一个 API；
-- 增加一组测试；
-- 修复一类 lint 问题；
-- 根据日志定位线上问题。
-
-需要补齐：
-
-- todo state；
-- step status；
-- stop condition；
-- 中途汇报；
-- 任务暂停和恢复；
-- 变更范围控制。
-
-### 17.5.5 MVP 5：Skill-enabled Agent
-
-第五阶段加入 Skill Registry，让 Agent 复用团队工程经验。
-
-适合沉淀为 Skill 的流程：
-
-| Skill | 触发场景 | 核心约束 |
-|:---|:---|:---|
-| `bugfix` | 失败测试、异常日志、用户报 bug | 先复现，后修改，必须补回归测试 |
-| `test-writing` | 补单测、提升覆盖率 | 先读现有测试风格，覆盖失败路径 |
-| `refactor` | 模块整理、接口迁移 | 保持行为等价，小步验证 |
-| `dependency-upgrade` | 升级库、框架、运行时 | 查破坏性变更，跑兼容测试 |
-| `trace-to-architecture` | 根据 trace / log 还原调用链 | 区分日志事实、代码确认、模型推断 |
-| `release-check` | 发布前检查 | 只读检查优先，高风险动作审批 |
-
-这一阶段要重点做 Skill 的触发条件、版本管理、加载 trace 和 regression eval。
-
-### 17.5.6 MVP 6：Team Agent
-
-第六阶段加入 subagent、background task、worktree、reviewer 和 CI 集成。
-
-目标是让 Agent 进入团队工程流程，而不是只服务个人本地实验。
-
-需要补齐：
-
-- explorer agent；
-- test runner agent；
-- reviewer agent；
-- task queue；
-- worktree isolation；
-- PR bot；
-- 失败样本库；
-- 权限审计。
-
-Team Agent 的关键不是“多几个模型”，而是任务边界、通信协议、工作区隔离和质量门禁。
-
-### 17.5.7 从原型到生产系统还缺什么
-
-MVP 能跑，不代表可以生产使用。生产级 Coding Agent 还需要：
-
-| 能力 | 为什么重要 |
-|:---|:---|
-| RBAC | 不同用户、仓库、环境权限不同 |
-| Secret Boundary | 凭据不能进入 prompt、trace 或 diff |
-| Audit Log | 能解释谁让 Agent 做了什么 |
-| Eval Dataset | 防止模型、prompt、Skill 升级造成回归 |
-| CI Integration | 验证不只靠本地命令 |
-| Rollback | 失败任务能恢复工作区 |
-| Cost Control | 限制步数、token、工具调用和云端资源 |
-| Data Retention | 会话、日志、产物要有保留和删除策略 |
-| Human Approval | 高风险动作必须人审 |
-
-生产化的核心不是堆更多工具，而是让 Agent 的每一次行动都在可控边界内发生。
-
----
-
-## 17.6 设计清单与常见反模式
-
-这一节把本章收束成设计清单。你可以用它评估一个 Coding Agent 系统，也可以用它准备系统设计评审。
-
-### 17.6.1 Coding Agent Harness 设计清单
-
-**任务入口**
-
-- 是否支持从自然语言、issue、PR comment、告警、trace 等入口创建任务；
-- 是否显式记录 cwd、repo、branch、用户、权限、预算；
-- 是否区分探索任务和执行任务；
-- 是否有清晰的 done criteria。
-
-**上下文**
-
-- 是否加载项目规则；
-- 是否有 repo map 或代码索引；
-- 是否让模型按需 search / read；
-- 是否避免把全仓库塞进 prompt；
-- 是否区分 instruction、data、tool result、memory；
-- 是否有上下文压缩和状态恢复。
-
-**工具**
-
-- 是否只暴露注册过的工具；
-- 每个工具是否有 schema；
-- 是否有路径沙箱；
-- 是否优先局部替换而不是整文件重写；
-- Shell 是否有 allowlist、timeout 和审批；
-- 工具失败是否被结构化返回给模型。
-
-**状态**
-
-- 是否有显式 Task State；
-- 是否记录当前步骤、已完成步骤、阻塞点；
-- 是否区分 task state、scratchpad、memory；
-- 是否能暂停和恢复；
-- 是否能处理用户中途修改需求。
-
-**权限**
-
-- 是否区分 read、write、shell、network；
-- 是否禁止读取 secret；
-- 是否禁止 repo 外写入；
-- 是否对 Git push、发布、迁移等高风险动作要求审批；
-- 是否记录权限裁决。
-
-**验证**
-
-- 是否有标准验证命令；
-- 是否捕获 stdout / stderr；
-- 是否处理超时和 flaky test；
-- final answer 是否包含验证证据；
-- 验证失败时是否返回失败而不是假装成功。
+因此，压缩后的任务状态应重新对照仓库：文件是否仍是记录中的版本、差异是否变化、测试是否针对当前差异运行。历史摘要可以缩短恢复路径，无法证明磁盘、Git 或远端系统仍与旧描述一致。
 
-**隔离**
-
-- 并行任务是否使用 branch、worktree 或 sandbox；
-- 后台任务是否有句柄、通知、超时和取消；
-- subagent 是否有独立上下文和权限；
-- 云端任务是否隔离依赖和环境变量。
+### 17.2.6 多 Agent 与共享状态
 
-**交付**
+Codex 仓库公开了 Agent、子任务、协作和消息传递相关代码。理解这类功能时，首先要区分“上下文分开”与“工作区分开”：前者避免共享完整对话，后者避免并行写入同一批文件。一个只读子任务即使与主 Agent 共用目录，也不一定产生写冲突；两个 Agent 即使使用独立上下文，也不因此获得隔离文件系统。[[15]](#ref-15)
 
-- 是否输出 diff；
-- 是否解释修改动机；
-- 是否列出验证结果；
-- 是否列出剩余风险；
-- 是否能生成 PR、review comment 或报告。
+跨 Agent 的消息还可能迟到、被取消或落到不同 turn。源码状态里对当前轮是否继续接收子 Agent 消息有明确建模，这说明协作交付不仅是“spawn 后等待”，还涉及消息归属、终止条件和晚到结果的处理。[[15]](#ref-15)
 
-**改进闭环**
+### 17.2.7 从 Codex 源码得到的架构观察
 
-- 是否记录 trace；
-- 是否把失败任务沉淀为 eval；
-- 是否把重复流程沉淀为 Skill；
-- 是否有 prompt、Skill、Tool、Policy 的版本管理；
-- 是否能回滚配置变更。
+Codex 的公开实现适合观察一种“核心 Runtime + 前端协议 + 受控工具执行”的组织方式。它将会话、turn、协议、工具路由、安全策略、状态持久化和 UI 接入拆为可追踪的 crate 或模块。这个拆分有助于源码审计，也带来跨模块状态协调的复杂度。
 
-### 17.6.2 常见反模式：Prompt 堆叠、无验证、无隔离、无状态
+不应从源码开放推断模型开放，也不应把主分支今天的实现当作永久稳定接口。源码分析最好记录具体文件和核验日期；如果结论依赖某个 feature gate、协议版本或运行平台，还要把前提写在结论旁边。
 
-**反模式一：把所有规则塞进 system prompt**
+### 17.2.8 启动过程：从启动服务到首个 Turn
 
-表现：
+以客户端启动 `codex app-server` 的公开协议路径为例，可以沿下面的顺序观察。它展示一个可验证的接入边界，不要求所有 Codex 界面都用同一种进程部署方式。
 
-- system prompt 越来越长；
-- 规则互相冲突；
-- 模型忽略后半段；
-- 无法知道哪条规则生效。
+| 阶段 | 初始化或执行动作 | 完成后得到什么 |
+| --- | --- | --- |
+| 启动服务 | 启动 App Server，选择传输并准备服务；读取相关配置与认证环境 | 可建立连接的本地服务；此时还没有用户任务的 Turn |
+| 连接握手 | 客户端发送 `initialize`，收到响应后发送 `initialized`；传入客户端身份及能力声明 | 当前连接完成协议初始化；握手前的业务请求会被拒绝 |
+| 建立或恢复会话 | 使用 `thread/start` 新建，或 `thread/resume` 恢复；选择模型、工作目录与执行策略 | Thread 身份及会话状态；配置与项目指令参与后续上下文准备 |
+| 启动轮次 | 客户端用 `turn/start` 提交用户输入和可选的本轮覆盖参数 | 活跃 Turn；开始处理输入与后续模型生成 |
+| 进入执行循环 | 接收模型输出，处理工具调用及必要审批，运行命令或修改文件，把结果带入后续生成 | 消息、命令、文件变化等 Item 与增量事件 |
+| 收束本轮 | 客户端消费 `item/*`、`turn/*` 通知，直到收到带最终状态的 `turn/completed` | 已结束的 Turn；Thread 可继续接收下一轮输入 |
 
-修复方式：
+协议硬顺序是**连接 → 握手 → 建立或恢复 Thread → 启动 Turn**。`initialize` 每个连接执行一次，不能把它当成每轮模型调用前的初始化。`turn/completed` 还可能表示中断等状态，不能仅凭事件名认定需求已实现。[[2]](#ref-2)
 
-```text
-稳定规则 -> 项目规则 / policy
-任务流程 -> Skill
-权限边界 -> Runtime
-输出格式 -> Schema
-失败样本 -> Eval
-```
+配置和指令也有各自的加载边界：Codex 从用户及可信项目的 `.codex/config.toml` 等层解析配置；未受信任项目的项目配置层会被跳过。`AGENTS.md` 按全局与项目路径构造指令链，并受大小上限约束。因此，“目录下有配置或说明文件”不等于“本次会话已经采用它”。[[3]](#ref-3)[[4]](#ref-4)
 
-**反模式二：让模型自己判断是否完成**
+当前 App Server 文档还说明默认会启动本地 Code Mode host，也可指定远端 host。它是 App Server 向执行宿主发起连接的方向；`--listen` 则控制客户端怎样连入 App Server。这两条连接不能混为一条，更不能把模型服务端点当成命令执行宿主。具体执行能力与可用参数应绑定实际安装版本。[[2]](#ref-2)
 
-表现：
+## 17.3 Claude Code：基于官方文档分析闭源产品
 
-- 测试没跑却说完成；
-- 测试失败但 summary 写“已通过”；
-- diff 和解释不一致。
+### 17.3.1 GitHub 仓库公开，不代表核心程序开源
 
-修复方式：
+Anthropic 的 Claude Code GitHub 仓库是公开可访问的，但仓库许可证写明版权归 Anthropic 所有、保留所有权利，并指向 Anthropic 商业服务条款；它不是可按常见开源许可证使用的核心实现源码仓库。公开仓库中的 README、变更记录、示例和插件材料，不能替代未公开的 CLI 实现。[[26]](#ref-26) [[27]](#ref-27)
 
-- 引入 Verification Gate；
-- final answer 必须引用验证结果；
-- 没有验证时明确标注“未验证”；
-- 高风险任务必须人审。
+因此，本节不从非官方逆向、泄露代码或社区猜测补写内部细节。即使某个细节听起来符合常见 Agent 设计，只要官方文档没有证实，也会标作“系统推导”，而不是 Claude Code 的确切实现。
 
-**反模式三：Shell 权限过大**
+### 17.3.2 官方公开的 Agent Loop
 
-表现：
+Anthropic 官方文档把 Claude Code 的工作描述为收集上下文、采取行动、验证结果三个阶段。阶段会按任务需要交错：理解代码的问题可能只需检索，修复任务则会多次穿插编辑和验证。官方也直接将 Claude Code 描述为围绕模型提供工具并管理上下文的 Harness。[[5]](#ref-5)
 
-- 模型执行危险命令；
-- 联网下载未知脚本；
-- 修改 repo 外路径；
-- 读取 secret 文件。
+文档可确认的概念循环如下：
 
-修复方式：
+~~~text
+理解用户任务
+  → 读取项目与代码上下文
+  → 选择文件、搜索、命令等工具
+  → 观察工具结果并调整方案
+  → 验证实现
+  → 继续行动或向用户说明结果
+~~~
 
-- command allowlist；
-- path sandbox；
-- network approval；
-- secret scan；
-- shell output trace。
+这描述的是公开的产品行为，不是私有函数调用图。可见的工具包括文件读取、编辑、搜索和命令执行；扩展层还支持 Skills、MCP、Hooks 与 Subagents。工具结果成为后续决策的新观察，因此人可以在循环中途纠正方向。[[5]](#ref-5) [[28]](#ref-28)
 
-**反模式四：没有 Task State**
+### 17.3.3 Session、Context 与历史压缩
 
-表现：
+Claude Code 官方文档说明，对话、工具使用和结果会保存在本地 Session 文件中，用于恢复、继续或分叉；每个新 Session 默认有新的上下文窗口。切换 Git 分支会改变模型能读取的工作区文件，但不会自动改写会话历史。[[5]](#ref-5)
 
-- 长任务中途偏航；
-- 重复做同一步；
-- 忘记用户约束；
-- 上下文压缩后丢失目标。
+上下文包含对话、文件和命令结果、项目指令、载入的 Skill 与系统指令。接近窗口限制时，Claude Code 会清理旧工具输出，必要时摘要对话；官方提示早期的详细指令可能在压缩后丢失。MCP 工具定义默认可延迟加载，Skills 也可按需载入；Subagent 使用独立上下文，主会话接收摘要。[[5]](#ref-5)
 
-修复方式：
+可迁移的工程原则是保存稳定约束与任务事实的区别：项目规范适合放进持久指令，动态代码事实应回到仓库重新读取。会话日志和摘要能帮助恢复工作，但都不能证明当前工作区与历史描述一致。
 
-- 显式 todo；
-- 每步状态；
-- 当前目标和禁止事项；
-- compact 后重建状态；
-- Runtime 对长时间无计划更新进行提醒。
+### 17.3.4 扩展层：Skills、MCP、Hooks 与 Subagents
 
-**反模式五：并行任务共享同一工作区**
+Anthropic 的公开文档把 Skills 作为可复用知识与工作流，把 MCP 作为外部服务连接，把 Hooks 作为生命周期事件上的自动化，把 Subagents 作为隔离上下文中的委派任务。插件可以把多种扩展打包分发。它们连接到 Agent Loop 的不同位置，不能因名字都叫“扩展”就当成同一类工具。[[28]](#ref-28)
 
-表现：
+- **Skill**主要把做法和领域知识按需提供给模型；
+- **MCP**将外部系统的工具或资源接入；
+- **Hook**在某些生命周期事件上触发脚本、提示或其他动作；
+- **Subagent**将边界明确的工作交给独立上下文；[[29]](#ref-29)
+- **Plugin**是扩展的打包和分发形式。
 
-- 两个 Agent 改同一个文件；
-- 测试产物互相污染；
-- diff 混在一起；
-- 一个任务失败影响另一个任务。
+这些是官方公开的功能语义。内部如何注册、调度和持久化扩展，若没有公开源码或官方实现说明，不在本章中作源码级断言。
 
-修复方式：
+### 17.3.5 Permissions 与 Checkpoints：授权、约束和恢复各司其职
 
-- branch / worktree / sandbox 隔离；
-- task id 绑定工作目录；
-- 每个任务独立验证；
-- 合并前统一 review。
+权限模式与规则决定哪些工具调用可以执行、哪些需要询问或拒绝。官方文档还说明 Hooks 可以参与工具生命周期。权限配置不是同一层的全部安全机制：它回答工具调用是否被放行，却不单独定义命令进程可访问的所有资源。[[19]](#ref-19)
 
-### 17.6.3 设计评审表达：如何讲清一个 Coding Agent 系统
+Claude Code 的官方文档描述了文件编辑前的 Checkpoint，可用于回退被跟踪的文件变化；数据库、API 和部署等远端副作用不能由文件回退撤销。这个边界适合作为一般 Agent 系统的提醒：恢复能力必须与副作用类型对应。[[5]](#ref-5)
 
-如果评审者问“你如何设计一个 Coding Agent”，不要只回答“接入 LLM 和工具调用”。可以这样表达：
+### 17.3.6 哪些结论是公开事实，哪些只是系统推导
 
-```text
-我会把 Coding Agent 设计成 Model + Harness。
+| 结论 | 证据等级 | 依据与限制 |
+| --- | --- | --- |
+| 工作过程包含收集上下文、采取行动、验证结果 | 官方文档事实 | 公开的用户与开发者文档 |
+| Session 历史用于恢复、继续或分叉 | 官方文档事实 | 文档描述本地 Session 行为 |
+| 工具调用会形成循环并把观察结果用于下一步 | 官方文档事实 | 产品行为说明，不是内部源码图 |
+| 模型请求前有哪些内部模块、具体类和线程模型 | 不能确认 | 核心程序源码没有按开源许可证公开 |
+| 复杂任务可能由多个内部阶段组成 | 系统推导 | 用于解释可见行为，不能据此声称具体实现 |
+| Checkpoint 等于完整机器回滚 | 错误结论 | 官方资料限定为文件变化，不覆盖远端副作用 |
 
-Model 负责理解任务、规划步骤、选择工具和解释结果；
-Harness 负责上下文、工具、权限、状态、验证、隔离和审计。
+这样分析闭源产品仍有价值：官方公开行为足以讨论产品接口、状态边界和工程取舍；但若文章目标是审计内部实现，公开资料就有明确上限。这个证据边界本身也是产品比较的一项重要结果。
 
-系统入口可以是自然语言、issue 或 PR comment。
-任务进入后先形成 Task Envelope，包括 repo、branch、cwd、权限、预算和验收标准。
-Context Builder 根据项目规则、repo map、代码搜索、文件读取、工具结果和 Skill 构建上下文。
-Agent Loop 让模型在每一轮选择工具行动，Runtime 对工具调用做 schema 校验、权限裁决、sandbox 执行和 trace 记录。
-长任务用 Task State 管理进度，慢操作用 background task，复杂任务用 subagent 隔离上下文，并行任务用 worktree 或 sandbox 隔离工作区。
-完成不能由模型自我声明，必须经过 test、lint、typecheck、build、diff review 或 CI 验证。
-所有失败都进入 trace 和 eval，重复流程沉淀为 Skill。
-```
+### 17.3.7 启动过程：初始化 Harness 与 Session
 
-这个回答的重点是：你不是在描述一个聊天机器人，而是在描述一个可治理的软件工程执行环境。
+官方公开的是产品行为、配置与生命周期事件，没有公开足以重建整个核心程序的源码。下面按依赖关系归纳启动过程；表格不是私有函数调用顺序，也不表示所有准备动作严格串行。
 
----
+| 阶段 | 官方资料能确认的行为 | 需要区分的边界 |
+| --- | --- | --- |
+| 启动与配置准备 | 在项目目录运行 `claude`，采用相关 Settings 和启动参数，使用配置的模型及访问条件 | 项目目录、模型选择与工具权限是不同配置事实 |
+| 指令与能力准备 | 载入适用的项目指令与 Auto memory 索引，发现 Skills 等扩展 | 子目录指令、记忆专题及 Skill 全文可以按需读取；不会预读整个仓库 |
+| 建立或恢复 Session | 新会话从新的上下文窗口开始；`--continue` 或 `--resume` 继续已有 Session | 恢复的是会话历史，读取的仍是当前工作区文件 |
+| 会话启动事件 | 执行匹配的 `SessionStart` Hook；新建和恢复分别可用 `startup`、`resume` 匹配 | 当前文档允许启动 Hook 在后台运行、先显示输入界面；提交的首条输入仍会等待 Hook 完成后送给模型 |
+| 首次输入与循环 | 处理用户输入，组合上下文，进入收集上下文、行动、验证的循环 | 每次工具使用都受相应规则控制；工具结果继续成为模型观察 |
+| 记录与后续交互 | 对话、工具使用和结果写入本地 Session 文件，允许继续、恢复或分叉 | 会话持续存在不意味着命令持续运行；文件恢复不撤销远端副作用 |
+
+Settings、项目指令、会话行为与 Skill 渐进加载分别见官方文档。Skill 的名称和描述用于让模型知道有哪些方法，调用时才加入其内容；Auto memory 的索引与详细专题文件也不是同一种加载方式。[[5]](#ref-5)[[6]](#ref-6)[[7]](#ref-7)[[8]](#ref-8)
+
+这里最容易误判的是“界面出现”与“首个模型请求已可发送”。`SessionStart` 可以向上下文补充信息，所以界面先出现时，请求仍可能等待启动 Hook。另一个事件 `Setup` 用于明确触发的初始化或维护，**不是普通每次启动都会执行**。这说明需要依据具体产品定义判断启动完成，不能照搬一个统一的 Ready 步骤。[[20]](#ref-20)
+
+## 17.4 OpenCode：开源、模型提供商无关的 Client/Server Runtime
+
+### 17.4.1 版本边界：区分 OpenCode 1 与 OpenCode 2
+
+OpenCode 官方文档当前同时说明 1.x 和 2.x 版本线。两条线使用相同的命令名，但配置结构与实现已有变化；本节以核验日的 OpenCode 2 官方文档和公开开发分支为准，不把 V1 的旧配置字段套用到 V2。仓库声明项目为开源并采用 MIT 许可证。[[30]](#ref-30)
+
+### 17.4.2 Client/Server：把界面放在服务端之上
+
+OpenCode V2 的 CLI 文档说明，默认会发现或启动当前用户的共享后台服务，本地客户端连接该服务；`--standalone` 使用私有服务，`--server` 连接指定服务。后台服务拥有会话、配置、集成、权限与工具执行，公开 API 支持程序化接入。旧版“启动 TUI 时启动一个服务”的描述不能直接套用于 V2 默认行为。[[31]](#ref-31)
+
+这个结构使会话与模型运行不必由单一终端界面独占。服务端成为会话、请求和事件的接口边界，客户端则负责展示与交互。对比 Codex，二者都公开了服务/协议边界；对比闭源的 Claude Code，OpenCode 的具体协议和代码路径可以直接检视。
+
+### 17.4.3 Provider 抽象：让模型接入成为可替换部分
+
+OpenCode 的模型文档描述了多家 LLM Provider 与本地模型支持；Provider 层负责把选定模型信息和请求交给相应服务。模型目录与接口转换在代码中也有对应实现。[[32]](#ref-32)
+
+这个架构让 Agent Harness 与某一个模型供应商不必完全绑定，但不能保证所有 Provider 的工具调用、上下文长度、流式行为和多模态支持完全一致。适配层把差异归纳为接口，不会消除底层协议差异；系统仍要处理模型能力声明和实际响应之间的不一致。
+
+### 17.4.4 Session Runner 与 Tool Registry：模型循环和工具执行
+
+OpenCode V2 的源码可看到 Session Runner、LLM 运行逻辑和工具服务的组织方式。工具系统负责注册工具、构造模型可见的定义、执行工具并规范化结果；Session Runner 再把模型输出和工具结果纳入会话过程。[[17]](#ref-17)
+
+从源码结构可归纳出一次循环：
+
+~~~text
+接收 Session 输入
+  → 准备选定 Provider/Model 与工具定义
+  → 发送模型请求
+  → 识别工具调用或文本输出
+  → 执行工具并收集结果
+  → 将结果追加到会话并继续，或结束当前回应
+~~~
+
+这条链是基于公开实现路径的系统概括。具体工具集合、模型协议转换、输出截断和异常恢复会随版本演进，应回到 V2 源码核对，不能用旧版的文件名或配置细节描述当前实现。
+
+### 17.4.5 Agent 与 Permissions：把角色配置和动作裁决放在一起
+
+OpenCode 文档区分 Primary Agent 与 Subagent。Primary Agent 面向用户承接主会话；Subagent 用于专项委派。Agent 配置可以指定模型、提示、可用工具和权限。权限支持 allow、ask、deny，并可按工具、Shell 命令、文件范围等规则细化。[[33]](#ref-33)
+
+V2 文档进一步描述 Permissions 与 Policies。规则会在匹配资源时允许、拒绝或请求审批；具体判断层次与 V1 的权限字段并不完全相同。比较权限设计时应关注谁作出决定、规则如何匹配、拒绝是否可被更宽的配置覆盖，以及授权后由哪层执行隔离。[[18]](#ref-18)
+
+Agent 角色本身不是安全沙箱。将编辑工具标为 deny 能缩小调用面，但系统还需要确认 Shell 能力、外部目录访问和插件工具是否在另一条路径上提供相同副作用。
+
+### 17.4.6 会话、快照和回退
+
+OpenCode V2 的配置文档说明，Agent 操作期间会通过快照跟踪文件变化，以支持会话内撤销与恢复。服务端也为 Session 提供消息、分叉、终止、差异、总结和回退等公开接口。[[31]](#ref-31) [[34]](#ref-34)
+
+这些接口表明 Session 不只是聊天文本列表；它还要承载消息、工具过程、当前状态和可视化差异。但文件快照仍不能撤销所有外部副作用。数据迁移、API 请求和远端仓库操作需要单独的幂等、补偿或审计设计。
+
+### 17.4.7 OpenCode 的实现特征
+
+从 V2 公开实现看，OpenCode 把 Client/Server、Session Runner、Provider 适配、Tool Registry、权限策略和多种界面组织为开放系统。它的优势是读者可以顺着源码和协议验证设计；代价是跨 Provider 与多客户端支持带来额外适配和兼容工作。
+
+可迁移的观察不是“任何开源 Agent 都天然更安全”，而是源码可见提升了实现可审计性。安全结论仍要检查有效配置、执行边界、依赖和实际运行路径。
+
+### 17.4.8 启动过程：连接服务与装配会话
+
+OpenCode V2 的默认启动方式是**发现或启动当前用户的共享后台服务，然后让本地客户端连接它**；该服务拥有会话、配置、集成、权限和工具执行。`--standalone` 使用私有服务，`--server` 连接指定 URL。不能把旧版本“每次 TUI 启动时附带一个服务”的描述直接套到 V2 默认行为。[[9]](#ref-9)
+
+| 阶段 | 初始化或执行动作 | 完成后得到什么 |
+| --- | --- | --- |
+| 选择连接方式 | CLI 采用共享服务发现 / 启动，或按参数选择私有服务、指定服务 | 客户端到目标服务的连接；连接已有服务时无需重新启动后台进程 |
+| 准备工作区配置 | 服务端按工作区处理生效配置、项目指令与相关集成 | 当前工作区的配置与指令范围；不是所有客户端共享同一项目上下文 |
+| 选择 Agent 与模型 | 确定主 Agent 和 Provider / Model，使用已有凭证，缺少连接条件时通过 `/connect` 等入口补齐 | 可用于该会话的角色、模型和访问条件 |
+| 建立或继续会话 | 经 Session 接口建立会话或读取已有状态，客户端提交输入 | 会话身份与消息；模型任务从输入提交后展开 |
+| 执行与权限交互 | 服务端运行模型和工具过程，应用权限规则，需要决定时等待客户端 | 已执行的工具结果或明确的拒绝；模型据此继续 |
+| 事件与持久化 | 客户端通过公开 API 和事件查看消息、状态及变更 | 可继续的会话和可审查结果；关闭某个界面不等于共享服务退出 |
+
+上述顺序是依据服务职责、配置、Provider 与 Session 接口作出的依赖概括，不承诺各子系统的内部构造顺序。配置中声明 Provider 并不证明已持有有效凭证；`/connect` 完成账户接入后，还要选择模型。项目指令采用 `AGENTS.md`，下层目录的说明可随文件读取和目录探索加入；V2 不以 `CLAUDE.md` 作为回退。[[10]](#ref-10)[[11]](#ref-11)[[12]](#ref-12)[[35]](#ref-35)
+
+权限也在服务端执行路径上继续发挥作用。V2 的 `permissions` 规则对动作与资源返回 `allow / deny / ask`，`ask` 等待客户端决定。因此，工具出现在目录中、服务已经启动、某个客户端已经连接，都不足以证明这次工具调用已经获准或完成。[[36]](#ref-36)[[37]](#ref-37)
+
+## 17.5 三种产品的实现边界与设计取舍
+
+### 17.5.1 对照表
+
+| 维度 | Codex CLI | Claude Code | OpenCode |
+| --- | --- | --- | --- |
+| 核心代码可见性 | CLI/runtime 多个组件公开源码 | 核心程序闭源；官方文档公开产品行为 | 项目源码公开，MIT 许可证 |
+| 本章证据 | 官方开源清单与 Rust 仓库 | 官方滚动文档与仓库许可证 | V2 文档与公开开发分支 |
+| 主循环 | Session/Turn 驱动采样、工具执行和事件 | 官方描述收集上下文、行动、验证循环 | V2 Session Runner 处理模型和工具过程 |
+| 前端边界 | Rust Core/TUI 与 App Server 协议 | CLI、IDE、桌面、云等接口；核心实现不可审计 | 服务端与 TUI/Desktop/IDE 等客户端 |
+| 模型接入 | 以 OpenAI/Codex 产品路径为主，仓库还含适配组件 | Claude 模型和官方支持的部署路径 | 多 Provider 与本地模型抽象 |
+| 工具和权限 | Tool Router、审批、环境与沙箱分层 | 官方公开工具、权限规则、模式和 Hook 行为 | Tool Registry、Agent 权限和 V2 Policies |
+| 会话与上下文 | 会话历史、Turn 状态和压缩逻辑可在仓库中跟踪 | 官方公开 Session、上下文和压缩行为 | Session API、消息事件、快照与恢复可审计 |
+| 结论可信度 | 可对照具体代码，但主分支会变化 | 只能对官方公开机制下结论 | V2 代码可见，需注意 V1/V2 差异 |
+
+表格比较的是公开资料能支持的实现边界，不是产品能力排名。尤其是 Claude Code 一栏：文档足以解释外部可见行为，却不足以审计核心算法和私有内部模块。
+
+### 17.5.2 开源能回答“怎么实现”，不能单独回答“是否可靠”
+
+公开源码让人可以检查工具执行、策略配置、恢复行为和错误处理，但代码存在不代表部署时启用了正确配置；默认功能存在也不代表每个版本和入口行为相同。源码审查还不能替代运行时验证、依赖审查、权限测试和真实故障演练。
+
+闭源产品也不是完全不可分析。官方行为文档、协议说明、配置接口和故障边界仍能支持严谨的系统比较。需要做的是把“可观察事实”和“内部猜测”分开，而不是用开源标签替代证据质量。
+
+### 17.5.3 成熟 Coding Agent 的共同设计经验
+
+从三个实现及公开接口中，可以归纳出几条工程原则：
+
+1. **把 Session、Turn 和工作区状态分开。** 会话记录是上下文资产，当前工作区是外部事实，当前轮次是短时执行状态。
+2. **把模型计划与工具执行分开。** 模型提出行动，运行时解析、授权、执行并记录结果。
+3. **让拒绝与失败成为一等结果。** 被用户拒绝、被策略拒绝、工具失败、网络失败和任务取消都必须被准确反馈。
+4. **将审批与隔离分层。** 审批决定是否允许某类操作，隔离限制实际进程的影响范围。
+5. **设计有损压缩后的恢复流程。** 摘要保存目标、证据、差异、验证和待办；恢复时仍需回到仓库核实。
+6. **委派要明确上下文与写入归属。** 子 Agent 的总结不是最终证据；并行修改还要解决文件冲突与集成验证。
+7. **验证当前差异而非接受模型自述。** 报告“测试通过”时要能追溯命令、退出状态和对应代码版本。
+8. **让可审查的交付成为主界面。** diff、命令结果、权限决策和未覆盖范围应能被人核对。
+
+### 17.5.4 如何阅读一个 Coding Agent 仓库
+
+如果要分析另一个 Coding Agent，可沿这些问题追源码，而不是从目录树开始随机浏览：
+
+| 问题 | 应找的代码或文档 |
+| --- | --- |
+| 一轮会话如何开始和结束？ | Session/Turn 入口、请求队列、取消路径 |
+| 模型请求如何携带上下文？ | Prompt/context 构造、历史存储、压缩逻辑 |
+| 工具如何注册和执行？ | 工具 schema、路由器、执行器、结果格式 |
+| 谁能批准或拒绝操作？ | 权限规则、审批请求、Hook、策略优先级 |
+| 进程实际受哪些资源限制？ | 沙箱、文件路径控制、网络策略、子进程入口 |
+| 多 Agent 如何通信和隔离？ | 子任务创建、消息投递、工作区、取消及晚到结果 |
+| 什么证据能证明完成？ | 测试结果、diff、会话状态、交付协议 |
+| 哪些功能只在托管环境可用？ | 云端 API、认证层、服务端调用和开源清单 |
+
+这套阅读顺序先定位运行闭环，再追踪关键边界。公开代码会随着版本改变，因此结论应绑定提交、版本或核验日期；没有公开证据时，明确写“未知”比补造一套内部架构更可靠。
+
+### 17.5.5 启动就绪条件与首轮执行边界
+
+[![Codex、Claude Code 与 OpenCode 的启动时序图：参与者生命线、请求与响应、条件分支及模型工具循环](../images/coding-agent-startup-comparison.png)](../images/coding-agent-startup-comparison.svg)
+
+*启动时序对照。三幅时序分别沿生命线向下阅读：实线为调用或请求，虚线为响应或结果，橙色为通知或界面展示；`alt` 表示条件分支，`opt` 表示可选 Hook，`loop` 表示模型与工具的重复交互。参与者是逻辑角色，不保证对应独立进程；Claude Code 仅描述官方可观察顺序。图中正常路径仍可能在认证、连接、Hook 或审批处等待或失败。标注含义见 17.1.4，点击图片查看可缩放 SVG。*
+
+| 观察点 | Codex App Server | Claude Code 本地会话 | OpenCode V2 |
+| --- | --- | --- | --- |
+| 进程或服务可用 | 服务启动并能接受客户端连接 | CLI / Harness 已启动，界面可以显示 | 共享、私有或指定服务可被客户端连接 |
+| 会话可用 | Thread 已建立或恢复，工作目录和执行设置已确定 | Session 已建立或恢复，适用指令与启动 Hook 参与上下文准备 | 服务端已确定工作区、Session、Agent 与模型条件 |
+| 本轮可执行 | 连接已握手，`turn/start` 被接受；工具执行仍可能等待审批 | 用户输入经过启动等待与本轮处理后进入循环；工具仍逐次受控 | 输入已提交，模型与工具条件满足；`ask` 仍会暂停动作 |
+| 完成的证据 | Turn 状态、Item、文件差异与实际检查结果 | Session 中的工具结果、文件差异与检查结果 | Session 消息、工具结果、事件与实际工作区差异 |
+
+据此，[第14章 14.2.1](../part3/03-agent-runtime.md#execution-loop) 的七步是**建设 Runtime 时的参考职责**，三款产品可以把它们拆在进程、工作区、会话和轮次四个阶段，部分能力延迟准备。不能据此断言每款产品都有七个同名模块、启动时会探测全部外部服务，或都会先运行验证器再接收输入。实践中应分别检查连接、会话、模型请求与工具执行的可用条件。
 
 ## 本章小结
 
-AI Coding Agent 的成熟，不是因为模型能写更多代码，而是因为系统开始围绕模型建立工程闭环。
+Codex CLI、Claude Code 与 OpenCode 都把模型放进了包含上下文、工具和验证的工程循环，但源码透明度不同：Codex CLI 与 OpenCode 可以沿公开代码追踪运行时，Claude Code 只能根据官方文档分析其外部机制与配置边界。
 
-本章的关键结论是：
-
-1. Vibe Coding 适合探索，Spec Coding 适合交付；
-2. Coding Agent 的核心不是“LLM + 工具”，而是 Model + Harness；
-3. Claude Code、Cursor、Codex 的差异，本质上是 CLI、IDE、云端 sandbox 在上下文、工具、权限和交付面上的取舍；
-4. 真实工作流里，Agent 可以连接外部事实源和本地实现源，但必须保留证据等级；
-5. 终端原生 Coding Agent 的核心机制包括 Agent Loop、Tool Plane、Task State、Context Control、Skill Loading、Verification Gate、Subagent、Background Task 和 Worktree Isolation；
-6. 完成不是模型说了算，必须由验证、diff、CI、review 或用户验收支撑；
-7. 生产级 Coding Agent 要解决权限、隔离、状态、审计、eval、成本和数据治理；
-8. 重复的工程经验应该沉淀为 Skill，失败的任务应该沉淀为 eval。
-
-最重要的变化是：
-
-> AI 编程的核心能力，正在从“亲手写代码”转向“定义任务、组织上下文、约束执行、审查结果”。
-
-如果你要从零实现原型，不要先追求“全自动程序员”。先实现一个能读文件、搜代码、局部修改、运行测试、输出 diff、保留 trace 的最小 Agent。这个原型足够小，却已经包含了 Coding Agent 的本质。
-
----
+三者共同说明，成熟 Coding Agent 的核心并不是某个特别长的系统提示词，而是把任务、状态、权限、执行、恢复和验证组织成一个能被用户审查的闭环。要评价系统是否可靠，应检查工具真正做了什么、动作被限制在哪里、任务状态如何恢复，以及完成结论有何证据。
 
 ## 参考资料
 
-1. <a id="ref-1"></a> Anthropic，[Claude Code overview](https://code.claude.com/docs/en/overview)，2026-10-18 文档快照。
-2. <a id="ref-2"></a> Cursor，[Search](https://cursor.com/docs/agent/tools/search)，2026-10-18 文档快照。
-3. <a id="ref-3"></a> OpenAI，[Codex glossary](https://learn.chatgpt.com/docs/glossary)，2026-10-18 文档快照。
-4. <a id="ref-4"></a> Anthropic，[How Claude Code works](https://code.claude.com/docs/en/how-claude-code-works)，2026-10-18 文档快照。
-5. <a id="ref-5"></a> OpenAI，[Codex SDK](https://developers.openai.com/codex/sdk)，2026-10-18 文档快照。
-6. <a id="ref-6"></a> BurntSushi/ripgrep，[ripgrep guide](https://github.com/BurntSushi/ripgrep/blob/master/GUIDE.md)，2026-10-18 master 文档快照。
-7. <a id="ref-7"></a> Microsoft，[Language Server Protocol specification](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/)，3.17。
-8. <a id="ref-8"></a> Git，[git-worktree](https://git-scm.com/docs/git-worktree)，2.56.0 manual。
+1. <a id="ref-1"></a> OpenAI，[Open Source](https://learn.chatgpt.com/docs/open-source)，Codex 开源组件清单与非开源组件说明，访问日期：2026-10-22。
+2. <a id="ref-2"></a> OpenAI，[Codex App Server](https://developers.openai.com/codex/app-server)，连接握手、Thread / Turn / Item、事件及 Code Mode host；持续更新，核验于 2026-10-22。
+3. <a id="ref-3"></a> OpenAI，[Config basics](https://developers.openai.com/codex/config-basic)，分层配置与项目可信状态；持续更新，核验于 2026-10-22。
+4. <a id="ref-4"></a> OpenAI，[Custom instructions with AGENTS.md](https://developers.openai.com/codex/guides/agents-md)，指令发现与加载边界；持续更新，核验于 2026-10-22。
+5. <a id="ref-5"></a> Anthropic，[How Claude Code works](https://code.claude.com/docs/en/how-claude-code-works)，Agent Loop、会话、上下文、压缩、权限与 Checkpoint，访问日期：2026-10-22。
+6. <a id="ref-6"></a> Anthropic，[Settings files and precedence](https://code.claude.com/docs/en/settings)，配置作用域与生效关系；持续更新，核验于 2026-10-22。
+7. <a id="ref-7"></a> Anthropic，[How Claude remembers your project](https://code.claude.com/docs/en/memory)，项目指令与 Auto memory 的加载；持续更新，核验于 2026-10-22。
+8. <a id="ref-8"></a> Anthropic，[Extend Claude with skills](https://code.claude.com/docs/en/skills)，Skill 目录与按需加载；持续更新，核验于 2026-10-22。
+9. <a id="ref-9"></a> OpenCode，[V2 CLI](https://opencode.ai/v2/docs/cli/)，共享后台服务及 standalone / server 连接模式；持续更新，核验于 2026-10-22。
+10. <a id="ref-10"></a> OpenCode，[V2 Config](https://opencode.ai/v2/docs/config/)，全局、项目、系统配置与默认 Agent；持续更新，核验于 2026-10-22。
+11. <a id="ref-11"></a> OpenCode，[V2 Providers](https://opencode.ai/v2/docs/providers/)，Provider 目录、凭证与模型选择；持续更新，核验于 2026-10-22。
+12. <a id="ref-12"></a> OpenCode，[V2 Instructions](https://opencode.ai/v2/docs/instructions/)，AGENTS.md 的初始发现与按需加载；持续更新，核验于 2026-10-22。
+13. <a id="ref-13"></a> OpenAI，[App Server 启动](https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/app-server/src/lib.rs)、[消息处理与初始化检查](https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/app-server/src/message_processor.rs)与 [ThreadManager](https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/thread_manager.rs)，运行时组成和启动图的源码依据，固定提交 `86e17e98c7f9`；核验于 2026-10-22。
+14. <a id="ref-14"></a> Anomaly Innovations，[ServerConnection.resolve](https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/cli/src/services/server-connection.ts) 与 [Standalone.start](https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/cli/src/services/standalone.ts)，V2 连接路径、共享服务与私有服务启动，固定提交 `c93aaae37157`；核验于 2026-10-22。
+15. <a id="ref-15"></a> OpenAI，[codex-rs/core/src/session/turn.rs](https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/session/turn.rs) 与 [state/turn.rs](https://github.com/openai/codex/blob/main/codex-rs/core/src/state/turn.rs)，Turn 主循环和轮次状态，访问日期：2026-10-22。
+16. <a id="ref-16"></a> OpenAI，[Tool Router](https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/tools/router.rs)、[Sandboxing](https://github.com/openai/codex/blob/main/codex-rs/core/src/tools/sandboxing.rs) 与 [Approvals](https://github.com/openai/codex/blob/main/codex-rs/core/src/tools/approvals.rs)，工具路由、审批与沙箱职责，访问日期：2026-10-22。
+17. <a id="ref-17"></a> Anomaly Innovations，[Session Runner](https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/session/runner/llm.ts) 与 [Core tool service](https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/tool.ts)，V2 开发分支中的模型循环与工具注册/执行，访问日期：2026-10-22。
+18. <a id="ref-18"></a> OpenCode，[Policies](https://opencode.ai/v2/docs/policies/) 与 [Permissions](https://opencode.ai/v2/docs/permissions/)，V2 权限和策略规则，访问日期：2026-10-22。
+19. <a id="ref-19"></a> Anthropic，[Configure permissions](https://code.claude.com/docs/en/permissions)，权限模式和规则，访问日期：2026-10-22。
+20. <a id="ref-20"></a> Anthropic，[Hooks reference](https://code.claude.com/docs/en/hooks)，SessionStart、启动等待与 Setup 的触发边界；持续更新，核验于 2026-10-22。
+21. <a id="ref-21"></a> OpenAI，[codex-rs/core/README.md](https://github.com/openai/codex/blob/main/codex-rs/core/README.md)，Codex Core 的职责与支持范围，访问日期：2026-10-22。
+22. <a id="ref-22"></a> OpenAI，[codex-rs/core/src/session/turn.rs](https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/session/turn.rs)，模型采样、工具调用和助手消息的执行循环，访问日期：2026-10-22。
+23. <a id="ref-23"></a> OpenAI，[codex-rs/protocol/README.md](https://github.com/openai/codex/blob/main/codex-rs/protocol/README.md)，Core、TUI 与 App Server 共用的协议类型，访问日期：2026-10-22。
+24. <a id="ref-24"></a> OpenAI，[codex-rs/app-server/README.md](https://github.com/openai/codex/blob/main/codex-rs/app-server/README.md)，App Server 接入和协议，访问日期：2026-10-22。
+25. <a id="ref-25"></a> OpenAI，[Context window](https://github.com/openai/codex/blob/main/codex-rs/core/src/session/context_window.rs)、[Compaction](https://github.com/openai/codex/blob/main/codex-rs/core/src/compact.rs)，上下文窗口和历史压缩，访问日期：2026-10-22。
+26. <a id="ref-26"></a> Anthropic，[Claude Code GitHub repository](https://github.com/anthropics/claude-code)，公开仓库中的产品说明与资料范围，访问日期：2026-10-22。
+27. <a id="ref-27"></a> Anthropic，[Claude Code LICENSE.md](https://github.com/anthropics/claude-code/blob/main/LICENSE.md)，版权和适用条款，访问日期：2026-10-22。
+28. <a id="ref-28"></a> Anthropic，[Extend Claude Code](https://code.claude.com/docs/en/features-overview)，Skills、MCP、Hooks、Subagents 与插件的公开职责，访问日期：2026-10-22。
+29. <a id="ref-29"></a> Anthropic，[Create custom subagents](https://code.claude.com/docs/en/sub-agents)，子 Agent 的上下文与配置，访问日期：2026-10-22。
+30. <a id="ref-30"></a> Anomaly Innovations，[OpenCode repository](https://github.com/anomalyco/opencode)，OpenCode 开源项目与许可证信息，访问日期：2026-10-22。
+31. <a id="ref-31"></a> OpenCode，[V2 CLI](https://opencode.ai/v2/docs/cli/) 与 [V2 API](https://opencode.ai/v2/docs/api)，共享后台服务、Client/Server 结构与 Session API，访问日期：2026-10-22。
+32. <a id="ref-32"></a> OpenCode，[Models](https://opencode.ai/v2/docs/models/) 与 [Providers](https://opencode.ai/v2/docs/providers/)，Provider 与模型配置，访问日期：2026-10-22。
+33. <a id="ref-33"></a> OpenCode，[Agents](https://opencode.ai/v2/docs/agents/) 与 [Tools](https://opencode.ai/v2/docs/tools/)，Primary Agent、Subagent 与工具能力，访问日期：2026-10-22。
+34. <a id="ref-34"></a> OpenCode，[Config](https://opencode.ai/v2/docs/config/) 与 [V2 API](https://opencode.ai/v2/docs/api)，文件快照、Session 差异与恢复接口，访问日期：2026-10-22。
+35. <a id="ref-35"></a> OpenCode，[V2 API](https://opencode.ai/v2/docs/api)，服务端 Session、消息及事件接口；持续更新，核验于 2026-10-22。
+36. <a id="ref-36"></a> OpenCode，[V2 Permissions](https://opencode.ai/v2/docs/permissions/)，动作与资源裁决及客户端审批；持续更新，核验于 2026-10-22。
+37. <a id="ref-37"></a> OpenCode，[V2 Tools](https://opencode.ai/v2/docs/tools/)，文件、搜索、Shell 等工具与权限对应关系；持续更新，核验于 2026-10-22。

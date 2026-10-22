@@ -8,7 +8,7 @@
 | --- | --- | --- | --- | --- |
 | OpenAI API / 模型 SDK | 模型请求与工具配置；应用仍需处理自定义工具执行与状态 | 滚动官方文档；2026-10-18 | [Using tools](https://developers.openai.com/api/docs/guides/tools)；[第12章](../part3/01-llm-api-protocol.md) | 具体模型/工具/区域/账户可用性、SDK 版本和费用未知 |
 | Anthropic 模型 SDK | 消息、流和工具的供应商适配入口 | [第12章](../part3/01-llm-api-protocol.md)核验；2026-10-18 | [API 文档](https://docs.anthropic.com/en/api/overview) | 不由模型 SDK 推出持久任务、审批或业务幂等 |
-| OpenAI Agents SDK | 代码式 Agent 循环、工具和交接 | [第14章](../part3/03-agent-runtime.md#implementation-validation)核验；滚动文档，2026-10-17 | [官方 SDK 指南](https://developers.openai.com/api/docs/guides/agents/sdk) | 应用自己的状态、工具实现及部署保证需另验 |
+| OpenAI Agents SDK | 代码式 Agent 循环、工具和交接 | [第14章](../part3/03-agent-runtime.md#runtime-components)说明执行职责；滚动文档，2026-10-17 | [官方 SDK 指南](https://developers.openai.com/api/docs/guides/agents/sdk) | 应用自己的状态、工具实现及部署保证需另验 |
 | Claude Agent SDK | 嵌入 Coding 循环、工具与上下文能力 | 第14章核验；滚动文档，2026-10-18 | [官方概览](https://code.claude.com/docs/en/agent-sdk/overview) | 进程、工作区、凭据与权限边界 |
 | LangChain / LangGraph | 高层 Agent 抽象 / 显式状态图和 checkpoint 组合 | 第14章核验；滚动文档，2026-10-17–18 | [LangChain](https://docs.langchain.com/oss/python/langchain/overview)、[Persistence](https://docs.langchain.com/oss/python/langgraph/persistence) | 内存 saver 不证明重启恢复；业务幂等由应用承担 |
 | AutoGen Core / Microsoft Agent Framework | 异步消息执行 / Agent 与 Workflow 抽象 | 第14章核验；stable/滚动文档，2026-10-18 | [Core](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/index.html)、[Framework](https://learn.microsoft.com/en-us/agent-framework/overview/) | 分布式存储、owner、取消和重复副作用 |
@@ -18,7 +18,7 @@
 | Triton 语言 | GPU 计算程序与算子层 | [第8章](../part2/02-training.md)核验；main 文档，2026-10-17 | [语言介绍](https://triton-lang.org/main/programming-guide/chapter-1/introduction.html) | 生成 kernel 的正确性与性能未实测 |
 | Triton Inference Server | 模型仓库、版本与服务生命周期 | 第9章核验；滚动文档，2026-10-17 | [Model Management](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/model_management.html) | 不是 Triton 语言；模型后端能力分别核验 |
 | Claude Code / Cursor / Codex | 终端、IDE、本地/云任务产品形态 | [第17章](../part4/01-coding-agent-systems.md)核验；滚动文档，2026-10-18 | 原始产品文档及限定论点见第17章参考资料 | 无永久优劣榜；功能、套餐与本机开关分别核验 |
-| Claude Code | Coding Agent 执行循环、上下文、扩展与行动控制 | [第21章](../part4/05-claude-code-internals.md)；官方滚动文档，2026-10-19 | 机制与来源映射见第21章参考资料 | 未运行产品；默认行为依赖版本、入口和配置，Shell 沙箱不覆盖全部组件 |
+| Codex CLI / Claude Code / OpenCode | Coding Agent 执行循环、上下文、工具、权限与证据边界 | [第17章](../part4/01-coding-agent-systems.md)；源码/官方滚动文档，2026-10-22 | 机制与来源映射见第17章参考资料；OpenCode 按 V2 核验 | Codex CLI 与 OpenCode 有公开源码；Claude Code 核心闭源；版本和入口需分别核验 |
 | Pi | 终端 Runtime 与 SDK、扩展及会话资源 | [第18章](../part4/02-pi-agent-architecture.md)核验；2026-10-18 | [Pi SDK](https://pi.dev/docs/latest/sdk)；具体包与来源见该章 | 以该章 @earendil-works 命名空间与 ModelRuntime 为准；不外推旧 SDK 示例 |
 | OpenClaw | Gateway、自有 Runtime、工具和会话历史 | 提交 `62cb03ac7a95f4b9cb435f8efc57f4034ba2649b`；2026-10-18 | [固定源码](https://github.com/openclaw/openclaw/tree/62cb03ac7a95f4b9cb435f8efc57f4034ba2649b)；[第19章](../part4/03-openclaw-architecture.md) | 活动历史与旧 JSONL 区分；profile 不自动提供隔离 |
 | Hermes | 入口、Memory、Skill、delegate 与限定投递记录 | 提交 `18c525b669b6ea4ba62e6967d228af21d89aa9d3`；2026-10-18 | [固定源码](https://github.com/NousResearch/hermes-agent/tree/18c525b669b6ea4ba62e6967d228af21d89aa9d3)；[第20章](../part4/04-hermes-agent-architecture.md) | 特定 Gateway 投递 ledger 不证明任意业务 Outbox/Checkpoint/补偿；教学扩展单列 |

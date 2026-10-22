@@ -720,7 +720,7 @@ Workflow:
 
 教学请求：“把这个仓库登录问题修好，顺便上线。”先读取已有Issue、约定和失败日志；仍缺信息时追问失败路径、预期行为和交付范围。部署目标环境、版本与授权必须明确，不能猜测后修改生产配置。答案写回Task Contract的confirmed、open_questions、allowed_actions与acceptance，保留来源和版本；后续只追问仍阻塞的缺项。
 
-该过程连接[第17章Coding架构](../part4/01-coding-agent-systems.md)与[第21章Claude Code执行与验证案例](../part4/05-claude-code-internals.md)。
+该过程连接[第17章成熟 Coding Agent 的共通架构与产品实现](../part4/01-coding-agent-systems.md)。
 
 ### 角色、职责与工具权限对齐
 

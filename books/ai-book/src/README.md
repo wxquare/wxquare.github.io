@@ -90,11 +90,10 @@ AI 工程实践里最容易踩的坑，不只是模型输出不稳定，也包�
 
 | 章 | 章节 | 一句话概述 |
 | --- | --- | --- |
-| 第17章 | [AI Coding Agent 系统解析：从工作协议到 Harness 工程](part4/01-coding-agent-systems.md) | 从系统视角拆解 Coding Agent，理解它为什么能帮人写代码。 |
+| 第17章 | [成熟 Coding Agent 内部实现：Codex CLI、Claude Code 与 OpenCode](part4/01-coding-agent-systems.md) | 先建立共通执行闭环，再从公开源码和官方文档比较三种产品的实现边界。 |
 | 第18章 | [Pi Agent 架构解析：终端原生 Coding Agent Runtime、扩展系统与上下文工程](part4/02-pi-agent-architecture.md) | 分析一个终端原生 Coding Agent 如何组织运行时、扩展和上下文。 |
 | 第19章 | [OpenClaw 架构解析：个人 AI 助手的 Gateway、Runtime 与工具生态](part4/03-openclaw-architecture.md) | 讲述个人 AI 助手如何通过 Gateway、Runtime 和工具生态协同工作。 |
 | 第20章 | [Hermes Agent 架构解析：长期运行、自我进化与多入口 Agent Runtime](part4/04-hermes-agent-architecture.md) | 通过记忆、Skill、多入口和版本化源码理解长期运行；教学扩展与已核验能力分别说明。 |
-| 第21章 | [Claude Code 原理剖析：执行循环、上下文工程与可控行动](part4/05-claude-code-internals.md) | 从官方公开机制理解执行循环、上下文、工具扩展、协作、权限与验证，并贯穿一次分页修复教学案例。 |
 
 ### 第五部分：前沿研究与工程展望
 
@@ -102,7 +101,7 @@ AI 工程实践里最容易踩的坑，不只是模型输出不稳定，也包�
 
 | 章 | 章节 | 一句话概述 |
 | --- | --- | --- |
-| 第22章 | [AI 智能体研究现状、工程瓶颈与未来理想能力架构报告](part5/01-agent-frontier-research.md) | 从研究和工程两条线梳理智能体的现状、瓶颈与未来方向。 |
+| 第21章 | [AI 智能体研究现状、工程瓶颈与未来理想能力架构报告](part5/01-agent-frontier-research.md) | 从研究和工程两条线梳理智能体的现状、瓶颈与未来方向。 |
 
 ### 附录
 
@@ -110,11 +109,11 @@ AI 工程实践里最容易踩的坑，不只是模型输出不稳定，也包�
 
 ## 贯穿案例与练习的阅读方式
 
-全书包含五部分、22 个公开章节；第四部分以 Claude Code 原理剖析收束，第五部分承接前沿研究。两个教学案例分别检验不同责任边界：
+全书包含五部分、21 个公开章节；第四部分以成熟 Coding Agent 内部实现为案例，第五部分承接前沿研究。两个教学案例分别检验不同责任边界：
 
 | 案例 | 先建立机制 | 再看应用 | 重点核对 |
 | --- | --- | --- | --- |
-| Coding Agent | [第13章上下文](part3/02-context-engineering.md)、[第15章工具](part3/04-skills-tools-mcp-connectors.md) | [第17章产品与Harness](part4/01-coding-agent-systems.md)、[第21章Claude Code](part4/05-claude-code-internals.md) | 代码版本、工作区、工具权限、候选完成与独立Verifier |
+| Coding Agent | [第13章上下文](part3/02-context-engineering.md)、[第15章工具](part3/04-skills-tools-mcp-connectors.md) | [第17章成熟产品实现与Harness](part4/01-coding-agent-systems.md) | 代码版本、工作区、工具权限、候选完成与独立Verifier |
 | Hermes 长期助手 | [Runtime 状态](part3/03-agent-runtime.md#object-model)、[第13章记忆](part3/02-context-engineering.md#memory)、[第14章编排](part3/03-agent-runtime.md#workflow) | [第20章贯穿简报](part4/04-hermes-agent-architecture.md) | Session、Memory、缓存与特定投递 ledger 分别取证；通用业务 Outbox、Checkpoint、幂等和补偿是另行标明的教学扩展 |
 
 章节包含原理推导、文档核验、教学轨迹与实验设计，验收层次分别标明。第1/3/5/8/9章的练习卡可从[附录B](appendix/references.md)进入；卡片完成不代表已经提供完整可运行代码、GPU测量或生产验证。选型先查[附录C](appendix/tools.md)的版本和未知项，再回到章末原始来源。

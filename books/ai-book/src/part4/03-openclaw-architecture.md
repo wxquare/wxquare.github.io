@@ -4,7 +4,7 @@
 
 ## 引言
 
-[第14章](../part3/03-agent-runtime.md#implementation-validation)已区分编排/SDK/Runtime 层次，MCP 属于工具协议；第17章分析了 AI Coding Agent，第18章进一步拆解了 Pi 这类终端原生 Coding Agent Runtime。本章继续分析一个更贴近个人生产力场景的成熟系统：OpenClaw。
+[第14章](../part3/03-agent-runtime.md#runtime-components)说明了任务状态、执行和工具的职责边界，MCP 属于工具协议；第17章分析了 AI Coding Agent，第18章进一步拆解了 Pi 这类终端原生 Coding Agent Runtime。本章继续分析一个更贴近个人生产力场景的成熟系统：OpenClaw。
 
 OpenClaw 的官方定位是个人 AI 助手。它运行在用户自己的设备或服务器上，通过一个长期运行的 Gateway 接入 WhatsApp、Telegram、Slack、Discord、Signal、iMessage、WebChat 等渠道，并把这些消息路由给 Agent Runtime。它还提供工具、技能、插件、会话、上下文、沙箱、移动节点和控制台等能力。
 

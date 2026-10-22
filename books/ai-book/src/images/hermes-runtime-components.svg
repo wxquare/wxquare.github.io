@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1140" viewBox="0 0 1440 1140" role="img" aria-labelledby="title desc">
+<title id="title">Hermes Runtime：组件、所有权与执行回路</title><desc id="desc">固定提交 18c525b · 框为逻辑职责；Gateway 管理的执行可在进程内或 worker 中发生</desc>
+<style>text{font-family:"Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei",sans-serif;fill:#111827} .sub{fill:#6b7280}</style>
+<defs>
+<marker id="blue" viewBox="0 0 10 8" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M 0 0 L 10 4 L 0 8 Z" fill="#2563eb"/></marker>
+<marker id="green" viewBox="0 0 10 8" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M 0 0 L 10 4 L 0 8 Z" fill="#059669"/></marker>
+<marker id="purple" viewBox="0 0 10 8" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M 0 0 L 10 4 L 0 8 Z" fill="#7c3aed"/></marker>
+<marker id="orange" viewBox="0 0 10 8" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M 0 0 L 10 4 L 0 8 Z" fill="#ea580c"/></marker>
+<marker id="gray" viewBox="0 0 10 8" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M 0 0 L 10 4 L 0 8 Z" fill="#6b7280"/></marker>
+</defs>
+<rect x="0" y="0" width="1440" height="1140" rx="0" fill="#ffffff" stroke="none" stroke-width="1.6"/>
+<text x="48" y="53" font-size="32" fill="#111827" style="fill:#111827" font-weight="600" text-anchor="start">Hermes Runtime：组件、所有权与执行回路</text>
+<text x="48" y="88" font-size="19" fill="#6b7280" style="fill:#6b7280" font-weight="400" text-anchor="start">固定提交 18c525b · 框为逻辑职责；Gateway 管理的执行可在进程内或 worker 中发生</text>
+<rect x="48" y="128" width="420" height="94" rx="12" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1.6"/>
+<text x="68" y="162" font-size="23" fill="#111827" style="fill:#111827" font-weight="600" text-anchor="start">CLI / TUI 前端</text>
+<text x="68" y="192" font-size="19" fill="#6b7280" style="fill:#6b7280" font-weight="400" text-anchor="start">协议客户端 / 代理 · 展示事件</text>
+<rect x="510" y="128" width="420" height="94" rx="12" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1.6"/>
+<text x="530" y="162" font-size="23" fill="#111827" style="fill:#111827" font-weight="600" text-anchor="start">平台消息 / 客户端请求</text>
+<text x="530" y="192" font-size="19" fill="#6b7280" style="fill:#6b7280" font-weight="400" text-anchor="start">Adapter · 标准化事件</text>
+<rect x="972" y="128" width="420" height="94" rx="12" fill="#f9fafb" stroke="#d1d5db" stroke-width="1.6"/>
+<text x="992" y="162" font-size="23" fill="#111827" style="fill:#111827" font-weight="600" text-anchor="start">Python / 其他集成</text>
+<text x="992" y="192" font-size="19" fill="#6b7280" style="fill:#6b7280" font-weight="400" text-anchor="start">可直接构造 AIAgent</text>
+<rect x="48" y="280" width="882" height="116" rx="12" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.6"/>
+<text x="68" y="314" font-size="23" fill="#111827" style="fill:#111827" font-weight="600" text-anchor="start">Gateway：共享会话运行时所有者</text>
+<text x="68" y="344" font-size="19" fill="#6b7280" style="fill:#6b7280" font-weight="400" text-anchor="start">SessionAuthorities · 会话准入 / 恢复 · 路由 / 投递</text>
+<text x="68" y="372" font-size="19" fill="#6b7280" style="fill:#6b7280" font-weight="400" text-anchor="start">接入端点 · Adapter · Cron / Watcher</text>
+<rect x="972" y="280" width="420" height="116" rx="12" fill="#fff7ed" stroke="#fed7aa" stroke-width="1.6"/>
+<text x="992" y="314" font-size="23" fill="#111827" style="fill:#111827" font-weight="600" text-anchor="start">Profile 作用域</text>
+<text x="992" y="344" font-size="19" fill="#6b7280" style="fill:#6b7280" font-weight="400" text-anchor="start">HERMES_HOME / 配置 / 凭据</text>
+<text x="992" y="372" font-size="19" fill="#6b7280" style="fill:#6b7280" font-weight="400" text-anchor="start">多 profile 分别持有 authority</text>
+<path d="M 258 222 L 258 280" fill="none" stroke="#2563eb" stroke-width="2.2" marker-end="url(#blue)"/>
+<path d="M 720 222 L 720 280" fill="none" stroke="#2563eb" stroke-width="2.2" marker-end="url(#blue)"/>
+<rect x="48" y="448" width="1344" height="438" rx="12" fill="#f9fafb" stroke="#94a3b8" stroke-width="1.6" stroke-dasharray="8 5"/>
+<text x="80" y="484" font-size="25" fill="#111827" style="fill:#111827" font-weight="600" text-anchor="start">AIAgent：装配后的执行核心</text>
+<text x="1360" y="484" font-size="19" fill="#6b7280" style="fill:#6b7280" font-weight="400" text-anchor="end">一个回合可包含多次模型请求</text>
+<path d="M 488 396 L 488 448" fill="none" stroke="#2563eb" stroke-width="2.2" marker-end="url(#blue)"/>
+<path d="M 1182 222 L 1414 222 L 1414 418 L 1182 418 L 1182 448" fill="none" stroke="#2563eb" stroke-width="2.2" marker-end="url(#blue)"/>
+<rect x="80" y="520" width="390" height="96" rx="12" fill="#faf5ff" stroke="#ddd6fe" stroke-width="1.6"/>
+<text x="100" y="554" font-size="23" fill="#111827" style="fill:#111827" font-weight="600" text-anchor="start">Prompt / Context Engine</text>
+<text x="100" y="584" font-size="19" fill="#6b7280" style="fill:#6b7280" font-weight="400" text-anchor="start">prompt 快照 · 压缩 / 窗口</text>
+<rect x="520" y="520" width="390" height="96" rx="12" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.6"/>
+<text x="540" y="554" font-size="23" fill="#111827" style="fill:#111827" font-weight="600" text-anchor="start">Turn / Conversation Loop</text>
+<text x="540" y="584" font-size="19" fill="#6b7280" style="fill:#6b7280" font-weight="400" text-anchor="start">准入 · 预算 · 中断 · 回退</text>
+<rect x="960" y="520" width="400" height="96" rx="12" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1.6"/>
+<text x="980" y="554" font-size="23" fill="#111827" style="fill:#111827" font-weight="600" text-anchor="start">Provider / Client / Transport</text>
+<text x="980" y="584" font-size="19" fill="#6b7280" style="fill:#6b7280" font-weight="400" text-anchor="start">统一消息 → 实际模型 API</text>
+<rect x="80" y="714" width="390" height="104" rx="12" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1.6"/>
+<text x="100" y="748" font-size="23" fill="#111827" style="fill:#111827" font-weight="600" text-anchor="start">Session / Memory / Callbacks</text>
+<text x="100" y="778" font-size="19" fill="#6b7280" style="fill:#6b7280" font-weight="400" text-anchor="start">历史 / 事实快照 · 事件反馈</text>
+<rect x="520" y="714" width="390" height="104" rx="12" fill="#faf5ff" stroke="#ddd6fe" stroke-width="1.6"/>
+<text x="540" y="748" font-size="23" fill="#111827" style="fill:#111827" font-weight="600" text-anchor="start">Tool Executor / Dispatch</text>
+<text x="540" y="778" font-size="19" fill="#6b7280" style="fill:#6b7280" font-weight="400" text-anchor="start">校验参数 · 调度 · 整理结果</text>
+<rect x="960" y="714" width="400" height="104" rx="12" fill="#fff7ed" stroke="#fed7aa" stroke-width="1.6"/>
+<text x="980" y="748" font-size="23" fill="#111827" style="fill:#111827" font-weight="600" text-anchor="start">Registry / Toolsets / MCP</text>
+<text x="980" y="778" font-size="19" fill="#6b7280" style="fill:#6b7280" font-weight="400" text-anchor="start">可见 schema · 工具实现</text>
+<path d="M 470 566 L 520 566" fill="none" stroke="#2563eb" stroke-width="2.2" marker-end="url(#blue)"/>
+<path d="M 910 566 L 960 566" fill="none" stroke="#2563eb" stroke-width="2.2" marker-end="url(#blue)"/>
+<path d="M 1160 616 L 1160 650 L 810 650 L 810 616" fill="none" stroke="#7c3aed" stroke-width="2.2" marker-end="url(#purple)"/>
+<rect x="986.0" y="628" width="88" height="28" rx="3" fill="#ffffff" stroke="none" stroke-width="1.6"/>
+<text x="1030" y="645" font-size="18" fill="#7c3aed" style="fill:#7c3aed" font-weight="400" text-anchor="middle">模型响应</text>
+<path d="M 680 616 L 680 714" fill="none" stroke="#2563eb" stroke-width="2.2" marker-end="url(#blue)"/>
+<rect x="563.7" y="653" width="118.6" height="28" rx="3" fill="#ffffff" stroke="none" stroke-width="1.6"/>
+<text x="623" y="670" font-size="18" fill="#2563eb" style="fill:#2563eb" font-weight="400" text-anchor="middle">tool calls</text>
+<path d="M 750 714 L 750 616" fill="none" stroke="#7c3aed" stroke-width="2.2" marker-end="url(#purple)"/>
+<rect x="763.0" y="679" width="88" height="28" rx="3" fill="#ffffff" stroke="none" stroke-width="1.6"/>
+<text x="807" y="696" font-size="18" fill="#7c3aed" style="fill:#7c3aed" font-weight="400" text-anchor="middle">观察结果</text>
+<path d="M 960 764 L 910 764" fill="none" stroke="#ea580c" stroke-width="2.2" marker-end="url(#orange)"/>
+<path d="M 520 764 L 470 764" fill="none" stroke="#059669" stroke-width="2.2" marker-end="url(#green)" stroke-dasharray="6 5"/>
+<rect x="48" y="956" width="640" height="104" rx="12" fill="#f0fdf4" stroke="#a7f3d0" stroke-width="1.6"/>
+<text x="68" y="990" font-size="23" fill="#111827" style="fill:#111827" font-weight="600" text-anchor="start">持久状态：按 profile / session 分界</text>
+<text x="68" y="1020" font-size="19" fill="#6b7280" style="fill:#6b7280" font-weight="400" text-anchor="start">state.db · memories · skills · 可选 trajectory</text>
+<rect x="770" y="956" width="622" height="104" rx="12" fill="#faf5ff" stroke="#ddd6fe" stroke-width="1.6"/>
+<text x="790" y="990" font-size="23" fill="#111827" style="fill:#111827" font-weight="600" text-anchor="start">工具后端：首次需要时创建或连接</text>
+<text x="790" y="1020" font-size="19" fill="#6b7280" style="fill:#6b7280" font-weight="400" text-anchor="start">Local / Docker / SSH / Cloud · Browser / API</text>
+<path d="M 250 818 L 250 956" fill="none" stroke="#059669" stroke-width="2.2" marker-end="url(#green)" stroke-dasharray="6 5"/>
+<path d="M 300 956 L 300 818" fill="none" stroke="#059669" stroke-width="2.2" marker-end="url(#green)"/>
+<rect x="291.255" y="901" width="143.49" height="29" rx="3" fill="#ffffff" stroke="none" stroke-width="1.6"/>
+<text x="363" y="919" font-size="19" fill="#059669" style="fill:#059669" font-weight="400" text-anchor="middle">加载 / 持久化</text>
+<path d="M 715 818 L 715 922 L 1080 922 L 1080 956" fill="none" stroke="#2563eb" stroke-width="2.2" marker-end="url(#blue)"/>
+<rect x="1035.0" y="899" width="130" height="29" rx="3" fill="#ffffff" stroke="none" stroke-width="1.6"/>
+<text x="1100" y="917" font-size="19" fill="#2563eb" style="fill:#2563eb" font-weight="400" text-anchor="middle">实际能力调用</text>
+<path d="M 48 1099 L 88 1099" fill="none" stroke="#2563eb" stroke-width="2.2" marker-end="url(#blue)"/>
+<text x="100" y="1106" font-size="18" fill="#6b7280" style="fill:#6b7280" font-weight="400" text-anchor="start">主要调用</text>
+<path d="M 300 1099 L 340 1099" fill="none" stroke="#7c3aed" stroke-width="2.2" marker-end="url(#purple)"/>
+<text x="352" y="1106" font-size="18" fill="#6b7280" style="fill:#6b7280" font-weight="400" text-anchor="start">模型 / 工具回路</text>
+<path d="M 630 1099 L 670 1099" fill="none" stroke="#ea580c" stroke-width="2.2" marker-end="url(#orange)"/>
+<text x="682" y="1106" font-size="18" fill="#6b7280" style="fill:#6b7280" font-weight="400" text-anchor="start">能力绑定</text>
+<path d="M 900 1099 L 940 1099" fill="none" stroke="#059669" stroke-width="2.2" marker-end="url(#green)"/>
+<text x="952" y="1106" font-size="18" fill="#6b7280" style="fill:#6b7280" font-weight="400" text-anchor="start">读取状态</text>
+<path d="M 1160 1099 L 1200 1099" fill="none" stroke="#059669" stroke-width="2.2" marker-end="url(#green)" stroke-dasharray="6 5"/>
+<text x="1212" y="1106" font-size="18" fill="#6b7280" style="fill:#6b7280" font-weight="400" text-anchor="start">写入状态</text>
+</svg>

@@ -37,17 +37,16 @@
 
 # 第四部分：Agent 应用与实战
 
-- [第17章 AI Coding Agent 系统解析：从工作协议到 Harness 工程](part4/01-coding-agent-systems.md)
+- [第17章 成熟 Coding Agent 内部实现：Codex CLI、Claude Code 与 OpenCode](part4/01-coding-agent-systems.md)
 - [第18章 Pi Agent 架构解析：终端原生 Coding Agent Runtime、扩展系统与上下文工程](part4/02-pi-agent-architecture.md)
 - [第19章 OpenClaw 架构解析：个人 AI 助手的 Gateway、Runtime 与工具生态](part4/03-openclaw-architecture.md)
 - [第20章 Hermes Agent 架构解析：长期运行、自我进化与多入口 Agent Runtime](part4/04-hermes-agent-architecture.md)
-- [第21章 Claude Code 原理剖析：执行循环、上下文工程与可控行动](part4/05-claude-code-internals.md)
 
 ---
 
 # 第五部分：前沿与研究
 
-- [第22章 AI 智能体研究现状、工程瓶颈与未来理想能力架构报告](part5/01-agent-frontier-research.md)
+- [第21章 AI 智能体研究现状、工程瓶颈与未来理想能力架构报告](part5/01-agent-frontier-research.md)
 
 ---
 
