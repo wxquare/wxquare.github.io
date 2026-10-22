@@ -43,10 +43,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-e73527a4.js";
+            window.path_to_searchindex_js = "../searchindex-d61705cb.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ae5c0ced.js"></script>
+        <script src="../toc-f2820824.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -188,7 +188,7 @@
                         <h1 id="第10章-评估与反馈闭环"><a class="header" href="#第10章-评估与反馈闭环">第10章 评估与反馈闭环</a></h1>
 <p>模型上线之后，最难的问题往往不是“还能不能调用”，而是“这次变化是否真的变好”。数据版本变化、提示模板变化、检索结果变化、模型量化变化、用户分布变化和工具失败，都会让质量指标发生变化。没有数据与评估 Infra，团队只能凭少量示例和主观感受发布模型，问题通常会在生产流量和长期反馈中才暴露。</p>
 <p>本章把数据与评估看成一条生产链路：数据进入时有来源、授权、schema 和质量检查；加工时有版本、血缘、去重、采样和分片；评估时有固定回归集、任务指标、裁判校准和统计不确定性；线上运行时有请求 trace、反馈、失败样本和漂移监控；发布时由质量门禁决定是否灰度、回滚或进入人工审查。RDD与MapReduce提供数据处理容错参考 <a href="#ref-1">[1]</a><a href="#ref-2">[2]</a>，lakeFS与TFDV提供版本和校验组件 <a href="#ref-3">[3]</a><a href="#ref-4">[4]</a>，HELM、BIG-bench和Ragas提供多维测量方法 <a href="#ref-5">[5]</a><a href="#ref-6">[6]</a><a href="#ref-7">[7]</a>；平台仍需定义自己的发布证据契约。</p>
-<p>本章的核心判断是：系统运行正常不等于质量正在改善。第9章关心请求是否稳定交付，第12章关心生产治理和责任闭环，第17章会专门展开 Agent Evals、Guardrails 与可观测性；本章位于它们之间，负责把数据、评估协议、judge、线上反馈和发布门禁变成可复核证据。</p>
+<p>本章的核心判断是：系统运行正常不等于质量正在改善。第9章关心请求是否稳定交付，第11章关心生产治理和责任闭环，第16章会专门展开 Agent Evals、Guardrails 与可观测性；本章位于它们之间，负责把数据、评估协议、judge、线上反馈和发布门禁变成可复核证据。</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -433,7 +433,7 @@ result:
 <p>数据 snapshot、manifest、评估结果和报告需要备份与恢复演练。原始敏感内容可能不可复制，但 manifest、hash、授权和报告至少应有跨故障域的可恢复副本。评估 worker 可以重建，结果不可重算或成本极高的 evidence bundle 需要更高保留等级。灾备测试验证恢复后的 hash、权限、版本和报告可读。</p>
 <p>发布事故时，平台需要能读取最后一个已批准报告、模型 artifact、数据 snapshot 和门禁配置，即使评估集群不可用。否则无法判断是否回滚。灾备不等于把所有内容复制到所有区域，依然要遵守数据驻留与删除策略。恢复路径写入 runbook，并定期演练。</p>
 <h3 id="评估调度与业务执行的职责边界"><a class="header" href="#评估调度与业务执行的职责边界">评估调度与业务执行的职责边界</a></h3>
-<p>本章job调度只负责把固定case分发到已批准环境、生成可聚合结果，并控制资源、超时和预算。第11章Runtime负责用户Task/Run/Step/Operation的持久状态、外部副作用及恢复，评估系统通过隔离fixture或受控回放消费它的接口。不能把“eval分区重试”解释成“业务写工具可以再调用一次”。数据snapshot提交标记和本书prepare/validate/commit是应用层协议，不自动获得数据库跨系统ACID；别名更新要有原子条件，所有分区可见且校验通过后才提交，失败重试不覆盖已接受快照。</p>
+<p>本章job调度只负责把固定case分发到已批准环境、生成可聚合结果，并控制资源、超时和预算。<a href="../part3/03-agent-runtime.html#object-model">Agent Runtime</a>负责用户Task/Run/Step/Operation的持久状态、外部副作用及恢复，评估系统通过隔离fixture或受控回放消费它的接口。不能把“eval分区重试”解释成“业务写工具可以再调用一次”。数据snapshot提交标记和本书prepare/validate/commit是应用层协议，不自动获得数据库跨系统ACID；别名更新要有原子条件，所有分区可见且校验通过后才提交，失败重试不覆盖已接受快照。</p>
 <h2 id="108-质量门禁发布与验收"><a class="header" href="#108-质量门禁发布与验收">10.8 质量门禁、发布与验收</a></h2>
 <h3 id="门禁规则"><a class="header" href="#门禁规则">门禁规则</a></h3>
 <p>门禁由硬约束、软阈值和人工检查组成。硬约束包括 schema 合法、关键安全指标、工具副作用、数据授权和 artifact 完整；软阈值包括质量变化、延迟、成本、覆盖率和置信区间；人工检查用于裁判争议、重要客户、少数语言和高风险案例。每条规则写明基线、容差、样本、统计方式、owner 和有效期。</p>
@@ -482,7 +482,7 @@ result:
 <p>确定性不变量优先由单元/性质测试验证，协议和工具错误用契约测试，存储/队列/沙箱用集成测试；开放文本按任务标准和多次评测，不按逐字快照拒绝合理措辞变化。高风险链路补端到端与故障注入，Mock用于控制故障并不替代真实环境验收。规则文件、Skill与prompt也作为版本化配置进入同一套对照。发布决策引用完整report hash和责任人，评估执行completed、HTTP成功、judge高分与业务完成始终是不同事实。</p>
 <h2 id="109-本章小结"><a class="header" href="#109-本章小结">10.9 本章小结</a></h2>
 <p>评估的规范源是版本化Eval Case、执行记录与不可变报告。数据快照回答使用什么，协议与判定器回答怎样测量，统计与校准回答证据多强，门禁回答谁允许在哪个范围发布。来源提供机制，教学案例提供推演，真实运行需要另行保存环境、样本与结果，三者不能互相替代。</p>
-<p>下一章消费这些契约定义可恢复业务Runtime。第17章再展开Agent轨迹、行为与防护评测，沿用这里的样本、分母、校准和报告定义；第12章负责组织审批、运营修复和保留，不再复制一套评估事实源。</p>
+<p><a href="../part3/03-agent-runtime.html#recovery">Agent Runtime</a>消费这些契约，定义可恢复业务执行。第16章再展开Agent轨迹、行为与防护评测，沿用这里的样本、分母、校准和报告定义；第11章负责组织审批、运营修复和保留，不再复制一套评估事实源。</p>
 <h2 id="1010-参考资料"><a class="header" href="#1010-参考资料">10.10 参考资料</a></h2>
 <p><a id="ref-1"></a>[1] Zaharia, M., et al. <em>Resilient Distributed Datasets: A Fault-Tolerant Abstraction for In-Memory Cluster Computing</em>. NSDI, 2012. https://www.usenix.org/conference/nsdi12/technical-sessions/presentation/zaharia 访问日期：2026-10-17</p>
 <p><a id="ref-2"></a>[2] Dean, J., &amp; Ghemawat, S. <em>MapReduce: Simplified Data Processing on Large Clusters</em>. OSDI, 2004. https://research.google/pubs/mapreduce-simplified-data-processing-on-large-clusters/ 访问日期：2026-10-17</p>
@@ -518,7 +518,7 @@ result:
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../part2/05-runtime.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../part2/06-reliability-governance.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -532,7 +532,7 @@ result:
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../part2/05-runtime.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../part2/06-reliability-governance.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

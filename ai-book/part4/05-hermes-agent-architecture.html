@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第22章 Hermes Agent 架构解析：长期运行、自我进化与多入口 Agent Runtime - AI Engineering：大模型与智能体系统工程</title>
+        <title>第21章 Hermes Agent 架构解析：长期运行、自我进化与多入口 Agent Runtime - AI Engineering：大模型与智能体系统工程</title>
 
 
         <!-- Custom HTML head -->
@@ -43,10 +43,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-e73527a4.js";
+            window.path_to_searchindex_js = "../searchindex-d61705cb.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ae5c0ced.js"></script>
+        <script src="../toc-f2820824.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -185,7 +185,7 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="第22章-hermes-agent-架构解析长期运行自我进化与多入口-agent-runtime"><a class="header" href="#第22章-hermes-agent-架构解析长期运行自我进化与多入口-agent-runtime">第22章 Hermes Agent 架构解析：长期运行、自我进化与多入口 Agent Runtime</a></h1>
+                        <h1 id="第21章-hermes-agent-架构解析长期运行自我进化与多入口-agent-runtime"><a class="header" href="#第21章-hermes-agent-架构解析长期运行自我进化与多入口-agent-runtime">第21章 Hermes Agent 架构解析：长期运行、自我进化与多入口 Agent Runtime</a></h1>
 <blockquote>
 <p>Hermes Agent 的核心价值，不是“多一个聊天入口”，而是把长期运行的 Agent 做成一个会积累记忆、沉淀技能、跨入口工作、可扩展工具并能生成训练轨迹的个人运行时。</p>
 </blockquote>
@@ -196,8 +196,8 @@
 Hermes 更强调“Agent 如何在长期使用中变得更懂用户、更会做事”
 </code></pre>
 <p>本章于 2026-10-18 核验官方仓库提交<code>18c525b669b6ea4ba62e6967d228af21d89aa9d3</code>；源码路径均对应此版本，未安装运行 Hermes、未产生成功率或成本实测。Architecture 说明多入口复用核心；本文六边界、三层上下文和治理协议属于本书解读，不是官方模块名或能力保证。<a href="#ref-1">[1]</a></p>
-<h2 id="221-系统定位hermes-解决的不是聊天而是长期-agent-runtime"><a class="header" href="#221-系统定位hermes-解决的不是聊天而是长期-agent-runtime">22.1 系统定位：Hermes 解决的不是聊天，而是长期 Agent Runtime</a></h2>
-<h3 id="2211-从一次性会话到长期运行"><a class="header" href="#2211-从一次性会话到长期运行">22.1.1 从一次性会话到长期运行</a></h3>
+<h2 id="211-系统定位hermes-解决的不是聊天而是长期-agent-runtime"><a class="header" href="#211-系统定位hermes-解决的不是聊天而是长期-agent-runtime">21.1 系统定位：Hermes 解决的不是聊天，而是长期 Agent Runtime</a></h2>
+<h3 id="2111-从一次性会话到长期运行"><a class="header" href="#2111-从一次性会话到长期运行">21.1.1 从一次性会话到长期运行</a></h3>
 <p>很多 AI 产品仍然停留在“一次性会话”：</p>
 <pre><code class="language-text">User Prompt -&gt; LLM -&gt; Answer
 </code></pre>
@@ -222,9 +222,9 @@ Hermes 更强调“Agent 如何在长期使用中变得更懂用户、更会做�
   + Research Trajectory Pipeline
 </code></pre>
 <p>它和普通聊天机器人的本质区别是：普通聊天机器人围绕“单次回复”设计，Hermes 围绕“长期能力增长”设计。</p>
-<h3 id="2212-hermes-与-openclaw-的差异"><a class="header" href="#2212-hermes-与-openclaw-的差异">22.1.2 Hermes 与 OpenClaw 的差异</a></h3>
+<h3 id="2112-hermes-与-openclaw-的差异"><a class="header" href="#2112-hermes-与-openclaw-的差异">21.1.2 Hermes 与 OpenClaw 的差异</a></h3>
 <p>OpenClaw 的核心抽象是 Gateway，Hermes 的核心抽象则更接近长期运行的 Agent Runtime。两者都重视多入口，但 OpenClaw 更强调接入与控制面，Hermes 更强调记忆、技能、轨迹和自我进化闭环。</p>
-<h3 id="2213-本章分析框架入口上下文行动学习闭环"><a class="header" href="#2213-本章分析框架入口上下文行动学习闭环">22.1.3 本章分析框架：入口、上下文、行动、学习闭环</a></h3>
+<h3 id="2113-本章分析框架入口上下文行动学习闭环"><a class="header" href="#2113-本章分析框架入口上下文行动学习闭环">21.1.3 本章分析框架：入口、上下文、行动、学习闭环</a></h3>
 <p>后文只沿着一条 Runtime 主线展开：输入如何进入系统，上下文如何被整理，行动如何被执行，结果又如何回流为记忆、会话和技能。前四分之一先回答这条主线依赖的运行时边界，后文再顺着 <code>输入 -&gt; 上下文 -&gt; 行动 -&gt; 回流</code> 逐段展开。</p>
 <hr>
 <h4 id="关键判断agent-的能力不只来自模型"><a class="header" href="#关键判断agent-的能力不只来自模型">关键判断：Agent 的能力不只来自模型</a></h4>
@@ -234,8 +234,8 @@ Hermes 更强调“Agent 如何在长期使用中变得更懂用户、更会做�
 </blockquote>
 <p>同一个模型，如果每次都从空白上下文开始，就是普通聊天；如果它能读取项目规则、调用工具、搜索旧会话、更新记忆、创建技能、定时执行任务，并在不同平台保持身份连续性，就开始接近真正的个人 Agent。</p>
 <hr>
-<h2 id="222-总体架构一个可长期运行的个人-agent-操作系统"><a class="header" href="#222-总体架构一个可长期运行的个人-agent-操作系统">22.2 总体架构：一个可长期运行的个人 Agent 操作系统</a></h2>
-<h3 id="2221-结论先行hermes-的六个运行时边界"><a class="header" href="#2221-结论先行hermes-的六个运行时边界">22.2.1 结论先行：Hermes 的六个运行时边界</a></h3>
+<h2 id="212-总体架构一个可长期运行的个人-agent-操作系统"><a class="header" href="#212-总体架构一个可长期运行的个人-agent-操作系统">21.2 总体架构：一个可长期运行的个人 Agent 操作系统</a></h2>
+<h3 id="2121-结论先行hermes-的六个运行时边界"><a class="header" href="#2121-结论先行hermes-的六个运行时边界">21.2.1 结论先行：Hermes 的六个运行时边界</a></h3>
 <p>先给结论。Hermes 更适合被理解成一个长期运行的 Agent Runtime，而不是一组并列功能模块。它的关键不是“支持多少工具”或“接了多少平台”，而是把长期 Agent 的复杂性稳定地压缩成六个运行时边界：入口负责把事件送进来，大脑中枢负责理解与推理，小脑负责维持任务推进，工具中心负责声明能力边界，执行引擎负责把决策变成行动，记忆系统负责把结果回流成长期资产。后文的所有证据，都会回到这六个运行时边界。</p>
 <pre class="mermaid">
 flowchart TB
@@ -267,7 +267,7 @@ flowchart TB
 </table>
 </div>
 <p>把这六个运行时边界连起来，Hermes 讲的是同一个架构命题：输入先被接入，随后被整理成稳定上下文，再通过工具与执行链路落到真实环境，最后以记忆、会话和技能的形式回流为长期状态。</p>
-<h3 id="2222-设计哲学窄腰与能力边缘"><a class="header" href="#2222-设计哲学窄腰与能力边缘">22.2.2 设计哲学：窄腰与能力边缘</a></h3>
+<h3 id="2122-设计哲学窄腰与能力边缘"><a class="header" href="#2122-设计哲学窄腰与能力边缘">21.2.2 设计哲学：窄腰与能力边缘</a></h3>
 <p>固定版本的开发指南建议把核心保持克制，新能力依次考虑复用代码、CLI 加 Skill、按可达性/opt-in 启用的工具、Plugin 和 MCP 等边缘接口，最后才新增常驻 core tool。<a href="#ref-2">[2]</a> 这是一项维护原则，不是所有工具必须永远同时发送的协议定律；延迟发现、按会话工具策略和 provider 适配都可能改变实际请求。</p>
 <div class="table-wrapper">
 <table>
@@ -282,10 +282,10 @@ flowchart TB
 </table>
 </div>
 <p>本书据此建议先确定真正消费者，再增加接口。<code>check_fn</code>用于可达性/opt-in 检查，不应被误读成逐用户授权裁决；工具出现在目录或 schema 里也不等于当前动作被允许。增删 schema 可能降低可复用前缀，但“成本翻倍”需要特定请求、价格与命中记录才能成立。</p>
-<h3 id="2223-缓存稳定不能压过事实与权限"><a class="header" href="#2223-缓存稳定不能压过事实与权限">22.2.3 缓存稳定不能压过事实与权限</a></h3>
+<h3 id="2123-缓存稳定不能压过事实与权限"><a class="header" href="#2123-缓存稳定不能压过事实与权限">21.2.3 缓存稳定不能压过事实与权限</a></h3>
 <p>开发指南强调保持长期会话前缀稳定；源码还包含恢复与失效边界。<a href="#ref-2">[2]</a><a href="#ref-3">[3]</a><a href="#ref-4">[4]</a> 因而不能写成“任何状态变化都禁止，只有压缩例外”：配置切换、显式更新、撤权和安全纠错都可能要求重建或新会话。缓存优化必须服从正确性与授权，不能因为命中更便宜而继续使用已撤销权限或错误记忆。</p>
 <p>持久 Memory、当前 prompt 快照和 provider 侧缓存是三种状态。文件落盘后，当前会话可能仍使用旧快照；若本轮必须知道更正，通过有来源的工具结果或新上下文呈现，并核对重建边界。不能假定写 Memory 后下一轮就已刷新，也不能把所有摘要当成权威事实。</p>
-<h3 id="2224-证据一工程分层确实围绕运行时边界展开"><a class="header" href="#2224-证据一工程分层确实围绕运行时边界展开">22.2.4 证据一：工程分层确实围绕运行时边界展开</a></h3>
+<h3 id="2124-证据一工程分层确实围绕运行时边界展开"><a class="header" href="#2124-证据一工程分层确实围绕运行时边界展开">21.2.4 证据一：工程分层确实围绕运行时边界展开</a></h3>
 <p>下列目录/入口以 Architecture 为依据，分层图是本书抽象。<a href="#ref-1">[1]</a></p>
 <p>如果从源码和运行时模块看，Hermes Agent 可以进一步分成几层工程分工：</p>
 <pre class="mermaid">
@@ -366,7 +366,7 @@ flowchart TB
 </table>
 </div>
 <p>这种分层说明 Hermes 不是把所有逻辑塞进单一 Agent Loop，而是在入口、上下文、工具、执行和存储之间刻意维持边界。换句话说，前面的六个运行时边界不是人为硬拆，而是能被工程分层反向验证的 Runtime 结构。</p>
-<h3 id="2225-证据二目录结构如何落到这套架构"><a class="header" href="#2225-证据二目录结构如何落到这套架构">22.2.5 证据二：目录结构如何落到这套架构</a></h3>
+<h3 id="2125-证据二目录结构如何落到这套架构"><a class="header" href="#2125-证据二目录结构如何落到这套架构">21.2.5 证据二：目录结构如何落到这套架构</a></h3>
 <p>如果把分析抽象进一步压到工程落点，Hermes 的目录结构可以读成一张简洁的证据表：</p>
 <div class="table-wrapper">
 <table>
@@ -382,10 +382,10 @@ flowchart TB
 </table>
 </div>
 <p>其他区域如 <code>plugins/</code>、<code>skills/</code>、<code>providers/</code> 与 <code>tests/</code> / <code>docs/</code>，可以继续被理解为这四条主干之外的扩展层、记忆层、模型接入层和验证层，但它们不改变前面的主判断。接下来的重点因此不再是逐个目录介绍，而是沿着这套边界继续往下追踪运行时主线。</p>
-<h3 id="2226-与第15章-agent-组件地图的对应关系"><a class="header" href="#2226-与第15章-agent-组件地图的对应关系">22.2.6 与第15章 Agent 组件地图的对应关系</a></h3>
+<h3 id="2126-与第14章-agent-组件地图的对应关系"><a class="header" href="#2126-与第14章-agent-组件地图的对应关系">21.2.6 与第14章 Agent 组件地图的对应关系</a></h3>
 <p>这一节只做一个交叉校验：如果放回本书通用 Agent 组件地图，Hermes 最强的覆盖仍然是长期运行最关键的几条主线，也就是多入口事件接入、稳定上下文构建、工具与执行边界、长期记忆与学习回流。它因此更适合作为 Learning Loop、Memory Layer 和长期 Agent 的系统案例；至于企业生产所需的审批、合规审计、发布门禁和严格 Eval Harness，则仍然需要在这条 Runtime 主线之外额外补强。这里的目的只是确认前面的判断成立，而不改变后文继续沿着“输入、上下文、执行、回流”展开的叙事顺序。</p>
 <hr>
-<h2 id="223-运行时主线从用户输入到工具执行再到状态持久化"><a class="header" href="#223-运行时主线从用户输入到工具执行再到状态持久化">22.3 运行时主线：从用户输入到工具执行再到状态持久化</a></h2>
+<h2 id="213-运行时主线从用户输入到工具执行再到状态持久化"><a class="header" href="#213-运行时主线从用户输入到工具执行再到状态持久化">21.3 运行时主线：从用户输入到工具执行再到状态持久化</a></h2>
 <p>从运行时看，Hermes 的一次任务不是简单的 <code>Prompt -&gt; Answer</code>，而是一条带状态、工具、外部环境和记忆回流的数据链路：</p>
 <pre><code class="language-text">用户输入 / 平台事件 / Cron
   -&gt; 入口标准化
@@ -446,17 +446,17 @@ flowchart TB
 <tr><th>通用章节</th><th>本案例复用契约</th><th>本章负责的落点</th></tr>
 </thead>
 <tbody>
-<tr><td><a href="../part2/05-runtime.html">第11章</a></td><td>Run/Step/Event、unknown、幂等与取消</td><td>解释教学扩展如何处理晚到成功</td></tr>
-<tr><td><a href="../part3/02-context-engineering.html">第14章</a></td><td>摘要字段、不变量与回源</td><td>压缩前后保留禁止发送与证据版本</td></tr>
-<tr><td><a href="../part3/04-skills-tools-mcp-connectors.html">第16章</a></td><td>Tool/Skill 权限和动作前后检查</td><td>当前 profile/接收人/草稿 hash 绑定</td></tr>
-<tr><td><a href="../part3/02-context-engineering.html#memory">第14章</a></td><td>事实/偏好/过程记忆与撤回</td><td>资料纠正后检查派生摘要和 Skill 候选</td></tr>
-<tr><td><a href="../part3/03-agent-runtime.html#multi-agent">第15章</a></td><td>owner、交接与状态版本</td><td>Cron/交互入口不能互相覆写旧结果</td></tr>
-<tr><td><a href="../part3/05-agent-governance-optimization.html">第17章</a></td><td>终态/过程/安全断言</td><td>正确草稿但误发也判 unsafe；未运行样本不记成功</td></tr>
+<tr><td><a href="../part3/03-agent-runtime.html#delivery-idempotency">Agent Runtime</a></td><td>Run/Step/Event、unknown、幂等与取消</td><td>解释教学扩展如何处理晚到成功</td></tr>
+<tr><td><a href="../part3/02-context-engineering.html">第13章</a></td><td>摘要字段、不变量与回源</td><td>压缩前后保留禁止发送与证据版本</td></tr>
+<tr><td><a href="../part3/04-skills-tools-mcp-connectors.html">第15章</a></td><td>Tool/Skill 权限和动作前后检查</td><td>当前 profile/接收人/草稿 hash 绑定</td></tr>
+<tr><td><a href="../part3/02-context-engineering.html#memory">第13章</a></td><td>事实/偏好/过程记忆与撤回</td><td>资料纠正后检查派生摘要和 Skill 候选</td></tr>
+<tr><td><a href="../part3/03-agent-runtime.html#multi-agent">第14章</a></td><td>owner、交接与状态版本</td><td>Cron/交互入口不能互相覆写旧结果</td></tr>
+<tr><td><a href="../part3/05-agent-governance-optimization.html">第16章</a></td><td>终态/过程/安全断言</td><td>正确草稿但误发也判 unsafe；未运行样本不记成功</td></tr>
 </tbody>
 </table>
 </div>
 <p>本案例把各章合同组合成可评审轨迹；它没有证明产品已通过崩溃注入、重复投递、撤权或成本实验。恢复验收应分别检查重复发送次数、unknown 收敛、权限撤回、摘要保真和回流污染，而非只检查最后一段文字。</p>
-<h3 id="2231-一个消息任务的端到端路径"><a class="header" href="#2231-一个消息任务的端到端路径">22.3.1 一个消息任务的端到端路径</a></h3>
+<h3 id="2131-一个消息任务的端到端路径"><a class="header" href="#2131-一个消息任务的端到端路径">21.3.1 一个消息任务的端到端路径</a></h3>
 <p>如果把抽象数据流落到一个具体例子里，可以把一条 Telegram 消息在 Hermes 中的处理路径简化为：</p>
 <ol>
 <li>用户在 Telegram 中发来请求，例如“帮我检查这个仓库今天的 CI 失败原因”；</li>
@@ -497,7 +497,7 @@ sequenceDiagram
 </pre>
 
 <hr>
-<h3 id="2232-agent-loop统一多入口的运行核心"><a class="header" href="#2232-agent-loop统一多入口的运行核心">22.3.2 Agent Loop：统一多入口的运行核心</a></h3>
+<h3 id="2132-agent-loop统一多入口的运行核心"><a class="header" href="#2132-agent-loop统一多入口的运行核心">21.3.2 Agent Loop：统一多入口的运行核心</a></h3>
 <p>Hermes 的核心是一个同步编排引擎，可以理解为：</p>
 <pre><code class="language-text">load profile
   -&gt; load config / memory / skills / context files
@@ -540,13 +540,13 @@ sequenceDiagram
             persist(response)
             done = True
 </code></pre>
-<p>这个循环和第18章 Coding Agent 的循环很像，但 Hermes 多了三个面向长期运行的能力：</p>
+<p>这个循环和第17章 Coding Agent 的循环很像，但 Hermes 多了三个面向长期运行的能力：</p>
 <ul>
 <li><strong>Prompt Assembly</strong>：每次会话开始时把人格、记忆、技能、项目上下文和工具指南组装成稳定系统提示；</li>
 <li><strong>Session Persistence</strong>：会话写入 SQLite，并用 FTS5 支持跨会话搜索；</li>
 <li><strong>Learning Loop</strong>：把经验沉淀到 memory 或 skill，而不是只留在一次对话里。</li>
 </ul>
-<h3 id="2233-可中断和可观测"><a class="header" href="#2233-可中断和可观测">22.3.3 可中断和可观测</a></h3>
+<h3 id="2133-可中断和可观测"><a class="header" href="#2133-可中断和可观测">21.3.3 可中断和可观测</a></h3>
 <p>长期运行 Agent 必须可中断。用户可能在 CLI 里按 <code>Ctrl+C</code>，也可能在消息平台发新消息打断当前任务。Hermes 的设计强调：</p>
 <ul>
 <li>工具调用过程对用户可见；</li>
@@ -555,7 +555,7 @@ sequenceDiagram
 <li>背景进程可以被查询、等待、查看日志或终止。</li>
 </ul>
 <p>这和传统后端的“请求进来、响应出去”不同。Agent 的执行可能持续几十秒甚至几分钟，用户需要知道它正在做什么、卡在哪里、是否可以停止。</p>
-<h3 id="2234-复杂任务不是单一机制而是四层运行时能力叠加"><a class="header" href="#2234-复杂任务不是单一机制而是四层运行时能力叠加">22.3.4 复杂任务不是单一机制，而是四层运行时能力叠加</a></h3>
+<h3 id="2134-复杂任务不是单一机制而是四层运行时能力叠加"><a class="header" href="#2134-复杂任务不是单一机制而是四层运行时能力叠加">21.3.4 复杂任务不是单一机制，而是四层运行时能力叠加</a></h3>
 <p>下表按固定提交的工具执行、委派、MoA 与 Kanban 分别取证，不是统一恢复保证。<a href="#ref-6">[6]</a></p>
 <p>Hermes 处理复杂任务时，最容易被误读的地方是：源码里确实同时出现了 <code>delegate_task</code>、Kanban、MoA 和并发工具调用，但它们解决的不是同一个问题。更准确地说，Hermes 不是只有一种“复杂任务模式”，而是把复杂任务拆成四层不同的运行时能力：</p>
 <ul>
@@ -591,7 +591,7 @@ sequenceDiagram
 <li>如果问题是“当前这一步判断很重要，希望先听几个模型的 advisory opinions”，那是 MoA。</li>
 </ul>
 <p>因此，后面要展开的 <code>delegate_task</code> 并不能代表 Hermes 的全部复杂任务能力。它只是这四层里最像“多 Agent”的那一层，也是最适合先展开讲清楚的一层。</p>
-<h4 id="22341-moa-解决的是推理增强不是任务编排"><a class="header" href="#22341-moa-解决的是推理增强不是任务编排">22.3.4.1 MoA 解决的是推理增强，不是任务编排</a></h4>
+<h4 id="21341-moa-解决的是推理增强不是任务编排"><a class="header" href="#21341-moa-解决的是推理增强不是任务编排">21.3.4.1 MoA 解决的是推理增强，不是任务编排</a></h4>
 <p>MoA 参考视图与聚合代码支持机制描述；参考意见不是独立事实或验证结果。<a href="#ref-7">[7]</a></p>
 <p>MoA 这个名字很容易让人误以为它和 <code>delegate_task</code> 一样，也是在运行多个会“行动”的 Agent。实际上源码里的 MoA 更像“多参考模型咨询机制”，而不是任务调度器。</p>
 <p>它的运行方式是：</p>
@@ -610,7 +610,7 @@ sequenceDiagram
 </ul>
 <p>这意味着 reference models 只能“看”和“评估”，不能真正行动。所以 MoA 的定位不是任务执行层，而是决策增强层。</p>
 <p>另外，MoA 的缓存也只在当前 turn 内生效。缓存键由 <code>preset_name + advisory_view 的 SHA256 + reference_labels</code> 组成。只要有新的 user message 或新的 tool result，advisory view 就会变化，缓存立即失效，reference fan-out 会重新执行。这再次说明它关注的是“当前状态下这一轮该怎么想”，而不是长期任务状态管理。</p>
-<h4 id="22342-kanban-解决的是持久化编排不是会话内扇出"><a class="header" href="#22342-kanban-解决的是持久化编排不是会话内扇出">22.3.4.2 Kanban 解决的是持久化编排，不是会话内扇出</a></h4>
+<h4 id="21342-kanban-解决的是持久化编排不是会话内扇出"><a class="header" href="#21342-kanban-解决的是持久化编排不是会话内扇出">21.3.4.2 Kanban 解决的是持久化编排，不是会话内扇出</a></h4>
 <p>和 <code>delegate_task</code> 相比，Kanban 最大的不同不是“也能创建子任务”，而是它把任务当成 durable workflow 来管理。任务状态、父子依赖、评论、heartbeat、claim TTL 和 dispatcher 调度都在 board DB 里持久化，因此 worker 进程退出之后，任务本身仍然存在。</p>
 <p>从这个角度看，Kanban 更接近一层轻量工作流运行时：</p>
 <pre><code class="language-text">task created
@@ -626,7 +626,7 @@ delegate_task    = 同一会话内的隔离子 Agent
 Kanban           = 跨 profile 的持久化任务编排
 MoA              = 单轮推理前的多模型咨询
 </code></pre>
-<h3 id="2235-单-agent-工具链复杂任务如何在一个-agent-内被持续推进"><a class="header" href="#2235-单-agent-工具链复杂任务如何在一个-agent-内被持续推进">22.3.5 单 Agent 工具链：复杂任务如何在一个 Agent 内被持续推进</a></h3>
+<h3 id="2135-单-agent-工具链复杂任务如何在一个-agent-内被持续推进"><a class="header" href="#2135-单-agent-工具链复杂任务如何在一个-agent-内被持续推进">21.3.5 单 Agent 工具链：复杂任务如何在一个 Agent 内被持续推进</a></h3>
 <p>理解了四层运行时能力之后，还需要再补一个容易被忽略的点：Hermes 并不是只有进入 <code>delegate_task</code> 或 Kanban 才能处理复杂任务。大量真实任务其实都停留在<strong>单 Agent 工具链</strong>这一层，只是任务本身已经包含很多步骤、很多工具调用，以及混合的并行与串行关系。</p>
 <p>这类任务的关键难点不是“能不能调用工具”，而是：</p>
 <ul>
@@ -650,7 +650,7 @@ MoA              = 单轮推理前的多模型咨询
   -&gt; 当历史过长时触发上下文压缩
   -&gt; 只保留继续完成任务所需的状态
 </code></pre>
-<h4 id="22351-并行和串行不是模型自己说了算"><a class="header" href="#22351-并行和串行不是模型自己说了算">22.3.5.1 并行和串行不是模型自己说了算</a></h4>
+<h4 id="21351-并行和串行不是模型自己说了算"><a class="header" href="#21351-并行和串行不是模型自己说了算">21.3.5.1 并行和串行不是模型自己说了算</a></h4>
 <p>模型可以在一次响应里吐出多个 tool calls，但它并不能最终决定这些调用是否并行。Hermes 在运行时先进入 <code>_execute_tool_calls()</code>，再根据当前这批工具的性质分流到串行路径或并发路径。真正的并发执行器在 <code>agent/tool_executor.py</code>，而是否允许并发，则先经过并行安全判断。</p>
 <p>这层判断的核心不是“只要有多个工具调用就并行”，而是更接近下面这组规则：</p>
 <ul>
@@ -660,7 +660,7 @@ MoA              = 单轮推理前的多模型咨询
 <li>MCP 工具还要看 server 是否显式声明自己支持 parallel-safe。</li>
 </ul>
 <p>因此，单 Agent 工具链里的并行本质上是<strong>runtime-level parallelism</strong>，而不是模型自由发挥的并行愿望。模型只能提出候选动作批次，真正是否并行，由运行时在安全边界内裁定。</p>
-<h4 id="22352-复杂任务不是一次走完而是多轮推理---执行---观察---再推理"><a class="header" href="#22352-复杂任务不是一次走完而是多轮推理---执行---观察---再推理">22.3.5.2 复杂任务不是一次走完，而是多轮“推理 -&gt; 执行 -&gt; 观察 -&gt; 再推理”</a></h4>
+<h4 id="21352-复杂任务不是一次走完而是多轮推理---执行---观察---再推理"><a class="header" href="#21352-复杂任务不是一次走完而是多轮推理---执行---观察---再推理">21.3.5.2 复杂任务不是一次走完，而是多轮“推理 -&gt; 执行 -&gt; 观察 -&gt; 再推理”</a></h4>
 <p>单 Agent 并不会在任务开始时就把全部步骤一次性规划到底，然后机械执行。它更像一条持续迭代的闭环：</p>
 <pre><code class="language-text">第1轮：
   LLM -&gt; 先查资料、读文件、搜索线索
@@ -674,12 +674,12 @@ MoA              = 单轮推理前的多模型咨询
   LLM -&gt; 汇总、修正、补查或进入修改
 </code></pre>
 <p>这里最关键的判断是：Hermes 在单 Agent 模式下管理上下文的最小单位，不是“整个复杂任务”，而是“本轮新增的观察结果”。工具结果会被追加回消息历史，成为下一轮模型输入的一部分。换句话说，模型不需要在参数内部记住完整执行过程，运行时替它维护了一层外部工作记忆。</p>
-<h4 id="22353-上下文窗口靠三层机制维持稳定"><a class="header" href="#22353-上下文窗口靠三层机制维持稳定">22.3.5.3 上下文窗口靠三层机制维持稳定</a></h4>
+<h4 id="21353-上下文窗口靠三层机制维持稳定"><a class="header" href="#21353-上下文窗口靠三层机制维持稳定">21.3.5.3 上下文窗口靠三层机制维持稳定</a></h4>
 <p>复杂任务最容易失败的地方，不是工具不够，而是 tool output 太长，历史轮次太多，导致上下文窗口被无效细节占满。Hermes 在单 Agent 工具链里至少用三层机制处理这件事。</p>
 <p>第一层是<strong>工具结果预算控制</strong>。不是每个 tool result 都会原样塞回上下文。执行层会对超长结果做裁剪，并在必要时把完整结果持久化到外部存储，而回灌给模型的是压缩后的可消费版本。这样模型看到的不是“原始输出全集”，而是“足够支撑下一轮决策的观察摘要”。</p>
 <p>第二层是<strong>会话内压缩</strong>。当消息历史越来越长时，Hermes 会触发上下文压缩，把前面已经完成的细节收敛成更短的任务状态，例如“已知事实、已完成步骤、未解决问题、当前目标”，而不是永久保留完整 transcript。复杂任务里很多步骤一旦结束，后续轮次真正需要继承的只是结论，而不是原始过程。</p>
 <p>第三层是<strong>长期状态与当前状态分层</strong>。当前任务进展主要存在于消息历史和 tool observations；历史细节可以依赖 SessionDB 和 session search 召回；长期稳定事实进入 memory；程序性经验进入 skills。这样，单 Agent 虽然仍是一个会话内循环，但它背后并不是一个无限增长的对话框，而是“当前活跃状态”和“长期状态资产”的分层组合。</p>
-<h4 id="22354-为什么很多步骤必须串行"><a class="header" href="#22354-为什么很多步骤必须串行">22.3.5.4 为什么很多步骤必须串行</a></h4>
+<h4 id="21354-为什么很多步骤必须串行"><a class="header" href="#21354-为什么很多步骤必须串行">21.3.5.4 为什么很多步骤必须串行</a></h4>
 <p>单 Agent 工具链里的复杂任务，通常不是全并行的，因为很多步骤存在真实依赖关系。比如：</p>
 <ol>
 <li><code>search_files</code> 找候选文件；</li>
@@ -697,7 +697,7 @@ MoA              = 单轮推理前的多模型咨询
   + 超长历史持续压缩
 </code></pre>
 <p>它和 Kanban 的区别也正好在这里：Kanban 把依赖关系显式建模成可持久化的工作流状态；单 Agent 则没有真正的任务 DAG，而是让 LLM 在每一轮基于最新观察继续决策。</p>
-<h4 id="22355-用一个修-ci-故障的例子看单-agent-工具链"><a class="header" href="#22355-用一个修-ci-故障的例子看单-agent-工具链">22.3.5.5 用一个修 CI 故障的例子看单 Agent 工具链</a></h4>
+<h4 id="21355-用一个修-ci-故障的例子看单-agent-工具链"><a class="header" href="#21355-用一个修-ci-故障的例子看单-agent-工具链">21.3.5.5 用一个修 CI 故障的例子看单 Agent 工具链</a></h4>
 <p>一个很典型的例子是：用户让 Hermes “定位这个仓库今天 CI 失败的原因，修掉它，并确认测试通过”。</p>
 <p>这类任务通常有四个特征：</p>
 <ul>
@@ -739,7 +739,7 @@ MoA              = 单轮推理前的多模型咨询
 </code></pre>
 <p>在这个例子里，Hermes 能完成任务，并不是因为模型一次性“想清楚了全部步骤”，而是因为运行时帮它维持了一个持续更新的工作台：工具负责获取观察，运行时决定哪些调用能并行，结果按轮次回灌，长历史被压缩成状态摘要，而模型每次只需要解决“当前下一步该做什么”。</p>
 <p>因此，单 Agent 工具链处理复杂任务时，本质上不是在一次超长 prompt 里预演完整执行过程，而是在一个持续更新的任务现场上做多轮决策。</p>
-<h3 id="2236-kanban-board如何把复杂任务变成持久化工作流"><a class="header" href="#2236-kanban-board如何把复杂任务变成持久化工作流">22.3.6 Kanban Board：如何把复杂任务变成持久化工作流</a></h3>
+<h3 id="2136-kanban-board如何把复杂任务变成持久化工作流"><a class="header" href="#2136-kanban-board如何把复杂任务变成持久化工作流">21.3.6 Kanban Board：如何把复杂任务变成持久化工作流</a></h3>
 <p>依赖状态与 claim 事务来自 Kanban DB，worker 运行要求另见 Kanban 文档。<a href="#ref-8">[8]</a></p>
 <p>如果说单 Agent 工具链解决的是“<strong>同一个会话里，如何把很多步骤持续做完</strong>”，那么 Kanban Board 解决的就是另一个层级的问题：<strong>任务不再依附某一轮对话，而是被提升为可持久化、可恢复、可依赖编排的工作项</strong>。</p>
 <p>这也是为什么 Kanban 不只是“又一种多 Agent”。从源码看，它有自己完整的一套 board runtime：</p>
@@ -828,7 +828,7 @@ task C: 更新发布说明（parents=[A, B]）
 提升为可持久化、可恢复、可依赖编排的任务系统
 </code></pre>
 <p>这也是为什么在 Hermes 里，Kanban 更适合跨 profile、跨时间、跨任务依赖的长流程协作；而单 Agent 工具链更适合同一 Agent 在当前会话里连续完成一个复杂但局部收敛的问题。</p>
-<h3 id="2237-多-agent-机制delegate_task-驱动的子-agent-扇出与汇总"><a class="header" href="#2237-多-agent-机制delegate_task-驱动的子-agent-扇出与汇总">22.3.7 多 Agent 机制：<code>delegate_task</code> 驱动的子 Agent 扇出与汇总</a></h3>
+<h3 id="2137-多-agent-机制delegate_task-驱动的子-agent-扇出与汇总"><a class="header" href="#2137-多-agent-机制delegate_task-驱动的子-agent-扇出与汇总">21.3.7 多 Agent 机制：<code>delegate_task</code> 驱动的子 Agent 扇出与汇总</a></h3>
 <p>下文委派描述只针对该工具路径，不覆盖其他显式调度器。<a href="#ref-9">[9]</a></p>
 <p>Hermes 的多 Agent 不是默认运行模式，也不是在一个会话里让多个“人格”轮流发言。它的触发条件很明确：<strong>本节只讨论父 Agent 通过<code>delegate_task</code>工具触发的委派路径，Kanban 等其他调度入口另见前文。</strong></p>
 <p>也就是说，多 Agent 在运行时里的地位首先是一个工具能力，而不是一个常驻调度框架：</p>
@@ -841,7 +841,7 @@ task C: 更新发布说明（parents=[A, B]）
   -&gt; 结果汇总回父 Agent
 </code></pre>
 <p>这里最容易误解的地方有两个。第一，Hermes 不会在“检测到任务很复杂”时自动偷偷切成多 Agent，本工具路径的触发点是显式<code>delegate_task</code>调用，不代表全产品只有这一种多 Agent 入口。第二，<code>delegate_task</code> 并不是让父 Agent 自己开几个线程继续同一段上下文，而是<strong>真的 new 出新的 <code>AIAgent</code> 实例</strong>，每个实例都有自己的对话循环、工具调用链和会话状态。</p>
-<h4 id="22371-delegate_task-的参数是模型直接给出的"><a class="header" href="#22371-delegate_task-的参数是模型直接给出的">22.3.7.1 <code>delegate_task</code> 的参数是模型直接给出的</a></h4>
+<h4 id="21371-delegate_task-的参数是模型直接给出的"><a class="header" href="#21371-delegate_task-的参数是模型直接给出的">21.3.7.1 <code>delegate_task</code> 的参数是模型直接给出的</a></h4>
 <p>父 Agent 第一次请求自己的 LLM 时，模型看到的是 <code>delegate_task</code> 的 schema。这个 schema 允许模型返回 <code>goal</code>、<code>context</code>、<code>tasks</code>、<code>role</code> 等结构化参数。换句话说，Hermes 不是在模型说“我想委派”之后再去补问一次参数，而是模型在 tool call 里一次性把委派参数写完整：</p>
 <pre><code class="language-json">{
   "name": "delegate_task",
@@ -859,7 +859,7 @@ task C: 更新发布说明（parents=[A, B]）
   -&gt; 父 LLM 决定委派参数
   -&gt; Hermes 负责把参数翻译成子 Agent 的 system prompt + user message
 </code></pre>
-<h4 id="22372-子-agent-如何启动不是共享上下文而是重新组装输入"><a class="header" href="#22372-子-agent-如何启动不是共享上下文而是重新组装输入">22.3.7.2 子 Agent 如何启动：不是共享上下文，而是重新组装输入</a></h4>
+<h4 id="21372-子-agent-如何启动不是共享上下文而是重新组装输入"><a class="header" href="#21372-子-agent-如何启动不是共享上下文而是重新组装输入">21.3.7.2 子 Agent 如何启动：不是共享上下文，而是重新组装输入</a></h4>
 <p><code>delegate_task</code> 会为每个 task 创建一个新的 child <code>AIAgent</code>。这里最关键的设计是：<strong>对子 Agent 的输入不是把父会话的完整消息历史原封不动复制一遍，而是重新组装成聚焦当前子任务的最小上下文。</strong></p>
 <p>可以把 child 的启动输入理解为两部分：</p>
 <ul>
@@ -873,7 +873,7 @@ task C: 更新发布说明（parents=[A, B]）
 ]
 </code></pre>
 <p>这个设计非常重要，因为它避免了把父会话里无关的中间推理、工具结果和噪声一并带进子上下文。Hermes 让父 Agent 负责“定义任务边界”，让子 Agent 负责“在隔离上下文里把这个边界跑完”。</p>
-<h4 id="22373-每个子-agent-都有自己的-session而不是共用父-session"><a class="header" href="#22373-每个子-agent-都有自己的-session而不是共用父-session">22.3.7.3 每个子 Agent 都有自己的 session，而不是共用父 session</a></h4>
+<h4 id="21373-每个子-agent-都有自己的-session而不是共用父-session"><a class="header" href="#21373-每个子-agent-都有自己的-session而不是共用父-session">21.3.7.3 每个子 Agent 都有自己的 session，而不是共用父 session</a></h4>
 <p>Hermes 的多 Agent 不是共用一个 session。更准确地说，它是<strong>独立 session + 父子关联</strong>：</p>
 <ul>
 <li>父 Agent 维持自己的主会话；</li>
@@ -882,7 +882,7 @@ task C: 更新发布说明（parents=[A, B]）
 <li>最终回到父层的不是“共享同一段消息历史”，而是子会话产出的 summary / tool result。</li>
 </ul>
 <p>因此，子 Agent 与父 Agent 的关系更像“派生出的子会话”，而不是“同一会话里的第二个线程”。这也解释了为什么子 Agent 默认没有父会话的完整历史、默认跳过 memory / context files、并且拥有独立的工具循环和执行状态。</p>
-<h4 id="22374-请求时序父先决策子各自求解父再整合"><a class="header" href="#22374-请求时序父先决策子各自求解父再整合">22.3.7.4 请求时序：父先决策，子各自求解，父再整合</a></h4>
+<h4 id="21374-请求时序父先决策子各自求解父再整合"><a class="header" href="#21374-请求时序父先决策子各自求解父再整合">21.3.7.4 请求时序：父先决策，子各自求解，父再整合</a></h4>
 <p>从 LLM 请求时序看，Hermes 的多 Agent 不是“一次请求里让多个 Agent 同时思考”，而是三段式：</p>
 <ol>
 <li>父 Agent 先请求一次父 LLM，决定是否调用 <code>delegate_task</code>；</li>
@@ -900,7 +900,7 @@ task C: 更新发布说明（parents=[A, B]）
   -&gt; 输出最终答案
 </code></pre>
 <p>这说明 Hermes 的多 Agent 不是在父循环内部引入一个模糊的“协作模式”，而是把它明确做成：<strong>父负责拆分与整合，子负责独立求解。</strong></p>
-<h4 id="22375-顶层委派与-orchestrator-委派异步和同步两种模式"><a class="header" href="#22375-顶层委派与-orchestrator-委派异步和同步两种模式">22.3.7.5 顶层委派与 orchestrator 委派：异步和同步两种模式</a></h4>
+<h4 id="21375-顶层委派与-orchestrator-委派异步和同步两种模式"><a class="header" href="#21375-顶层委派与-orchestrator-委派异步和同步两种模式">21.3.7.5 顶层委派与 orchestrator 委派：异步和同步两种模式</a></h4>
 <p>Hermes 的委派还有一个很值得记录的细节：<strong>顶层父 Agent 和 orchestrator 子 Agent 的委派模式并不相同。</strong></p>
 <ul>
 <li>顶层父 Agent 发起 <code>delegate_task</code> 时，Hermes 默认把它当成后台委派处理。父会话不会一直阻塞等待 child，而是继续运行，等子结果稍后重新回流。</li>
@@ -914,7 +914,7 @@ orchestrator 子 Agent:
   delegate_task -&gt; sync fan-out + fan-in
 </code></pre>
 <p>这种设计避免了两个问题：一方面，顶层聊天界面不会因为子任务而完全卡死；另一方面，负责中间协调的 orchestrator 又能在自己的回合里完成真正的聚合工作，而不是把“整合责任”继续往外推。</p>
-<h4 id="22376-desktop-看到的主要是父层视角的汇总"><a class="header" href="#22376-desktop-看到的主要是父层视角的汇总">22.3.7.6 desktop 看到的主要是父层视角的汇总</a></h4>
+<h4 id="21376-desktop-看到的主要是父层视角的汇总"><a class="header" href="#21376-desktop-看到的主要是父层视角的汇总">21.3.7.6 desktop 看到的主要是父层视角的汇总</a></h4>
 <p>从展示层看，desktop 主聊天区看到的主要是<strong>父 Agent 视角的汇总信息</strong>，而不是每个子 Agent 的完整原始上下文。也就是说，默认主视图里最核心的内容通常是：</p>
 <ul>
 <li>父 Agent 发起了 delegation；</li>
@@ -925,11 +925,11 @@ orchestrator 子 Agent:
 <p>子 Agent 的 <code>subagent.start</code>、<code>subagent.progress</code>、<code>subagent.tool</code>、<code>subagent.text</code>、<code>subagent.complete</code> 等事件更像监控流或观测流，而不是直接把 child 的完整 transcript 平铺给用户。因此，UI 层默认遵循的是和运行时同样的原则：<strong>子 Agent 负责跑，父 Agent 负责汇总，主聊天区优先展示父层可消费的结果。</strong></p>
 <p>这一点和 session 隔离是一致的。既然 child 自己是独立会话，主聊天区自然也不会把所有 child transcript 混进父会话正文；真正回到父会话的，是经过约束和预算控制后的 summary / tool result。</p>
 <hr>
-<h3 id="2238-上下文与缓存的三本账"><a class="header" href="#2238-上下文与缓存的三本账">22.3.8 上下文与缓存的三本账</a></h3>
+<h3 id="2138-上下文与缓存的三本账"><a class="header" href="#2138-上下文与缓存的三本账">21.3.8 上下文与缓存的三本账</a></h3>
 <p>上下文窗口衡量模型可见信息量；会话持久化保留历史；provider 缓存影响前缀复用和计费。三者分别核验，不能互相替代。Hermes 源码把缓存规划绑定到具体请求目的地，并按 provider 兼容布局构造标记。<a href="#ref-10">[10]</a><a href="#ref-11">[11]</a> 其节省效果需记录 usage、命中、TTL、模型和实际计价；本章不沿用固定折扣或“75%成本下降”的未经复现实测。</p>
-<h2 id="224-上下文主线prompt-system-如何保持长期稳定"><a class="header" href="#224-上下文主线prompt-system-如何保持长期稳定">22.4 上下文主线：Prompt System 如何保持长期稳定</a></h2>
+<h2 id="214-上下文主线prompt-system-如何保持长期稳定"><a class="header" href="#214-上下文主线prompt-system-如何保持长期稳定">21.4 上下文主线：Prompt System 如何保持长期稳定</a></h2>
 <p>Hermes 的 Prompt System 不只是把用户输入发给模型，而是一个上下文控制面。它不是把所有材料随机拼在一起，而是按缓存友好度和生命周期把上下文分成 <code>Stable / Context / Volatile</code> 三层。这个分层首先是运行时稳定性机制，其次才是提示词组织技巧。</p>
-<h3 id="2241-stable--context--volatile先按生命周期再按来源组装"><a class="header" href="#2241-stable--context--volatile先按生命周期再按来源组装">22.4.1 Stable / Context / Volatile：先按生命周期，再按来源组装</a></h3>
+<h3 id="2141-stable--context--volatile先按生命周期再按来源组装"><a class="header" href="#2141-stable--context--volatile先按生命周期再按来源组装">21.4.1 Stable / Context / Volatile：先按生命周期，再按来源组装</a></h3>
 <p>Hermes 先回答“什么内容应该稳定存在”“什么内容应该按需召回”“什么内容只属于当前 turn”，再决定这些内容怎么进入 prompt：</p>
 <div class="table-wrapper">
 <table>
@@ -944,7 +944,7 @@ orchestrator 子 Agent:
 </table>
 </div>
 <p>Prompt System 的关键不是“资料越多越好”，而是“稳定前缀尽量稳定，动态材料尽量后置”。长期 Agent 如果不先做这个分层，很快就会在上下文体积、缓存命中率和行为一致性之间互相打架。</p>
-<h3 id="2242-文件分工哪些材料进入稳定前缀哪些只按需召回"><a class="header" href="#2242-文件分工哪些材料进入稳定前缀哪些只按需召回">22.4.2 文件分工：哪些材料进入稳定前缀，哪些只按需召回</a></h3>
+<h3 id="2142-文件分工哪些材料进入稳定前缀哪些只按需召回"><a class="header" href="#2142-文件分工哪些材料进入稳定前缀哪些只按需召回">21.4.2 文件分工：哪些材料进入稳定前缀，哪些只按需召回</a></h3>
 <p>从实现边界看，Hermes 至少在四类来源之间做了明确分工：</p>
 <div class="table-wrapper">
 <table>
@@ -961,7 +961,7 @@ orchestrator 子 Agent:
 </div>
 <p>这里最重要的判断不是“哪些文件存在”，而是“哪些边界允许进入 system prompt 前缀”。Hermes 把 <code>SOUL.md</code>、<code>USER.md</code> 和 <code>MEMORY.md</code> 视为高敏、稀缺、需要缓存稳定性的材料；把历史会话和技能放在按需召回层，避免每轮都重放。</p>
 <hr>
-<h3 id="2243-prompt-caching快照标记与实际命中"><a class="header" href="#2243-prompt-caching快照标记与实际命中">22.4.3 Prompt Caching：快照、标记与实际命中</a></h3>
+<h3 id="2143-prompt-caching快照标记与实际命中"><a class="header" href="#2143-prompt-caching快照标记与实际命中">21.4.3 Prompt Caching：快照、标记与实际命中</a></h3>
 <p>Memory 资料和 store 实现支持会话开始时加载冻结快照、工具写入更新 live store 的分工；prompt 整体的构建与复用还由 conversation/system prompt 模块控制。<a href="#ref-12">[12]</a><a href="#ref-13">[13]</a><a href="#ref-3">[3]</a><a href="#ref-4">[4]</a> 不用某个字段名推导所有重建时机。</p>
 <p>固定提交的缓存规划已超出旧稿单一<code>system_and_3</code>说明：</p>
 <div class="table-wrapper">
@@ -976,9 +976,9 @@ orchestrator 子 Agent:
 </tbody>
 </table>
 </div>
-<p>源码会清理旧装饰，避免重复规划积累标记；部分代理对 tool result 的标记位置有限制。<a href="#ref-10">[10]</a> 这些是客户端构造事实，不证明服务端接受、命中或采用同一价格。供应商 API、TTL、阈值与折扣归<a href="../part3/01-llm-api-protocol.html">第13章</a>的版本化 adapter 核验，不在本章维护固定厂商计费表。</p>
+<p>源码会清理旧装饰，避免重复规划积累标记；部分代理对 tool result 的标记位置有限制。<a href="#ref-10">[10]</a> 这些是客户端构造事实，不证明服务端接受、命中或采用同一价格。供应商 API、TTL、阈值与折扣归<a href="../part3/01-llm-api-protocol.html">第12章</a>的版本化 adapter 核验，不在本章维护固定厂商计费表。</p>
 <p>推理缓存通常可以复用前缀计算，但不能从客户端源码得知具体服务端物理存储、保留方式或每个节点的 KV 状态。记录逻辑请求 hash 与 usage 即可支持本场景审计，不应断言供应商“只存 KV 绝不存原文”。缓存命中也不验证任务约束是否仍正确。</p>
-<h3 id="2244-model-transport统一消息如何落到-provider-请求"><a class="header" href="#2244-model-transport统一消息如何落到-provider-请求">22.4.4 Model Transport：统一消息如何落到 Provider 请求</a></h3>
+<h3 id="2144-model-transport统一消息如何落到-provider-请求"><a class="header" href="#2144-model-transport统一消息如何落到-provider-请求">21.4.4 Model Transport：统一消息如何落到 Provider 请求</a></h3>
 <p>Transport 细节不需要铺开成字段清单，保留最短证据链就够了：</p>
 <pre><code class="language-text">conversation_loop.py
   -&gt; interruptible_api_call(...)
@@ -987,12 +987,12 @@ orchestrator 子 Agent:
   -&gt; HTTP request
 </code></pre>
 <p>这条链说明 Hermes 先在运行时内部维护统一消息对象，再把 provider-specific 参数放到 transport 层处理。换句话说，Prompt System 组织的是统一上下文，transport 负责把它翻译成 OpenAI、Anthropic 或其他 provider 能接受的请求。</p>
-<h3 id="2245-sessiondb会话不只在上下文窗口里存在"><a class="header" href="#2245-sessiondb会话不只在上下文窗口里存在">22.4.5 SessionDB：会话不只在上下文窗口里存在</a></h3>
+<h3 id="2145-sessiondb会话不只在上下文窗口里存在"><a class="header" href="#2145-sessiondb会话不只在上下文窗口里存在">21.4.5 SessionDB：会话不只在上下文窗口里存在</a></h3>
 <p>SessionDB 结构与权威存储以 Session Storage 文档为准。<a href="#ref-14">[14]</a></p>
 <p>Hermes 的会话不是只存在于上下文窗口里，而是落到 SQLite SessionDB，并通过 FTS5 支持跨 session 的全文检索。这样 session search 就不是“翻聊天记录”的 UI 功能，而是长期 runtime 的第二层记忆。</p>
 <p>如果只保留最关键的实现锚点，可以把它压缩成：<code>state.db / SessionDB -&gt; messages + sessions -&gt; FTS5（messages_fts / messages_fts_trigram） -&gt; session_search</code>。这已经足以证明 Hermes 把历史会话当成可检索运行时资产，而不是一次性上下文残留。</p>
 <hr>
-<h2 id="225-记忆主线memorysession-search-与-skills-如何协作"><a class="header" href="#225-记忆主线memorysession-search-与-skills-如何协作">22.5 记忆主线：Memory、Session Search 与 Skills 如何协作</a></h2>
+<h2 id="215-记忆主线memorysession-search-与-skills-如何协作"><a class="header" href="#215-记忆主线memorysession-search-与-skills-如何协作">21.5 记忆主线：Memory、Session Search 与 Skills 如何协作</a></h2>
 <p>如果说 <code>SessionDB + FTS5</code> 解决的是“历史细节如何按需找回”，那么 Memory 解决的就是“哪些长期事实必须稳定进入 system prompt 前缀”。</p>
 <p>更准确地说，Memory 分为两个独立的存储目标，每个有自己的文件、预算和加载逻辑：</p>
 <div class="table-wrapper">
@@ -1007,19 +1007,19 @@ orchestrator 子 Agent:
 </table>
 </div>
 <p>这两层<strong>以稳定快照的方式注入系统提示</strong>，因此必须非常短、非常高密度。底层实现既可以是内置的本地文件存储，也可以对接外部 memory provider（如 Honcho、Mem0 等）。</p>
-<h3 id="2251-memory-的源码级实现解析"><a class="header" href="#2251-memory-的源码级实现解析">22.5.1 Memory 的源码级实现解析</a></h3>
+<h3 id="2151-memory-的源码级实现解析"><a class="header" href="#2151-memory-的源码级实现解析">21.5.1 Memory 的源码级实现解析</a></h3>
 <p>前文介绍了 Memory 的定位和接口层面，本节基于 Hermes Agent 源码，深入到内置 Memory 的实现机制。这部分对理解“Agent 如何在不破坏提示缓存的前提下保持长期记忆“很有帮助。</p>
 <p>默认的内置 <code>MemoryProvider</code> 会把长期事实写进 <code>~/.hermes/memories/MEMORY.md</code>，把用户画像写进 <code>~/.hermes/memories/USER.md</code>。即使未来把底层替换成其他 <code>MemoryProvider</code>，运行时边界也不变：memory 更新先作用于 provider 或 store，自身可以立刻落盘；system prompt 的重建则仍然沿着 frozen snapshot 边界发生，通常要等到下一次会话或下一次完整重建。</p>
 <p>内置 provider 不把这部分长期记忆放进数据库，而是直接落到两个 Markdown 文件。重要的证据不是备份文件名或单个操作参数，而是 <strong><code>MemoryStore.load_from_disk()</code> 会在会话开始时把这两个文件渲染成 <code>_system_prompt_snapshot</code>，而后续写入只更新 store 和磁盘，不会立刻回写当前 system prompt</strong>。这正是 memory 更新与 system prompt 重建之间的运行时边界。</p>
 <p>因此，<code>~/.hermes/memories/MEMORY.md</code> 与 <code>~/.hermes/memories/USER.md</code> 应该只保存必须稳定进入前缀的长期事实、偏好和约束，而不应该变成日志、代码片段或完整 transcript。历史细节属于 SQLite <code>SessionDB</code> + <code>FTS5</code> 支持的 session search；memory 文件属于稳定前缀层。这两层分工，正是 Hermes 避免“把所有历史都塞进 system prompt”的关键。</p>
 <hr>
-<h3 id="2252-memory-的全生命周期"><a class="header" href="#2252-memory-的全生命周期">22.5.2 Memory 的全生命周期</a></h3>
+<h3 id="2152-memory-的全生命周期"><a class="header" href="#2152-memory-的全生命周期">21.5.2 Memory 的全生命周期</a></h3>
 <p>从生命周期看，关键不是再证明 frozen snapshot，而是说明 memory 有独立于 prompt 组装的写入节奏：会话开始时加载 <code>MEMORY.md</code> / <code>USER.md</code>，会话进行中可以通过工具调用或后台机制持续更新 store 并落盘，后续会话再读取这些已沉淀的长期事实。实现上还有 background review 等自动写入机制，但它们主要影响的是“什么时候写入 memory”，而不是 memory 文件与 prompt 前缀各自的职责。</p>
 <hr>
-<h3 id="2253-memoryprovider后端扩展与上下文职责"><a class="header" href="#2253-memoryprovider后端扩展与上下文职责">22.5.3 MemoryProvider：后端扩展与上下文职责</a></h3>
+<h3 id="2153-memoryprovider后端扩展与上下文职责"><a class="header" href="#2153-memoryprovider后端扩展与上下文职责">21.5.3 MemoryProvider：后端扩展与上下文职责</a></h3>
 <p>官方 Memory Provider 接口将初始化、稳定声明、按查询召回和同步挂到统一生命周期；具体 provider 可以有不同存储和权限边界。<a href="#ref-15">[15]</a> 内置 Memory 管理短事实，Session Search 读取历史细节，Skills 保存程序性说明，不能因它们都返回文本就混成一套权威库。</p>
-<p>如果教学上接入只读 Markdown 知识库，应由 provider 实现目录权限、分块、索引、召回和来源版本，然后只将允许内容交给上下文。这里是扩展设计，不声称固定提交自带<code>markdown_kb</code>、TF-IDF 或某一插件发现实现。企业 ACL 与组织数据仍由<a href="02-enterprise-knowledge-assistant.html">第19章</a>负责，个人 provider 不能绕过其撤权和删除。</p>
-<h3 id="2254-配置控制"><a class="header" href="#2254-配置控制">22.5.4 配置控制</a></h3>
+<p>如果教学上接入只读 Markdown 知识库，应由 provider 实现目录权限、分块、索引、召回和来源版本，然后只将允许内容交给上下文。这里是扩展设计，不声称固定提交自带<code>markdown_kb</code>、TF-IDF 或某一插件发现实现。企业 ACL 与组织数据仍由<a href="02-enterprise-knowledge-assistant.html">第18章</a>负责，个人 provider 不能绕过其撤权和删除。</p>
+<h3 id="2154-配置控制"><a class="header" href="#2154-配置控制">21.5.4 配置控制</a></h3>
 <p>配置控制的不只是开关，也决定当前启用的是哪个 <code>MemoryProvider</code>。当 <code>provider: "builtin"</code> 时，Hermes 读取和写入的就是 <code>~/.hermes/memories/MEMORY.md</code> 与 <code>~/.hermes/memories/USER.md</code>；切到外部 provider 时，变化的是持久化后端和召回策略，而不是这两个文件在内置模式下承担的 stable-prefix 角色。</p>
 <p>下列为部分配置示意；具体 provider 可有独立配置、环境和后端约束，不能用一段 YAML 代表全部行为：</p>
 <pre><code class="language-yaml">memory:
@@ -1028,7 +1028,7 @@ orchestrator 子 Agent:
   provider: "builtin"          # 或 "honcho" / "mem0" 等插件
 </code></pre>
 <hr>
-<h3 id="2255-架构视角memory-在-hermes-中的三层角色"><a class="header" href="#2255-架构视角memory-在-hermes-中的三层角色">22.5.5 架构视角：Memory 在 Hermes 中的三层角色</a></h3>
+<h3 id="2155-架构视角memory-在-hermes-中的三层角色"><a class="header" href="#2155-架构视角memory-在-hermes-中的三层角色">21.5.5 架构视角：Memory 在 Hermes 中的三层角色</a></h3>
 <p>从更大的架构视角看，Hermes 的 Memory 系统承担了三层角色：</p>
 <p><strong>第一层：事实持久化层</strong>（归属 Context &amp; Learning 子架构）。
 它保存 Agent 和用户的长期事实，以冻结快照的形式注入 system prompt。这是传统“记忆“的定义，也是 Agent 具备连续存在的关键。</p>
@@ -1037,7 +1037,7 @@ Background Review 机制使 Agent 不需要用户显式指令就能主动写入 
 <p><strong>第三层：工具交互的语义对象</strong>（归属 Tool Runtime 子架构）。
 Agent 通过统一的 <code>memory</code> 工具操作 MemoryStore，对 Agent 来说，“记住“和“读文件“一样，都是工具调用。这使记忆管理和工具系统共享同一套执行框架。</p>
 <hr>
-<h3 id="2256-skills把经验变成可复用程序性记忆"><a class="header" href="#2256-skills把经验变成可复用程序性记忆">22.5.6 Skills：把经验变成可复用程序性记忆</a></h3>
+<h3 id="2156-skills把经验变成可复用程序性记忆"><a class="header" href="#2156-skills把经验变成可复用程序性记忆">21.5.6 Skills：把经验变成可复用程序性记忆</a></h3>
 <p>技能资料支持发现/加载/管理；后文 review/eval 推广管道是本书治理设计。<a href="#ref-16">[16]</a></p>
 <p>Hermes 最有代表性的设计是 Skills System。</p>
 <p>Memory 保存“事实”，Skills 保存“做法”。一个 Skill 通常是一个 Markdown 文档，描述某类任务的步骤、约束、工具选择、常见失败和验证方法。</p>
@@ -1077,7 +1077,7 @@ flowchart LR
 <p>这和本书前面讲的 Context Engineering 是同一个思想：不是让模型“知道所有东西”，而是让它在需要时拿到正确材料。</p>
 <h4 id="hermes-的-skill-演化管道"><a class="header" href="#hermes-的-skill-演化管道">Hermes 的 Skill 演化管道</a></h4>
 <p>如果说 OpenClaw 更强调 Skill 的加载优先级和插件生态，那么 Hermes 更值得关注的是：<strong>Skill 如何从长期使用轨迹中演化出来</strong>。</p>
-<p>结合<a href="../part3/04-skills-tools-mcp-connectors.html">第16章</a>，本书建议在 Hermes 技能机制之外增加可验证推广管道；以下 review/eval/owner 字段是教学治理扩展：</p>
+<p>结合<a href="../part3/04-skills-tools-mcp-connectors.html">第15章</a>，本书建议在 Hermes 技能机制之外增加可验证推广管道；以下 review/eval/owner 字段是教学治理扩展：</p>
 <pre><code class="language-text">Session Trace
   │
   ├─ 用户反复要求同类任务
@@ -1133,7 +1133,7 @@ Future Sessions
 <p>真正可靠的自我进化，不是“做完就记住”，而是“验证后再沉淀”。</p>
 <p>进一步说，Skill 还需要生命周期治理：不是越多越好，而是要有版本、owner、适用边界和清理机制。过期 Skill 应该归档，高风险 Skill 应该人工 review，常用 Skill 需要持续修订。只有这样，程序性记忆才会随着使用变得更可靠，而不是越来越臃肿。</p>
 <hr>
-<h2 id="226-行动主线从-tool-registry-到-action-engine-的连续执行链"><a class="header" href="#226-行动主线从-tool-registry-到-action-engine-的连续执行链">22.6 行动主线：从 Tool Registry 到 Action Engine 的连续执行链</a></h2>
+<h2 id="216-行动主线从-tool-registry-到-action-engine-的连续执行链"><a class="header" href="#216-行动主线从-tool-registry-到-action-engine-的连续执行链">21.6 行动主线：从 Tool Registry 到 Action Engine 的连续执行链</a></h2>
 <p>工具类别/后端来自官方工具文档；执行授权仍须独立成立。<a href="#ref-17">[17]</a></p>
 <p>Hermes 的关键不在“能不能调用工具”，而在“模型选择工具以后，运行时如何可靠地行动”。因此 Tool Registry、Toolsets、Execution Backends 和 Action Engine 需要被当成一条连续的行动主线来理解。</p>
 <pre class="mermaid">
@@ -1154,7 +1154,7 @@ flowchart LR
 <li><strong>Backends</strong> 回答“同一个能力应该落到哪个执行环境”；</li>
 <li><strong>Action Engine</strong> 回答“如何把一次模型决策变成可验证、可恢复、可持久化的行动”。</li>
 </ul>
-<h3 id="2261-tool-registry能力先被声明再被调用"><a class="header" href="#2261-tool-registry能力先被声明再被调用">22.6.1 Tool Registry：能力先被声明，再被调用</a></h3>
+<h3 id="2161-tool-registry能力先被声明再被调用"><a class="header" href="#2161-tool-registry能力先被声明再被调用">21.6.1 Tool Registry：能力先被声明，再被调用</a></h3>
 <p>Tool Registry 的重要性，不在于它列出了多少工具，而在于它把模型可见能力先变成结构化对象，再允许后续治理接手。只有经过 schema、可用性和 dispatch 边界包装后，模型输出的 tool call 才不是“随便执行一个函数”，而是“在 Runtime 承认的能力集合里请求一次行动”。</p>
 <p>从这个角度看，Registry 更像行动主线的起点证据：</p>
 <ul>
@@ -1163,7 +1163,7 @@ flowchart LR
 <li>它把 plugin 与 MCP 暴露的外部能力吸收到统一 dispatch 边界，而不是让扩展直接绕过 Runtime。</li>
 </ul>
 <p>因此，Registry 不是目录索引，而是后续权限、后端选择和审计链条的前提。</p>
-<h3 id="2262-toolsets把能力打包成可治理的权限单元"><a class="header" href="#2262-toolsets把能力打包成可治理的权限单元">22.6.2 Toolsets：把“能力”打包成可治理的权限单元</a></h3>
+<h3 id="2162-toolsets把能力打包成可治理的权限单元"><a class="header" href="#2162-toolsets把能力打包成可治理的权限单元">21.6.2 Toolsets：把“能力”打包成可治理的权限单元</a></h3>
 <p>如果说 Registry 决定“系统有什么能力”，那么 Toolsets 决定“这次行动被允许动用哪一包能力”。这也是 Hermes 工具治理最值得保留的证据：它没有把权限主要写在 prompt 里，而是把能力按入口、身份和任务类型打包成可配置边界。</p>
 <div class="table-wrapper">
 <table>
@@ -1179,7 +1179,7 @@ flowchart LR
 </table>
 </div>
 <p>因此，Toolsets 的架构意义不是“方便分类工具”，而是把长期 Agent 的权限治理单位从“单个函数”提升为“能力包”。这样 Approval、路径安全、后端隔离才有稳定挂载点；否则所有安全策略都会退化成零散特判。</p>
-<h3 id="2263-execution-backends-与-action-engine同一能力如何被可靠执行"><a class="header" href="#2263-execution-backends-与-action-engine同一能力如何被可靠执行">22.6.3 Execution Backends 与 Action Engine：同一能力如何被可靠执行</a></h3>
+<h3 id="2163-execution-backends-与-action-engine同一能力如何被可靠执行"><a class="header" href="#2163-execution-backends-与-action-engine同一能力如何被可靠执行">21.6.3 Execution Backends 与 Action Engine：同一能力如何被可靠执行</a></h3>
 <p>真正让 Hermes 从“会选工具”走到“会行动”的，是 Toolsets 之后的连续执行链。模型选中的能力不会直接执行，而是继续经过护栏、后端解析、结果处理和失败恢复。</p>
 <div class="table-wrapper">
 <table>
@@ -1205,7 +1205,7 @@ flowchart LR
   -&gt; verify / redact / persist
 </code></pre>
 <p>这里保留 Approval、路径安全和 Backend Selection，不是为了罗列安全特性，而是因为它们共同支持同一个结论：<strong>Hermes 把一次工具调用变成了“受身份约束、受环境约束、受证据约束的行动”</strong>。这才是长期 Agent 可长期运行的核心。</p>
-<h3 id="2264-plugin-与-mcp扩展能力也必须回到同一行动主线"><a class="header" href="#2264-plugin-与-mcp扩展能力也必须回到同一行动主线">22.6.4 Plugin 与 MCP：扩展能力也必须回到同一行动主线</a></h3>
+<h3 id="2164-plugin-与-mcp扩展能力也必须回到同一行动主线"><a class="header" href="#2164-plugin-与-mcp扩展能力也必须回到同一行动主线">21.6.4 Plugin 与 MCP：扩展能力也必须回到同一行动主线</a></h3>
 <p>Plugin 与 MCP 的价值，不是“又多了一批工具”，而是证明 Hermes 把扩展能力也收编进同一条行动主线。无论工具来自内置模块、插件注册还是 MCP server，它都应该依次经过：</p>
 <ol>
 <li>被 Registry 发现和声明；</li>
@@ -1215,7 +1215,7 @@ flowchart LR
 </ol>
 <p>这比单纯强调“支持 MCP”更重要。因为对长期 Agent 来说，最大风险从来不是工具数量少，而是外部能力一旦接入后绕过原有治理边界。Hermes 值得借鉴的地方，正是它试图让扩展能力也服从同一条行动主线。</p>
 <hr>
-<h2 id="227-多入口主线gatewaycronprofiles-与-session-生命周期"><a class="header" href="#227-多入口主线gatewaycronprofiles-与-session-生命周期">22.7 多入口主线：Gateway、Cron、Profiles 与 Session 生命周期</a></h2>
+<h2 id="217-多入口主线gatewaycronprofiles-与-session-生命周期"><a class="header" href="#217-多入口主线gatewaycronprofiles-与-session-生命周期">21.7 多入口主线：Gateway、Cron、Profiles 与 Session 生命周期</a></h2>
 <p>跨入口会话依据 Gateway SessionSource 和生命周期契约，不凭显示名称合并身份。<a href="#ref-18">[18]</a></p>
 <p>这一节不应该被读成四个并列特性，而应该被读成同一个答案：<strong>一个长期运行的 Agent，如何在多个入口、不同任务类型和多重身份之间保持连续性，而不发生串线。</strong> Hermes 的回答是让 Gateway、Cron、Profiles 和 Session Lifecycle 共同组成连续运行控制面。</p>
 <pre class="mermaid">
@@ -1235,7 +1235,7 @@ flowchart LR
 <li>没有 Profiles，连续性会退化成跨任务、跨身份的污染；</li>
 <li>没有 Session Lifecycle，多入口只会得到一堆彼此无关的短会话。</li>
 </ul>
-<h3 id="2271-gateway把不同入口折叠成同一种会话事件"><a class="header" href="#2271-gateway把不同入口折叠成同一种会话事件">22.7.1 Gateway：把不同入口折叠成同一种会话事件</a></h3>
+<h3 id="2171-gateway把不同入口折叠成同一种会话事件"><a class="header" href="#2171-gateway把不同入口折叠成同一种会话事件">21.7.1 Gateway：把不同入口折叠成同一种会话事件</a></h3>
 <p>Gateway 的架构意义，不是“支持 Telegram、Slack、Discord 等很多平台”，而是把这些入口都折叠成同一种会话事件：谁发起、来自哪个线程、属于哪个 profile、是否是控制命令、该继续哪个 session。</p>
 <p>因此 Gateway 至少承担四件事：</p>
 <ul>
@@ -1245,7 +1245,7 @@ flowchart LR
 <li>把流式进度、中断、停止和结果回传给原入口。</li>
 </ul>
 <p>这让 Hermes 的多入口不是“多套 bot 各自调用模型”，而是“多种入口共同驱动同一个 Agent Core”。真正持续的是后面的 Session、Toolsets、Memory 和 Learning Loop，而不是某个平台适配器本身。</p>
-<h3 id="2272-cron把时间也做成入口而不是旁路脚本"><a class="header" href="#2272-cron把时间也做成入口而不是旁路脚本">22.7.2 Cron：把时间也做成入口，而不是旁路脚本</a></h3>
+<h3 id="2172-cron把时间也做成入口而不是旁路脚本"><a class="header" href="#2172-cron把时间也做成入口而不是旁路脚本">21.7.2 Cron：把时间也做成入口，而不是旁路脚本</a></h3>
 <p>Cron 文档支持 Agent 任务及 no_agent 两条分支，不能将全部 tick 概括成模型 turn。<a href="#ref-19">[19]</a></p>
 <p>Hermes 的 Cron 值得强调，不是因为它能定时，而是因为它把时间触发也纳入了同一条运行时主线。Agent 模式可在新会话中执行任务；当前文档还支持<code>no_agent</code>脚本模式，脚本 stdout 可以直接投递而不调用 LLM。两者都要核对调度、身份、工作目录与投递范围，不能将脚本输出当模型已验证的结论。</p>
 <p>这带来两个后果：</p>
@@ -1254,7 +1254,7 @@ flowchart LR
 <li>后台任务的输出不只是 stdout，还可以继续写回 session、回到消息入口、进入学习闭环。</li>
 </ul>
 <p>因此选用哪种 Cron 模式必须显式记录。它把长期工作从“用户来问才回答”扩展到“时间到了就继续处理”，但连续性的基础仍然是同一套身份和会话边界。</p>
-<h3 id="2273-profiles连续性的前提是身份隔离"><a class="header" href="#2273-profiles连续性的前提是身份隔离">22.7.3 Profiles：连续性的前提是身份隔离</a></h3>
+<h3 id="2173-profiles连续性的前提是身份隔离"><a class="header" href="#2173-profiles连续性的前提是身份隔离">21.7.3 Profiles：连续性的前提是身份隔离</a></h3>
 <p>多入口一旦成立，Profile 就不再只是“多账户”体验，而是长期 Agent 的身份边界。Hermes 让不同 profile 拥有自己的 home、配置、memory、sessions、gateway 状态和 toolsets，本质上是在回答一个更严肃的问题：<strong>连续性如何不变成跨身份污染。</strong></p>
 <div class="table-wrapper">
 <table>
@@ -1269,7 +1269,7 @@ flowchart LR
 </table>
 </div>
 <p>所以，Profile 不是附属配置，而是 Gateway 与 Tool Governance 之间的中枢。长期 Agent 可以跨入口连续，但不能跨身份随意串线。</p>
-<h3 id="2274-session-生命周期把多次进入变成同一条长期任务线"><a class="header" href="#2274-session-生命周期把多次进入变成同一条长期任务线">22.7.4 Session 生命周期：把“多次进入”变成“同一条长期任务线”</a></h3>
+<h3 id="2174-session-生命周期把多次进入变成同一条长期任务线"><a class="header" href="#2174-session-生命周期把多次进入变成同一条长期任务线">21.7.4 Session 生命周期：把“多次进入”变成“同一条长期任务线”</a></h3>
 <p>最终决定 Hermes 是否真的“长期运行”的，不是入口数量，而是 Session 生命周期是否完整。至少要回答以下问题：</p>
 <ul>
 <li>新消息到来时，是续接旧 session 还是创建新 session；</li>
@@ -1288,10 +1288,10 @@ flowchart LR
 </code></pre>
 <p>这也解释了为什么本节必须把 Gateway、Cron、Profiles 和 Session 放在一起看。它们回答的是同一个系统问题：Hermes 如何让一个 Agent 在多入口、长时间、不同任务和不同身份下仍然保持“这是同一个运行时”的连续性。</p>
 <hr>
-<h2 id="228-安全主线长期-agent-的真实攻击面"><a class="header" href="#228-安全主线长期-agent-的真实攻击面">22.8 安全主线：长期 Agent 的真实攻击面</a></h2>
+<h2 id="218-安全主线长期-agent-的真实攻击面"><a class="header" href="#218-安全主线长期-agent-的真实攻击面">21.8 安全主线：长期 Agent 的真实攻击面</a></h2>
 <p>安全文档只证明相应控制及前提存在；这里的评审表属于本书归纳。<a href="#ref-20">[20]</a></p>
 <p>Hermes 的安全部分，不能只概括成“多层防御”四个字。更准确的理解方式是：前面那些让 Agent 保持连续行动的机制，本身也定义了长期 Agent 的主要攻击面。入口越多、身份越持久、工具越强、学习回流越深，越需要围绕具体失效路径布防。</p>
-<h3 id="2281-五个最关键的攻击面"><a class="header" href="#2281-五个最关键的攻击面">22.8.1 五个最关键的攻击面</a></h3>
+<h3 id="2181-五个最关键的攻击面"><a class="header" href="#2181-五个最关键的攻击面">21.8.1 五个最关键的攻击面</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -1320,7 +1320,7 @@ flowchart LR
 </ul>
 <p>这也顺手吸收了最小可行架构的一个核心教训：<strong>MVP 版长期 Agent 可以少接几个平台、少接几个工具，但不能没有身份边界、工具边界和回流边界。</strong> 少做功能是可以的，默认信任是不可以的。</p>
 <hr>
-<h2 id="229-学习闭环从运行轨迹到能力资产"><a class="header" href="#229-学习闭环从运行轨迹到能力资产">22.9 学习闭环：从运行轨迹到能力资产</a></h2>
+<h2 id="219-学习闭环从运行轨迹到能力资产"><a class="header" href="#219-学习闭环从运行轨迹到能力资产">21.9 学习闭环：从运行轨迹到能力资产</a></h2>
 <p>轨迹格式说明可导出的运行材料，不证明它们已被脱敏、评测或训练使用。<a href="#ref-21">[21]</a></p>
 <p>Hermes 在学习闭环上的真正亮点，不是“Agent 会自动变强”这种宽泛叙事，而是它把一条更具体、也更工程化的链路暴露了出来：</p>
 <pre><code class="language-text">trajectory
@@ -1354,8 +1354,8 @@ flowchart LR
 </ul>
 <p>这也吸收了“最小可行学习闭环”的经验：一个团队一开始不必自动写 skill，更不必立刻做 RL，但至少应该先把 trajectory、verification result 和失败原因系统化记录下来。没有验证记录的“自我进化”，本质上只是自动传播错误。</p>
 <hr>
-<h2 id="2210-hermes-与-openclaw比较职责分别核验保证"><a class="header" href="#2210-hermes-与-openclaw比较职责分别核验保证">22.10 Hermes 与 OpenClaw：比较职责，分别核验保证</a></h2>
-<p><a href="04-openclaw-architecture.html">第21章</a>已固定 OpenClaw 提交并说明自有 Runtime；本章固定 Hermes 提交并关注会话/记忆/技能/轨迹。两者都可能接入多入口、工具与长期状态，不用 Gateway-first 或 Learning-first 推断缺少对方能力。</p>
+<h2 id="2110-hermes-与-openclaw比较职责分别核验保证"><a class="header" href="#2110-hermes-与-openclaw比较职责分别核验保证">21.10 Hermes 与 OpenClaw：比较职责，分别核验保证</a></h2>
+<p><a href="04-openclaw-architecture.html">第20章</a>已固定 OpenClaw 提交并说明自有 Runtime；本章固定 Hermes 提交并关注会话/记忆/技能/轨迹。两者都可能接入多入口、工具与长期状态，不用 Gateway-first 或 Learning-first 推断缺少对方能力。</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -1370,8 +1370,8 @@ flowchart LR
 </div>
 <p>选型要在相同任务、权限、预算与版本下验证。这里没有执行产品对比实验。</p>
 <hr>
-<h2 id="2211-设计启示"><a class="header" href="#2211-设计启示">22.11 设计启示</a></h2>
-<h3 id="22111-关键设计原则连续性能力打包边界优先验证约束"><a class="header" href="#22111-关键设计原则连续性能力打包边界优先验证约束">22.11.1 关键设计原则：连续性、能力打包、边界优先、验证约束</a></h3>
+<h2 id="2111-设计启示"><a class="header" href="#2111-设计启示">21.11 设计启示</a></h2>
+<h3 id="21111-关键设计原则连续性能力打包边界优先验证约束"><a class="header" href="#21111-关键设计原则连续性能力打包边界优先验证约束">21.11.1 关键设计原则：连续性、能力打包、边界优先、验证约束</a></h3>
 <p>如果只保留 Hermes 对长期 Agent Runtime 最有价值的设计结论，可以压缩成下面六条：</p>
 <div class="table-wrapper">
 <table>
@@ -1390,7 +1390,7 @@ flowchart LR
 </div>
 <p>这六条比功能列表更有迁移价值。一个系统即使接了很多平台、很多 MCP server，只要没有连续性控制、能力打包和验证约束，本质上仍然只是一个容易失控的工具调用器。</p>
 <p>落地时也不该从“平台越多越好、工具越多越好、自动学习越快越好”开始，而应该先跑通一个受限但闭环完整的 Runtime：先证明单一入口、单一 profile 和 session 生命周期能够连续工作，再把 toolsets、隔离后端、最小安全护栏和验证后的 trajectory 记录补齐。反过来说，过早扩入口、给低信任入口开放高风险工具、或者在没有验证证据前自动升级 skill，都只是在放大失控半径，而不是在建设长期 Agent。</p>
-<h3 id="22112-从工程原则到审查证据"><a class="header" href="#22112-从工程原则到审查证据">22.11.2 从工程原则到审查证据</a></h3>
+<h3 id="21112-从工程原则到审查证据"><a class="header" href="#21112-从工程原则到审查证据">21.11.2 从工程原则到审查证据</a></h3>
 <p>开发指南提供窄核心、缓存稳定、插件边界与变更前核对意图等原则；这属于项目贡献约束，不自动证明所有实现都满足约束。<a href="#ref-2">[2]</a> 本书建议审查时要求：具体源码/版本、消费者、输入/输出契约、失败恢复与回归证据。能写出原则不能代替执行器测试，能自动总结也不能代替独立 Verifier。</p>
 <hr>
 <h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
