@@ -10,14 +10,14 @@
 | 理解行为如何塑形 | [第3章](../part1/03-post-training-alignment.md) | [第5章](../part1/05-finetuning-compression-multimodal.md)的适配数据与量化来源 | 监督位置、PPO/GAE、DPO/GRPO、数据独立性 |
 | 评估推理与多模态 | [第4章](../part1/04-reasoning-generation-algorithms.md) | [第5章](../part1/05-finetuning-compression-multimodal.md)、[第6章](../part1/06-world-models-embodied-ai.md) | 额外预算、验证器、未观察范围与物理安全 |
 | 建立资源账本 | [第7章](../part2/01-ai-infra-overview.md) | [第8章](../part2/02-training.md)、[第9章](../part2/03-inference.md) | 并行切分轴、通信、瞬时峰值、工作负载与版本 |
-| 设计可恢复运行时 | [第11章](../part2/05-runtime.md) | [第13章](../part3/01-llm-api-protocol.md)、[第15章恢复机制](../part3/03-agent-runtime.md#recovery) | 提交、投递、幂等、unknown、owner、断线与迟到结果 |
-| 组织任务与上下文 | [第14章](../part3/02-context-engineering.md) | [任务协议](../part3/02-context-engineering.md#task-protocol)、[装配与预算](../part3/02-context-engineering.md#context-builder)、[长期记忆](../part3/02-context-engineering.md#memory) | 指令权威、摘要保真、来源失效与事实状态 |
-| 选择工具与协议 | [第16章](../part3/04-skills-tools-mcp-connectors.md) | [第15章](../part3/03-agent-runtime.md#implementation-validation)及[附录C](tools.md) | Schema、执行权、MCP 传输迁移、A2A 版本与未知能力 |
-| 构建知识助手 | [第14章](../part3/02-context-engineering.md#knowledge) | [第19章](../part4/02-enterprise-knowledge-assistant.md) | 检索/证据/生成分层、ACL、乱序更新、撤权和血缘 |
-| 理解 Coding 系统 | [第18章](../part4/01-coding-agent-systems.md) | [第20章 Pi](../part4/03-pi-agent-architecture.md)、[第23章 Claude Code](../part4/06-claude-code-internals.md) | 运行时与产品分层、版本化检索、候选完成与独立验证 |
-| 观察长期助手 | [第22章 Hermes](../part4/05-hermes-agent-architecture.md) | [第21章 OpenClaw](../part4/04-openclaw-architecture.md) | 身份、会话、记忆、投递与业务副作用分别取证 |
-| 形成质量与发布闭环 | [第10章](../part2/04-data-eval.md) | [第12章](../part2/06-reliability-governance.md)、[第17章](../part3/05-agent-governance-optimization.md) | 固定评估集、Judge 校准、回归、成本及回滚证据 |
-| 阅读研究报告 | [第24章](../part5/01-agent-frontier-research.md) | 沿其参考资料回到对应论文版本、任务和评测协议 | 历史结果、研究提案、公开实现与实测结论的区别 |
+| 设计可恢复运行时 | [Agent Runtime](../part3/03-agent-runtime.md#delivery-idempotency) | [第12章](../part3/01-llm-api-protocol.md)、[第14章恢复机制](../part3/03-agent-runtime.md#recovery) | 提交、投递、幂等、unknown、owner、断线与迟到结果 |
+| 组织任务与上下文 | [第13章](../part3/02-context-engineering.md) | [任务协议](../part3/02-context-engineering.md#task-protocol)、[装配与预算](../part3/02-context-engineering.md#context-builder)、[长期记忆](../part3/02-context-engineering.md#memory) | 指令权威、摘要保真、来源失效与事实状态 |
+| 选择工具与协议 | [第15章](../part3/04-skills-tools-mcp-connectors.md) | [第14章](../part3/03-agent-runtime.md#implementation-validation)及[附录C](tools.md) | Schema、执行权、MCP 传输迁移、A2A 版本与未知能力 |
+| 构建知识助手 | [第13章](../part3/02-context-engineering.md#knowledge) | [第18章](../part4/02-enterprise-knowledge-assistant.md) | 检索/证据/生成分层、ACL、乱序更新、撤权和血缘 |
+| 理解 Coding 系统 | [第17章](../part4/01-coding-agent-systems.md) | [第19章 Pi](../part4/03-pi-agent-architecture.md)、[第22章 Claude Code](../part4/06-claude-code-internals.md) | 运行时与产品分层、版本化检索、候选完成与独立验证 |
+| 观察长期助手 | [第21章 Hermes](../part4/05-hermes-agent-architecture.md) | [第20章 OpenClaw](../part4/04-openclaw-architecture.md) | 身份、会话、记忆、投递与业务副作用分别取证 |
+| 形成质量与发布闭环 | [第10章](../part2/04-data-eval.md) | [第11章](../part2/06-reliability-governance.md)、[第16章](../part3/05-agent-governance-optimization.md) | 固定评估集、Judge 校准、回归、成本及回滚证据 |
+| 阅读研究报告 | [第23章](../part5/01-agent-frontier-research.md) | 沿其参考资料回到对应论文版本、任务和评测协议 | 历史结果、研究提案、公开实现与实测结论的区别 |
 
 ## 章末练习入口
 
@@ -33,7 +33,7 @@
 
 [题库的书稿覆盖与定位说明](https://github.com/wxquare/leetcode-primer/blob/master/system-design-interview/question-bank/ai-agent-engineering.md#书稿覆盖与定位)定义覆盖口径；每个题目下方给出对应章节和具体小节，以及无法由本书回答的部分。逐题映射只在题库维护，本附录提供学习路径，不复制题目与答案。
 
-做题时先读主定位，跨层问题再读补充章节。例如工具成功但响应丢失，应先读第11章的 Operation 与 Attempt，再读工具运行时的重试分类；不能只看 MCP 协议。手写题则必须自行完成实现和验证，章末练习卡仅定义验收要求。
+做题时先读主定位，跨层问题再读补充章节。例如工具成功但响应丢失，应先读[Agent Runtime 的 Operation 与 Attempt](../part3/03-agent-runtime.md#delivery-idempotency)，再读工具运行时的重试分类；不能只看 MCP 协议。手写题则必须自行完成实现和验证，章末练习卡仅定义验收要求。
 
 ## 如何继续找资料
 

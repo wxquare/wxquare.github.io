@@ -1,4 +1,4 @@
-# 第14章 Agent 的上下文工程：从任务协议到知识与记忆
+# 第13章 Agent 的上下文工程：从任务协议到知识与记忆
 
 > 上下文工程管理的是每个决策点的信息供给：让模型获得完成当前任务所需的指令、证据、状态和经验，并控制这些信息的权限、时效、成本与后续影响。
 
@@ -28,7 +28,7 @@ Prompt Engineering、知识检索和长期记忆都参与这个过程。Prompt �
 
 图中模型可见的状态是执行系统的投影。操作是否提交、测试是否通过、外部动作是否完成，仍须由 Runtime、业务系统或验证器确认，不能因为摘要写了“已完成”就改变事实。
 
-本章的 Schema、流程、示例数据与实验均为教学设计；示例中的延迟、分数、Token 预算和有效期不构成通用默认值。滚动资料核验于 2026-10-21。API 的请求字段见[LLM API 协议](01-llm-api-protocol.md)，工具与 Skills 的执行机制见[Agent 工具系统工程](04-skills-tools-mcp-connectors.md)，持久执行与副作用恢复见[Agent Runtime](../part2/05-runtime.md)。
+本章的 Schema、流程、示例数据与实验均为教学设计；示例中的延迟、分数、Token 预算和有效期不构成通用默认值。滚动资料核验于 2026-10-21。API 的请求字段见[LLM API 协议](01-llm-api-protocol.md)，工具与 Skills 的执行机制见[Agent 工具系统工程](04-skills-tools-mcp-connectors.md)，持久执行与副作用恢复见[Agent Runtime](03-agent-runtime.md#delivery-idempotency)。
 
 <a id="context-model"></a>
 
@@ -720,7 +720,7 @@ Workflow:
 
 教学请求：“把这个仓库登录问题修好，顺便上线。”先读取已有Issue、约定和失败日志；仍缺信息时追问失败路径、预期行为和交付范围。部署目标环境、版本与授权必须明确，不能猜测后修改生产配置。答案写回Task Contract的confirmed、open_questions、allowed_actions与acceptance，保留来源和版本；后续只追问仍阻塞的缺项。
 
-该过程连接[第18章Coding架构](../part4/01-coding-agent-systems.md)与[第23章Claude Code执行与验证案例](../part4/06-claude-code-internals.md)。
+该过程连接[第17章Coding架构](../part4/01-coding-agent-systems.md)与[第22章Claude Code执行与验证案例](../part4/06-claude-code-internals.md)。
 
 ### 角色、职责与工具权限对齐
 
@@ -1021,7 +1021,7 @@ if action.risk == "forbidden":
 | 语义 | 字段关系、单位、证据引用 | 补证据或停止，不制造来源 |
 | 业务 | 当前身份、归属、余额、状态、审批对象/参数/期限 | 阻止执行；需要新授权则进入审批 |
 
-通过校验仍需[第16章工具契约](04-skills-tools-mcp-connectors.md)与[第11章Operation](../part2/05-runtime.md)落实执行前重验、原子业务检查和幂等。余额快照不替代提交时检查。知识助手同样核对可见文档和版本，见[第19章](../part4/02-enterprise-knowledge-assistant.md)。
+通过校验仍需[第15章工具契约](04-skills-tools-mcp-connectors.md)与[Agent Runtime](03-agent-runtime.md#delivery-idempotency)落实执行前重验、原子业务检查和幂等。余额快照不替代提交时检查。知识助手同样核对可见文档和版本，见[第18章](../part4/02-enterprise-knowledge-assistant.md)。
 
 #### Repair Prompt
 
@@ -2255,7 +2255,7 @@ VideoRAG研究将跨视频文本关系与多模态编码组合，说明只做字
 
 问题“谁把红盒放到门边？”即使没有字幕也需要视觉动作路；ASR只说“放这里”不能证明颜色/人物。检查动作前后相邻片段，字幕偏移须校准；OCR读到人名不等于该人出现在画面。同名人物、同款衣服或相似背景不能作为跨视频同一身份/事件的充分证据。
 
-跨视频问题先按租户、时间、来源和权限过滤，再按video_id/version合并片段；保留每条局部证据与冲突。V7去年上海与V8今年北京不能拼成同一会议；身份不明就明确未知。撤权/删除使原片、索引、缓存与派生摘要一起失效。端到端评测同时看片段覆盖、时间定位、身份混淆、答案忠实、拒答与预算。企业落地由[第19章](../part4/02-enterprise-knowledge-assistant.md)展开。
+跨视频问题先按租户、时间、来源和权限过滤，再按video_id/version合并片段；保留每条局部证据与冲突。V7去年上海与V8今年北京不能拼成同一会议；身份不明就明确未知。撤权/删除使原片、索引、缓存与派生摘要一起失效。端到端评测同时看片段覆盖、时间定位、身份混淆、答案忠实、拒答与预算。企业落地由[第18章](../part4/02-enterprise-knowledge-assistant.md)展开。
 
 <a id="memory"></a>
 
@@ -2922,7 +2922,7 @@ memory_audit_event:
   approved_by: "user"
 ```
 
-如果 Memory 写入不进审计，错误记忆就很难回滚，也很难进入第17章讨论的 Failure Registry。
+如果 Memory 写入不进审计，错误记忆就很难回滚，也很难进入第16章讨论的 Failure Registry。
 
 **什么适合写入**
 
@@ -4005,7 +4005,7 @@ required_checks:
 | --- | --- | --- |
 | TaskSummary | task_id、summary_version、goal、hard_constraints、acceptance、confirmed_facts、hypotheses、open_questions、completed_refs、next_action、source_refs | 目标/里程碑/约束变化时重建；并发更新检查旧版本 |
 | FileSummary | repo_id、workspace_id、path、commit、content_hash、range、symbols、dependencies、claims、source_refs | 文件哈希变化立即标stale；同commit下未提交修改也失效 |
-| ProcessNote | run_id、step_id、attempt_id、tool_call_id/result_ref、operation_id、idempotency_ref、target_version、status、evidence_refs、pending_actions | 与[第11章](../part2/05-runtime.md)账本核对；unknown不得压成failed或done |
+| ProcessNote | run_id、step_id、attempt_id、tool_call_id/result_ref、operation_id、idempotency_ref、target_version、status、evidence_refs、pending_actions | 与[Agent Runtime](03-agent-runtime.md#object-model)账本核对；unknown不得压成failed或done |
 
 TaskSummary描述当前目标，FileSummary描述版本化材料，ProcessNote解释已发生过程。三者都不是权威执行状态。LangGraph区分thread checkpointer和跨thread store，进一步说明“能保存信息”与“保存哪种状态”需要分开设计。[[26]](#ref-26)
 
@@ -4023,11 +4023,11 @@ LLMLingua研究预算控制的提示压缩，说明可以减少输入；这不�
 
 教学原记录U7：“只修改src/auth，不部署”。摘要S3遗漏“不部署”，模型据此生成部署提案P4。独立约束清单与执行前策略发现不符，先阻止部署，再定位S3及其依赖产物；回读U7和当前项目规则，重建S4并标S3失效；重新核对diff范围和验收，撤销依赖P4的计划候选。修复不通过就保持阻塞，不让S3自证。
 
-若部署已经发出，修摘要不会撤销外部事实：按第11章Operation查询状态，按授权采取修复/补偿并记录影响。当前文件即使commit未变但hash变化，旧FileSummary同样不能继续用于生成补丁。
+若部署已经发出，修摘要不会撤销外部事实：按[Operation](03-agent-runtime.md#delivery-idempotency)查询状态，按授权采取修复/补偿并记录影响。当前文件即使commit未变但hash变化，旧FileSummary同样不能继续用于生成补丁。
 
 **Todo是执行视图**
 
-Todo包含item_id、依赖、owner、状态版本、验收引用和下一步。模型可提议pending/in_progress/blocked/done，但done由实际产物和验收驱动。外部动作结果unknown时保留待核对，不能为了勾选而重新执行；Todo不替代持久调度、Operation和幂等账本。详见[第15章](03-agent-runtime.md#multi-agent)。
+Todo包含item_id、依赖、owner、状态版本、验收引用和下一步。模型可提议pending/in_progress/blocked/done，但done由实际产物和验收驱动。外部动作结果unknown时保留待核对，不能为了勾选而重新执行；Todo不替代持久调度、Operation和幂等账本。详见[第14章](03-agent-runtime.md#multi-agent)。
 
 **滑动窗口**
 
@@ -4101,7 +4101,7 @@ AGENT_REQUIRED_VERIFICATION(mdbook_build, hexo_build)
 
 教学链：旧文件F1→Memory M1“测试已通过”→摘要S1→计划P1“可以发布”。当前文件变为F2且测试失败后，先禁用M1的当前召回，再按来源血缘找到S1/P1及其他派生条目，标stale/retracted并撤销未执行的发布提案；回读F2和真实测试结果生成M2，记录supersedes=M1与原因，重新核验相关产物。保留受控历史用于解释“当时如何判断”，不能让旧记录重新参与当前决策。
 
-若P1已经执行，记忆撤回不撤销外部副作用；按[第11章](../part2/05-runtime.md)查询Operation并在授权内修复/补偿。用户撤回地址只影响记忆有效性，不自动修改账户资料。删除范围覆盖索引、派生摘要、缓存、导出和备份恢复后的删除水位，具体保留/例外由[第12章](../part2/06-reliability-governance.md)负责，不承诺即时物理擦除或模型遗忘。
+若P1已经执行，记忆撤回不撤销外部副作用；按[Agent Runtime](03-agent-runtime.md#delivery-idempotency)查询Operation并在授权内修复/补偿。用户撤回地址只影响记忆有效性，不自动修改账户资料。删除范围覆盖索引、派生摘要、缓存、导出和备份恢复后的删除水位，具体保留/例外由[第11章](../part2/06-reliability-governance.md)负责，不承诺即时物理擦除或模型遗忘。
 
 ### 小模型压缩器的独立评测
 
