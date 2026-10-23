@@ -43,7 +43,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-01c77f97.js";
+            window.path_to_searchindex_js = "../searchindex-0b51453d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-9975334b.js"></script>
@@ -185,1267 +185,363 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="第20章-hermes-agent-架构解析长期运行自我进化与多入口-agent-runtime"><a class="header" href="#第20章-hermes-agent-架构解析长期运行自我进化与多入口-agent-runtime">第20章 Hermes Agent 架构解析：长期运行、自我进化与多入口 Agent Runtime</a></h1>
+                        <h1 id="第19章-openclaw-系统个人-ai-助手的-gateway-实现使用与调优"><a class="header" href="#第19章-openclaw-系统个人-ai-助手的-gateway-实现使用与调优">第19章 OpenClaw 系统：个人 AI 助手的 Gateway 实现、使用与调优</a></h1>
 <blockquote>
-<p>Hermes Agent 的核心价值，不是“多一个聊天入口”，而是把长期运行的 Agent 做成一个会积累记忆、沉淀技能、跨入口工作、可扩展工具并能生成训练轨迹的个人运行时。</p>
+<p>OpenClaw 的核心不是“又一个聊天机器人”，而是把个人 AI 助手抽象成一个长期运行的本地 Gateway：它接入多渠道消息，管理会话与上下文，调度内置的 Agent Runtime，并用工具策略、沙箱、插件和审批控制行动边界。也正因为它是长期在线、可以替人行动的系统，安全边界比功能更重要。</p>
 </blockquote>
-<h2 id="引言"><a class="header" href="#引言">引言</a></h2>
-<p>前几章已经分别分析了 Coding Agent Runtime、Pi 和 OpenClaw。Pi 让我们看到终端原生 Agent Runtime 如何被做成可嵌入、可扩展的执行核心；OpenClaw 则展示了个人 AI 助手如何通过 Gateway 接入多入口渠道。Hermes 在本书中承担第三个贯穿案例：解释会话、记忆、Skills 和工具轨迹如何组成持续任务。此处是教学侧重点，不代表其能力高于其他产品或已经实测提升。</p>
-<p>如果用一句话概括：</p>
-<pre><code class="language-text">OpenClaw 更强调“Agent 如何到达用户所在的平台”
-Hermes 更强调“Agent 如何在长期使用中变得更懂用户、更会做事”
-</code></pre>
-<p>本章以官方仓库提交 <code>18c525b669b6ea4ba62e6967d228af21d89aa9d3</code> 为分析基线，最初于 2026-10-18 核验；2026-10-22 补充核验该提交的入口、Gateway 启动、<code>AIAgent</code> 装配与首轮请求源码。以下描述针对这一固定版本，未安装运行 Hermes，未产生成功率、启动耗时或成本实测。Architecture 说明多入口复用核心；本文的组件图、生命周期划分、六边界、三层上下文和治理协议属于本书解读，不是官方模块名或能力保证。<a href="#ref-1">[1]</a></p>
-<h2 id="201-系统定位hermes-解决的不是聊天而是长期-agent-runtime"><a class="header" href="#201-系统定位hermes-解决的不是聊天而是长期-agent-runtime">20.1 系统定位：Hermes 解决的不是聊天，而是长期 Agent Runtime</a></h2>
-<h3 id="2011-从一次性会话到长期运行"><a class="header" href="#2011-从一次性会话到长期运行">20.1.1 从一次性会话到长期运行</a></h3>
-<p>很多 AI 产品仍然停留在“一次性会话”：</p>
-<pre><code class="language-text">User Prompt -&gt; LLM -&gt; Answer
-</code></pre>
-<p>这种形态适合问答，但不适合真正的助手。真实助手需要具备连续性：</p>
-<ul>
-<li>记得用户偏好；</li>
-<li>记得项目背景；</li>
-<li>记得过去解决过什么问题；</li>
-<li>能把一次复杂任务沉淀成可复用技能；</li>
-<li>能从 CLI、Telegram、Slack、Discord、WhatsApp、Email 等入口继续同一类工作；</li>
-<li>能在本地、Docker、SSH、Modal、Daytona、Singularity 等环境里执行任务；</li>
-<li>能把运行轨迹导出，用于评估、微调或强化学习。</li>
-</ul>
-<p>Hermes Agent 的定位可以抽象成：</p>
-<pre><code class="language-text">Hermes Agent
-  = Long-running Agent Runtime
-  + Persistent Memory
-  + Procedural Skill System
-  + Multi-platform Gateway
-  + Tool / Toolset Registry
-  + Execution Backends
-  + Research Trajectory Pipeline
-</code></pre>
-<p>它和普通聊天机器人的本质区别是：普通聊天机器人围绕“单次回复”设计，Hermes 围绕“长期能力增长”设计。</p>
-<h3 id="2012-hermes-与-openclaw-的差异"><a class="header" href="#2012-hermes-与-openclaw-的差异">20.1.2 Hermes 与 OpenClaw 的差异</a></h3>
-<p>OpenClaw 的核心抽象是 Gateway，Hermes 的核心抽象则更接近长期运行的 Agent Runtime。两者都重视多入口，但 OpenClaw 更强调接入与控制面，Hermes 更强调记忆、技能、轨迹和自我进化闭环。</p>
-<h3 id="2013-本章分析框架入口上下文行动学习闭环"><a class="header" href="#2013-本章分析框架入口上下文行动学习闭环">20.1.3 本章分析框架：入口、上下文、行动、学习闭环</a></h3>
-<p>后文只沿着一条 Runtime 主线展开：输入如何进入系统，上下文如何被整理，行动如何被执行，结果又如何回流为记忆、会话和技能。前四分之一先回答这条主线依赖的运行时边界，后文再顺着 <code>输入 -&gt; 上下文 -&gt; 行动 -&gt; 回流</code> 逐段展开。</p>
-<hr>
-<h4 id="关键判断agent-的能力不只来自模型"><a class="header" href="#关键判断agent-的能力不只来自模型">关键判断：Agent 的能力不只来自模型</a></h4>
-<p>Hermes 的设计隐含了一个重要判断：</p>
-<blockquote>
-<p>长期 Agent 的能力，不只来自模型参数，而来自模型、记忆、技能、工具、入口、执行环境和历史轨迹共同组成的系统。</p>
-</blockquote>
-<p>同一个模型，如果每次都从空白上下文开始，就是普通聊天；如果它能读取项目规则、调用工具、搜索旧会话、更新记忆、创建技能、定时执行任务，并在不同平台保持身份连续性，就开始接近真正的个人 Agent。</p>
-<hr>
-<h2 id="202-runtime-的组成与启动从前端连接到首轮执行"><a class="header" href="#202-runtime-的组成与启动从前端连接到首轮执行">20.2 Runtime 的组成与启动：从前端连接到首轮执行</a></h2>
-<h3 id="2021-先看实际组件gateway-管会话aiagent-管执行"><a class="header" href="#2021-先看实际组件gateway-管会话aiagent-管执行">20.2.1 先看实际组件：Gateway 管会话，AIAgent 管执行</a></h3>
-<p>理解 Hermes Runtime，首先要分清三个对象：<strong>前端负责交互，Gateway 持有共享会话运行时，<code>AIAgent</code> 负责一次用户回合中的模型与工具循环</strong>。这里的“回合”可以包含多次模型请求和多轮工具调用；它不等于一次 HTTP 请求，也不等于整个长期会话。官方 Architecture 展示的是共享 <code>AIAgent</code> 核心，实际部署还要结合入口源码确定进程和状态归属。<a href="#ref-1">[1]</a></p>
-<p>特别需要注意版本差异：在本章固定提交中，普通 CLI 的 <code>_init_agent()</code> 将 <code>GatewayAgent</code> 导入为本地别名 <code>AIAgent</code>；这个对象是代理，<code>run_conversation()</code> 提交 <code>prompt.submit</code> 并消费 Gateway 事件，真正的模型调用、工具执行和会话写入在 Gateway 所管理的执行路径中完成。不能因为前端变量叫 <code>agent</code>，就推断 CLI 进程持有真正的 <code>run_agent.AIAgent</code>。Python 直接嵌入仍然可以自行构造真实 <code>AIAgent</code>，但那是另一条入口路径。<a href="#ref-2">[2]</a><a href="#ref-3">[3]</a></p>
-<p><img src="../images/hermes-runtime-components.svg" alt="Hermes Runtime 组件架构：前端、Gateway 会话所有者、AIAgent 执行组件、持久状态和工具后端"></p>
-<p><em>图 20-1：本书依据固定提交源码绘制。框表示逻辑职责；Gateway 管理的执行可以涉及 worker，不能把每个框直接视为一个独立进程。蓝色为主要调用，紫色为工具观察回路，绿色为状态读写。</em></p>
+<p><strong>资料核验日期：2026-10-23。</strong> 本章分析 OpenClaw 仓库 <code>openclaw/openclaw</code> 的固定提交 <code>ff7597025dd22b087b250a4df94caded50e798aa</code>（提交时间 2026-10-23 01:51 UTC，根 <code>package.json</code> 版本 <code>2026.10.6</code>）。官方文档页与源码都固定到这一提交，不引用主分支。OpenClaw 是开源项目，但本章的行为结论来自阅读源码与文档，没有运行验证、没有故障注入；正文里“行为是 A”的准确含义是“固定提交的源码（或文档）写了 A”。</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>组成</th><th>代表源码与对象</th><th>输入、输出与职责</th></tr>
+<tr><th>标记</th><th>含义</th><th>使用方式</th></tr>
 </thead>
 <tbody>
-<tr><td>交互与事件入口</td><td><code>hermes_cli/main.py</code>、<code>cli.HermesCLI</code>、<code>hermes_cli/gateway_agent.py</code>、平台 Adapter、ACP / Python 调用方</td><td>接收文本、平台事件或协议消息，提交请求，显示流式事件与审批交互；入口类型不决定全部执行细节</td></tr>
-<tr><td>会话与运行时所有者</td><td><code>gateway/run.py</code>、<code>gateway/run_runtime.py</code>、<code>gateway/session.py</code></td><td>持有 profile 对应的会话 authority、SessionStore、运行实例身份和接入端点，协调会话准入、恢复与投递</td></tr>
-<tr><td>Agent 装配门面</td><td><code>run_agent.AIAgent</code> → <code>agent.agent_init.init_agent()</code></td><td>把模型路由、client、工具快照、session 状态、记忆和上下文引擎装配为可执行对象</td></tr>
-<tr><td>回合控制器</td><td><code>agent/turn_facade.py</code>、<code>agent/conversation_loop.py</code>、<code>agent/turn_*.py</code></td><td>接收用户输入与历史，处理回合准入、中断、迭代预算、模型请求、工具结果、重试与回合收尾</td></tr>
-<tr><td>上下文子系统</td><td><code>agent/system_prompt.py</code>、<code>agent/prompt_builder.py</code>、<code>agent/context_engine.py</code></td><td>生成或恢复 system prompt，管理当前消息、上下文容量、压缩和缓存布局；默认引擎是 <code>ContextCompressor</code></td></tr>
-<tr><td>模型接入子系统</td><td><code>hermes_cli/runtime_provider.py</code>、client 与 transport / adapter</td><td>将 provider、model、凭据和配置解析为实际 client 与 API 模式，把统一消息转换为供应商请求</td></tr>
-<tr><td>能力发现与执行</td><td><code>model_tools.py</code>、<code>tools/registry.py</code>、<code>toolsets.py</code>、<code>agent/tool_executor.py</code></td><td>发现并注册工具，筛选当前会话可见 schema，验证和调度 tool call，把结果送回模型</td></tr>
-<tr><td>长期状态与执行资源</td><td><code>hermes_state.py</code>、MemoryStore、Skills 文件、<code>tools/*</code> 与后端生命周期模块</td><td>保存会话、事实和程序性知识；按调用需要连接本地、容器、SSH 或外部服务</td></tr>
+<tr><td>源码事实</td><td>固定提交中可定位的文件与符号、行号</td><td>只引用 <code>ff7597025dd2…</code>，不引用主分支</td></tr>
+<tr><td>官方文档事实</td><td>同一提交里 docs/ 的陈述</td><td>注明核验日期与版本</td></tr>
+<tr><td>系统推导</td><td>根据公开证据做的架构解释</td><td>不等于产品内部实现</td></tr>
+<tr><td>本书建议</td><td>本书依据事实归纳的使用建议</td><td>与官方建议分开标注</td></tr>
 </tbody>
 </table>
 </div>
-<p>这些职责分别由入口、装配器、回合门面、工具运行时和 Gateway 源码支撑。表中的分组是阅读地图，不能据此假设每个目录都独立运行，或所有入口都共享同一个 Python 对象。<a href="#ref-2">[2]</a><a href="#ref-4">[4]</a><a href="#ref-5">[5]</a><a href="#ref-6">[6]</a><a href="#ref-7">[7]</a></p>
-<h3 id="2022-再看生命周期哪些状态常驻哪些按会话或任务创建"><a class="header" href="#2022-再看生命周期哪些状态常驻哪些按会话或任务创建">20.2.2 再看生命周期：哪些状态常驻，哪些按会话或任务创建</a></h3>
-<p>“长期运行”并不意味着一个 <code>AIAgent</code> 对象永不销毁。长期性主要由持久会话、记忆、技能和运行时所有者提供；执行实例可以缓存、释放 client、重建，随后继续同一条持久会话。Gateway 的 agent cache 和 <code>TurnRunner</code> 会区分复用实例与新建实例，因此 <strong>session 的寿命不能用对象的寿命代替</strong>。<a href="#ref-8">[8]</a></p>
+<p>三条诚实性限制需要提前说明。第一，OpenClaw 文档演进很快：相对现稿的旧提交，docs 目录在两个提交之间变更了 472 个文件（+15,937/−3,552 行），本章对“新旧之间发生了什么变化”的结论绑定这两个提交，不再往后追。第二，文档内部有若干处互相矛盾（技能优先级在两个页面写法不同、会话修剪的持久性说法不一致、<code>agents.entries</code> 与旧 <code>agents.list</code> 混用），正文遇到会点名，并以源码或更具体的页面为准。第三，官方文档里引用的第三方评测数据（如提示注入攻击成功率）不作为本书结论转述。</p>
+<h2 id="191-组成openclaw-由哪些部分构成"><a class="header" href="#191-组成openclaw-由哪些部分构成">19.1 组成：OpenClaw 由哪些部分构成</a></h2>
+<h3 id="1911-定位一个长期运行的-gateway"><a class="header" href="#1911-定位一个长期运行的-gateway">19.1.1 定位：一个长期运行的 Gateway</a></h3>
+<p>OpenClaw 的形态是一个单一、长期运行的 Gateway 进程，官方文档的表述是“A single long-lived Gateway owns all messaging surfaces”（一个长驻 Gateway 拥有全部消息面）<a href="#ref-1">[1]</a>。它默认接入 WhatsApp、Telegram、Slack、Discord、Signal、iMessage 和 WebChat 等渠道，README 称“20+ more”；渠道适配器在仓库的 <code>extensions/</code> 目录里，实际数量远多于文档摘要列出的几个<a href="#ref-38">[38]</a>。</p>
+<p>Gateway 同时是控制面。控制面客户端（Control UI、CLI、节点）经 WebSocket 连接，默认监听 <code>127.0.0.1:18789</code>；每台主机一个 Gateway，由状态目录锁保证唯一（见 19.2.1）。同一端口还复用 HTTP API（<code>/v1/models</code>、<code>/v1/chat/completions</code>、<code>/v1/responses</code> 等 OpenAI 兼容面）、插件 HTTP 路由、Control UI 静态资源和 hooks<a href="#ref-1">[1]</a><a href="#ref-23">[23]</a>。这个“一个端口承担消息渠道、控制面、HTTP API”的设计，是理解它后续安全模型（19.5.2 的暴露面阶梯）的前提。</p>
+<p>定位上要分清两件事：OpenClaw 是个人助手的运行时，不是敌对多租户平台。官方安全页明确写，它“不是一个针对相互敌对的用户的安全多租户边界”，混合信任或对抗用户必须拆分信任边界（独立 Gateway 与凭据，最好独立 OS 用户或主机）<a href="#ref-25">[25]</a>。这一条不是免责声明，而是 19.5 整个实践部分的框架。</p>
+<h3 id="1912-仓库包与进程形态"><a class="header" href="#1912-仓库包与进程形态">19.1.2 仓库、包与进程形态</a></h3>
+<p>仓库是 pnpm workspace（根 README 注明“不支持在仓库根直接 <code>npm install</code>”），根包 <code>openclaw</code> 版本 <code>2026.10.6</code>，MIT，<code>engines.node</code> 为 <code>&gt;=24.22.1 &lt;25 || &gt;=26.12.1</code>（README 写的 Node 版本范围与 package.json 不一致，以 package.json 为准）<a href="#ref-38">[38]</a>。顶层分几块：<code>src/</code>（核心：gateway、agents、auto-reply、channels、routing、sessions、context-engine、cron、plugins、skills、security、llm、tui、node-host）、<code>extensions/</code>（捆绑的渠道与 provider 插件）、<code>packages/</code>（内部包：agent-core、ai、gateway-protocol、gateway-client、plugin-sdk、worker-runtime、retry 等）、<code>apps/</code>（各平台应用）、<code>ui/</code>（Control UI 前端）、<code>docs/</code><a href="#ref-3">[3]</a>。</p>
+<p>进程形态有几种：前台 <code>openclaw gateway</code>，或经 <code>openclaw gateway install|start|stop</code> 管理的原生服务（launchd/systemd/Windows 计划任务）；还有独立的节点宿主（<code>openclaw node</code>）与 macOS/iOS/Android/Linux 应用。CPU 密集或隔离任务走 worker（<code>@openclaw/worker-runtime</code>），SQLite 通过 reader/writer worker 访问（reader 池上限 2 个），Gateway 主线程不使用 Node 磁盘模块编译缓存以避免同步 flush 阻塞事件循环<a href="#ref-3">[3]</a><a href="#ref-23">[23]</a>。</p>
+<h3 id="1913-状态与存储"><a class="header" href="#1913-状态与存储">19.1.3 状态与存储</a></h3>
+<p>状态目录默认 <code>~/.openclaw</code>（<code>OPENCLAW_STATE_DIR</code> 覆盖）。关键布局：</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>生命周期</th><th>典型内容</th><th>创建或恢复边界</th><th>结束后的语义</th></tr>
+<tr><th>位置</th><th>内容</th></tr>
 </thead>
 <tbody>
-<tr><td>进程 / Gateway</td><td>事件循环、接入端点、平台连接、后台 watcher、工具发现缓存</td><td>Gateway 冷启动；已运行时前端直接连接</td><td>进程退出释放连接与所有权；磁盘状态仍可用于恢复</td></tr>
-<tr><td>Profile</td><td><code>HERMES_HOME</code>、配置、凭据作用域、记忆、Skills、会话数据库</td><td>选定 profile 后解析；多 profile 场景仍分别维护 authority</td><td>profile 共享进程不等于共享身份、记忆或写入权限</td></tr>
-<tr><td>Session</td><td>session ID、历史、system prompt / tools 快照、模型选择、累计用量</td><td>创建、恢复、分支、压缩切换等会话边界</td><td>可以跨前端、跨进程生命周期恢复；不保证外部操作自动重放安全</td></tr>
-<tr><td>AIAgent 实例</td><td>client、工具列表、MemoryStore、上下文引擎、callbacks</td><td>新执行实例装配；后续回合可能复用</td><td>重建不应把已有历史和长期记忆重置为空</td></tr>
-<tr><td>Turn / Task</td><td>用户输入、执行标识、准入租约、预算、中断状态、工具调用结果</td><td>每次 <code>run_conversation()</code> 和具体工具任务</td><td>回合收尾与资源清理；关键历史按持久化路径保存</td></tr>
-<tr><td>工具后端资源</td><td>terminal 环境、容器、SSH 连接、浏览器 session</td><td>首次真正需要相应后端时创建或复用</td><td>按任务映射、超时或显式清理策略释放</td></tr>
+<tr><td><code>openclaw.json</code></td><td>主配置（JSON5），<code>OPENCLAW_CONFIG_PATH</code> 覆盖</td></tr>
+<tr><td><code>state/openclaw.sqlite</code></td><td>共享状态库（workspace 设置状态、attestation、cron、定时、子 agent 注册等）</td></tr>
+<tr><td><code>agents/&lt;agentId&gt;/agent/openclaw-agent.sqlite</code></td><td>每 agent 的会话行、活动转录、认证 profile、运行时状态</td></tr>
+<tr><td><code>credentials/</code></td><td>渠道与 provider 凭据</td></tr>
+<tr><td><code>agents/&lt;agentId&gt;/sessions/</code></td><td>遗留迁移源/归档（JSONL 转录仅作迁移输入/归档/导入导出）</td></tr>
+<tr><td><code>sandboxes/</code>、<code>logs/</code>、<code>workspace/</code></td><td>沙箱工作区、日志、默认 workspace</td></tr>
 </tbody>
 </table>
 </div>
-<p>Gateway 为所服务的 profile 建立 <code>SessionAuthorities</code> 与相应运行时身份；这与仅仅打开一个 SQLite 文件不是同一层职责。<code>AIAgent</code> 则可以接收调用方提供的 <code>session_db</code> 句柄，构造时不会因此自动拥有整个 Gateway 的生命周期。<a href="#ref-4">[4]</a><a href="#ref-5">[5]</a></p>
-<h3 id="2023-启动入口先确定由谁拥有实际执行"><a class="header" href="#2023-启动入口先确定由谁拥有实际执行">20.2.3 启动入口：先确定由谁拥有实际执行</a></h3>
-<p><code>pyproject.toml</code> 将 <code>hermes</code> console script 指向 <code>hermes_cli.main:main</code>。入口模块在分派命令前处理 profile 覆盖和环境加载；<code>main()</code> 还执行必要的启动修复与运行环境检查，再进入 chat、Gateway 等路径。<strong>profile 必须先确定，再加载其配置、凭据和状态路径</strong>，否则后续对象即使都创建成功，也可能绑定到错误身份。<a href="#ref-9">[9]</a><a href="#ref-10">[10]</a></p>
+<p>会话的权威状态在 SQLite，不在 JSONL：官方文档明确“活动 agent 历史与 session 行一起存在 SQLite”，session ID 稳定且由 OpenClaw 选择；JSONL 转录只作遗留迁移、归档与导入导出<a href="#ref-2">[2]</a>。这修正了“OpenClaw 用 JSONL 存会话”的常见误解。数据库引擎除默认 SQLite 外，还声明支持 PostgreSQL（state/agent/workboard/logbook/team-reports 五个家族，schema 版本 state=31、agent=31），PostgreSQL 备份要求先停 Gateway<a href="#ref-38">[38]</a>。</p>
+<p>一个与恢复直接相关的表，是“哪些对象持久化在哪里”（19.4.6 会用到）：对话历史=每 agent SQLite；已接受的聊天跟进=每 agent SQLite 待处理输入；中断的 main 会话 turn=每 agent SQLite 会话行与转录；子 agent 运行=共享状态库；出站投递队列=SQLite；定时作业=SQLite cron store；重启 continuation=SQLite restart sentinel；后台 exec 进程与 Gateway 终端 PTY=仅进程内存，不恢复<a href="#ref-22">[22]</a>。</p>
+<h3 id="1914-agent-runtime-与-pi-的关系"><a class="header" href="#1914-agent-runtime-与-pi-的关系">19.1.4 Agent Runtime 与 Pi 的关系</a></h3>
+<p>OpenClaw 拥有内置的 agent runtime，文档明确写“没有外部 agent framework 包保留”；运行时代码在 <code>src/agents/</code>、<code>src/llm/</code>，可复用核心在私有包 <code>packages/agent-core</code>（<code>@openclaw/agent-core</code>，<code>agent-loop.ts</code> 导出 <code>runAgentLoop</code>）<a href="#ref-3">[3]</a>。内置 runtime id 是 <code>openclaw</code>，遗留别名 <code>pi</code> 规范化为 <code>openclaw</code>，<code>codex-app-server</code> 规范化为 <code>codex</code><a href="#ref-3">[3]</a>。</p>
+<p>与 Pi 的关系必须写成有版本绑定的事实，因为它随时间变化过。固定提交的根 <code>package.json</code> 里 Pi 系依赖只有一个：<code>@earendil-works/pi-tui</code> 精确版本 1.2.0，仅用于本地 TUI 与会话工具渲染器；<code>THIRD_PARTY_NOTICES.md</code> 声明“OpenClaw 的部分代码改编自 Pi / pi-mono”（MIT，版权 Mario Zechner）<a href="#ref-38">[38]</a>。但在此之前 OpenClaw 确实嵌入过 Pi SDK：CHANGELOG 记载 2026.2.21 把 <code>@mariozechner/pi-agent-core</code>/<code>pi-ai</code>/<code>pi-coding-agent</code>/<code>pi-tui</code> 升级到 0.54.0，2026.3.13 升到 0.58.0，2026.5.12 迁到 <code>@earendil-works</code> 命名空间，2026.5.22 “把此前的 Pi agent runtime 内化进 OpenClaw、移除 legacy 包依赖、只保留 Pi 命名的 SDK 别名作为弃用插件兼容”，同一版本还关闭了内嵌 pi-coding-agent 的自动重试，以免 OpenClaw 自己的重试与故障转移循环把失败的工具调用重放一遍<a href="#ref-39">[39]</a>。</p>
+<p>所以准确的表述是：<strong>曾嵌入、现已内化，当前只保留 <code>pi-tui</code> 作为终端组件依赖，并保留改编代码的许可证声明</strong>。此外，Pi 仍可作为外部 Coding Agent 被调用：ACP/acpx 的 agent 目标表包含 <code>pi</code>，节点会话目录能读取 Pi 的 JSONL 会话存储并用 <code>pi --session &lt;id&gt;</code> 续跑——这是“读取/拉起外部 Pi CLI”，不是嵌入它的运行时，两者要分开<a href="#ref-36">[36]</a>。</p>
+<h3 id="1915-模型接入与-provider-抽象"><a class="header" href="#1915-模型接入与-provider-抽象">19.1.5 模型接入与 Provider 抽象</a></h3>
+<p>模型接入在 <code>src/llm/</code>，插件经契约 <code>openclaw/plugin-sdk/*</code> 提供 provider。认证用“profile”抽象：每个 provider 可有多个 profile（OAuth、静态 token、API key），<code>ModelRuntime</code> 在每次 run 前解析。启动时为每个已配置 agent 构建一个“准备好的模型运行时代”（auth 模板 + 模型注册表 + 模型目录的原子快照），run 从该快照派生可变存储<a href="#ref-3">[3]</a>。</p>
+<p>provider 认证 profile 的轮换顺序与“按会话粘住”是 19.4.3 故障转移的机制基础：未显式配置时按“OAuth → 静态 token → API key”的类型轮询、最久未用优先，但自动选中的 profile 会按会话粘住以保持 provider 缓存温热，只在 <code>/new</code>、<code>/reset</code> 或 profile 冷却/禁用时才轮换<a href="#ref-11">[11]</a>。</p>
+<h3 id="1916-工具skillsplugin-与-context-engine"><a class="header" href="#1916-工具skillsplugin-与-context-engine">19.1.6 工具、Skills、Plugin 与 Context Engine</a></h3>
+<p>扩展能力分几层。<strong>工具</strong>：OpenClaw 自己的工具定义、参数 schema、tool policy 与 before/after tool-call 适配在 <code>src/agents/agent-tools*.ts</code>；内置工具按组归类（文件、exec/process、浏览器、web、message、canvas/nodes、cron/gateway、图像/音乐/视频生成、sessions/subagents 等）<a href="#ref-14">[14]</a>。<strong>Skills</strong>：<code>SKILL.md</code> 目录，按优先级发现（workspace → project agent → personal agent → managed → Workshop → bundled/Custodian → extraDirs + plugin skills），skill 是上下文不是执行权限，技能目录视为受信代码<a href="#ref-15">[15]</a>。<strong>Plugin</strong>：运行在 Gateway 进程内，可注册 channel/provider/tool/skill/speech/media/image-video/web/context engine/hooks 等十几类能力<a href="#ref-17">[17]</a>。<strong>Context Engine</strong>：内置 <code>legacy</code> 引擎默认使用，插件引擎经 <code>plugins.slots.contextEngine</code> 选择；memory 插件与 context engine 分离<a href="#ref-6">[6]</a>。</p>
+<h3 id="1917-权限与隔离的分层"><a class="header" href="#1917-权限与隔离的分层">19.1.7 权限与隔离的分层</a></h3>
+<p>OpenClaw 的权限不是一个开关，而是一条多层管线。单层内“deny 先匹配，空 allow=放行未被 deny 者”；跨层按运行时顺序逐层收窄：<code>tools.profile</code> → <code>tools.byProvider.profile</code> → 全局 <code>tools.allow/deny</code> → <code>tools.byProvider.allow</code> → agent <code>tools.allow</code> → agent <code>tools.byProvider.allow</code> → 群/会话 group allow → <code>tools.toolsBySender</code> → sandbox allow → subagent allow → runtime allow → inherited<a href="#ref-14">[14]</a><a href="#ref-43">[43]</a>。在这之上还有 <code>tools.gatewayPolicy</code>（部署所有者的具体工具与动作白名单，在普通授权之后施加、需重启生效）<a href="#ref-14">[14]</a>。</p>
+<p>另外两条独立的边界：<strong>exec 审批</strong>（决定 shell 命令能否执行、由谁批准，默认值见 19.5.4）和<strong>沙箱</strong>（<code>agents.defaults.sandbox</code>，mode 默认 <code>off</code>，启用后由 Docker/Podman 后端隔离文件系统与进程）。三者解决的问题不同：tool policy 决定“能不能调用这个工具”，exec 审批决定“这条命令要不要人点头”，沙箱决定“放行后进程能碰什么”。19.5.4 会把这三层串起来。</p>
+<p>协议层面还有几个组成事实。WebSocket 帧是 <code>{type:"req",id,method,params}</code> / <code>{type:"res",id,ok,payload|error}</code> / <code>{type:"event",event,payload,seq?,stateVersion?}</code>，协议版本 <code>PROTOCOL_VERSION=4</code>；入站帧用 JSON Schema 校验，握手首帧必须是 <code>connect</code>，预认证帧上限 64 KiB，每 IP 128 个未认证并发连接<a href="#ref-1">[1]</a>。Nodes 用同一 WS 服务、以 <code>role: node</code> 连接并声明 caps/commands（<code>camera.*</code>、<code>screen.record</code>、<code>location.get</code> 等）；Control UI 是 Gateway 同端口托管的浏览器控制台，经同一套 WS API 通信；WebChat 是静态 UI，经 Gateway WS API 取历史和发送<a href="#ref-1">[1]</a>。同一端口还复用 OpenAI 兼容 HTTP 面（<code>/v1/models</code>、<code>/v1/chat/completions</code>、<code>/v1/responses</code> 等），<code>/v1/models</code> 以 agent 为先<a href="#ref-23">[23]</a>。</p>
+<p>代码模式、压缩规划、文件工具规划走 <code>WorkerTaskPool</code>，CPU 准入上限 <code>max(1, availableParallelism()-1)</code>，每池默认 128 待处理任务与 256 MiB 报告输入，超限 <code>WorkerTaskError.code="overloaded"</code><a href="#ref-3">[3]</a>。</p>
+<p>渠道适配器的真实接口形态值得写清，因为它修正了“ChannelAdapter 有 start/stop/send/onMessage 方法”的教学构造：渠道插件对 Gateway 暴露 <code>plugin.config.{isEnabled,isConfigured,isLinked}</code> 与 <code>plugin.gateway.{startAccount,stopAccount}</code>，Gateway 的 <code>ChannelManager</code> 负责逐账号生命周期、运行时快照与重启退避；渠道账号快照字段含 <code>running/connected/lastStartAt/lastDisconnect/restartPending/ingressUnavailable/linked/terminalDisconnect</code> 等<a href="#ref-41">[41]</a>。控制面的事件/RPC 面由方法注册表组织，WS 连接处理在 <code>server/ws-connection.ts</code>；握手需签名 <code>connect.challenge</code> nonce，已配对设备元数据变化需修复配对<a href="#ref-1">[1]</a>。</p>
+<p>内部进程模型：SQLite 通过“spawn broker”与 reader/writer worker 访问（reader 池上限 2、compute 池上限 4、writer 与 singleton 串行）；子运行时（child runtime）是拉起 worker/命令所用的 Node 可执行<a href="#ref-3">[3]</a>。Gateway 主线程不使用 Node 磁盘模块编译缓存（避免同步 flush 阻塞事件循环），缓存默认在系统临时目录，不可用只产生诊断、启动继续<a href="#ref-23">[23]</a>。捆绑扩展在 <code>extensions/</code> 目录里，渠道类含 discord、slack、signal、imessage、googlechat、msteams、matrix、line、irc、feishu、nostr 等，模型提供方类含 anthropic、openai、google、bedrock、deepseek、ollama、openrouter、litellm 等，能力类含 browser、canvas、memory、diagnostics-otel、prometheus 等<a href="#ref-38">[38]</a>。</p>
+<h2 id="192-启动从进程到-ready"><a class="header" href="#192-启动从进程到-ready">19.2 启动：从进程到 Ready</a></h2>
+<p>OpenClaw 的启动比单个 CLI 复杂，因为要回答的不是“能不能弹界面”，而是“什么时刻可以接纳渠道消息、什么时刻可以接纳新的 chat.send”。它有明确的分层就绪语义。</p>
+<h3 id="1921-主路径"><a class="header" href="#1921-主路径">19.2.1 主路径</a></h3>
+<p>公开入口 <code>startGatewayServer(port=18789, opts)</code> 的主序是（源码）：安装数据库进程角色 → 安装 Gateway 数据库引擎 → 初始化 SQLite runtime → 获取 Gateway 状态目录锁（防止另一个 Gateway 或 <code>openclaw agent --local</code> 同时拥有同一状态目录）→ 校验数据库访问 → <code>startGatewayServerWithRuntime</code><a href="#ref-40">[40]</a>。失去状态所有权时，优先尝试热重载恢复，否则关闭<a href="#ref-40">[40]</a>。</p>
+<p>随后 <code>startGatewayServerCore</code> 创建 Gateway kernel → 提升 skills 快照版本（保证重启后刷新技能目录）→ 创建 HTTP transport（含可选 Tailscale 暴露）→ <code>finishGatewayStartup</code><a href="#ref-40">[40]</a>。<code>finishGatewayStartup</code> 的主序是：附加 WS 连接处理器 → <code>http.listen</code> → 并行做 request runtime 就绪、early runtime、主会话孤儿标记 → <code>runtime.post-attach</code>（加载启动插件、启动渠道、插件服务、sidecars）→ 就绪判定 → 启动配置热重载器与 TLS 续期 → 提升 last-known-good 配置备份 → 安排 post-ready 维护<a href="#ref-40">[40]</a>。</p>
+<p>一个容易误读的时序是：HTTP 监听先于初始会话投影完成打开；期间 <code>/healthz</code> 可返回 200，<code>/startupz</code>、<code>/readyz</code> 保持 pending，其他请求与 WS 升级等待完整元数据后才认证与路由<a href="#ref-24">[24]</a>。所以“端口能连”和“可以干活”在 OpenClaw 里是明确分开的。</p>
+<h3 id="1922-就绪语义与探针"><a class="header" href="#1922-就绪语义与探针">19.2.2 就绪语义与探针</a></h3>
+<p>三组无认证探针各管一层<a href="#ref-24">[24]</a>：</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>入口路径</th><th>前端 / 触发方做什么</th><th>实际执行如何开始</th></tr>
+<tr><th>探针</th><th>含义</th></tr>
 </thead>
 <tbody>
-<tr><td>普通 <code>hermes</code> / <code>hermes chat</code></td><td>初始化 <code>HermesCLI</code>，使用 <code>GatewaySessionStore</code> 创建或恢复会话；构建 <code>GatewayAgent</code> 代理</td><td>连接共享 Gateway；没有可用实例时由连接流程启动，再通过协议提交用户回合</td></tr>
-<tr><td><code>hermes gateway run</code> / 后台服务</td><td>进入 Gateway 管理与启动路径</td><td>启动运行时所有者、接入平台和后台服务，之后等待消息、客户端请求或调度事件</td></tr>
-<tr><td>Python 直接嵌入</td><td>调用方显式构造 <code>run_agent.AIAgent(...)</code></td><td>在调用 <code>run_conversation()</code> 时执行；调用方负责自己的入口、持久化接线和资源关闭</td></tr>
-<tr><td>Cron / ACP / 其他集成</td><td>各自准备身份、任务、历史和回调</td><td>复用 Agent 核心，但不能假定其前端启动、会话创建和 worker 策略都与普通 CLI 完全相同</td></tr>
+<tr><td><code>/health</code>、<code>/healthz</code></td><td>HTTP 存活</td></tr>
+<tr><td><code>/startup</code>、<code>/startupz</code></td><td>startup sidecars 与 agent 数据库检查/准备完成，且未 draining；不看渠道</td></tr>
+<tr><td><code>/ready</code>、<code>/readyz</code></td><td>上述条件 + fresh-chat 准入就绪 + 非 draining + 必需 agent DB 通过 + 已配置渠道账号深度检查通过</td></tr>
 </tbody>
 </table>
 </div>
-<p>普通 CLI 中，<code>_init_session_store()</code> 获取 Gateway 会话代理，<code>_ensure_gateway_session()</code> 负责创建或恢复远端会话并采用返回的 session ID。前端连接失败时，<code>GatewayAgent</code> 和连接层会报错，不能把它描述为“自动退回 CLI 本地执行”。<a href="#ref-3">[3]</a><a href="#ref-11">[11]</a></p>
-<p>这样区分后，启动可以分为两个阶段：<strong>先让会话运行时达到可接入状态，再为实际回合取得或装配执行实例</strong>。热连接可以跳过 Gateway 冷启动；缓存命中可以跳过 <code>AIAgent</code> 重新装配；仅仅显示出 CLI 界面，则不证明模型和工具已经成功执行过。</p>
-<h3 id="2024-gateway-冷启动从进程所有权到-ready"><a class="header" href="#2024-gateway-冷启动从进程所有权到-ready">20.2.4 Gateway 冷启动：从进程所有权到 READY</a></h3>
-<p><img src="../images/hermes-runtime-startup.svg" alt="Hermes Gateway 启动流程：前端选择 profile，连接或启动 Gateway，初始化 authority，接通平台与后台服务后发布 READY"></p>
-<p><em>图 20-2：普通 CLI 的接入路径与 Gateway 冷启动主线。恢复、预热和平台连接有并行与有界等待，图中按职责阶段排列，并不声称所有内部调用严格串行。</em></p>
-<p>Gateway 的公开入口 <code>gateway.run.start_gateway()</code> 转交 <code>gateway.run_bootstrap.start_gateway()</code>；<code>GatewayRunner.start()</code> 的具体实现位于 <code>gateway/run_startup.py</code>。阅读启动顺序时，要沿着这些委托继续追踪，而不能停在 <code>run.py</code> 的门面函数。<a href="#ref-12">[12]</a><a href="#ref-13">[13]</a></p>
+<p>就绪判定失败原因的求值顺序（源码）是：startup pending → <code>gateway-draining</code> → <code>child-runtime</code> 不可用 → <code>state-database</code> 失败 → <code>agent-database:&lt;id&gt;</code> → <code>plugin-reload</code> → <code>chat-recovery</code>（fresh chat.send 准入未放行）→ 渠道账号逐个评估<a href="#ref-40">[40]</a>。其中 <code>chat-recovery</code> 门值得单独说：启动完成后“保存输入恢复”运行，在其释放 fresh <code>chat.send</code> 准入之前，<code>/readyz</code> 返回 503 且 <code>failing:["chat-recovery"]</code>；也就是说，Gateway 会先恢复上次没来得及处理的输入，再对新输入宣布就绪<a href="#ref-24">[24]</a>。</p>
+<p><code>coreReady</code> 字段进一步把“渠道可用性”从“核心就绪”里排除：它保留 startup、fresh-chat 准入、drain、数据库准入、child-runtime、插件替换检查，但渠道告警不阻止核心就绪；HTTP 状态与 <code>ready</code> 仍含渠道健康<a href="#ref-24">[24]</a>。对运维的含义是：监督者要检测“进程活着但不能干活”，应监控 <code>/readyz</code> 而不是 <code>/healthz</code><a href="#ref-24">[24]</a>。</p>
+<h3 id="1923-启动守卫与拒绝"><a class="header" href="#1923-启动守卫与拒绝">19.2.3 启动守卫与拒绝</a></h3>
+<p>OpenClaw 在启动这件事上是“拒绝启动优先于带病运行”。配置层面：JSON5 配置经过严格校验，未知键、类型错误、非法值使 Gateway <strong>拒绝启动</strong>；校验失败时只有诊断命令可用（<code>doctor</code>、<code>logs</code>、<code>health</code>、<code>status</code>）；配置文件的写入用“重命名覆盖”原子替换<a href="#ref-26">[26]</a>。</p>
+<p><code>gateway run</code> 之前还有源码级的前置守卫：除非 <code>--allow-unconfigured</code>、或 <code>gateway.mode==="local"</code>、或（<code>--dev</code> 且无配置文件），否则缺配置、缺 <code>gateway.mode</code>、<code>mode</code> 为其他值都拒绝启动，并附“Config write audit”路径——这是为了防“配置被篡改/清空后 Gateway 带着错误配置跑起来”<a href="#ref-40">[40]</a>。</p>
+<p>运行时安全断言（<code>assertGatewayRuntimeSecurityConfig</code>）在启动与热重载候选都执行：非 loopback 绑定且无共享密钥且非 trusted-proxy 会被拒（“refusing to bind gateway to … without auth”）；非 loopback 且启用 Control UI 但无 <code>allowedOrigins</code>/<code>publicOrigin</code> 也会拒；Tailscale 无认证、trusted-proxy 缺代理 IP 等组合同样拒<a href="#ref-40">[40]</a>。默认绑定：非容器 → <code>loopback</code>，容器环境 → <code>auto</code>（需配合认证）<a href="#ref-46">[46]</a>。</p>
+<p>最后是两类数据迁移门：发现遗留 session 存储时，Gateway 拒绝就绪并打印当前 profile 的 Doctor 命令，而不是以空历史静默启动；近期 attested 的 workspace 消失/被清空时，启动拒绝静默重新播种 <code>BOOTSTRAP.md</code><a href="#ref-2">[2]</a>。这些都是“宁可停下来让运维介入”的例子。</p>
+<h3 id="1924-配置热重载与-last-known-good"><a class="header" href="#1924-配置热重载与-last-known-good">19.2.4 配置热重载与 last-known-good</a></h3>
+<p>配置热重载模式是 <code>hybrid</code>（默认：可热更项热应用，需要时自动重启）或 <code>off</code>；旧的 <code>hot</code>/<code>restart</code> 模式已退役。无效热重载被跳过，运行时保持上一份已接受配置<a href="#ref-26">[26]</a>。last-known-good 机制：每次成功启动后保存受信副本，但启动与热重载都<strong>不自动恢复</strong>，只有 <code>openclaw doctor --fix</code> 会；疑似“误覆盖”的写入（丢掉有效 <code>gateway.mode</code>、或文件缩小超过一半）被阻止并保存被拒载荷到 <code>&lt;path&gt;.rejected.&lt;timestamp&gt;</code>；含 <code>***</code>/<code>[redacted]</code> 占位符的候选不会提升为 last-known-good<a href="#ref-26">[26]</a>。</p>
+<h3 id="1925-渠道账号启动路径"><a class="header" href="#1925-渠道账号启动路径">19.2.5 渠道账号启动路径</a></h3>
+<p>渠道账号的启动在 <code>ChannelManager</code> 里逐账号走：解析账号 → 密钥不可用且 <code>skipUnavailableAccounts</code> 时标 skipped → <code>plugin.config.isEnabled</code>（否则 disabled）→ 凭据可用性诊断 → <code>plugin.config.isConfigured</code>（否则 unconfigured）→ <code>isLinked</code> → <code>plugin.gateway.startAccount(...)</code> 作为长驻任务。任务退出（无论是否报错）进入自动重启阶梯（见 19.4.2）<a href="#ref-41">[41]</a>。渠道在“会话投影准备 + 主会话孤儿标记”都完成后才启动；崩溃循环断路器触发时（3 次非干净启动/5 分钟），渠道插件与自启动副服务保持关闭，控制面仍启动，可手动 <code>openclaw gateway call channels.start</code> 覆盖<a href="#ref-22">[22]</a>。</p>
+<p>一次 agent run 的创建路径是：<code>agent</code> RPC 校验并解析会话 → <code>agentCommand</code> → <code>runEmbeddedAgent</code>（预留 session controller turn → 全局容量准入 → 解析模型与 auth profile → 构建会话 → 订阅事件）→ 底层循环 <code>runAgentLoop</code><a href="#ref-7">[7]</a>。</p>
+<h3 id="1926-onboardingdoctor-与启动期诊断"><a class="header" href="#1926-onboardingdoctor-与启动期诊断">19.2.6 onboarding、doctor 与启动期诊断</a></h3>
+<p>五分钟本地启动路径（官方运行手册）是：<code>openclaw gateway --port 18789</code> → <code>openclaw gateway status</code>（健康基线：<code>Runtime: running</code>、连通性检查成功，<code>--require-rpc</code> 证明读范围 RPC）→ <code>openclaw status</code>、<code>openclaw logs --follow</code> → <code>openclaw channels status --probe</code><a href="#ref-23">[23]</a>。配置编辑的“两桶规则”是：根级放基础设施与跨 agent 默认，<code>agents.defaults</code> 放 agent-loop 行为，<code>agents.entries.*</code> 可覆盖；改配置前用 <code>config.schema.lookup</code> 或 <code>openclaw config schema</code> 取权威字段文档<a href="#ref-26">[26]</a>。post-ready 工作延迟 500ms 才释放，sidecars 就绪后再激活 cron 等定时服务；SQLite 快照回收每 15 分钟重复<a href="#ref-40">[40]</a>。</p>
+<p>onboarding 的官方原则是“每条路径都先建立推理（inference）”：<code>openclaw onboard</code> 先验证一次真实补全，再配置 workspace、Gateway、服务、渠道、agent、插件；<code>--classic</code> 走详细向导，<code>--install-daemon</code> 同时安装后台服务，<code>--non-interactive</code> 供脚本；README 的最短路径是 <code>openclaw onboard --install-daemon</code> → <code>openclaw gateway status</code> → <code>openclaw dashboard</code><a href="#ref-35">[35]</a>。</p>
+<p><code>openclaw doctor</code> 是启动前后的检查与修复，姿态有：引导式、<code>--json</code> 只读、<code>--fix</code>/<code>--repair</code> 修复、<code>--lint</code> CI 门、<code>--state-sqlite compact</code>、<code>--session-sqlite &lt;mode&gt;</code>；显式修复会停止匹配的托管 Gateway、检查所有权、做只读 schema 快照后再修复，之后重启并验证就绪；数据库只读快照与初始完整性扫描每库 30 秒上限<a href="#ref-33">[33]</a>。模型运行时准备在大 fleet 超出启动预算时降级：<code>openclaw health --json</code> 报 <code>modelRuntime.degraded:true</code> 与 <code>pendingAgents</code>，Gateway 继续运行，已完成的 agent 可用，后台准备完成后清除 degraded<a href="#ref-24">[24]</a>。</p>
+<p>端口与协议的启动常量也值得记下：端口解析优先级 <code>--port</code> → <code>OPENCLAW_GATEWAY_PORT</code> → <code>gateway.port</code> → <code>18789</code>；已安装服务把解析后的 <code>--port</code> 记录在监管元数据里，改 <code>gateway.port</code> 后需 <code>doctor --fix</code> 或 <code>gateway install --force</code><a href="#ref-23">[23]</a>。握手后的 <code>hello-ok</code> 帧含 <code>snapshot</code>（presence、health、stateVersion、uptimeMs）与 <code>policy</code>（maxPayload、maxBufferedBytes、tickIntervalMs）；源码里 <code>TICK_INTERVAL_MS = 30_000</code>、<code>HEALTH_REFRESH_INTERVAL_MS = 60_000</code>、<code>MAX_BUFFERED_BYTES = 50 MiB</code>；“Events are not replayed. On sequence gaps, refresh state”——事件不重放，序列有缺口时刷新状态<a href="#ref-23">[23]</a>。</p>
+<p>启动期间的请求处理有一个明确的窗口：主会话恢复在 HTTP 监听绑定后与会话投影并行，二者都完成后才启动渠道并报 ready；启动恢复期间新的 <code>chat.send</code> 收到可重试的 startup-unavailable 响应，以免后继消息超过已保存输入；启动期间新回复等待其 agent 的模型与插件运行时加载，已就绪 agent 可继续服务<a href="#ref-22">[22]</a>。服务托管下的“启动期卡住”有恢复手段：Gateway 持有状态所有权超过 5 分钟却未记录监听绑定时，<code>openclaw gateway stop</code> 可恢复该停滞启动<a href="#ref-23">[23]</a>。</p>
+<p>启动期 post-attach 的 sidecars 按依赖推进：内部 hooks（best-effort，失败只记录）→ 并行做模型运行时快照发布、回复运行时预热、WS message handler 预加载 → chat-metadata → channels（<code>channel-start</code>）→ ACP 运行时就绪与身份对账 → restart-sentinel → control-ui assets → worker environments；启动子系统用 <code>startupOutcomes.record({subsystem, status: loaded|skipped|failed, reason})</code> 汇总<a href="#ref-40">[40]</a>。</p>
+<h2 id="193-执行一条消息从进来到出去"><a class="header" href="#193-执行一条消息从进来到出去">19.3 执行：一条消息从进来到出去</a></h2>
+<h3 id="1931-完整流水线"><a class="header" href="#1931-完整流水线">19.3.1 完整流水线</a></h3>
+<p>文档版的入站→出站流水线是：<strong>routing/bindings → 会话键 → 去重 + 去抖 → （若已有活动 run 则）排队 → agent run（流式 + 工具）→ 出站回复（渠道限制 + 分块）</strong><a href="#ref-5">[5]</a>。这一步里的每一环都有明确的“事实”要管，下面逐段展开。</p>
+<p>入站去重是进程内缓存，键 = agent 范围 + 渠道路由（channel+peer+account+thread）+ message id，TTL 20 分钟或 5000 条先到者（源码常量一致）；这是内存去重，不跨重启，与持久 ingress 去重是两层<a href="#ref-45">[45]</a>。入站去抖只作用于文本消息、按 channel+会话作用域，媒体/附件立即 flush，控制命令绕过去抖；Telegram 普通文本默认 300ms 安静窗口，其他渠道无通用去抖延迟。注意 <code>messages.inbound.debounceMs</code>（入站去抖）与 <code>messages.queue</code> 的 500ms 队列 debounce 是两个不同的层<a href="#ref-5">[5]</a>。</p>
+<h3 id="1932-路由与会话键"><a class="header" href="#1932-路由与会话键">19.3.2 路由与会话键</a></h3>
+<p>路由匹配层级（源码 <code>resolveAgentRoute</code>，<code>matchedBy</code>）是：<code>binding.peer</code> → <code>binding.peer.parent</code> → <code>binding.peer.wildcard</code> → <code>binding.guild+roles</code> → <code>binding.guild</code> → <code>binding.team</code> → <code>binding.account</code> → <code>binding.channel</code> → 兜底。兜底取调用方 owner，否则唯一已配置 agent 或遗留 owner；多 agent 无 owner 且无匹配 binding 时报错，不会取名册第一项<a href="#ref-42">[42]</a>。这条顺序比现稿多了一个 <code>peer.wildcard</code>，末项也不是“default agent”。</p>
+<p>会话键形状决定了隔离粒度：DM 默认 <code>agent:&lt;agentId&gt;:main</code>；群 <code>agent:&lt;agentId&gt;:&lt;channel&gt;:group:&lt;id&gt;</code>；频道/房间 <code>agent:&lt;agentId&gt;:&lt;channel&gt;:channel:&lt;id&gt;</code>；Slack/Discord 线程追加 <code>:thread:&lt;threadId&gt;</code>；Telegram 论坛主题 <code>:topic:&lt;topicId&gt;</code>。<code>session.dmScope</code>、<code>session.groupScope</code> 控制折叠<a href="#ref-13">[13]</a>。Main DM 的路由是固定的：<code>dmScope=main</code> 且 <code>allowFrom</code> 恰有一个非通配条目时，不匹配的发送者不会覆盖 main 会话的 <code>lastRoute</code>；模型不选渠道，回复路由遵循主机配置的固定规则<a href="#ref-13">[13]</a>。</p>
+<h3 id="1933-队列模式与会话控制器"><a class="header" href="#1933-队列模式与会话控制器">19.3.3 队列模式与会话控制器</a></h3>
+<p>入站 auto-reply 经一个进程内“车道感知 FIFO 队列”串行化。并发默认值：未配置的车道 1；<code>main</code> 车道 <code>max(8, CPU 并行度 × 4)</code>；普通子 agent 队列每个派生会话默认 8；Swarm collector 每组 32<a href="#ref-4">[4]</a>。优先级只做有限插队：前台工作最多超越普通工作 15 秒、后台最多 30 秒，运行中的 turn 不被抢占<a href="#ref-4">[4]</a>。</p>
+<p>四种队列模式<a href="#ref-4">[4]</a>：</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>阶段</th><th>主要动作</th><th>完成后具备什么能力</th></tr>
+<tr><th>模式</th><th>含义</th></tr>
 </thead>
 <tbody>
-<tr><td>确定启动作用域</td><td>解析 Gateway 配置、profile 与可能服务的多个 home；检查现有宿主实例与重复启动</td><td>知道本进程准备服务哪些身份，以及应连接、替换还是拒绝重复实例</td></tr>
-<tr><td>取得运行所有权</td><td>为相应 profile 保留运行时所有权并认领 PID；发生冲突则按明确规则处理</td><td>防止两个实例无约束地争用同一运行时；此时仍未宣告服务就绪</td></tr>
-<tr><td>创建共享运行时</td><td>构造 <code>GatewayRunner</code>，初始化 <code>SessionAuthorities</code>、profile 数据库与本次启动的 runtime descriptor / ticket store</td><td>建立会话状态的所有者、运行实例身份和接入认证所需状态</td></tr>
-<tr><td>接通控制与请求端点</td><td>注册停止 / 重启处理，启动控制 listener 与 runtime API</td><td>本地前端具备接入通道；端点存在仍不等于完整 READY</td></tr>
-<tr><td>恢复与预热</td><td>恢复上次运行状态，启动 turn machinery 预热，并在恢复期间暂存新入站事件</td><td>让已有会话恢复与新消息有明确边界；预热失败可以退回首次调用时初始化</td></tr>
-<tr><td>连接平台</td><td>筛选启用的 Adapter，连接平台并汇总成功、暂时失败与不可重试错误；处理多 profile 接入</td><td>形成实际可服务的平台集合；部分失败可表现为 degraded，而非假称全部正常</td></tr>
-<tr><td>完成后台接线</td><td>建立 delivery 路由、hooks、watcher，启动 Cron ticker 与 housekeeping</td><td>会话投递、后台调度和维护进入服务生命周期</td></tr>
-<tr><td>发布 READY</td><td>在启动主线完成后发布 runtime READY，并进入等待 / 服务阶段</td><td>前端可以按协议进入正常交互；它不保证每个外部模型、MCP 和沙箱均已成功调用</td></tr>
+<tr><td><code>steer</code>（默认）</td><td>注入活动 runtime（含工具执行期间）；首个可执行调用先启动，其未启动的串行尾部可被跳过；并行批不因 steering 跳过</td></tr>
+<tr><td><code>followup</code></td><td>不 steer，当前 run 后另起一轮</td></tr>
+<tr><td><code>collect</code></td><td>静默窗口后把兼容的排队消息合并为单个 followup turn</td></tr>
+<tr><td><code>interrupt</code></td><td>中止该会话活动 run，再运行最新消息，且该取消不进入重启恢复续跑</td></tr>
 </tbody>
 </table>
 </div>
-<p>以上阶段直接对应 bootstrap、runtime 初始化与 startup 实现；其中恢复与工具预热会和网络连接重叠。<code>_finish_startup_restore()</code> 对恢复任务与预热使用有界等待，并最终释放入站门控，防止某个后台初始化永远卡住全部新消息。<code>READY</code> 也应结合实际 served profiles 与 degraded 状态解读，不能只看“PID 还活着”。<a href="#ref-4">[4]</a><a href="#ref-12">[12]</a><a href="#ref-13">[13]</a></p>
-<p>工具发现需要单独说明。<code>model_tools.py</code> 导入时会触发内置工具发现与插件发现，但<strong>不会在模块顶层执行可能长时间阻塞的 MCP 发现</strong>。Gateway 预热会物化部分工具 schema；MCP 的发现与刷新由具体入口和运行路径安排。于是“进程已启动”“工具已注册”“当前会话拿到工具快照”“外部 MCP 调用成功”是四个不同的检查点。<a href="#ref-6">[6]</a></p>
-<h3 id="2025-aiagent-装配构造函数具体创建了什么"><a class="header" href="#2025-aiagent-装配构造函数具体创建了什么">20.2.5 AIAgent 装配：构造函数具体创建了什么</a></h3>
-<p>真正的 <code>run_agent.AIAgent.__init__()</code> 将参数交给 <code>agent.agent_init.init_agent()</code>。这一层把可执行对象接好，尚不等于已经完成首个模型请求。下图将实例装配与首轮执行放在同一时间轴上，明确两者的分界。<a href="#ref-5">[5]</a></p>
-<p><img src="../images/hermes-runtime-first-turn.svg" alt="Hermes AIAgent 初始化与首轮执行时序：创建 client 和工具快照，绑定 session，加载记忆与上下文引擎，再执行准入、prompt、模型和工具循环"></p>
-<p><em>图 20-3：新建执行实例的主要装配顺序与首轮执行。参与者表示逻辑调用对象；热会话复用实例时不会重复执行全部构造步骤，图中也省略了具体 API 模式的条件分支。</em></p>
+<p>默认只允许同请求者 steering；他人 steering 被拒并提示用 <code>/followup</code>。<code>allowCollaborativeSteering:true</code> 才允许同会话已准入人类输入 steer，文档警告“Bob 可借 Alice 的权限影响行动”<a href="#ref-4">[4]</a>。使用 durable ingress 的渠道（含 Discord、Telegram）里，<code>collect</code> 退化为 <code>followup</code><a href="#ref-4">[4]</a>。</p>
+<p>会话控制器（<code>src/sessions/session-controller*</code>）是“下一个哪个 turn 可以使用会话”的所有者，不是运行时执行权限、数据库写围栏或并发限额的替代。文档给出的概念阶段是 <code>idle/admitting/preparing/running/finishing/settling/mutating</code>，并强调两句话：“请求取消不等于取消完成；释放调度槽不等于所有旧 writer 已落定”，以及逻辑 session key、存储会话化身、reply operation、后端 attempt 是四种不同身份<a href="#ref-9">[9]</a>。</p>
+<h3 id="1934-agent-loop-与转录写围栏"><a class="header" href="#1934-agent-loop-与转录写围栏">19.3.4 Agent Loop 与转录写围栏</a></h3>
+<p><code>agent</code> RPC 校验参数、解析会话、持久化会话元数据后<strong>立即返回</strong> <code>{runId, acceptedAt}</code>；真正的执行在 <code>runEmbeddedAgent</code> → <code>runAgentLoop</code> 里流式推进，事件经 <code>agent</code> 流（<code>tool</code>/<code>assistant</code>/<code>lifecycle</code>）桥接出来；<code>agent.wait</code> 等终态，返回 <code>{status: ok|error|timeout, …}</code><a href="#ref-7">[7]</a>。</p>
+<p>转录写围栏是 OpenClaw 对“并发写同一会话”的回答，也是现稿“session write lock”需要修正的地方：admitted run 在流式输出前记录持久 <code>activeWriterRunId</code> 声明；每次转录追加/重写必须带 <code>expectedWriterRunId</code>，同步提交事务校验其仍匹配；被取代的 run 无法提交过期转录<a href="#ref-7">[7]</a>。</p>
+<p>循环层（<code>packages/agent-core/src/agent-loop.ts</code>）与第17、18章是同一套骨架：外层 <code>while(true)</code> + 内层 <code>while(hasMoreToolCalls || pendingMessages.length&gt;0)</code>；每个 turn 发 <code>turn_start</code>，先把 pending（steering）消息提交进上下文，调模型流式取 assistant 消息，有 tool call 则 <code>executeToolCalls</code>，发 <code>turn_end</code>，检查停止条件，在检查点取 steering；内层结束取 follow-up，再复查 steering 以免 <code>agent_end</code> 丢失已接受的 steer<a href="#ref-44">[44]</a>。</p>
+<p>几个与失败相关、但属于正常路径设计的点。工具调用批里，steering 出现时未启动的调用被跳过（原因 <code>steering</code>）或因 <code>admission</code> 致命错误停止<a href="#ref-44">[44]</a>。工具失败/被拒绝/被取消作为不同结果回送：未启动的调用得到合成配对错误结果以保持转录合法；三次连续相同的工具错误（同一签名 + 同一结果哈希）总会以 <code>repeated_tool_error</code> 结束 turn，即使 <code>tools.loopDetection.enabled=false</code><a href="#ref-44">[44]</a>。回复整形只认整条 final 修剪后为大写 <code>NO_REPLY</code> 的静默回复；空 final 不是静默——恢复耗尽时记录失败结果，被准入的用户请求得到一条简短系统通知而不是伪造的回答<a href="#ref-7">[7]</a>。</p>
+<h3 id="1935-上下文引擎与系统提示"><a class="header" href="#1935-上下文引擎与系统提示">19.3.5 上下文引擎与系统提示</a></h3>
+<p>Gateway RPC 层还有一层幂等去重：每个连接状态里一个内存 <code>Map</code> 按 <code>DEDUPE_TTL_MS = 5 分钟</code> 清理、超过 <code>DEDUPE_MAX = 1000</code> 淘汰最旧条目，但不清理仍活动或“已接受待处理”的 run 条目；因为它是进程内 Map，不跨 Gateway 重启，跨重启的重复保护来自持久层（chat.send 的提交回执、durable ingress 去重、出站收据）<a href="#ref-45">[45]</a>。嵌入的 OpenAI Responses 有个边界：<code>end_turn:false</code> 时循环即使只有文本也请求下一次响应；输出上限命中且生成中的 tool call <strong>不执行</strong>，已准入工具完成后从其记录结果重试（受既有有界会话重试预算约束）<a href="#ref-7">[7]</a>。</p>
+<p>Context Engine 的生命周期接口比现稿的“四阶段”更全：<code>bootstrap?</code>、<code>maintain?</code>、<code>ingest</code>、<code>ingestBatch?</code>、<code>afterTurn?</code>、<code>commitTurn?</code>、<code>assemble</code>、<code>compact</code>、<code>prepareSubagentSpawn?</code>、<code>onSubagentEnded?</code>、<code>dispose?</code>。内置 <code>legacy</code> 引擎：ingest 是 no-op（会话管理器直接持久化）、assemble 原样返回（sanitize→validate→limit 流水线在别处）、compact 委托内置摘要、没有 afterTurn<a href="#ref-6">[6]</a>。引擎隔离是设计好的：非 legacy 引擎缺失、契约校验失败或抛错时，在当前 Gateway 进程内“隔离”该引擎并降级为 legacy，错误带操作名记录<a href="#ref-6">[6]</a>。</p>
+<p>首轮 workspace 引导：新 session 第一轮把 <code>AGENTS.md/SOUL.md/IDENTITY.md/USER.md/BOOTSTRAP.md/MEMORY.md</code> 注入系统提示的 Project Context；其中 <code>BOOTSTRAP.md</code> 只在全新 workspace 创建并在完成后删除，<code>MEMORY.md</code> 仅根目录存在时注入；空文件跳过，大文件截断并带标记（单文件 20000 字符、总 60000 字符，源码常量）<a href="#ref-2">[2]</a>。系统提示由 OpenClaw 基础提示、skills 提示、bootstrap 上下文与逐 run 覆盖构成，官方明确“OpenClaw owns the system prompt for every agent run; there is no runtime default prompt”<a href="#ref-19">[19]</a>。</p>
+<h3 id="1936-压缩"><a class="header" href="#1936-压缩">19.3.6 压缩</a></h3>
+<p>压缩把旧轮次摘要为一个 compact 条目写入会话转录，近期消息保持原样；<strong>完整历史仍在磁盘</strong>，压缩只改变模型下一轮看到的内容；分割点保持 assistant 工具调用与其 <code>toolResult</code> 成对<a href="#ref-10">[10]</a>。默认 <code>mode:"safeguard"</code>（更严格护栏 + 摘要质量审计），质量审计检查结构、待办请求与精确标识符；耗尽则存“最佳可得摘要”（有意有损），记录 <code>details.qualityDegraded</code> 并给可见警告<a href="#ref-10">[10]</a>。摘要被输出上限截断则拒绝：<code>mode:"default"</code> 自动压缩重试一次，手动压缩直接报错不重试；无有效摘要则原历史保留、不写压缩条目<a href="#ref-10">[10]</a>。</p>
+<p>自动压缩默认开启：接近上下文上限，或模型返回上下文溢出错误时压缩并重试（识别数十种 provider 溢出串）；溢出恢复无法适配时，失败回复建议 <code>/reset</code>、<code>/new</code> 或更大上下文模型<a href="#ref-10">[10]</a>。自动压缩摘要超时且无可复用摘要时，**“无摘要地提交压缩”**而不是终止 turn——近期消息保持原样，旧细节离开模型上下文（转录仍保留全部消息）<a href="#ref-10">[10]</a>。</p>
+<h3 id="1937-工具策略求值"><a class="header" href="#1937-工具策略求值">19.3.7 工具策略求值</a></h3>
+<p>单层内 deny 先匹配（含工具组展开、通配符、归一化名），命中即拒绝；deny 之后若 allow 为空则放行，否则必须命中 allow。文档的 “Global tool allow/deny policy (deny wins)” 限于同一层<a href="#ref-14">[14]</a>。多层顺序（源码）是逐层收窄：<code>tools.profile</code> → <code>tools.byProvider.profile</code> → 全局 → <code>tools.byProvider.allow</code> → agent → agent byProvider → group → <code>toolsBySender</code> → sandbox → subagent → runtime → inherited<a href="#ref-43">[43]</a>。子 agent 有硬拒绝层：总是失去 <code>gateway</code>、<code>agents_list</code>、<code>session_status</code>、<code>progress_card</code>、<code>cron</code> 等<a href="#ref-16">[16]</a>。工具结果里 <code>toolResult.content</code> 对模型可见，<code>details</code> 只是运行时元数据，在 provider 重放与压缩输入前被剥离；持久化转录只保留有界 <code>details</code><a href="#ref-5">[5]</a>。</p>
+<h3 id="1938-子-agent-与多-agent"><a class="header" href="#1938-子-agent-与多-agent">19.3.8 子 Agent 与多 Agent</a></h3>
+<p>子 agent 由 <code>sessions_spawn</code> 创建后台 run，会话键 <code>agent:&lt;agentId&gt;:subagent:&lt;uuid&gt;</code>；默认递归深度 5、<code>maxChildrenPerAgent</code> 5、<code>maxConcurrent</code> 8；默认用自己的上下文，需要请求者当前转录时用 <code>context:"fork"</code>；请求者会话被沙箱化时，<code>sessions_spawn</code> 拒绝会无沙箱运行的目标<a href="#ref-16">[16]</a>。多 Agent 的“隔离”含义是：每个 agent 有自己的 workspace、状态目录与会话存储；路由选出 agent 后，该 agent 决定用哪个 workspace 与 session store<a href="#ref-13">[13]</a>。<code>agents.entries.*</code> 是当前的 per-agent 配置键（旧 <code>agents.list[]</code> 仍出现在个别文档示例，以 schema 为准）<a href="#ref-2">[2]</a>。### 19.3.9 系统提示与 hooks</p>
+<p>系统提示由 OpenClaw 基础提示、skills 提示、bootstrap 上下文与逐 run 覆盖构成，官方明确“每次 agent run 的系统提示由 OpenClaw 拥有，没有 runtime 默认提示”<a href="#ref-19">[19]</a>。固定小节含 Tooling、Execution Bias、Promised Work、Care、Runtime Context、Skills、OpenClaw Control、Messaging、Workspace、Sandbox、Assistant Output Directives、Reasoning 等；大块稳定内容（Project Context、固定执行与 provider 策略）放在“提示缓存边界”之上，易变内容（工具目录、Skills、Messaging、Runtime、日期时间）在其下<a href="#ref-19">[19]</a>。这个分层直接服务于 19.6.5 的缓存：把不常变的放前面，让缓存前缀稳定。</p>
+<p>hooks 有两套进程内系统：内部 hooks（<code>HOOK.md</code>，如 <code>agent:bootstrap</code>、<code>command:new|reset|stop</code>）与插件 hooks（<code>before_model_resolve</code>、<code>before_prompt_build</code>、<code>before_agent_reply</code>、<code>agent_end</code>、<code>before/after_compaction</code>、<code>before/after_tool_call</code>、<code>tool_result_persist</code>、<code>message_received/sending/sent</code>、<code>session_start/end</code>、<code>gateway_start/stop</code> 等）。<code>before_tool_call {block:true}</code> 是终止性的、停止低优先级处理器；<code>{block:false}</code> 是 no-op 不清除先前 block<a href="#ref-7">[7]</a>。</p>
+<h3 id="19310-回复整形分块与事件流"><a class="header" href="#19310-回复整形分块与事件流">19.3.10 回复整形、分块与事件流</a></h3>
+<p>回复整形有一组容易误判的边界。静默回复 <code>NO_REPLY</code> 仅限连接外部消息渠道的会话，只有整条 final 文本（忽略大小写与周围空白）是 <code>NO_REPLY</code> 才请求静默；带引号、JSON 包裹或附在其他文字后都视为可见文本。空 final 不是静默：有界恢复耗尽（仅推理/空输出）时记录失败结果，被准入的用户请求得到一条简短系统通知而不是伪造的回答<a href="#ref-7">[7]</a>。messaging 工具的发送被追踪，以抑制重复的助手确认；对当前来源会话确认的 final send/reply 结束 run 循环<a href="#ref-7">[7]</a>。</p>
+<p>回复分块默认关闭（<code>agents.defaults.blockStreamingDefault:"off"</code>）：<code>blockStreamingBreak</code>（<code>text_end</code>/<code>message_end</code>，默认 <code>text_end</code>）、<code>blockStreamingChunk</code>（默认 800–1200 字符）、<code>humanDelay</code>；非 Telegram 渠道需显式 <code>*.streaming.block.enabled:true</code>；分块遵守渠道文本上限并避免拆开围栏代码<a href="#ref-2">[2]</a>。群聊历史与提示体由渠道插件填充，用 <code>[Chat messages since your last reply - for context]</code> 与 <code>[Current message - respond to this]</code> 包裹，渲染为“不可信的 user 角色上下文块”<a href="#ref-5">[5]</a>。工具结果里 <code>toolResult.content</code> 对模型可见，<code>details</code> 只是运行时元数据，在 provider 重放与压缩输入前剥离<a href="#ref-5">[5]</a>。</p>
+<p>事件流分 <code>lifecycle</code>/<code>assistant</code>/<code>tool</code>；definitive end/error 后事件 owner 抑制该执行的后续客户端 lifecycle 事件；生命周期与工具起止事件投影到“有界、仅元数据”的审计账本（不复制提示词/消息/工具参数/结果/原始错误）<a href="#ref-7">[7]</a>。chat 通道上，助手 delta 缓冲为 chat <code>delta</code>，终态产生 <code>final|error|aborted</code>；可重试错误保留 15 秒宽限以等待同一 run 的 fallback 或重启<a href="#ref-7">[7]</a>。</p>
+<h3 id="19311-定时作业与调度器"><a class="header" href="#19311-定时作业与调度器">19.3.11 定时作业与调度器</a></h3>
+<p>定时作业的定义、运行状态与历史持久在共享 SQLite 状态库，Gateway 必须运行才会触发；每次运行的墙钟预算：<code>--timeout-seconds</code>，否则隔离/分离 agent-turn 作业由调度器自带的 60 分钟看门狗约束，command 作业默认 10 分钟，script 载荷默认 5 分钟；启动时逾期且需要 agent 执行的作业被重新排程而不是立即重放，调度器合并错过的 tick<a href="#ref-37">[37]</a>。Gateway 内核拥有一个 <code>GatewayScheduler</code> 管理维护与 cron 唤醒；owner 在启动时重建调度而非持久化第二份调度状态；睡眠后迟到的唤醒对每个到期注册只派发一次<a href="#ref-1">[1]</a>。</p>
+<p>心跳已经从独立子系统迁移为普通自动化作业：<code>openclaw doctor --fix</code> 把旧心跳监视器转成可编辑作业（<code>openclaw automations list --all</code>），删除 <code>agents.defaults.heartbeat</code> 配置，运行时不再解析 <code>HEARTBEAT.md</code>；首次设置只一次性创建一个“Proactive check”作业，默认每 30 分钟<a href="#ref-23">[23]</a>。这是一个“把特殊机制收编成通用机制”的例子，也是版本敏感项（旧提交的心跳还是独立子系统）。</p>
+<h2 id="194-异常失败断线与恢复"><a class="header" href="#194-异常失败断线与恢复">19.4 异常：失败、断线与恢复</a></h2>
+<p>OpenClaw 作为长期运行、接入外部渠道的系统，异常面比单机 CLI 大得多：渠道会断线，模型会失败，进程会重启，而“已经发生的外部副作用”和“还排着队没做的事”要分开处理。</p>
+<h3 id="1941-异常分类与证据现状"><a class="header" href="#1941-异常分类与证据现状">19.4.1 异常分类与证据现状</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>构造顺序</th><th>源码中的主要动作</th><th>得到的对象或状态</th></tr>
+<tr><th>异常类型</th><th>关键结论</th><th>依据</th></tr>
 </thead>
 <tbody>
-<tr><td>1. 绑定执行身份与控制状态</td><td>保存 platform、用户 / chat / thread、cwd、callbacks；创建或继承 <code>IterationBudget</code>，初始化中断、活动跟踪与流式状态</td><td>知道这次执行属于谁、结果回到哪里、何时停止；子 Agent 可继承共享迭代预算</td></tr>
-<tr><td>2. 确定路由并建立 client</td><td>解析 API mode，完成路由，执行 <code>_build_client()</code> 和 <code>_init_fallback_chain()</code></td><td>获得实际模型访问 client 及回退配置；凭据缺失或配置不匹配可在这里失败</td></tr>
-<tr><td>3. 获取当前工具快照</td><td><code>_load_tools()</code> 发现当前 profile 插件，调用 <code>get_tool_definitions()</code>，应用 enabled / disabled toolsets 和会话过滤</td><td>得到 <code>agent.tools</code> 与 <code>valid_tool_names</code>；不是把仓库所有工具无条件交给模型</td></tr>
-<tr><td>4. 绑定 session 与任务辅助状态</td><td><code>_init_session_state()</code> 采用传入 session ID 或生成新 ID，记录数据库句柄与 parent ID，创建 <code>TodoStore</code> 和 checkpoint manager</td><td>获得当前执行的会话身份、待办状态与可选文件快照能力；这里不意味着把全部历史自动读入</td></tr>
-<tr><td>5. 加载记忆与配置</td><td>读取 agent 配置，执行 <code>_init_memory()</code>，按开关加载 <code>MEMORY.md</code> / <code>USER.md</code>，初始化或复用外部 memory manager</td><td>得到内置记忆快照和可选外部记忆能力；MemoryStore 与会话 transcript 仍是两类数据</td></tr>
-<tr><td>6. 建立上下文引擎</td><td>解析压缩配置与模型窗口，执行 <code>_build_context_engine()</code>，注入引擎扩展工具，检查上下文限制</td><td>默认使用 <code>ContextCompressor</code>，也可加载所选 context engine；引擎可持有 session 状态</td></tr>
-<tr><td>7. 完成执行基线</td><td>初始化用量计数，保存 primary runtime 快照</td><td>为运行时回退 / 恢复和后续观测准备基线；完整 prompt 与首轮请求仍在后面</td></tr>
+<tr><td>渠道断线与重连</td><td>退避阶梯 5s→5min、最多 10 次；健康监视器做最后 owner；terminal disconnect 不自动重启</td><td>源码 + 文档</td></tr>
+<tr><td>模型失败与故障转移</td><td>两阶段：auth profile 轮换 → 模型 fallback；限流 10 次、其他瞬时 8 次/90s</td><td>文档</td></tr>
+<tr><td>超时、取消与停滞</td><td><code>timeoutSeconds</code> 默认 48h；<code>agent.wait</code> 30s 不取消 run；看门狗即使诊断关闭也运行</td><td>文档</td></tr>
+<tr><td>压缩失败与溢出</td><td>safeguard 模式 + 质量审计；无摘要提交压缩；摘要截断拒绝</td><td>文档</td></tr>
+<tr><td>进程重启恢复</td><td>“Recovery is always on”；24h 窗口、3 次预算；tombstone</td><td>文档</td></tr>
+<tr><td>插件失败</td><td>加载失败回滚、不阻塞健康插件；崩溃循环断路器</td><td>文档 + 源码</td></tr>
+<tr><td>投递失败</td><td>持久出站队列 + 生产者租约；发送后不明确则不重放</td><td>文档</td></tr>
 </tbody>
 </table>
 </div>
-<p>顺序来自 <code>init_agent()</code> 的实际调用链；表中第 1、2 步合并了穿插的控制字段初始化，没有把每一条赋值都画成一个子系统。尤其是工具快照先于记忆与上下文引擎的扩展工具注入，最终 schema 不一定只来自最初那次 registry 查询。<a href="#ref-5">[5]</a></p>
-<p>模型路由也不是简单读取一个模型字符串。共享 resolver 会结合 provider、model、配置和凭据解析运行参数，随后 client / transport 决定如何发起请求。<code>_build_client()</code> 成功只能说明访问对象已建立，不能代替真实网络请求、额度与模型可用性的验证。<a href="#ref-14">[14]</a></p>
-<h3 id="2026-首轮执行装配结束后还要经过哪些边界"><a class="header" href="#2026-首轮执行装配结束后还要经过哪些边界">20.2.6 首轮执行：装配结束后还要经过哪些边界</a></h3>
-<p>收到输入后，回合门面 <code>TurnFacadeMixin.run_conversation()</code> 先协调后台 review 与前台执行，建立 task / session 上下文并申请持久回合租约，再进入 <code>agent.conversation_loop.run_conversation()</code>。租约与准入失败可能让请求提前结束，而不是总能进入模型循环。<a href="#ref-7">[7]</a></p>
-<p>进入循环后，Runtime 使用调用方传入或加载的会话历史，恢复或创建 system prompt。<code>_restore_or_build_system_prompt()</code> 会尝试复用数据库中持久化的 prompt 与工具快照，并校验运行身份；没有可用快照或需要重建时，才调用 builder，再持久化新的 prompt / tools。之后每次迭代准备请求、调用模型，遇到 tool call 则执行工具并追加观察结果，直到形成最终回答、被中断或触发失败边界。<a href="#ref-15">[15]</a><a href="#ref-16">[16]</a></p>
-<p>这意味着“启动时加载上下文”至少有三种不同含义，不能混为一谈：</p>
+<h3 id="1942-渠道断线与重连"><a class="header" href="#1942-渠道断线与重连">19.4.2 渠道断线与重连</a></h3>
+<p>渠道账号的自动重启是一个有界阶梯：<code>RESTART_POLICY = {initialMs:5000, maxMs:300000, factor:2, jitter:0.1}</code>，<code>MAX_RESTARTS=10</code>，用 <code>RetrySupervisor</code> 退避；运行满 5 分钟清零重试计数；终止性断连（terminal disconnect，如 WhatsApp 登出）不自动重启<a href="#ref-41">[41]</a>。</p>
+<p>渠道健康监视器在重启阶梯之后作为最后的重启 owner：默认检查间隔 5 分钟、启动宽限 60 秒、冷却 2 个周期（10 分钟）、连接宽限 120 秒、stale 事件阈值 30 分钟；跳过 <code>terminal-disconnect</code> 与 <code>blocked</code>。健康评估的原因集包括 <code>unmanaged, not-running, terminal-disconnect, blocked, busy, stuck, startup-connect-grace, reconnect-grace, disconnected, stale-socket, ingress-unavailable</code>；busy 超过 25 分钟无 run 活动判 <code>stuck</code>；stale-socket 只看传输活动（不看应用事件），安静的 Slack/Discord 不因无消息被判不健康<a href="#ref-41">[41]</a>。</p>
+<p>入站 ingress 与传输是两个独立失败域：无法打开 durable ingress 队列的账号“可发不可收”，判 unhealthy（<code>ingress-unavailable</code>）<a href="#ref-24">[24]</a>。终止性断连使 <code>/readyz</code> 503 且 <code>failing:["whatsapp"]</code>，需运维操作；WhatsApp 重新登录用 <code>openclaw channels logout &amp;&amp; openclaw channels login --verbose</code><a href="#ref-24">[24]</a>。</p>
+<h3 id="1943-模型失败与故障转移"><a class="header" href="#1943-模型失败与故障转移">19.4.3 模型失败与故障转移</a></h3>
+<p>模型调用恢复分两阶段：先在当前 provider 内做“认证 profile 轮换”，再“模型 fallback”到 <code>agents.defaults.model.fallbacks</code> 的下一个；在轮换/切换之前先做有界同模型恢复（延续既有转录、保留部分输出与已完成工作，并指示 agent 先检查被打断的动作再决定是否重复）<a href="#ref-11">[11]</a>。</p>
+<p>重试预算：限流每次连续故障最多 10 次尝试；其他瞬时故障在 90 秒重试窗口内最多 8 次；一次成功的模型响应重置计数/退避/窗口。<code>retry.provider.maxRetries</code>（settings.json）可覆盖续跑重试次数，0 禁用但限流仍封顶 10<a href="#ref-12">[12]</a>。限流冷却只来自 provider 给出的时间（<code>Retry-After</code> 等），“OpenClaw does not invent rate-limit cooldowns”；非限流类冷却随 profile 近期错误数递增：30 秒 → 1 分钟 → 5 分钟（上限），计数在失败窗口过后重置，状态存于每 agent SQLite 的 <code>usageStats</code><a href="#ref-11">[11]</a>。</p>
+<p>故障类别映射：5xx 默认 <code>server_error</code>，HTTP 529 <code>overloaded</code>，408/504/522/524/499 为 <code>timeout</code>；格式/无效请求错误通常终止而不轮换。推进 fallback 的错误包括：认证失败、限流与冷却耗尽、过载、超时形、计费 disable、<code>model_not_found</code>、以及在活动模型压缩与超大工具结果恢复都无法适配之后的上下文溢出（且该 turn 须可安全重放）<a href="#ref-11">[11]</a>。计费/额度类失败会标记凭据 disabled（初始 10 分钟）并轮换到下一个可用 profile/provider<a href="#ref-11">[11]</a>。</p>
+<p>一个重要的边界：本地转录写冲突与会话状态变化<strong>不</strong>触发模型重试/换账号/模型 fallback（先重读当前修订并重试一次，重复冲突作为本地错误报告）；<code>model_fallback_chain_stopped</code> 是终止性停止<a href="#ref-11">[11]</a>。另一个易踩的配置：显式用户选择的模型是“严格”的，失败即报错，不会被无关 fallback 掩盖<a href="#ref-11">[11]</a>。</p>
+<h3 id="1944-超时取消与停滞"><a class="header" href="#1944-超时取消与停滞">19.4.4 超时、取消与停滞</a></h3>
+<p>超时表要分清几个不同的“超时”。<code>agent.wait</code> 默认 30s，只等待、不停止 run、不标示阶段；<code>agents.defaults.timeoutSeconds</code> 默认 172800s（48h）是每次模型 attempt 的执行预算，每个 fallback 获得新预算故总时长可超过该值；模型 idle timeout 云端 120s / 自托管 300s，模型进度死线是 idle 窗口的 2 倍<a href="#ref-7">[7]</a>。</p>
+<p>取消语义：模型 attempt 超时后，配置的 fallback 在被打断 attempt 落定后以新预算开始；用户取消停止整个 run（含 fallback）；审批等待暂停未用完的 attempt 预算；<code>ask_user</code> 提问不暂停预算；压缩可获得一次有界宽限；取消立即撤销该 run 的工具与审批权限<a href="#ref-7">[7]</a>。终态超时是失败的 turn，不是成功完成；已完成的工具结果保留在转录中<a href="#ref-7">[7]</a>。</p>
+<p>停滞检测：内置两分钟阈值把长时间 <code>processing</code> 且无进展的会话分类为 <code>session.long_running/stalled/stuck</code>；“controller watchdog”即使诊断关闭也运行，语义停滞阈值至少 5 分钟且至少为告警阈值的 3 倍<a href="#ref-7">[7]</a>。恢复性继续：当恢复中止一个尚未回复、请求已保存在转录里的交互式 turn 时，尝试一次 continuation（指示不要重复已完成动作），而不是立即要求用户重试<a href="#ref-4">[4]</a>。</p>
+<h3 id="1945-压缩失败与上下文溢出"><a class="header" href="#1945-压缩失败与上下文溢出">19.4.5 压缩失败与上下文溢出</a></h3>
+<p>超时的精确数字（本提交文档）：<code>agent.wait</code> 默认 30s；<code>agents.defaults.timeoutSeconds</code> 默认 172800s（48h），是每次模型 attempt 的执行预算，每个 fallback 获得新预算故总时长可超过该值，进度不重置预算；模型 idle timeout 云端 120s / 自托管 300s，模型进度死线是 idle 窗口的 2 倍<a href="#ref-7">[7]</a>。限流冷却只来自 provider 给出的时间；非限流类冷却随 profile 近期错误数递增（30s → 1min → 5min 上限），计数在失败窗口过后重置，状态存于每 agent SQLite 的 <code>usageStats</code><a href="#ref-11">[11]</a>。认证 profile 轮换顺序是：存储的 per-agent 顺序 &gt; <code>auth.order[provider]</code> &gt; <code>auth.profiles</code> &gt; 存储的 profiles；自动选中的 profile 按会话粘住以保持 provider 缓存温热<a href="#ref-11">[11]</a>。</p>
+<p>自动压缩在接近上限或模型返回溢出错误时触发并重试；溢出恢复无法适配时，失败回复建议 <code>/reset</code>、<code>/new</code> 或更大上下文模型；恢复压缩本身失败（摘要模型出错/超时）则回复说明并建议重试或 <code>/compact</code><a href="#ref-10">[10]</a>。取消不是回滚：运行被停止或超时也会停止其溢出/超时恢复；已完成的压缩保留在转录并计数，不发送迟到回复<a href="#ref-10">[10]</a>。</p>
+<p>摘要无时间提交时“无摘要地提交压缩”（见 19.3.6）；若固定指令与工具本身就超过模型窗口，或无更多历史可压缩而请求仍过大，OpenClaw 报告估算的预算组成而非当作无害跳过，用 <code>/context detail</code> 找大头<a href="#ref-10">[10]</a>。手动 <code>/compact</code>：turn 活动时给它最多 60 秒完成，之后取消并再等最多 15 秒；Telegram 上先确认命令再中断，避免五分钟采纳看门狗中止并重放<a href="#ref-10">[10]</a>。</p>
+<h3 id="1946-重启恢复recovery-is-always-on"><a class="header" href="#1946-重启恢复recovery-is-always-on">19.4.6 重启恢复：Recovery is always on</a></h3>
+<p>压缩前的“静默记忆冲刷（memory flush）”把持久上下文写入记忆，是可选维护，失败不重置会话或丢历史；<code>agents.defaults.compaction.memoryFlush.model</code> 可指定本地模型<a href="#ref-10">[10]</a>。活动转录字节守卫（opt-in，<code>maxActiveTranscriptBytes</code>）超限时用“有界近期历史视图”继续，省略最旧的整轮（工具调用与结果成对保留），不重写已存消息<a href="#ref-10">[10]</a>。provider 侧压缩受“上下文引擎压缩所有权”约束，保存的 checkpoint 上限 16 MiB，超限或不兼容时回退客户端压缩<a href="#ref-10">[10]</a>。</p>
+<p>这是现稿遗漏、但最值得补的机制。OpenClaw 的重启恢复<strong>始终开启</strong>：每次 Gateway 进程关闭（含 SIGTERM、systemd/launchd 停止、<code>openclaw gateway stop</code>）都保留可恢复的未完成 turn；崩溃、强杀、漏写关机标记后同样进入恢复<a href="#ref-22">[22]</a>。</p>
+<p>恢复的对象与边界（“重启后自动恢复/不恢复”的清单）<a href="#ref-22">[22]</a>：</p>
+<ul>
+<li><strong>会恢复</strong>：被重启打断的已准入 turn（含仍在队列或准备执行的）自动继续既有会话；重放保留已记录的工具调用与结果、复用原用户消息；已接受的 <code>chat.send</code> 输入在启动时按接受顺序从 SQLite 恢复（过去 24 小时内接受的输入，最多 4 个会话并行重放）；子 agent 由 registry 恢复；cron 会话由调度器恢复；ACP 管理的会话由 IDE/客户端恢复。</li>
+<li><strong>不会恢复</strong>：从未被准入的工作；Gateway 终端 PTY；后台 exec 进程结束（所属会话在合格时被唤醒一次并告知结果未知）；incognito 输入不能跨进程重启存活。</li>
+</ul>
+<p>恢复有预算：main 会话“每个中断周期 3 次计费的自动派发”，三次未能启动后端 turn 耗尽恢复预算，之后 tombstone 直至检查并替换<a href="#ref-22">[22]</a>。恢复的权限按当前 profile/role/grant/device 策略重新校验原调用者的记录权限；撤销仍停止恢复的 run；无法重建委托发送者权限则终止该 turn、记录一条本地中断通知与终止性 source receipt，防止重放；恢复耗尽后任务与转录保留，WebChat 的 <strong>Resume</strong> 以当前操作者权限继续<a href="#ref-8">[8]</a>。</p>
+<p>文档反复强调的一个口径：“A recovered count at startup means execution resumed. It does not prove that an assistant reply was delivered.”（启动时恢复计数只证明执行续跑，不证明回复已投递）<a href="#ref-22">[22]</a>。这与“不确定的副作用须先检查再重复”是同一个原则。</p>
+<p>优雅重启先排空：请求的重启（<code>openclaw gateway restart</code>、需要重启的配置变更、网关更新）不会立刻杀死在途工作；Gateway 停止接纳新工作，等待活动 agent turn 与后台任务完成，上限为排空预算（默认 5 分钟）；排空期间到达的消息被明确的重启错误拒绝（不静默排入将死进程）<a href="#ref-22">[22]</a>。</p>
+<h3 id="1947-插件失败隔离与崩溃循环"><a class="header" href="#1947-插件失败隔离与崩溃循环">19.4.7 插件失败隔离与崩溃循环</a></h3>
+<p>插件加载失败的隔离：插件注册失败的贡献被回滚，失败记录留在插件诊断中，不进入执行范围，也不阻塞健康插件与核心 context-engine 准入；插件替换/重载失败时保留 last-good 运行时，待工作结束后自动重试一次<a href="#ref-17">[17]</a>。保留工作与在途调用共享 60 秒的 pre-stop 预算<a href="#ref-17">[17]</a>。</p>
+<p>崩溃循环断路器：3 次非干净启动在 5 分钟内触发；触发后下次启动抑制自启动副服务（渠道插件等保持关闭、控制面仍启动），安全模式同时暂停 main 会话重启恢复（不扣尝试次数、不落定、不发通知、不 tombstone），窗口排空后同进程自动重新武装恢复并只恢复一次<a href="#ref-22">[22]</a>。</p>
+<h3 id="1948-投递失败与持久出站"><a class="header" href="#1948-投递失败与持久出站">19.4.8 投递失败与持久出站</a></h3>
+<p>出站投递有持久队列：Gateway 启动时检查一次未完成的出站投递；新的 durable enqueue 在事务提交后唤醒恢复；有独立的投递尝试预算；生产者租约 60 秒、每 20 秒续约；租约过期不抹去“发送已开始”的证据，此类条目重放前仍需调和<a href="#ref-12">[12]</a>。重试原则：每个 HTTP 请求单独重试而非整条多步流，只重试当前步骤以保序，避免重复可能造成重复副作用的操作<a href="#ref-12">[12]</a>。</p>
+<p>渠道层对“发送后不明确”的处理是：Telegram 新文本消息发送只有在 429 flood control 或传输证明请求未开始时才重试；发送后断连/超时/丢响应属于“不明确”，<strong>不重放</strong>（避免重复消息）；可安全重复的操作（如预览编辑）可重试瞬时网络与 5xx<a href="#ref-12">[12]</a>。渠道发送重试默认 3 次、10% 抖动；Discord Gateway WS 重连另有循环：最多 50 次，2000ms 指数退避到 30000ms，无抖动<a href="#ref-12">[12]</a>。</p>
+<p>机器人对机器人循环保护是入站回复 runner 强制执行的滑动窗口速率守卫：默认 <code>enabled:true</code>、<code>maxEventsPerWindow:20</code>、<code>windowSeconds:60</code>、<code>cooldownSeconds:60</code>；A→B 与 B→A 计为同一对；不影响人类消息<a href="#ref-32">[32]</a>。</p>
+<h3 id="1949-基础设施故障与启动期失败"><a class="header" href="#1949-基础设施故障与启动期失败">19.4.9 基础设施故障与启动期失败</a></h3>
+<p>除渠道与模型外，基础设施层的失败有各自的语义。子运行时（child runtime）失效：Node 被升级/移除后，Gateway 进程活着但无法拉起子 worker；确认后 <code>childRuntime.available:false</code>，<code>/readyz</code> 503 且 <code>failing:["child-runtime"]</code>；服务托管的 Gateway 请求一次优雅重启，监管不可验证或五分钟内已因此关停则 report-only<a href="#ref-24">[24]</a>。共享状态完整性失败：终止性准入失败立即使 <code>/ready</code>、<code>/readyz</code> 503，<code>failing:["state-database"]</code><a href="#ref-24">[24]</a>。插件替换/恢复：<code>/readyz</code> 503 <code>failing:["plugin-reload"]</code>，带 <code>phase: reloading|recovering|failed</code> 与 deadline；替换期间健康监视器不消耗渠道重启次数<a href="#ref-24">[24]</a>。</p>
+<p>Gateway 状态锁与端口冲突：状态所有权等待最多 5 分钟（每 250ms 检查）；<code>EADDRINUSE</code> 重试 20 次×500ms；服务监管下新进程先查现有进程 <code>/healthz</code>，健康则让位（systemd 下以退出码 78 退出）<a href="#ref-23">[23]</a>。启动时配置冲突被分类为“需运维介入，非瞬时错误”<code>GatewayEffectiveConfigConflictError</code>，监管者的重启无济于事<a href="#ref-40">[40]</a>。上下文准备超时：模型上下文转录读取有三分钟本地 worker 死线；本地死线会停止模型 fallback，且不会把 provider 凭据标为不健康<a href="#ref-3">[3]</a>。worker 池过载：每池默认 128 待处理任务/256 MiB，超限 <code>WorkerTaskError.code="overloaded"</code><a href="#ref-3">[3]</a>。引擎清理死线：前台引擎 dispose 共享 agent 清理死线，默认 10 秒<a href="#ref-6">[6]</a>。</p>
+<p>诊断默认启用（<code>diagnostics.enabled:false</code> 关闭）；<code>openclaw gateway stability</code> 输出有界稳定性记录；致命退出、关停超时、重启启动失败在 <code>logs/stability/</code> 落盘；<code>openclaw gateway diagnostics export</code> 生成脱敏 zip<a href="#ref-24">[24]</a>。</p>
+<h3 id="19410-未找到与待核验"><a class="header" href="#19410-未找到与待核验">19.4.10 未找到与待核验</a></h3>
+<ul>
+<li>官方对 Agent Loop 最大迭代数/最大工具调用步数的设定：未找到（只有工具循环检测阈值与广播组 <code>maxTurns</code>）。</li>
+<li><code>agents.defaults.runRetries</code> 在当前 docs 的说明：未找到（仅 CHANGELOG 记载）。</li>
+<li>官方对队列等待时延、吞吐、并发调优的实测基准或推荐数值：未找到，调优部分只能写“旋钮与观测手段”。</li>
+<li>重启恢复文档的中段（宿主休眠/冻结、失败更新恢复、自动续跑细节、子 agent 恢复）本次未读，正文未据此展开。</li>
+<li>官方“个人助手应默认要求高风险动作确认”的表述：未找到；官方默认 <code>exec.security=full, ask=off</code>（见 19.5.4），“默认确认”是本书建议，不是产品默认。</li>
+</ul>
+<h2 id="195-实践用好-openclaw"><a class="header" href="#195-实践用好-openclaw">19.5 实践：用好 OpenClaw</a></h2>
+<p>这部分每条做法标注“官方建议”或“本书建议”。OpenClaw 的官方建议集中在安全加固上，这符合它的定位：一个长期在线、能替人行动的系统，安全边界比功能更重要。</p>
+<h3 id="1951-先理解信任模型"><a class="header" href="#1951-先理解信任模型">19.5.1 先理解信任模型</a></h3>
+<p>官方安全页把范围划得很清楚：每个 Gateway 一个信任边界（单个运营者或互信团队），OpenClaw“不是针对相互敌对用户的安全多租户边界”；混合信任或对抗用户必须拆分信任边界——独立 Gateway 与凭据，最好独立 OS 用户或主机（官方建议）<a href="#ref-25">[25]</a>。这条决定了下文所有做法的框架：OpenClaw 的安全是“把不可信的人挡在边界外”，不是“在边界内做细粒度多租户隔离”。</p>
+<h3 id="1952-暴露面从-loopback-到公网的阶梯"><a class="header" href="#1952-暴露面从-loopback-到公网的阶梯">19.5.2 暴露面：从 loopback 到公网的阶梯</a></h3>
+<p>官方暴露面板给的是一个从窄到宽的阶梯（官方建议）：Loopback + SSH 隧道（个人/运维）→ Loopback + Tailscale Serve → Tailnet/LAN 绑定（认证 + 防火墙白名单 + 不公网转发）→ 受信反向代理（<code>trusted-proxy</code> 认证、严格 <code>trustedProxies</code>）→ 公网（罕见高风险，身份感知代理、TLS、速率限制、严格白名单、沙箱化非 main 会话）<a href="#ref-28">[28]</a>。核心原则是“在你能解释谁能到达它、如何认证之前，不要暴露 Gateway”；避免直接公网端口转发<a href="#ref-28">[28]</a>。</p>
+<p>与它配套的是保守默认：常规主机安装绑定 loopback；多数渠道对未知 DM 发送者返回配对码而不处理消息；群访问为白名单加 mention 门控。例外是容器镜像默认暴露绑定（需配合认证）<a href="#ref-25">[25]</a>。网络页把底线说得更直白：永远不要在 <code>0.0.0.0</code> 上无认证暴露；Docker 发布端口会绕过主机 INPUT 规则，须在 <code>DOCKER-USER</code> 链实施<a href="#ref-28">[28]</a>。Gateway 认证默认必需：无有效认证路径时拒绝 WebSocket 连接；明文 <code>ws://</code> 只接受 loopback、私有 IP 字面量、<code>.local</code>、Tailnet<a href="#ref-28">[28]</a>。</p>
+<h3 id="1953-dm-策略配对与命令授权"><a class="header" href="#1953-dm-策略配对与命令授权">19.5.3 DM 策略、配对与命令授权</a></h3>
+<p>身份优先于模型，是 OpenClaw 反复强调的顺序。DM 访问策略 <code>dmPolicy</code> 有四个值：<code>pairing</code>（默认，未知发送者得配对码，码 1 小时过期，Bot 忽略直到批准）、<code>allowlist</code>、<code>open</code>（须渠道白名单含 <code>"*"</code>）、<code>disabled</code>；批准只授予 DM 访问，不授予群访问（官方建议“DM 用 pairing + allowlist”）<a href="#ref-32">[32]</a><a href="#ref-25">[25]</a>。群按成员关系而非渠道类型决策：陌生人可加入/发言的房间保留发送者白名单或 mention 门控；回复机器人消息（隐式 mention）不绕过 <code>groupAllowFrom</code><a href="#ref-25">[25]</a>。</p>
+<p>多人能私聊你的 agent 时，官方建议开启 DM 隔离：<code>session.dmScope:"per-channel-peer"</code>（推荐）；这是“消息上下文边界，不是主机管理员边界”<a href="#ref-25">[25]</a>。命令授权：斜杠命令与指令仅对授权发送者生效；渠道白名单为空或含 <code>"*"</code> 则命令实际对该渠道开放，这是需要显式关掉的默认<a href="#ref-25">[25]</a>。</p>
+<h3 id="1954-工具策略exec-审批与沙箱"><a class="header" href="#1954-工具策略exec-审批与沙箱">19.5.4 工具策略、exec 审批与沙箱</a></h3>
+<p>三个默认值要如实说明，因为它们与“更安全”的直觉不完全一致。</p>
+<p>第一，工具策略默认 <code>tools.profile:"full"</code>：full 选择工具，但不授予 Full Access 执行权限；<code>minimal</code> 只有 <code>session_status</code> 和仅 update 的 <code>gateway</code>；<code>coding</code>/<code>messaging</code> 是中间档<a href="#ref-14">[14]</a>。第二，exec 审批默认 <code>security:"full"</code>、<code>ask:"off"</code>——即受信运营者模型下，网关/节点主机的 exec 默认放行、不询问；“高风险动作默认确认”是本书建议，不是产品默认；审批只能收紧不能放松，需要提示但无 UI 或提示超时时按 <code>askFallback</code>（默认 <code>deny</code>）解析<a href="#ref-18">[18]</a>。第三，沙箱默认关闭：<code>agents.defaults.sandbox.mode</code> 默认 <code>off</code>，<code>workspaceAccess</code> 默认 <code>none</code>；启用时 <code>non-main</code> 沙箱化除 main 外的所有会话，backend 默认 Docker，<code>sandbox.docker.network</code> 默认 <code>"none"</code><a href="#ref-24">[24]</a>。</p>
+<p>官方对“高风险动作怎么管”给的是收紧路径，而不是默认：对处理不可信内容的 agent 默认 <code>tools.deny:["gateway","cron","sessions_spawn","sessions_send"]</code>；exec 需要审批时用 <code>ask:"always"</code> 加 <code>security:"deny"</code> 或严格 allowlist；<code>tools.elevated</code> 是显式逃生口，保持 <code>allowFrom</code> 收窄且不给陌生人；强制创建者角色沙箱（<code>sandbox:"required"</code>）在后端不可用时阻断执行，不回退到宿主机<a href="#ref-26">[26]</a>。官方还给了三个 access profile 的例子：个人 agent（全权限无沙箱）、家庭/工作 agent（沙箱 + 只读工具）、公开 agent（沙箱 + 无文件系统/shell 工具）<a href="#ref-26">[26]</a>。</p>
+<h3 id="1955-多-agent-与多用户"><a class="header" href="#1955-多-agent-与多用户">19.5.5 多 Agent 与多用户</a></h3>
+<p>提示注入的官方立场是：模型选择是“第一道、最便宜的一层”，但仍需硬性执行（工具策略、exec 审批、沙箱）；不可信内容（网页、邮件、附件、粘贴日志）本身是威胁面，不止发送者；对“工具启用/读不可信内容”的 agent 使用最新一代最佳档模型，不要用更弱/更小档；若必须用小模型，则只读工具、强沙箱、最小文件系统访问、严格白名单，并关闭 <code>web_search/web_fetch/browser</code>；更稳的做法是用只读或禁用工具的“读者 agent”先摘要不可信内容再交给主 agent<a href="#ref-30">[30]</a>。</p>
+<p>硬化基线给出了一份可复制的收紧配置：<code>gateway:{mode:"local", bind:"loopback", auth:{mode:"token", …}}</code>、<code>session.dmScope:"per-channel-peer"</code>、<code>tools:{profile:"messaging", deny:["group:automation","group:runtime","group:fs","sessions_spawn","sessions_send"], fs:{workspaceOnly:true}, exec:{security:"deny", ask:"always"}, elevated:{enabled:false}, sessions:{visibility:"agent"}, agentToAgent:{enabled:false}}</code>，加上 WhatsApp 的 <code>dmPolicy:"pairing"</code> 与群 <code>requireMention:true</code>；其中一条内置底线是：聊天驱动的 agent turn 中非 owner 发送者无论配置如何都不能使用 <code>cron</code> 或 <code>gateway</code> 工具<a href="#ref-31">[31]</a>。只读模式的组合是 <code>workspaceAccess:"ro"</code>（或 <code>none</code>）+ 工具 allow/deny 阻断 write/edit/apply_patch/exec/process；<code>tools.exec.applyPatch.workspaceOnly:true</code>（默认）即使沙箱关闭也阻止 apply_patch 写工作区外；官方还提醒“避免把 home 目录这类宽根目录作为 agent/沙箱工作区”<a href="#ref-26">[26]</a>。</p>
+<p>一个与“更安全默认”直觉相反的默认要写明：跨 provider 的消息工具默认开放。<code>tools.message.crossContext.allowAcrossProviders</code> 与 <code>allowWithinProvider</code> 默认都是 <code>true</code>（升级采用该默认，显式 <code>false</code> 保留阻断）；这些控制只守护发送/回复/编辑/删除/建线程等变更动作，不限制读取与管理动作，也不替代文件系统/shell/沙箱限制<a href="#ref-26">[26]</a>。</p>
+<p>多 agent 的价值是隔离，不是“多模型”。每个 agent 有自己的 workspace、状态目录与会话存储；路由选出 agent 后由它决定 workspace 与 session store<a href="#ref-13">[13]</a>。公开 agent 的官方示例配置是：沙箱 all + workspaceAccess none + 只给 <code>sessions_list/history/send/spawn</code>、<code>session_status</code> 与渠道工具，deny <code>apply_patch/browser/canvas/cron/edit/exec/gateway/...</code>，<code>tools.sessions.visibility:"tree"</code><a href="#ref-26">[26]</a>。</p>
+<p>会话可见性与 agent-to-agent 消息是两件事：工具 profile 不收窄会话工具可见范围，会话可见性是 Gateway 范围，agent-to-agent 消息默认开启——需要配合 <code>tools.sessions.visibility</code> 与 <code>tools.agentToAgent</code> 配置<a href="#ref-26">[26]</a>。共享部署的官方提醒是：如果 Slack 里人人都能私聊 bot，核心风险是“委托的工具权限”；公司共享 agent 仅在同一信任边界内可接受，专用机器/VM/容器、专用 OS 用户，且不要把该运行时登录到个人账号<a href="#ref-29">[29]</a>。</p>
+<h3 id="1956-备份升级与事件响应"><a class="header" href="#1956-备份升级与事件响应">19.5.6 备份、升级与事件响应</a></h3>
+<p>节点执行 <code>system.run</code> 要当作远程代码执行看待：已配对 macOS 节点可被 Gateway 调用 <code>system.run</code>，官方明说“this is remote code execution on that Mac”；配对建立身份与令牌，不是逐命令审批面；全局节点命令策略只匹配精确命令名、不匹配 shell 文本；要完全禁用远程执行，security 设 <code>deny</code> 并移除该节点的配对<a href="#ref-26">[26]</a>。</p>
+<p>插件与技能目录都视为受信代码：插件运行在 Gateway 进程内，只从可信来源安装、优先显式 <code>plugins.allow</code> 白名单、启用前审查配置、插件代码/元数据/发现根变更后重启；npm/git 插件安装仅在显式 install/update 流程跑包管理器依赖收敛；<code>security.installPolicy</code> 让运营者对技能/插件安装返回 allow/warn/block；优先固定精确版本<a href="#ref-26">[26]</a>。技能目录视为受信代码并限制谁能修改，技能监视器在下一个 agent turn 更新快照<a href="#ref-26">[26]</a>。</p>
+<p>备份的官方硬规则：绝不拷贝活动 <code>.sqlite</code>/<code>-wal</code>/<code>-shm</code>/<code>-journal</code> 文件（“raw file copies of a live database can be torn or corrupt”），用 <code>openclaw backup create --verify</code>（在线备份 API）；备份含认证配置、渠道与 provider 凭据、会话历史——加密存放、限制目标访问<a href="#ref-34">[34]</a>。</p>
+<p>升级用 <code>openclaw update</code>（先校验新版本、再激活并验证）；升级前跑 preflight checklist（已验证的备份、相同服务账号/状态/配置路径、<code>--dry-run</code> 检查）<a href="#ref-34">[34]</a>。降级的官方警告：降级软件包不会反转配置或数据库迁移；受支持的恢复是“用其对应的 OpenClaw 版本恢复升级前备份”；不要降低 schema 版本标记<a href="#ref-34">[34]</a>。</p>
+<p>事件响应 SOP 是 Contain → Rotate → Audit → Collect：Contain（停进程、收紧绑定与 DM 策略）、Rotate（Gateway auth、远程客户端密钥、provider/渠道凭据）、Audit（<code>openclaw logs</code>、审阅转录与近期配置变更、重跑 <code>security audit --deep</code>）<a href="#ref-29">[29]</a>。</p>
+<h3 id="1957-security-audit-与-doctor-的实际用法"><a class="header" href="#1957-security-audit-与-doctor-的实际用法">19.5.7 security audit 与 doctor 的实际用法</a></h3>
+<p>敏感信息的官方立场是：假设 <code>~/.openclaw</code> 下任何内容都可能含秘密/隐私（config、credentials、两个 SQLite、sandboxes 等）；权限 <code>openclaw.json</code> 600、<code>~/.openclaw</code> 700；全盘加密；共享主机用专用 OS 用户；日志可含工具摘要、错误与 URL，转录可含粘贴的秘密；<code>logging.redactPatterns</code> 自定义脱敏（不改变模型上下文或转录）；分享诊断优先用 <code>openclaw status --all</code>；修剪不需要长期保留的转录与日志<a href="#ref-29">[29]</a>。为基于手机号的渠道（WhatsApp/Signal/Telegram），官方建议考虑为助手使用与个人号码分离的独立号码<a href="#ref-31">[31]</a>。</p>
+<p><code>openclaw security audit</code> 是 OpenClaw 把“安全建议”落成可执行检查的机制。官方建议在任何配置变更之后、或暴露网络面之前跑一次：<code>--deep</code> 尝试实时 Gateway 检查与插件收集器，<code>--fix</code> 应用安全修复，<code>--json</code> 输出结构化结果<a href="#ref-27">[27]</a>。<code>--fix</code> 有意收窄：把 open 的群策略翻为 allowlist、收紧 state/config/include 文件权限（文件 600、目录 700，Windows 用 ACL）<a href="#ref-27">[27]</a>。审计的分诊优先级是：①任何“open”且启用工具先锁 DM/群；②公网暴露立即修；③浏览器控制远程暴露当作 operator 访问；④权限不得 group/world 可读；⑤插件只装明确信任的<a href="#ref-27">[27]</a>。</p>
+<p><code>openclaw doctor</code> 是启动前后的检查与修复：<code>--json</code> 只读、<code>--fix</code>/<code>--repair</code> 修复、<code>--lint</code> 做 CI 门；文档提醒 <code>--non-interactive</code> 只抑制提示、不抑制写入；显式修复会停止匹配的托管 Gateway、检查所有权、做只读 schema 快照后再修复，之后重启并验证就绪<a href="#ref-33">[33]</a>。</p>
+<h3 id="1958-常见问题诊断表"><a class="header" href="#1958-常见问题诊断表">19.5.8 常见问题诊断表</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>初始化时机</th><th>实际发生的事情</th><th>不应据此假定</th></tr>
+<tr><th>现象</th><th>常见原因</th><th>对策</th><th>依据</th></tr>
 </thead>
 <tbody>
-<tr><td>构造执行实例</td><td>加载内置记忆文件、建立 client、选择工具、创建上下文引擎</td><td>已调用模型，或已把所有 Skill 全文放进 prompt</td></tr>
-<tr><td>首轮 / 恢复会话</td><td>取历史，恢复或构建 prompt，固定相应上下文快照，准备当前用户消息</td><td>每个回合都会重新读取全部项目规则、记忆和 Skills</td></tr>
-<tr><td>第一次调用相关能力</td><td>按需加载 Skill 内容、执行工具、创建或连接具体后端</td><td>terminal schema 已出现就证明 Docker / SSH 环境已经就绪</td></tr>
+<tr><td><code>/readyz</code> 一直 503 <code>chat-recovery</code></td><td>启动输入恢复还没释放 fresh-chat 准入</td><td>等恢复完成，或查恢复日志</td><td>19.2.2</td></tr>
+<tr><td>配置改了不生效</td><td>无效热重载被跳过；或需要重启的变更</td><td>看 <code>appliedConfigHash</code>；用 <code>config schema</code> 核字段</td><td>19.2.4</td></tr>
+<tr><td>渠道反复重启后 “giving up”</td><td>重启阶梯耗尽（10 次）</td><td>修渠道根因；terminal disconnect 需手动重登</td><td>19.4.2</td></tr>
+<tr><td>模型报错不换模型</td><td>显式用户选择的模型是严格的</td><td>用默认 primary + fallbacks，而非严格选择</td><td>19.4.3</td></tr>
+<tr><td>重启后回复了重复内容</td><td>重放保留原消息与工具结果</td><td>属于恢复语义；不确定副作用先查</td><td>19.4.6</td></tr>
+<tr><td>工具策略 deny 没挡住</td><td>deny 只在同层；group/sandbox 层可能再放</td><td>按 19.3.7 的多层顺序逐层查</td><td>19.3.7</td></tr>
+<tr><td>exec 直接执行了命令</td><td>默认 <code>security:full, ask:off</code></td><td>收紧 exec 审批或沙箱</td><td>19.5.4</td></tr>
+<tr><td>无人私聊的陌生人也能命令</td><td>渠道白名单空或含 <code>"*"</code></td><td>收紧 <code>commands.allowFrom</code> / 白名单</td><td>19.5.3</td></tr>
 </tbody>
 </table>
 </div>
-<p>例如 <code>tools/terminal_tool_lifecycle.py</code> 的 <code>ensure_task_env()</code> 会先查询 task 对应的活跃环境，命中则复用，否则按配置创建非本地环境并登记到缓存；它也允许需要沙箱路径的其他工具触发创建。因此后端创建的准确边界是<strong>首次需要该环境的能力调用</strong>，不能简化成“Gateway 启动时创建全部容器”，也不能限定为“必定由第一条 terminal 命令创建”。<a href="#ref-17">[17]</a></p>
-<p>Skills 同样按渐进披露进入上下文：启动 / prompt 构建阶段可以收集目录、说明和配置要求的预加载内容，其余技能正文按需读取。Memory 更新、历史持久化和当前 prompt 快照则各有生命周期，后文 20.4、20.5 再分别展开。<a href="#ref-18">[18]</a></p>
-<h3 id="2027-启动失败与恢复分清失败发生在哪一层"><a class="header" href="#2027-启动失败与恢复分清失败发生在哪一层">20.2.7 启动失败与恢复：分清失败发生在哪一层</a></h3>
-<p>下面是本书依据源码整理的排查顺序，不是新增的一套官方健康检查协议。诊断时先找到最后一个已完成的阶段，再沿它的下一条依赖检查，避免把所有问题都归到“模型没回复”。</p>
+<h3 id="1959-案例给一个工作群挂一个只读助手"><a class="header" href="#1959-案例给一个工作群挂一个只读助手">19.5.9 案例：给一个工作群挂一个只读助手</a></h3>
+<p>下面是一个教学构造的案例，未实测，只使用本章已核对过的入口与配置。目标：在 Slack 工作群挂一个助手，只读文档、不执行命令、不改文件、不碰配置。</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>现象</th><th>优先核对的边界</th><th>恢复时的判断</th></tr>
+<tr><th>步骤</th><th>做法</th><th>依据</th></tr>
 </thead>
 <tbody>
-<tr><td>CLI 出现界面，但发不出请求</td><td>Gateway 连接、接入认证、READY、会话创建</td><td>普通 CLI 依赖 Gateway；前端界面可用不证明实际执行已就绪</td></tr>
-<tr><td>Gateway 重复启动失败</td><td>profile home、宿主实例、运行时所有权与 PID 认领</td><td>先确认原实例与所服务 profile；不能靠随意删除锁文件代替生命周期处理</td></tr>
-<tr><td>Gateway 显示 degraded</td><td>实际 Adapter 连接结果、可重试 / 配置错误、served profiles</td><td>部分服务已可用与全部入口健康需要分别判断</td></tr>
-<tr><td>第一条消息很慢</td><td>turn machinery 预热、工具 / MCP 发现、首次 client 请求、后端惰性创建</td><td>首轮冷启动与后续热回合不同；本文没有实测耗时，不给通用阈值</td></tr>
-<tr><td>能回复，但恢复后历史缺失</td><td>SessionStore / authority、数据库写入及 prompt 快照持久化</td><td>能访问模型不等于会话已可靠落盘</td></tr>
-<tr><td>请求发送后前端断连</td><td>会话准入记录、执行代次与持久化结果</td><td>Gateway 代理明确区分“尚未发送”与“结果未知”；先恢复会话核对，不盲目重放外部写操作</td></tr>
+<tr><td>信任边界</td><td>助手跑在专用 OS 用户与独立 Gateway 实例上，不登录个人账号</td><td>19.5.1</td></tr>
+<tr><td>暴露面</td><td>Gateway 绑定 loopback，需要远程运维时走 Tailscale Serve，不做公网端口转发</td><td>19.5.2</td></tr>
+<tr><td>群访问</td><td><code>groupPolicy</code> 保留发送者白名单 + mention 门控；回复不绕过白名单</td><td>19.5.3</td></tr>
+<tr><td>工具策略</td><td><code>tools.profile:"minimal"</code> 起步；<code>tools.deny</code> 加 <code>group:fs</code>、<code>group:runtime</code>、<code>group:automation</code>、<code>sessions_spawn</code>、<code>sessions_send</code></td><td>19.5.4</td></tr>
+<tr><td>exec 与沙箱</td><td><code>exec:{security:"deny", ask:"always"}</code>；<code>sandbox:{mode:"non-main", workspaceAccess:"none"}</code>，非 main 会话进沙箱</td><td>19.5.4</td></tr>
+<tr><td>审计</td><td>配置后跑 <code>openclaw security audit --deep</code>，再跑 <code>openclaw doctor</code>，按 critical/warn 逐项处理</td><td>19.5.7</td></tr>
 </tbody>
 </table>
 </div>
-<p>前端代理、Gateway bootstrap / startup 与会话运行时分别提供上述诊断依据；其中外部操作的重放还必须结合操作本身的幂等与查询能力，不能从会话恢复能力推导出通用 exactly-once 保证。<a href="#ref-3">[3]</a><a href="#ref-4">[4]</a><a href="#ref-12">[12]</a><a href="#ref-13">[13]</a></p>
-<h3 id="2028-从源码组件回到六个分析边界"><a class="header" href="#2028-从源码组件回到六个分析边界">20.2.8 从源码组件回到六个分析边界</a></h3>
-<p>前面的组件、生命周期和启动过程确定后，才适合使用“大脑中枢”“小脑”等教学比喻。它们帮助归纳职责，<strong>并不是 Hermes 官方定义的六个模块或六个服务</strong>。</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>本书的分析边界</th><th>实际组成</th><th>阅读时需要保留的区分</th></tr>
-</thead>
-<tbody>
-<tr><td>入口</td><td>前端、Adapter、Gateway 接入、Cron / ACP 等触发方</td><td>输入与会话所有权、实际执行是不同职责</td></tr>
-<tr><td>推理与上下文</td><td>client、Prompt Builder、Context Engine</td><td>模型访问、prompt 快照、压缩策略各自有状态</td></tr>
-<tr><td>任务推进</td><td>回合控制、预算、中断、TodoStore、按需委派与持久任务</td><td>不存在一个包办所有任务规划的独立“小脑进程”</td></tr>
-<tr><td>工具中心</td><td>Registry、Toolsets、Plugin / MCP schema</td><td>注册、会话可见性、可用性检查和用户授权不能互相替代</td></tr>
-<tr><td>执行引擎</td><td>Tool Executor、dispatch、具体工具与后端</td><td>选择工具与创建执行环境有不同生命周期</td></tr>
-<tr><td>长期状态与学习</td><td>SessionDB、Memory、Skills、轨迹</td><td>历史、稳定事实、可复用过程不能存成同一种无边界的记忆</td></tr>
-</tbody>
-</table>
-</div>
-<p>固定版本的开发指南建议保持核心克制，优先考虑复用代码、CLI 加 Skill、按需工具、Plugin 和 MCP 等扩展方式。这个“窄核心、能力在边缘”的原则，落实到 Runtime 就是：共享执行协议保持稳定，入口、工具、记忆和后端通过明确接口接入。它不要求所有工具永远出现在每次请求中，也不把 <code>check_fn</code> 解释成逐用户授权裁决。<a href="#ref-19">[19]</a><a href="#ref-6">[6]</a></p>
-<p>最后，缓存稳定必须服从事实与权限。持久 Memory、当前会话 prompt 快照与供应商侧缓存是三种状态；写文件不会自动证明当前请求已经刷新。配置切换、撤权、安全纠错或运行身份变化可能要求重建上下文，不能为了复用前缀继续使用错误事实。<a href="#ref-19">[19]</a><a href="#ref-15">[15]</a><a href="#ref-16">[16]</a></p>
-<hr>
-<h2 id="203-运行时主线从用户输入到工具执行再到状态持久化"><a class="header" href="#203-运行时主线从用户输入到工具执行再到状态持久化">20.3 运行时主线：从用户输入到工具执行再到状态持久化</a></h2>
-<p>从运行时看，Hermes 的一次任务不是简单的 <code>Prompt -&gt; Answer</code>，而是一条带状态、工具、外部环境和记忆回流的数据链路：</p>
-<pre><code class="language-text">用户输入 / 平台事件 / Cron
-  -&gt; 入口标准化
-  -&gt; 大脑中枢理解任务
-  -&gt; 小脑拆解计划
-  -&gt; 工具中心选择能力
-  -&gt; 执行引擎调度工具
-  -&gt; 外部环境返回结果
-  -&gt; 执行引擎整理观察结果
-  -&gt; 大脑中枢继续推理或输出
-  -&gt; 记忆系统按需沉淀事实、会话和技能
-</code></pre>
-<p>这条链路里有三类数据流：</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th style="text-align: left">数据流</th><th style="text-align: left">内容</th><th style="text-align: left">关键风险</th></tr>
-</thead>
-<tbody>
-<tr><td style="text-align: left">任务流</td><td style="text-align: left">用户意图、平台事件、Cron 任务、Slash Command</td><td style="text-align: left">入口信息不完整，任务边界不清</td></tr>
-<tr><td style="text-align: left">执行流</td><td style="text-align: left">tool call、执行后端、工具结果、错误和重试</td><td style="text-align: left">高风险命令、超时、参数错误、结果过长</td></tr>
-<tr><td style="text-align: left">学习流</td><td style="text-align: left">Memory 更新、Session 归档、Skill 候选、Trajectory 数据</td><td style="text-align: left">错误经验固化、隐私泄露、跨 profile 串线</td></tr>
-</tbody>
-</table>
-</div>
-<p>Hermes 的关键点是：<strong>Memory 不只是输入层，也在输出后参与回流。</strong> 每次任务完成后，系统可以把稳定事实写入 persistent memory，把会话写入 SQLite，把可复用过程沉淀成 Skill，把执行轨迹交给 Research Pipeline。这样，Agent 的能力增长不依赖模型参数立即改变，而依赖 Runtime 中的上下文、技能和数据资产持续演进。</p>
-<p>但记忆回流必须受约束。不是所有结果都应该写入长期记忆，也不是所有成功路径都应该变成 Skill。可靠的长期 Agent 需要在写入前判断：</p>
-<ul>
-<li>这条信息是否长期有效；</li>
-<li>是否属于当前 profile；</li>
-<li>是否包含凭据、隐私或敏感业务数据；</li>
-<li>是否经过工具结果或用户确认验证；</li>
-<li>是否应该进入 Memory、Session、Skill，还是只作为本轮临时上下文。</li>
-</ul>
-<p>这个判断决定了 Hermes 这类系统能否长期稳定运行。没有回流，Agent 每次都从头开始；没有约束，Agent 会把错误、噪声和越权信息永久化。</p>
-<h3 id="贯穿教学案例定时整理项目简报再跨入口继续"><a class="header" href="#贯穿教学案例定时整理项目简报再跨入口继续">贯穿教学案例：定时整理项目简报，再跨入口继续</a></h3>
-<p>统一案例为<code>hermes-brief-01</code>：用户授权助手读取指定项目资料，每周准备一份待审简报；允许保存草稿，发送到群里另需明确授权。项目、日期、轨迹均为合成教学输入，未调用真实账号、未配置 Cron、未实测 Hermes。</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>阶段</th><th>可核验的机制</th><th>本书教学契约与边界</th></tr>
-</thead>
-<tbody>
-<tr><td>输入</td><td>Gateway SessionSource 记录 platform/chat/user/thread；Cron 可创建独立执行</td><td>绑定 profile、来源账户与 task_id；跨 CLI/消息入口继续须显式验证身份和 session 关联</td></tr>
-<tr><td>上下文</td><td>Memory 冻结快照、SessionDB 历史、Skills 按需加载</td><td>只读取授权资料版本；任务摘要保留截止时间、禁止发送、证据 hash 和未解决项</td></tr>
-<tr><td>行动</td><td>Toolsets 与后端组织能力，工具执行器调度调用</td><td>先检索/生成草稿，Verifier 独立检查引用和接收人；工具目录不是业务授权</td></tr>
-<tr><td>投递</td><td>固定源码存在 Gateway delivery ledger 及 delivery_obligations</td><td>只证明特定回复投递义务机制，不能推导任何业务消息都不会重复</td></tr>
-<tr><td>回流</td><td>记忆和 Skills 可更新；trajectory 可保存</td><td>经用户确认的事实、候选经验和独立评测结果分开；不自动晋升为规则</td></tr>
-</tbody>
-</table>
-</div>
-<p>投递 ledger 的存在有独立源码证据。<a href="#ref-20">[20]</a> 其与外部业务的一致性仍需单独验证。以下通用<code>operation_id/outbox/checkpoint/compensation</code>状态机均为<strong>教学扩展</strong>；不能由 ledger 名字、SQLite WAL checkpoint 或会话恢复推导它们已经完整实现。</p>
-<p><strong>连续轨迹：</strong> 用户先从 CLI 要求周五前准备简报，系统保存 Task 范围与只读授权；Cron 触发合成新会话，读取授权资料 v8，生成草稿 v1。用户从消息入口补充“暂时不要发”，先验证关联身份，再把禁止发送写入当前权威约束；不能只改长期 Memory、让冻结 prompt 继续沿用旧要求。长工具输出触发压缩后，恢复摘要核验资料版本、deadline 与禁止事项，漏字段即回源。</p>
-<p>在教学扩展中，假设用户随后明确批准发送草稿 hash H 给群 G，发送请求已发出但响应超时：Operation 保持 unknown。用户此时取消后续发送，Runtime 阻止新操作，查询原 operation 真实结果；晚到成功仍记录为已发，不能假称取消已撤销或直接重发。撤回消息/补偿需要渠道支持和独立授权。新资料 v9 到达后，旧草稿与其派生 Skill 候选标为待重验，不能拿“上次成功”自动放行。</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>通用章节</th><th>本案例复用契约</th><th>本章负责的落点</th></tr>
-</thead>
-<tbody>
-<tr><td><a href="../part3/03-agent-runtime.html#delivery-idempotency">Agent Runtime</a></td><td>Run/Step/Event、unknown、幂等与取消</td><td>解释教学扩展如何处理晚到成功</td></tr>
-<tr><td><a href="../part3/02-context-engineering.html">第13章</a></td><td>摘要字段、不变量与回源</td><td>压缩前后保留禁止发送与证据版本</td></tr>
-<tr><td><a href="../part3/04-skills-tools-mcp-connectors.html">第15章</a></td><td>Tool/Skill 权限和动作前后检查</td><td>当前 profile/接收人/草稿 hash 绑定</td></tr>
-<tr><td><a href="../part3/02-context-engineering.html#memory">第13章</a></td><td>事实/偏好/过程记忆与撤回</td><td>资料纠正后检查派生摘要和 Skill 候选</td></tr>
-<tr><td><a href="../part3/03-agent-runtime.html#multi-agent">第14章</a></td><td>owner、交接与状态版本</td><td>Cron/交互入口不能互相覆写旧结果</td></tr>
-<tr><td><a href="../part3/05-agent-governance-optimization.html">第16章</a></td><td>终态/过程/安全断言</td><td>正确草稿但误发也判 unsafe；未运行样本不记成功</td></tr>
-</tbody>
-</table>
-</div>
-<p>本案例把各章合同组合成可评审轨迹；它没有证明产品已通过崩溃注入、重复投递、撤权或成本实验。恢复验收应分别检查重复发送次数、unknown 收敛、权限撤回、摘要保真和回流污染，而非只检查最后一段文字。</p>
-<h3 id="2031-一个消息任务的端到端路径"><a class="header" href="#2031-一个消息任务的端到端路径">20.3.1 一个消息任务的端到端路径</a></h3>
-<p>如果把抽象数据流落到一个具体例子里，可以把一条 Telegram 消息在 Hermes 中的处理路径简化为：</p>
-<ol>
-<li>用户在 Telegram 中发来请求，例如“帮我检查这个仓库今天的 CI 失败原因”；</li>
-<li>Gateway 适配器接收消息，并根据用户、线程和 profile 把它路由到正确 session；</li>
-<li>Prompt Builder 组装人格、长期记忆、用户画像、相关 Skills、项目上下文和工具说明；</li>
-<li>模型先判断是否需要调用 GitHub、web、terminal 或 file 等工具；</li>
-<li>Runtime 在对应 toolset 和执行后端上执行工具调用，并通过 callbacks 向用户流式反馈进度；</li>
-<li>工具结果回到 Agent Loop，模型继续推理，决定是追加调用、请求确认，还是直接给出答案；</li>
-<li>会话内容写入 session store；只有稳定事实才进入 persistent memory，只有经过验证的流程才进入 Skill 候选。</li>
-</ol>
-<p>这个例子说明，Hermes 的核心不在“消息平台接进来了”，而在“平台入口、上下文构建、工具执行、状态持久化和能力沉淀”被串成了一条统一链路。</p>
-<p>如果要把这条链路画成一张更适合读者快速浏览的时序图，可以简化为：</p>
-<pre class="mermaid">
-sequenceDiagram
-    participant U as 用户 / 平台入口
-    participant G as Gateway / 入口适配层
-    participant S as Session Router / 会话路由
-    participant P as Prompt Builder / 上下文构建
-    participant M as Model / 推理核心
-    participant T as Tool Runtime / 工具运行时
-    participant E as Backend / 外部环境
-    participant D as Session Store / 状态存储
-    participant L as Memory &amp; Skills / 能力沉淀层
-
-    U-&gt;&gt;G: 发送请求 / 平台事件
-    G-&gt;&gt;S: 标准化消息 + 识别用户/线程/profile
-    S-&gt;&gt;P: 加载当前 session 与上下文边界
-    P-&gt;&gt;M: 注入人格、记忆、技能、上下文文件、工具边界
-    M-&gt;&gt;T: 产生工具调用 / 或直接回答
-    T-&gt;&gt;E: 在 local / Docker / SSH / MCP 等环境执行
-    E--&gt;&gt;T: 返回结果 / 错误 / 观察
-    T--&gt;&gt;M: 结构化观察结果
-    M--&gt;&gt;G: 最终回答 / 继续请求工具
-    G--&gt;&gt;U: 流式反馈进度与结果
-    T-&gt;&gt;D: 持久化工具结果与会话状态
-    D-&gt;&gt;L: 生成 session / memory / skill 候选
-    L--&gt;&gt;P: 下次会话按需回流
-</pre>
-
-<hr>
-<h3 id="2032-agent-loop统一多入口的运行核心"><a class="header" href="#2032-agent-loop统一多入口的运行核心">20.3.2 Agent Loop：统一多入口的运行核心</a></h3>
-<p>完成 20.2 节的入口连接与实例装配后，Hermes 的核心回合由同步编排引擎推进。下面描述的是回合内主线，不表示每次输入都要重新启动 Gateway、加载全部记忆或重建 client：</p>
-<pre><code class="language-text">receive user turn + session history
-  -&gt; admit turn and bind execution scope
-  -&gt; restore or build system prompt / tool snapshot
-  -&gt; prepare request using the active provider / client
-  -&gt; call model
-  -&gt; dispatch tool calls
-  -&gt; stream progress via callbacks
-  -&gt; persist session and tool results
-  -&gt; compress context when needed
-  -&gt; update memory / skills when appropriate
-</code></pre>
-<p>教学伪代码如下；<code>runtime</code> 表示已完成装配的执行对象，<code>session</code> 表示已创建或恢复的会话。它省略了源码中的租约续期、错误分类、压缩分支和投递逻辑：</p>
-<pre><code class="language-python">def run_turn(user_message, runtime, session):
-    with runtime.admit_turn(session):
-        prompt, tools = runtime.restore_or_build_prompt_snapshot(session)
-        messages = session.history_with(user_message)
-
-        while runtime.can_continue():
-            messages = runtime.context_engine.prepare(messages)
-            response = runtime.call_model(prompt, messages, tools)
-            session.persist_assistant(response)
-            if response.tool_calls:
-                results = runtime.execute_tools(response.tool_calls)
-                runtime.callbacks.stream_tool_results(results)
-                messages = append_observations(messages, response, results)
-                session.persist_tool_results(results)
-            else:
-                runtime.callbacks.stream_answer(response.text)
-                return response
-</code></pre>
-<p>这个循环和第17章 Coding Agent 的循环很像，但 Hermes 多了三个面向长期运行的能力：</p>
-<ul>
-<li><strong>Prompt Assembly</strong>：每次会话开始时把人格、记忆、技能、项目上下文和工具指南组装成稳定系统提示；</li>
-<li><strong>Session Persistence</strong>：会话写入 SQLite，并用 FTS5 支持跨会话搜索；</li>
-<li><strong>Learning Loop</strong>：把经验沉淀到 memory 或 skill，而不是只留在一次对话里。</li>
-</ul>
-<h3 id="2033-可中断和可观测"><a class="header" href="#2033-可中断和可观测">20.3.3 可中断和可观测</a></h3>
-<p>长期运行 Agent 必须可中断。用户可能在 CLI 里按 <code>Ctrl+C</code>，也可能在消息平台发新消息打断当前任务。Hermes 的设计强调：</p>
-<ul>
-<li>工具调用过程对用户可见；</li>
-<li>模型输出可以流式返回；</li>
-<li>当前任务可以被用户中断或重定向；</li>
-<li>背景进程可以被查询、等待、查看日志或终止。</li>
-</ul>
-<p>这和传统后端的“请求进来、响应出去”不同。Agent 的执行可能持续几十秒甚至几分钟，用户需要知道它正在做什么、卡在哪里、是否可以停止。</p>
-<h3 id="2034-复杂任务不是单一机制而是四层运行时能力叠加"><a class="header" href="#2034-复杂任务不是单一机制而是四层运行时能力叠加">20.3.4 复杂任务不是单一机制，而是四层运行时能力叠加</a></h3>
-<p>下表按固定提交的工具执行、委派、MoA 与 Kanban 分别取证，不是统一恢复保证。<a href="#ref-21">[21]</a></p>
-<p>Hermes 处理复杂任务时，最容易被误读的地方是：源码里确实同时出现了 <code>delegate_task</code>、Kanban、MoA 和并发工具调用，但它们解决的不是同一个问题。更准确地说，Hermes 不是只有一种“复杂任务模式”，而是把复杂任务拆成四层不同的运行时能力：</p>
-<ul>
-<li>单 Agent 工具链负责在同一个 Agent 回合里并行执行安全的工具调用；</li>
-<li><code>delegate_task</code> 负责在同一个会话里拆分出隔离的子 Agent；</li>
-<li>Kanban 负责把任务持久化成可恢复、可依赖编排的长流程；</li>
-<li>MoA 负责在单轮推理前引入多个参考模型，增强当前决策质量。</li>
-</ul>
-<p>如果把这四层并排看，会更容易理解 Hermes 为什么既像一个聊天 Agent，又像一个带调度能力的运行时：</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th style="text-align: left">维度</th><th style="text-align: left"><code>delegate_task</code></th><th style="text-align: left">Kanban Board</th><th style="text-align: left">MoA（Mixture of Agents）</th><th style="text-align: left">单 Agent 工具链</th></tr>
-</thead>
-<tbody>
-<tr><td style="text-align: left">代表源码</td><td style="text-align: left"><code>tools/delegate_tool.py</code></td><td style="text-align: left"><code>tools/kanban_tools.py</code> + <code>gateway/kanban_watchers.py</code></td><td style="text-align: left"><code>agent/moa_loop.py</code> + <code>agent/moa_trace.py</code> + <code>hermes_cli/moa_config.py</code></td><td style="text-align: left"><code>run_agent.py</code> + <code>agent/tool_executor.py</code> + <code>toolsets.py</code> + <code>tools/registry.py</code></td></tr>
-<tr><td style="text-align: left">入口</td><td style="text-align: left"><code>delegate_task()</code></td><td style="text-align: left">Gateway 内嵌 dispatcher + <code>kanban_*</code> tools</td><td style="text-align: left"><code>MoAChatCompletions.create()</code></td><td style="text-align: left"><code>AIAgent._execute_tool_calls()</code></td></tr>
-<tr><td style="text-align: left">核心目标</td><td style="text-align: left">会话内子任务拆分</td><td style="text-align: left">长流程、多 profile、可恢复任务编排</td><td style="text-align: left">单轮推理质量增强</td><td style="text-align: left">同一轮工具执行提速</td></tr>
-<tr><td style="text-align: left">持久化</td><td style="text-align: left">child 可用独立 SessionDB 连接保存 transcript，活动执行态另行判断</td><td style="text-align: left">SQLite board DB 保存 task/run</td><td style="text-align: left">参考缓存及 trajectory 各有作用域</td><td style="text-align: left">工具结果可入会话，但活动线程不等于持久任务</td></tr>
-<tr><td style="text-align: left">隔离方式</td><td style="text-align: left">独立 <code>AIAgent</code>、独立 <code>task_id</code>、受限工具集</td><td style="text-align: left">独立 task、独立 worker、可继承独立 workspace / profile</td><td style="text-align: left">advisory view，只读历史文本，无工具权限</td><td style="text-align: left">不额外隔离，仍是同一个 Agent</td></tr>
-<tr><td style="text-align: left">并行引擎</td><td style="text-align: left"><code>ThreadPoolExecutor</code>，按 <code>max_children</code> fan-out</td><td style="text-align: left">独立 worker / task 进程，由 dispatcher 周期推进</td><td style="text-align: left"><code>ThreadPoolExecutor</code>，最多 8 个 reference models 并发</td><td style="text-align: left"><code>ThreadPoolExecutor</code>，只并发安全工具批次</td></tr>
-<tr><td style="text-align: left">心跳 / 存活</td><td style="text-align: left">父 Agent 定期轮询 child 进度</td><td style="text-align: left">board heartbeat + claim TTL + watcher/dispatcher 检测</td><td style="text-align: left">无</td><td style="text-align: left">无任务级心跳，只有 timeout / interrupt 控制</td></tr>
-<tr><td style="text-align: left">依赖管理</td><td style="text-align: left">基本无 DAG，偏 fan-out / fan-in</td><td style="text-align: left">有 <code>parents=[]</code>、link、unblock</td><td style="text-align: left">无任务依赖</td><td style="text-align: left">无任务依赖</td></tr>
-<tr><td style="text-align: left">工具权限</td><td style="text-align: left">子 Agent 默认会裁剪危险工具</td><td style="text-align: left">由 <code>check_fn</code>、task ownership 和 toolset 配置共同约束</td><td style="text-align: left">reference 模型无工具权限，只有 aggregator 能行动</td><td style="text-align: left">由 registry <code>check_fn</code>、guardrail 和并行安全规则约束</td></tr>
-</tbody>
-</table>
-</div>
-<p>这张表背后的关键判断是：Hermes 的“复杂任务处理”并不是一个调度器统一包办，而是按问题类型选层。</p>
-<ul>
-<li>如果问题只是“这一轮里要同时读几个文件、查几个接口”，那是单 Agent 工具链的问题；</li>
-<li>如果问题是“把一个会话内的大任务拆成几个隔离子问题”，那是 <code>delegate_task</code>；</li>
-<li>如果问题是“任务要跨 profile、跨时间持续推进，还要能阻塞、恢复和排依赖”，那是 Kanban；</li>
-<li>如果问题是“当前这一步判断很重要，希望先听几个模型的 advisory opinions”，那是 MoA。</li>
-</ul>
-<p>因此，后面要展开的 <code>delegate_task</code> 并不能代表 Hermes 的全部复杂任务能力。它只是这四层里最像“多 Agent”的那一层，也是最适合先展开讲清楚的一层。</p>
-<h4 id="20341-moa-解决的是推理增强不是任务编排"><a class="header" href="#20341-moa-解决的是推理增强不是任务编排">20.3.4.1 MoA 解决的是推理增强，不是任务编排</a></h4>
-<p>MoA 参考视图与聚合代码支持机制描述；参考意见不是独立事实或验证结果。<a href="#ref-22">[22]</a></p>
-<p>MoA 这个名字很容易让人误以为它和 <code>delegate_task</code> 一样，也是在运行多个会“行动”的 Agent。实际上源码里的 MoA 更像“多参考模型咨询机制”，而不是任务调度器。</p>
-<p>它的运行方式是：</p>
-<ol>
-<li>当前 acting model 进入一次 MoA turn；</li>
-<li>Hermes 先把当前对话压平为 advisory view；</li>
-<li>多个 reference models 并发读取这份 advisory view，分别给出建议；</li>
-<li>aggregator model 读取这些参考意见，再决定下一步真正的输出或工具调用。</li>
-</ol>
-<p>这里最关键的隔离点在于，reference models 看到的不是 Hermes 的完整运行时上下文。<code>_reference_messages()</code> 会做几件事：</p>
-<ul>
-<li>剥离系统提示，避免把 Hermes 那段很长的系统前缀直接复制给参考模型；</li>
-<li>把 <code>tool_calls</code> 扁平化成纯文本，例如 <code>[called tool: name(args)]</code>；</li>
-<li>把 tool result 折叠成头尾预览，而不是原样重放整个结果；</li>
-<li>最终只保留纯 <code>user/assistant</code> 文本视图，不给 reference models 任何工具权限。</li>
-</ul>
-<p>这意味着 reference models 只能“看”和“评估”，不能真正行动。所以 MoA 的定位不是任务执行层，而是决策增强层。</p>
-<p>另外，MoA 的缓存也只在当前 turn 内生效。缓存键由 <code>preset_name + advisory_view 的 SHA256 + reference_labels</code> 组成。只要有新的 user message 或新的 tool result，advisory view 就会变化，缓存立即失效，reference fan-out 会重新执行。这再次说明它关注的是“当前状态下这一轮该怎么想”，而不是长期任务状态管理。</p>
-<h4 id="20342-kanban-解决的是持久化编排不是会话内扇出"><a class="header" href="#20342-kanban-解决的是持久化编排不是会话内扇出">20.3.4.2 Kanban 解决的是持久化编排，不是会话内扇出</a></h4>
-<p>和 <code>delegate_task</code> 相比，Kanban 最大的不同不是“也能创建子任务”，而是它把任务当成 durable workflow 来管理。任务状态、父子依赖、评论、heartbeat、claim TTL 和 dispatcher 调度都在 board DB 里持久化，因此 worker 进程退出之后，任务本身仍然存在。</p>
-<p>从这个角度看，Kanban 更接近一层轻量工作流运行时：</p>
-<pre><code class="language-text">task created
-  -&gt; 按 assignee / profile 进入 ready/running
-  -&gt; worker 进程执行
-  -&gt; heartbeat / comment / complete / block
-  -&gt; dispatcher 按 parents、状态和超时继续推进
-</code></pre>
-<p>这和 <code>delegate_task</code> 那种“父会话里起几个子 Agent，等结果回流”是两种完全不同的边界。前者强调 board 任务状态机，后者强调父会话触发的 child 执行；child 历史可持久化也不等于活动执行可任意重放。</p>
-<p>因此，如果要给这一章一个很短的归纳，可以写成：</p>
-<pre><code class="language-text">单 Agent 工具链 = 同一 Agent 内的并行执行
-delegate_task    = 同一会话内的隔离子 Agent
-Kanban           = 跨 profile 的持久化任务编排
-MoA              = 单轮推理前的多模型咨询
-</code></pre>
-<h3 id="2035-单-agent-工具链复杂任务如何在一个-agent-内被持续推进"><a class="header" href="#2035-单-agent-工具链复杂任务如何在一个-agent-内被持续推进">20.3.5 单 Agent 工具链：复杂任务如何在一个 Agent 内被持续推进</a></h3>
-<p>理解了四层运行时能力之后，还需要再补一个容易被忽略的点：Hermes 并不是只有进入 <code>delegate_task</code> 或 Kanban 才能处理复杂任务。大量真实任务其实都停留在<strong>单 Agent 工具链</strong>这一层，只是任务本身已经包含很多步骤、很多工具调用，以及混合的并行与串行关系。</p>
-<p>这类任务的关键难点不是“能不能调用工具”，而是：</p>
-<ul>
-<li>工具很多，哪些可以并行，哪些必须串行；</li>
-<li>步骤很多，前一步结果会不会决定后一步动作；</li>
-<li>工具输出很长，消息历史怎么不把上下文窗口撑爆；</li>
-<li>任务持续很多轮时，模型怎么不丢失当前状态。</li>
-</ul>
-<p>Hermes 处理这类复杂任务时，并不是把整个任务一次性塞进一个超长 prompt 里硬扛，而是把它拆成三条彼此独立、但每轮都会协同工作的控制线：</p>
-<ul>
-<li><strong>执行控制线</strong>：这一批 tool calls 里哪些可以并行，哪些必须串行；</li>
-<li><strong>状态控制线</strong>：本轮工具观察结果如何写回消息历史，变成下一轮决策输入；</li>
-<li><strong>上下文控制线</strong>：哪些历史细节继续保留，哪些压缩成摘要，哪些转移到长期状态层。</li>
-</ul>
-<p>把这三条控制线拼起来，可以得到单 Agent 工具链的主线：</p>
-<pre><code class="language-text">用户任务
-  -&gt; Agent 先推理出一批动作
-  -&gt; 运行时判断这批动作能否并行
-  -&gt; tool 执行结果按顺序写回消息历史
-  -&gt; 模型基于最新观察继续下一轮决策
-  -&gt; 当历史过长时触发上下文压缩
-  -&gt; 只保留继续完成任务所需的状态
-</code></pre>
-<h4 id="20351-并行和串行不是模型自己说了算"><a class="header" href="#20351-并行和串行不是模型自己说了算">20.3.5.1 并行和串行不是模型自己说了算</a></h4>
-<p>模型可以在一次响应里吐出多个 tool calls，但它并不能最终决定这些调用是否并行。Hermes 在运行时先进入 <code>_execute_tool_calls()</code>，再根据当前这批工具的性质分流到串行路径或并发路径。真正的并发执行器在 <code>agent/tool_executor.py</code>，而是否允许并发，则先经过并行安全判断。</p>
-<p>这层判断的核心不是“只要有多个工具调用就并行”，而是更接近下面这组规则：</p>
-<ul>
-<li>纯读操作更容易并行；</li>
-<li>带路径作用域的文件工具，只有目标路径不冲突时才适合并行；</li>
-<li>高副作用或交互式工具通常必须串行；</li>
-<li>MCP 工具还要看 server 是否显式声明自己支持 parallel-safe。</li>
-</ul>
-<p>因此，单 Agent 工具链里的并行本质上是<strong>runtime-level parallelism</strong>，而不是模型自由发挥的并行愿望。模型只能提出候选动作批次，真正是否并行，由运行时在安全边界内裁定。</p>
-<h4 id="20352-复杂任务不是一次走完而是多轮推理---执行---观察---再推理"><a class="header" href="#20352-复杂任务不是一次走完而是多轮推理---执行---观察---再推理">20.3.5.2 复杂任务不是一次走完，而是多轮“推理 -&gt; 执行 -&gt; 观察 -&gt; 再推理”</a></h4>
-<p>单 Agent 并不会在任务开始时就把全部步骤一次性规划到底，然后机械执行。它更像一条持续迭代的闭环：</p>
-<pre><code class="language-text">第1轮：
-  LLM -&gt; 先查资料、读文件、搜索线索
-  tools -&gt; 返回观察结果
-
-第2轮：
-  LLM -&gt; 基于新观察决定下一步动作
-  tools -&gt; 继续执行
-
-第3轮：
-  LLM -&gt; 汇总、修正、补查或进入修改
-</code></pre>
-<p>这里最关键的判断是：Hermes 在单 Agent 模式下管理上下文的最小单位，不是“整个复杂任务”，而是“本轮新增的观察结果”。工具结果会被追加回消息历史，成为下一轮模型输入的一部分。换句话说，模型不需要在参数内部记住完整执行过程，运行时替它维护了一层外部工作记忆。</p>
-<h4 id="20353-上下文窗口靠三层机制维持稳定"><a class="header" href="#20353-上下文窗口靠三层机制维持稳定">20.3.5.3 上下文窗口靠三层机制维持稳定</a></h4>
-<p>复杂任务最容易失败的地方，不是工具不够，而是 tool output 太长，历史轮次太多，导致上下文窗口被无效细节占满。Hermes 在单 Agent 工具链里至少用三层机制处理这件事。</p>
-<p>第一层是<strong>工具结果预算控制</strong>。不是每个 tool result 都会原样塞回上下文。执行层会对超长结果做裁剪，并在必要时把完整结果持久化到外部存储，而回灌给模型的是压缩后的可消费版本。这样模型看到的不是“原始输出全集”，而是“足够支撑下一轮决策的观察摘要”。</p>
-<p>第二层是<strong>会话内压缩</strong>。当消息历史越来越长时，Hermes 会触发上下文压缩，把前面已经完成的细节收敛成更短的任务状态，例如“已知事实、已完成步骤、未解决问题、当前目标”，而不是永久保留完整 transcript。复杂任务里很多步骤一旦结束，后续轮次真正需要继承的只是结论，而不是原始过程。</p>
-<p>第三层是<strong>长期状态与当前状态分层</strong>。当前任务进展主要存在于消息历史和 tool observations；历史细节可以依赖 SessionDB 和 session search 召回；长期稳定事实进入 memory；程序性经验进入 skills。这样，单 Agent 虽然仍是一个会话内循环，但它背后并不是一个无限增长的对话框，而是“当前活跃状态”和“长期状态资产”的分层组合。</p>
-<h4 id="20354-为什么很多步骤必须串行"><a class="header" href="#20354-为什么很多步骤必须串行">20.3.5.4 为什么很多步骤必须串行</a></h4>
-<p>单 Agent 工具链里的复杂任务，通常不是全并行的，因为很多步骤存在真实依赖关系。比如：</p>
-<ol>
-<li><code>search_files</code> 找候选文件；</li>
-<li><code>read_file</code> 读取命中的文件；</li>
-<li><code>terminal</code> 跑测试；</li>
-<li><code>read_file</code> 看失败日志；</li>
-<li><code>patch</code> 修复；</li>
-<li><code>terminal</code> 复测。</li>
-</ol>
-<p>这条链里，后半段基本必须串行，因为测试结果决定下一步读哪个文件、改哪一段逻辑、是否还需要继续 patch。并行通常只出现在“同层独立观察”里，比如同时读多个文件、同时查多个接口、同时抓几个网页。</p>
-<p>因此，单 Agent 工具链更像一种：</p>
-<pre><code class="language-text">串行主干
-  + 局部并行观察
-  + 每轮结果回灌
-  + 超长历史持续压缩
-</code></pre>
-<p>它和 Kanban 的区别也正好在这里：Kanban 把依赖关系显式建模成可持久化的工作流状态；单 Agent 则没有真正的任务 DAG，而是让 LLM 在每一轮基于最新观察继续决策。</p>
-<h4 id="20355-用一个修-ci-故障的例子看单-agent-工具链"><a class="header" href="#20355-用一个修-ci-故障的例子看单-agent-工具链">20.3.5.5 用一个修 CI 故障的例子看单 Agent 工具链</a></h4>
-<p>一个很典型的例子是：用户让 Hermes “定位这个仓库今天 CI 失败的原因，修掉它，并确认测试通过”。</p>
-<p>这类任务通常有四个特征：</p>
-<ul>
-<li>步骤很多；</li>
-<li>有些步骤可以并行；</li>
-<li>有些步骤必须串行；</li>
-<li>中间会产生大量 tool output，并持续很多轮。</li>
-</ul>
-<p>Hermes 不会把它当成一次问答，而是当成一个单 Agent 工具链循环。</p>
-<p>第一轮通常先做并行观察。模型可能一次吐出几个独立的只读工具调用，例如搜索 workflow、读取 <code>ci.yml</code>、读取 <code>pyproject.toml</code>、读取 <code>pytest.ini</code>。运行时先判断这些调用是否都是只读、路径是否冲突、是否夹带高副作用工具，如果安全，再通过线程池并发执行。第一轮的目标不是修复，而是先把“环境事实”建立起来。</p>
-<p>第二轮开始进入串行主干。假设 Agent 现在已经知道 CI 跑了什么命令、测试入口在哪里，那么下一步往往是运行一次针对性的 <code>pytest</code>。这一步必须先执行，因为后面究竟读哪个源码文件、哪个测试文件，取决于失败堆栈的具体内容。于是运行时会先执行测试，把报错作为 observation 回灌，再让模型决定下一步读哪些文件。</p>
-<p>第三轮可能重新出现局部并行。比如失败堆栈显示问题可能同时涉及 <code>src/foo/bar.py</code> 和 <code>src/foo/utils.py</code>，那两个 <code>read_file</code> 又可以并行。整个任务于是呈现出一种典型节奏：串行主干推进任务，局部并行观察加快信息收集。</p>
-<p>第四轮进入修改阶段后，通常又回到严格串行。比如先 <code>patch</code> 修改实现，再跑 targeted test，如果还失败就继续看日志、再 patch、再复测。这部分几乎不能并行，因为 patch 的结果会影响下一次测试，而测试结果又决定后续修改策略。</p>
-<p>如果把这个例子的节奏再压缩成一条时序线，可以写成：</p>
-<pre><code class="language-text">用户：修今天的 CI
-
-第1轮
-  LLM -&gt; 并行 read/search
-  tools -&gt; 返回 workflow / config / test layout
-
-第2轮
-  LLM -&gt; 串行跑 pytest
-  tools -&gt; 返回失败堆栈
-
-第3轮
-  LLM -&gt; 并行读相关源码和测试
-  tools -&gt; 返回代码上下文
-
-第4轮
-  LLM -&gt; patch 实现
-  tools -&gt; 修改文件
-
-第5轮
-  LLM -&gt; 跑 targeted test
-  tools -&gt; 返回结果
-
-第6轮以后
-  继续补查、再 patch、再验证，直到收敛
-</code></pre>
-<p>在这个例子里，Hermes 能完成任务，并不是因为模型一次性“想清楚了全部步骤”，而是因为运行时帮它维持了一个持续更新的工作台：工具负责获取观察，运行时决定哪些调用能并行，结果按轮次回灌，长历史被压缩成状态摘要，而模型每次只需要解决“当前下一步该做什么”。</p>
-<p>因此，单 Agent 工具链处理复杂任务时，本质上不是在一次超长 prompt 里预演完整执行过程，而是在一个持续更新的任务现场上做多轮决策。</p>
-<h3 id="2036-kanban-board如何把复杂任务变成持久化工作流"><a class="header" href="#2036-kanban-board如何把复杂任务变成持久化工作流">20.3.6 Kanban Board：如何把复杂任务变成持久化工作流</a></h3>
-<p>依赖状态与 claim 事务来自 Kanban DB，worker 运行要求另见 Kanban 文档。<a href="#ref-23">[23]</a></p>
-<p>如果说单 Agent 工具链解决的是“<strong>同一个会话里，如何把很多步骤持续做完</strong>”，那么 Kanban Board 解决的就是另一个层级的问题：<strong>任务不再依附某一轮对话，而是被提升为可持久化、可恢复、可依赖编排的工作项</strong>。</p>
-<p>这也是为什么 Kanban 不只是“又一种多 Agent”。从源码看，它有自己完整的一套 board runtime：</p>
-<ul>
-<li>工具面由 <a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/tools/kanban_tools.py">tools/kanban_tools.py</a> 暴露，例如 <code>kanban_create</code>、<code>kanban_complete</code>、<code>kanban_block</code>、<code>kanban_heartbeat</code>；</li>
-<li>调度面由 <a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/gateway/kanban_watchers.py">gateway/kanban_watchers.py</a> 的 <code>_kanban_dispatcher_watcher()</code> 常驻 tick；</li>
-<li>状态面落在 SQLite <code>kanban.db</code>，而不是某个 Agent 的临时消息历史里。</li>
-</ul>
-<p>因此，Kanban 的主线更像下面这样：</p>
-<pre><code class="language-text">任务被创建到 board
-  -&gt; dispatcher 周期性扫描可运行任务
-  -&gt; 为未被 claim 的 ready task 启动 worker
-  -&gt; worker 在独立 profile / 独立 session 中执行
-  -&gt; worker 通过 kanban_complete / kanban_block / kanban_heartbeat 回写 board
-  -&gt; dispatcher 继续推进后继任务或回收超时 claim
-</code></pre>
-<p>这里最关键的变化是：<strong>复杂任务的“当前状态”不再主要靠上下文窗口维持，而是显式写进 board</strong>。单 Agent 模式里，任务进展主要存在于消息历史与外部 observation；Kanban 模式里，任务进展则体现在 task status、依赖关系、评论、claim、heartbeat、run 记录这些持久化字段上。</p>
-<p>从运行时角度看，Kanban 有四个核心机制。</p>
-<p>第一，<strong>dispatcher 把任务推进从“模型决定下一步”变成“board 决定谁现在可运行”</strong>。<code>_kanban_dispatcher_watcher()</code> 会按固定间隔 tick，读取配置，控制 <code>max_spawn</code> 和 <code>max_in_progress</code>，然后把真正的 dispatch 放到后台线程里执行，避免 SQLite 锁阻塞 gateway 事件循环。也就是说，Kanban 的调度中心不是某个 Agent 的当前推理，而是 board 上“哪些任务已经 ready、哪些任务还能继续抢占执行”。</p>
-<p>第二，<strong>worker 生命周期是显式受控的，不是会话自然结束就算完成</strong>。当 dispatcher 启动一个 task worker 时，会把 <code>HERMES_KANBAN_TASK</code>、<code>HERMES_KANBAN_RUN_ID</code> 之类的环境变量注入进去。随后这个 worker 只被允许操作自己的 task：源码里的 <code>_enforce_worker_task_ownership()</code> 会阻止它错误地完成或阻塞别的 task。这一点很重要，因为它意味着 Kanban worker 虽然本质上也是 Agent，但它在运行时被收窄成“只服务这一张 task 卡片”的执行单元。</p>
-<p>第三，<strong>heartbeat 和 claim TTL 让长任务具备可回收性</strong>。单 Agent 会话如果挂掉，通常就是这轮对话中断；而 Kanban 不能接受“挂掉就没人知道这张卡现在归谁”。所以 worker 除了显式调用 <code>kanban_heartbeat</code>，运行时还会通过 activity bridge 把进程活跃度同步回 board，更新 <code>last_heartbeat_at</code>。dispatcher 则据此判断某个 claim 是否已经 stale，是否需要 reclaim 再次调度。这样一来，复杂任务即使跨数小时、跨进程重启，可检测失联并尝试恢复；能否继续仍取决于执行环境、权限、重试预算与外部副作用对账，不能保证永不卡住。</p>
-<p>第四，<strong>依赖关系是显式 DAG，不再靠 LLM 临时记忆顺序</strong>。单 Agent 工具链里当然也有“先跑测试再看报错再 patch”这种顺序，但这种顺序只是运行时事实，不会单独落成一张依赖图。Kanban 则不同，父子任务与 <code>parents=[]</code> 依赖链本身就是 board 的一等公民。任务何时 ready，不取决于模型是否还记得“上一件事做完了没”，而取决于 board 中前置任务是否真的已经完成。</p>
-<p>Kanban 机制里还有一个非常典型、也非常容易被忽略的问题：<strong>前置任务正在产出中间结果时，下游任务是否可能因为“看起来已经差不多完成”而被过早启动。</strong> 例如，调研 Agent 还在运行，只是已经写出了一部分评论、摘要或中间工件；此时编码 Agent 如果把这些中间信号误读为“前置已经完成”，就可能尝试提前认领编码任务，进而把半成品结论传播到后续执行链条中。这本质上是一类分布式竞态条件：不同执行单元对“前置是否完成”这一事实的观察并不同步。</p>
-<p>Hermes 对这类问题的处理思路非常明确：<strong>不把自然语言评论当成调度真相，而只把经过事务提交的 board 状态当成调度真相。</strong> 评论、summary 和 artifact 可以作为任务之间的信息共享媒介，但它们本身并不构成依赖完成的判据。真正决定下游任务能否启动的，是父任务在 board 中是否已经正式进入 <code>done</code> 或 <code>archived</code>，以及 claim 边界上的再次校验是否通过。</p>
-<p>第一道防线是 <strong>dispatcher 的单 tick 锁</strong>。<code>dispatch_once()</code> 在真正执行 reclaim、promote、claim 和 spawn 之前，会先取得 board 级别的 dispatch lock。这样，同一块 <code>kanban.db</code> 在同一时刻只允许一个 dispatcher tick 进入写路径；未获得锁的调度者会直接返回 <code>skipped_locked=True</code>，不做任何 DB 变更。这一层防护的作用，不是判断任务语义，而是先消除控制平面上的并发写入：无论是 gateway 内嵌 watcher，还是手工执行的 <code>hermes kanban dispatch</code>，都不能并发地对同一批 <code>ready</code> 任务做状态推进。</p>
-<p>第二道防线是 <strong>状态机中的依赖门控</strong>。dispatcher 在一轮 tick 中，不会简单地根据“任务存在”就拉起 worker，而是先执行 <code>recompute_ready()</code>，把仍在 <code>todo</code> 中的任务重新检查一遍。只有当所有 parent task 的状态已经是 <code>done</code> 或 <code>archived</code> 时，子任务才会被提升为 <code>ready</code>。这意味着，“评论已经写到一半”“worker 似乎快结束了”“summary 已经初步成形”这些事实，统统不会被视为依赖满足信号。Kanban 真正相信的是 task row 上已经提交的正式状态，而不是中间文本的语义暗示。</p>
-<p>不过，Hermes 并没有在 <code>ready</code> 这一层停止校验，因为在工程实践中，<code>ready</code> 本身也可能因为异常恢复、人工改写或历史 bug 而出现脏状态。因此，第三道防线是 <strong>claim 边界上的二次一致性校验</strong>。<code>claim_task()</code> 在事务内部会再次查询这张子任务的所有 parent，并确认它们是否都已经进入 <code>done</code> 或 <code>archived</code>。如果仍然存在未完成的 parent，Hermes 不会允许任务从 <code>ready</code> 进入 <code>running</code>，而是会立刻把它重新打回 <code>todo</code>，并写入一条 <code>claim_rejected(reason=parents_not_done)</code> 事件。换句话说，<code>ready</code> 在 Hermes 中只是“具备候选执行资格”的状态，而不是不可推翻的最终准入结果；真正的执行准入点是 <code>claim_task()</code> 这一事务化边界。</p>
-<p>第四道防线是 <strong>原子 claim 的 compare-and-swap 约束</strong>。即使前置条件已经真实满足，系统仍然必须防止两个下游 worker 同时认领同一张卡。为此，Hermes 在 <code>claim_task()</code> 中使用 <code>WHERE status = 'ready' AND claim_lock IS NULL</code> 的条件更新，把“检查任务是否可认领”和“写入 claim_lock / claim_expires / running 状态”合并为一次原子操作。结果是，只有一个 claimer 可以成功把任务从 <code>ready</code> 改成 <code>running</code>；其他并发 claimer 会因为条件不再成立而直接失败。这一层解决的不是依赖语义问题，而是典型的“双认领同一任务”问题。</p>
-<p>因此，Hermes 对上述竞态的规避并不是建立在“要求 Agent 更谨慎”之上，而是建立在一个更强的运行时事实之上：<strong>评论和中间结果可以被共享，但它们不能单独触发下游执行；真正的调度权限，始终由 board 中正式提交的父任务状态、状态机中的 promotion 规则、claim 边界的二次校验，以及原子 claim 锁共同决定。</strong> 这使得下游 Agent 即便主观上误判“前置已经差不多完成”，也无法仅凭自身判断越过框架的执行约束。它最多只能发起一次 claim 尝试，而是否真的进入 <code>running</code>，最终仍由 Kanban runtime 的状态机和事务控制裁定。</p>
-<p>如果把这一过程压缩成一张时序图，可以得到下面这条控制线：</p>
-<pre class="mermaid">
-sequenceDiagram
-    autonumber
-    participant RA as Research Agent
-    participant DB as Kanban DB / Board
-    participant D as Dispatcher
-    participant CA as Coding Agent
-
-    Note over RA,CA: 编码任务依赖调研任务完成后才能启动
-
-    RA-&gt;&gt;DB: 写入 comment / summary / artifacts
-    Note right of RA: 中间结果可以先共享&lt;br/&gt;但此时调研任务仍可能处于 running
-
-    D-&gt;&gt;DB: 取得 board 级 dispatch lock
-    D-&gt;&gt;DB: 执行 recompute_ready()
-
-    alt parent task 仍未 done
-        DB--&gt;&gt;D: parent status != done
-        Note over DB,D: 编码任务保持在 todo&lt;br/&gt;不会被 promote 到 ready
-    else parent task 已 done 或 archived
-        DB--&gt;&gt;D: parent status satisfied
-        D-&gt;&gt;DB: 编码任务 todo -&gt; ready
-    end
-
-    Note over CA,DB: 假设异常路径把编码任务错误提前写成 ready
-
-    CA-&gt;&gt;DB: claim_task(coding_task)
-    DB-&gt;&gt;DB: 在事务中再次检查 parent status
-
-    alt parent 仍未完成
-        DB-&gt;&gt;DB: ready -&gt; todo
-        DB-&gt;&gt;DB: 记录 claim_rejected(parents_not_done)
-        DB--&gt;&gt;CA: claim 失败
-    else parent 已完成
-        DB-&gt;&gt;DB: CAS 更新&lt;br/&gt;WHERE status='ready' AND claim_lock IS NULL
-        DB-&gt;&gt;DB: ready -&gt; running
-        DB--&gt;&gt;CA: claim 成功
-        CA-&gt;&gt;DB: heartbeat / complete / block
-    end
-</pre>
-
-<p>可以用一个非常典型的例子理解两者区别：假设要完成“为一个新功能上线准备完整发布包”，里面有三个子任务：</p>
-<ol>
-<li>后端补 API；</li>
-<li>前端改页面；</li>
-<li>验证通过后更新发布说明。</li>
-</ol>
-<p>如果用单 Agent 工具链做，这更像一个长回合里的串行主干加局部并行观察，任务状态主要存在会话上下文里。<br>如果用 Kanban 做，Hermes 更可能把它建成：</p>
-<pre><code class="language-text">task A: 后端补 API
-task B: 前端改页面
-task C: 更新发布说明（parents=[A, B]）
-</code></pre>
-<p>然后 dispatcher 可以并发拉起 A、B 两个 worker；只有当 A、B 都完成后，C 才会进入 ready 状态。这里“等待依赖完成”已经不是 prompt 里的文字描述，而是 board runtime 的真实约束。</p>
-<p>所以，Kanban Board 的本质不是“让更多 Agent 一起说话”，而是：</p>
-<pre><code class="language-text">把复杂任务从会话内推理循环
-提升为可持久化、可恢复、可依赖编排的任务系统
-</code></pre>
-<p>这也是为什么在 Hermes 里，Kanban 更适合跨 profile、跨时间、跨任务依赖的长流程协作；而单 Agent 工具链更适合同一 Agent 在当前会话里连续完成一个复杂但局部收敛的问题。</p>
-<h3 id="2037-多-agent-机制delegate_task-驱动的子-agent-扇出与汇总"><a class="header" href="#2037-多-agent-机制delegate_task-驱动的子-agent-扇出与汇总">20.3.7 多 Agent 机制：<code>delegate_task</code> 驱动的子 Agent 扇出与汇总</a></h3>
-<p>下文委派描述只针对该工具路径，不覆盖其他显式调度器。<a href="#ref-24">[24]</a></p>
-<p>Hermes 的多 Agent 不是默认运行模式，也不是在一个会话里让多个“人格”轮流发言。它的触发条件很明确：<strong>本节只讨论父 Agent 通过<code>delegate_task</code>工具触发的委派路径，Kanban 等其他调度入口另见前文。</strong></p>
-<p>也就是说，多 Agent 在运行时里的地位首先是一个工具能力，而不是一个常驻调度框架：</p>
-<pre><code class="language-text">父 Agent run_conversation()
-  -&gt; LLM 返回 tool_calls
-  -&gt; 其中某个 tool name == delegate_task
-  -&gt; Hermes 执行 delegate_task()
-  -&gt; 创建一个或多个 child AIAgent
-  -&gt; child 各自运行自己的 run_conversation()
-  -&gt; 结果汇总回父 Agent
-</code></pre>
-<p>这里最容易误解的地方有两个。第一，Hermes 不会在“检测到任务很复杂”时自动偷偷切成多 Agent，本工具路径的触发点是显式<code>delegate_task</code>调用，不代表全产品只有这一种多 Agent 入口。第二，<code>delegate_task</code> 并不是让父 Agent 自己开几个线程继续同一段上下文，而是<strong>真的 new 出新的 <code>AIAgent</code> 实例</strong>，每个实例都有自己的对话循环、工具调用链和会话状态。</p>
-<h4 id="20371-delegate_task-的参数是模型直接给出的"><a class="header" href="#20371-delegate_task-的参数是模型直接给出的">20.3.7.1 <code>delegate_task</code> 的参数是模型直接给出的</a></h4>
-<p>父 Agent 第一次请求自己的 LLM 时，模型看到的是 <code>delegate_task</code> 的 schema。这个 schema 允许模型返回 <code>goal</code>、<code>context</code>、<code>tasks</code>、<code>role</code> 等结构化参数。换句话说，Hermes 不是在模型说“我想委派”之后再去补问一次参数，而是模型在 tool call 里一次性把委派参数写完整：</p>
-<pre><code class="language-json">{
-  "name": "delegate_task",
-  "arguments": {
-    "tasks": [
-      {"goal": "检查 A 模块", "context": "重点看依赖和边界"},
-      {"goal": "检查 B 模块", "context": "重点看职责和测试"}
-    ],
-    "role": "leaf"
-  }
-}
-</code></pre>
-<p>运行时拿到这段 <code>arguments</code> 后，直接解析成 Python dict，再归一化成内部的 <code>task_list</code>。所以这里的控制关系是：</p>
-<pre><code class="language-text">父 LLM 决定是否委派
-  -&gt; 父 LLM 决定委派参数
-  -&gt; Hermes 负责把参数翻译成子 Agent 的 system prompt + user message
-</code></pre>
-<h4 id="20372-子-agent-如何启动不是共享上下文而是重新组装输入"><a class="header" href="#20372-子-agent-如何启动不是共享上下文而是重新组装输入">20.3.7.2 子 Agent 如何启动：不是共享上下文，而是重新组装输入</a></h4>
-<p><code>delegate_task</code> 会为每个 task 创建一个新的 child <code>AIAgent</code>。这里最关键的设计是：<strong>对子 Agent 的输入不是把父会话的完整消息历史原封不动复制一遍，而是重新组装成聚焦当前子任务的最小上下文。</strong></p>
-<p>可以把 child 的启动输入理解为两部分：</p>
-<ul>
-<li><code>goal</code> 变成 child 的 <code>user_message</code></li>
-<li><code>context</code>、<code>workspace_path</code>、<code>role</code> 等变成 child 的系统提示词</li>
-</ul>
-<p>因此，子 Agent 真正发给自己 LLM 的请求更像：</p>
-<pre><code class="language-json">[
-  {"role": "system", "content": "You are a focused subagent... YOUR TASK: 检查 A 模块 ... CONTEXT: 重点看依赖和边界 ..."},
-  {"role": "user", "content": "检查 A 模块"}
-]
-</code></pre>
-<p>这个设计非常重要，因为它避免了把父会话里无关的中间推理、工具结果和噪声一并带进子上下文。Hermes 让父 Agent 负责“定义任务边界”，让子 Agent 负责“在隔离上下文里把这个边界跑完”。</p>
-<h4 id="20373-每个子-agent-都有自己的-session而不是共用父-session"><a class="header" href="#20373-每个子-agent-都有自己的-session而不是共用父-session">20.3.7.3 每个子 Agent 都有自己的 session，而不是共用父 session</a></h4>
-<p>Hermes 的多 Agent 不是共用一个 session。更准确地说，它是<strong>独立 session + 父子关联</strong>：</p>
-<ul>
-<li>父 Agent 维持自己的主会话；</li>
-<li>每个子 Agent 会新建自己的会话状态；</li>
-<li>child 会记录 <code>parent_session_id</code> 和 <code>_delegate_from</code> 等父子关系；</li>
-<li>最终回到父层的不是“共享同一段消息历史”，而是子会话产出的 summary / tool result。</li>
-</ul>
-<p>因此，子 Agent 与父 Agent 的关系更像“派生出的子会话”，而不是“同一会话里的第二个线程”。这也解释了为什么子 Agent 默认没有父会话的完整历史、默认跳过 memory / context files、并且拥有独立的工具循环和执行状态。</p>
-<h4 id="20374-请求时序父先决策子各自求解父再整合"><a class="header" href="#20374-请求时序父先决策子各自求解父再整合">20.3.7.4 请求时序：父先决策，子各自求解，父再整合</a></h4>
-<p>从 LLM 请求时序看，Hermes 的多 Agent 不是“一次请求里让多个 Agent 同时思考”，而是三段式：</p>
-<ol>
-<li>父 Agent 先请求一次父 LLM，决定是否调用 <code>delegate_task</code>；</li>
-<li>Hermes 启动多个 child，每个 child 各自进行自己的多轮 <code>LLM -&gt; tools -&gt; LLM</code> 循环；</li>
-<li>child 结果聚合成 <code>delegate_task</code> 的 tool result，再回到父 Agent，由父 LLM 再请求一次，生成最终整合回复。</li>
-</ol>
-<p>如果压缩成时序：</p>
-<pre><code class="language-text">父1次请求
-  -&gt; 返回 delegate_task
-  -&gt; child1 多次请求
-  -&gt; child2 多次请求
-  -&gt; ...
-  -&gt; 汇总为 delegate_task 的 tool result
-  -&gt; 父再1次请求
-  -&gt; 输出最终答案
-</code></pre>
-<p>这说明 Hermes 的多 Agent 不是在父循环内部引入一个模糊的“协作模式”，而是把它明确做成：<strong>父负责拆分与整合，子负责独立求解。</strong></p>
-<h4 id="20375-顶层委派与-orchestrator-委派异步和同步两种模式"><a class="header" href="#20375-顶层委派与-orchestrator-委派异步和同步两种模式">20.3.7.5 顶层委派与 orchestrator 委派：异步和同步两种模式</a></h4>
-<p>Hermes 的委派还有一个很值得记录的细节：<strong>顶层父 Agent 和 orchestrator 子 Agent 的委派模式并不相同。</strong></p>
-<ul>
-<li>顶层父 Agent 发起 <code>delegate_task</code> 时，Hermes 默认把它当成后台委派处理。父会话不会一直阻塞等待 child，而是继续运行，等子结果稍后重新回流。</li>
-<li>如果当前调用者本身已经是一个 subagent，尤其是 <code>role="orchestrator"</code> 的子 Agent，那么它对子 worker 的委派通常是同步等待的，因为 orchestrator 必须先拿到 worker 的结果，才能向自己的父层做一次汇总。</li>
-</ul>
-<p>这形成了一个很清晰的运行时分工：</p>
-<pre><code class="language-text">顶层父 Agent:
-  delegate_task -&gt; background delegation
-
-orchestrator 子 Agent:
-  delegate_task -&gt; sync fan-out + fan-in
-</code></pre>
-<p>这种设计避免了两个问题：一方面，顶层聊天界面不会因为子任务而完全卡死；另一方面，负责中间协调的 orchestrator 又能在自己的回合里完成真正的聚合工作，而不是把“整合责任”继续往外推。</p>
-<h4 id="20376-desktop-看到的主要是父层视角的汇总"><a class="header" href="#20376-desktop-看到的主要是父层视角的汇总">20.3.7.6 desktop 看到的主要是父层视角的汇总</a></h4>
-<p>从展示层看，desktop 主聊天区看到的主要是<strong>父 Agent 视角的汇总信息</strong>，而不是每个子 Agent 的完整原始上下文。也就是说，默认主视图里最核心的内容通常是：</p>
-<ul>
-<li>父 Agent 发起了 delegation；</li>
-<li>子 Agent 的运行状态和进度事件；</li>
-<li><code>delegate_task</code> 汇总出来的结果；</li>
-<li>父 Agent 基于这些结果给出的最终回答。</li>
-</ul>
-<p>子 Agent 的 <code>subagent.start</code>、<code>subagent.progress</code>、<code>subagent.tool</code>、<code>subagent.text</code>、<code>subagent.complete</code> 等事件更像监控流或观测流，而不是直接把 child 的完整 transcript 平铺给用户。因此，UI 层默认遵循的是和运行时同样的原则：<strong>子 Agent 负责跑，父 Agent 负责汇总，主聊天区优先展示父层可消费的结果。</strong></p>
-<p>这一点和 session 隔离是一致的。既然 child 自己是独立会话，主聊天区自然也不会把所有 child transcript 混进父会话正文；真正回到父会话的，是经过约束和预算控制后的 summary / tool result。</p>
-<hr>
-<h3 id="2038-上下文与缓存的三本账"><a class="header" href="#2038-上下文与缓存的三本账">20.3.8 上下文与缓存的三本账</a></h3>
-<p>上下文窗口衡量模型可见信息量；会话持久化保留历史；provider 缓存影响前缀复用和计费。三者分别核验，不能互相替代。Hermes 源码把缓存规划绑定到具体请求目的地，并按 provider 兼容布局构造标记。<a href="#ref-25">[25]</a><a href="#ref-26">[26]</a> 其节省效果需记录 usage、命中、TTL、模型和实际计价；本章不沿用固定折扣或“75%成本下降”的未经复现实测。</p>
-<h2 id="204-上下文主线prompt-system-如何保持长期稳定"><a class="header" href="#204-上下文主线prompt-system-如何保持长期稳定">20.4 上下文主线：Prompt System 如何保持长期稳定</a></h2>
-<p>Hermes 的 Prompt System 不只是把用户输入发给模型，而是一个上下文控制面。它不是把所有材料随机拼在一起，而是按缓存友好度和生命周期把上下文分成 <code>Stable / Context / Volatile</code> 三层。这个分层首先是运行时稳定性机制，其次才是提示词组织技巧。</p>
-<h3 id="2041-stable--context--volatile先按生命周期再按来源组装"><a class="header" href="#2041-stable--context--volatile先按生命周期再按来源组装">20.4.1 Stable / Context / Volatile：先按生命周期，再按来源组装</a></h3>
-<p>Hermes 先回答“什么内容应该稳定存在”“什么内容应该按需召回”“什么内容只属于当前 turn”，再决定这些内容怎么进入 prompt：</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th style="text-align: left">层</th><th style="text-align: left">典型内容</th><th style="text-align: left">进入方式</th><th style="text-align: left">设计目标</th></tr>
-</thead>
-<tbody>
-<tr><td style="text-align: left">Stable</td><td style="text-align: left"><code>SOUL.md</code>、<code>~/.hermes/memories/MEMORY.md</code>、<code>~/.hermes/memories/USER.md</code>、工具边界</td><td style="text-align: left">会话开始时构建 system prompt 前缀</td><td style="text-align: left">让人格、长期事实和行为边界保持稳定</td></tr>
-<tr><td style="text-align: left">Context</td><td style="text-align: left">Skills、<code>AGENTS.md</code>、<code>CLAUDE.md</code>、<code>.cursorrules</code>、session search 结果</td><td style="text-align: left">按任务相关性选择或检索</td><td style="text-align: left">只把当前任务真正需要的材料带进来</td></tr>
-<tr><td style="text-align: left">Volatile</td><td style="text-align: left">当前用户消息、工具观察、最新错误、临时计划</td><td style="text-align: left">每轮推理实时追加</td><td style="text-align: left">允许任务在本轮持续演进</td></tr>
-</tbody>
-</table>
-</div>
-<p>Prompt System 的关键不是“资料越多越好”，而是“稳定前缀尽量稳定，动态材料尽量后置”。长期 Agent 如果不先做这个分层，很快就会在上下文体积、缓存命中率和行为一致性之间互相打架。</p>
-<h3 id="2042-文件分工哪些材料进入稳定前缀哪些只按需召回"><a class="header" href="#2042-文件分工哪些材料进入稳定前缀哪些只按需召回">20.4.2 文件分工：哪些材料进入稳定前缀，哪些只按需召回</a></h3>
-<p>从实现边界看，Hermes 至少在四类来源之间做了明确分工：</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th style="text-align: left">来源</th><th style="text-align: left">代表文件或对象</th><th style="text-align: left">运行时位置</th><th style="text-align: left">为什么这样放</th></tr>
-</thead>
-<tbody>
-<tr><td style="text-align: left">人格与长期身份</td><td style="text-align: left"><code>SOUL.md</code>、<code>~/.hermes/memories/USER.md</code></td><td style="text-align: left">Stable</td><td style="text-align: left">这是 Agent 的说话方式和用户长期偏好，不应该在会话中途跳变</td></tr>
-<tr><td style="text-align: left">长期事实</td><td style="text-align: left"><code>~/.hermes/memories/MEMORY.md</code></td><td style="text-align: left">Stable</td><td style="text-align: left">适合保存环境事实、项目约定、长期约束</td></tr>
-<tr><td style="text-align: left">项目规则与程序性经验</td><td style="text-align: left"><code>AGENTS.md</code>、<code>CLAUDE.md</code>、<code>.cursorrules</code>、Skills</td><td style="text-align: left">Context</td><td style="text-align: left">只在当前任务相关时加载，避免稳定前缀无意义膨胀</td></tr>
-<tr><td style="text-align: left">本轮任务状态</td><td style="text-align: left">当前消息、tool results、运行中计划</td><td style="text-align: left">Volatile</td><td style="text-align: left">这部分必须随每轮推理变化</td></tr>
-</tbody>
-</table>
-</div>
-<p>这里最重要的判断不是“哪些文件存在”，而是“哪些边界允许进入 system prompt 前缀”。Hermes 把 <code>SOUL.md</code>、<code>USER.md</code> 和 <code>MEMORY.md</code> 视为高敏、稀缺、需要缓存稳定性的材料；把历史会话和技能放在按需召回层，避免每轮都重放。</p>
-<hr>
-<h3 id="2043-prompt-caching快照标记与实际命中"><a class="header" href="#2043-prompt-caching快照标记与实际命中">20.4.3 Prompt Caching：快照、标记与实际命中</a></h3>
-<p>Memory 资料和 store 实现支持会话开始时加载冻结快照、工具写入更新 live store 的分工；prompt 整体的构建与复用还由 conversation/system prompt 模块控制。<a href="#ref-27">[27]</a><a href="#ref-28">[28]</a><a href="#ref-15">[15]</a><a href="#ref-16">[16]</a> 不用某个字段名推导所有重建时机。</p>
-<p>固定提交的缓存规划已超出旧稿单一<code>system_and_3</code>说明：</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>分支</th><th>源码支持的布局</th><th>证据边界</th></tr>
-</thead>
-<tbody>
-<tr><td>有匹配静态前缀</td><td>静态 system 前缀、system 末尾与最近两条可缓存非 system 消息分配标记</td><td>不等于任意消息都可放标记</td></tr>
-<tr><td>无静态前缀</td><td>保留 system 加尾部三条的 legacy 路径</td><td>不能写成所有请求的唯一布局</td></tr>
-<tr><td>特定原生工具缓存路径</td><td>静态前缀、工具数组尾部及已完成事务端点分配预算</td><td>必须核对实际 destination 与适配器支持</td></tr>
-</tbody>
-</table>
-</div>
-<p>源码会清理旧装饰，避免重复规划积累标记；部分代理对 tool result 的标记位置有限制。<a href="#ref-25">[25]</a> 这些是客户端构造事实，不证明服务端接受、命中或采用同一价格。供应商 API、TTL、阈值与折扣归<a href="../part3/01-llm-api-protocol.html">第12章</a>的版本化 adapter 核验，不在本章维护固定厂商计费表。</p>
-<p>推理缓存通常可以复用前缀计算，但不能从客户端源码得知具体服务端物理存储、保留方式或每个节点的 KV 状态。记录逻辑请求 hash 与 usage 即可支持本场景审计，不应断言供应商“只存 KV 绝不存原文”。缓存命中也不验证任务约束是否仍正确。</p>
-<h3 id="2044-model-transport统一消息如何落到-provider-请求"><a class="header" href="#2044-model-transport统一消息如何落到-provider-请求">20.4.4 Model Transport：统一消息如何落到 Provider 请求</a></h3>
-<p>Transport 细节不需要铺开成字段清单，保留最短证据链就够了：</p>
-<pre><code class="language-text">conversation_loop.py
-  -&gt; interruptible_api_call(...)
-  -&gt; transport.build_kwargs(...)
-  -&gt; run_agent.py 中的 provider client
-  -&gt; HTTP request
-</code></pre>
-<p>这条链说明 Hermes 先在运行时内部维护统一消息对象，再把 provider-specific 参数放到 transport 层处理。换句话说，Prompt System 组织的是统一上下文，transport 负责把它翻译成 OpenAI、Anthropic 或其他 provider 能接受的请求。</p>
-<h3 id="2045-sessiondb会话不只在上下文窗口里存在"><a class="header" href="#2045-sessiondb会话不只在上下文窗口里存在">20.4.5 SessionDB：会话不只在上下文窗口里存在</a></h3>
-<p>SessionDB 结构与权威存储以 Session Storage 文档为准。<a href="#ref-29">[29]</a></p>
-<p>Hermes 的会话不是只存在于上下文窗口里，而是落到 SQLite SessionDB，并通过 FTS5 支持跨 session 的全文检索。这样 session search 就不是“翻聊天记录”的 UI 功能，而是长期 runtime 的第二层记忆。</p>
-<p>如果只保留最关键的实现锚点，可以把它压缩成：<code>state.db / SessionDB -&gt; messages + sessions -&gt; FTS5（messages_fts / messages_fts_trigram） -&gt; session_search</code>。这已经足以证明 Hermes 把历史会话当成可检索运行时资产，而不是一次性上下文残留。</p>
-<hr>
-<h2 id="205-记忆主线memorysession-search-与-skills-如何协作"><a class="header" href="#205-记忆主线memorysession-search-与-skills-如何协作">20.5 记忆主线：Memory、Session Search 与 Skills 如何协作</a></h2>
-<p>如果说 <code>SessionDB + FTS5</code> 解决的是“历史细节如何按需找回”，那么 Memory 解决的就是“哪些长期事实必须稳定进入 system prompt 前缀”。</p>
-<p>更准确地说，Memory 分为两个独立的存储目标，每个有自己的文件、预算和加载逻辑：</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th style="text-align: left">目标</th><th style="text-align: left">文件</th><th style="text-align: left">默认字符上限</th><th style="text-align: left">作用</th><th style="text-align: left">典型内容</th></tr>
-</thead>
-<tbody>
-<tr><td style="text-align: left">Persistent Memory</td><td style="text-align: left"><code>~/.hermes/memories/MEMORY.md</code></td><td style="text-align: left">2200 字符</td><td style="text-align: left">Agent 的长期事实层</td><td style="text-align: left">环境事实、项目约定、稳定工具经验</td></tr>
-<tr><td style="text-align: left">User Profile</td><td style="text-align: left"><code>~/.hermes/memories/USER.md</code></td><td style="text-align: left">1375 字符</td><td style="text-align: left">用户画像层</td><td style="text-align: left">沟通偏好、角色、时区、工作习惯</td></tr>
-</tbody>
-</table>
-</div>
-<p>这两层<strong>以稳定快照的方式注入系统提示</strong>，因此必须非常短、非常高密度。底层实现既可以是内置的本地文件存储，也可以对接外部 memory provider（如 Honcho、Mem0 等）。</p>
-<h3 id="2051-memory-的源码级实现解析"><a class="header" href="#2051-memory-的源码级实现解析">20.5.1 Memory 的源码级实现解析</a></h3>
-<p>前文介绍了 Memory 的定位和接口层面，本节基于 Hermes Agent 源码，深入到内置 Memory 的实现机制。这部分对理解“Agent 如何在不破坏提示缓存的前提下保持长期记忆“很有帮助。</p>
-<p>默认的内置 <code>MemoryProvider</code> 会把长期事实写进 <code>~/.hermes/memories/MEMORY.md</code>，把用户画像写进 <code>~/.hermes/memories/USER.md</code>。即使未来把底层替换成其他 <code>MemoryProvider</code>，运行时边界也不变：memory 更新先作用于 provider 或 store，自身可以立刻落盘；system prompt 的重建则仍然沿着 frozen snapshot 边界发生，通常要等到下一次会话或下一次完整重建。</p>
-<p>内置 provider 不把这部分长期记忆放进数据库，而是直接落到两个 Markdown 文件。重要的证据不是备份文件名或单个操作参数，而是 <strong><code>MemoryStore.load_from_disk()</code> 会在会话开始时把这两个文件渲染成 <code>_system_prompt_snapshot</code>，而后续写入只更新 store 和磁盘，不会立刻回写当前 system prompt</strong>。这正是 memory 更新与 system prompt 重建之间的运行时边界。</p>
-<p>因此，<code>~/.hermes/memories/MEMORY.md</code> 与 <code>~/.hermes/memories/USER.md</code> 应该只保存必须稳定进入前缀的长期事实、偏好和约束，而不应该变成日志、代码片段或完整 transcript。历史细节属于 SQLite <code>SessionDB</code> + <code>FTS5</code> 支持的 session search；memory 文件属于稳定前缀层。这两层分工，正是 Hermes 避免“把所有历史都塞进 system prompt”的关键。</p>
-<hr>
-<h3 id="2052-memory-的全生命周期"><a class="header" href="#2052-memory-的全生命周期">20.5.2 Memory 的全生命周期</a></h3>
-<p>从生命周期看，关键不是再证明 frozen snapshot，而是说明 memory 有独立于 prompt 组装的写入节奏：会话开始时加载 <code>MEMORY.md</code> / <code>USER.md</code>，会话进行中可以通过工具调用或后台机制持续更新 store 并落盘，后续会话再读取这些已沉淀的长期事实。实现上还有 background review 等自动写入机制，但它们主要影响的是“什么时候写入 memory”，而不是 memory 文件与 prompt 前缀各自的职责。</p>
-<hr>
-<h3 id="2053-memoryprovider后端扩展与上下文职责"><a class="header" href="#2053-memoryprovider后端扩展与上下文职责">20.5.3 MemoryProvider：后端扩展与上下文职责</a></h3>
-<p>官方 Memory Provider 接口将初始化、稳定声明、按查询召回和同步挂到统一生命周期；具体 provider 可以有不同存储和权限边界。<a href="#ref-30">[30]</a> 内置 Memory 管理短事实，Session Search 读取历史细节，Skills 保存程序性说明，不能因它们都返回文本就混成一套权威库。</p>
-<p>如果教学上接入只读 Markdown 知识库，应由 provider 实现目录权限、分块、索引、召回和来源版本，然后只将允许内容交给上下文。这里是扩展设计，不声称固定提交自带<code>markdown_kb</code>、TF-IDF 或某一插件发现实现。企业 ACL 与组织数据必须由企业级权限与治理系统负责，个人 provider 不能绕过撤权和删除。</p>
-<h3 id="2054-配置控制"><a class="header" href="#2054-配置控制">20.5.4 配置控制</a></h3>
-<p>配置控制的不只是开关，也决定当前启用的是哪个 <code>MemoryProvider</code>。当 <code>provider: "builtin"</code> 时，Hermes 读取和写入的就是 <code>~/.hermes/memories/MEMORY.md</code> 与 <code>~/.hermes/memories/USER.md</code>；切到外部 provider 时，变化的是持久化后端和召回策略，而不是这两个文件在内置模式下承担的 stable-prefix 角色。</p>
-<p>下列为部分配置示意；具体 provider 可有独立配置、环境和后端约束，不能用一段 YAML 代表全部行为：</p>
-<pre><code class="language-yaml">memory:
-  memory_enabled: true         # 是否启用 MEMORY.md
-  user_profile_enabled: true   # 是否启用 USER.md
-  provider: "builtin"          # 或 "honcho" / "mem0" 等插件
-</code></pre>
-<hr>
-<h3 id="2055-架构视角memory-在-hermes-中的三层角色"><a class="header" href="#2055-架构视角memory-在-hermes-中的三层角色">20.5.5 架构视角：Memory 在 Hermes 中的三层角色</a></h3>
-<p>从更大的架构视角看，Hermes 的 Memory 系统承担了三层角色：</p>
-<p><strong>第一层：事实持久化层</strong>（归属 Context &amp; Learning 子架构）。
-它保存 Agent 和用户的长期事实，以冻结快照的形式注入 system prompt。这是传统“记忆“的定义，也是 Agent 具备连续存在的关键。</p>
-<p><strong>第二层：自改进闭环的执行器</strong>（归属 Learning Loop 子架构）。
-Background Review 机制使 Agent 不需要用户显式指令就能主动写入 memory，构成了“对话 → 分析 → 写入 → 下次读取“的闭环。这是 Hermes 和普通聊天机器人的本质区别。</p>
-<p><strong>第三层：工具交互的语义对象</strong>（归属 Tool Runtime 子架构）。
-Agent 通过统一的 <code>memory</code> 工具操作 MemoryStore，对 Agent 来说，“记住“和“读文件“一样，都是工具调用。这使记忆管理和工具系统共享同一套执行框架。</p>
-<hr>
-<h3 id="2056-skills把经验变成可复用程序性记忆"><a class="header" href="#2056-skills把经验变成可复用程序性记忆">20.5.6 Skills：把经验变成可复用程序性记忆</a></h3>
-<p>技能资料支持发现/加载/管理；后文 review/eval 推广管道是本书治理设计。<a href="#ref-18">[18]</a></p>
-<p>Hermes 最有代表性的设计是 Skills System。</p>
-<p>Memory 保存“事实”，Skills 保存“做法”。一个 Skill 通常是一个 Markdown 文档，描述某类任务的步骤、约束、工具选择、常见失败和验证方法。</p>
-<p>可以这样理解：</p>
-<pre><code class="language-text">Memory = 我知道什么
-Skill  = 我下次怎么做
-Tool   = 我实际能执行什么
-</code></pre>
-<h4 id="从一次任务到技能"><a class="header" href="#从一次任务到技能">从一次任务到技能</a></h4>
-<p>一个典型闭环是：</p>
-<pre class="mermaid">
-flowchart LR
-    Task["复杂任务"] --&gt; Execute["Agent 执行"]
-    Execute --&gt; Trace["工具结果与会话轨迹"]
-    Trace --&gt; Reflect["反思哪些步骤可复用"]
-    Reflect --&gt; Skill["生成或更新 SKILL.md"]
-    Skill --&gt; Future["未来相似任务按需加载"]
-    Future --&gt; Execute
-</pre>
-
-<p>这比普通“记忆”更强，因为它保存的是可执行流程：</p>
-<ul>
-<li>什么时候先搜索；</li>
-<li>什么时候读配置；</li>
-<li>哪个命令能验证；</li>
-<li>常见错误怎么修复；</li>
-<li>产物应该放在哪里；</li>
-<li>什么操作必须先询问用户。</li>
-</ul>
-<h4 id="progressive-disclosure"><a class="header" href="#progressive-disclosure">Progressive Disclosure</a></h4>
-<p>Skills 也会占上下文预算，所以不能每次全部塞进 prompt。更合理的方式是 progressive disclosure：</p>
-<ol>
-<li>先只让模型看到 skill 名称和简短描述；</li>
-<li>当任务匹配时，再加载对应 <code>SKILL.md</code>；</li>
-<li>如果 skill 引用脚本、模板或资源，再按需读取。</li>
-</ol>
-<p>这和本书前面讲的 Context Engineering 是同一个思想：不是让模型“知道所有东西”，而是让它在需要时拿到正确材料。</p>
-<h4 id="hermes-的-skill-演化管道"><a class="header" href="#hermes-的-skill-演化管道">Hermes 的 Skill 演化管道</a></h4>
-<p>如果说 OpenClaw 更强调 Skill 的加载优先级和插件生态，那么 Hermes 更值得关注的是：<strong>Skill 如何从长期使用轨迹中演化出来</strong>。</p>
-<p>结合<a href="../part3/04-skills-tools-mcp-connectors.html">第15章</a>，本书建议在 Hermes 技能机制之外增加可验证推广管道；以下 review/eval/owner 字段是教学治理扩展：</p>
-<pre><code class="language-text">Session Trace
-  │
-  ├─ 用户反复要求同类任务
-  ├─ 某次任务形成稳定成功路径
-  ├─ 工具调用序列可复用
-  ├─ 验证命令稳定
-  └─ 人工纠正减少
-      │
-      ▼
-Skill Candidate
-      │  提取触发条件、步骤、工具、约束、验证方式
-      ▼
-Review / Eval
-      │  检查是否安全、是否过度泛化、是否真的提升质量
-      ▼
-Skill Registry
-      │  保存版本、owner、适用范围和依赖工具
-      ▼
-Future Sessions
-</code></pre>
-<p>这条链路让 Skill 不只是“手写说明”，而是长期 Agent 的能力沉淀机制。一次成功任务本身没有价值，能被压缩成可验证、可复用、可审查的程序性知识，才有价值。</p>
-<p>一个 Hermes-style Skill 需要保存的不只是步骤，还应保存这些元信息：</p>
-<pre><code class="language-yaml">skill:
-  name: repo_release_check
-  source_trace_ids:
-    - trace_20260430_001
-    - trace_20260430_019
-  trigger:
-    - "发布前检查"
-    - "release validation"
-  required_tools:
-    - file_search
-    - shell
-    - git_diff
-  verification:
-    - "run tests"
-    - "check diff"
-    - "summarize risk"
-  status: reviewed
-  version: "0.3.0"
-</code></pre>
-<p><code>source_trace_ids</code> 很重要。它让后续 review 能回到原始任务，判断这个 Skill 是从真实成功经验中总结出来的，还是模型凭空概括出来的。</p>
-<h4 id="风险技能会固化错误经验"><a class="header" href="#风险技能会固化错误经验">风险：技能会固化错误经验</a></h4>
-<p>Skills 的风险也很明显：如果一次任务的解法本身是错误的，Agent 把它沉淀成 skill，下次会更稳定地犯同样错误。</p>
-<p>因此生产级 Skills System 需要：</p>
-<ul>
-<li>skill 创建前有验证证据；</li>
-<li>skill 更新时保留版本或变更记录；</li>
-<li>skill 里写清适用条件和不适用条件；</li>
-<li>定期清理过期技能；</li>
-<li>对高风险技能增加人工 review。</li>
-</ul>
-<p>真正可靠的自我进化，不是“做完就记住”，而是“验证后再沉淀”。</p>
-<p>进一步说，Skill 还需要生命周期治理：不是越多越好，而是要有版本、owner、适用边界和清理机制。过期 Skill 应该归档，高风险 Skill 应该人工 review，常用 Skill 需要持续修订。只有这样，程序性记忆才会随着使用变得更可靠，而不是越来越臃肿。</p>
-<hr>
-<h2 id="206-行动主线从-tool-registry-到-action-engine-的连续执行链"><a class="header" href="#206-行动主线从-tool-registry-到-action-engine-的连续执行链">20.6 行动主线：从 Tool Registry 到 Action Engine 的连续执行链</a></h2>
-<p>工具类别/后端来自官方工具文档；执行授权仍须独立成立。<a href="#ref-31">[31]</a></p>
-<p>Hermes 的关键不在“能不能调用工具”，而在“模型选择工具以后，运行时如何可靠地行动”。因此 Tool Registry、Toolsets、Execution Backends 和 Action Engine 需要被当成一条连续的行动主线来理解。</p>
-<pre class="mermaid">
-flowchart LR
-    M["Model&lt;br/&gt;产生 tool call"] --&gt; R["Tool Registry&lt;br/&gt;schema / discoverability / dispatch"]
-    R --&gt; T["Toolsets&lt;br/&gt;能力与权限打包"]
-    T --&gt; G["Guardrails&lt;br/&gt;approval / path / URL / policy"]
-    G --&gt; B["Backend Resolver&lt;br/&gt;local / Docker / SSH / cloud"]
-    B --&gt; X["Execution&lt;br/&gt;运行 / 观察 / 错误"]
-    X --&gt; O["Observation Pipeline&lt;br/&gt;truncate / redact / persist / verify"]
-    O --&gt; M
-</pre>
-
-<p>这个主线说明 Hermes 把“工具调用”拆成了四个不同问题：</p>
-<ul>
-<li><strong>Registry</strong> 回答“系统到底暴露了哪些可调用能力”；</li>
-<li><strong>Toolsets</strong> 回答“当前入口、身份和任务允许使用哪些能力包”；</li>
-<li><strong>Backends</strong> 回答“同一个能力应该落到哪个执行环境”；</li>
-<li><strong>Action Engine</strong> 回答“如何把一次模型决策变成可验证、可恢复、可持久化的行动”。</li>
-</ul>
-<h3 id="2061-tool-registry能力先被声明再被调用"><a class="header" href="#2061-tool-registry能力先被声明再被调用">20.6.1 Tool Registry：能力先被声明，再被调用</a></h3>
-<p>Tool Registry 的重要性，不在于它列出了多少工具，而在于它把模型可见能力先变成结构化对象，再允许后续治理接手。只有经过 schema、可用性和 dispatch 边界包装后，模型输出的 tool call 才不是“随便执行一个函数”，而是“在 Runtime 承认的能力集合里请求一次行动”。</p>
-<p>从这个角度看，Registry 更像行动主线的起点证据：</p>
-<ul>
-<li>它收集 tool schema，让模型只能在已声明接口内行动；</li>
-<li>它感知工具是否启用，让同一 Agent 在不同入口或 profile 下看到不同能力面；</li>
-<li>它把 plugin 与 MCP 暴露的外部能力吸收到统一 dispatch 边界，而不是让扩展直接绕过 Runtime。</li>
-</ul>
-<p>因此，Registry 不是目录索引，而是后续权限、后端选择和审计链条的前提。</p>
-<h3 id="2062-toolsets把能力打包成可治理的权限单元"><a class="header" href="#2062-toolsets把能力打包成可治理的权限单元">20.6.2 Toolsets：把“能力”打包成可治理的权限单元</a></h3>
-<p>如果说 Registry 决定“系统有什么能力”，那么 Toolsets 决定“这次行动被允许动用哪一包能力”。这也是 Hermes 工具治理最值得保留的证据：它没有把权限主要写在 prompt 里，而是把能力按入口、身份和任务类型打包成可配置边界。</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th style="text-align: left">打包维度</th><th style="text-align: left">Toolsets 解决的问题</th><th style="text-align: left">典型结论</th></tr>
-</thead>
-<tbody>
-<tr><td style="text-align: left">入口</td><td style="text-align: left">某个平台是否应暴露高风险能力</td><td style="text-align: left">CLI 可以更宽，消息入口通常更窄</td></tr>
-<tr><td style="text-align: left">身份</td><td style="text-align: left">不同 profile 是否共享同一权限面</td><td style="text-align: left">工作 / 个人 / 受限 profile 应各自独立</td></tr>
-<tr><td style="text-align: left">任务类型</td><td style="text-align: left">读任务、写任务、后台任务是否复用同一工具集</td><td style="text-align: left">Cron 与低信任入口应默认更保守</td></tr>
-<tr><td style="text-align: left">扩展来源</td><td style="text-align: left">MCP / Plugin 工具是否天然可信</td><td style="text-align: left">外部扩展也必须落入已定义 toolset</td></tr>
-</tbody>
-</table>
-</div>
-<p>因此，Toolsets 的架构意义不是“方便分类工具”，而是把长期 Agent 的权限治理单位从“单个函数”提升为“能力包”。这样 Approval、路径安全、后端隔离才有稳定挂载点；否则所有安全策略都会退化成零散特判。</p>
-<h3 id="2063-execution-backends-与-action-engine同一能力如何被可靠执行"><a class="header" href="#2063-execution-backends-与-action-engine同一能力如何被可靠执行">20.6.3 Execution Backends 与 Action Engine：同一能力如何被可靠执行</a></h3>
-<p>真正让 Hermes 从“会选工具”走到“会行动”的，是 Toolsets 之后的连续执行链。模型选中的能力不会直接执行，而是继续经过护栏、后端解析、结果处理和失败恢复。</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th style="text-align: left">阶段</th><th style="text-align: left">Runtime 的关键决策</th><th style="text-align: left">为什么重要</th></tr>
-</thead>
-<tbody>
-<tr><td style="text-align: left">参数与风险解析</td><td style="text-align: left">tool call 是否符合 schema，参数是否触发高风险模式</td><td style="text-align: left">把模型的模糊输出收敛成确定行动</td></tr>
-<tr><td style="text-align: left">能力边界检查</td><td style="text-align: left">当前 toolset、profile、入口是否允许这次调用</td><td style="text-align: left">防止低信任入口越权拿到高风险能力</td></tr>
-<tr><td style="text-align: left">后端选择</td><td style="text-align: left">在本地、容器、SSH 还是云端执行</td><td style="text-align: left">同一 terminal/file 动作在不同环境下风险完全不同</td></tr>
-<tr><td style="text-align: left">执行与观测</td><td style="text-align: left">如何捕获 stdout/stderr、流式进度与错误状态</td><td style="text-align: left">长任务必须可见、可中断、可解释</td></tr>
-<tr><td style="text-align: left">结果回流</td><td style="text-align: left">结果如何截断、脱敏、持久化，并决定是否形成验证证据</td><td style="text-align: left">防止噪声、敏感数据和错误结论继续扩散</td></tr>
-</tbody>
-</table>
-</div>
-<p>这也是为什么 <code>approval.py</code>、<code>path_security.py</code>、<code>url_safety.py</code>、<code>error_classifier.py</code>、<code>verification_evidence.py</code>、<code>redact.py</code> 这类模块值得被一起看待。它们不是附属小特性，而是 Action Engine 的连续护栏：</p>
-<pre><code class="language-text">tool call
-  -&gt; schema / path / URL / policy check
-  -&gt; approval gate
-  -&gt; backend dispatch
-  -&gt; result capture
-  -&gt; error classify / retry / fallback
-  -&gt; verify / redact / persist
-</code></pre>
-<p>这里保留 Approval、路径安全和 Backend Selection，不是为了罗列安全特性，而是因为它们共同支持同一个结论：<strong>Hermes 把一次工具调用变成了“受身份约束、受环境约束、受证据约束的行动”</strong>。这才是长期 Agent 可长期运行的核心。</p>
-<h3 id="2064-plugin-与-mcp扩展能力也必须回到同一行动主线"><a class="header" href="#2064-plugin-与-mcp扩展能力也必须回到同一行动主线">20.6.4 Plugin 与 MCP：扩展能力也必须回到同一行动主线</a></h3>
-<p>Plugin 与 MCP 的价值，不是“又多了一批工具”，而是证明 Hermes 把扩展能力也收编进同一条行动主线。无论工具来自内置模块、插件注册还是 MCP server，它都应该依次经过：</p>
-<ol>
-<li>被 Registry 发现和声明；</li>
-<li>被 Toolsets 纳入某个能力包；</li>
-<li>被 Guardrails 与 Backend Resolver 约束；</li>
-<li>被 Action Engine 执行、观测、脱敏和持久化。</li>
-</ol>
-<p>这比单纯强调“支持 MCP”更重要。因为对长期 Agent 来说，最大风险从来不是工具数量少，而是外部能力一旦接入后绕过原有治理边界。Hermes 值得借鉴的地方，正是它试图让扩展能力也服从同一条行动主线。</p>
-<hr>
-<h2 id="207-多入口主线gatewaycronprofiles-与-session-生命周期"><a class="header" href="#207-多入口主线gatewaycronprofiles-与-session-生命周期">20.7 多入口主线：Gateway、Cron、Profiles 与 Session 生命周期</a></h2>
-<p>跨入口会话依据 Gateway SessionSource 和生命周期契约，不凭显示名称合并身份。<a href="#ref-32">[32]</a></p>
-<p>这一节不应该被读成四个并列特性，而应该被读成同一个答案：<strong>一个长期运行的 Agent，如何在多个入口、不同任务类型和多重身份之间保持连续性，而不发生串线。</strong> Hermes 的回答是让 Gateway、Cron、Profiles 和 Session Lifecycle 共同组成连续运行控制面。</p>
-<pre class="mermaid">
-flowchart LR
-    E["平台消息 / Slash Command / Cron Tick"] --&gt; G["Gateway / Scheduler&lt;br/&gt;入口标准化"]
-    G --&gt; P["Profile Resolve&lt;br/&gt;身份、配置、权限面"]
-    P --&gt; S["Session Lookup / Create&lt;br/&gt;按平台、用户、线程、profile 定位"]
-    S --&gt; C["Agent Core&lt;br/&gt;同一 Prompt / Tool / Memory Runtime"]
-    C --&gt; W["Persist / Compress / Resume / Archive"]
-    W --&gt; S
-</pre>
-
-<p>如果缺了其中任何一环，长期 Agent 都很难成立：</p>
-<ul>
-<li>没有 Gateway，Agent 只能被单一入口临时调用；</li>
-<li>没有 Cron，Agent 不能把“持续关注”变成时间驱动的工作；</li>
-<li>没有 Profiles，连续性会退化成跨任务、跨身份的污染；</li>
-<li>没有 Session Lifecycle，多入口只会得到一堆彼此无关的短会话。</li>
-</ul>
-<h3 id="2071-gateway把不同入口折叠成同一种会话事件"><a class="header" href="#2071-gateway把不同入口折叠成同一种会话事件">20.7.1 Gateway：把不同入口折叠成同一种会话事件</a></h3>
-<p>Gateway 的架构意义，不是“支持 Telegram、Slack、Discord 等很多平台”，而是把这些入口都折叠成同一种会话事件：谁发起、来自哪个线程、属于哪个 profile、是否是控制命令、该继续哪个 session。</p>
-<p>因此 Gateway 至少承担四件事：</p>
-<ul>
-<li>把平台消息、回复链和控制命令标准化；</li>
-<li>在入口处做 allowlist、DM pairing 等身份筛选；</li>
-<li>把平台用户 / 线程映射到 Session 与 Profile；</li>
-<li>把流式进度、中断、停止和结果回传给原入口。</li>
-</ul>
-<p>这让 Hermes 的多入口不是“多套 bot 各自调用模型”，而是“多种入口共同驱动同一个 Agent Core”。真正持续的是后面的 Session、Toolsets、Memory 和 Learning Loop，而不是某个平台适配器本身。</p>
-<h3 id="2072-cron把时间也做成入口而不是旁路脚本"><a class="header" href="#2072-cron把时间也做成入口而不是旁路脚本">20.7.2 Cron：把时间也做成入口，而不是旁路脚本</a></h3>
-<p>Cron 文档支持 Agent 任务及 no_agent 两条分支，不能将全部 tick 概括成模型 turn。<a href="#ref-33">[33]</a></p>
-<p>Hermes 的 Cron 值得强调，不是因为它能定时，而是因为它把时间触发也纳入了同一条运行时主线。Agent 模式可在新会话中执行任务；当前文档还支持<code>no_agent</code>脚本模式，脚本 stdout 可以直接投递而不调用 LLM。两者都要核对调度、身份、工作目录与投递范围，不能将脚本输出当模型已验证的结论。</p>
-<p>这带来两个后果：</p>
-<ul>
-<li>定时任务会复用同样的 memory、skills、toolsets 与后端选择逻辑；</li>
-<li>后台任务的输出不只是 stdout，还可以继续写回 session、回到消息入口、进入学习闭环。</li>
-</ul>
-<p>因此选用哪种 Cron 模式必须显式记录。它把长期工作从“用户来问才回答”扩展到“时间到了就继续处理”，但连续性的基础仍然是同一套身份和会话边界。</p>
-<h3 id="2073-profiles连续性的前提是身份隔离"><a class="header" href="#2073-profiles连续性的前提是身份隔离">20.7.3 Profiles：连续性的前提是身份隔离</a></h3>
-<p>多入口一旦成立，Profile 就不再只是“多账户”体验，而是长期 Agent 的身份边界。Hermes 让不同 profile 拥有自己的 home、配置、memory、sessions、gateway 状态和 toolsets，本质上是在回答一个更严肃的问题：<strong>连续性如何不变成跨身份污染。</strong></p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th style="text-align: left">连续性需求</th><th style="text-align: left">如果没有 Profile 会发生什么</th><th style="text-align: left">Profile 的作用</th></tr>
-</thead>
-<tbody>
-<tr><td style="text-align: left">长期记住项目规则</td><td style="text-align: left">不同客户、团队或生活场景互相污染</td><td style="text-align: left">把 memory、skills、sessions 分桶</td></tr>
-<tr><td style="text-align: left">跨入口继续同一任务</td><td style="text-align: left">Slack 上的上下文可能误用到 Telegram 或 CLI</td><td style="text-align: left">把入口连续性绑定到身份边界</td></tr>
-<tr><td style="text-align: left">按风险级别分配能力</td><td style="text-align: left">高风险写工具可能在低信任入口被误用</td><td style="text-align: left">让 toolsets 和 backends 随 profile 收紧</td></tr>
-</tbody>
-</table>
-</div>
-<p>所以，Profile 不是附属配置，而是 Gateway 与 Tool Governance 之间的中枢。长期 Agent 可以跨入口连续，但不能跨身份随意串线。</p>
-<h3 id="2074-session-生命周期把多次进入变成同一条长期任务线"><a class="header" href="#2074-session-生命周期把多次进入变成同一条长期任务线">20.7.4 Session 生命周期：把“多次进入”变成“同一条长期任务线”</a></h3>
-<p>最终决定 Hermes 是否真的“长期运行”的，不是入口数量，而是 Session 生命周期是否完整。至少要回答以下问题：</p>
-<ul>
-<li>新消息到来时，是续接旧 session 还是创建新 session；</li>
-<li>用户切换平台、线程或 slash command 时，session 如何重新定位；</li>
-<li>长任务被打断后，哪些状态会被恢复，哪些会被压缩；</li>
-<li>cron、消息入口和后台协作是否共享同一条任务线；</li>
-<li>哪些结果只写 session，哪些允许升级为 memory、skill 或 trajectory。</li>
-</ul>
-<p>从这个角度看，Session 不只是 transcript 持久化，而是多入口连续性的承重层：</p>
-<pre><code class="language-text">ingest event
-  -&gt; resolve profile
-  -&gt; locate or create session
-  -&gt; run agent turn
-  -&gt; persist observations and state
-  -&gt; compress / archive / search / resume
-</code></pre>
-<p>这也解释了为什么本节必须把 Gateway、Cron、Profiles 和 Session 放在一起看。它们回答的是同一个系统问题：Hermes 如何让一个 Agent 在多入口、长时间、不同任务和不同身份下仍然保持“这是同一个运行时”的连续性。</p>
-<hr>
-<h2 id="208-安全主线长期-agent-的真实攻击面"><a class="header" href="#208-安全主线长期-agent-的真实攻击面">20.8 安全主线：长期 Agent 的真实攻击面</a></h2>
-<p>安全文档只证明相应控制及前提存在；这里的评审表属于本书归纳。<a href="#ref-34">[34]</a></p>
-<p>Hermes 的安全部分，不能只概括成“多层防御”四个字。更准确的理解方式是：前面那些让 Agent 保持连续行动的机制，本身也定义了长期 Agent 的主要攻击面。入口越多、身份越持久、工具越强、学习回流越深，越需要围绕具体失效路径布防。</p>
-<h3 id="2081-五个最关键的攻击面"><a class="header" href="#2081-五个最关键的攻击面">20.8.1 五个最关键的攻击面</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th style="text-align: left">攻击面</th><th style="text-align: left">失效方式</th><th style="text-align: left">为什么是长期 Agent 特有风险</th><th style="text-align: left">Hermes 对应边界</th></tr>
-</thead>
-<tbody>
-<tr><td style="text-align: left">多入口身份滥用</td><td style="text-align: left">平台用户、线程或 slash command 被错误路由到别人的 session / profile</td><td style="text-align: left">一次路由错误会把后续记忆、工具权限和会话连续性全部串线</td><td style="text-align: left">allowlist、DM pairing、Gateway 路由、Profile 隔离</td></tr>
-<tr><td style="text-align: left">工具越权</td><td style="text-align: left">低信任入口或后台任务拿到了本不该拥有的 terminal / write / MCP 能力</td><td style="text-align: left">长期在线入口更容易把一次误触发放大成持续性损害</td><td style="text-align: left">Toolsets、Approval Gate、任务类型收权</td></tr>
-<tr><td style="text-align: left">文件系统与后端边界失守</td><td style="text-align: left">路径穿越、本地执行过权、应该进 Docker/SSH 的任务落在 local</td><td style="text-align: left">同一个工具名在不同后端的破坏半径完全不同</td><td style="text-align: left">path security、URL / policy check、backend resolver</td></tr>
-<tr><td style="text-align: left">记忆污染</td><td style="text-align: left">注入内容、临时错误或跨 profile 事实被写入 memory / skill</td><td style="text-align: left">一次错误写入会在后续会话里被稳定复用</td><td style="text-align: left">stable/context/volatile 分层、memory/skill 写入门槛、验证证据</td></tr>
-<tr><td style="text-align: left">轨迹泄露</td><td style="text-align: left">tool results、日志、凭据或敏感业务数据进入 sessions / trajectories / exports</td><td style="text-align: left">长期 Agent 会持续积累可训练数据，泄露面比聊天记录更大</td><td style="text-align: left">redact、result truncation、credential filtering、export control</td></tr>
-</tbody>
-</table>
-</div>
-<p>这个表比“列出很多安全功能”更重要，因为它把安全重新绑回前文的主线：Gateway 决定身份攻击面，Toolsets 与 Backends 决定行动攻击面，Memory 与 Trajectory 决定回流攻击面。</p>
-<p>安全设计因此可以被压缩成一句更硬的原则：</p>
-<blockquote>
-<p>长期 Agent 不能因为“这是同一个用户、同一个工具、同一个任务”就默认可信；每次跨入口、跨身份、跨后端、跨持久化边界时，都要重新验证。</p>
-</blockquote>
-<p>沿着这个原则回看前文，Hermes 的护栏链就很清晰了：</p>
-<ul>
-<li><strong>入口前</strong>：先判断是谁、来自哪里、是否允许进入这个 profile；</li>
-<li><strong>行动前</strong>：先判断当前 toolset 是否允许、路径与 URL 是否安全、是否需要审批、是否该切到隔离后端；</li>
-<li><strong>行动后</strong>：先判断结果是否该截断、脱敏、持久化，是否足以形成验证证据；</li>
-<li><strong>学习前</strong>：先判断这次结果是稳定事实、可复用做法，还是只该停留在 session 里。</li>
-</ul>
-<p>这也顺手吸收了最小可行架构的一个核心教训：<strong>MVP 版长期 Agent 可以少接几个平台、少接几个工具，但不能没有身份边界、工具边界和回流边界。</strong> 少做功能是可以的，默认信任是不可以的。</p>
-<hr>
-<h2 id="209-学习闭环从运行轨迹到能力资产"><a class="header" href="#209-学习闭环从运行轨迹到能力资产">20.9 学习闭环：从运行轨迹到能力资产</a></h2>
-<p>轨迹格式说明可导出的运行材料，不证明它们已被脱敏、评测或训练使用。<a href="#ref-35">[35]</a></p>
-<p>Hermes 在学习闭环上的真正亮点，不是“Agent 会自动变强”这种宽泛叙事，而是它把一条更具体、也更工程化的链路暴露了出来：</p>
-<pre><code class="language-text">trajectory
-  -&gt; compress / redact / annotate
-  -&gt; eval case
-  -&gt; skill evolution / policy refinement
-  -&gt; validated capability asset
-</code></pre>
-<p>从公开能力看，Hermes 已经明确围绕以下证据建设这条链：batch trajectory generation、tool-calling 轨迹压缩、ShareGPT 格式导出、RL environments，以及 Atropos 相关训练集成。仅凭这些证据，我们还不能得出“Hermes 已经完成了全自动自我进化平台”的结论；但完全可以得出另一个更稳健、也更重要的结论：<strong>Hermes 把运行轨迹、评估样本、技能演化和能力资产之间的接口显式化了。</strong></p>
-<p>这使它的学习闭环更像 Runtime 资产管线，而不是模糊的“多记点东西”：</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th style="text-align: left">阶段</th><th style="text-align: left">产物</th><th style="text-align: left">是否可直接复用</th></tr>
-</thead>
-<tbody>
-<tr><td style="text-align: left">原始 trajectory</td><td style="text-align: left">工具调用、错误、用户修正、最终结果</td><td style="text-align: left">不能，噪声和敏感信息过多</td></tr>
-<tr><td style="text-align: left">eval case</td><td style="text-align: left">被压缩、标注、可回放的测试样本</td><td style="text-align: left">可以用于评估，但还不是能力</td></tr>
-<tr><td style="text-align: left">skill / policy candidate</td><td style="text-align: left">被总结出的做法、约束或工具选择策略</td><td style="text-align: left">仍需验证，不能自动信任</td></tr>
-<tr><td style="text-align: left">capability asset</td><td style="text-align: left">通过验证后升级的 skill、tool policy、训练数据</td><td style="text-align: left">才适合长期复用</td></tr>
-</tbody>
-</table>
-</div>
-<p>这张表很关键，因为它收紧了“学习”的定义。Hermes 值得借鉴的地方，不是让任何成功路径都自动升格成 Skill，也不是让任何会话都直接流进训练集，而是让<strong>trajectory -&gt; eval -&gt; skill evolution -&gt; capability asset</strong> 这条链有清晰中间层。</p>
-<p>因此，自我进化必须被写成带约束的闭环：</p>
-<ul>
-<li>原始轨迹先做截断、脱敏和压缩；</li>
-<li>进入 eval 前先确认任务目标与验证标准；</li>
-<li>生成 skill 或 policy candidate 后先验证，再决定是否推广；</li>
-<li>只有验证通过的产物，才允许成为跨 session、跨任务、跨时间复用的能力资产。</li>
-</ul>
-<p>这也吸收了“最小可行学习闭环”的经验：一个团队一开始不必自动写 skill，更不必立刻做 RL，但至少应该先把 trajectory、verification result 和失败原因系统化记录下来。没有验证记录的“自我进化”，本质上只是自动传播错误。</p>
-<hr>
-<h2 id="2010-hermes-与-openclaw比较职责分别核验保证"><a class="header" href="#2010-hermes-与-openclaw比较职责分别核验保证">20.10 Hermes 与 OpenClaw：比较职责，分别核验保证</a></h2>
-<p><a href="03-openclaw-architecture.html">第19章</a>已固定 OpenClaw 提交并说明自有 Runtime；本章固定 Hermes 提交并关注会话/记忆/技能/轨迹。两者都可能接入多入口、工具与长期状态，不用 Gateway-first 或 Learning-first 推断缺少对方能力。</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>比较维度</th><th>核对方法</th><th>不应推断</th></tr>
-</thead>
-<tbody>
-<tr><td>身份与连续性</td><td>入口账户、sender/thread、profile、session 关联及授权</td><td>显示名相同即可共用记忆</td></tr>
-<tr><td>行动与恢复</td><td>工具后端、操作 ID、投递 ledger 和异常轨迹分别取证</td><td>有 SQLite 或 Cron 即可通用 exactly-once</td></tr>
-<tr><td>学习与反馈</td><td>原始轨迹、候选记忆/Skill、验证与发布分别检查</td><td>能写文件就已持续提升质量</td></tr>
-</tbody>
-</table>
-</div>
-<p>选型要在相同任务、权限、预算与版本下验证。这里没有执行产品对比实验。</p>
-<hr>
-<h2 id="2011-设计启示"><a class="header" href="#2011-设计启示">20.11 设计启示</a></h2>
-<h3 id="20111-关键设计原则连续性能力打包边界优先验证约束"><a class="header" href="#20111-关键设计原则连续性能力打包边界优先验证约束">20.11.1 关键设计原则：连续性、能力打包、边界优先、验证约束</a></h3>
-<p>如果只保留 Hermes 对长期 Agent Runtime 最有价值的设计结论，可以压缩成下面六条：</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th style="text-align: left">原则</th><th style="text-align: left">Hermes 中的体现</th><th style="text-align: left">对自研 Agent 的启发</th></tr>
-</thead>
-<tbody>
-<tr><td style="text-align: left">连续性优先</td><td style="text-align: left">Gateway、Cron、Profiles、Session 组成统一控制面</td><td style="text-align: left">多入口不是多 UI，而是同一运行时的连续进入点</td></tr>
-<tr><td style="text-align: left">能力打包</td><td style="text-align: left">Toolsets 把工具能力变成权限单元</td><td style="text-align: left">不要只靠 prompt 管工具，要靠能力包治理</td></tr>
-<tr><td style="text-align: left">执行环境分离</td><td style="text-align: left">Backends 与 Action Engine 分开处理</td><td style="text-align: left">“能做什么”和“在哪里做”必须是两层决策</td></tr>
-<tr><td style="text-align: left">攻击面驱动安全</td><td style="text-align: left">身份、工具、路径、记忆、轨迹分别设边界</td><td style="text-align: left">长期 Agent 的默认姿态应该是重新验证，而不是默认信任</td></tr>
-<tr><td style="text-align: left">验证约束学习</td><td style="text-align: left">trajectory 先变 eval，再变 skill / capability asset</td><td style="text-align: left">不要把“学到东西”简化成“把结果都写进 memory”</td></tr>
-<tr><td style="text-align: left">全链路可观测</td><td style="text-align: left">callbacks、sessions、tool results、verification evidence、trajectory exports</td><td style="text-align: left">每次行动都要能被解释、复盘、审计和改进</td></tr>
-</tbody>
-</table>
-</div>
-<p>这六条比功能列表更有迁移价值。一个系统即使接了很多平台、很多 MCP server，只要没有连续性控制、能力打包和验证约束，本质上仍然只是一个容易失控的工具调用器。</p>
-<p>落地时也不该从“平台越多越好、工具越多越好、自动学习越快越好”开始，而应该先跑通一个受限但闭环完整的 Runtime：先证明单一入口、单一 profile 和 session 生命周期能够连续工作，再把 toolsets、隔离后端、最小安全护栏和验证后的 trajectory 记录补齐。反过来说，过早扩入口、给低信任入口开放高风险工具、或者在没有验证证据前自动升级 skill，都只是在放大失控半径，而不是在建设长期 Agent。</p>
-<h3 id="20112-从工程原则到审查证据"><a class="header" href="#20112-从工程原则到审查证据">20.11.2 从工程原则到审查证据</a></h3>
-<p>开发指南提供窄核心、缓存稳定、插件边界与变更前核对意图等原则；这属于项目贡献约束，不自动证明所有实现都满足约束。<a href="#ref-19">[19]</a> 本书建议审查时要求：具体源码/版本、消费者、输入/输出契约、失败恢复与回归证据。能写出原则不能代替执行器测试，能自动总结也不能代替独立 Verifier。</p>
-<hr>
+<p>这个案例里没有一步是“让模型更聪明”。每一步都在把 OpenClaw 的默认从“受信运营者的全权限个人助手”收窄到“只读工作群助手”：信任边界决定谁在系统内，暴露面决定谁能到达它，群白名单决定谁能触发它，工具策略与 exec 审批决定它能做什么，沙箱决定放行后的进程能碰什么，审计把这一切变成可复查的检查。</p>
+<h2 id="196-调优控制上下文成本与质量"><a class="header" href="#196-调优控制上下文成本与质量">19.6 调优：控制上下文、成本与质量</a></h2>
+<p>OpenClaw 提供了完整的旋钮、默认值和观测手段，但<strong>没有官方基准、没有本章的实测</strong>。这一部分只写“旋钮与机制、作用对象、观测手段”，不写“调到多少好”；数字都是固定提交里的默认值。</p>
+<h3 id="1961-度量与观测"><a class="header" href="#1961-度量与观测">19.6.1 度量与观测</a></h3>
+<p>用量与成本的观测入口是 <code>/status</code>（模型、上下文使用、最后响应 token、成本）、<code>/usage off|tokens|full|cost|reset</code>、<code>openclaw status --usage</code>（provider 配额窗口）；成本由 <code>models.providers.&lt;provider&gt;.models[].cost</code>（USD/百万 token，input/output/cacheRead/cacheWrite）估算，是估算不是账单<a href="#ref-20">[20]</a>。上下文的观测用 <code>/context list</code>、<code>/context detail</code> 看每个注入文件/工具/技能/系统提示的体量<a href="#ref-20">[20]</a>。</p>
+<p>缓存可观测靠 <code>diagnostics.cacheTrace.enabled</code>（默认 false，落盘 <code>logs/cache-trace.jsonl</code>），观测项含 <code>input/cacheRead/cacheWrite</code> 与稳定前缀/易变后缀/工具指纹<a href="#ref-21">[21]</a>。系统级观测还有 Prometheus 指标 <code>openclaw_session_recovery_total</code>、<code>openclaw_session_recovery_age_seconds</code>，以及 <code>OPENCLAW_GATEWAY_STARTUP_TRACE=1</code> 记录每个启动 span<a href="#ref-24">[24]</a>。注意 cache trace 默认含提示与消息原文，属敏感数据<a href="#ref-21">[21]</a>。嵌入式 runtime 在启动期做了“就绪才处理”的预热：<code>prewarmConfigDrivenReplyRuntime</code>、预加载 WS message handler、<code>sidecars.model-runtime</code> 发布模型快照，使首个连接与首轮复用已准备运行时<a href="#ref-40">[40]</a>。</p>
+<h3 id="1962-并发与队列旋钮"><a class="header" href="#1962-并发与队列旋钮">19.6.2 并发与队列旋钮</a></h3>
+<p>并发由三个键控制：<code>agents.defaults.maxConcurrent</code>（默认 <code>max(8, CPU×4)</code>）、<code>agents.defaults.subagents.maxConcurrent</code>（默认 8）、<code>tools.swarm.maxConcurrent</code>（默认 32）；每个会话仍串行<a href="#ref-4">[4]</a>。worker 池：compute 池共享 CPU 准入 <code>max(1, availableParallelism()-1)</code>（给 Gateway 留一个 CPU），reader 池上限 2，compute 池上限 4，writer 与 singleton 串行<a href="#ref-3">[3]</a>。队列的 cap（默认 20）与 drop（默认 <code>summarize</code>）只作用于排队消息，不改变运行中的 turn。</p>
+<h3 id="1963-上下文预算"><a class="header" href="#1963-上下文预算">19.6.3 上下文预算</a></h3>
+<p>除 <code>/usage</code> 外，上下文拆解用 <code>/context list</code>、<code>/context detail</code> 看每个注入文件/工具/技能/系统提示的体量；<code>openclaw doctor</code> 对“bootstrap 文件超过上下文预算”给出“推荐改进”<a href="#ref-20">[20]</a>。系统级日志与诊断还有 <code>openclaw logs --follow</code>、<code>openclaw status [--all|--deep|--usage]</code>、<code>openclaw health [--verbose|--json]</code>、<code>openclaw gateway stability</code>、<code>openclaw gateway diagnostics export</code>（脱敏 zip）；<code>diagnostics.enabled</code> 默认开<a href="#ref-24">[24]</a>。</p>
+<p>固定开销的旋钮集中在注入量上：<code>agents.defaults.bootstrapMaxChars</code>（20000）、<code>bootstrapTotalMaxChars</code>（60000）、<code>skills.limits.maxSkillsPromptChars</code>、<code>agents.defaults.imageMaxDimensionPx</code>（默认 1200）<a href="#ref-20">[20]</a>。官方给的降 token 清单是：用 <code>/compact</code>；裁剪大工具输出；降低图片尺寸；保持技能描述简短（技能列表注入提示）；探索性冗长工作用更小模型<a href="#ref-20">[20]</a>。</p>
+<p>工具结果大小上限由有效上下文窗口推导另一个降工具声明占用的旋钮是 <code>tools.codeMode</code>：启用时普通工具移到“guest catalog bridge”之后，模型通常只见 <code>exec</code> 与 <code>wait</code>；<code>executor</code> 默认 <code>node</code>（<code>node:vm</code>，官方注明是“受信主机执行，不是安全隔离”），<code>quickjs</code> 是加固沙箱；MCP 工具目录按服务器名、工具名排序以稳定提示前缀<a href="#ref-14">[14]</a>。</p>
+<p>工具结果大小上限由有效上下文窗口推导：&lt;100K token 为 16000 字符，≥100K 为 32000，≥200K 为 64000；运行时 context-share 守卫把单个工具结果限制在窗口的 30%<a href="#ref-20">[20]</a>。会话修剪（<code>agents.defaults.contextPruning</code>）默认 <code>mode:"cache-ttl"</code>、TTL 5 分钟（Anthropic 家族下插件播种 1h），客户端修剪仅在 TTL 过期且占用 ≥约 30% 时开始；最近三个 assistant turn 与首条用户消息之前永不修剪<a href="#ref-10">[10]</a><a href="#ref-23">[23]</a>。</p>
+<h3 id="1964-模型与-fallback-调优"><a class="header" href="#1964-模型与-fallback-调优">19.6.4 模型与 fallback 调优</a></h3>
+<p>fallback 的调优要点（19.4.3 的机制）是：显式用户模型选择严格不回退；agent primary 默认严格、需自带 <code>fallbacks</code>；fallback 只对本 turn 生效；上下文溢出恢复耗尽后，已知上下文足够的候选优先<a href="#ref-11">[11]</a>。认证 profile 按会话粘住以保持缓存温热，只在 <code>/new</code>/<code>/reset</code> 或冷却/禁用时轮换<a href="#ref-11">[11]</a>。超时旋钮：<code>agents.defaults.timeoutSeconds</code>（172800s）、<code>models.providers.&lt;id&gt;.timeoutSeconds</code>（慢速本地/自托管 provider 应先调它再调 agent 超时，且保持 agent 超时不低于它）<a href="#ref-7">[7]</a>。</p>
+<h3 id="1965-缓存"><a class="header" href="#1965-缓存">19.6.5 缓存</a></h3>
+<p><code>cacheRetention</code> 取 <code>none|short|long</code>持久会话中的普通 agent-turn 定时作业可以在缓存窗口内“保温”：例如一小时缓存配 <code>openclaw automations edit &lt;job-id&gt; --every 55m</code>；隔离作业每次新会话不保温；官方提醒“每个 turn 都花 token，比较总用量而不是假设命中”<a href="#ref-21">[21]</a>。</p>
+<p><code>cacheRetention</code> 取 <code>none|short|long</code>；<strong>换模型必然开启新缓存谱系</strong>，改 thinking/推理级别也可能失效——官方建议“创建会话时选定模型与 thinking 级别并保持稳定”<a href="#ref-21">[21]</a>。持久会话中的普通 agent-turn 定时作业可在缓存窗口内“保温”（例：一小时缓存配 <code>automations edit &lt;job-id&gt; --every 55m</code>）；隔离作业每次新会话不保温；官方提醒“每个 turn 都花 token，比较总用量而不是假设命中”<a href="#ref-21">[21]</a>。</p>
+<h3 id="1966-压缩与存储旋钮"><a class="header" href="#1966-压缩与存储旋钮">19.6.6 压缩与存储旋钮</a></h3>
+<p>压缩调优键：<code>agents.defaults.compaction.model</code> 可用本地小模型专做摘要；<code>keepRecentTokens</code> 默认 20000；<code>maxActiveTranscriptBytes</code>（opt-in 字节守卫）；<code>memoryFlush.model</code>；<code>notifyUser</code><a href="#ref-10">[10]</a>。会话存储维护影响磁盘占用：<code>session.maintenance.{mode:"enforce"|"warn", pruneAfter:"30d", archiveDashboardAfter:"7d", maxEntries:5000}</code>，<code>openclaw sessions cleanup --enforce</code> 手动执行<a href="#ref-8">[8]</a>。</p>
+<h3 id="1967-不应为省-token-放弃的东西"><a class="header" href="#1967-不应为省-token-放弃的东西">19.6.7 不应为省 Token 放弃的东西</a></h3>
+<p>有几类开销不能省（本书建议）。工具策略的逐层求值：省掉任何一层的 deny 都意味着越权路径变宽，调优只能改“哪些工具可选”，不能改“deny 是否生效”。exec 审批：降低打断要靠 allowlist 与沙箱，不能靠把 <code>ask:"always"</code> 改成 <code>ask:"off"</code>。重启恢复：关闭恢复或调低预算的代价是“已接受的输入可能永远丢失”，这不是 token 问题，是正确性问题。缓存保温可以关（那省费用），但逐动作的权限边界和恢复语义不能为省 token 而放宽。</p>
 <h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
-<p>Hermes Agent 展示了长期运行 Agent 的另一条成熟路径：不是只做更强的单次推理，而是围绕模型建立记忆、技能、工具、入口、执行环境和数据闭环，把 Agent 做成一个可以长期运行、持续积累、受边界约束的个人 Runtime。</p>
-<p>本章核心结论：</p>
-<ul>
-<li>Hermes 的本质是一个可长期运行、可持续学习的 Agent Runtime；</li>
-<li>实际组件包括前端、Gateway 会话运行时、AIAgent、上下文引擎、模型 client、工具运行时和持久状态；六个分析边界用于归纳职责，不是六个官方模块；</li>
-<li>启动应分清前端接入、Gateway 冷启动、AIAgent 装配与首轮执行，READY 不等于所有模型和后端已验证可用；</li>
-<li>Memory 保存关键事实，Session Search 保存历史细节，Skills 保存可复用做法；</li>
-<li>核心数据流不是单向问答，而是用户输入、上下文构建、工具执行、外部结果和记忆回流组成的闭环；</li>
-<li>Gateway 让同一个 Agent 活在 CLI、消息平台和自动化任务中；</li>
-<li>Tool Registry、Toolsets、Action Engine、Execution Backends 把行动能力拆成可治理的边界；</li>
-<li>Profiles 是长期 Agent 防止上下文串线的重要机制；</li>
-<li>Security 必须覆盖用户授权、命令审批、容器隔离、MCP 凭据过滤、上下文扫描和 session 隔离；</li>
-<li>Research Pipeline 把 Agent 执行轨迹变成 eval、fine-tuning 和 RL 的数据资产；</li>
-<li>连续性、能力打包、边界优先和验证约束，是长期 Agent 从 demo 走向 Runtime 的关键设计原则。</li>
-</ul>
-<p>如果 OpenClaw 让我们看到“个人 Agent Gateway 如何把用户和模型连起来”，Hermes 则让我们看到“长期 Agent 如何在使用中积累能力”。对自研 Agent 来说，最值得学习的不是某个具体命令，而是它如何把长期性拆成可工程化的运行时边界，并要求每一次行动、持久化和学习都回到同一条受约束的主线上。</p>
-<hr>
+<p>OpenClaw 把个人 AI 助手做成了一个长期运行的 Gateway：一个进程拥有全部消息面，用 WebSocket 承担控制面，用 SQLite 承担会话与恢复的权威状态，用内置 runtime 执行 agent run，用工具策略、exec 审批和沙箱三层收窄行动边界。它的工程重心有两个：一是“长期在线”带来的可靠性（渠道重连阶梯、模型故障转移、Recovery is always on 的重启恢复、持久出站队列），二是“能替人行动”带来的安全（保守默认、暴露面阶梯、<code>security audit</code> 与 <code>doctor</code> 的可执行检查）。</p>
+<p>两者之间的张力也写进了默认值：exec 默认放行不询问、工具策略默认 full、agent-to-agent 消息默认开启——这些是“个人受信运营者”模型的默认，搬到共享或暴露场景就必须显式收紧。文档反复把这条说清楚：OpenClaw 不是敌对多租户边界，信任边界要靠部署方式去划。</p>
+<p>调优方面，OpenClaw 的旋钮（并发、上下文注入预算、fallback 链、缓存保留、压缩与修剪、会话维护）和观测手段（<code>/usage</code>、<code>/context detail</code>、cache trace、Prometheus）都很完整，但没有官方基准。本章因此只写机制与默认值，把“调到多少好”留给使用者用自己的工作负载去测。</p>
 <h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
+<p>官方文档页与源码都固定到提交 <code>ff7597025dd22b087b250a4df94caded50e798aa</code>（版本 2026.10.6），核验日期 2026-10-23。文档内部不一致处以正文点名处为准。</p>
 <ol>
-<li><a id="ref-1"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/developer-guide/architecture.md">Architecture</a>，18c525b669b6ea4ba62e6967d228af21d89aa9d3。</li>
-<li><a id="ref-2"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/hermes_cli/cli_agent_setup_mixin.py">CLI agent setup</a>，提交 <code>18c525b669b6ea4ba62e6967d228af21d89aa9d3</code>，核验于 2026-10-22。</li>
-<li><a id="ref-3"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/hermes_cli/gateway_agent.py">Gateway-backed CLI agent</a>，提交 <code>18c525b669b6ea4ba62e6967d228af21d89aa9d3</code>，核验于 2026-10-22。</li>
-<li><a id="ref-4"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/gateway/run_runtime.py">Gateway runtime ownership and session authorities</a>，提交 <code>18c525b669b6ea4ba62e6967d228af21d89aa9d3</code>，核验于 2026-10-22。</li>
-<li><a id="ref-5"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/agent/agent_init.py">AIAgent facade and initialization</a>，提交 <code>18c525b669b6ea4ba62e6967d228af21d89aa9d3</code>，核验于 2026-10-22。</li>
-<li><a id="ref-6"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/model_tools.py">Tool discovery and dispatch</a>，提交 <code>18c525b669b6ea4ba62e6967d228af21d89aa9d3</code>，核验于 2026-10-22。</li>
-<li><a id="ref-7"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/agent/turn_facade.py">Turn admission facade</a>，提交 <code>18c525b669b6ea4ba62e6967d228af21d89aa9d3</code>，核验于 2026-10-22。</li>
-<li><a id="ref-8"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/gateway/run_turn_runner.py">Gateway turn runner</a>，提交 <code>18c525b669b6ea4ba62e6967d228af21d89aa9d3</code>，核验于 2026-10-22。</li>
-<li><a id="ref-9"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/pyproject.toml">Console script entry points</a>，提交 <code>18c525b669b6ea4ba62e6967d228af21d89aa9d3</code>，核验于 2026-10-22。</li>
-<li><a id="ref-10"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/hermes_cli/main.py">CLI entry and startup dispatch</a>，提交 <code>18c525b669b6ea4ba62e6967d228af21d89aa9d3</code>，核验于 2026-10-22。</li>
-<li><a id="ref-11"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/hermes_cli/cli_init_mixin.py">CLI session initialization</a>，提交 <code>18c525b669b6ea4ba62e6967d228af21d89aa9d3</code>，核验于 2026-10-22。</li>
-<li><a id="ref-12"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/gateway/run_bootstrap.py">Gateway process bootstrap</a>，提交 <code>18c525b669b6ea4ba62e6967d228af21d89aa9d3</code>，核验于 2026-10-22。</li>
-<li><a id="ref-13"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/gateway/run_startup.py">Gateway startup and restore gates</a>，提交 <code>18c525b669b6ea4ba62e6967d228af21d89aa9d3</code>，核验于 2026-10-22。</li>
-<li><a id="ref-14"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/hermes_cli/runtime_provider.py">Provider runtime resolution</a>，提交 <code>18c525b669b6ea4ba62e6967d228af21d89aa9d3</code>，核验于 2026-10-22。</li>
-<li><a id="ref-15"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/agent/conversation_loop.py">Conversation loop</a>，18c525b669b6ea4ba62e6967d228af21d89aa9d3。</li>
-<li><a id="ref-16"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/agent/system_prompt.py">System prompt</a>，18c525b669b6ea4ba62e6967d228af21d89aa9d3。</li>
-<li><a id="ref-17"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/tools/terminal_tool_lifecycle.py">Lazy terminal environment lifecycle</a>，提交 <code>18c525b669b6ea4ba62e6967d228af21d89aa9d3</code>，核验于 2026-10-22。</li>
-<li><a id="ref-18"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/user-guide/features/skills.md">Skills</a>，18c525b669b6ea4ba62e6967d228af21d89aa9d3。</li>
-<li><a id="ref-19"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/AGENTS.md">Development guide</a>，18c525b669b6ea4ba62e6967d228af21d89aa9d3。</li>
-<li><a id="ref-20"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/gateway/delivery_ledger.py">Delivery ledger</a>，18c525b669b6ea4ba62e6967d228af21d89aa9d3。</li>
-<li><a id="ref-21"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/agent/tool_executor.py">Tool execution</a>，18c525b669b6ea4ba62e6967d228af21d89aa9d3。</li>
-<li><a id="ref-22"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/agent/moa_loop.py">Mixture of agents</a>，18c525b669b6ea4ba62e6967d228af21d89aa9d3。</li>
-<li><a id="ref-23"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/hermes_cli/kanban_db.py">Kanban database</a>，18c525b669b6ea4ba62e6967d228af21d89aa9d3。</li>
-<li><a id="ref-24"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/tools/delegate_tool.py">Delegation</a>，18c525b669b6ea4ba62e6967d228af21d89aa9d3。</li>
-<li><a id="ref-25"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/agent/prompt_caching.py">Prompt caching planner</a>，18c525b669b6ea4ba62e6967d228af21d89aa9d3。</li>
-<li><a id="ref-26"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/agent/prompt_cache_scope.py">Prompt cache scope</a>，18c525b669b6ea4ba62e6967d228af21d89aa9d3。</li>
-<li><a id="ref-27"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/user-guide/features/memory.md">Persistent memory</a>，18c525b669b6ea4ba62e6967d228af21d89aa9d3。</li>
-<li><a id="ref-28"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/tools/memory_tool_store.py">Memory store</a>，18c525b669b6ea4ba62e6967d228af21d89aa9d3。</li>
-<li><a id="ref-29"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/developer-guide/session-storage.md">Session storage</a>，18c525b669b6ea4ba62e6967d228af21d89aa9d3。</li>
-<li><a id="ref-30"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/developer-guide/memory-provider-plugin.md">Memory provider plugin</a>，18c525b669b6ea4ba62e6967d228af21d89aa9d3。</li>
-<li><a id="ref-31"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/user-guide/features/tools.md">Tools and toolsets</a>，18c525b669b6ea4ba62e6967d228af21d89aa9d3。</li>
-<li><a id="ref-32"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/developer-guide/gateway-session-lifecycle.md">Gateway session lifecycle</a>，18c525b669b6ea4ba62e6967d228af21d89aa9d3。</li>
-<li><a id="ref-33"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/user-guide/features/cron.md">Cron</a>，18c525b669b6ea4ba62e6967d228af21d89aa9d3。</li>
-<li><a id="ref-34"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/user-guide/security.md">Security</a>，18c525b669b6ea4ba62e6967d228af21d89aa9d3。</li>
-<li><a id="ref-35"></a> NousResearch / Hermes maintainers，<a href="https://github.com/NousResearch/hermes-agent/blob/18c525b669b6ea4ba62e6967d228af21d89aa9d3/website/docs/developer-guide/trajectory-format.md">Trajectory format</a>，18c525b669b6ea4ba62e6967d228af21d89aa9d3。</li>
+<li><a id="ref-1"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/concepts/architecture.md">Architecture</a>。</li>
+<li><a id="ref-2"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/concepts/agent.md">Agent</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/concepts/storage-locations.md">Storage locations</a>。</li>
+<li><a id="ref-3"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/agent-runtime-architecture.md">Agent runtime architecture</a>。</li>
+<li><a id="ref-4"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/concepts/queue.md">Command queue</a>。</li>
+<li><a id="ref-5"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/concepts/messages.md">Messages</a>。</li>
+<li><a id="ref-6"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/concepts/context-engine.md">Context engine</a>。</li>
+<li><a id="ref-7"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/concepts/agent-loop.md">Agent loop</a>。</li>
+<li><a id="ref-8"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/concepts/session.md">Session management</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/concepts/session-controller.md">Session controller</a>。</li>
+<li><a id="ref-9"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/concepts/session-controller.md">Session controller</a>。</li>
+<li><a id="ref-10"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/concepts/compaction.md">Compaction</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/concepts/session-pruning.md">Session pruning</a>。</li>
+<li><a id="ref-11"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/concepts/model-failover.md">Model failover</a>。</li>
+<li><a id="ref-12"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/concepts/retry.md">Retry</a>。</li>
+<li><a id="ref-13"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/channels/channel-routing.md">Channel routing</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/concepts/multi-agent.md">Multi-agent routing</a>。</li>
+<li><a id="ref-14"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/gateway/config-tools/tool-policy.md">Tool policy</a>。</li>
+<li><a id="ref-15"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/tools/skills.md">Skills</a>。</li>
+<li><a id="ref-16"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/tools/subagents.md">Subagents</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/tools/subagents/nesting.md">Nesting</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/tools/subagents/tool-policy.md">Subagent tool policy</a>。</li>
+<li><a id="ref-17"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/plugins/architecture.md">Plugin architecture</a>。</li>
+<li><a id="ref-18"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/tools/exec-approvals.md">Exec approvals</a>。</li>
+<li><a id="ref-19"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/concepts/system-prompt.md">System prompt</a>。</li>
+<li><a id="ref-20"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/reference/token-use.md">Token use</a>。</li>
+<li><a id="ref-21"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/reference/prompt-caching.md">Prompt caching</a>。</li>
+<li><a id="ref-22"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/gateway/restart-recovery.md">Gateway restart recovery</a>。</li>
+<li><a id="ref-23"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/gateway/index.md">Gateway running guide</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/gateway/health.md">Health</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/gateway/gateway-lock.md">Gateway lock</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/gateway/heartbeat.md">Heartbeat</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/cli/gateway/service.md">Service</a>。</li>
+<li><a id="ref-24"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/gateway/health.md">Health</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/gateway/sandboxing.md">Sandboxing</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/gateway/sandboxing/modes-scope-and-backend.md">Sandbox modes &amp; backend</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/gateway/sandboxing/workspace-access.md">Workspace access</a>。</li>
+<li><a id="ref-25"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/gateway/security/index.md">Security</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/gateway/security/access-control.md">Access control</a>。</li>
+<li><a id="ref-26"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/gateway/security/tool-permissions.md">Tool permissions</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/gateway/configuration.md">Configuration</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/gateway/configuration/hot-reload.md">Hot reload</a>。</li>
+<li><a id="ref-27"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/gateway/security/running-the-audit.md">Running the audit</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/gateway/security/audit-checks.md">Audit checks</a>。</li>
+<li><a id="ref-28"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/gateway/security/network-exposure.md">Network exposure</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/gateway/security/exposure-runbook.md">Exposure runbook</a>。</li>
+<li><a id="ref-29"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/gateway/security/secrets-and-storage.md">Secrets &amp; storage</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/gateway/security/operator-incident-response.md">Operator incident response</a>。</li>
+<li><a id="ref-30"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/gateway/security/prompt-injection.md">Prompt injection</a>。</li>
+<li><a id="ref-31"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/gateway/security/hardened-baseline.md">Hardened baseline</a>。</li>
+<li><a id="ref-32"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/channels/pairing.md">Pairing</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/channels/bot-loop-protection.md">Bot loop protection</a>。</li>
+<li><a id="ref-33"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/cli/doctor.md">Doctor</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/cli/doctor/running.md">Running doctor</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/cli/doctor/checks.md">Doctor checks</a>。</li>
+<li><a id="ref-34"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/install/backups.md">Backups</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/install/updating.md">Updating</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/install/updating/rollback-and-recovery.md">Rollback &amp; recovery</a>。</li>
+<li><a id="ref-35"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/start/onboarding-overview.md">Onboarding</a>。</li>
+<li><a id="ref-36"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/nodes/session-catalogs.md">Session catalogs</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/tools/acp-agents-setup.md">ACP agents setup</a>。</li>
+<li><a id="ref-37"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/automation/cron-jobs/how-it-works.md">Cron jobs: how it works</a>。</li>
+<li><a id="ref-38"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/package.json">package.json</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/README.md">README</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/THIRD_PARTY_NOTICES.md">THIRD_PARTY_NOTICES.md</a>。</li>
+<li><a id="ref-39"></a> OpenClaw maintainers，CHANGELOG：<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.2.21.md">2026.2.21</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.3.13.md">2026.3.13</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.3.22.md">2026.3.22</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.4.20.md">2026.4.20</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.4.22.md">2026.4.22</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.5.12.md">2026.5.12</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.5.14.md">2026.5.14</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.5.22.md">2026.5.22</a>。</li>
+<li><a id="ref-40"></a> OpenClaw maintainers，启动源码：<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/gateway/server.ts">server.ts</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/gateway/server-start.ts">server-start.ts</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/gateway/server-startup-finish.ts">server-startup-finish.ts</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/gateway/server-startup-post-attach.ts">server-startup-post-attach.ts</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/gateway/server/readiness.ts">server/readiness.ts</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/gateway/server-runtime-config.ts">server-runtime-config.ts</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/cli/gateway-cli/pre-bootstrap.ts">pre-bootstrap.ts</a>。</li>
+<li><a id="ref-41"></a> OpenClaw maintainers，渠道源码：<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/gateway/server-channels.ts">server-channels.ts</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/gateway/channel-health-policy.ts">channel-health-policy.ts</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/gateway/channel-health-monitor.ts">channel-health-monitor.ts</a>。</li>
+<li><a id="ref-42"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/routing/resolve-route.ts">resolve-route.ts</a>。</li>
+<li><a id="ref-43"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/agents/tool-policy-pipeline.ts">tool-policy-pipeline.ts</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/agents/conversation-tool-policy-pipeline.ts">conversation-tool-policy-pipeline.ts</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/agents/tool-policy-match.ts">tool-policy-match.ts</a>。</li>
+<li><a id="ref-44"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/packages/agent-core/src/agent-loop.ts">agent-core agent-loop.ts</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/agents/tool-loop-detection.ts">tool-loop-detection.ts</a>。</li>
+<li><a id="ref-45"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/context-engine/types.ts">context-engine/types.ts</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/context-engine/legacy.ts">legacy.ts</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/agents/embedded-agent-helpers/bootstrap.ts">bootstrap.ts</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/agents/embedded-agent-helpers/bootstrap-limits.ts">bootstrap-limits.ts</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/auto-reply/reply/inbound-dedupe.ts">inbound-dedupe.ts</a>。</li>
+<li><a id="ref-46"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/cli/security-cli.ts">security-cli.ts</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/security/fix.ts">fix.ts</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/gateway/net.ts">net.ts</a>。</li>
 </ol>
 
                     </main>
