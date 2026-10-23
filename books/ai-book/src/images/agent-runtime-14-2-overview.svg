@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1080" viewBox="0 0 1440 1080" role="img" aria-labelledby="title desc">
+<title id="title">14.2 职责分层与核心对象共同约束执行</title>
+<desc id="desc">控制面决定执行资格；执行面返回证据；持久状态维护合法迁移。本书通用 Runtime 参考设计。</desc>
+<style>text{font-family:Helvetica Neue,Helvetica,Arial,PingFang SC,Microsoft YaHei,sans-serif}</style>
+<defs>
+<marker id="arrow-blue" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L9,3.5 L0,7 Z" fill="#2563eb"/></marker>
+<marker id="start-blue" markerWidth="9" markerHeight="7" refX="1" refY="3.5" orient="auto" markerUnits="userSpaceOnUse"><path d="M9,0 L0,3.5 L9,7 Z" fill="#2563eb"/></marker>
+<marker id="arrow-orange" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L9,3.5 L0,7 Z" fill="#ea580c"/></marker>
+<marker id="start-orange" markerWidth="9" markerHeight="7" refX="1" refY="3.5" orient="auto" markerUnits="userSpaceOnUse"><path d="M9,0 L0,3.5 L9,7 Z" fill="#ea580c"/></marker>
+<marker id="arrow-green" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L9,3.5 L0,7 Z" fill="#059669"/></marker>
+<marker id="start-green" markerWidth="9" markerHeight="7" refX="1" refY="3.5" orient="auto" markerUnits="userSpaceOnUse"><path d="M9,0 L0,3.5 L9,7 Z" fill="#059669"/></marker>
+<marker id="arrow-purple" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L9,3.5 L0,7 Z" fill="#7c3aed"/></marker>
+<marker id="start-purple" markerWidth="9" markerHeight="7" refX="1" refY="3.5" orient="auto" markerUnits="userSpaceOnUse"><path d="M9,0 L0,3.5 L9,7 Z" fill="#7c3aed"/></marker>
+<marker id="arrow-gray" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L9,3.5 L0,7 Z" fill="#64748b"/></marker>
+<marker id="start-gray" markerWidth="9" markerHeight="7" refX="1" refY="3.5" orient="auto" markerUnits="userSpaceOnUse"><path d="M9,0 L0,3.5 L9,7 Z" fill="#64748b"/></marker>
+</defs>
+<rect width="1440" height="1080" fill="#ffffff"/>
+<text x="60" y="46" font-size="18" font-weight="600" fill="#2563eb">AGENT RUNTIME / 14.2</text>
+<text x="60" y="91" font-size="32" font-weight="600" fill="#111827">职责分层与核心对象共同约束执行</text>
+<text x="60" y="128" font-size="20" fill="#64748b">控制面决定执行资格；执行面返回证据；持久状态维护合法迁移</text>
+<rect x="60" y="150" width="900" height="280" rx="12" fill="#eff6ff" fill-opacity="0.45" stroke="#bfdbfe" stroke-width="1.6"/>
+<text x="84" y="189" text-anchor="start" font-size="24" font-weight="600" fill="#2563eb">控制面：管理任务与提交条件</text>
+<rect x="60" y="520" width="900" height="280" rx="12" fill="#f0fdf4" fill-opacity="0.45" stroke="#bbf7d0" stroke-width="1.6"/>
+<text x="84" y="559" text-anchor="start" font-size="24" font-weight="600" fill="#059669">执行面：完成受控工作并返回观察</text>
+<rect x="1040" y="150" width="340" height="650" rx="12" fill="#faf5ff" fill-opacity="0.45" stroke="#e9d5ff" stroke-width="1.6"/>
+<text x="1064" y="189" text-anchor="start" font-size="24" font-weight="600" fill="#7c3aed">核心对象与关联</text>
+<rect x="60" y="870" width="1320" height="130" rx="10" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+<text x="84" y="904" text-anchor="start" font-size="20" font-weight="600" fill="#64748b">事实不能互相替代</text>
+<text x="280.0" y="935" text-anchor="middle" font-size="22" font-weight="600" fill="#64748b">执行事实</text>
+<text x="280.0" y="965" text-anchor="middle" font-size="18" font-weight="400" fill="#475569">版本化状态 + 领域事件</text>
+<text x="720.0" y="935" text-anchor="middle" font-size="22" font-weight="600" fill="#64748b">业务事实</text>
+<text x="720.0" y="965" text-anchor="middle" font-size="18" font-weight="400" fill="#475569">Operation + 资源端回执</text>
+<text x="1160.0" y="935" text-anchor="middle" font-size="22" font-weight="600" fill="#64748b">诊断与责任</text>
+<text x="1160.0" y="965" text-anchor="middle" font-size="18" font-weight="400" fill="#475569">Trace 诊断 / Audit 记责</text>
+<path d="M 330,430 L 330,520" fill="none" stroke="#2563eb" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow-blue)"/>
+<path d="M 650,520 L 650,430" fill="none" stroke="#059669" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow-green)"/>
+<path d="M 1210,340 L 1210,420" fill="none" stroke="#7c3aed" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow-purple)"/>
+<path d="M 1210,540 L 1210,620" fill="none" stroke="#7c3aed" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow-purple)"/>
+<rect x="90" y="220" width="220" height="140" rx="9" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1.8"/>
+<text x="200.0" y="266.5" text-anchor="middle" font-size="23" font-weight="600" fill="#2563eb">任务协调</text>
+<text x="200.0" y="306.5" text-anchor="middle" font-size="19" font-weight="400" fill="#475569">目标与任务契约</text>
+<text x="200.0" y="336.5" text-anchor="middle" font-size="19" font-weight="400" fill="#475569">计划依赖与生命周期</text>
+<rect x="390" y="220" width="220" height="140" rx="9" fill="#fff7ed" stroke="#fed7aa" stroke-width="1.8"/>
+<text x="500.0" y="266.5" text-anchor="middle" font-size="23" font-weight="600" fill="#ea580c">策略与资源</text>
+<text x="500.0" y="306.5" text-anchor="middle" font-size="19" font-weight="400" fill="#475569">身份、批准与预算</text>
+<text x="500.0" y="336.5" text-anchor="middle" font-size="19" font-weight="400" fill="#475569">当前执行资格</text>
+<rect x="690" y="220" width="220" height="140" rx="9" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1.8"/>
+<text x="800.0" y="266.5" text-anchor="middle" font-size="23" font-weight="600" fill="#2563eb">状态提交</text>
+<text x="800.0" y="306.5" text-anchor="middle" font-size="19" font-weight="400" fill="#475569">版本、租约与 CAS</text>
+<text x="800.0" y="336.5" text-anchor="middle" font-size="19" font-weight="400" fill="#475569">事件和恢复位置</text>
+<rect x="90" y="590" width="220" height="140" rx="9" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1.8"/>
+<text x="200.0" y="636.5" text-anchor="middle" font-size="23" font-weight="600" fill="#059669">上下文与模型</text>
+<text x="200.0" y="676.5" text-anchor="middle" font-size="19" font-weight="400" fill="#475569">选择授权证据</text>
+<text x="200.0" y="706.5" text-anchor="middle" font-size="19" font-weight="400" fill="#475569">提出候选动作</text>
+<rect x="390" y="590" width="220" height="140" rx="9" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1.8"/>
+<text x="500.0" y="636.5" text-anchor="middle" font-size="23" font-weight="600" fill="#059669">工具与执行后端</text>
+<text x="500.0" y="676.5" text-anchor="middle" font-size="19" font-weight="400" fill="#475569">受限凭证与参数</text>
+<text x="500.0" y="706.5" text-anchor="middle" font-size="19" font-weight="400" fill="#475569">调用并保存业务回执</text>
+<rect x="690" y="590" width="220" height="140" rx="9" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1.8"/>
+<text x="800.0" y="636.5" text-anchor="middle" font-size="23" font-weight="600" fill="#059669">验证与交付</text>
+<text x="800.0" y="676.5" text-anchor="middle" font-size="19" font-weight="400" fill="#475569">按契约检查产物</text>
+<text x="800.0" y="706.5" text-anchor="middle" font-size="19" font-weight="400" fill="#475569">结果查询、流与通知</text>
+<rect x="1070" y="220" width="280" height="120" rx="9" fill="#faf5ff" stroke="#e9d5ff" stroke-width="1.8"/>
+<text x="1210.0" y="271.5" text-anchor="middle" font-size="23" font-weight="600" fill="#7c3aed">Task / Run</text>
+<text x="1210.0" y="311.5" text-anchor="middle" font-size="19" font-weight="400" fill="#475569">逻辑目标 / 一次执行</text>
+<rect x="1070" y="420" width="280" height="120" rx="9" fill="#faf5ff" stroke="#e9d5ff" stroke-width="1.8"/>
+<text x="1210.0" y="471.5" text-anchor="middle" font-size="23" font-weight="600" fill="#7c3aed">Step / Attempt</text>
+<text x="1210.0" y="511.5" text-anchor="middle" font-size="19" font-weight="400" fill="#475569">提交单元 / 具体尝试</text>
+<rect x="1070" y="620" width="280" height="120" rx="9" fill="#fff7ed" stroke="#fed7aa" stroke-width="1.8"/>
+<text x="1210.0" y="656.5" text-anchor="middle" font-size="23" font-weight="600" fill="#ea580c">Operation</text>
+<text x="1210.0" y="696.5" text-anchor="middle" font-size="19" font-weight="400" fill="#475569">外部动作身份与结果</text>
+<text x="1210.0" y="726.5" text-anchor="middle" font-size="19" font-weight="400" fill="#475569">跨尝试保持原意图</text>
+<rect x="252.96" y="456" width="154.07999999999998" height="30" rx="4" fill="#ffffff" fill-opacity="0.97"/>
+<text x="330" y="479" text-anchor="middle" font-size="18" font-weight="400" fill="#2563eb">受控步骤 / 授权</text>
+<rect x="572.96" y="456" width="154.07999999999998" height="30" rx="4" fill="#ffffff" fill-opacity="0.97"/>
+<text x="650" y="479" text-anchor="middle" font-size="18" font-weight="400" fill="#059669">观察 / 验收证据</text>
+<rect x="1156.0" y="364" width="108" height="30" rx="4" fill="#ffffff" fill-opacity="0.97"/>
+<text x="1210" y="387" text-anchor="middle" font-size="18" font-weight="400" fill="#7c3aed">包含与组织</text>
+<rect x="1129.0" y="564" width="162" height="30" rx="4" fill="#ffffff" fill-opacity="0.97"/>
+<text x="1210" y="587" text-anchor="middle" font-size="18" font-weight="400" fill="#7c3aed">推进或核验原动作</text>
+<path d="M60,1034 H102" stroke="#2563eb" stroke-width="2.4" fill="none" marker-end="url(#arrow-blue)"/>
+<text x="117" y="1040" text-anchor="start" font-size="17" font-weight="400" fill="#64748b">执行条件</text>
+<path d="M360,1034 H402" stroke="#059669" stroke-width="2.4" fill="none" marker-end="url(#arrow-green)"/>
+<text x="417" y="1040" text-anchor="start" font-size="17" font-weight="400" fill="#64748b">结果与证据</text>
+<path d="M660,1034 H702" stroke="#7c3aed" stroke-width="2.4" fill="none" marker-end="url(#arrow-purple)"/>
+<text x="717" y="1040" text-anchor="start" font-size="17" font-weight="400" fill="#64748b">对象关联</text>
+</svg>
