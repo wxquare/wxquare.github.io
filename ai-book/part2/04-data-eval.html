@@ -43,10 +43,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-8eb0bf19.js";
+            window.path_to_searchindex_js = "../searchindex-30dde1cf.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-9975334b.js"></script>
+        <script src="../toc-d662c9eb.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -188,7 +188,7 @@
                         <h1 id="第10章-评估与反馈闭环"><a class="header" href="#第10章-评估与反馈闭环">第10章 评估与反馈闭环</a></h1>
 <p>模型上线之后，最难的问题往往不是“还能不能调用”，而是“这次变化是否真的变好”。数据版本变化、提示模板变化、检索结果变化、模型量化变化、用户分布变化和工具失败，都会让质量指标发生变化。没有数据与评估 Infra，团队只能凭少量示例和主观感受发布模型，问题通常会在生产流量和长期反馈中才暴露。</p>
 <p>本章把数据与评估看成一条生产链路：数据进入时有来源、授权、schema 和质量检查；加工时有版本、血缘、去重、采样和分片；评估时有固定回归集、任务指标、裁判校准和统计不确定性；线上运行时有请求 trace、反馈、失败样本和漂移监控；发布时由质量门禁决定是否灰度、回滚或进入人工审查。RDD与MapReduce提供数据处理容错参考 <a href="#ref-1">[1]</a><a href="#ref-2">[2]</a>，lakeFS与TFDV提供版本和校验组件 <a href="#ref-3">[3]</a><a href="#ref-4">[4]</a>，HELM、BIG-bench和Ragas提供多维测量方法 <a href="#ref-5">[5]</a><a href="#ref-6">[6]</a><a href="#ref-7">[7]</a>；平台仍需定义自己的发布证据契约。</p>
-<p>本章的核心判断是：系统运行正常不等于质量正在改善。第9章关心请求是否稳定交付，第11章关心生产治理和责任闭环，第16章会专门展开 Agent Evals、Guardrails 与可观测性；本章位于它们之间，负责把数据、评估协议、judge、线上反馈和发布门禁变成可复核证据。</p>
+<p>本章的核心判断是：系统运行正常不等于质量正在改善。请求是否稳定交付、生产环境是否受控，都不回答“这次变化是否真的变好”这个问题。本章负责把数据、评估协议、判定器、线上反馈和发布门禁变成可复核的证据。</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -198,7 +198,7 @@
 <tr><td style="text-align: left">数据是否可信</td><td style="text-align: left">snapshot、血缘、schema、污染检测</td><td style="text-align: left">训练并行和数据读取吞吐</td></tr>
 <tr><td style="text-align: left">分数是否可比</td><td style="text-align: left">固定评估集、评估器版本、统计不确定性</td><td style="text-align: left">模型服务资源调度</td></tr>
 <tr><td style="text-align: left">Judge 是否可靠</td><td style="text-align: left">校准、人工抽检、偏差记录</td><td style="text-align: left">安全策略执行与审批责任</td></tr>
-<tr><td style="text-align: left">线上反馈能否回流</td><td style="text-align: left">采样、脱敏、去偏、失败分类</td><td style="text-align: left">Agent 工作流状态机</td></tr>
+<tr><td style="text-align: left">线上反馈能否回流</td><td style="text-align: left">采样、脱敏、去偏、失败分类</td><td style="text-align: left">任务编排与状态恢复</td></tr>
 <tr><td style="text-align: left">是否允许发布</td><td style="text-align: left">evidence bundle、质量门禁、回滚条件</td><td style="text-align: left">组织级风险接受和审计签署</td></tr>
 </tbody>
 </table>
@@ -217,7 +217,7 @@
 <p>每个样本生成稳定的 sample_id 和 content_hash，变换后保存 parent_id、transformation_id 和版本。评估结果引用 sample_id，而不是只保存数组下标；模型输出保存 output_hash、模型 hash、采样参数、错误和评分；反馈引用 request_id 和 sample_id。这样某个失败样本可以反查来源、处理规则、评估历史、线上请求和标注。</p>
 <p>样本级追踪要控制存储与隐私。高价值或失败样本保存更完整上下文，普通样本保存摘要和 hash；敏感内容使用短期受控访问。删除请求到来时，平台根据 sample lineage 查找所有衍生快照、反馈、评估和缓存，并更新可见性。历史指标可能仍需保留，但要标注数据已撤回和结果不可重新生成。</p>
 <h3 id="一份版本化eval-case与执行记录"><a class="header" href="#一份版本化eval-case与执行记录">一份版本化Eval Case与执行记录</a></h3>
-<p>本章把第7章的Eval Case固定为可复用契约：case描述“要检验什么”，eval_run记录“这一轮如何执行”，result记录“实际观察和判定”，report才聚合并给出门禁。case_id稳定，修改输入、预期、权限或工具边界就增加case_version；运行不能覆盖旧结果。experiment_run与Agent的业务Run使用不同命名空间，前者是实验安排，后者是用户任务持久执行，不能因为都叫run就共用终态。</p>
+<p>本章把 Eval Case 固定为可复用契约：case描述“要检验什么”，eval_run记录“这一轮如何执行”，result记录“实际观察和判定”，report才聚合并给出门禁。case_id稳定，修改输入、预期、权限或工具边界就增加case_version；运行不能覆盖旧结果。experiment_run 与业务任务的 Run 使用不同命名空间：前者是实验安排，后者是用户任务的持久执行，不能因为都叫 run 就共用终态。</p>
 <p>下面是教学记录，示例ID与哈希占位符不对应实际实验。权威对象名可以映射到工具，但不能将此schema冒充任何产品API。</p>
 <pre><code class="language-yaml">case:
   schema_version: eval-case/v1
@@ -342,7 +342,17 @@ result:
 <p>MMLU用多学科知识任务检验模型在不同领域的准确率 <a href="#ref-20">[20]</a>，可以作为能力切片参考，却不能替代真实工具执行、权限或多轮业务成功测试。基准高分不能自动变成产品发布资格。</p>
 <h3 id="零失败配对变化与分层不确定性"><a class="header" href="#零失败配对变化与分层不确定性">零失败、配对变化与分层不确定性</a></h3>
 <p>NIST手册说明比例区间以及小样本/少失败时的二项精确方法 <a href="#ref-21">[21]</a>。一个便于复算的例子：独立同分布的n次验收全通过，失败率p下观察零失败的概率是(1−p)^n；令其等于0.05，得到95%单侧精确上界p=1−0.05^(1/n)。n=100时约2.95%，所以100次通过不能声明线上成功率100%；这里不是双侧区间，也不适用于高度相关会话或定向挑选的简单题。</p>
-<p>比较候选与基线时，应在同一case、同一环境和预算上做配对，记录“都成功/只候选成功/只基线成功/都失败”。对相关会话按group重采样，对多轮随机运行先保留case内部方差，再估计跨case变化；不能把同一题跑一百次当一百个业务场景。选择bootstrap或其他区间时记录采样单位、次数和置信水平，区间含零表示证据不足，不能说“证明完全相同”。多切片、多版本连续试验还会增加偶然胜出，停止规则及多重比较处理需预先约定。</p>
+<p>比较候选与基线时，应在同一case、同一环境和预算上做配对，记录“都成功/只候选成功/只基线成功/都失败”。</p>
+<h3 id="样本量规划要检测到多少提升才需要多少样本"><a class="header" href="#样本量规划要检测到多少提升才需要多少样本">样本量规划：要检测到多少提升才需要多少样本</a></h3>
+<p>置信区间回答“这个分数有多不确定”，但评估设计还有一个前置问题：<strong>要检测到一个给定幅度的提升，需要多少样本？</strong> 这属于统计功效分析，缺了它，团队容易在小样本上看到波动就宣布提升，或者在大样本上为 0.3% 的差异投入不成比例的成本。</p>
+<p>对二分类任务，可以用一个便于估算的近似。设基线成功率约为 \(p\)，希望检测到的最小绝对提升为 \(\delta\)，在双侧显著性 \(\alpha\) 和功效 \(1-\beta\) 下，每组所需样本量大致为：</p>
+<p>\[
+n\approx\frac{2p(1-p)}{\delta^{2}}\left(z_{1-\alpha/2}+z_{1-\beta}\right)^{2}.
+\]</p>
+<p>取常见的 \(\alpha=0.05\)、功效 0.8，括号内约为 \((1.96+0.84)^2\approx7.85\)。若 \(p=0.8\)、\(\delta=0.05\)，则 \(n\approx 2\times0.16/0.0025\times7.85\approx1004\)——每组约需一千个样本。同样的设定下要把可检测差异缩小到 0.01，样本量会涨到约 25000，是前者的 25 倍。</p>
+<p>这个式子的三个含义值得记住。<strong>第一，样本量与最小可检测效应的平方成反比</strong>：想检测一半大小的提升，需要四倍样本，这解释了为什么“精细调优”阶段的评估成本会陡增。<strong>第二，样本量与基线成功率的关系不是单调的</strong>：\(p\) 接近 0.5 时 \(p(1-p)\) 最大，最难区分；接近 0 或 1 时所需样本反而减少，但这时应改用精确方法而不是正态近似。<strong>第三，它假设样本独立</strong>。同一会话的多轮、同一文档的多个改写、同一用户的多条记录都高度相关，有效样本量远小于记录条数，必须按群组重采样或使用聚类稳健方法，否则会严重高估功效。</p>
+<p>因此评估报告除了给出分数和区间，还应写明“这个样本量下能检测到的最小效应是多少”。若实际差异小于该阈值，正确的结论是 INCONCLUSIVE 并补样，而不是“没有差异”。</p>
+<p>对相关会话按group重采样，对多轮随机运行先保留case内部方差，再估计跨case变化；不能把同一题跑一百次当一百个业务场景。选择bootstrap或其他区间时记录采样单位、次数和置信水平，区间含零表示证据不足，不能说“证明完全相同”。多切片、多版本连续试验还会增加偶然胜出，停止规则及多重比较处理需预先约定。</p>
 <p>报告至少并列总体与关键切片的分母、有效数、覆盖率、变化区间和失败例。服务超时若属于端到端任务目标，应在任务成功分母体现失败；数据损坏或裁判无效则单列并按协议报告，不静默变成负例也不靠剔除提高分数。只要关键切片样本不足，门禁可为INCONCLUSIVE并补样，而非输出虚假的小数精度。</p>
 <h2 id="105-llm-as-judge与人工校准"><a class="header" href="#105-llm-as-judge与人工校准">10.5 LLM-as-Judge与人工校准</a></h2>
 <h3 id="裁判模型的用途"><a class="header" href="#裁判模型的用途">裁判模型的用途</a></h3>
@@ -354,18 +364,38 @@ result:
 <h3 id="成本控制"><a class="header" href="#成本控制">成本控制</a></h3>
 <p>大规模 judge 很昂贵，可以先用规则过滤和小模型筛选，再对边界样本使用强模型和人工。缓存 judge 输入与评分时必须绑定 prompt、候选 hash、评估器版本和数据等级，防止模型升级后误用旧结果。抽样评估的统计置信区间要随采样策略保存，不能把小样本结果显示成精确百分数。</p>
 <h3 id="评估器的依赖治理"><a class="header" href="#评估器的依赖治理">评估器的依赖治理</a></h3>
-<p>评估器本身可能依赖 tokenizer、模型、检索器、规则库、外部 API 和人工指南。每个 evaluator artifact 有版本、输入 schema、输出 schema、随机性、资源需求、适用任务和已知偏差。升级评估器要用历史样本重跑，报告分数变化是模型变化还是 evaluator 变化。评估器不可用或输出异常时，任务进入 evaluator_failed，不应自动给负分或正分。</p>
 <p>裁判模型的版本也要纳入模型注册。若 judge 变强或 prompt 改变，历史分数可能不可比；可以保留旧 judge 做桥接，或在报告中说明迁移。高风险门禁使用人工复核和独立规则，避免候选模型和 judge 共享相同偏差。评估平台的可信度取决于对评估器自身的治理。</p>
+<h3 id="标注一致性的度量"><a class="header" href="#标注一致性的度量">标注一致性的度量</a></h3>
+<p>人工标注的一致性不能只用“两个人相同意见的比例”来衡量。设两位标注者分别给出标签，观察到的相同比例为 \(p_o\)，而如果两人完全独立地按各自标签分布作答，期望相同比例为 \(p_e\)，则 Cohen’s Kappa 定义为：</p>
+<p>\[
+\kappa=\frac{p_o-p_e}{1-p_e}.
+\]</p>
+<p>分母 \(1-p_e\) 扣除的是“碰巧一致”，所以 Kappa 回答的是“排除随机之后还剩多少一致”。这个修正很关键：一个只有 5% 样本为正类的任务，两人都判“非正类”就能得到 95% 的表面一致率，但 Kappa 会接近 0——因为这种一致几乎全是随机基线带来的。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">\(p_o\)</th><th style="text-align: left">正类比例</th><th style="text-align: left">\(p_e\)</th><th style="text-align: left">\(\kappa\)</th><th style="text-align: left">解读</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">0.95</td><td style="text-align: left">0.05</td><td style="text-align: left">0.905</td><td style="text-align: left">0.47</td><td style="text-align: left">表面很高，扣除基线后只算中等</td></tr>
+<tr><td style="text-align: left">0.90</td><td style="text-align: left">0.50</td><td style="text-align: left">0.50</td><td style="text-align: left">0.80</td><td style="text-align: left">类别均衡时，一致性强得多</td></tr>
+<tr><td style="text-align: left">0.99</td><td style="text-align: left">0.01</td><td style="text-align: left">0.98</td><td style="text-align: left">0.50</td><td style="text-align: left">极端不平衡，需改用其他度量</td></tr>
+</tbody>
+</table>
+</div>
+<p>多标注者、多类别或有序标签时要用相应的推广（如 Fleiss’ Kappa 或加权 Kappa），有序标签还应让“差一级”与“差三级”的惩罚不同。样本量小的时候，Kappa 的区间很宽，报告应给出置信区间而不是一个点估计。</p>
+<p>Kappa 低本身不是标注者的问题，往往是任务定义的问题。遇到低一致性，正确的动作是回到指南澄清边界、补充示例、把模糊类别拆分或改为多阶段判断，而不是要求标注者“再认真一点”。若某个类别的争议集中出现，通常说明该类别在业务上也没有清晰定义——这时应当先修定义，再修标签，最后才谈裁判模型。</p>
+<p>评估器本身可能依赖 tokenizer、模型、检索器、规则库、外部 API 和人工指南。每个 evaluator artifact 有版本、输入 schema、输出 schema、随机性、资源需求、适用任务和已知偏差。升级评估器要用历史样本重跑，报告分数变化是模型变化还是 evaluator 变化。评估器不可用或输出异常时，任务进入 evaluator_failed，不应自动给负分或正分。</p>
 <h3 id="校准不是让裁判看见目标标签"><a class="header" href="#校准不是让裁判看见目标标签">校准不是让裁判看见目标标签</a></h3>
 <p>先冻结标签字典与正类方向。例如正类定义“必须升级人工”，人判升级而judge判解决是FN漏放，人判解决而judge判升级是FP误杀。合法标签才进入TP/FP/FN/TN；越界、空响应和非法JSON记invalid并报告有效数，不能转成默认negative。给人工和judge同样必要证据，但不向judge提供该实验待预测的人工标签；参考答案式评分可以提供独立任务答案，两者任务定义不同。</p>
 <p>准确率为(TP+TN)/有效数，召回为TP/(TP+FN)，精确率为TP/(TP+FP)，还应观察正常样本正确保留比例TN/(TN+FP)。分母为零记未定义，并检查稀有风险是否根本没覆盖。全判解决也可能在极不平衡数据上准确率很高，但严重漏放召回为零；高风险自动门禁必须按误判代价设置阈值和人工复核，不能采用通用准确率 cutoff。换序盲评、控制答案长度、检查自偏好和多次评分不稳在dev进行，test只评估冻结版本；版本或任务分布变化后重新校准并建立桥接报告 <a href="#ref-23">[23]</a>。</p>
-<h2 id="106-ragagent与线上反馈闭环"><a class="header" href="#106-ragagent与线上反馈闭环">10.6 RAG、Agent与线上反馈闭环</a></h2>
+<h2 id="106-rag工具调用与线上反馈闭环"><a class="header" href="#106-rag工具调用与线上反馈闭环">10.6 RAG、工具调用与线上反馈闭环</a></h2>
 <h3 id="rag-的组件指标"><a class="header" href="#rag-的组件指标">RAG 的组件指标</a></h3>
 <p>RAG 任务至少拆成检索、重排、上下文组装、生成和引用。Ragas原论文把相关上下文、基于证据的忠实使用与生成质量分别评价 <a href="#ref-7">[7]</a>。具体指标名、是否需要参考答案随版本变化，实验要冻结metric实现及输入要求。组件指标不能完全替代最终任务成功，但能帮助定位：答案错可能是没有召回、召回了但排序错、上下文太长、模型忽略证据或引用指向错误。</p>
 <p>评估样本要保存 query、允许的证据、检索版本、chunk、score、上下文顺序、最终答案和引用。知识库更新后，旧评估结果是否可比取决于 snapshot；检索器升级后要重新计算上下文指标。线上反馈包含“答案有用”时，不能直接推断检索正确，需要抽样检查证据和引用。</p>
 <h3 id="工具调用与工作流"><a class="header" href="#工具调用与工作流">工具调用与工作流</a></h3>
 <p>工具评估关心 schema 合法、参数正确、权限正确、执行成功、结果被正确使用、失败后恢复和副作用幂等。单次模型输出 JSON 合法并不等于任务成功；工具可能超时、返回脏数据、重复执行或需要人工审批。评估平台记录 workflow trace，把模型调用、工具调用、状态迁移和最终目标连接起来。</p>
-<p>Agent 任务可以使用最终成功、步骤成功、重试次数、人工接管、总 token、总时延和副作用错误作为指标。测试要包含工具不可用、权限不足、部分成功、重复消息、上下文压缩和模型回退。线上回放不能直接执行真实副作用，应使用 sandbox、mock 或 dry-run，并明确哪些结果可迁移到生产。</p>
+<p>多步任务可以使用最终成功、步骤成功、重试次数、人工接管、总 token、总时延和副作用错误作为指标。测试要包含工具不可用、权限不足、部分成功、重复消息、上下文压缩和模型回退。线上回放不能直接执行真实副作用，应使用 sandbox、mock 或 dry-run，并明确哪些结果可迁移到生产。</p>
 <h3 id="反馈采样与主动学习"><a class="header" href="#反馈采样与主动学习">反馈采样与主动学习</a></h3>
 <p>不是所有线上请求都值得进入标注池。可以按低评分、重试、长延迟、工具失败、安全拦截、模型版本、罕见语言和不确定裁判进行分层采样。主动学习优先选择能最大化信息增益或覆盖新分布的样本，而不是只收集最糟糕的案例。采样策略本身也需版本化，避免反馈集分布被不透明规则改变。</p>
 <p>标注后的样本进入候选回归集前，要做去重、隐私、授权、标签一致和污染检查。样本被加入训练集后，再次用于评估会造成泄漏，平台用血缘图阻断这种循环或明确标记不可比。数据与评估闭环必须能回答一个失败样本从生产到标注、修复、回归和发布经历了什么。</p>
@@ -380,7 +410,7 @@ result:
 <p>回放样本由 trace id、snapshot 和脱敏版本引用，避免复制大量敏感内容。某个版本的失败样本优先进入回归，修复后比较同一批样本；如果样本已经用于训练，报告不可比或使用新 holdout。回放系统应支持按能力、模型、错误和租户查询，成为发布控制器和事故复盘的共同数据源。</p>
 <h3 id="线上反馈的去偏"><a class="header" href="#线上反馈的去偏">线上反馈的去偏</a></h3>
 <p>线上反馈存在曝光、选择和幸存者偏差。只有展示给用户的结果才可能获得评分；只有不满意的用户可能重试；完成任务的用户可能不再反馈。平台可使用随机抽样、分层采样、对照版本、隐式行为与显式评分组合，报告反馈覆盖率和采样策略。不要把低反馈量的高分当作稳定提升。</p>
-<p>对不同用户群和业务场景分别估计质量，避免大租户或高频场景淹没少数重要场景。线上实验按 parent task 固定版本，避免一次 Agent 工作流跨多个模型版本。反馈数据入库前保存原始信号、解释和时间，后续重算可以更换聚合方法而不丢失基础事实。</p>
+<p>对不同用户群和业务场景分别估计质量，避免大租户或高频场景淹没少数重要场景。线上实验按 parent task 固定版本，避免一次多步任务跨多个模型版本。反馈数据入库前保存原始信号、解释和时间，后续重算可以更换聚合方法而不丢失基础事实。</p>
 <h3 id="反馈进入数据集前"><a class="header" href="#反馈进入数据集前">反馈进入数据集前</a></h3>
 <p>生产反馈先进入隔离区，完成身份去除、敏感信息检测、权限确认、样本去重、来源标记和风险分类。只有满足用途授权与留存策略的样本进入候选集。用户删除请求和数据主体请求要能沿血缘查找所有衍生副本。反馈不能因为“用户公开提交”就自动获得训练授权。</p>
 <h3 id="评估结果的访问控制"><a class="header" href="#评估结果的访问控制">评估结果的访问控制</a></h3>
@@ -390,56 +420,46 @@ result:
 <h3 id="在线与离线指标的校准"><a class="header" href="#在线与离线指标的校准">在线与离线指标的校准</a></h3>
 <p>离线指标与线上指标之间需要桥接集。桥接集包含过去生产请求的脱敏、分层和标注样本，比较离线分数、线上反馈、任务成功和人工判断。若某个离线指标长期与线上成功无关，就降低它在门禁中的权重或重新定义；若线上出现新的失败模式，就加入候选回归集。桥接不是一次性相关分析，而是持续校准。</p>
 <p>线上指标受流量、用户、时间和下游系统影响，离线指标受 snapshot、协议和采样影响。报告分别标记 measurement layer，避免把两个数字放进同一个总分。模型发布时可以要求离线硬约束和线上 canary 约束都满足，任何一层失败都触发暂停或人工判断。</p>
-<h2 id="107-评估作业的调度可靠性与观测"><a class="header" href="#107-评估作业的调度可靠性与观测">10.7 评估作业的调度、可靠性与观测</a></h2>
-<h3 id="评估-job-的资源模型"><a class="header" href="#评估-job-的资源模型">评估 job 的资源模型</a></h3>
-<p>评估任务可能是 CPU 规则、单 GPU batch、多个模型 judge、在线 shadow、人工标注或长链路 Agent。job spec 应声明模型 artifact、数据 snapshot、并发、最大 token、超时、重试、GPU、优先级、输出路径和预算。调度器根据资源和 deadline 分配，在线回归不能被大型离线 judge 堵塞。</p>
-<p>评估 worker 需要断点游标、分区输出、完成标记和幂等写入。一个分区失败时只重试该分区；已有结果不可被重复覆盖，除非新 run 使用新的 eval id。输出包括样本结果、错误、耗时、token、成本和 evaluator version，聚合任务只读取已提交分区。Spark的分区变换与Ray的分布式任务运行时提供了不同层次的执行组件，平台仍要定义统一job状态、提交记录和资源策略 <a href="#ref-11">[11]</a><a href="#ref-25">[25]</a>。</p>
-<h3 id="评估缓存"><a class="header" href="#评估缓存">评估缓存</a></h3>
-<p>评估缓存可以避免重复 tokenizer、embedding、检索、judge 或模型输出，但 key 必须包含模型 hash、数据 sample hash、模板、采样参数、engine、评估器、schema 和权限。只按 prompt 缓存会在模型或模板变化后返回旧结果。缓存命中、失效和质量差异写入报告，以免成本下降被误认为模型更快。</p>
-<p>缓存敏感样本需要加密和租户隔离；人工标注结果的缓存还要记录指南版本。缓存可以帮助快速 smoke，但发布前应保留一部分冷跑样本，防止系统只验证缓存路径。评估平台同时报告 cached 与 uncached 的成本和延迟。</p>
-<h3 id="失败超时与部分结果"><a class="header" href="#失败超时与部分结果">失败、超时与部分结果</a></h3>
-<p>评估任务遇到模型超时、GPU OOM、judge 不可用、工具 sandbox 故障、样本非法和输出超长时，结果不能简单填 0。应区分 skipped、invalid、timeout、infra_failed、model_failed 和 judged_negative。聚合器报告覆盖率、失败率和有效样本数；质量门禁在覆盖率不足时阻断，而不是把缺失样本当作通过。</p>
-<p>部分结果可以用于诊断，但不能默认用于发布。评估 run 完成标记包含 sample count、success count、error count、coverage、数据 hash 和 evaluator hash。若只完成了容易样本，分数可能虚高。失败样本进入重试或人工队列，修复后以新 run 或明确的 retry attempt 关联。</p>
-<h3 id="优先级与资源池"><a class="header" href="#优先级与资源池">优先级与资源池</a></h3>
-<p>评估任务可分为提交前 smoke、发布门禁、夜间 broad、线上回放、主动学习、人工标注和大规模 benchmark。不同任务的 deadline、GPU、数据、裁判和结果保留不同，应使用不同资源池或优先级。发布门禁不能被一个长时间 benchmark 阻塞，人工标注也不能被无限自动任务淹没。</p>
-<p>调度器记录 pending reason、预计完成、使用资源和预算。任务需要 gang 资源时一次性分配，分区评估则可以弹性并行。抢占低优先级任务前保存游标与部分提交结果，恢复时只重做未完成分区。Ray 和 Spark 各有资源与执行能力，评估平台通过统一 job spec 连接它们 <a href="#ref-11">[11]</a><a href="#ref-25">[25]</a>。</p>
-<h3 id="并发与限流"><a class="header" href="#并发与限流">并发与限流</a></h3>
-<p>大量 judge 请求可能压垮模型 serving、网络和成本预算。评估调度器需要按 evaluator、模型、租户和数据 snapshot 限流，使用 token budget 而不是只限制请求数。模型服务过载时，评估任务退避或切换到已批准的低成本 judge，但必须标记 evaluator 变化并重新判断可比性。</p>
-<p>评估对线上服务的影子流量也要限流。影子请求不应改变业务状态，不应占用生产租户预算，却会消耗 GPU 和 cache。路由器将影子流量送到隔离池，并把其影响计入容量报告。评估平台和 serving 平台共享 trace id，能说明某次回归是否造成了生产尾延迟变化。</p>
-<h3 id="结果存储与聚合"><a class="header" href="#结果存储与聚合">结果存储与聚合</a></h3>
-<p>结果存储采用 sample result、partition result、evaluation run 和 report 四层。sample result 保存单样本输入 hash、输出 hash、指标、错误、耗时和 token；partition result 保存分区统计与完成标记；evaluation run 保存配置、覆盖和状态；report 保存聚合、图表、失败样本和结论。每层都有不可变版本，聚合可以重算但不能覆盖原始样本结果。</p>
-<p>聚合器处理缺失、重复和重试。同一 sample_id 的多个 attempt 需要选择最终有效结果并保留历史；超时不能默认为负分；评估器返回非法 JSON 要作为 evaluator_failed；是否进入质量分母依预先冻结的协议，所有跳过均报告coverage及原因，不能事后删除难例。报告生成失败不应删除已完成的单样本结果，修复后可以重新聚合。</p>
-<h3 id="评估协议与提示模板"><a class="header" href="#评估协议与提示模板">评估协议与提示模板</a></h3>
-<p>评估协议定义输入格式、系统指令、历史消息、工具 schema、最大 token、采样、超时、重试和评分。模板变化会改变模型看到的 token、角色和约束，必须作为协议版本。评估器执行时打印最终 prompt 的 hash、token 数、模板版本和模型版本，必要时保存脱敏后的渲染结果。</p>
-<p>协议还规定错误处理。模型超时、输出截断、非法 JSON、工具失败、judge 失败和数据缺失分别是什么状态，是否重试，是否进入分母。不同协议混用会让“失败率”没有意义。评估平台提供统一协议 SDK，减少各团队手写脚本造成的行为差异。</p>
-<h3 id="生成评估的可重复性"><a class="header" href="#生成评估的可重复性">生成评估的可重复性</a></h3>
-<p>temperature 大于零时生成具有随机性，服务端可能使用不同 kernel、batch 或随机数路径。评估可以固定 seed、运行多次取均值、使用 deterministic decoding 或保存完整输出；每种方式有不同成本和代表性。报告保存 sampling、seed、重复次数、输出长度和失败样本，不能只保存最终平均分。</p>
-<p>对话和 Agent 任务还存在外部状态随机性：检索索引变化、工具返回变化、时间、权限和用户上下文。回放使用 snapshot、sandbox 和录制结果，必要时标记与生产有差异。可重复性不是强求所有系统位级一致，而是让差异来源可解释，并在质量门限中设置合理容差。</p>
-<h3 id="评估结果的可信等级"><a class="header" href="#评估结果的可信等级">评估结果的可信等级</a></h3>
-<p>可以给评估结果分为 exploratory、diagnostic、regression、release-gate 和 audited 五级。探索结果快速、样本小、不能用于发布；诊断结果定位问题；回归结果固定集可比较；发布门禁经过完整配置和覆盖检查；审计结果额外包含人工签署与数据授权。结果对象带有等级和允许用途，防止一个草稿分数被误用为生产证据。</p>
-<p>可信等级由覆盖率、评估器校准、样本版本、运行时完整性、人工复核和统计置信度决定。等级不是评价模型好坏，而是评价证据强弱。发布控制器要求足够等级的 evidence bundle，研究 dashboard 可以显示低等级结果但明确标识。</p>
-<h3 id="评估平台的容量与成本"><a class="header" href="#评估平台的容量与成本">评估平台的容量与成本</a></h3>
-<p>评估 job 也需要容量模型。每个样本的输入、输出、judge、检索、工具和重复次数决定 token 与 GPU；发布高峰可能同时触发多个模型候选、多个数据集和多个 judge。调度器按 deadline、priority、token budget 和 GPU 资源排队，预留发布容量，限制低优先级 benchmark。评估成本归因到 experiment、team、model 和 dataset，避免免费评估无限增长。</p>
-<p>评估缓存可以降低成本，但不能改变证据语义。缓存 key 包括所有输入、模型、模板、评估器、数据、运行时和权限；任何变化失效。报告分别显示 cached 与 uncached，发布门禁保留冷跑样本。缓存命中率很高但结果仍错误时，系统可能把错误长期固化，因此保留随机冷样本很重要。</p>
-<h3 id="任务级指标"><a class="header" href="#任务级指标">任务级指标</a></h3>
-<p>评估平台指标包括等待、执行、token、GPU、judge、cache、覆盖、失败、重试、成本和结果写入。按 evaluation run、partition、evaluator、model、dataset 和 priority 聚合，避免只看一个总耗时。Prometheus 负责趋势与告警，OpenTelemetry 连接控制面、worker、模型服务和存储 <a href="#ref-18">[18]</a><a href="#ref-19">[19]</a>。</p>
-<h3 id="评估事故"><a class="header" href="#评估事故">评估事故</a></h3>
-<p>典型事故包括数据 snapshot 错误、评估器版本混用、judge 偏差、缓存污染、分母计算错误、结果丢失、线上 shadow 影响生产和敏感样本泄露。事故处理先冻结报告和发布门禁，保留原始结果与 trace，确定影响范围，再重新生成修复后的 run。不能直接编辑一张分数表来“修正”历史。</p>
-<p>事故复盘形成质量规则、数据断言、权限策略或回归样本。若一个错误样本导致线上事故，加入 critical 集并记录修复标准；若某个评估器反复超时，调整资源和预算；若缓存造成版本混用，修改 key 和门禁。评估系统自身也需要 SLO 和错误预算。</p>
-<h3 id="评估失败的降级策略"><a class="header" href="#评估失败的降级策略">评估失败的降级策略</a></h3>
-<p>当 judge 模型不可用时，可以暂停、切换已批准的 judge、使用规则子集或转人工，但必须改变 evidence level，并重新判断门禁。不能为了按时发布而静默跳过困难样本。数据存储故障时可以使用镜像 snapshot，记录 replica；模型服务故障时可重试分区，记录重复成本。所有降级写入 run metadata。</p>
-<p>如果评估覆盖不足，结果状态应为 INCOMPLETE 而不是 PASSED。发布控制器默认阻断 incomplete；人工可以在明确风险和补救计划下批准，并记录期限。错误预算和发布节奏不能成为降低质量证据的理由，最多决定是否推迟或选择安全的旧版本。</p>
-<h3 id="评估平台的灾备"><a class="header" href="#评估平台的灾备">评估平台的灾备</a></h3>
-<p>数据 snapshot、manifest、评估结果和报告需要备份与恢复演练。原始敏感内容可能不可复制，但 manifest、hash、授权和报告至少应有跨故障域的可恢复副本。评估 worker 可以重建，结果不可重算或成本极高的 evidence bundle 需要更高保留等级。灾备测试验证恢复后的 hash、权限、版本和报告可读。</p>
-<p>发布事故时，平台需要能读取最后一个已批准报告、模型 artifact、数据 snapshot 和门禁配置，即使评估集群不可用。否则无法判断是否回滚。灾备不等于把所有内容复制到所有区域，依然要遵守数据驻留与删除策略。恢复路径写入 runbook，并定期演练。</p>
+<h2 id="107-评估作业的调度与结果可信度"><a class="header" href="#107-评估作业的调度与结果可信度">10.7 评估作业的调度与结果可信度</a></h2>
+<p>评估平台自己也是一个批处理系统，但它的交付物不是吞吐，而是<strong>可信的结果</strong>。因此本节只讨论四件事：作业怎么被调度、失败怎么被分类、结果分几级可信、以及它和业务执行之间的边界在哪里。至于评估 job 的缓存实现、存储分层、容量规划与灾备，属于常规批处理工程，不在本书展开。</p>
+<h3 id="评估作业的资源模型与调度边界"><a class="header" href="#评估作业的资源模型与调度边界">评估作业的资源模型与调度边界</a></h3>
+<p>评估任务可能是 CPU 规则、单 GPU batch、多个模型 judge、在线 shadow、人工标注或多步任务。job spec 应声明模型 artifact、数据 snapshot、并发、最大 token、超时、重试、GPU、优先级、输出路径和预算。调度器根据资源和 deadline 分配，在线回归不能被大型离线 judge 堵塞。</p>
+<p>评估任务按 deadline 和用途分层：提交前 smoke、发布门禁、夜间 broad、线上回放、主动学习、人工标注和大规模 benchmark。它们的资源、数据和保留要求不同，应使用不同资源池或优先级。发布门禁不能被一个长时间 benchmark 阻塞，人工标注也不能被无限自动任务淹没。</p>
+<p>调度器要记录 pending reason、预计完成、使用资源和预算。任务需要 gang 资源时一次性分配，分区评估则可以弹性并行；抢占低优先级任务前保存游标与部分提交结果，恢复时只重做未完成分区。</p>
+<p>限流要按 evaluator、模型、租户和数据 snapshot 分别设置，并使用 token budget 而不是只限制请求数——大量 judge 请求可能压垮模型 serving、网络和成本预算。评估对线上服务的影子流量同样要限流：影子请求不应改变业务状态，也不应占用生产租户预算，但它确实消耗 GPU 和 cache，因此必须计入容量报告。评估平台与 serving 平台共享 trace id，才能说明某次回归是否造成了生产尾延迟变化。</p>
+<h3 id="失败分类覆盖率与结果可信等级"><a class="header" href="#失败分类覆盖率与结果可信等级">失败分类、覆盖率与结果可信等级</a></h3>
+<p>评估任务遇到模型超时、GPU OOM、judge 不可用、工具沙箱故障、样本非法和输出超长时，结果不能简单填 0。应区分 skipped、invalid、timeout、infra_failed、model_failed 和 judged_negative。聚合器报告覆盖率、失败率和有效样本数；质量门禁在覆盖率不足时阻断，而不是把缺失样本当作通过。</p>
+<p>聚合器还要处理缺失、重复和重试：同一 sample_id 的多个 attempt 需要选择最终有效结果并保留历史；超时不能默认为负分；评估器返回非法 JSON 要记为 evaluator_failed；是否进入质量分母依预先冻结的协议决定，所有跳过均报告 coverage 及原因，不能事后删除难例。<strong>部分结果可以用于诊断，但不能默认用于发布</strong>——如果只完成了容易样本，分数会虚高。</p>
+<p>在此之上，给每个结果标注可信等级，让“一个分数”变成“一份证据”。等级由覆盖率、评估器校准、样本版本、运行时完整性、人工复核和统计置信度共同决定；等级不评价模型好坏，只评价证据强弱。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">等级</th><th style="text-align: left">生成方式</th><th style="text-align: left">允许用途</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">exploratory</td><td style="text-align: left">小样本、快速跑，配置未固定</td><td style="text-align: left">探索方向，不得用于发布</td></tr>
+<tr><td style="text-align: left">diagnostic</td><td style="text-align: left">定位问题用，可能只覆盖失败切片</td><td style="text-align: left">排查与修复，不用于发布</td></tr>
+<tr><td style="text-align: left">regression</td><td style="text-align: left">固定回归集，配置与版本完整</td><td style="text-align: left">版本间比较，可作为门禁输入</td></tr>
+<tr><td style="text-align: left">release-gate</td><td style="text-align: left">完整配置、覆盖率检查、门禁规则齐备</td><td style="text-align: left">发布决策</td></tr>
+<tr><td style="text-align: left">audited</td><td style="text-align: left">在 release-gate 基础上增加人工签署与授权记录</td><td style="text-align: left">对外交付与审计</td></tr>
+</tbody>
+</table>
+</div>
+<p>发布控制器要求足够等级的 evidence bundle；研究面板可以显示低等级结果，但必须显式标识，防止一个草稿分数被误用为生产证据。</p>
+<p>当评估能力降级时——judge 不可用、数据存储故障、覆盖率不足——处理原则是<strong>降级必须同时降级证据等级</strong>。可以暂停、切换已批准的 judge、使用规则子集或转人工，但必须重新判断门禁，不能为了按时发布而静默跳过困难样本。覆盖率不足时，结果状态应为 INCOMPLETE 而不是 PASSED；人工可以在明确风险和补救计划下批准，并记录期限。</p>
+<h3 id="评估协议与生成的可重复性"><a class="header" href="#评估协议与生成的可重复性">评估协议与生成的可重复性</a></h3>
+<p>评估协议定义输入格式、系统指令、历史消息、工具 schema、最大 token、采样、超时、重试和评分。模板变化会改变模型看到的 token、角色和约束，必须作为协议版本。评估器执行时应打印最终 prompt 的 hash、token 数、模板版本和模型版本，必要时保存脱敏后的渲染结果。</p>
+<p>协议还必须规定错误处理：模型超时、输出截断、非法 JSON、工具失败、judge 失败和数据缺失分别是什么状态，是否重试，是否进入分母。不同协议混用会让“失败率”失去意义。平台提供统一协议 SDK，可以减少各团队手写脚本造成的行为差异。</p>
+<p>temperature 大于零时生成具有随机性，服务端可能使用不同 kernel、batch 或随机数路径。评估可以固定 seed、运行多次取均值、使用确定性解码或保存完整输出；每种方式有不同成本和代表性。报告保存 sampling、seed、重复次数、输出长度和失败样本，不能只保存最终平均分。多步任务还存在外部状态随机性：检索索引变化、工具返回变化、时间、权限和用户上下文。回放使用 snapshot、sandbox 和录制结果，必要时标记与生产有差异。<strong>可重复性不是强求位级一致，而是让差异来源可解释</strong>，并在质量门限中设置合理容差。</p>
 <h3 id="评估调度与业务执行的职责边界"><a class="header" href="#评估调度与业务执行的职责边界">评估调度与业务执行的职责边界</a></h3>
-<p>本章job调度只负责把固定case分发到已批准环境、生成可聚合结果，并控制资源、超时和预算。<a href="../part3/03-agent-runtime.html#object-model">Agent Runtime</a>负责用户Task/Run/Step/Operation的持久状态、外部副作用及恢复，评估系统通过隔离fixture或受控回放消费它的接口。不能把“eval分区重试”解释成“业务写工具可以再调用一次”。数据snapshot提交标记和本书prepare/validate/commit是应用层协议，不自动获得数据库跨系统ACID；别名更新要有原子条件，所有分区可见且校验通过后才提交，失败重试不覆盖已接受快照。</p>
+<p>评估调度只负责把固定 case 分发到已批准环境、生成可聚合结果，并控制资源、超时和预算。用户任务的持久状态、外部副作用及恢复由业务执行侧负责，评估系统通过隔离 fixture 或受控回放消费它的接口。<strong>不能把“eval 分区重试”解释成“业务写操作可以再调用一次”</strong>——这是评估平台最容易越界的地方。</p>
+<p>同理，数据 snapshot 的提交标记是应用层协议，不自动获得数据库跨系统 ACID；别名更新要有原子条件，所有分区可见且校验通过后才提交，失败重试不覆盖已接受快照。</p>
 <h2 id="108-质量门禁发布与验收"><a class="header" href="#108-质量门禁发布与验收">10.8 质量门禁、发布与验收</a></h2>
 <h3 id="门禁规则"><a class="header" href="#门禁规则">门禁规则</a></h3>
 <p>门禁由硬约束、软阈值和人工检查组成。硬约束包括 schema 合法、关键安全指标、工具副作用、数据授权和 artifact 完整；软阈值包括质量变化、延迟、成本、覆盖率和置信区间；人工检查用于裁判争议、重要客户、少数语言和高风险案例。每条规则写明基线、容差、样本、统计方式、owner 和有效期。</p>
 <p>门禁结果应可解释。失败报告列出退化能力、样本、模型版本、数据和运行时差异；通过报告列出覆盖范围和剩余不确定性。不能只输出一个绿色或红色状态。模型注册表只接收 evidence bundle 完整的 candidate，灰度控制器读取同一份门禁结果。</p>
 <h3 id="ab影子与-canary"><a class="header" href="#ab影子与-canary">A/B、影子与 canary</a></h3>
-<p>A/B 比较需要随机化、分桶、实验周期、样本量和停止规则。流量分配要避免同一用户在两个版本间频繁切换；多轮对话和 Agent 任务要按 parent task 分配。影子流量不应触发真实工具副作用，工具结果可以录制或 sandbox。canary 期间同时观察质量、SLO、成本、安全和用户反馈。</p>
+<p>A/B 比较需要随机化、分桶、实验周期、样本量和停止规则。流量分配要避免同一用户在两个版本间频繁切换；多轮对话和多步任务要按 parent task 分配。影子流量不应触发真实工具副作用，工具结果可以录制或 sandbox。canary 期间同时观察质量、SLO、成本、安全和用户反馈。</p>
 <p>统计显著不等于业务重要。一个小指标提升可能没有实际价值，一个高价值任务的少量回退可能必须阻断。报告给出效应大小、置信区间、样本覆盖和业务权重，决策记录由负责人签署。实验结束时归档数据 snapshot、配置和结论，避免无限期占用线上资源。</p>
 <h3 id="注册审批与回滚"><a class="header" href="#注册审批与回滚">注册、审批与回滚</a></h3>
 <p>模型注册表连接训练、评估、部署和审计。artifact 进入注册表前校验 hash、来源、许可证、质量门禁、兼容矩阵和安全扫描；状态变更记录操作者、时间、原因和证据。回滚选择已验证的旧 artifact、旧模板、旧评估规则和旧路由，而不是只恢复权重。</p>
@@ -482,7 +502,7 @@ result:
 <p>确定性不变量优先由单元/性质测试验证，协议和工具错误用契约测试，存储/队列/沙箱用集成测试；开放文本按任务标准和多次评测，不按逐字快照拒绝合理措辞变化。高风险链路补端到端与故障注入，Mock用于控制故障并不替代真实环境验收。规则文件、Skill与prompt也作为版本化配置进入同一套对照。发布决策引用完整report hash和责任人，评估执行completed、HTTP成功、judge高分与业务完成始终是不同事实。</p>
 <h2 id="109-本章小结"><a class="header" href="#109-本章小结">10.9 本章小结</a></h2>
 <p>评估的规范源是版本化Eval Case、执行记录与不可变报告。数据快照回答使用什么，协议与判定器回答怎样测量，统计与校准回答证据多强，门禁回答谁允许在哪个范围发布。来源提供机制，教学案例提供推演，真实运行需要另行保存环境、样本与结果，三者不能互相替代。</p>
-<p><a href="../part3/03-agent-runtime.html#recovery">Agent Runtime</a>消费这些契约，定义可恢复业务执行。第16章再展开Agent轨迹、行为与防护评测，沿用这里的样本、分母、校准和报告定义；第11章负责组织审批、运营修复和保留，不再复制一套评估事实源。</p>
+<p>业务执行侧消费这些契约，把它转成可恢复的实际动作；面向轨迹与行为的多步评测沿用这里的样本、分母、校准与报告定义，不另建一套事实源。</p>
 <h2 id="1010-参考资料"><a class="header" href="#1010-参考资料">10.10 参考资料</a></h2>
 <p><a id="ref-1"></a>[1] Zaharia, M., et al. <em>Resilient Distributed Datasets: A Fault-Tolerant Abstraction for In-Memory Cluster Computing</em>. NSDI, 2012. https://www.usenix.org/conference/nsdi12/technical-sessions/presentation/zaharia 访问日期：2026-10-17</p>
 <p><a id="ref-2"></a>[2] Dean, J., &amp; Ghemawat, S. <em>MapReduce: Simplified Data Processing on Large Clusters</em>. OSDI, 2004. https://research.google/pubs/mapreduce-simplified-data-processing-on-large-clusters/ 访问日期：2026-10-17</p>
@@ -508,7 +528,6 @@ result:
 <p><a id="ref-22"></a>[22] Liu, Y., et al. <em>G-Eval: NLG Evaluation using GPT-4 with Better Human Alignment</em>. 2023. https://arxiv.org/abs/2303.16634 核验2026-10-17</p>
 <p><a id="ref-23"></a>[23] Zheng, L., et al. <em>Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena</em>. 2023. https://arxiv.org/abs/2306.05685 核验2026-10-17</p>
 <p><a id="ref-24"></a>[24] Sigelman, B. H., et al. <em>Dapper, a Large-Scale Distributed Systems Tracing Infrastructure</em>. Google Research, 2010. https://research.google/pubs/dapper-a-large-scale-distributed-systems-tracing-infrastructure/ 访问日期：2026-10-17</p>
-<p><a id="ref-25"></a>[25] Moritz, P., et al. <em>Ray</em>. OSDI, 2018. https://www.usenix.org/conference/osdi18/presentation/moritz 访问日期：2026-10-17</p>
 
                     </main>
 
@@ -518,7 +537,7 @@ result:
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../part2/06-reliability-governance.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../part2/05-production-operations-governance.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -532,7 +551,7 @@ result:
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../part2/06-reliability-governance.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../part2/05-production-operations-governance.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

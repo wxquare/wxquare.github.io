@@ -43,10 +43,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-8eb0bf19.js";
+            window.path_to_searchindex_js = "../searchindex-30dde1cf.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-9975334b.js"></script>
+        <script src="../toc-d662c9eb.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -188,7 +188,7 @@
                         <h1 id="第7章-ai-infra-全景"><a class="header" href="#第7章-ai-infra-全景">第7章 AI Infra 全景</a></h1>
 <p>前六章讨论了模型如何表示、学习、对齐、推理和适配。本章开始进入大模型 Infra：同一个算法模型，怎样被稳定地训练出来、保存下来、部署出去、服务给用户，并在故障、扩容、升级和成本约束下持续运行。</p>
 <p>大模型 Infra 不是“把模型放进一台 GPU 服务器”。它是一条跨越数据、计算、通信、存储、调度、服务、观测和治理的系统链路。训练侧关心有效 token/s、扩展效率、故障恢复和 checkpoint；推理侧关心 TTFT、TPOT、吞吐、KV cache、排队和单位成功成本；平台侧还要处理模型版本、容量预测、租户隔离、权限、审计和回滚。</p>
-<p>本章作为第二部分Infra六章的总览（源码继续沿用part1路径），先建立资源模型和系统边界，后续章节再分别深入训练平台、推理服务、数据与评估、持久Agent Runtime以及可靠性与成本治理。算法章节给出的模型结构、并行需求、精度和验证器，是 Infra 的输入契约；Infra 的工作是让这些算法在真实约束下可重复、可观测、可恢复地执行。</p>
+<p>本章先建立资源模型和系统边界。模型结构、并行需求、精度要求和验证方式，是 Infra 的输入契约；Infra 的工作是让这些计算在真实约束下可重复、可观测、可恢复地执行。本章给出全章共用的资源账本、接口契约与决策地图，具体的训练作业、推理服务、数据评估与运营治理机制由后续各章分别展开。</p>
 <h2 id="71-为什么大模型需要独立的-infra-方法论"><a class="header" href="#71-为什么大模型需要独立的-infra-方法论">7.1 为什么大模型需要独立的 Infra 方法论</a></h2>
 <h3 id="从模型文件到生命周期系统"><a class="header" href="#从模型文件到生命周期系统">从模型文件到生命周期系统</a></h3>
 <p>传统后端服务通常把二进制、配置和数据库迁移打包发布。大模型服务的“可运行单元”更复杂：除了权重，还包括 tokenizer、chat template、量化配置、LoRA adapter、视觉预处理、采样参数、工具 schema、验证器、硬件 kernel 和安全策略。训练得到的 checkpoint 只是生命周期中的一个状态，不是可以直接交付的产品。</p>
@@ -222,7 +222,7 @@
 </tbody>
 </table>
 </div>
-<p>以下资源账本、状态机、门禁与费用数字均为本书的设计建议或教学假设，不代表来源中的已实现平台。后续章节承担实现细节；本章只冻结跨层输入、输出与可检查边界。</p>
+<p>以下资源账本、状态机、门禁与费用数字均为本书的设计建议或教学假设，不代表来源中的已实现平台。实现细节不在这里展开；本章只冻结跨层的输入、输出与可检查边界。</p>
 <h3 id="为什么能跑远远不够"><a class="header" href="#为什么能跑远远不够">为什么“能跑”远远不够</a></h3>
 <p>例如教学场景中，一个训练脚本能在8张GPU上跑通，只能说明功能闭环成立，不能说明系统可扩展。可能存在 GPU 等待、数据加载不足、通信瓶颈、checkpoint 阻塞、故障后无法恢复和成本不可接受等问题。一个推理服务返回了 token，也不代表可上线：它可能首 token 很慢、并发一高就 OOM、长请求饿死短请求、模型升级无法灰度、工具请求没有审计。</p>
 <p>大模型 Infra 的验收必须从“功能正确”扩展到五个维度：性能、容量、可靠性、可观测性和治理。Google SRE 方法论把服务目标、错误预算和发布决策联系起来 <a href="#ref-1">[1]</a>；大模型系统还要把 token、上下文、模型版本和生成质量纳入同一套服务目标。</p>
@@ -247,17 +247,35 @@
 <p>如果用在线 serving 的 QPS 指标衡量训练，就会忽略训练 GPU 是否被通信和数据拖慢；如果只用训练吞吐选推理 GPU，也会忽略单 token 延迟和显存容量。平台设计首先要建立 workload taxonomy，再决定共享集群还是隔离资源池。</p>
 <h3 id="参数激活和状态的内存账本"><a class="header" href="#参数激活和状态的内存账本">参数、激活和状态的内存账本</a></h3>
 <p>训练显存不只有模型权重。粗略账本包括参数、梯度、优化器状态、激活、通信 buffer、临时 workspace 和 checkpoint buffer。以 Adam 类优化器为例，参数本身可能以 BF16 保存，梯度和 master weight、动量与方差还需要额外空间；激活随 batch 和 sequence length 增长。ZeRO 通过分片优化器状态、梯度和参数降低单卡冗余 <a href="#ref-2">[2]</a>，ZeRO-Infinity 进一步探索 CPU/NVMe offload <a href="#ref-3">[3]</a>。</p>
-<p>推理显存则主要由权重、KV cache、运行时 workspace 和 batch 中的临时张量组成。对 decoder-only 模型，在常规MHA/GQA、K/V维相同且无特殊压缩时，可按第1章符号用近似式估算一批序列的KV载荷：</p>
+<p>推理显存则主要由权重、KV cache、运行时 workspace 和 batch 中的临时张量组成。对 decoder-only 模型，在常规MHA/GQA、K/V维相同且无特殊压缩时，可用统一的张量符号写出近似式，估算一批序列的 KV 载荷：</p>
 <p>\[
 M_{KV}\approx 2\times L\times B\times T\times H_{KV}\times d_{head}\times bytes,
 \]</p>
 <p>其中 \(L\) 为层数，\(B\) 为同时驻留的序列数，\(T\) 为每条序列已缓存token数，\(H_{KV}\) 为KV头数，\(d_{head}\)为每头维度，bytes为每元素字节数。这里计算一个批的载荷；单请求取 \(B=1\)，不同长度要逐序列求和。GQA通过减少 \(H_{KV}\) 降低cache压力，但模型结构和质量已经在算法侧决定。Infra 需要把最大长度、并发和精度转换成 admission control 和容量上限。</p>
-<p>MoE还要分清总参数与每token激活参数。权重驻留与制品存储通常受总参数、共享层和放置方案约束；每token激活参数可帮助描述参与计算的专家，却不能直接当作全部显存。路由通信、负载偏斜和非专家计算也不能从“激活少”消失。不能拿总参数估每token计算后又拿激活参数估权重内存，混合两种口径会同时高估算力需求与低估驻留成本。</p>
+<p>MoE还要分清总参数与每token激活参数。</p>
+<p>训练侧的账本可以按同一套符号写全。设参数量为 \(P\)，混合精度训练下权重以 BF16 保存（\(2P\) 字节），梯度同样需要一份（\(2P\)），而 Adam 类优化器还要保留 FP32 master weight、一阶动量和二阶动量，合计约 \(12P\) 字节。仅这三项就接近 \(16P\)：一个 70B 模型对应约 1120 GB，已经远超单卡容量，这正是需要 ZeRO 或 FSDP 分片的原因。</p>
+<p>激活量则按层数、批大小、序列长度和隐藏宽度增长，通常不能像参数那样用一个常数描述。它还与实现选择直接相关：激活重算（activation checkpoint）用额外一次前向换取不保存全部中间张量，能把激活峰值降下来，却增加计算量；通信 bucket、参数预取缓冲和分片临时聚合又会在关键路径上同时存活。因此“能放进显存”从来不是把上述几项相加就能回答的问题，而要在目标并行度下实测峰值。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">项</th><th style="text-align: left">量级</th><th style="text-align: left">是否随 batch/序列长度增长</th><th style="text-align: left">主要缓解手段</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">权重（BF16）</td><td style="text-align: left">\(2P\)</td><td style="text-align: left">否</td><td style="text-align: left">量化、分片、offload</td></tr>
+<tr><td style="text-align: left">梯度（BF16）</td><td style="text-align: left">\(2P\)</td><td style="text-align: left">否</td><td style="text-align: left">梯度分片、reduce-scatter</td></tr>
+<tr><td style="text-align: left">优化器状态（FP32 master + 两个动量）</td><td style="text-align: left">\(12P\)</td><td style="text-align: left">否</td><td style="text-align: left">ZeRO-1/2/3、CPU offload</td></tr>
+<tr><td style="text-align: left">激活</td><td style="text-align: left">与层数、batch、序列长度成正比</td><td style="text-align: left">是</td><td style="text-align: left">激活重算、序列并行、减小 micro-batch</td></tr>
+<tr><td style="text-align: left">通信与预取缓冲</td><td style="text-align: left">与并行度和 bucket 设置相关</td><td style="text-align: left">部分</td><td style="text-align: left">调整 bucket、限制在途快照</td></tr>
+<tr><td style="text-align: left">临时工作区与碎片</td><td style="text-align: left">由 kernel 与分配器决定</td><td style="text-align: left">部分</td><td style="text-align: left">预留静态区、统一分配器</td></tr>
+</tbody>
+</table>
+</div>
+<p>这张表是账本的分类框架，不是可以直接套用的容量公式。不同优化器、不同精度策略和不同框架实现的字节口径都不同；引用任何具体数字前，必须先声明优化器类型、精度配置和分片策略，否则两个团队会得出互相矛盾却各自正确的结论。权重驻留与制品存储通常受总参数、共享层和放置方案约束；每token激活参数可帮助描述参与计算的专家，却不能直接当作全部显存。路由通信、负载偏斜和非专家计算也不能从“激活少”消失。不能拿总参数估每token计算后又拿激活参数估权重内存，混合两种口径会同时高估算力需求与低估驻留成本。</p>
 <h3 id="计算带宽与通信"><a class="header" href="#计算带宽与通信">计算、带宽与通信</a></h3>
 <p>大模型性能不能只看 FLOPS。训练时需要矩阵乘法，也需要 GPU 之间的 all-reduce、all-gather、reduce-scatter；推理 decode 可能更受显存带宽和 KV 读取限制；数据处理可能受网络和对象存储吞吐限制。NCCL 为 GPU 集合通信提供了高性能 primitives <a href="#ref-4">[4]</a>，但应用层仍要正确选择并行维度、通信时机和拓扑。</p>
 <p>一个简单判断是：如果 GPU compute 利用率低、网络利用率高，可能是并行切分或 all-reduce 瓶颈；如果 compute 低、显存带宽接近上限，可能是 decode 或小 batch memory-bound；如果 GPU 和网络都低，而 CPU 或对象存储高，说明数据供给是瓶颈。需要同时观察多个层级的指标，不能只看一个 GPU utilization 百分比。</p>
 <h3 id="成本单位要与任务结果关联"><a class="header" href="#成本单位要与任务结果关联">成本单位要与任务结果关联</a></h3>
-<p>训练成本可以按每百万有效 token、每个 checkpoint 或每个实验比较；推理成本可以按每百万输入/输出 token、每个成功请求、每个完成任务或每个工具动作比较。对于 reasoning 或 Agent 系统，输出 token 多不一定坏，关键是额外 token 是否带来成功率增益。</p>
+<p>训练成本可以按每百万有效 token、每个 checkpoint 或每个实验比较；推理成本可以按每百万输入/输出 token、每个成功请求、每个完成任务或每个工具动作比较。对于推理密集型负载，输出 token 多不一定坏，关键是额外 token 是否带来成功率增益。</p>
 <p>建议建立如下成本表：</p>
 <pre><code class="language-text">总成本 = GPU 时间成本
       + CPU / 存储 / 网络成本
@@ -293,7 +311,6 @@ P_{world}=P_{data}\times P_{tensor}\times P_{pipeline}.
 E(N)=\frac{throughput(N)}{N\times throughput(1)}.
 \]</p>
 <p>当 \(E(N)\) 随GPU数下降时，继续扩容可能不划算。Megatron-LM 的大规模训练研究展示了模型并行与集群训练如何协同 <a href="#ref-6">[6]</a><a href="#ref-7">[7]</a>；PaLM 的 Pathways 经验也说明，大规模训练需要统一计算、通信和故障管理 <a href="#ref-9">[9]</a>。平台团队应把扩展曲线作为发布门禁：在目标规模上测吞吐、通信比例、checkpoint 时间和节点故障恢复。</p>
-<h3 id="数据与训练恢复的接口"><a class="header" href="#数据与训练恢复的接口">数据与训练恢复的接口</a></h3>
 <h3 id="数据管线是训练系统的前端"><a class="header" href="#数据管线是训练系统的前端">数据管线是训练系统的前端</a></h3>
 <p>训练 GPU 只在拿到有效 batch 时产生价值。数据管线要完成对象存储读取、解压、解码、去重、tokenization、混合采样、shuffle、packing 和 batch 组装。任何一个环节抖动，都会让 GPU 等待。Spark 等数据处理系统展示了大规模 DAG、分区和容错的基本方法 <a href="#ref-10">[10]</a>；大模型训练通常还需要面向 token 的流式和分片设计。</p>
 <p>数据管线要区分 raw document、clean document、token shard、packed sample 和 training batch。每一层都有版本和统计：文档数、有效 token、语言比例、平均长度、重复率、过滤率、错误率和采样权重。训练时记录 manifest hash 和 shard 顺序，才能在 checkpoint 恢复时继续得到一致或可解释的样本流。</p>
@@ -304,7 +321,7 @@ E(N)=\frac{throughput(N)}{N\times throughput(1)}.
 <p>一个可恢复 checkpoint 通常包括：模型参数、优化器状态、学习率调度器、梯度 scaler、随机状态、数据游标、训练配置、并行拓扑、tokenizer、数据 manifest、代码版本和评估结果。只保存权重可以做推理，却不能保证从同一个优化状态继续训练。</p>
 <p>Checkpoint 保存会产生大量 I/O 和 GPU/CPU 拷贝。可以使用分片、异步写入、增量 checkpoint、对象存储 multipart 和本地缓存，但必须定义一致性：训练进程崩溃时，不能把来自step \(t\)的权重与step \(t-1\)的优化器状态当作同一恢复点。保存过程应有临时前缀、manifest、校验和、完成标志，读取时只选择完整版本。</p>
 <h3 id="保存频率与丢失工作量"><a class="header" href="#保存频率与丢失工作量">保存频率与丢失工作量</a></h3>
-<p>Checkpoint越频繁，潜在重算量越少，但保存成本更高。若教学假设故障时间在相邻完整快照之间均匀分布、间隔为 \(\tau\)，平均丢失进度约 \(\tau/2\)，另加重启和恢复耗时；不能只用恢复耗时乘故障率表示全部损失。真实故障并不一定独立均匀，异步写入也会延长最后可用快照的年龄，应按第8章定义的完整快照时间线计量。</p>
+<p>Checkpoint越频繁，潜在重算量越少，但保存成本更高。若教学假设故障时间在相邻完整快照之间均匀分布、间隔为 \(\tau\)，平均丢失进度约 \(\tau/2\)，另加重启和恢复耗时；不能只用恢复耗时乘故障率表示全部损失。真实故障并不一定独立均匀，异步写入也会延长最后可用快照的年龄，应按完整快照时间线计量。</p>
 <p>节点越多、运行时间越长、故障率越高，越应该降低恢复粒度。训练系统还要区分可恢复 checkpoint 和发布 checkpoint：前者服务训练重启，后者经过评估、转换和注册后供推理使用。</p>
 <h3 id="断点恢复与弹性训练"><a class="header" href="#断点恢复与弹性训练">断点恢复与弹性训练</a></h3>
 <p>集群可能发生 GPU 错误、节点重启、网络分区、文件系统超时或容器驱逐。弹性训练需要决定：故障后等待原节点回来、缩小 world size 继续、替换节点重启，还是回滚到最近 checkpoint。每种策略都会影响优化状态、数据顺序和最终模型。</p>
@@ -312,7 +329,6 @@ E(N)=\frac{throughput(N)}{N\times throughput(1)}.
 <h3 id="训练数据安全与权限"><a class="header" href="#训练数据安全与权限">训练数据安全与权限</a></h3>
 <p>数据平台必须把训练数据当作高价值资产。对象存储权限、脱敏、密钥扫描、租户隔离、审计和删除机制，不能因为数据进入 GPU 就失去控制。训练日志和样本抽样也可能泄露敏感文本，应限制访问和保留时间。</p>
 <p>模型 checkpoint 同样可能包含训练数据记忆和内部能力，下载、复制、转换和发布都需要权限。平台要记录谁创建了 checkpoint、谁下载过、哪个数据版本训练而来，以及是否通过安全评估。模型注册表不是简单文件目录，而是算法、数据和治理元数据的索引。</p>
-<h3 id="kernel通信与存储的总览"><a class="header" href="#kernel通信与存储的总览">Kernel、通信与存储的总览</a></h3>
 <h3 id="从算子到融合-kernel"><a class="header" href="#从算子到融合-kernel">从算子到融合 kernel</a></h3>
 <p>Transformer 训练和推理包含 GEMM、attention、normalization、activation、通信和采样等算子。单个算子都正确，不代表组合执行高效：中间张量写入 HBM、kernel launch 次数、非连续 layout 和 padding 都会造成开销。FlashAttention 通过 IO-aware 的 tiling 减少 attention 的 HBM 读写，并保持精确结果 <a href="#ref-11">[11]</a>；FlashAttention-2 进一步改善并行和 work partitioning <a href="#ref-12">[12]</a>。</p>
 <p>工程优化应先用 profiler 找到热点，再决定融合、重排、kernel 替换或模型结构调整。不要为了追求 benchmark 盲目改动算子，尤其要验证不同 sequence length、batch、精度、GPU 架构和边界输入。kernel 变化必须绑定版本和回归集，因为数值微小差异可能在长训练或低精度推理中累积。</p>
@@ -344,7 +360,6 @@ goodput = successful requests / time under SLO
 <h3 id="模型并行和副本扩展"><a class="header" href="#模型并行和副本扩展">模型并行和副本扩展</a></h3>
 <p>小模型可以单 GPU 部署多个副本，大模型通常需要 tensor parallel 或 pipeline parallel。副本扩展增加吞吐和容灾，但每个副本都占用完整权重或一组分片；模型加载时间和 cache warmup 也会影响扩容速度。路由层要知道副本健康、可用 KV 容量、当前排队和模型版本，不能只按 round-robin 分发。</p>
 <p>对于多模型平台，路由还要考虑模型能力、租户、区域、价格、精度和数据驻留。fallback 模型必须经过任务和安全评估，不能在主模型不可用时任意切换到能力不等价的模型。路由决策要写入 trace，便于解释一次请求实际使用了什么模型。</p>
-<h3 id="调度batching与kv-cache"><a class="header" href="#调度batching与kv-cache">调度、Batching与KV Cache</a></h3>
 <h3 id="continuous-batching"><a class="header" href="#continuous-batching">Continuous Batching</a></h3>
 <p>传统 batch 等待一批请求一起开始、一起结束，但生成长度通常差异很大。Orca 提出的 iteration-level scheduling 使请求可以在每个生成迭代加入或退出 batch <a href="#ref-16">[16]</a>。Continuous batching 提升了 GPU 利用率，却要求调度器实时管理 prefill、decode、KV 容量、优先级、取消和饥饿。</p>
 <p>调度器至少要选择三个对象：本轮处理哪些请求、每个请求分配多少 token、是否允许新请求进入。只按 FIFO 可能让一个超长 prompt 阻塞大量短请求；只按短请求优先可能让长任务饥饿；只追求 batch 最大化可能违反 TTFT SLO。常见策略包括 token budget、deadline、优先级队列、chunked prefill 和公平配额。</p>
@@ -385,9 +400,9 @@ goodput = successful requests / time under SLO
   + capacity for long-context tail
 </code></pre>
 <h3 id="多租户隔离"><a class="header" href="#多租户隔离">多租户隔离</a></h3>
-<p>多租户模型平台要隔离权重、adapter、KV cache、日志、数据和工具权限。GPU 共享可以提高利用率，但可能造成显存争抢、尾延迟相互影响和数据泄露。租户配额应覆盖并发请求、输入 token、输出 token、模型种类、工具调用和缓存大小。</p>
+<p>多租户模型平台要隔离权重、adapter、KV cache、日志、数据和外部调用权限。GPU 共享可以提高利用率，但可能造成显存争抢、尾延迟相互影响和数据泄露。租户配额应覆盖并发请求、输入 token、输出 token、模型种类、外部调用和缓存大小。</p>
 <p>租户级 trace 和成本归因也很重要。每个请求要带 tenant、project、model、version、route 和 cost center；离线训练要带数据拥有者、实验 ID 和 GPU 预算。没有归因，平台无法回答谁消耗了资源、哪个模型最贵、哪类请求造成排队。</p>
-<p>成本归因的粒度应与决策粒度一致。训练的最小归因单元通常是 experiment 或 dataset revision，推理是 request、conversation 或 business operation，Agent 则可能需要延伸到 tool、retry、人工审核和最终 outcome。每个用量事件至少包括 usage id、开始与结束时间、资源类型、租户、项目、成本中心、模型/制品版本、区域、分配方式、计量值、计价规则版本和来源。计量事件要幂等：同一段 GPU 使用、同一组 token 或同一次对象存储写入即使被重复消费，也只能结算一次。账单不是观测 dashboard 的导出，而是独立、可重放的事实流。</p>
+<p>成本归因的粒度应与决策粒度一致。训练的最小归因单元通常是 experiment 或 dataset revision，推理是 request、conversation 或 business operation。每个用量事件至少包括 usage id、开始与结束时间、资源类型、租户、项目、成本中心、模型/制品版本、区域、分配方式、计量值、计价规则版本和来源。计量事件要幂等：同一段 GPU 使用、同一组 token 或同一次对象存储写入即使被重复消费，也只能结算一次。账单不是观测 dashboard 的导出，而是独立、可重放的事实流。</p>
 <p>“每百万 token 的价格”不足以支撑平台优化。一次请求的真实边际成本可能包含 prefill、decode、KV 驻留、cache miss、路由到更大模型、重试、工具调用、网络出口和人工处理；训练成本还包含空闲 reservation、失败 step、checkpoint、数据读取和评估。较有用的单位是每次成功任务、每个被接受的工单、每个通过的测试或每个有效训练 token 的成本，但这些单位必须同时报告质量和延迟。否则团队可能通过缩短输出、拒绝困难任务或降低验证次数来制造“成本下降”的假象。</p>
 <p>为了支持审计，成本链应能从总账一路钻取到单个动作。例如教学假设中一个业务Run的归因成本为12元，其中模型 token 6 元、GPU reservation 分摊 2 元、搜索工具 1 元、重试 1 元、人工批准 2 元；若任务失败，系统还应显示是模型质量、工具故障还是预算策略导致失败。这样，负责人能判断应该调模型路由、修复工具、优化 cache 还是限制输入长度，而不是把所有异常归咎于某个团队。归因也必须支持共享成本：基础模型 warm pool、公共向量索引和观测系统可以按预先公布的规则分摊，不能在月末按临时印象摊派。</p>
 <p>多租户隔离的公平不是平均分卡。交互式生产请求通常有严格 deadline，训练可以接受等待但需要连续 gang，评估适合在空档批量填充。控制面可同时采用 hard quota、reservation、借用和回收：hard quota 防止一个租户耗尽集群；reservation 为关键服务保留容量；借用让空闲容量被低优先级任务使用；回收在 reservation 真正需要资源时让可检查点的任务有序退出。借用必须有最大期限、可抢占标记和 checkpoint 协议，不能把“空闲”误解为永久所有权。</p>
@@ -419,7 +434,7 @@ goodput = successful requests / time under SLO
 <p>ADR 不替代实验数据，但它规定在什么约束下解释实验数据。发布后若观察到闲置成本高于隔离收益，团队可以根据既定重评估条件合并资源池；若发生跨租户 cache 风险，则应立即提高隔离优先级。将获得与牺牲放在同一维度比较，能防止“吞吐提升”掩盖安全、可运维性或恢复能力的下降。</p>
 <h2 id="76-可靠性观测与infra验收"><a class="header" href="#76-可靠性观测与infra验收">7.6 可靠性、观测与Infra验收</a></h2>
 <h3 id="slo-不只是一条延迟线"><a class="header" href="#slo-不只是一条延迟线">SLO 不只是一条延迟线</a></h3>
-<p>在线 LLM 服务的 SLO 至少包括可用性、TTFT、TPOT、完成率、错误率、超时率和质量门禁。对流式请求，“HTTP 200”不代表成功：可能只返回了部分 token、工具调用格式损坏或用户中途取消。对 Agent，最终任务成功和工具状态一致性比单次模型响应更重要。</p>
+<p>在线 LLM 服务的 SLO 至少包括可用性、TTFT、TPOT、完成率、错误率、超时率和质量门禁。对流式请求，“HTTP 200”不代表成功：可能只返回了部分 token、结构化输出损坏或用户中途取消。对多步任务，最终成功率和中间状态一致性比单次模型响应更重要。</p>
 <p>可以把 SLO 分层：平台层保证服务可用和延迟，模型层保证格式和能力回归，业务层保证任务成功和人工接管率。错误预算用于决定是否继续发布、是否暂停实验、是否把资源投入稳定性。SRE Workbook 提供了服务等级和错误预算的系统方法 <a href="#ref-1">[1]</a>。</p>
 <h3 id="metricslogs-与-traces"><a class="header" href="#metricslogs-与-traces">Metrics、Logs 与 Traces</a></h3>
 <p>Metrics 适合时间序列和聚合趋势，logs 记录单次错误与上下文，traces 记录跨服务和跨工具的因果链。Dapper 展示了大规模分布式 tracing 如何把请求在多个服务中的路径串起来 <a href="#ref-21">[21]</a>；OpenTelemetry 提供统一的 trace、metric 和 log 语义 <a href="#ref-22">[22]</a>；Prometheus 提供指标采集、查询和告警基础 <a href="#ref-23">[23]</a>。</p>
@@ -454,25 +469,23 @@ goodput = successful requests / time under SLO
 <p>在上线前，可以把“资源与治理”作为独立 gate 来复核。先确认资源账本是否覆盖 reservation、allocation、实际 usage 和释放，是否能解释拓扑与 warmup 造成的差异；再确认成本是否能从租户、项目、模型和请求钻取到 token、GPU、工具与人工；随后确认发布 manifest、评估证据、灰度阈值和回滚包是否一一对应；最后在故障与高峰组合负载下验证租户隔离、错误预算和人工升级。任何一个问题没有证据，都应缩小影响范围而不是扩大流量。</p>
 <p>这种 gate 还要求明确责任分工。模型团队对能力、评估集、已知限制和制品签名负责；Infra 团队对调度、容量、路由、计量、隔离和恢复负责；业务团队对成功定义、风险接受和人工路径负责；安全与治理团队对数据、权限、审计和发布政策负责。责任边界并不意味着问题可以被转交：一次发布需要这些 owner 在同一个 manifest 与 ADR 上留下证据。没有 owner 的指标、没有回滚路径的制品、没有成本中心的任务都不应进入生产资源池。</p>
 <h2 id="77-生命周期五平面与决策地图"><a class="header" href="#77-生命周期五平面与决策地图">7.7 生命周期、五平面与决策地图</a></h2>
-<p>本章只建立总览，不重复训练、推理、评估、Agent Runtime 和生产治理章节的细节。后续章节会分别展开训练作业、推理服务、数据评估、Agent Runtime 和治理控制；这里保留一张跨章节地图，帮助读者在设计评审中判断问题应落在哪一层。</p>
-<h3 id="生命周期从实验到退役"><a class="header" href="#生命周期从实验到退役">生命周期：从实验到退役</a></h3>
-<p>大模型 Infra 的生命周期可以压缩成七个阶段：</p>
-<pre><code class="language-text">数据进入 -&gt; 训练运行 -&gt; 制品注册 -&gt; 推理交付
-  -&gt; 评估反馈 -&gt; 运行治理 -&gt; 退役归档
-</code></pre>
-<p>数据进入阶段关注来源、授权、清洗、去重、版本和统计；训练运行阶段关注并行、通信、checkpoint、恢复和成本；制品注册阶段关注权重、tokenizer、模板、量化、adapter、评估和签名；推理交付阶段关注 SLO、KV、batching、路由、隔离和发布；评估反馈阶段关注回归集、judge、线上信号和漂移；运行治理阶段关注安全、审计、灾备、成本和事故；退役归档阶段关注模型下线、数据删除、证据留存和依赖清理。</p>
+<p>本章只建立总览，不展开各层的实现细节。这里保留一张分层地图，帮助读者在设计评审中判断一个问题应落在哪一层，以及它需要什么证据才能被判定为解决。</p>
+<h3 id="生命周期中最容易被忽略的一段退役"><a class="header" href="#生命周期中最容易被忽略的一段退役">生命周期中最容易被忽略的一段：退役</a></h3>
+<p>前面已经给出从数据进入、训练运行、制品注册、推理交付、评估反馈到运行治理的完整链路。这里补上链条的最后一环，因为它最容易被当成“以后再说”，却在几年后变成最难回答的问题。</p>
+<p>退役不是一个删除操作，而是一组彼此独立、到期时间不同的收尾动作。<strong>模型下线</strong>要先确认没有在途请求仍指向该版本，再撤销路由和凭据；<strong>数据删除</strong>要沿血缘找到缓存、派生索引、评估样本和训练候选，逐项处理并留下范围记录；<strong>证据留存</strong>要保留发布与审批记录、评估报告和事故材料，但不必保留原始敏感内容；<strong>依赖清理</strong>要回收 adapter、量化制品、编译缓存、专用资源池和监控面板，否则它们会以“看起来还在用”的形态长期占用容量和注意力。</p>
+<p>四件事的时间尺度不同：模型下线以小时计，依赖清理以周计，数据删除受保留策略和备份周期约束，证据留存以年计。把它们压成一个“退役工单”会导致两种失败——要么删得太快，把仍需审计的证据一并清掉；要么拖得太久，让已下线的模型继续持有权限和资源。可操作的做法是给每类状态单独定义保留期、删除方式和责任人，并在退役时逐类核对，而不是用一次批量操作收尾。</p>
 <h3 id="五个平面"><a class="header" href="#五个平面">五个平面</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th style="text-align: left">平面</th><th style="text-align: left">管什么</th><th style="text-align: left">典型问题</th><th style="text-align: left">后续章节</th></tr>
+<tr><th style="text-align: left">平面</th><th style="text-align: left">管什么</th><th style="text-align: left">典型问题</th><th style="text-align: left">需要的证据</th></tr>
 </thead>
 <tbody>
-<tr><td style="text-align: left">数据平面</td><td style="text-align: left">训练数据、评估数据、线上反馈、血缘</td><td style="text-align: left">数据是否可追溯、可授权、可重算</td><td style="text-align: left">第8、10章</td></tr>
-<tr><td style="text-align: left">计算平面</td><td style="text-align: left">GPU、网络、存储、kernel、通信</td><td style="text-align: left">资源是否足够、拓扑是否匹配、成本是否可解释</td><td style="text-align: left">第8、9章</td></tr>
-<tr><td style="text-align: left">状态平面</td><td style="text-align: left">checkpoint、KV、请求、workflow、工具操作</td><td style="text-align: left">失败后从哪里恢复，重试是否重复副作用</td><td style="text-align: left">第8、9章与<a href="../part3/03-agent-runtime.html#object-model">Agent Runtime</a></td></tr>
-<tr><td style="text-align: left">控制平面</td><td style="text-align: left">调度、路由、发布、配额、回滚</td><td style="text-align: left">谁可以启动、升级、降级和停止</td><td style="text-align: left">第8、9、11章与<a href="../part3/03-agent-runtime.html#object-model">Agent Runtime</a></td></tr>
-<tr><td style="text-align: left">治理平面</td><td style="text-align: left">SLO、安全、审计、供应链、责任</td><td style="text-align: left">证据在哪里，风险由谁接受</td><td style="text-align: left">第10、11章</td></tr>
+<tr><td style="text-align: left">数据平面</td><td style="text-align: left">训练数据、评估数据、线上反馈、血缘</td><td style="text-align: left">数据是否可追溯、可授权、可重算</td><td style="text-align: left">snapshot、manifest、血缘、统计剖面</td></tr>
+<tr><td style="text-align: left">计算平面</td><td style="text-align: left">GPU、网络、存储、kernel、通信</td><td style="text-align: left">资源是否足够、拓扑是否匹配、成本是否可解释</td><td style="text-align: left">资源账本、拓扑快照、profiler、扩展曲线</td></tr>
+<tr><td style="text-align: left">状态平面</td><td style="text-align: left">checkpoint、KV、请求、操作记录</td><td style="text-align: left">失败后从哪里恢复，重试是否重复副作用</td><td style="text-align: left">完整快照标记、游标、幂等键、状态事件</td></tr>
+<tr><td style="text-align: left">控制平面</td><td style="text-align: left">调度、路由、发布、配额、回滚</td><td style="text-align: left">谁可以启动、升级、降级和停止</td><td style="text-align: left">策略版本、审批记录、发布 manifest、审计事件</td></tr>
+<tr><td style="text-align: left">治理平面</td><td style="text-align: left">SLO、安全、审计、供应链、责任</td><td style="text-align: left">证据在哪里，风险由谁接受</td><td style="text-align: left">SLO 报告、风险登记、签名与扫描结果</td></tr>
 </tbody>
 </table>
 </div>
@@ -489,7 +502,7 @@ goodput = successful requests / time under SLO
 <tr><td style="text-align: left">训练越扩越慢</td><td style="text-align: left">step 时间线、通信拓扑、数据等待、checkpoint</td><td style="text-align: left">直接加 GPU</td></tr>
 <tr><td style="text-align: left">推理 p99 上升</td><td style="text-align: left">输入/输出长度、队列、prefill/decode、KV 水位</td><td style="text-align: left">只看平均 tokens/s</td></tr>
 <tr><td style="text-align: left">模型分数上涨但线上变差</td><td style="text-align: left">评估集污染、线上分布、反馈偏差、任务成功率</td><td style="text-align: left">只扩大 benchmark</td></tr>
-<tr><td style="text-align: left">Agent 重试后出现副作用</td><td style="text-align: left">operation id、幂等、工具状态、审批事件</td><td style="text-align: left">让模型“更小心”</td></tr>
+<tr><td style="text-align: left">重试后出现重复副作用</td><td style="text-align: left">操作标识、幂等键、外部状态、审批事件</td><td style="text-align: left">让模型“更小心”</td></tr>
 <tr><td style="text-align: left">成本异常</td><td style="text-align: left">单位成功任务成本、重试、cache 命中、人工接管</td><td style="text-align: left">只压低模型单价</td></tr>
 <tr><td style="text-align: left">安全或合规不确定</td><td style="text-align: left">数据来源、权限、审计、供应链和责任人</td><td style="text-align: left">只加输出过滤</td></tr>
 </tbody>
@@ -506,35 +519,34 @@ goodput = successful requests / time under SLO
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th style="text-align: left">生产者/负载</th><th style="text-align: left">核心输入</th><th style="text-align: left">产出与持久事实</th><th style="text-align: left">主要资源</th><th style="text-align: left">消费章节与边界</th></tr>
+<tr><th style="text-align: left">生产者/负载</th><th style="text-align: left">核心输入</th><th style="text-align: left">产出与持久事实</th><th style="text-align: left">主要资源</th><th style="text-align: left">不能混淆的边界</th></tr>
 </thead>
 <tbody>
-<tr><td style="text-align: left">数据处理</td><td style="text-align: left">授权原始数据、规则版本</td><td style="text-align: left">dataset manifest、shard与血缘</td><td style="text-align: left">CPU、存储与网络</td><td style="text-align: left">第8/10章；不把加工完成当训练完成</td></tr>
-<tr><td style="text-align: left">训练/后训练</td><td style="text-align: left">数据与目标、拓扑、训练配置</td><td style="text-align: left">完整训练checkpoint、候选制品</td><td style="text-align: left">权重/状态/激活、通信、rollout</td><td style="text-align: left">第8章；可恢复不等于可发布</td></tr>
-<tr><td style="text-align: left">Serving</td><td style="text-align: left">已准入Model Manifest、请求画像</td><td style="text-align: left">token流、请求终态、用量事件</td><td style="text-align: left">权重、KV、工作区与带宽</td><td style="text-align: left">第9章；KV缓存不等于业务提交记录</td></tr>
-<tr><td style="text-align: left">评估实验</td><td style="text-align: left">Eval Case集、候选版本与判定器</td><td style="text-align: left">分切片结果、失败证据、统计区间</td><td style="text-align: left">模型、CPU和隔离沙箱</td><td style="text-align: left">第10章；分数不等于业务效果保证</td></tr>
-<tr><td style="text-align: left">持久Runtime</td><td style="text-align: left">Task、授权、执行预算</td><td style="text-align: left">Run/Step/Event、Operation与产物</td><td style="text-align: left">状态库、队列、执行器、模型配额</td><td style="text-align: left"><a href="../part3/03-agent-runtime.html#object-model">Agent Runtime</a>；连接断开不等于任务取消</td></tr>
-<tr><td style="text-align: left">运维治理</td><td style="text-align: left">SLO、策略、账本和事件</td><td style="text-align: left">发布/修复/删除/升级证据</td><td style="text-align: left">保留空间、值班与隔离容量</td><td style="text-align: left">第11章；没有事实不能把未知结果记失败</td></tr>
+<tr><td style="text-align: left">数据处理</td><td style="text-align: left">授权原始数据、规则版本</td><td style="text-align: left">dataset manifest、shard 与血缘</td><td style="text-align: left">CPU、存储与网络</td><td style="text-align: left">加工完成不等于训练完成</td></tr>
+<tr><td style="text-align: left">训练/后训练</td><td style="text-align: left">数据与目标、拓扑、训练配置</td><td style="text-align: left">完整训练 checkpoint、候选制品</td><td style="text-align: left">权重/状态/激活、通信、rollout</td><td style="text-align: left">可恢复不等于可发布</td></tr>
+<tr><td style="text-align: left">Serving</td><td style="text-align: left">已准入 Model Manifest、请求画像</td><td style="text-align: left">token 流、请求终态、用量事件</td><td style="text-align: left">权重、KV、工作区与带宽</td><td style="text-align: left">KV 缓存不等于业务提交记录</td></tr>
+<tr><td style="text-align: left">评估实验</td><td style="text-align: left">Eval Case 集、候选版本与判定器</td><td style="text-align: left">分切片结果、失败证据、统计区间</td><td style="text-align: left">模型、CPU 和隔离沙箱</td><td style="text-align: left">分数不等于业务效果保证</td></tr>
+<tr><td style="text-align: left">运维治理</td><td style="text-align: left">SLO、策略、账本和事件</td><td style="text-align: left">发布/修复/删除/升级证据</td><td style="text-align: left">保留空间、值班与隔离容量</td><td style="text-align: left">没有事实不能把未知结果记失败</td></tr>
 </tbody>
 </table>
 </div>
-<p>这张表描述本书接口分工。一个对象存储桶可以同时容纳多类文件，但存储位置相同不意味着语义相同。训练checkpoint保存优化器和采样位置，推理KV是可重算中间值，Runtime checkpoint保存步骤与外部动作关联；不能把三者统一成一个模糊的“缓存恢复”。目录名也不决定书的部分：本章位于part1仅为历史路径身份，阅读上从此进入第二部分Infra；不移动路径、不建立重复版本。</p>
+<p>这张表描述本书的接口分工。一个对象存储桶可以同时容纳多类文件，但存储位置相同不意味着语义相同：训练 checkpoint 保存优化器和采样位置，推理 KV 是可重算的中间值，而任何承载外部动作的持久状态还必须记录它对应的操作标识。三者不能统一成一个模糊的“缓存恢复”。</p>
 <h3 id="model-manifest注册兼容与失效"><a class="header" href="#model-manifest注册兼容与失效">Model Manifest：注册、兼容与失效</a></h3>
 <p>Model Manifest是不可变的模型执行包描述。最小字段包括manifest id、基础权重及hash、tokenizer/特殊token、模板、adapter及底座约束、W/A/KV精度、量化配置与布局、运行后端版本、必要预处理、允许输入和输出协议。硬件/上下文/并发限制应来自验证记录，不能写成模型名称推断。训练checkpoint与导出制品是不同的artifact，使用血缘关联，不让同一个URI静默覆盖成另一类文件。</p>
-<p>制品注册产生候选状态；评估服务附上Eval Case版本与结果，发布控制面再给批准范围和路由条件。路由只消费已批准的manifest，推理返回实际执行的manifest id；出现hash或模板不匹配时，拒绝加载并保留错误原因。回滚恢复整套依赖，不只恢复权重。第8章负责导出与恢复证据，第9章负责运行兼容，第10章负责质量记录，第11章负责批准、保留和撤销。</p>
+<p>制品注册产生候选状态；评估服务附上Eval Case版本与结果，发布控制面再给批准范围和路由条件。路由只消费已批准的manifest，推理返回实际执行的manifest id；出现hash或模板不匹配时，拒绝加载并保留错误原因。回滚恢复整套依赖，不只恢复权重。导出与恢复证据、运行兼容、质量记录、批准与撤销，分别落在不同层，但都通过同一个 manifest 关联。</p>
 <h3 id="资源账本先有事实再汇总"><a class="header" href="#资源账本先有事实再汇总">资源账本：先有事实再汇总</a></h3>
 <p>资源请求给出workload id、租户、优先级、预计长度分布、设备/互联约束与预算；调度回执给出reservation id、allocation id、真实设备和起止时间；用量事件再关联token、GPU时间、存储和失败重算。每个事件要有去重标识和计量规则版本。取消只产生控制意图，实际释放要由执行面确认；设备失联进入隔离或待确认，不凭超时自动把占用清零。</p>
-<p>账本查询应把reserved、allocated、live usage和released分别返回，并标明采样时间、延迟和未知部分。容量评估使用可承诺资源，而不是当前空闲数；成本评估同时展示失败与闲置分摊，不能把预留费和实际GPU费重复相加。把账单误差归因到计量延迟、重投递或规则变化，比直接改dashboard总数更可审计。第8/9章分别提供训练与请求计量，第11章定义对账和异常处置。</p>
+<p>账本查询应把reserved、allocated、live usage和released分别返回，并标明采样时间、延迟和未知部分。容量评估使用可承诺资源，而不是当前空闲数；成本评估同时展示失败与闲置分摊，不能把预留费和实际GPU费重复相加。把账单误差归因到计量延迟、重投递或规则变化，比直接改dashboard总数更可审计。训练与请求计量来自执行层，对账与异常处置属于治理层。</p>
 <h3 id="eval-case与上线证据区分假设和结论"><a class="header" href="#eval-case与上线证据区分假设和结论">Eval Case与上线证据：区分假设和结论</a></h3>
-<p>Eval Case描述固定输入、授权/环境快照、预期约束、判定器、切片、预算与副作用规则。候选模型、模板或调度策略变化后，评估任务记录实际版本、运行状态、观测结果与判定原因；未完成、超时、基础设施错误、模型错误、业务失败和未知外部结果应区分。第10章再定义完整记录，后续章引用这一契约，不把服务测试case当作线上业务已经成功。</p>
+<p>Eval Case描述固定输入、授权/环境快照、预期约束、判定器、切片、预算与副作用规则。候选模型、模板或调度策略变化后，评估任务记录实际版本、运行状态、观测结果与判定原因；未完成、超时、基础设施错误、模型错误、业务失败和未知外部结果应区分。完整记录的定义不在这里展开；关键约束是不把服务测试 case 当作线上业务已经成功。</p>
 <p>发布请求至少引用manifest、资源画像、case集、质量/延迟/成本门槛与回滚版本。若质量达标但目标负载资源不够，应缩小范围、排队或重新选型；若容量达标但权限或质量失败，则暂停发布。缺少某类证据时，系统不能通过省略这一类评估制造绿色状态。所有门槛都记录owner、到期时间与复核条件，避免一次获批无限续用。</p>
 <h3 id="自托管外部api与混合部署"><a class="header" href="#自托管外部api与混合部署">自托管、外部API与混合部署</a></h3>
 <p>先按数据分级澄清传输、留存、访问、部署区域和审计要求，再判断哪些候选允许接触相应输入。自托管增加硬件、模型加载、Serving升级、补丁、值守与事故责任，不自动等同安全；外部API减少部分运维负担，却引入配额、网络、供应商变更与留存契约。未经独立核验，不能把某家API的宣传写成默认数据保证。</p>
 <p>对峰谷明显的企业任务，在相同质量和延迟目标下比较总拥有成本：基础预留与闲置、峰值冗余、冷启动、模型分发、缓存、网络、失败重试、人工值守，以及排队超时损失。外部方案还比较峰值配额是否可兑现、可接受输入的最小化与跨区费用；不能只把token单价与GPU标价相除。混合方案可按敏感级别或任务类型路由，回退候选也必须满足原权限和数据边界，不能因为本地故障把受限材料外发。</p>
 <p>本书建议把决策记录为：允许的任务和数据范围、同负载基线、容量与费用假设、所选路线、主动承担的运维或依赖成本、失败时缩小服务的方式，以及重新评估触发条件。利用率低但峰值排队严重时，先对照预留与启动时间，再决定购买峰值、引入允许的API补峰或改异步，不能只用平均利用率要求减卡。这里给出比较方法，尚无实际价格、压测或供应商合同结论。</p>
 <h2 id="79-本章小结把复杂度变成契约"><a class="header" href="#79-本章小结把复杂度变成契约">7.9 本章小结：把复杂度变成契约</a></h2>
-<p>AI Infra 的核心能力不是堆叠组件，而是把算法复杂度转化为资源契约、状态契约、质量契约和治理契约。资源契约说明模型在不同长度、并发和硬件下需要多少计算、显存、网络与存储；状态契约说明请求、KV、checkpoint、数据游标和工具操作如何创建、恢复、过期与回滚；质量契约说明模型升级、量化、kernel、调度和降级对输出质量与用户任务的影响；治理契约说明谁批准、谁负责、证据保存在哪里。</p>
-<p>后续训练、推理、评估与生产治理章节，以及<a href="../part3/03-agent-runtime.html">Agent Runtime</a>，会沿着这张地图逐层展开。读者不必先记住所有组件名称，但应始终追问同一个问题：这个算法或平台选择改变了哪项资源、状态、质量或治理约束，系统用什么证据证明它在真实负载下仍然成立？</p>
+<p>AI Infra 的核心能力不是堆叠组件，而是把算法复杂度转化为资源契约、状态契约、质量契约和治理契约。资源契约说明模型在不同长度、并发和硬件下需要多少计算、显存、网络与存储；状态契约说明请求、KV、checkpoint、数据游标和外部操作记录如何创建、恢复、过期与回滚；质量契约说明模型升级、量化、kernel、调度和降级对输出质量与用户任务的影响；治理契约说明谁批准、谁负责、证据保存在哪里。</p>
+<p>后续各章会沿着这张地图逐层展开。读者不必先记住所有组件名称，但应始终追问同一个问题：这个算法或平台选择改变了哪项资源、状态、质量或治理约束，系统用什么证据证明它在真实负载下仍然成立？</p>
 <p>最终，AI Infra 的可靠性来自可执行的闭环：工作负载进入时有资源与权限准入，执行时有状态、隔离与观测，结果产生后有质量、成本和责任归因，变更发生时有分阶段门禁与可验证回滚，故障出现时有已知的恢复与人工路径。把这些环节拆成组件很容易，把它们通过同一套 identity、manifest、事件和证据连接起来才是平台设计的难点。只有当资源消耗、模型版本、业务 outcome 与风险处置能在同一条链路上被解释时，团队才真正拥有可扩展的 AI Infra，而不仅是一组能够运行的 GPU 服务。</p>
 <h2 id="710-参考资料"><a class="header" href="#710-参考资料">7.10 参考资料</a></h2>
 <p><a id="ref-1"></a>[1] Beyer, B., et al. <em>The Site Reliability Workbook: Implementing SLOs</em>. O’Reilly, 2018. https://sre.google/workbook/implementing-slos/ 核验日期：2026-10-17</p>

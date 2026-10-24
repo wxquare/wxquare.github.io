@@ -43,10 +43,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-8eb0bf19.js";
+            window.path_to_searchindex_js = "../searchindex-30dde1cf.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-9975334b.js"></script>
+        <script src="../toc-d662c9eb.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -187,7 +187,7 @@
                     <main>
                         <h1 id="第9章-推理服务与资源调度"><a class="header" href="#第9章-推理服务与资源调度">第9章 推理服务与资源调度</a></h1>
 <p>训练完成并不意味着模型已经可以被用户使用。训练输出是一个需要转换、装载、调度和观测的制品；在线推理则是一个同时面对突发流量、长尾上下文、流式连接、动态 batch、显存限制和版本发布的分布式服务。本章聚焦从一次 <code>forward</code> 到生产级 serving 的完整链路，重点解释 prefill 与 decode 的资源差异、KV cache 的内存管理、连续批处理、模型并行、长上下文、公平调度、量化、投机解码以及服务 SLO。</p>
-<p>推理 Infra 的核心指标不应只有 tokens/s。交互请求关心首 token 延迟 TTFT、每个输出 token 的延迟 TPOT 和端到端尾延迟；离线任务关心 goodput 和单位成本；Agent 任务关心多次调用后的成功率、工具副作用和总等待时间。一个系统可能平均吞吐很高，却让短请求被长上下文阻塞；也可能单请求很快，却在并发增加时因为 KV cache 失控而 OOM。Orca、PagedAttention、Sarathi-Serve 和 DistServe 等工作说明，LLM serving 的关键突破来自把模型执行拆成可调度的资源和状态，而不是简单把模型放进 HTTP 服务 <a href="#ref-1">[1]</a><a href="#ref-2">[2]</a><a href="#ref-3">[3]</a><a href="#ref-4">[4]</a>。</p>
+<p>推理 Infra 的核心指标不应只有 tokens/s。交互请求关心首 token 延迟 TTFT、每个输出 token 的延迟 TPOT 和端到端尾延迟；离线任务关心 goodput 和单位成本；多步任务还要关心跨多次调用之后的最终成功率与总等待时间。一个系统可能平均吞吐很高，却让短请求被长上下文阻塞；也可能单请求很快，却在并发增加时因为 KV cache 失控而 OOM。Orca、PagedAttention、Sarathi-Serve 和 DistServe 等工作说明，LLM serving 的关键突破来自把模型执行拆成可调度的资源和状态，而不是简单把模型放进 HTTP 服务 <a href="#ref-1">[1]</a><a href="#ref-2">[2]</a><a href="#ref-3">[3]</a><a href="#ref-4">[4]</a>。</p>
 <p>训练制品不能直接交付，是因为用户面对的是请求生命周期而不是 checkpoint。推理平台必须回答五个问题：制品是否完整，容量是否够，状态是否可回收，调度是否公平，质量与成本是否仍在门限内。</p>
 <div class="table-wrapper">
 <table>
@@ -271,7 +271,7 @@ PD_pool_decode  ≥ λ × D / (R_d × u_d)
 <h3 id="kv-的内存账本"><a class="header" href="#kv-的内存账本">KV 的内存账本</a></h3>
 <p>自回归解码会保存每层每个历史 token 的 key 和 value。粗略地说，KV bytes 与层数、KV heads、head dimension、序列长度、batch 和 dtype 成正比。使用 GQA 或 MQA 可以减少 KV heads，但不会消除长上下文的线性增长。服务端内存账本至少包括权重、KV cache、activation、通信 buffer、CUDA graph workspace、tokenizer buffer 和 allocator 碎片。</p>
 <p>一个请求的 KV 生命周期从 prefill 产生开始，随着 decode 追加 token，直到完成、取消、超时或被驱逐。若模型使用 beam、并行采样或多候选推理，KV 可能被复制或引用共享。服务端要记录 block owner、引用计数、模型版本、租户和过期时间，不能只依赖 Python 对象回收。PagedAttention 将 KV 切成固定大小 block，让动态请求不再需要连续大块显存 <a href="#ref-1">[1]</a>。</p>
-<p>缓存省去旧 token 的投影和重复前向，新 token 仍要读取历史 K/V 做注意力，因此不把完整注意力的成本自动降为线性。滑动窗口、MLA 等结构须按实际表示重建账本；KV 也不是 Agent 的业务记忆。</p>
+<p>缓存省去旧 token 的投影和重复前向，新 token 仍要读取历史 K/V 做注意力，因此不把完整注意力的成本自动降为线性。滑动窗口、MLA 等结构须按实际表示重建账本；KV 是可重算的中间状态，不等同于业务的持久记忆。</p>
 <h3 id="分页分配与碎片"><a class="header" href="#分页分配与碎片">分页分配与碎片</a></h3>
 <p>连续分配容易产生外部碎片：短请求结束后留下许多小洞，长请求仍无法获得连续空间。分页分配把 cache 切成 block，逻辑 token 序列通过 block table 映射到物理显存。申请、追加、释放和回收类似虚拟内存，但要考虑 GPU allocator、block size、引用计数、copy-on-write 和跨 stream 同步。</p>
 <p>block 太小会增加 table、调度和 kernel 访问开销，太大会增加内部碎片，尤其对短请求不划算。block size 要在真实请求长度分布上压测，不应只用固定长度 benchmark。指标包括 cache 利用率、内部碎片、block 分配耗时、回收延迟、OOM 次数和重新计算比例。vLLM 的实现将这类内存管理与连续批处理结合，是一个重要的工程参考 <a href="#ref-10">[10]</a>。</p>
@@ -304,7 +304,7 @@ PD_pool_decode  ≥ λ × D / (R_d × u_d)
 </tbody>
 </table>
 </div>
-<p>vLLM APC 官方说明复用共享前缀的计算，收益集中在 prefill，不能据此承诺 decode 等比例加速 <a href="#ref-13">[13]</a>。其 V1 设计将前块hash与当前block内容等信息组合，支持在首块加入 <code>cache_salt</code> 来限定复用范围 <a href="#ref-14">[14]</a>。平台应由服务端认证后的租户域生成或约束salt；客户端自己填写某个salt不是访问授权。模型、adapter与多模态内容也须按实现支持的边界进入兼容判断。稳定规则、工具序列和公共参考置于动态问题前有助命中，但不能改变指令优先级，也不能为了稳定前缀保留已撤权内容。商业API的缓存资格、费用和保留时间按各自版本另行核验；本章不把一个自托管实现等同于所有供应商或Agent客户端的实现。</p>
+<p>vLLM APC 官方说明复用共享前缀的计算，收益集中在 prefill，不能据此承诺 decode 等比例加速 <a href="#ref-13">[13]</a>。其 V1 设计将前块hash与当前block内容等信息组合，支持在首块加入 <code>cache_salt</code> 来限定复用范围 <a href="#ref-14">[14]</a>。平台应由服务端认证后的租户域生成或约束salt；客户端自己填写某个salt不是访问授权。模型、adapter与多模态内容也须按实现支持的边界进入兼容判断。稳定规则、工具序列和公共参考置于动态问题前有助命中，但不能改变指令优先级，也不能为了稳定前缀保留已撤权内容。商业API的缓存资格、费用和保留时间按各自版本另行核验；本章不把一个自托管实现等同于所有供应商的实现。</p>
 <p>GPTCache 是基于语义相似性复用响应的公开实现参考 <a href="#ref-15">[15]</a>，它不构成业务等价性证明。例如“我可以报销吗”与“我不可以报销吗”高度相似，却可能需要相反回答；同一句问题换主体、政策日期或金额也会改变结果。本书建议先以租户、授权范围、知识与政策版本做硬过滤，再在该域内检索候选；对否定、条件、实体、时间逐项校验，拿近似但答案不同的负例校准阈值。高风险审批、余额和实时库存可以禁用语义响应复用；有副作用的操作不能因缓存命中重新执行。指标需有抽样误命中率、人工投诉、过期命中和每成功任务成本，命中率上升而质量下降必须收紧或停用。</p>
 <p>撤权、删除、知识发布和模板升级触发失效事件；删除索引项还应删除载荷和派生缓存，失败时阻止旧项继续命中。精确缓存也不是天然安全：若key遗漏用户授权或上下文，字节相同的文本仍可能对应不同答案。缓存结果绑定来源和生成时间，返回前重新检查当前访问权限。少发无关历史有时比提高命中率更省，压缩改写会损失旧prefix命中，验收仍以相同质量下的总费用与端到端时延为准。</p>
 <h2 id="94-batching背压与公平调度"><a class="header" href="#94-batching背压与公平调度">9.4 Batching、背压与公平调度</a></h2>
@@ -315,7 +315,7 @@ PD_pool_decode  ≥ λ × D / (R_d × u_d)
 <p>Prefill 的计算密集程度高，decode 的迭代频率高。若一个长 prefill 独占 GPU，正在 decode 的请求会停顿；若完全优先 decode，新的请求 TTFT 会变差。调度器可以限制每次 prefill 的 token budget，把长输入切成 chunk，与 decode 交替执行。Sarathi-Serve 的研究说明，chunked prefill 能在吞吐与延迟之间取得更好折中 <a href="#ref-3">[3]</a>。</p>
 <p>chunk size 需要在模型、硬件和 workload 上调优。太小增加 kernel launch 和调度开销，太大仍会阻塞 decode；不同长度请求可能需要不同 chunk。调度器要记录每次 chunk 的等待、执行、抢占和 cache 分配，才能解释 TTFT 和 TPOT 的变化。长请求还应有最大输入、最大输出、总时间和租户 token 预算。</p>
 <h3 id="公平性与优先级"><a class="header" href="#公平性与优先级">公平性与优先级</a></h3>
-<p>交互式问答、批量离线、评估、Agent 工作流和内部开发对延迟的要求不同。可以按 tenant、product、request class 和 priority 建立队列，但高优先级不等于无限资源。每个队列需要并发上限、token budget、最大等待时间和借用规则；否则一个高优先级租户的突发会耗尽所有 KV block。</p>
+<p>交互式问答、批量离线、评估和内部开发对延迟的要求不同。可以按 tenant、product、request class 和 priority 建立队列，但高优先级不等于无限资源。每个队列需要并发上限、token budget、最大等待时间和借用规则；否则一个高优先级租户的突发会耗尽所有 KV block。</p>
 <p>公平策略还要关注请求的资源大小。按请求数公平会偏向长请求，按 token 公平可能让大量短请求被饿死。可以使用虚拟时间、加权 token 份额或 deadline-aware scheduling，并把实际资源消费写入成本归因。Borg 的优先级、配额和故障域经验说明，公平调度是控制面职责，不应由调用方通过反复重试来争抢 <a href="#ref-16">[16]</a>。</p>
 <h3 id="取消超时与背压"><a class="header" href="#取消超时与背压">取消、超时与背压</a></h3>
 <p>取消需要从网关传到调度器、engine、GPU stream 和 cache manager。重复取消必须幂等，已完成请求不能被覆盖；超时要区分排队超时、prefill 超时、decode 超时和下游发送超时。连接断开不一定意味着任务取消，若产品允许异步完成，服务端应转移状态并释放流式连接。</p>
@@ -327,7 +327,7 @@ PD_pool_decode  ≥ λ × D / (R_d × u_d)
 <p>流式服务的网络连接、HTTP/2 stream、WebSocket、发送 buffer 和代理超时都会占用资源。慢客户端如果持续不读取，会阻塞服务端发送并保留 KV；平台需要写超时、发送 buffer 上限、心跳和明确的断开语义。连接数、活跃流、平均发送速度和断开原因应进入指标。</p>
 <p>网关和 engine 的超时不能随意叠加。网关 timeout 小于 engine 生成时间会导致客户端断开但 GPU 继续工作；engine timeout 小于工具或下游 timeout 会产生重复重试。请求应携带 deadline，所有组件根据剩余时间决定是否接纳、继续 prefill、停止 decode 或返回 partial result。deadline 需要在 trace 中传播，避免各层使用不一致的本地超时。</p>
 <h3 id="防饥饿与跨层预算"><a class="header" href="#防饥饿与跨层预算">防饥饿与跨层预算</a></h3>
-<p>只有优先级没有最低服务份额时，高优流量持续到达会使低优队列永久等待。可为各等级保留可验证的份额并按等待时间老化；超出容量时返回排队超时，不承诺所有等级都准时完成。出队还受可用KV、token budget和下游工具容量约束。Agent的工具扇出需在上层Runtime限制：三个只读且独立的查询可以并行，存在依赖或冲突的步骤必须串行；不能把GPU的batch策略直接用作外部工具调度算法。</p>
+<p>只有优先级没有最低服务份额时，高优流量持续到达会使低优队列永久等待。可为各等级保留可验证的份额并按等待时间老化；超出容量时返回排队超时，不承诺所有等级都准时完成。出队还受可用 KV、token budget 和下游依赖容量约束。若一次逻辑请求会扇出为多个并行的下游调用，扇出必须由调用方显式限制：只读且彼此独立的调用可以并行，存在依赖或冲突的步骤必须串行；不能把 GPU 的 batch 策略直接当作外部调用的调度算法。</p>
 <h2 id="95-执行优化与解耦"><a class="header" href="#95-执行优化与解耦">9.5 执行优化与解耦</a></h2>
 <h3 id="副本扩展与模型并行"><a class="header" href="#副本扩展与模型并行">副本扩展与模型并行</a></h3>
 <p>模型能放进单 GPU 时，副本扩展通常简单且容易隔离故障；模型放不进单卡时，需要 tensor parallel、pipeline parallel 或 expert parallel。TP 把矩阵计算切到多个 GPU，每个 token 需要 collective；PP 把层切成 stage，带来 pipeline bubble；EP 为 MoE 路由 token，带来 all-to-all。并行度越大不一定越快，必须结合拓扑、batch、序列长度和通信占比测量。</p>
@@ -337,7 +337,7 @@ PD_pool_decode  ≥ λ × D / (R_d × u_d)
 <h3 id="量化的系统影响"><a class="header" href="#量化的系统影响">量化的系统影响</a></h3>
 <p>INT8、INT4、FP8 等量化减少权重显存和带宽，但会改变 kernel、校准、激活 outlier、精度和输出质量。量化不是一个简单配置开关：不同层、不同通道、KV cache 和 embedding 可能需要不同精度。TensorRT 的精度与执行路径受构建和硬件约束；TGI 在核验日已进入维护模式，历史功能存在不等于持续新增支持。无论使用哪个 runtime，发布前均需固定质量集和目标 workload <a href="#ref-5">[5]</a><a href="#ref-18">[18]</a>。</p>
 <p>量化验收至少包括权重大小、显存峰值、冷启动、TTFT、TPOT、吞吐、长上下文、结构化输出、代码任务和安全拒答。不能只看平均困惑度；小概率 token 错误可能导致工具 schema 或 JSON 失败。量化制品要和校准数据版本、算法、dtype、硬件架构和 engine build 绑定，回滚时同时回滚这些对象。</p>
-<p>反量化同样消耗计算与访存：只有节省的权重读取超过反量化和额外kernel代价时，特定负载才可能变快；小batch或不支持的shape可能退化。量化算法与校准原理沿用第5章，不在这里重推。</p>
+<p>反量化同样消耗计算与访存：只有节省的权重读取超过反量化和额外kernel代价时，特定负载才可能变快；小batch或不支持的shape可能退化。量化算法与校准原理不在本章重推。</p>
 <h3 id="编译与-cuda-graph"><a class="header" href="#编译与-cuda-graph">编译与 CUDA Graph</a></h3>
 <p>Torch compile、CUDA Graph、kernel autotune 和 TensorRT engine 可以降低 launch overhead，但通常要求固定或有限的 shape、内存地址、batch 和控制流。动态 batch、长短请求混合、流式生成和取消会增加图捕获与回退复杂度。固定 shape 的 graph 适合稳定 decode bucket；不规则 prefill 可能需要 eager 或多个 graph。</p>
 <p>编译缓存必须包含模型 hash、GPU 架构、driver、CUDA、输入 shape、精度、engine 版本和环境变量。冷启动和热启动要分别测量，避免第一批用户承担编译成本。编译失败应回退到已验证的 runtime，但回退路径需要独立监控，否则性能悄悄下降却只表现为 GPU 利用率变低 <a href="#ref-19">[19]</a>。</p>
@@ -370,7 +370,7 @@ PD_pool_decode  ≥ λ × D / (R_d × u_d)
 <p>PD改变阶段的放置：prefill完成后迁移已有历史KV，再由decode池迭代；AF改变每层模块的放置，在解码阶段内部仍需反复交换激活。PD解决输入计算与逐token服务互相干扰，不能消除decode内部attention与FFN的资源不均衡，尤其MoE会把batch分散到不同专家。AF允许独立聚合与扩容，但每层增加网络往返和同步，网络拥塞会直接出现在TPOT里。二者可组合，也都可以不采用。</p>
 <p>粗略交通量可帮助判断瓶颈：PD的一次输入KV迁移按2L×H_kv×d×S×b字节增长；一个未分片、无专家复制的AF边界，batch中B个token送出与返回的激活粗估2B×hidden_size×b，每层重复。后者只是维度推导，MoE top-k路由、TP/EP分片、共享或重复传输会改变真实字节，不能照搬为论文实际网络量。比较时记录每层延迟、大块带宽、队列、KV驻留、微批大小与故障重试，在同SLO和质量下核算总GPU/网络成本。低负载、低接受率或慢网络时，继续共置可能更合适。</p>
 <h3 id="大词表选读先分清投影归约和采样"><a class="header" href="#大词表选读先分清投影归约和采样">大词表选读：先分清投影、归约和采样</a></h3>
-<p>词表超过十万时，hidden到vocab的投影、logits写回、softmax归约、采样与跨卡候选合并都可能占时；先profile再选优化，不能断言瓶颈必为softmax。精确路径可用融合、向量化、稳定max/sum归约和词表分片，减少无用logprob落显存。贪心argmax不必显式归一化，但通常仍需投影；top-k/top-p改变采样分布，也不自动省去全部logits。层次或采样softmax常改变训练目标或模型结构，不能无训练地替换现有checkpoint并承诺精确等价。这里承接第4章生成分布和第8章归约，扩展仅限定这些设计边界，不交付新kernel或性能结论。</p>
+<p>词表超过十万时，hidden到vocab的投影、logits写回、softmax归约、采样与跨卡候选合并都可能占时；先profile再选优化，不能断言瓶颈必为softmax。精确路径可用融合、向量化、稳定max/sum归约和词表分片，减少无用logprob落显存。贪心argmax不必显式归一化，但通常仍需投影；top-k/top-p改变采样分布，也不自动省去全部logits。层次或采样softmax常改变训练目标或模型结构，不能无训练地替换现有checkpoint并承诺精确等价。这里只限定这些设计边界，不交付新 kernel 或性能结论。</p>
 <h2 id="96-多模态与长上下文负载"><a class="header" href="#96-多模态与长上下文负载">9.6 多模态与长上下文负载</a></h2>
 <h3 id="长上下文的-admission"><a class="header" href="#长上下文的-admission">长上下文的 admission</a></h3>
 <p>长上下文同时增加 prefill 计算、KV 容量、排队时间和输出阶段的内存保留。平台应在入口限制最大输入、最大输出、总 token、并发和租户预算，并根据请求类型选择同步、异步或低优先级队列。截断策略要保留消息边界、系统指令和工具 schema，不能简单从字符串尾部截断。</p>
@@ -396,7 +396,7 @@ PD_pool_decode  ≥ λ × D / (R_d × u_d)
 <p>共享权重通常可以只读共享，adapter、KV、prefix cache、日志和工具状态则需要隔离。租户 id 不能只作为日志字段，还要进入 cache key、路由、凭证和访问控制。不同数据地域或合规等级的请求不能因为同一模型副本空闲而跨区域路由。权限检查应发生在 admission 和工具执行前两个阶段。</p>
 <h3 id="配额借用与公平"><a class="header" href="#配额借用与公平">配额借用与公平</a></h3>
 <p>固定配额容易产生碎片：某租户空闲时，其他租户却排队。可以允许短期借用空闲 token budget，但设置最大借用、归还优先级和高峰抢回。借用的资源要可追溯，避免月底账单无法解释。高优先级请求可以抢占排队中的低优先级请求，但不应粗暴杀死已经输出大量 token 的 decode，除非产品明确允许。</p>
-<p>公平调度还要避免通过拆分请求绕过配额。平台按 request id、parent task、tenant 和 operation 统计，Agent 的多步调用共享预算。超预算时返回结构化错误，让上层可以结束任务或转人工；不要默默降低安全检查、扩大重试或切换到未经评估的模型。</p>
+<p>公平调度还要避免通过拆分请求绕过配额。平台按 request id、parent task、tenant 和 operation 统计，同一逻辑任务的多步调用共享预算。超预算时返回结构化错误，让上层可以结束任务或转人工；不要默默降低安全检查、扩大重试或切换到未经评估的模型。</p>
 <h3 id="serving-runtime-的选择边界"><a class="header" href="#serving-runtime-的选择边界">Serving runtime 的选择边界</a></h3>
 <p>不同 runtime 解决的问题不同。vLLM 是执行和KV管理的工程参考；TGI 是已有服务实现，核验日处于维护模式；TensorRT体现编译与执行引擎层；Triton负责模型管理和服务层 <a href="#ref-10">[10]</a><a href="#ref-18">[18]</a><a href="#ref-5">[5]</a><a href="#ref-6">[6]</a>。这些对象不在同一层级，不能当四个等价替代项。选型时不能只比较启动命令或单一 benchmark，而要比较动态 batch、长上下文、量化、adapter、流式、工具协议、观测和回滚。</p>
 <p>一个实际平台可以分层组合：网关负责鉴权、限流和协议；路由负责模型版本、租户和区域；serving engine 负责执行与 cache；模型仓库负责 artifact；Kubernetes 或其他调度器负责 GPU；观测系统负责指标、日志与 trace。组合的代价是接口和故障边界增多，因此必须定义 request manifest、model manifest、错误码和状态事件。若把多个组件拼在一起却没有统一契约，替换其中任意一个都会改变行为。</p>
@@ -425,9 +425,10 @@ PD_pool_decode  ≥ λ × D / (R_d × u_d)
 <p>公共协议统一消息与错误外形，能力矩阵仍要显式登记结构化输出、工具消息、窗口、媒体、拒绝语义和区域许可。网关数据面鉴权、准入、适配和转发；控制面维护凭据及版本化策略，凭据不能进入模型可见prompt。配额存储不可用时，只有持有未过期、可审计本地额度且策略允许的请求可继续；需要强一致金额或敏感校验的请求应拒绝或排队。配置快照有有效期，不设置无保护全量旁路。</p>
 <p>一个逻辑request可以有多个attempt。流式前原子检查并预留输入、最大输出和必要下游预算，同账户并发预留必须同时扣除在途金额；每次预留、扣减和最终退款都有稳定ID并幂等。完成后按usage结算，断流未知用量保留待对账，不能记成零费用。诊断费用翻倍时，按任务版本比较轮次、输入输出、cached read/write、Embedding、Rerank、工具、存储和judge用量，再看重试、路由和失败任务；QPS不变不代表工作量不变。</p>
 <p>主模型未输出时可在预算、能力及数据策略允许下切换；已输出一半时，旧结果标记中断，备用结果作为新版本或独立结果交付，不能无缝拼接互相冲突的答案；工具已经执行时沿用原业务operation核查事实，不重新发明副作用。超预算停止新增步骤并交付明确partial状态，不能把截断JSON当成功。缓存、压缩和批处理优化都需要质量门禁，目标是每成功任务成本。</p>
-<h2 id="98-性能诊断事故与验收"><a class="header" href="#98-性能诊断事故与验收">9.8 性能诊断、事故与验收</a></h2>
+<h2 id="98-性能诊断与事故"><a class="header" href="#98-性能诊断与事故">9.8 性能诊断与事故</a></h2>
+<p>本节处理“已经出问题”的情形：怎么确认瓶颈在哪一层，怎么判断一次降级是否安全，以及怎样把事故变成可复现的证据。验收标准放在下一节，两者分开，是为了避免在排障时被门禁条款分散注意力。</p>
 <h3 id="推理-slo"><a class="header" href="#推理-slo">推理 SLO</a></h3>
-<p>服务 SLO 应按产品场景分层。交互式请求关心可用性、TTFT、TPOT、p99 和流式完成率；批量任务关心完成时间、goodput 和单位成本；Agent 任务关心最终成功、工具一致性、人工接管和总时延。HTTP 200 不代表生成成功，部分流、错误 JSON、工具参数不完整和安全策略失败都应有明确结果状态。</p>
+<p>服务 SLO 应按产品场景分层。交互式请求关心可用性、TTFT、TPOT、p99 和流式完成率；批量任务关心完成时间、goodput 和单位成本；多步任务关心最终成功、中间状态一致性和总时延。HTTP 200 不代表生成成功，部分流、错误 JSON、工具参数不完整和安全策略失败都应有明确结果状态。</p>
 <p>错误预算可以决定是否继续灰度、是否暂停性能实验、是否保留更多容量。SLO 还需要质量门禁：量化或 batching 如果提高吞吐却让代码任务、结构化输出或安全指标回退，不能算达标。SRE 方法提供了把可靠性与发布决策连接起来的框架 <a href="#ref-8">[8]</a>。</p>
 <h3 id="metricslogs-与-traces"><a class="header" href="#metricslogs-与-traces">Metrics、Logs 与 Traces</a></h3>
 <p>Metrics 记录吞吐、队列、TTFT、TPOT、KV 使用、block 分配、cache 命中、GPU 显存、OOM、取消、重试和路由；logs 记录具体错误、模型 hash、engine、节点和状态；traces 连接网关、tokenizer、调度器、prefill、decode、工具和计费。Dapper 的追踪思想和 OpenTelemetry 的语义约定适合把一次请求跨组件串起来 <a href="#ref-26">[26]</a><a href="#ref-11">[11]</a>。</p>
@@ -445,27 +446,9 @@ PD_pool_decode  ≥ λ × D / (R_d × u_d)
 <h3 id="压测模型"><a class="header" href="#压测模型">压测模型</a></h3>
 <p>推理压测应使用真实长度分布而不是固定 prompt。至少构造短输入短输出、长输入短输出、短输入长输出、长输入长输出、prefix 高命中、prefix 低命中、结构化输出、工具调用和突发流量八类 workload。每类记录 arrival process、并发、deadline、取消比例和租户混合，并分别比较混合部署与 prefill/decode 分离。</p>
 <p>压测工具要区分客户端等待、网关排队、调度等待、prefill、decode 和网络发送。若只从客户端测总延迟，无法知道瓶颈；若只测 engine，不包含真实连接和 tokenization，又会高估服务能力。压测完成后保留配置、模型制品、原始事件和环境，保证下一次升级能做回归，而不是重新猜测基线。</p>
-<h3 id="性能回归门禁"><a class="header" href="#性能回归门禁">性能回归门禁</a></h3>
-<p>回归门禁可以设为多目标约束：TTFT p95 不超过基线某个比例，TPOT p95 不超过阈值，goodput 不下降，显存峰值不超过容量，质量指标不低于容差，错误和取消率不增加。不同 workload 可以有不同权重；不能用一个总体平均掩盖长上下文或高价值任务退化。</p>
-<p>当新版本提升平均吞吐但降低 p99，应根据业务 SLO 判断是否接受；当量化降低成本但工具成功率下降，应检查单位成功任务成本；当 prefix cache 提升命中但隐私风险增加，应优先修复隔离。门禁结果要附带解释和失败样本，发布控制器只依据明确策略自动决策，复杂回退进入人工评审。</p>
 <h3 id="推理平台的状态机回放"><a class="header" href="#推理平台的状态机回放">推理平台的状态机回放</a></h3>
 <p>事故排查最有效的方法之一是回放一个 request 的状态机：何时被接收，排队多久，何时分配 KV，经历几次 prefill chunk，生成多少 token，是否发生 cache 命中、迁移、重试、取消和回退。回放数据来自 request event、metrics 和 trace，必须使用同一个 request id 和单调序列。没有状态回放，工程师只能从多组件日志按时间猜测，容易把因果顺序弄错。</p>
 <p>状态回放也可用于测试。给定一组事件，验证重复取消不会泄漏 block，失败迁移不会重复工具，实例 drain 会停止新请求，cache 版本不兼容会被拒绝，deadline 到期会释放资源。把这些规则写成状态机测试，比只做 HTTP happy path 更能覆盖 serving 的真实复杂度。</p>
-<h3 id="engine-的兼容性测试"><a class="header" href="#engine-的兼容性测试">Engine 的兼容性测试</a></h3>
-<p>升级 runtime 时，功能测试要覆盖单请求、动态 batch、流式、取消、最大长度、结构化输出、工具调用和多模态；性能测试要覆盖不同输入输出长度和并发；资源测试要覆盖显存、KV block、编译缓存和冷启动；故障测试要覆盖 engine crash、GPU reset、模型加载失败和滚动 drain。测试结果绑定 runtime、模型、driver 和硬件 hash。</p>
-<p>兼容性还包括错误语义。某个版本把超长输入返回 400，另一个版本可能截断后返回 200；某个版本把客户端断开视为取消，另一个版本继续生成；某个版本在 tool call 失败时返回 partial output，另一个版本返回 error。上游服务依赖这些差异，不能只用“文本看起来一样”判断兼容。API contract test 和状态机 test 是 serving 平台的必要组成。</p>
-<h3 id="请求迁移"><a class="header" href="#请求迁移">请求迁移</a></h3>
-<p>请求迁移可以发生在实例 drain、节点故障、负载均衡或 prefill/decode 分离时。迁移分为重新发送完整输入、传输已有 KV、只迁移请求状态和放弃当前请求。重新 prefill 简单但延迟高；传输 KV 需要网络和版本兼容；只迁移状态而不迁移 cache 会导致状态与资源不一致。迁移策略必须声明可接受的重复计算和输出连续性。</p>
-<p>流式请求迁移更复杂。旧实例可能已经发送部分 token，新实例继续生成时必须保持上下文、采样随机状态和停止条件。若产品只保证最终文本，不保证 token 级连续，可以在事件中标记重连和重算；若要求严格连续，需要持久化更多 decode 状态。大多数系统应优先让迁移发生在 prefill 完成前或请求边界，避免把所有状态都做成可迁移。</p>
-<h3 id="功能验收"><a class="header" href="#功能验收">功能验收</a></h3>
-<p>固定验证集需要覆盖普通生成、空输入、超长输入、最大输出、停止词、流式、取消、重复请求、结构化 JSON、工具调用、多模态错误和非法参数。每个场景验证状态迁移、错误码、资源释放和审计字段。对 streaming，要测试客户端中途断开、服务端重启、重连和部分结果；对工具，要测试超时、重试、重复提交和副作用幂等。</p>
-<h3 id="性能与容量验收"><a class="header" href="#性能与容量验收">性能与容量验收</a></h3>
-<p>性能测试固定模型、硬件、engine、tokenizer、输入输出分布和并发曲线，分别报告 cold start、warm start、TTFT、TPOT、E2E、p50/p95/p99、goodput、显存峰值、KV 水位、cache 命中和 GPU 利用率。容量测试加入长尾长度、突发流量、节点故障和滚动发布，验证 failover reserve 与 deployment reserve 是否真实存在。</p>
-<h3 id="质量可靠性与治理验收"><a class="header" href="#质量可靠性与治理验收">质量、可靠性与治理验收</a></h3>
-<p>质量测试比较原始精度、量化、kernel、batching、投机解码和降级模型的任务指标；可靠性测试注入 worker OOM、节点故障、网络抖动、模型加载失败、cache 损坏、对象存储不可用和流式断开；治理测试检查权限、租户隔离、数据驻留、脱敏、审计、成本和回滚。所有结果绑定 artifact hash 和报告版本。</p>
-<h3 id="交付后的运行手册"><a class="header" href="#交付后的运行手册">交付后的运行手册</a></h3>
-<p>推理服务需要一份可执行 runbook：如何判断是队列、prefill、decode、KV、网络还是客户端；如何摘除实例；如何清理 cache；如何回滚 engine；如何切换 fallback；如何处理流式部分结果；如何核对工具副作用；如何恢复成本与容量。每条命令或操作都应有权限、预期指标、风险和回滚，避免事故中临时尝试造成二次损害。</p>
-<p>runbook 要通过演练更新。每次事故或压测发现新的边界，就增加诊断字段、告警或自动化；如果一个故障需要人工在机器上删除目录才能恢复，说明平台缺少状态清理接口。后端团队熟悉的健康检查、租约、熔断、重试和数据迁移经验在这里都适用，但需要把 GPU、KV 和生成质量纳入考虑。</p>
 <h3 id="可回放的oom教学调查"><a class="header" href="#可回放的oom教学调查">可回放的OOM教学调查</a></h3>
 <p>下面是故意构造的诊断事件，不是GPU实测日志。固定模型revision、单卡进程、BF16 KV、请求长度和并发；让多轮对话逐轮追加历史，记录每轮输入/输出token、active KV block、cache条目、allocated、reserved、设备总占用和安全点后的值。PyTorch 2.9把 <code>memory_allocated</code> 定义为张量占用，把 <code>memory_reserved</code> 定义为分配器管理总量；unused缓存仍可能显示在设备工具中，<code>empty_cache()</code>只释放未使用缓存，不释放仍被引用的活跃张量 <a href="#ref-19">[19]</a>。其他引擎自建KV池可能不完整反映在PyTorch指标内，应再对照engine账本和设备级占用。</p>
 <div class="table-wrapper">
@@ -486,14 +469,52 @@ PD_pool_decode  ≥ λ × D / (R_d × u_d)
 <p>可复现步骤是先建立固定长度/并发基线，再一次只增加轮次、取消、prefix或图捕获中的一个变量，保存显存快照、最早错误、事件序列与版本。若固定负载在缓存饱和后仍无限增长，追引用链和持有张量；若只有形状变化触发，比较allocator统计和padding/graph bucket；若长prefill触发峰值，调小chunk及准入预算。清cache只能作为受控对照，不能把循环empty_cache当修复。最终验收核对请求终态、待回收block归零、合法缓存有界、重跑相同负载无新增增长和质量回归；本章仅给方法，未声称这些条件已在GPU上通过。</p>
 <h3 id="性能剖析要形成因果假设"><a class="header" href="#性能剖析要形成因果假设">性能剖析要形成因果假设</a></h3>
 <p>Nsight Compute提供Roofline和内核资源分析方法 <a href="#ref-28">[28]</a>。先用请求时间线确认瓶颈属于CPU预处理、排队、H2D、prefill、decode、collective还是发送，再选相应工具。算术强度低且带宽接近上限时考虑KV布局和权重读量；算力低且带宽也低，检查launch、同步、形状与依赖空洞，不能直接归因为“GPU太弱”。只在单kernel好看而端到端变差时，核对融合寄存器压力、padding、编译冷启动及调度干扰。报告固定shape、硬件和版本，将质量、尾延迟和成功任务成本一起对照。</p>
+<h2 id="99-交付验收与运行手册"><a class="header" href="#99-交付验收与运行手册">9.9 交付验收与运行手册</a></h2>
+<p>验收回答的是“上线前要证明什么”。与诊断不同，验收要求每一项结论都绑定模型制品、硬件、engine 与负载画像，并且能被独立重跑；只报告一个漂亮的平均吞吐不构成验收证据。</p>
+<h3 id="性能回归门禁"><a class="header" href="#性能回归门禁">性能回归门禁</a></h3>
+<p>回归门禁可以设为多目标约束：TTFT p95 不超过基线某个比例，TPOT p95 不超过阈值，goodput 不下降，显存峰值不超过容量，质量指标不低于容差，错误和取消率不增加。不同 workload 可以有不同权重；不能用一个总体平均掩盖长上下文或高价值任务退化。</p>
+<p>当新版本提升平均吞吐但降低 p99，应根据业务 SLO 判断是否接受；当量化降低成本但工具成功率下降，应检查单位成功任务成本；当 prefix cache 提升命中但隐私风险增加，应优先修复隔离。门禁结果要附带解释和失败样本，发布控制器只依据明确策略自动决策，复杂回退进入人工评审。</p>
+<h3 id="engine-的兼容性测试"><a class="header" href="#engine-的兼容性测试">Engine 的兼容性测试</a></h3>
+<p>升级 runtime 时，功能测试要覆盖单请求、动态 batch、流式、取消、最大长度、结构化输出、工具调用和多模态；性能测试要覆盖不同输入输出长度和并发；资源测试要覆盖显存、KV block、编译缓存和冷启动；故障测试要覆盖 engine crash、GPU reset、模型加载失败和滚动 drain。测试结果绑定 runtime、模型、driver 和硬件 hash。</p>
+<p>兼容性还包括错误语义。某个版本把超长输入返回 400，另一个版本可能截断后返回 200；某个版本把客户端断开视为取消，另一个版本继续生成；某个版本在 tool call 失败时返回 partial output，另一个版本返回 error。上游服务依赖这些差异，不能只用“文本看起来一样”判断兼容。API contract test 和状态机 test 是 serving 平台的必要组成。</p>
+<h3 id="请求迁移"><a class="header" href="#请求迁移">请求迁移</a></h3>
+<p>请求迁移可以发生在实例 drain、节点故障、负载均衡或 prefill/decode 分离时。迁移分为重新发送完整输入、传输已有 KV、只迁移请求状态和放弃当前请求。重新 prefill 简单但延迟高；传输 KV 需要网络和版本兼容；只迁移状态而不迁移 cache 会导致状态与资源不一致。迁移策略必须声明可接受的重复计算和输出连续性。</p>
+<p>流式请求迁移更复杂。旧实例可能已经发送部分 token，新实例继续生成时必须保持上下文、采样随机状态和停止条件。若产品只保证最终文本，不保证 token 级连续，可以在事件中标记重连和重算；若要求严格连续，需要持久化更多 decode 状态。大多数系统应优先让迁移发生在 prefill 完成前或请求边界，避免把所有状态都做成可迁移。</p>
+<h3 id="功能验收"><a class="header" href="#功能验收">功能验收</a></h3>
+<p>固定验证集需要覆盖普通生成、空输入、超长输入、最大输出、停止词、流式、取消、重复请求、结构化 JSON、工具调用、多模态错误和非法参数。每个场景验证状态迁移、错误码、资源释放和审计字段。对 streaming，要测试客户端中途断开、服务端重启、重连和部分结果；对工具，要测试超时、重试、重复提交和副作用幂等。</p>
+<h3 id="性能与容量验收"><a class="header" href="#性能与容量验收">性能与容量验收</a></h3>
+<p>性能测试固定模型、硬件、engine、tokenizer、输入输出分布和并发曲线，分别报告 cold start、warm start、TTFT、TPOT、E2E、p50/p95/p99、goodput、显存峰值、KV 水位、cache 命中和 GPU 利用率。容量测试加入长尾长度、突发流量、节点故障和滚动发布，验证 failover reserve 与 deployment reserve 是否真实存在。</p>
+<h3 id="质量可靠性与治理验收"><a class="header" href="#质量可靠性与治理验收">质量、可靠性与治理验收</a></h3>
+<p>质量测试比较原始精度、量化、kernel、batching、投机解码和降级模型的任务指标；可靠性测试注入 worker OOM、节点故障、网络抖动、模型加载失败、cache 损坏、对象存储不可用和流式断开；治理测试检查权限、租户隔离、数据驻留、脱敏、审计、成本和回滚。所有结果绑定 artifact hash 和报告版本。</p>
+<h3 id="交付后的运行手册"><a class="header" href="#交付后的运行手册">交付后的运行手册</a></h3>
+<p>推理服务需要一份可执行 runbook</p>
+<h3 id="验收证据的最小集合"><a class="header" href="#验收证据的最小集合">验收证据的最小集合</a></h3>
+<p>把上面几类验收合起来看，一份可交付的推理平台至少要留下五组证据，缺任何一组都意味着某个结论无法复核。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">证据组</th><th style="text-align: left">回答的问题</th><th style="text-align: left">关键字段</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">制品与兼容</td><td style="text-align: left">这个版本能在目标环境跑起来吗</td><td style="text-align: left">manifest hash、tokenizer/模板版本、engine build、GPU 架构、驱动</td></tr>
+<tr><td style="text-align: left">容量与性能</td><td style="text-align: left">在目标负载下能达到什么指标</td><td style="text-align: left">长度分布、并发曲线、TTFT/TPOT 分位数、显存与 KV 水位</td></tr>
+<tr><td style="text-align: left">质量回归</td><td style="text-align: left">系统优化有没有伤害输出</td><td style="text-align: left">原始精度与优化后精度的配对比较、结构化输出合法率、关键任务切片</td></tr>
+<tr><td style="text-align: left">可靠性与降级</td><td style="text-align: left">故障时行为是否可预期</td><td style="text-align: left">故障注入记录、摘除与恢复时间、降级路径的能力声明、丢失请求数</td></tr>
+<tr><td style="text-align: left">治理与成本</td><td style="text-align: left">谁能用、花了多少、能否回滚</td><td style="text-align: left">租户配额、数据驻留、审计字段、单位成功任务成本、回滚演练记录</td></tr>
+</tbody>
+</table>
+</div>
+<p>五组证据之间不能互相替代。一个版本可能容量漂亮但质量回退，可能质量持平却无法回滚，也可能全部达标但成本翻倍。验收的产物不是一句“通过“，而是这五组证据连同它们的环境与版本一起归档——下一次升级时，这份归档就是唯一可比的基线。</p>
+<p>需要强调的是，本章给出的所有验收表格与阈值示例都是本书建议，不是从某个生产平台测得的结论。真实阈值必须在目标硬件和目标负载上重新测量，并且随模型、量化格式和 engine 版本变化重新确定。：如何判断是队列、prefill、decode、KV、网络还是客户端；如何摘除实例；如何清理 cache；如何回滚 engine；如何切换 fallback；如何处理流式部分结果；如何核对工具副作用；如何恢复成本与容量。每条命令或操作都应有权限、预期指标、风险和回滚，避免事故中临时尝试造成二次损害。</p>
+<p>runbook 要通过演练更新。每次事故或压测发现新的边界，就增加诊断字段、告警或自动化；如果一个故障需要人工在机器上删除目录才能恢复，说明平台缺少状态清理接口。后端团队熟悉的健康检查、租约、熔断、重试和数据迁移经验在这里都适用，但需要把 GPU、KV 和生成质量纳入考虑。</p>
 <h3 id="显存账本练习卡q275"><a class="header" href="#显存账本练习卡q275">显存账本练习卡（Q275）</a></h3>
-<p>输入是上述Qwen3-8B配置字段、检查点tensor清单、权重/KV精度、单卡容量、block大小、并发和每条输入/最大输出长度；工作区与安全余量必须显式给定，缺失项列为未知，不猜成零。输出包括GB/GiB双单位权重、每token及总KV、逐rank驻留账本、候选并发上限、主导项与OOM风险解释，并保存manifest和计算假设。</p>
+<p>输入是 9.2 节列出的 Qwen3-8B 配置字段、检查点 tensor 清单、权重/KV精度、单卡容量、block大小、并发和每条输入/最大输出长度；工作区与安全余量必须显式给定，缺失项列为未知，不猜成零。输出包括GB/GiB双单位权重、每token及总KV、逐rank驻留账本、候选并发上限、主导项与OOM风险解释，并保存manifest和计算假设。</p>
 <p>边界检查包含GQA的KV头与query头区别、空序列、尾块取整、beam复制、INT4元数据、权重与KV不同精度、共享prefix的引用、TP不均匀分片及prefill峰值；再用固定长度重复、正常多轮增长、取消延迟释放三个事件轨迹判断是否泄漏。验收标准是账本各项不重计、单位正确、未知项显式且不把静态上限当SLO承诺。交付状态为练习设计，未编写实验程序、未运行GPU、未宣称实测通过。</p>
-<h2 id="99-本章小结"><a class="header" href="#99-本章小结">9.9 本章小结</a></h2>
+<h2 id="910-本章小结"><a class="header" href="#910-本章小结">9.10 本章小结</a></h2>
 <p>推理服务的工程边界可以归纳为四条：第一，模型制品、tokenizer、模板、engine 和安全策略必须版本化；第二，prefill、decode、KV、batch 和网络必须作为资源被测量和调度；第三，取消、重试、流式和工具调用必须有明确状态与幂等语义；第四，SLO、质量、成本、隔离、灰度和回滚必须形成同一条证据链。只优化某个 kernel 或某个吞吐数字，都不足以证明服务成熟。</p>
 <p>对于后端工程师，最值得迁移的是状态机、租约、背压、幂等、容量模型和故障演练；最需要补齐的是 GPU 内存、KV layout、collective、kernel 与生成质量之间的联系。真正生产级的 serving engine 不只是把模型 forward 封装为 RPC，而是管理一组动态请求、共享中间状态和有限硬件资源，并在任何版本、流量和故障变化下保持可解释。</p>
-<p>下一章将从“请求已经在线运行”转向“如何知道模型是否仍然正确”：数据治理、离线评估、回归集、在线反馈和质量门禁会与本章的 trace、usage、版本和成本数据连接，形成从数据到生产的评估闭环。</p>
-<h2 id="910-参考资料"><a class="header" href="#910-参考资料">9.10 参考资料</a></h2>
+<p>请求能够稳定在线运行之后，下一个问题是“如何知道模型是否仍然正确”：数据治理、离线评估、回归集、在线反馈和质量门禁会与本章的 trace、usage、版本和成本数据连接，形成从数据到生产的评估闭环。</p>
+<h2 id="911-参考资料"><a class="header" href="#911-参考资料">9.11 参考资料</a></h2>
 <p><a id="ref-1"></a>[1] Kwon, W., et al. <em>Efficient Memory Management for Large Language Model Serving with PagedAttention</em>. SOSP, 2023. https://arxiv.org/abs/2309.06180 访问日期：2026-10-17</p>
 <p><a id="ref-2"></a>[2] Yu, G.-I., et al. <em>Orca: A Distributed Serving System for Transformer-Based Generative Models</em>. OSDI, 2022. https://www.usenix.org/conference/osdi22/presentation/yu 访问日期：2026-10-17</p>
 <p><a id="ref-3"></a>[3] Agrawal, A., et al. <em>Taming Throughput-Latency Tradeoff in LLM Inference with Sarathi-Serve</em>. OSDI, 2024. https://www.usenix.org/conference/osdi24/presentation/agrawal 访问日期：2026-10-17</p>
