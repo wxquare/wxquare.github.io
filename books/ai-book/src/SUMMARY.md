@@ -29,24 +29,25 @@
 
 - [第12章 LLM API 协议：模型能力如何被系统消费](part3/01-llm-api-protocol.md)
 - [第13章 Agent 的上下文工程：从任务协议到知识与记忆](part3/02-context-engineering.md)
-- [第14章 Agent Runtime：架构、执行编排与可靠性工程](part3/03-agent-runtime.md)
-- [第15章 Agent 工具系统工程：Skills、Tools、MCP 与 Connectors](part3/04-skills-tools-mcp-connectors.md)
-- [第16章 Agent 治理与调优：从质量闭环到分层落地](part3/05-agent-governance-optimization.md)
+- [第14章 知识检索与 RAG：从文档到可引用证据](part3/02b-knowledge-retrieval.md)
+- [第15章 Agent Runtime：架构、执行编排与可靠性工程](part3/03-agent-runtime.md)
+- [第16章 Agent 工具系统工程：Skills、Tools、MCP 与 Connectors](part3/04-skills-tools-mcp-connectors.md)
+- [第17章 Agent 治理与调优：从质量闭环到分层落地](part3/05-agent-governance-optimization.md)
 
 ---
 
 # 第四部分：Agent 应用与实战
 
-- [第17章 成熟 Coding Agent 内部实现：Codex CLI、Claude Code 与 OpenCode](part4/01-coding-agent-systems.md)
-- [第18章 Pi Agent 架构解析：终端原生 Coding Agent Runtime、扩展系统与上下文工程](part4/02-pi-agent-architecture.md)
-- [第19章 OpenClaw 架构解析：个人 AI 助手的 Gateway、Runtime 与工具生态](part4/03-openclaw-architecture.md)
-- [第20章 Hermes Agent 架构解析：长期运行、自我进化与多入口 Agent Runtime](part4/04-hermes-agent-architecture.md)
+- [第18章 成熟 Coding Agent 内部实现：Codex CLI、Claude Code 与 OpenCode](part4/01-coding-agent-systems.md)
+- [第19章 Pi Agent 架构解析：终端原生 Coding Agent Runtime、扩展系统与上下文工程](part4/02-pi-agent-architecture.md)
+- [第20章 OpenClaw 架构解析：个人 AI 助手的 Gateway、Runtime 与工具生态](part4/03-openclaw-architecture.md)
+- [第21章 Hermes Agent 架构解析：长期运行、自我进化与多入口 Agent Runtime](part4/04-hermes-agent-architecture.md)
 
 ---
 
 # 第五部分：前沿与研究
 
-- [第21章 AI 智能体研究现状、工程瓶颈与未来理想能力架构报告](part5/01-agent-frontier-research.md)
+- [第22章 AI 智能体研究现状、工程瓶颈与未来理想能力架构报告](part5/01-agent-frontier-research.md)
 
 ---
 

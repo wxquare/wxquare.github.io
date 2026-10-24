@@ -1,4 +1,4 @@
-# 第20章 Hermes Agent 系统：长期运行 Agent Runtime 的实现、使用与调优
+# 第21章 Hermes Agent 系统：长期运行 Agent Runtime 的实现、使用与调优
 
 > Hermes Agent 的核心不是“多一个聊天入口”，而是把一个会积累记忆、沉淀技能、跨入口工作、可扩展工具、并生成训练轨迹的个人 Agent，做成一个长期运行的运行时：Gateway 拥有会话的权威状态，AIAgent 负责一次回合的模型与工具循环，记忆、技能和会话搜索在两者之间形成一条学习闭环。也正因为它是长期在线、能替人行动的系统，安全边界比功能更重要。
 
@@ -13,9 +13,9 @@
 
 两条诚实性限制需要提前说明。第一，Hermes 文档与源码在同一提交内就有多处冲突（`agent.max_turns` 文档写 500、源码默认无限；schema 版本文档写 31、源码是 32；中断是否注入部分响应的说法相反），正文遇到会点名，并以源码为准。第二，README 里“only agent with a built-in learning loop”这类厂商自述，只作为厂商说法引用，不作为事实结论。
 
-## 20.1 组成：Hermes 由哪些部分构成
+## 21.1 组成：Hermes 由哪些部分构成
 
-### 20.1.1 定位：一个长期运行、自我改进的 Agent Runtime
+### 21.1.1 定位：一个长期运行、自我改进的 Agent Runtime
 
 Hermes 的官方自述是“a self-improving AI agent”，README 强调它“built-in learning loop”（内置学习闭环），并把 Telegram、Discord、Slack、WhatsApp、Signal 和 CLI 全部收进“a single gateway process”[[1]](#ref-1)。这句“单一 gateway 进程承载多入口”是理解它的钥匙：与把入口当旁路的系统不同，Hermes 的 Gateway 是会话的权威写者，所有入口都向它提交输入（见 20.3.1）。
 
@@ -23,13 +23,13 @@ Hermes 的官方自述是“a self-improving AI agent”，README 强调它“bu
 
 安全定位上，Hermes 的 SECURITY.md 说得非常直白：**“唯一的安全边界是操作系统”**——审批门、输出脱敏、模式扫描器、工具 allowlist 都不是 containment[[30]](#ref-30)。这一条是 20.5 整个实践部分的框架。
 
-### 20.1.2 代码组织：facade 与 siblings
+### 21.1.2 代码组织：facade 与 siblings
 
 Hermes 的代码组织有一个显式的约定：每个曾经的 god file 是**门面**（公共入口 + 被其他包 import 的名字），`<stem>_<topic>.py` 兄弟文件各管一个主题；项目开发指南要求“按主题找代码，不要读门面”，文件不超过 2000 行[[1]](#ref-1)。所以 `run_agent.py`（约 1500 行）、`gateway/run.py`（约 5200 行）、`hermes_state.py`（约 1700 行）只是门面，机制在 `agent/turn_*.py`（约 30 个阶段文件）、`gateway/run_*.py`、`hermes_state_*.py`（60 个文件）里。读 Hermes 源码时，这是一个必须遵守的地图[[1]](#ref-1)。
 
 顶层目录含 `agent/`（回合循环）、`gateway/`（多入口控制面）、`hermes_cli/`（CLI）、`tools/`（工具与后端）、`cron/`（定时）、`plugins/`（含 27 个平台适配器目录与 42 个模型 provider 目录）、`skills/`（内置技能）、`optional-skills/`（官方可选）、`plugin-catalog/`（764 个条目）等[[3]](#ref-3)。
 
-### 20.1.3 核心对象
+### 21.1.3 核心对象
 
 | 对象 | 位置 | 职责 |
 | --- | --- | --- |
@@ -45,7 +45,7 @@ Hermes 的代码组织有一个显式的约定：每个曾经的 god file 是**�
 | `MemoryStore` | `tools/memory_tool_store.py` | 内置 Markdown 记忆 |
 | `SessionDB` | `hermes_state.py` | SQLite 会话库门面 |
 
-### 20.1.4 状态与存储
+### 21.1.4 状态与存储
 
 状态目录默认 `~/.hermes`（`HERMES_HOME` 覆盖）。关键布局：`config.yaml`（行为配置）、`.env`（只放密钥）、`auth.json`（OAuth 凭据）、`SOUL.md`、`memories/`（MEMORY.md、USER.md）、`skills/`、`cron/`、`sessions/`、`logs/`[[5]](#ref-5)。命名 profile 目录是 `<root>/profiles/<name>/`，各带独立 `state.db`、配置、日志[[5]](#ref-5)。一个例外是 Kanban 数据库：默认看板 DB 在共享根 `<root>/kanban.db`，是跨 profile 共享状态，与“profile 是岛”的默认隔离不同[[11]](#ref-11)。
 
@@ -53,17 +53,17 @@ Hermes 的代码组织有一个显式的约定：每个曾经的 god file 是**�
 
 除会话库外，还有一套运行时账本表支撑恢复：`session_admissions`（durable 输入 FIFO，`intent ∈ {queue, steer, redirect}`、`status ∈ {queued, started, unknown, terminal}`）、`worker_executions`（cron/child/compute/kanban）、`worker_receipts`、`runtime_epoch`（epoch + instance_id 单行）、`session_turn_leases`（跨进程回合租约）[[7]](#ref-7)。
 
-### 20.1.5 进程与部署形态
+### 21.1.5 进程与部署形态
 
 可核对的进程形态有七种：CLI/`hermes chat`/TUI 客户端；gateway 守护进程（常驻服务或按需拉起）；进程外 managed worker（bypass/safe 会话、custom-provider、kanban/cron 等）；TUI（Node/Ink 前端 + Python 后端）；`hermes serve` 无头后端（端口默认 9119）；ACP stdio 服务；cron（gateway 内置 ticker 线程，或外部 `hermes cron tick`）[[23]](#ref-23)。console scripts 有三个：`hermes`、`hermes-agent`（legacy 单查询 runner）、`hermes-acp`[[6]](#ref-6)。
 
 多 profile 复用进程：`gateway.multiplex_profiles` 默认未设，启动时由 `resolve_multiplex_mode` 裁决——无阻塞项则 True；显式 `false` 已退役为“拓扑 opt-out”（只告警，视同未设）；有阻塞项（s6 容器、仍自有 gateway 的次要 profile、重复 bot 凭据）时降级为单 profile[[9]](#ref-9)。多 profile 隔离靠两个 contextvar 作用域（`hermes_home` 与 secret scope）叠加，`get_secret()` 在 multiplex 开启而无作用域时抛 `UnscopedSecretError`（fail closed）[[9]](#ref-9)。
 
-### 20.1.6 模型接入与执行后端
+### 21.1.6 模型接入与执行后端
 
 模型接入由共享解析器 `resolve_runtime_provider()` 按“梯子”逐级返回：禁用 provider 守卫 → 快捷名 → 命名自定义 provider → 本地端点 → 显式 `--api-key/--base-url` → 凭证池 → OAuth → 环境变量 → bedrock → OpenRouter/裸 custom 回退 → `model.openai_runtime` 覆盖[[8]](#ref-8)。执行后端（terminal backend）内置 6 个：`local`、`docker`、`ssh`、`modal`、`daytona`、`vercel_sandbox`（另有 `managed_modal`）；Singularity 已从内置后端变为官方插件，这是相对旧稿的变化[[22]](#ref-22)。工具集由 `toolsets.py` 的 `_HERMES_CORE_TOOLS` 与平台预设（`hermes-cli`、`hermes-telegram`、`hermes-acp` 等）定义[[2]](#ref-2)。
 
-### 20.1.7 记忆、技能与学习闭环
+### 21.1.7 记忆、技能与学习闭环
 
 记忆分“内置 Markdown 记忆”与“外部 memory provider”两层：内置 provider 把条目写进 `MEMORY.md`（预算 2200 字符）与 `USER.md`（1375 字符）；外部 provider 至多一个，仓库自带 `byterover`、`retaindb`，其余（honcho、mem0 等）在 plugin-catalog 里由 `hermes plugins install` 安装[[12]](#ref-12)。技能遵循 SKILL.md + YAML frontmatter，渐进披露：技能索引（名称 + ≤60 字符描述）每次会话注入，正文按需读取[[4]](#ref-4)。
 
@@ -80,11 +80,11 @@ state.db 的表列值得看一眼，因为它决定了能观测什么：`session
 技能分三个层级：`skills/`（内置，一直可用）、`optional-skills/`（官方可选，默认不激活，`hermes skills browse/install`）、Skills Hub（社区/小众，安装前审查）；插件在 `plugin-catalog/`（764 个条目，单 YAML，必须 40 位 SHA 固定，人工合并）[[31]](#ref-31)。配置优先级官方写清：CLI 参数 > `config.yaml` > `.env` > 内置默认；`.env` 只放密钥，其余行为配置放 `config.yaml`——开发指南甚至拒收“非 secret 配置用新 `HERMES_*` 环境变量”的贡献[[31]](#ref-31)。
 
 会话路由的镜像文件 `sessions.json` 是 `session_key → session_id` 的映射加条目元数据（原子写），SQLite 为 canonical、`sessions.json` 是镜像；SQLite 不可用时 `SessionStore` 有退化路径 JSONL（文档称为降级，行为未在源码逐行核）[[7]](#ref-7)。`get_hermes_home()` 的解析顺序是：context-local override → `HERMES_HOME` 环境变量 → 平台默认（macOS/Linux `~/.hermes`，Windows `%LOCALAPPDATA%/hermes`）[[5]](#ref-5)。
-## 20.2 启动：从入口到首轮
+## 21.2 启动：从入口到首轮
 
 Hermes 的启动要回答两层问题：一个入口进程怎样起来，以及一个 AIAgent 回合怎样从“装配”走到“可以发第一个模型请求”。它没有单一入口，所以“启动”要按入口分别看。
 
-### 20.2.1 命令入口与 Profile 解析
+### 21.2.1 命令入口与 Profile 解析
 
 `hermes` 控制台脚本指向 `hermes_cli.main:main`[[6]](#ref-6)。Profile 在其余 Hermes 模块导入**之前**解析：`_apply_profile_override()` 在 main.py 模块加载时执行，规则是显式 `--profile/-p` 优先，其次 `HERMES_HOME` 已指向 `profiles/<name>`，再读默认根下 `active_profile`；结果写入 `os.environ["HERMES_HOME"]`，并把 `--profile` 从 argv 剥掉。源码注释强调 profiles 模块内部异常绝不阻止启动（告警并用默认）[[10]](#ref-10)。
 
@@ -92,13 +92,13 @@ Hermes 的启动要回答两层问题：一个入口进程怎样起来，以及�
 
 无 provider 配置时的首启保护：`_has_any_provider_configured()` 为假且不是 TUI → `_first_run_setup_guard` 并返回；TUI 自己渲染 “Setup Required”[[10]](#ref-10)。插件/MCP/hook 发现是“按命令类型条件触发”的：对 `chat` 与 TUI，客户端**不做**插件/MCP 发现，因为“gateway 自己发现并拥有 MCP servers”——源码注释给出理由：避免第二份 MCP server 与跨进程发现锁（注释称实测 2.0 秒，一台 stdio server）[[10]](#ref-10)。
 
-### 20.2.2 经典 CLI 到 gateway 的接入
+### 21.2.2 经典 CLI 到 gateway 的接入
 
 经典 CLI 的 `AIAgent` 其实是 `GatewayAgent`：`cli_agent_setup_mixin.py` 里 `from hermes_cli.gateway_agent import GatewayAgent as AIAgent  # the gateway runs the turn`[[3]](#ref-3)。会话存储取 `GatewaySessionStore`（“gateway is the single writer”），`_ensure_gateway_session()` 创建/恢复会话并**采用 gateway 返回的 session id**[[8]](#ref-8)。
 
 连接并按需拉起 gateway：`GatewayConnection.start(timeout=90)`；未显式 `HERMES_TUI_GATEWAY_URL` 时调用 `ensure_gateway_runtime(home, idle_exit=True)`；显式远端 URL 失败**永不**本地拉起替代。无回退文案是 “Gateway connection failed; no local fallback”[[23]](#ref-23)。`ensure_gateway_runtime` 的语义是“只发现或请求一次，不安装服务”：观察到 `absent` 才启动，优先已安装服务，否则 `spawn_unmanaged_gateway`；源码注释强调 “A successful service command or Popen is not session readiness.”——READY 由发现协议判定，不是 Popen 成功[[23]](#ref-23)。
 
-### 20.2.3 Gateway 冷启动到 READY
+### 21.2.3 Gateway 冷启动到 READY
 
 `gateway.run.start_gateway()` → `gateway.run_bootstrap.start_gateway()`，主体在 `GatewayRunner.start()`（`gateway/run_startup.py`）。真实顺序比旧稿的八阶段表多了两项：**PID 文件用 `O_EXCL` 抢在适配器之前**，**控制 socket 失败即中止启动**；MCP 发现发生在 `runner.start()` 之前；cron ticker 与 housekeeping 在 `runner.start()` 之后、READY 之前[[24]](#ref-24)。核心顺序是：①设 `HERMES_EXEC_ASK=1`、记录启动代码指纹；②加载 gateway 配置（“配置裁决先于重复实例守卫”）；③并行启动环境探针；④multiplex 裁决；⑤同 `HERMES_HOME` 重复实例守卫（`--replace` 需证明所有权）；⑥全有或全无预留 profile 运行所有权；⑦抢 PID 文件；⑧恢复离开核心的功能；⑨构造 `GatewayRunner` 并 `initialize_gateway_runtime`；⑩信号处理器；⑪控制 socket（失败即中止）；⑫MCP 发现（执行器线程，失败非致命）→ `runner.start()`；⑬cron ticker 与 housekeeping；⑭`publish_gateway_runtime_ready`[[24]](#ref-24)。
 
@@ -106,17 +106,17 @@ Hermes 的启动要回答两层问题：一个入口进程怎样起来，以及�
 
 启动门控是有界的：恢复期间入站事件排队，`_finish_startup_restore` 对启动恢复任务等待上限 30 秒（可配）、对预热等待上限 20 秒，超时只警告、继续放行入站，后台任务不取消；`finally` 保证闸门无论怎样都放开。源码 docstring 说得很清楚：“availability outranks prompt completeness for a WEDGED init”——可用性优先于提示完备性[[24]](#ref-24)。
 
-### 20.2.4 平台连接失败的分级
+### 21.2.4 平台连接失败的分级
 
 平台连接结果分级处理：全部连上 → 正常；有“不可重试”失败但仍有已连平台 → `degraded`；零连接且只有不可重试错误 → `_startup_fail_fatal_config`（退出码 78）；致命与瞬时混合 → 保持存活走重试；零启用平台 → 仍运行（供 cron）[[24]](#ref-24)。重连看门狗指数退避 30 秒 → 300 秒封顶，可重试失败永远重试，持续失败超过 `reconnect_attention_after`（默认 7200 秒）后标 `needs_attention`[[24]](#ref-24)。启动存活看门狗（`hermes_startup_watchdog.py`）在导入 gateway 之前武装，事件循环 300 秒未就绪就转储线程栈、以服务重启码 75 退出；它用“阶段性进度租约 + CPU 进展”避免误杀慢启动（schema 迁移这类低 CPU 阶段靠进度租约证明存活）[[25]](#ref-25)。
 
-### 20.2.5 AIAgent 装配
+### 21.2.5 AIAgent 装配
 
 `AIAgent.__init__` → `agent.agent_init.init_agent()`。装配顺序（源码行号可核）：①safe worker 时强制跳过 context files/memory/后台复盘；②`iteration_budget = iteration_budget or IterationBudget(max_iterations)`；③`_resolve_api_mode` + `_finalize_routing`；④`_build_client` + `_init_fallback_chain`；⑤`_load_tools`（工具快照）；⑥`_init_session_state`；⑦`_init_memory`、`_apply_agent_section`（`api_max_retries` 默认 3、`auto_recovery_cycles` 默认 5）、`_parse_compression_config`、`_resolve_context_length`、`_build_context_engine`、`_enforce_minimum_context`、`_inject_context_engine_tools`、`_init_usage_state`；⑧`_snapshot_primary_runtime`[[3]](#ref-3)。
 
 两个容易误读的点。第一，“子 Agent 可继承共享迭代预算”不准：`init_agent` 注释写 parent creates/children inherit，但 `delegate_task` 构造子 Agent 时传 `iteration_budget=None  # fresh budget per subagent`，即每个子 Agent 是**新预算**[[14]](#ref-14)。第二，工具快照先于记忆与上下文引擎的扩展工具注入，最终 schema 不一定只来自最初 registry 查询——`_inject_context_engine_tools` 在 `_load_tools` 之后[[3]](#ref-3)。
 
-### 20.2.6 首轮边界
+### 21.2.6 首轮边界
 
 首轮入口 `TurnFacadeMixin.run_conversation`：先取消后台 review，建立 task/session/relay/accounting 作用域，**申请持久回合租约**（`session_turn_leases`，`LEASE_TTL_SECONDS = 300`、等待上限 `LEASE_WAIT_SECONDS = 1800`、刷新间隔默认 60 秒），再进 `conversation_loop.run_conversation`；租约/准入失败会提前结束而不进入模型循环[[3]](#ref-3)。这个跨进程租约的意义在于：同一 state.db 上的多个进程（Desktop、CLI resume、gateway）可能并发，租约续租失败/到期时 `agent.interrupt(hard_cancel=True, tool_reason="session turn lease lost")` 保护 transcript[[16]](#ref-16)。
 
@@ -124,7 +124,7 @@ system prompt 的恢复或构建在 `_restore_or_build_system_prompt`：有历�
 
 后端是惰性创建的：`ensure_task_env()` 在首次需要环境的能力调用时才创建本地/Docker/SSH 等后端，命中活跃环境则复用；local 返回 None；失败记 warning 返回 None。这条“首条终端命令才创建后端”是启动耗时与首轮时延的边界[[22]](#ref-22)。
 
-## 20.3 执行：一条消息从进来到出去
+## 21.3 执行：一条消息从进来到出去
 
 `cmd_chat` 有三条子路径：`stream-json` 或“bypass”（safe-mode/ignore-user-config）→ 纯传输客户端 `launch_gateway_chat`；否则判定 TUI（`--tui/--cli` 标志、TTY、`HERMES_TUI`、`display.interface`）→ `_launch_tui`（**替换当前进程**为 Node/Ink TUI）；否则进入经典 CLI（`HermesCLI`）[[10]](#ref-10)。CLI 每次进入 agent 之前重新解析凭证（密钥轮换/令牌刷新无需重启）：`_ensure_runtime_credentials()`，失败时尝试 fallback[[8]](#ref-8)。
 
@@ -134,19 +134,19 @@ system prompt 的恢复或构建在 `_restore_or_build_system_prompt`：有历�
 
 
 
-### 20.3.1 端到端路径与授权
+### 21.3.1 端到端路径与授权
 
 平台适配器把原始事件规范化为 `MessageEvent`。Gateway 侧 `_handle_message()` 的阶段顺序（源码 docstring 是 “auth → command check → running-agent interrupt → get/create session → build context → run agent → return response”）：`_hm_admit_event`（授权、profile 路由、忽略频道、plugin hook）→ `_hm_estop_gate`（全局暂停）→ `_session_key_for_source` → 待回复拦截 → `_hm_authority_admission`（若本事件归 session authority 的 durable FIFO，则在此被“拥有”并返回）→ 驱逐泄漏的 `_running_agents` 槽 → 若会话仍在运行 → busy 处理 → 斜杠命令 → 外部 drain 守卫 → `_claim_active_session_slot`（`max_concurrent_sessions` 上限）→ **在任何 await 之前**把 `turn.agent = _AGENT_PENDING_SENTINEL` 占位（防止同会话并发生成重复 agent）→ `_begin_session_run_generation` → `_handle_message_with_agent`[[19]](#ref-19)。
 
 授权顺序（文档）：平台 allow-all 标志 → 平台 allowlist → DM pairing → 全局 allow-all → 默认拒绝[[21]](#ref-21)。会话键由 `build_session_key` 构造，布局 `<ns>:<platform>:<chat_type>[:…][:<chat_id>][:<thread_id>][:<user>]`；DM 以 chat_id 隔离，群/频道默认按参与者隔离，线程默认共享；multiplex 下命名空间是 `agent:<profile>`[[20]](#ref-20)。会话状态机里，`suspended`（`/stop` 或卡死环路升级触发）强制新 session_id，`resume_pending`（崩溃恢复/排空超时）保留 session_id；**“空闲/每日自动重置”已不存在**——`/new` 与 `/reset` 才是显式边界[[13]](#ref-13)。
 
-### 20.3.2 Agent Loop：12 个阶段
+### 21.3.2 Agent Loop：12 个阶段
 
 一次迭代的阶段顺序（源码 docstring 都写 “in the original order”）：`begin_iteration`（应用 redirect、重置 checkpoint 去重、中断/review 预算/迭代预算出口）→ `prepare_iteration`（steer 文本作为新 user 行追加；幽灵行过滤；缓存断点只在空白规整、孤儿清理、仅思考消息丢弃/user 合并之后注入）→ `assemble_api_request` → `run_preflight_gate` → **API 重试内循环** `_run_api_retry_loop` → `apply_retry_restarts` → `normalize_model_response` → 有 tool_calls 走 `run_tool_round` 否则 `finish_text_response` → 外层异常 `handle_outer_loop_error`；循环外 `finalize_turn`[[17]](#ref-17)。
 
 迭代上限默认值是**无限**（`max_iterations = sys.maxsize`），配置文档里 “unlimited by default — the turn cap caused more problems than it solved”；`agent-loop.md` 写 “Default: 500 iterations” 是过时文档，不可引用[[17]](#ref-17)。API 重试预算：`api_max_retries` 默认 3，超出后还有“耗尽后自动恢复阶梯” `auto_recovery_cycles` 默认 5（0=关）；外层异常最多 8 次（与 max_iterations 取小）[[17]](#ref-17)。
 
-### 20.3.3 工具调度：并行、串行与分段
+### 21.3.3 工具调度：并行、串行与分段
 
 工具执行有三条路径：并发、顺序、分段。并发批次上限 `_MAX_TOOL_WORKERS = 8`，批并发超时默认 420 秒；`_NEVER_PARALLEL_TOOLS` 与只读安全集、路径作用域（同路径冲突则串行）、`supports_parallel_tool_calls`（默认 False）决定一个工具能否并行[[18]](#ref-18)。纯读更易并行、路径不冲突的文件工具才并行、高副作用/交互式串行，这是源码里三层规划函数的规则[[18]](#ref-18)。
 
@@ -154,7 +154,7 @@ system prompt 的恢复或构建在 `_restore_or_build_system_prompt`：有历�
 
 工具结果有三层预算：单个结果 100,000 字符（MCP 50,000）、每轮聚合 200,000 字符、预览 1,500 字符；超阈值落盘溢出目录，替换为 `<persisted-output>` 预览块；`read_file` 阈值固定为 inf，避免 persist→read→persist 死循环[[18]](#ref-18)。工具失败以 `isError` 的 tool 角色结果回送模型，不向上抛；未知工具返回 `{"error": "Unknown tool: <name>"}`；处理器异常经 `_sanitize_tool_error` 清洗后返回，上限 2048 字符加 `[TOOL_ERROR]` 前缀[[18]](#ref-18)。
 
-### 20.3.4 上下文构造与系统提示三档
+### 21.3.4 上下文构造与系统提示三档
 
 system prompt 分三档，归属与旧稿不同（旧稿把 MEMORY/USER 放 Stable、Skills 放 Context 是错的）[[4]](#ref-4)：
 
@@ -166,19 +166,19 @@ system prompt 分三档，归属与旧稿不同（旧稿把 MEMORY/USER 放 Stab
 
 三档合起来是冻结的缓存 system prompt；用户消息与工具结果在 messages，不属任何一档[[4]](#ref-4)。每会话构建一次存 `agent._cached_system_prompt`，仅 stable 档作缓存前缀，压缩后才重建[[4]](#ref-4)。项目 context 文件“只载入一类，先到先得”：`.hermes.md` → `AGENTS.md` → `CLAUDE.md` → `.cursorrules`[[4]](#ref-4)。
 
-### 20.3.5 压缩与缓存规划
+### 21.3.5 压缩与缓存规划
 
 压缩触发阈值 `compression.threshold` 默认 0.50，但窗口小于 512K token 的模型被**只升不降**地抬到 ≥0.75（注释称否则“compaction re-fires every 1-2 turns”）——所以 agent-loop.md 写的 “50%” 对多数模型不是实际触发点[[13]](#ref-13)。相关参数：`protect_last_n` 20、`target_ratio` 0.20、`max_attempts` 3、`keep_recent_tokens` 20000；此外 Gateway 侧还有一道 85% 的会话 hygiene 预压缩安全网，独立于 agent 内压缩[[13]](#ref-13)。压缩把旧轮次摘要为一个 compact 条目，**完整历史仍在磁盘**，分割点保持 assistant 工具调用与 toolResult 成对[[13]](#ref-13)。
 
 缓存规划有三种布局：static 前缀拆分 + 最近 2 条非 system 消息；legacy “system-and-3”；native tool cache（tools 末项 + 最后 2 个已完成事务端点）[[4]](#ref-4)。客户端构造缓存标记不证明服务端命中，以 usage 的 `cache_read_tokens/cache_write_tokens` 为准[[7]](#ref-7)。
 
-### 20.3.6 委派、Kanban 与 MoA
+### 21.3.6 委派、Kanban 与 MoA
 
 复杂任务有四层能力（本书归纳）：单 Agent 工具链、`delegate_task` 子 Agent、Kanban、MoA。`delegate_task` 的模型可见参数只有 `tasks[]{goal, context, output_schema, images, group}`、`action(spawn|list|steer|stop)`、`subagent_id`、`message`；`role`/`toolsets`/`max_iterations`/`background` **不是**模型参数；`role` 被忽略（能力由深度推出），`goal` 是子 Agent 的首条 user 消息而不是 system prompt[[14]](#ref-14)。并发默认 `max_concurrent_children` 10、`max_spawn_depth` 1；顶层委派总是后台，结果作为新回合回流；子超时是无进展窗口（默认无限），心跳 30 秒、停滞 15 个周期（450 秒）判陈旧[[14]](#ref-14)。
 
 Kanban 是持久化编排：dispatcher 按 tick（默认 60 秒）调 `dispatch_once`，先回收僵尸/过期 claim/崩溃 worker，再 `recompute_ready`（依赖提升）、`claim_task`（CAS `status='ready' AND claim_lock IS NULL`，事务内复检父任务）。状态集合是 triage/todo/scheduled/ready/running/blocked/review/done（+archived），`blocked` 分 4 种 `block_kind`[[11]](#ref-11)。MoA 是虚拟 provider：preset=模型名，reference 并发上限 8，advisory view 预算 4000 字符，缓存键 `preset+SHA256(advisory view)+labels`，`fanout` 有 `user_turn`（默认）/`per_iteration`/`every_n` 三档[[14]](#ref-14)。
 
-### 20.3.7 会话持久化与记忆写入
+### 21.3.7 会话持久化与记忆写入
 
 谁写库：gateway 的 session authority 是 canonical 写者；agent 通过 `_flush_messages_to_session_db` 写增量消息；异常路径用 `display_metadata` 里的 owner marker 做“失败写入仲裁”，不是通用 exactly-once[[7]](#ref-7)。写失败的后果：SessionDB 写预算耗尽 → 回合以 `session_persistence_failed:locked` 结束；工具前持久化失败 → 回合结束；system prompt 持久化失败 → 后续回合重建并 miss 前缀缓存[[7]](#ref-7)。
 
@@ -209,11 +209,11 @@ provider 梯子的完整顺序是（“梯子的顺序即行为——每级返�
 `init_agent` 装配的完整顺序（含一些容易遗漏的步骤）：safe worker 强制跳过上下文/记忆/后台复盘 → 绑定透传参数与网关身份参数、`IterationBudget(max_iterations)` → `_resolve_api_mode` + `_finalize_routing` → 默认控制状态、`_init_prompt_cache_config`、`_init_turn_state` → `_build_client` + `_init_fallback_chain` → `_load_tools` → `_init_session_state` → 读一次 `load_config_readonly()` → `_init_memory`、`_apply_agent_section`（`api_max_retries` 默认 3、`auto_recovery_cycles` 默认 5）、`_parse_compression_config`、`_resolve_context_length`、`_build_context_engine`、`_enforce_minimum_context`、`_inject_context_engine_tools`、`_init_usage_state` → `_snapshot_primary_runtime`[[3]](#ref-3)。工具快照 `_load_tools` 的顺序是：先 `recover_at_startup`（离开核心的功能）、`discover_plugins()`（multiplex 下必须在快照前做，因为 HERMES_HOME 可能已换）、`session_disabled_toolsets` → `get_tool_definitions(enabled, disabled)` → `prune_oneshot_tools`（有限的 `-q` 运行去掉技能写入工具）→ `agent_tool_drops`[[3]](#ref-3)。
 
 惰性/延迟的部分汇总：built-in 工具与插件发现发生在 `model_tools` 导入期，MCP 不在导入期；`croniter` 惰性导入；终端沙箱在首次需要时创建；预热失败退回首轮惰性初始化；`deferred_token_mint()`（CLI 不做第二次 Vertex JWT 交换）；浏览器 vault 工具默认 deferred；GatewayStartup dashboard 仅对有 supervisor 的 gateway 在 READY 后预热，client 自起 gateway 则首次请求时挂载[[24]](#ref-24)。
-## 20.4 异常：失败、中断与恢复
+## 21.4 异常：失败、中断与恢复
 
 Hermes 的异常面很大：单机 CLI 的中断、跨进程的回合租约、模型失败与凭证池、Gateway 重启恢复、Kanban 任务的熔断、投递账本、安全拦截。它有一个鲜明的特点：大量“失败”被设计成结构化结果回送给模型或调用方，而不是向上抛。
 
-### 20.4.1 异常分类与证据现状
+### 21.4.1 异常分类与证据现状
 
 | 异常类型 | 关键机制 | 依据 |
 | --- | --- | --- |
@@ -228,7 +228,7 @@ Hermes 的异常面很大：单机 CLI 的中断、跨进程的回合租约、�
 | 记忆写入失败 | 字符预算/文件锁/威胁扫描/每轮 3 次失败上限 | 源码 |
 | 安全拦截 | 审批 fail-closed + hardline 地板 + smart 模式熔断 | 源码 + 文档 |
 
-### 20.4.2 中断与取消：能停什么
+### 21.4.2 中断与取消：能停什么
 
 `AIAgent.interrupt()` 是跨线程的“请求中断”入口：写 `_interrupt_requested`，置位当前执行线程的工具中断位，扇出到并发工具 worker 与子 agent；`hard_cancel=True` 表示显式 `/stop`，否则是软中断（新消息或普通中断）[[16]](#ref-16)。中断原因分“用户类”与“系统类”，退出原因写成 `interrupted_by_system(<issuer>)` 而不是记成用户停止[[16]](#ref-16)。工具层中断位是线程作用域的：网关一个进程里跑多个 agent，中断一个会话不会杀其他会话的工具[[16]](#ref-16)。
 
@@ -236,7 +236,7 @@ Hermes 的异常面很大：单机 CLI 的中断、跨进程的回合租约、�
 
 中断后残留状态有专门的“孤儿恢复”：恢复/重放历史时清理被打断的 assistant→tool 尾巴；只读工具块被丢弃，含副作用工具的块被保留并把结果改写成 `effect_disposition="unknown"` 的 “Orphan recovery ... effect is UNKNOWN” 通知，防止模型重发已执行的调用[[16]](#ref-16)。工具结果消息携带 `effect_disposition`：取消/跳过的未启动调用为 `"none"`，工具超时为 `"unknown"`；这个字段随会话持久化[[18]](#ref-18)。
 
-### 20.4.3 模型失败：重试、轮换与 fallback
+### 21.4.3 模型失败：重试、轮换与 fallback
 
 模型失败处理是一条优先级流水线：`ClassifiedError` 把异常映射为 `{reason, status_code, retryable, should_compress, should_rotate_credential, should_fallback}`，循环只读这些提示，不再自己匹配字符串[[16]](#ref-16)。HTTP 状态静态表：401→auth、402→billing（不可重试）、408→timeout、413→payload_too_large、429→限流、500/502→server_error、503/529→overloaded[[16]](#ref-16)。
 
@@ -244,13 +244,13 @@ Hermes 的异常面很大：单机 CLI 的中断、跨进程的回合租约、�
 
 凭证池轮换：rate_limit 先对同 key 重试一次再轮换，billing 立即轮换，auth 先刷新后轮换，`upstream_rate_limit` 不轮换（key 健康）[[16]](#ref-16)。provider fallback 用 `fallback_providers`（列表，每项必须同时有 provider 与 model），沿链逐项前进；显式用户选择的模型是“严格”的，失败即报错而不被无关 fallback 掩盖；fallback 只对本 turn 生效，每 turn 开始恢复主运行时[[16]](#ref-16)。主 provider 冷却指数退避 60 秒 → 4 小时封顶[[16]](#ref-16)。
 
-### 20.4.4 上下文超限与压缩失败
+### 21.4.4 上下文超限与压缩失败
 
 溢出被分类器判为 `context_overflow`（只带 `should_compress`，不 fallback），413 判为 `payload_too_large`；两者都在 `RETRYABLE_CLIENT_REASONS` 里，所以不会被当成不可重试错误终止[[16]](#ref-16)。压缩尝试上限 `compression.max_attempts` 默认 3（≥1、≤10）；超出后 `fail_turn`，`failure_retryable=False`、`compression_exhausted=True`，提示 `/new` 或 `/compress`[[16]](#ref-16)。Gateway 对 `compression_exhausted` 的处置：非 API 服务器平台默认自动重置会话（旋转到新 session 并迁移排队消息），API 服务器平台为保持会话绑定只返回带类型的错误[[16]](#ref-16)。
 
 压缩失败有一整条降级阶梯。摘要失败冷却 60→300→900 秒递增；独立摘要模型失败后用主模型重试一次；终止性失败（访问/配额、网络、空内容、length 截断）无论如何都 abort 并保留 transcript；非终止性失败默认提交确定性兜底摘要（上限 8000 字符，只保留连续性锚点）[[16]](#ref-16)。反抖（anti-thrash）：只有 provider 证实的无效压缩才累计，连续 2 次阻断自动压缩，300 秒后允许一次探测[[16]](#ref-16)。压缩中提交 prompt 会直接抛错，树导航/`/compact` 在压缩期间同样受限。
 
-### 20.4.5 Gateway 重启恢复：Recovery 的依据是标记，不是时间
+### 21.4.5 Gateway 重启恢复：Recovery 的依据是标记，不是时间
 
 重启恢复围绕几个持久化标记展开。`.clean_shutdown` 是“干净退出回执”：只在排空未超时时创建；下次启动若存在，则丢弃孤儿 active-turn 标记并删除回执，不存在才走 `_recover_unclean_sessions`[[24]](#ref-24)。活动 turn 标记 `mark_turn_active` 在发布到内存之前先把 (token, 开始时间) 持久化，`clear_turn_active` 以 token 做 CAS 清除[[13]](#ref-13)。未清洁退出恢复只看“被标记的 turn”：`max_age = max(3600, 2×HERMES_AGENT_TIMEOUT)`，更老的标记只清除不执行[[24]](#ref-24)。
 
@@ -260,23 +260,23 @@ Hermes 的异常面很大：单机 CLI 的中断、跨进程的回合租约、�
 
 durable 输入队列（`session_admissions`）的恢复语义是“从不重放已开始的工作”：`recover_session_inputs` 把其他 owner epoch 留下的 `worker_executions` 改为 `unknown`，`session_admissions` 里 `started` 且 epoch 不符的行改为 `unknown`；`unknown` 只能由人确认解除（`/discard` 等），无人等待的 `unknown`（cron、自动化）按 `interrupted` 自动结算[[7]](#ref-7)。
 
-### 20.4.6 投递账本：诚实的至少一次
+### 21.4.6 投递账本：诚实的至少一次
 
 Gateway 最终回复的持久“投递义务”表 `delivery_obligations`，目标是防止“定稿与平台 ACK 之间崩溃导致回复静默丢失”。检查点依次是 `record_obligation`（任何发送之前）→ `mark_attempting` → `mark_delivered`/`mark_failed`；所有调用尽力而为，账本失败不阻塞发送[[26]](#ref-26)。语义是“诚实的至少一次”：`pending` 补发不带标记，`attempting`（崩溃在 await 中，平台可能已收到）补发附 `RECOVERED_MARKER`（“gateway restarted during delivery, so this may be a duplicate”），`failed` 重启是重试边界同样带标记[[26]](#ref-26)。账本**不保证**恰好一次、不保证永不丢（3 次尝试或 24 小时后 `abandoned`，7 天/500 行后清理）；`gateway.delivery_ledger: false` 时整套关闭，崩溃遗留回复改走 `resume_pending` 重新执行[[26]](#ref-26)。
 
-### 20.4.7 Kanban 任务的失败与熔断
+### 21.4.7 Kanban 任务的失败与熔断
 
 Kanban 的调度器每个 tick 先做回收：回收僵尸 → 回收已结束 run 仍存活的 worker → `release_stale_claims`（claim TTL 默认 15 分钟）→ `reconcile_orphaned_running` → `detect_stale_running`（心跳过期）→ `detect_crashed_workers`（PID 已死）→ `enforce_max_runtime` → `recompute_ready`，之后才按预算 claim 并 spawn[[11]](#ref-11)。崩溃检测用 PID + 进程指纹防 PID 复用，按退出状态分类：rc=0 为 protocol_violation，rc=75 为限流（不计失败），rc=78 为终态 provider 错误（首次即熔断）[[11]](#ref-11)。
 
 熔断器 `_record_task_failure` 把非成功结局（spawn_failed/timed_out/crashed/reclaimed）累加 `consecutive_failures`，达阈值（任务级 `max_retries` > 调度器 `failure_limit` 默认 2）则置 `blocked` 并写 `gave_up` 事件；`infrastructure=True`（主机拒绝 spawn）不计数[[11]](#ref-11)。block→unblock→re-block 循环达 2 次路由到 `triage` 转人工。Kanban 是单主机设计，崩溃检测假设 PID 为本机 PID，不支持跨主机共享同一块板[[11]](#ref-11)。
 
-### 20.4.8 子 Agent 失败与中断传播
+### 21.4.8 子 Agent 失败与中断传播
 
 子 Agent 没有默认墙钟超时（`child_timeout_seconds` 默认 0），配置为正数时是“无进展”上限而非总时长，任何进展信号（一次 API 调用、工具变化、活动时钟）都重置窗口[[14]](#ref-14)。心跳监控是权威的卡死检测：父侧每 30 秒心跳，子 Agent 15 个周期（450 秒）回合间无进展或 40 个周期（1200 秒）卡在同一工具里即判陈旧，之后给 worker 2 秒收集真实结果，否则合成超时[[14]](#ref-14)。
 
 中断传播保证“整棵 spawn 树随父级一起结束”：`interrupt()` 对 `_active_children` 快照逐个传播，停止信号落地后才登记的子 Agent 会镜像父级未决的停止，避免孤儿子 Agent 跑到结束[[16]](#ref-16)。失败的子 Agent 不静默：工具结果条目含 `status: "failed"` 与完整 `error`；被停的子 Agent 返回 `status="interrupted"`，`summary` 是停止前最后产出的文本[[14]](#ref-14)。
 
-### 20.4.9 安全拦截与审批的失败语义
+### 21.4.9 安全拦截与审批的失败语义
 
 命令守卫的判定顺序是：隔离后端（docker 且无宿主路径挂载等）只执行用户 deny 规则其余放行 → 否则先过“地板”hardline → 用户 deny → yolo/off → 永久白名单 → 无人值守按各自 deny 配置 → `detect_dangerous_command` 命中则人工决策[[28]](#ref-28)。hardline blocklist 覆盖递归删除根/系统目录、`mkfs`、`dd` 写裸设备、fork bomb 等，在 yolo、`mode: off`、cron approve 之前触发，没有覆盖开关[[28]](#ref-28)。审批超时 fail-closed：超时返回 `BLOCKED: … Silence is not consent.`，不记为拒绝；过期提示不可重开[[28]](#ref-28)。
 
@@ -298,7 +298,7 @@ MCP 失败有独立的降级：单服务器初始连接超时默认 60 秒、首
 
 插件加载失败的隔离：每个插件 import + `register()` 套上 `plugins.load_timeout_seconds`（默认 10 秒）死线，任何 `Exception` 或 `SystemExit`（插件里不受保护的 `sys.exit()` 也不得拖垮进程）都被捕获，处置该插件已注册的内容、移除其事件订阅，其余插件继续加载[[33]](#ref-33)。启动失败与运行期看门狗分两道：启动存活看门狗 300 秒未就绪转储栈并以 75 退出；运行期事件循环活性看门狗每 30 秒探测、10 秒未处理计一次 miss、连续 3 次转储栈硬退出（约 90–120 秒的持续循环阻塞）[[25]](#ref-25)。
 
-### 20.4.10 未找到与待核验
+### 21.4.10 未找到与待核验
 
 - 最大迭代数：默认无限（文档的 500 过时），已按源码修正。
 - “每 turn 固定只回退一次”的计数器：未找到，只有按链索引前进的 `_fallback_index`。
@@ -306,17 +306,17 @@ MCP 失败有独立的降级：单服务器初始连接超时默认 60 秒、首
 - 工具结果 `enforce_turn_budget` 的完整算法与溢出保留期最终取值：未逐行追踪。
 - 仓内 langfuse/otel 插件：未找到（官方 Langfuse 是外部目录插件）；无 `/cost` 命令。
 - 文档引用的 `UNRECOVERABLE_BLOCKLIST` 符号：源码里不存在（实际在 `approval_detection.py` 的 `HARDLINE_PATTERNS`）。
-## 20.5 实践：用好 Hermes
+## 21.5 实践：用好 Hermes
 
 这部分每条做法标注“官方建议”或“本书建议”。Hermes 的官方安全文档给了一整套可执行建议，本节的骨架就来自它。
 
-### 20.5.1 先理解安全模型
+### 21.5.1 先理解安全模型
 
 Hermes 的安全模型官方归纳为八层：用户授权、危险命令审批、文件写保护、容器隔离、MCP 凭据过滤、context 文件扫描、跨会话隔离、输入净化[[29]](#ref-29)。但 SECURITY.md 同时把底线说得很直白：**“唯一的安全边界是操作系统”**——审批门、输出脱敏、模式扫描器、工具 allowlist 都不是 containment；审批门只抓“合作模式”的错误，不抓对抗输出；插件以完整 agent 权限运行，第三方插件的边界是安装前由操作者审阅[[30]](#ref-30)。
 
 官方给出两种 OS 级隔离姿态：terminal-backend 隔离（仅限 shell/file 工具，不限制 code-execution、MCP 子进程、插件、hook、skill 加载）与 whole-process wrapping（把整个 agent 进程树放进 Docker/Compose 或 NVIDIA OpenShell）[[30]](#ref-30)。默认 local 后端 + 不受控输入面，或指望 terminal-backend 沙箱约束不走 shell 的路径，都属于“支持姿态之外”[[30]](#ref-30)。生产 gateway 部署官方建议用 docker/modal/daytona/vercel_sandbox 后端隔离命令（可免去危险命令审批）[[29]](#ref-29)。
 
-### 20.5.2 审批、deny 规则与 allowlist
+### 21.5.2 审批、deny 规则与 allowlist
 
 审批模式 `approvals.mode ∈ {smart, manual, off}`，默认 smart；`off` 等价 `--yolo`，关闭全部审批提示，官方标注“仅用于可信环境（CI/CD、容器等）”[[29]](#ref-29)。`--yolo` 关闭所有危险命令检查，唯独 hardline blocklist 除外；hardline 是“`--yolo` 之下的地板”，合法流程需要 hardline 命令时官方建议“在 agent 之外运行”[[29]](#ref-29)。
 
@@ -324,31 +324,31 @@ Hermes 的安全模型官方归纳为八层：用户授权、危险命令审批�
 
 无人值守上下文的默认值是 deny：`approvals.cron_mode`、`single_query_mode`、`unattended_mode` 默认全 deny，命中危险命令即时返回 `BLOCKED`，而不是阻塞满超时[[28]](#ref-28)。本书建议：把放权做成分层——OS 隔离（容器/专用账户）是第一层，`approvals.deny` 是第二层，`command_allowlist` 是第三层，`approvals.mode: off` 只留给自己完全控制的本地环境。
 
-### 20.5.3 文件写保护与凭据边界
+### 21.5.3 文件写保护与凭据边界
 
 文件写保护是“路径层”而非审批：`write_file`/`patch` 对受保护路径（`~/.ssh`、`~/.aws`、`.env`、auth/、vault/、mcp-tokens/、pairing/ 等）直接拒绝、无审批提示；`HERMES_WRITE_SAFE_ROOT` 设置后写入只能落在列出的目录前缀内（Docker 官方镜像自动设为 `/opt/data`）[[29]](#ref-29)。官方警告两条：不要随手把 `HERMES_WRITE_SAFE_ROOT` 写入 `~/.hermes/.env`（设为项目目录会使 agent 无法写 cron/jobs.json 与 profile skills）；写保护只作用于 write_file/patch，terminal 以同一 OS 用户运行仍可覆盖受保护路径，denylist 不是对抗恶意 agent 的沙箱[[29]](#ref-29)。
 
 凭据边界上，`execute_code` 与 `terminal` 从子进程剥离敏感环境变量；skill 声明的 `required_environment_variables` 在 skill 加载后自动透传；Hermes 基础设施密钥（provider API key、gateway token）不应加入 `env_passthrough`。与 Codex CLI/Claude Code 并用时，官方建议给 Hermes 独立登录并设 `auth.adopt_external_logins: false`（因 refresh token 单次使用轮换）[[29]](#ref-29)。
 
-### 20.5.4 入口身份与 DM pairing
+### 21.5.4 入口身份与 DM pairing
 
 Gateway 授权顺序是：平台 allow-all → 平台 allowlist → DM pairing → 全局 allow-all → 默认拒绝；未配置任何 allowlist 且未设 allow-all 时**所有用户被拒绝**[[29]](#ref-29)。DM pairing 是身份优先于模型的落实：陌生用户收到 8 字符码，owner 用 `hermes pairing approve <platform> <code>`；码 1 小时过期、每用户 10 分钟 1 次请求、每平台最多 3 个待处理、5 次失败锁 1 小时[[29]](#ref-29)。Docker 下执行配对命令须带 `-u hermes`，否则 root 创建的文件 gateway 读不到、批准被静默忽略[[29]](#ref-29)。
 
 SECURITY.md 对外部面有一条硬规则：每个网络暴露适配器必须设 allowlist（未设置时不得派发工作、解决审批、回传输出）；session ID 只是路由句柄不是授权；授权集合内所有调用者同等可信，需要能力隔离则运行多个实例[[30]](#ref-30)。生产 gateway 官方给了一个 10 条清单：显式 allowlist、容器后端、限资源、`.env` 权限、启用 DM pairing、审计 command_allowlist、设 terminal.cwd、不以 root 运行、监控日志、定期 `hermes update`[[29]](#ref-29)。
 
-### 20.5.5 记忆与技能的使用
+### 21.5.5 记忆与技能的使用
 
 记忆分 `MEMORY.md`（2200 字符）与 `USER.md`（1375 字符），按字符而非 token 计；超限不自动压缩，返回错误并附 `current_entries`，建议用单次 `operations` 批处理（同时删除/缩短旧条目并添加新条目，限额只对最终结果检查）[[12]](#ref-12)。官方对记忆与技能写入门默认关闭（`memory.write_approval`/`skills.write_approval` 默认 False）——这是把“模型直接写长期状态”变成可选的能力[[12]](#ref-12)。
 
 技能方面，官方开发指南的判据是“几乎总是 skill”：能用指令 + shell + 现有工具表达的做 skill，需要端到端集成 API key/认证、必须每次精确执行的逻辑才做 Tool[[31]](#ref-31)。SKILL.md 的 `description` 必须 ≤60 字符、一句话、句号结尾（长描述稀释模型注意力）；正文引用 Hermes 原生工具名（search_files/read_file/patch 等）而非 grep/cat/sed[[31]](#ref-31)。技能索引（名称 + 描述）每次会话注入，所以“保持描述简短”是真实的 token 压力，不只是风格建议。
 
-### 20.5.6 Cron 与委托
+### 21.5.6 Cron 与委托
 
 Cron 的 agent 任务经 gateway admission + worker 执行（`run_canonical_job` 写 admission journal 后交给 session authority），`no_agent` 脚本模式在 import `run_agent` 之前短路；无头 `hermes cron tick` 在没有 gateway 拥有该 home 时拒绝派发，而不是自行拉起无人管理的守护进程[[23]](#ref-23)。cron 的 agent 任务 `skip_background_review=True`（不进入后台复盘闭环），默认禁 `messaging`/`clarify`/`cronjob` 工具集[[23]](#ref-23)。官方 cron 指南的立场是：每个周期发生都有交代——tick 先推进 `next_run_at` 再派发（至多一次语义），错过窗口的补跑规则写清[[23]](#ref-23)。
 
 委托方面，`delegate_task` 的模型可见参数有限（`tasks[]{goal, context, output_schema, images, group}`、`action`、`subagent_id`、`message`），`role` 被忽略、`goal` 是子 Agent 首条 user 消息[[14]](#ref-14)。子 Agent 默认禁用 `delegate_task/clarify/memory/send_message/cronjob_manage`，审批在 worker 线程里非交互解析（默认自动拒绝，`delegation.subagent_auto_approve: true` 才自动批准一次）[[14]](#ref-14)。需要“必须跨重启存活”的工作，官方文档明确：后台 `delegate_task` 是进程内的，重启会中断，应改用 cron job 或 Kanban[[14]](#ref-14)。
 
-### 20.5.7 常见问题诊断表
+### 21.5.7 常见问题诊断表
 
 | 现象 | 常见原因 | 对策 | 依据 |
 | --- | --- | --- | --- |
@@ -371,7 +371,7 @@ Cron 的 agent 任务经 gateway admission + worker 执行（`run_canonical_job`
 
 无 provider 配置时的首启保护与 `hermes doctor` 也值得写进日常工作流：`hermes doctor` 对配置/依赖做诊断，退出码 0 表示没有未解决问题、1 表示至少还有一个（含 `--fix` 修不好的），因此可作健康门禁/CI 步骤；网关仍在运行时不要运行 `hermes doctor --fix`[[33]](#ref-33)。
 
-### 20.5.8 案例：给一个 Telegram 群挂一个受限助手
+### 21.5.8 案例：给一个 Telegram 群挂一个受限助手
 
 下面是一个教学构造的案例，未实测，只使用本章已核对过的入口与配置。目标：在 Telegram 群挂一个助手，只读文档、不执行危险命令、不写宿主文件。
 
@@ -386,27 +386,27 @@ Cron 的 agent 任务经 gateway admission + worker 执行（`run_canonical_job`
 
 这个案例里没有一步是“让模型更聪明”。每一步都在把默认从“个人受信运营者的全权限助手”收窄到“受限群助手”：OS 隔离是第一层，身份 allowlist 决定谁能触发，deny 规则决定哪些命令不能跑，写保护决定能碰哪些文件，记忆/技能写入门保持关闭，审计把这一切变成可复查的状态。
 
-## 20.6 调优：控制上下文、成本与质量
+## 21.6 调优：控制上下文、成本与质量
 
 Hermes 有完整的旋钮与默认值，但**官方没有给出基准、本章没有实测**。这一部分只写“旋钮与机制、作用对象、观测手段”，不写“调到多少好”；数字都是固定提交里的默认值。官方对性能的数字声明（如提示缓存“~75% 节省”、MoA HermesBench 分数）范围不明，只作为厂商说法引用。
 
-### 20.6.1 度量与观测
+### 21.6.1 度量与观测
 
 用量与成本的观测在会话行里：`sessions` 表有 `input/output/cache_read/cache_write/reasoning_tokens`、`estimated_cost_usd`、`actual_cost_usd`、`cost_status` 等列[[7]](#ref-7)。模型选择与 `/model`、`/usage`、`/logs`、`/dump`、`/insights`、`/prompt-size` 等命令提供入口（文档未给 `/cost` 命令）[[31]](#ref-31)。上下文拆解靠 `/context`（分 token 列出上下文与工具定义）。缓存可观测靠 usage 的 `cache_read_tokens/cache_write_tokens`，客户端构造缓存标记不证明服务端命中[[7]](#ref-7)。
 
-### 20.6.2 上下文压缩与预算
+### 21.6.2 上下文压缩与预算
 
 压缩旋钮集中在 `compression.*`：`threshold`（默认 0.50，小窗口抬到 0.75）、`protect_last_n` 20、`target_ratio` 0.20、`max_attempts` 3、`keep_recent_tokens` 20000，以及 Gateway 侧独立的 85% hygiene 阈值[[13]](#ref-13)。注入预算有三块：MEMORY 2200 / USER 1375 字符；项目 context 文件上限 20000 字符 floor、0.06×窗口×4 字符、500000 ceiling（头 70%/尾 20%）；技能索引无硬上限[[12]](#ref-12)。工具结果预算三层（单结果 100,000、每轮 200,000、预览 1,500 字符）并按窗口缩放[[18]](#ref-18)。
 
-### 20.6.3 提示缓存
+### 21.6.3 提示缓存
 
 缓存布局默认最多 4 个断点（静态 system 前缀 + system 末尾 + 最后 2 条消息）；`prompt_caching.cache_ttl` 默认 5 分钟，`auto` TTL 按会话来源在 1h/5m 间选[[4]](#ref-4)。换模型必然开启新缓存谱系，改 thinking/推理级别也可能失效。AGENTS.md 的贡献不变量值得使用者记住：每会话 prompt caching “神圣”——会话中途改历史、换 toolset、重载 memory、重建 system prompt 会破坏缓存前缀并增加成本，唯一例外是压缩；改 system prompt 状态的斜杠命令推迟到下个会话（`--now` 才立即）[[1]](#ref-1)。
 
-### 20.6.4 模型与 fallback
+### 21.6.4 模型与 fallback
 
 模型/provider 选择经 `resolve_runtime_provider` 梯子；fallback 用 `fallback_providers`（列表，每项需 provider+model），沿链前进，显式用户选择严格不回退；主 provider 冷却 60 秒 → 4 小时[[16]](#ref-16)。`fallback.min_switch_reset_seconds`（默认 0=关闭）让重置时间很短的限流主 provider 不切 fallback、由重试退避等过窗口[[16]](#ref-16)。子 Agent 的 fallback 用 `delegation.fallback_providers`（未固定的子 Agent 继承父链）[[14]](#ref-14)。
 
-### 20.6.5 工具集裁剪与委派成本
+### 21.6.5 工具集裁剪与委派成本
 
 官方对“裁剪工具集节省多少 token”没有给数字，只给机制：`hermes tools` 启停平台 toolset、`tool_search` 按需加载工具描述、`code_mode` 让模型经单一入口调用工具[[31]](#ref-31)。AGENTS.md 的不变量是“每个模型工具每次 API 调用都会发送”，所以新增核心工具门槛高——这也是 20.5.5 里“能用 skill 就别用 tool”的 token 依据[[1]](#ref-1)。委派成本方面，`delegation.max_concurrent_children` 默认 10、`max_iterations` 250、`max_summary_chars` 24000；子 Agent 用更便宜的模型可经 profile 路由配置[[14]](#ref-14)。MoA 的 reference 并发上限 8，缓存键 `preset+SHA256(advisory view)+labels`[[14]](#ref-14)。
 
@@ -416,7 +416,7 @@ Hermes 有完整的旋钮与默认值，但**官方没有给出基准、本章�
 
 可观测性方面，除会话行 usage/cost 列外，`/usage`、`/context`、`/prompt-size`、`/dump`、`/insights`、`/logs` 提供入口；日志分 `agent.log`（默认 5 MB×3 备份）、`errors.log`、`gateway.log`；仓内没有 langfuse/otel 插件（官方 Langfuse 是外部目录插件），也没有 `/cost` 命令[[31]](#ref-31)。官方对性能的数字声明（提示缓存“~75% 节省”、MoA HermesBench 分数）范围不明，只作为厂商说法引用，不作基准[[4]](#ref-4)。
 
-### 20.6.6 不应为省 Token 放弃的东西
+### 21.6.6 不应为省 Token 放弃的东西
 
 有几类开销不能省（本书建议）。命令审批：降低打断要靠容器后端、deny 规则和 allowlist，不能靠把 `approvals.mode` 改成 `off`——hardline 之外的地板是安全语义，不是性能。投递账本：`gateway.delivery_ledger: false` 关掉的代价是崩溃遗留回复从“补发”退化成“重新执行”，可能重复副作用。工具前持久化（persist-before-execute）：关掉它省一次写，但破坏“resume must see the executed block”的耐久性不变量。缓存保温可以关，逐动作的权限边界和恢复语义不能为省 token 而放宽。
 

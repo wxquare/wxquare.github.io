@@ -1,10 +1,15 @@
-# 第12章 LLM API 协议：模型能力如何被系统消费
+# 第 12 章 LLM API 协议：模型能力如何被系统消费
 
 > 模型能力不是直接被业务系统“使用”，而是先被抽象成输入、消息、工具、结构化输出和流式事件，再进入 Runtime、编排器和工具系统。
 
-版本与范围：主流协议示例与兼容矩阵保留 2026-10-20 的核验范围；新增的生成控制、会话状态、性能成本和数据契约依据 2026-10-22 读取的官方资料，分别标注来源。SSE 标准沿用已注明的核验日期。SDK 序列化核验使用本地 `sashabaranov/go-openai@v1.43.0`，不等于真实端点兼容性测试。示例是未调用真实模型的教学协议记录，模型名与额度必须从已验证 manifest 选择；退款案例中的商家规则、金额、时间、标识和工具均为虚构教学设定。
+版本与范围：本次审校于 2026-10-24 复核文中标注的版本敏感条款，其余主流协议示例与兼容矩阵保留 2026-10-20 的核验范围；新增的生成控制、会话状态、性能成本和数据契约依据 2026-10-22 读取的官方资料，分别标注来源。SSE 标准沿用已注明的核验日期。SDK 序列化核验使用本地 `sashabaranov/go-openai@v1.43.0`，不等于真实端点兼容性测试。示例是未调用真实模型的教学协议记录，模型名与额度必须从已验证 manifest 选择；退款案例中的商家规则、金额、时间、标识和工具均为虚构教学设定。
+
+配图可点击查看原图；窄屏阅读时可单独打开并放大。
 
 ## 引言
+
+[![模型输出进入业务系统的三个边界](../images/review-llm-api-protocol-01.svg)](../images/review-llm-api-protocol-01.svg)
+
 
 理解 LLM 的原理，只能回答“模型为什么能工作”；理解 LLM API 协议，才能回答“系统怎样把模型接进来”。在工程落地里，这一步经常被低估。很多团队熟悉 Token、上下文窗口、Transformer 和 Sampling，却在真正接入模型时发现一连串新问题：
 
@@ -18,11 +23,14 @@
 
 [Agent Runtime](03-agent-runtime.md)统一定义持久执行、编排与恢复。本章先建立模型协议层的基础，回答：**Runtime 究竟怎样消费模型能力。**
 
-后续[第13章](02-context-engineering.md)将统一讨论任务协议、知识与记忆如何组织成本轮上下文。本章先建立请求字段与响应类型的统一抽象，并在 12.6 用退款核查案例走通“组装输入 → 工具调用 → 结果回填 → 输出校验 → 交付”的完整过程。
+后续[Agent 的上下文工程](02-context-engineering.md)将统一讨论任务协议、知识与记忆如何组织成本轮上下文。本章先建立请求字段与响应类型的统一抽象，并在[退款核查案例](#refund-case)中走通“组装输入 → 工具调用 → 结果回填 → 输出校验 → 交付”的完整过程。
 
 本章的边界是模型服务的输入、输出与调用契约：工具声明、调用参数和结果回填属于 API 协议；自定义函数的实际执行、业务幂等与事务属于 Runtime 或业务系统。理解协议既要会构造请求，也要能解释一次调用为何慢、为何收费、何时算完成，以及供应商更换后哪些保证仍然成立。
 
 ## 12.1 统一抽象：输入、指令、上下文与输出
+
+[![一次模型调用的输入与输出](../images/review-llm-api-protocol-02.svg)](../images/review-llm-api-protocol-02.svg)
+
 
 学到这里，如果只知道 token、上下文和 Transformer 还不够。工程上真正调用大模型时，还要理解这些能力如何暴露成 API 协议。否则你会知道“模型能做什么”，却不知道“系统该怎么把这些能力接进来”。
 
@@ -41,9 +49,9 @@
 
 沿用这一工程口径，可以把第 \\(t\\) 轮的有效输入写成：
 
-\\[
+$$
 \text{LLM Input}_t = \operatorname{Assemble}(I_t, T_t, C_t, U_t)
-\\]
+$$
 
 其中 `I_t` 为系统或开发者指令，`T_t` 为工具规约，`C_t` 为当前上下文材料，`U_t` 为用户任务。`Assemble` 表示按目标 API 的角色、内容块和工具字段组织输入，并非把几段字符串随意相加。`C_t` 是经过筛选的历史、检索材料、工具观察、记忆和工作区内容；模型选择、输出 Schema、生成预算与流式控制也属于 API 请求，但不能都理解成正文提示词。
 
@@ -82,7 +90,7 @@ Prompt Engineering 更关注任务表达、约束和输出约定；Context Engin
 - **给业务程序的最终结果**：满足 Schema 的判断、金额、证据与缺项，用于校验和展示。
 - **给人的交付内容**：清楚的解释、回复草稿或报告，可以从已校验字段生成或渲染。
 
-一段自然语言可以适合人读，却不适合驱动程序；一个合法 JSON 可以适合解析，却仍然包含错误金额。构建有效输入与输出，要同时设计“模型看什么”和“下游凭什么接受结果”，具体的多轮映射见 12.6。
+一段自然语言可以适合人读，却不适合驱动程序；一个合法 JSON 可以适合解析，却仍然包含错误金额。构建有效输入与输出，要同时设计“模型看什么”和“下游凭什么接受结果”，具体的多轮映射见[退款核查案例](#refund-case)。
 
 ### 12.1.3 协议抽象：LLM API 本质上在传什么
 
@@ -132,7 +140,7 @@ Response
 → 生成（decode，可能含不可见推理）→ 增量或完整响应 → 客户端验收
 ```
 
-输入处理为当前上下文建立推理所需状态，生成阶段逐步产生后续内容。长输入、缓存未命中可能增加输入处理时间；长输出或更多推理计算可能增加生成时间。服务端工具和多模态处理还可能插入额外阶段。因此，首字慢与完整回答慢应分别测量，不能仅凭总耗时判断原因。[[25]](#ref-25)[[26]](#ref-26)
+输入处理为当前上下文建立推理所需状态，生成阶段逐步产生后续内容。长输入、缓存未命中可能增加输入处理时间；长输出或更多推理计算可能增加生成时间。服务端工具和多模态处理还可能插入额外阶段。因此，首字慢与完整回答慢应分别测量，不能仅凭总耗时判断原因。[[2]](#ref-2)[[3]](#ref-3)
 
 LLM API 同样可以有严格的 HTTP 和类型契约，变化主要发生在生成内容层：相同输入未必产生相同文本，合法 JSON 未必包含正确事实，正常生成也可能是拒绝或工具调用。这要求客户端分别处理传输、协议、结构和应用验收，而不是用“状态码 200 且正文非空”代表成功。测试也应同时包含确定的协议断言与基于样本的质量评估。
 
@@ -146,27 +154,32 @@ LLM API 同样可以有严格的 HTTP 和类型契约，变化主要发生在生
 输入 token + 生成预算 + 预留余量 ≤ 上下文窗口
 ```
 
-输入不只包括用户文字，还包括历史、指令、工具定义、Schema 及多模态内容。生成预算也不只用于可见答案：例如 OpenAI 的 `max_output_tokens` 会限制包含推理和不可见格式 token 在内的生成量，不能在统计 `output_tokens` 后再把其子项 `reasoning_tokens` 加一次。预算耗尽可能发生在任何可见文字产生之前，此时仍可能有输入与推理费用。[[26]](#ref-26)[[27]](#ref-27)
+输入不只包括用户文字，还包括历史、指令、工具定义、Schema 及多模态内容。生成预算也不只用于可见答案：例如 OpenAI 的 `max_output_tokens` 会限制包含推理和不可见格式 token 在内的生成量，不能在统计 `output_tokens` 后再把其子项 `reasoning_tokens` 加一次。预算耗尽可能发生在任何可见文字产生之前，此时仍可能有输入与推理费用。[[3]](#ref-3)[[4]](#ref-4)
 
-假设某教学模型窗口为 32000 token，当前输入 22000，拟生成 6000，另留 1000 余量，则本轮预算合计 29000；但下一轮新增的工具结果仍可能使请求超限。这些是假设数字，不代表任何真实模型配置。发送前应用可调用供应商计数接口或使用匹配的 tokenizer 估算，不能把“一个汉字等于一个 token”作为通用规则。[[27]](#ref-27)
+假设某教学模型窗口为 32000 token，当前输入 22000，拟生成 6000，另留 1000 余量，则本轮预算合计 29000；但下一轮新增的工具结果仍可能使请求超限。这些是假设数字，不代表任何真实模型配置。发送前应用可调用供应商计数接口或使用匹配的 tokenizer 估算，不能把“一个汉字等于一个 token”作为通用规则。[[4]](#ref-4)
 
 超限时应先减少无关材料、摘要旧历史或拆分任务，保留当前规则、关键事实与未完成的工具关联；摘要会丢信息，不能当作无损压缩。服务端自动截断也只是一种能力选项，必须确认删除方向和语义，不能为通过长度检查而悄悄删掉关键约束。缓存命中通常减少重复计算或费用，不扩大上下文窗口。
 
 ### 12.1.6 采样、推理预算与结果可复现性
 
-在支持相应参数的模型上，`temperature` 调整候选 token 概率分布的尖锐程度，`top_p` 则按累计概率质量筛选候选集合。降低温度不等于提高事实正确率。通常先固定其中一个、调整另一个，便于判断变化来自哪里；不能把一套参数原样用于所有模型或推理模式。[[3]](#ref-3)
+在支持相应参数的模型上，`temperature` 调整候选 token 概率分布的尖锐程度，`top_p` 则按累计概率质量筛选候选集合。降低温度不等于提高事实正确率。通常先固定其中一个、调整另一个，便于判断变化来自哪里；不能把一套参数原样用于所有模型或推理模式。[[5]](#ref-5)
 
-任务选参应以实际样本评估为依据：抽取和分类优先看字段正确率、漏项与拒绝处理；创作可以允许更多变化；复杂判断再比较推理预算对正确率、延迟和成本的影响。`reasoning effort` 控制模型投入的推理计算倾向，不是温度，也不是答案字数。更多推理不能补齐缺失证据，不保证效果单调提升；支持的档位及默认值均绑定模型。[[26]](#ref-26)
+任务选参应以实际样本评估为依据：抽取和分类优先看字段正确率、漏项与拒绝处理；创作可以允许更多变化；复杂判断再比较推理预算对正确率、延迟和成本的影响。`reasoning effort` 控制模型投入的推理计算倾向，不是温度，也不是答案字数。更多推理不能补齐缺失证据，不保证效果单调提升；支持的档位及默认值均绑定模型。[[3]](#ref-3)
 
-`temperature: 0` 也不是逐字复现契约。OpenAI 的 Chat Completions 参考页将 `seed` 标为已弃用的尽力确定性控制，并明确不保证确定性；不能将它视为所有 LLM API 的标准能力。[[3]](#ref-3)工程上应记录模型快照、完整请求或脱敏后可重建的输入、提示模板与 Schema 版本、SDK 版本、生成参数，以及接口提供的后端版本标识。固定这些条件有助于排查，仍不能据此承诺逐字一致。回归验收应优先检查结构、关键事实和业务结论，只有应用确实要求时才做文本精确比较。
+`temperature: 0` 也不是逐字复现契约。OpenAI 的 Chat Completions 参考页将 `seed` 标为已弃用的尽力确定性控制，并明确不保证确定性；不能将它视为所有 LLM API 的标准能力。[[5]](#ref-5) 工程上应记录模型快照、完整请求或脱敏后可重建的输入、提示模板与 Schema 版本、SDK 版本、生成参数，以及接口提供的后端版本标识。固定这些条件有助于排查，仍不能据此承诺逐字一致。回归验收应优先检查结构、关键事实和业务结论，只有应用确实要求时才做文本精确比较。
+
+<a id="provider-protocols"></a>
 
 ## 12.2 主流协议核验：提供方、消息格式与客户端接口
 
-本节按 2026-10-20 实际读取的官方文档整理，并对本地 `sashabaranov/go-openai@v1.43.0` 做了离线序列化核验。请求是围绕同一虚构订单自行编写的教学样例；省略鉴权值，未向真实模型端点发送请求。**文档核验、SDK 序列化成功和端点兼容性实测是三类不同证据。**
+[![适配器的三种核验强度](../images/review-llm-api-protocol-03.svg)](../images/review-llm-api-protocol-03.svg)
+
+
+本节按提供方和端点比较请求字段。既有文档与 SDK 核验范围见章首说明，本次复核的条款另记日期。
 
 ### 12.2.1 先分清提供方、协议形态与 Agent 产品
 
-OpenAI、Anthropic、DeepSeek 是提供方；Responses、Chat Completions、Messages 是协议形态；Claude Code 是带工具执行、权限与会话管理的 Agent 客户端。同一提供方可以实现多种形态，同一客户端也可能连接不同提供方。OpenAI 同时维护 Responses 与 Chat Completions；DeepSeek 当前也正式记录了 Responses 和 Anthropic 格式的兼容范围。[[2]](#ref-2)[[3]](#ref-3)[[4]](#ref-4)[[5]](#ref-5)[[6]](#ref-6)[[7]](#ref-7)
+OpenAI、Anthropic、DeepSeek 是提供方；Responses、Chat Completions、Messages 是协议形态；Claude Code 是带工具执行、权限与会话管理的 Agent 客户端。同一提供方可以实现多种形态，同一客户端也可能连接不同提供方。OpenAI 同时维护 Responses 与 Chat Completions；DeepSeek 当前也正式记录了 Responses 和 Anthropic 格式的兼容范围。[[6]](#ref-6)[[5]](#ref-5)[[7]](#ref-7)[[8]](#ref-8)[[9]](#ref-9)[[10]](#ref-10)
 
 | 提供方 / 产品 | 接口与接入位置 | 主要输入 | 主要输出 |
 | --- | --- | --- | --- |
@@ -178,11 +191,11 @@ OpenAI、Anthropic、DeepSeek 是提供方；Responses、Chat Completions、Mess
 | DeepSeek Anthropic 兼容接口 | 官方 Anthropic SDK 的 `base_url` 设为 `https://api.deepseek.com/anthropic` | Messages 形态，按兼容表限制参数与内容块 | Messages 形态；实际模型仍是 DeepSeek |
 | Claude Code CLI / Agent SDK | `claude -p` 或 Agent SDK 进程接口 | 任务、会话、工具权限、MCP 与客户端配置 | 任务结果或客户端事件，不是单次模型的裸响应 |
 
-OpenAI 与 DeepSeek 的上述原生请求通常使用 Bearer API Key；Anthropic 官方请求示例使用 `x-api-key`，并显式传入 `anthropic-version: 2023-06-01`。正文示例只展示 JSON body，真实 HTTP 请求还需对应 URL、鉴权和内容类型。云平台托管入口、OAuth 代理或第三方网关应单独核验，不能套用这里的鉴权说明。[[3]](#ref-3)[[4]](#ref-4)[[5]](#ref-5)
+OpenAI 与 DeepSeek 的上述原生请求通常使用 Bearer API Key；Anthropic 官方请求示例使用 `x-api-key`，并显式传入 `anthropic-version: 2023-06-01`。正文示例只展示 JSON body，真实 HTTP 请求还需对应 URL、鉴权和内容类型。云平台托管入口、OAuth 代理或第三方网关应单独核验，不能套用这里的鉴权说明。[[5]](#ref-5)[[7]](#ref-7)[[8]](#ref-8)
 
 ### 12.2.2 `content` 为什么既可以是字符串，也可以是数组
 
-字符串是纯文本的便捷表示；数组是带类型的内容块序列。**不是 developer 固定用字符串、user 固定用数组；但允许哪些内容块，确实受协议、角色与模型限制。** `input[]` / `messages[]` 是消息或协议项列表，消息内部的 `content[]` 则是同一消息中的内容块，二者不是同一层。[[2]](#ref-2)[[3]](#ref-3)[[4]](#ref-4)[[5]](#ref-5)[[8]](#ref-8)
+字符串是纯文本的便捷表示；数组是带类型的内容块序列。**不是 developer 固定用字符串、user 固定用数组；但允许哪些内容块，确实受协议、角色与模型限制。** `input[]` / `messages[]` 是消息或协议项列表，消息内部的 `content[]` 则是同一消息中的内容块，二者不是同一层。[[6]](#ref-6)[[5]](#ref-5)[[7]](#ref-7)[[8]](#ref-8)[[11]](#ref-11)
 
 | 接口与位置 | 字符串 / 数组约定 | 纯文本块的 `type` | 重要限制 |
 | --- | --- | --- | --- |
@@ -219,11 +232,11 @@ OpenAI 与 DeepSeek 的上述原生请求通常使用 Bearer API Key；Anthropic
 }
 ```
 
-对于支持字符串简写的相应消息，两者也可以各自写成 `"content": "请核查订单。"`。这不代表两种接口可以混用 `input_text` 和 `text`。图片块的结构差别更大，例如 Responses 使用 `input_image`，Chat Completions 常用 `image_url`，Claude 使用 `image` 与 `source`。[[3]](#ref-3)[[4]](#ref-4)[[9]](#ref-9)
+对于支持字符串简写的相应消息，两者也可以各自写成 `"content": "请核查订单。"`。这不代表两种接口可以混用 `input_text` 和 `text`。图片块的结构差别更大，例如 Responses 使用 `input_image`，Chat Completions 常用 `image_url`，Claude 使用 `image` 与 `source`。[[5]](#ref-5)[[7]](#ref-7)[[12]](#ref-12)
 
 无论拆成几个文本块，它们仍共享当前消息的角色。把 Memory、Skill、知识库分别放进几个块，不会自动建立不同的权限、可信度或持久化语义；这些来源标签仍由应用解释。
 
-多模态接入还要区分“能上传文件”与“模型能理解该内容”。图片可能通过 URL、内联数据或文件 ID 引用，但仍受模型、格式、尺寸与数量限制；图像 token 开销与处理方式有关，不能按 Base64 字符数计费。[[9]](#ref-9)音频要确认编码、采样率、时长，以及接口提供转写、理解还是语音生成。[[35]](#ref-35)视频则要核验是原生视频输入，还是应用自行抽帧并处理音轨，后者不能声称保留完整时间信息。文件引用也可能意味着文档输入、文本提取或检索，三者不能互换。例如 OpenAI 的 PDF 输入在视觉模型上可同时提取文字与页面图像，不只是读取一段纯文本。[[36]](#ref-36)模型支持、内容块表达、上传限制和计费单位应分别检查。
+多模态接入还要区分“能上传文件”与“模型能理解该内容”。图片可能通过 URL、内联数据或文件 ID 引用，但仍受模型、格式、尺寸与数量限制；图像 token 开销与处理方式有关，不能按 Base64 字符数计费。[[12]](#ref-12) 音频要确认编码、采样率、时长，以及接口提供转写、理解还是语音生成。[[13]](#ref-13) 视频则要核验是原生视频输入，还是应用自行抽帧并处理音轨，后者不能声称保留完整时间信息。文件引用也可能意味着文档输入、文本提取或检索，三者不能互换。例如 OpenAI 的 PDF 输入在视觉模型上可同时提取文字与页面图像，不只是读取一段纯文本。[[14]](#ref-14) 模型支持、内容块表达、上传限制和计费单位应分别检查。
 
 ### 12.2.3 OpenAI：Responses 与 Chat Completions 是两套请求结构
 
@@ -233,7 +246,7 @@ OpenAI 与 DeepSeek 的上述原生请求通常使用 Bearer API Key；Anthropic
 
 ```json
 {
-  "model": "gpt-4.1-2025-04-14",
+  "model": "gpt-6.1-sol",
   "input": [
     {
       "role": "developer",
@@ -273,247 +286,34 @@ OpenAI 与 DeepSeek 的上述原生请求通常使用 Bearer API Key；Anthropic
 }
 ```
 
-函数定义的 `name`、`description`、`parameters` 与 `type` 同级。模型需要查询时，`output[]` 中会返回 `function_call`，其中 `arguments` 是 JSON 字符串；应用按 `call_id` 回填 `function_call_output`。响应的整体 `status`、输出项类型与业务任务状态应分别判断，完整响应和续接见 12.5–12.6。[[10]](#ref-10)[[2]](#ref-2)
+函数定义的 `name`、`description`、`parameters` 与 `type` 同级。模型需要查询时，`output[]` 中会返回 `function_call`，其中 `arguments` 是 JSON 字符串；应用按 `call_id` 回填 `function_call_output`。响应的整体 `status`、输出项类型与业务任务状态应分别判断，完整响应和续接见[会话与工具关联](#conversation-tool-state)及[退款核查案例](#refund-case)。[[15]](#ref-15)[[6]](#ref-6)
 
-**Chat Completions 请求 body**，对应 `/v1/chat/completions`：
+其余协议用同一个 `lookup_order(order_id)` 工具比较字段，避免把同一 Schema 抄写多次：
 
-```json
-{
-  "model": "gpt-4.1-2025-04-14",
-  "messages": [
-    {
-      "role": "developer",
-      "content": "只做订单资料核查，不执行退款。"
-    },
-    {
-      "role": "user",
-      "content": [
-        {
-          "type": "text",
-          "text": "查询订单 O-2048 的核查资料。"
-        }
-      ]
-    }
-  ],
-  "tools": [
-    {
-      "type": "function",
-      "function": {
-        "name": "lookup_order",
-        "description": "只读查询指定订单的核查资料，不提交退款。",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "order_id": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "order_id"
-          ],
-          "additionalProperties": false
-        }
-      }
-    }
-  ],
-  "max_completion_tokens": 256,
-  "stream": false
-}
-```
+| 位置 | Chat Completions | Claude Messages | DeepSeek Chat |
+| --- | --- | --- | --- |
+| 历史 | messages；文本块 text | 顶层 system + messages；文本块 text | messages；角色范围按提供方说明 |
+| 函数定义 | tools[].function 嵌套 name/parameters | tools[]的 name/input_schema | tools[].function，strict 模式按 beta 入口核验 |
+| 调用参数 | message.tool_calls[].function.arguments 字符串 | assistant 的 tool_use.input 对象 | tool_calls 的 arguments 字符串 |
+| 结果关联 | role=tool，tool_call_id | user 中 tool_result.tool_use_id | role=tool，tool_call_id |
+| 输出上限 | max_completion_tokens | max_tokens | max_tokens |
+| 结构结果 | response_format | output_config.format | 以对应提供方能力表为准 |
 
-这里函数定义嵌套在 `tools[].function`，不能直接复用上面的扁平工具对象。一个工具调用响应的核心字段可以是：
+应用必须保存完整的必要 assistant 输出项，再关联真实工具结果。Claude 的 tool_result 紧跟对应 tool_use，且在同一 user 消息的普通文本之前；thinking/signature 等协议项不擅自改写。OpenAI Responses 的 function_call_output 关联 call_id，不能用 output item ID 替代。[[15]](#ref-15)[[16]](#ref-16)
 
-```json
-{
-  "choices": [
-    {
-      "index": 0,
-      "message": {
-        "role": "assistant",
-        "content": null,
-        "tool_calls": [
-          {
-            "id": "call_order",
-            "type": "function",
-            "function": {
-              "name": "lookup_order",
-              "arguments": "{\"order_id\":\"O-2048\"}"
-            }
-          }
-        ]
-      },
-      "finish_reason": "tool_calls"
-    }
-  ]
-}
-```
+### 12.2.4 Claude：基础系统提示与中途更新
 
-应用保留上述 assistant 消息，执行后追加以下消息，再发下一次请求：
+基础系统提示使用顶层 `system`。核验于 2026-10-24 的专项文档还为指定模型支持中途 `role: system`：包括 Claude Opus 5.5、Sonnet 5.5 等该页列出的模型，但不包括 Sonnet 5，不能把它推广到基础例子的 Sonnet 4.6。携带内容的中途 system 必须紧跟 user（包括工具结果），或紧跟以服务端工具结果结束的 assistant；之后只能是 assistant 或数组结束，不能夹在 tool_use/tool_result 之间。基础中途 system 无需 beta；工具变更使用 `inline-tools-2026-09-15`，`clear_at` 使用另外的 beta，均不能从普通 system 支持推断。[[17]](#ref-17)
 
-```json
-{
-  "role": "tool",
-  "tool_call_id": "call_order",
-  "content": "{\"status\":\"ok\",\"evidence_id\":\"E-order\"}"
-}
-```
+这类模型相关能力应进入适配器能力表；正文只展示基础协议，不建议为了缓存把第三方工具内容提升为系统指令。Claude 的最终结构输出与严格工具参数属于不同保证，需要分别核验模型。[[18]](#ref-18)
 
-因此，Chat Completions 的 `tool_call_id`、嵌套 `function`、`choices[]`，与 Responses 的 `call_id`、扁平工具定义、`output[]` 不能相互替换。Chat Completions 的最终结构化结果配置在 `response_format`；Responses 配置在 `text.format`。本例分别使用 `max_completion_tokens` 和 `max_output_tokens`，也不能只凭字段含义相似就统一改名。[[3]](#ref-3)[[11]](#ref-11)
+<a id="deepseek-compatibility"></a>
 
-### 12.2.4 Claude Messages：内容块与工具结果的协议
+### 12.2.5 DeepSeek：形态兼容与行为兼容分别验收
 
-以下是 Anthropic Messages 的请求 body。基础指令使用顶层 `system`，用户消息使用 `messages[]`；自定义工具的参数 Schema 字段是 `input_schema`。[[4]](#ref-4)[[12]](#ref-12)
+DeepSeek 提供 Chat、Responses 与 Anthropic 格式入口；兼容表中的会话保存、developer 语义、并行工具、结构输出和参数忽略规则不能从 OpenAI/Anthropic 原实现继承。[[8]](#ref-8)[[9]](#ref-9)[[10]](#ref-10) 适配器对影响状态和输出保证的字段主动探测，关键约束缺失时拒绝或显式降级，不能把“不报错”当作语义生效。
 
-```json
-{
-  "model": "claude-sonnet-4-6",
-  "max_tokens": 256,
-  "system": [
-    {
-      "type": "text",
-      "text": "只做订单资料核查，不执行退款。"
-    }
-  ],
-  "messages": [
-    {
-      "role": "user",
-      "content": [
-        {
-          "type": "text",
-          "text": "查询订单 O-2048 的核查资料。"
-        }
-      ]
-    }
-  ],
-  "tools": [
-    {
-      "name": "lookup_order",
-      "description": "只读查询指定订单的核查资料，不提交退款。",
-      "input_schema": {
-        "type": "object",
-        "properties": {
-          "order_id": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "order_id"
-        ],
-        "additionalProperties": false
-      }
-    }
-  ],
-  "stream": false
-}
-```
-
-模型要求调用客户端工具时，响应的核心字段为：
-
-```json
-{
-  "id": "msg_lookup",
-  "type": "message",
-  "role": "assistant",
-  "content": [
-    {
-      "type": "tool_use",
-      "id": "toolu_order",
-      "name": "lookup_order",
-      "input": {
-        "order_id": "O-2048"
-      }
-    }
-  ],
-  "stop_reason": "tool_use"
-}
-```
-
-注意这里的 `input` 已经是 JSON 对象，不是 OpenAI 函数调用中的 `arguments` 字符串。应用先将整个必要的 assistant 内容保留到历史，再通过 user 消息返回工具结果：
-
-```json
-{
-  "role": "user",
-  "content": [
-    {
-      "type": "tool_result",
-      "tool_use_id": "toolu_order",
-      "content": "{\"status\":\"ok\",\"evidence_id\":\"E-order\"}"
-    }
-  ]
-}
-```
-
-工具结果必须通过 `tool_use_id` 关联原 `tool_use.id`，并遵守顺序要求：结果消息紧跟对应的 assistant 工具调用消息；若同一 user 消息还带普通文本，全部 tool_result 块必须放在这些文本之前。正常最终回答通常以 `stop_reason: end_turn` 结束；长度截断、工具调用、暂停与拒绝等应按各自语义处理。协议要求保留的 thinking / signature 块也不能由应用改写。[[4]](#ref-4)[[13]](#ref-13)
-
-**系统消息还有模型相关的演进边界。** 不能再把“Claude 的 messages 永远没有 system 角色”当成无版本限制的结论：当前官方专项文档已为指定模型提供 mid-conversation system messages，允许在历史中追加 `role: system`。携带正文的这种消息不能放在 `messages` 首项，不能插入 `tool_use` 与 `tool_result` 之间，且有模型和位置限制；基础系统提示仍使用顶层 `system`。本节 `claude-sonnet-4-6` 的基础例子不启用这一能力。应同时核对 Messages 参考页和该专项文档，不能仅凭旧概述或 SDK 的宽类型推断支持情况。[[14]](#ref-14)
-
-最终 JSON 输出目前使用 `output_config.format`，客户端工具的严格参数校验使用工具上的 `strict: true`；两者仍需对应模型支持。不能将 OpenAI 的 `text.format` 或 `response_format` 原样复制到 Claude。[[15]](#ref-15)
-
-### 12.2.5 DeepSeek：Chat Completions 与两类兼容入口
-
-以下是 DeepSeek 原生 Chat Completions 的请求 body，对应 `https://api.deepseek.com/chat/completions`。`deepseek-flash` 来自本次核验的官方枚举；`thinking: {"type": "disabled"}` 明确选择本例的非思考模式，避免把其他模式的回填要求混入基础示例。[[5]](#ref-5)
-
-```json
-{
-  "model": "deepseek-flash",
-  "thinking": {
-    "type": "disabled"
-  },
-  "messages": [
-    {
-      "role": "system",
-      "content": "只做订单资料核查，不执行退款。"
-    },
-    {
-      "role": "user",
-      "content": [
-        {
-          "type": "text",
-          "text": "查询订单 O-2048 的核查资料。"
-        }
-      ]
-    }
-  ],
-  "tools": [
-    {
-      "type": "function",
-      "function": {
-        "name": "lookup_order",
-        "description": "只读查询指定订单的核查资料，不提交退款。",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "order_id": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "order_id"
-          ],
-          "additionalProperties": false
-        }
-      }
-    }
-  ],
-  "max_tokens": 256,
-  "stream": false
-}
-```
-
-其函数调用同样使用 `choices[].message.tool_calls[].function.arguments` 字符串，执行后使用 `role: tool` 与 `tool_call_id` 回填。基础样例没有开启 strict；当前官方工具指南要求使用 beta 入口并为全部函数设置 `strict: true` 才启用其严格工具模式，支持的 Schema 也须另核。思考模式的 `reasoning_content` 回填要求应按对应模式执行，不能为了“统一消息”擅自删掉。[[16]](#ref-16)[[5]](#ref-5)
-
-**兼容 Responses / Anthropic 格式不等于兼容全部语义。** 本次核验发现以下会直接影响 Agent 的差异：
-
-| DeepSeek 接口 | 官方兼容说明 | 对适配器的影响 |
-| --- | --- | --- |
-| Responses | `previous_response_id`、`conversation`、`store` 不受支持，服务端不保存会话 | 客户端每轮发送必要完整历史，不能依赖 OpenAI 的托管状态续接 |
-| Responses | 接受 developer 角色，但按 user 处理 | 不能假定 developer 指令仍有 OpenAI 相同的优先级；受信应用规则需要有意识地重映射并评估 |
-| Responses | `parallel_tool_calls` 被忽略，并行始终启用 | 应用如需串行执行，必须自己调度与约束；不能只设为 false |
-| Responses | `text.format` 被支持，但部分其他字段或工具类型被忽略 | 按兼容表逐项验收，关键约束不能因服务端不报错就视为已生效 |
-| Anthropic 格式 | `system`、基础文本、`input_schema`、`tool_use` / `tool_result` 等按兼容表支持 | 可复用基础消息形态，但不能继承所有 Anthropic 能力 |
-| Anthropic 格式 | `output_config` 仅支持 `effort`；`container`、`mcp_servers` 等被忽略 | 不能把 Claude 的结构化输出、容器或 MCP 行为视为已实现 |
-
-这些是 DeepSeek 自身官方文档描述的提供方行为，不是本书适配器应当静默忽略配置的建议。本书建议适配器对影响权限、状态、输出契约或执行方式的能力缺失主动拒绝或显式降级。模型别名映射也应记录实际提供方，不能因为请求中出现 Claude 风格名称就把实际推理模型写成 Claude。[[6]](#ref-6)[[7]](#ref-7)
+思考模式的工具历史应按 DeepSeek 当前文档保留需要回传的 reasoning_content。旧版本对强制工具选择有不同限制；本次打开的当前 thinking_mode/tool_calls 页面未提供“所有思考模型 required 或具体工具都会 400”的统一保证，因此本书不将该历史说法写为当前通则。能力清单应绑定模型、模式和端点，用受控契约测试确认 tool_choice，而非跨版本复制限制。[[19]](#ref-19)
 
 ### 12.2.6 Claude Code：调用 Agent 的接口，不是裸 LLM API
 
@@ -526,180 +326,106 @@ claude -p "解释退款核查流程，不执行外部操作" --output-format jso
 `--output-format json` 返回 Agent 层的结果与会话元数据；启用 `--json-schema` 时，结构化业务结果位于 `structured_output`。需要流式事件时，官方示例使用：
 
 ```bash
-claude -p "解释退款核查流程，不执行外部操作"   --output-format stream-json --verbose --include-partial-messages
+claude -p "解释退款核查流程，不执行外部操作" \
+  --output-format stream-json --verbose --include-partial-messages
 ```
 
-这个 stdout 流是 **NDJSON：每行一个 JSON 对象**，不是模型 HTTP 接口的 SSE。部分消息可把底层增量包装在 `type: stream_event` 的 `event` 中，但还包含 Agent 自己的消息与最终 `result`。`--input-format stream-json` 是客户端的输入模式，也不能直接理解成把 `/v1/messages` 的完整 body 写到 stdin。精确的输入封装、事件与字段应绑定 CLI / Agent SDK 版本。[[17]](#ref-17)[[18]](#ref-18)
+这个 stdout 流是 **NDJSON：每行一个 JSON 对象**，不是模型 HTTP 接口的 SSE。部分消息可把底层增量包装在 `type: stream_event` 的 `event` 中，但还包含 Agent 自己的消息与最终 `result`。`--input-format stream-json` 是客户端的输入模式，也不能直接理解成把 `/v1/messages` 的完整 body 写到 stdin。精确的输入封装、事件与字段应绑定 CLI / Agent SDK 版本。[[20]](#ref-20)[[21]](#ref-21)
 
 Claude Code 自己负责组织项目规范、Skills、历史、工具权限和模型请求，也可能按配置连接兼容提供方。因此，“向 Claude Code 提交任务”和“向 Claude Messages API 提交一次推理请求”是两个不同的系统边界。
 
-### 12.2.7 从 Go SDK 看实际 JSON：`Content` 与 `MultiContent`
+### 12.2.7 SDK 字段与协议字段分层核对
 
-本次直接读取用户指定的本地 Go 模块缓存，并对 `sashabaranov/go-openai@v1.43.0` 的 `chat.go`、`response.go` 与序列化代码做了核对。该库是第三方 SDK，不是 OpenAI 官方协议定义；它证明的是该版本如何构造 JSON。公开源码按版本链接见参考资料。[[19]](#ref-19)[[20]](#ref-20)
+现稿曾对第三方 `sashabaranov/go-openai@v1.43.0` 做离线序列化核验：Content 写字符串，MultiContent 由 MarshalJSON 写入同一 content 字段，二者冲突会报错；Chat 的函数定义嵌套在 function 中，Responses 是扁平对象。[[22]](#ref-22)[[23]](#ref-23) 这是该版本客户端行为，不是端点实测；升级后重新检查 JSON，不能由 Go 的 any 或序列化成功推导服务端支持。
 
-| Go 类型 / 字段 | 该版本实际序列化行为 | 不能据此推断的事情 |
-| --- | --- | --- |
-| `ChatCompletionMessage.Content` | 写入字符串 `content` | 所有提供方都接受同样角色与内容 |
-| 非空 `ChatCompletionMessage.MultiContent` | `MarshalJSON` 把切片写到同一个 `content` 字段 | HTTP body 中存在名为 MultiContent 的字段 |
-| 同时设置非空 Content 与非 nil MultiContent | 返回 `ErrContentFieldsMisused`，即使切片长度为零也会触发前置冲突检查 | 可以同时传两份 content，让服务端任选一份 |
-| `ChatCompletionRequest.Messages` | 写入 `messages`，函数定义可嵌套在 `tools[].function` | 这就是 Responses 或 Claude Messages 的请求 |
-| `CreateResponseRequest.Input` / `ResponseInputMessage.Content` | 类型为 `any`，由调用者提供字符串或协议项 / 内容块 | 任意 Go 值序列化成功，就意味着服务端允许该值 |
-| `NewResponseFunctionTool` | 将函数定义转换为 Responses 的扁平工具对象 | Chat Completions 的嵌套工具形态可以直接复用 |
-
-使用同一模块离线运行 `json.Marshal`，实际得到下面两种消息；没有发送任何网络请求：
-
-```json
-{
-  "role": "user",
-  "content": "核查订单"
-}
-```
-
-```json
-{
-  "role": "user",
-  "content": [
-    {
-      "type": "text",
-      "text": "核查订单"
-    }
-  ]
-}
-```
-
-同一次核验也确认：Chat 工具对象含 `function` 嵌套，Responses 工具对象的 `name`、`parameters` 则与 `type` 同级；Responses 文本块使用 `input_text`。**Go 字段、JSON 字段、服务端协议、模型能力是四个层次，必须逐层核对。**
+<a id="streaming-output"></a>
 
 ## 12.3 流式输出、结构化输出与 Tool Calling
 
-结构化输出、流式返回和工具调用并不是三个孤立功能，而是模型被系统消费时最常见的三种“可编排输出形态”：
+[![流式工具参数何时可以解析](../images/review-llm-api-protocol-04.svg)](../images/review-llm-api-protocol-04.svg)
 
-- **流式输出**解决交互延迟和事件驱动渲染；
-- **结构化输出**解决机器可消费结果；
-- **Tool Calling**解决模型向外部世界发起行动请求。
 
-在 API 层，它们分别表现为：
+流式决定内容何时交付，结构约束决定输出如何被解析，工具调用表达候选行动。三者共同参与模型消费，但都不能代替业务授权与结果验收。
 
-- `stream` / streaming events
-- `response_format` / JSON schema / strict schema
-- `tools` / `tool_choice` / `tool_calls` / `tool_use`
+### 12.3.1 事件模型、工具参数拼装与完成判断
 
-真正的系统不会把这三者拆开看，而是放进同一个 Runtime 控制面：模型先返回文本、JSON 或工具调用意图，系统再根据当前任务协议决定是直接交付、继续追问、执行工具，还是把工具结果回填给模型。
+SSE 分帧不保证一次事件对应一个 token；供应商连接结束也不自动证明生成完成。消费者按协议保存输出项，并区分增量、条目封口、整体终态和错误。[[24]](#ref-24)[[25]](#ref-25)
 
-### 12.3.1 流式输出改变交付时机，不保证推理更快
-
-非流式请求通常在生成完成后返回完整对象；流式请求则持续返回文本、工具参数等增量及状态事件，消费者可以提前展示内容。流式通常改善用户感知延迟，但不保证降低排队时间、首 token 时间或总生成耗时。它也不保证每个 token 对应一个事件，或事件按固定间隔到达。[[22]](#ref-22)
-
-### 12.3.2 依据消费者选择流式与非流式
-
-| 场景 | 选择依据 | 消费边界 |
+| 协议 | 拼装键与参数来源 | 封口后处理 |
 | --- | --- | --- |
-| 人在等待聊天、长文或代码 | 流式有利于边生成边阅读 | 已展示片段不代表最终答案已通过校验 |
-| 后端抽取完整 JSON | 非流式更易接入；长耗时任务也可流式收集状态 | 必须等对象完整后再做结构和语义校验 |
-| 多步骤工作流 | 可流式观察过程，步骤推进依赖完整结果 | 不把半段参数或中间文本交给下一步执行 |
-| 离线批量处理 | 重点是吞吐、成本和逐项失败结果 | 通常选择异步批量接口，而非逐 token 展示 |
+| Chat Completions | choice 与 delta.tool_calls[].index；首片可能才有 id/name，arguments 逐片拼接 | finish_reason=tool_calls 后检查所有调用身份和完整参数，保留多调用关联 |
+| Responses | response_id、output_index 和 item_id 关联输出项；累积 response.function_call_arguments.delta | arguments.done 给完整参数，再等待相关输出项/整体结果；不能把文本 done 当 response 完成 |
+| Claude | content block index 关联 tool_use；input_json_delta.partial_json 为增量 | content_block_stop 后解析，message_delta/stop_reason 判断本轮；未知事件保留诊断信息 |
 
-因此，“机器消费”并不禁止流式，只意味着中间增量通常不具备可提交的业务语义；“有人等待”也不意味着可以边生成边执行外部动作。
+OpenAI 的指南明确说明工具调用增量按 index 聚合，id/name 等字段常只在首片出现。[[15]](#ref-15) 以下是独立于 SDK 的 Chat 参数累积教学函数，展示“不覆盖首片身份、不提前执行”；异常、协议终态和授权由外层处理。
 
-### 12.3.3 长连接仍有超时、缓冲与背压
+```python
+import json
 
-持续产生数据可能降低空闲超时风险，但不能绕过网关总时限；服务端正在推理而没有输出时，连接也可能长时间静默。网关缓冲可能把流式输出积攒成整块，慢客户端则可能造成背压。接入时应分别检查首响应、首事件、空闲读取和总耗时限制，明确缓冲上限与断开策略。用户取消或连接关闭，也不自动证明供应商已停止生成或计费。
+def append_tool_delta(buffers, delta):
+    slot = buffers.setdefault(delta["index"], {"id": None, "name": None, "arguments": ""})
+    if delta.get("id") is not None:
+        if slot["id"] not in (None, delta["id"]):
+            raise ValueError("conflicting tool identity")
+        slot["id"] = delta["id"]
+    fn = delta.get("function") or {}
+    if fn.get("name") is not None:
+        if slot["name"] not in (None, fn["name"]):
+            raise ValueError("conflicting tool name")
+        slot["name"] = fn["name"]
+    slot["arguments"] += fn.get("arguments") or ""
 
-### 12.3.4 流式输出在协议层意味着什么
-
-从 API 协议角度看，流式输出不是“把完整响应切碎”，而是把模型生成过程显式暴露成一个事件流。
-
-工程上常见的流式事件包括：
-
-- 文本增量 delta
-- 接口公开提供的 reasoning 摘要或 thinking 块增量（受模型与配置限制）
-- tool call 增量或工具调用完成事件
-- message 完成事件
-- usage 或 stop reason 结束事件
-
-也就是说，流式模式下客户端处理的不再是“一个最终 JSON”，而是：
-
-```text
-start
-  -> delta
-  -> delta
-  -> delta
-  -> tool_call / message / reasoning events
-  -> completed
+def parse_closed_tool(slot, closed):
+    if not closed or not slot["id"] or not slot["name"]:
+        raise ValueError("incomplete tool proposal")
+    return json.loads(slot["arguments"])
 ```
 
-这也是为什么流式输出一旦进入系统设计，就不只是前端打字机效果，而是会影响：
+解析成功只表示候选结构完整，输入 Schema、实体、权限和当前批准仍由[外围工具系统](04-skills-tools-mcp-connectors.md#tool-contract)及[Runtime 裁决](03-agent-runtime.md#policy-engine)检查。
 
-- 前端如何增量渲染；
-- 服务端如何转发和聚合事件；
-- Runtime 如何处理中途中断、取消和超时；
-- 日志和 trace 如何记录“过程输出”而不只是最终结果。
+### 12.3.2 流式取舍与连接约束
 
-### 12.3.5 SSE分帧与完成判断
+流式可提前展示文本，但不保证降低排队或总计算时间；推理阶段也可能没有可见文字。连接要分别设置握手、首响应、空闲读取和总 deadline，慢客户端需要有界缓冲与背压。结束 usage 可能丢失，不能将断流费用记为零。
 
-SSE是UTF-8文本，空行结束一帧，event给类型，data给载荷，id可用于EventSource的Last-Event-ID机制。TCP读取块不是帧边界；同一JSON甚至UTF-8字符可能跨读取块，必须增量解码、组帧再解析。WHATWG并未规定某模型服务必须保存重放日志。[[21]](#ref-21)
-
-OpenAI Responses使用response.created、response.output_text.delta、response.completed等typed events；中途error或连接断开不能当正常完成。[[22]](#ref-22)Anthropic还区分content_block_stop、message_delta与message_stop；工具块结束不等于业务动作成功。[[23]](#ref-23)
-
-下列是本书**应用任务流**的合法SSE教学样例，应用字段由[Agent Runtime 的结果交付契约](03-agent-runtime.md#result-delivery)约定，不能冒充任何供应商原始流：
-
-```text
-id: run-demo:41
-event: step.completed
-data: {"run_id":"run-demo","event_seq":41,"step_id":"s1","state_version":7,"artifact_ref":"answer-v1"}
-
-id: run-demo:42
-event: run.completed
-data: {"run_id":"run-demo","event_seq":42,"state_version":8,"result_ref":"answer-v1","verification_ref":"check-v1"}
-
-```
-
-每帧后的空行不可省。前端按run_id/event_seq去重更新视图，再查询结果接口核对当前状态；这项回放保证来自应用的持久事件与保留策略，不来自SSE语法。
-
-### 12.3.6 各协议的流式载荷与结束信号
-
-SSE 只定义传输分帧，事件内容仍由各接口定义。下表中的结束信号先用于判断一次生成是否完整，再由 Runtime 判断是否需要执行工具或继续任务。
-
-| 接口 | 主要增量载荷 | 结束与失败判断 |
+| 观察 | 协议层结论 | 应用处理 |
 | --- | --- | --- |
-| OpenAI Responses | `response.output_text.delta`、`response.function_call_arguments.delta` 等类型化事件 | 检查 completed / failed / incomplete 等终态，不能把 done 后缀的单个内容事件当整次成功 |
-| OpenAI Chat Completions | `data` 中的 `chat.completion.chunk`，读取 `choices[].delta` | 处理 `finish_reason` 与 `[DONE]`，EOF 不能代替协议完成 |
-| Claude Messages | `message_start`，各 index 的 `content_block_*`，再到 `message_delta` | 最终 `message_stop`；检查 stop_reason 和 error，块结束不代表整条消息结束 |
-| DeepSeek Chat Completions | `choices[].delta.content` / `reasoning_content` / `tool_calls` | 处理 finish_reason 和 `data: [DONE]` |
-| DeepSeek Responses | Responses 风格的语义事件 | 官方明确以 completed / incomplete / failed 事件结束，没有 `[DONE]` |
-| Claude Code stream-json | stdout 每行一个 Agent 事件 JSON，部分增量在 stream_event.event 中 | 处理客户端最终 result 与进程结果；不是 SSE |
+| Chat stop | 本轮正常停止，可能命中停止序列 | 检查结构和业务完整性 |
+| Chat length/content_filter | 截断或内容过滤 | 不当作完整结果 |
+| Responses completed | 生成完成，输出可能仍是工具请求 | 检查 output 项与应用状态 |
+| Responses incomplete/failed | 读取 incomplete_details.reason/error | 明确未完成，保留已得项 |
+| Claude end_turn/stop_sequence | 轮次停止 | 校验是否满足预期输出 |
+| Claude tool_use/pause_turn | 需要工具或继续服务端轮次 | 沿协议继续，非最终任务成功 |
+| Claude max_tokens/refusal/model_context_window_exceeded | 截断、拒绝或窗口边界 | 分类处置，不强行拼成成功 |
+| 任意未知终止原因/流内 error/突然断开 | 不能证明完整结束 | 默认未完成，记录原始值并告警 |
 
-这些边界分别来自各接口文档。[[22]](#ref-22)[[3]](#ref-3)[[23]](#ref-23)[[5]](#ref-5)[[6]](#ref-6)[[18]](#ref-18)例如，OpenAI Chat Completions 的 `include_usage` 可产生额外的 usage chunk，其 `choices` 为空；DeepSeek 当前参考页则将 usage 放在 `[DONE]` 前最后一个仍含单个 choice 的结束 chunk 中。解析器不能假定所有兼容服务都采用相同的 usage-only chunk 结构。[[3]](#ref-3)[[5]](#ref-5)
+终止字段以对应端点版本为准。Claude 的具体原因参考终止原因指南，内容块参考 Messages 与流式文档。[[26]](#ref-26)[[7]](#ref-7)[[27]](#ref-27) HTTP 200 后出现 error 事件也必须进入错误通道；已输出文本不撤销这个错误。
 
-### 12.3.7 结构化输出：解析、结构与事实是三层保证
+应用任务进度 SSE 与供应商生成流是两条连接。应用的持久事件、游标重放和过期快照参考[Runtime 结果交付](03-agent-runtime.md#result-delivery)；供应商断流不能由应用伪造续流能力。
 
-| 方法 | 提供的约束 | 仍需处理的问题 |
+<a id="structured-output"></a>
+
+### 12.3.3 结构化输出与保证边界
+
+JSON 模式、Schema 约束和工具严格参数检查解决不同问题。结构化输出应选对应协议的字段，核验支持的 Schema 子集及模型；拒绝、截断和不完整终态仍需单独处理。[[28]](#ref-28)[[18]](#ref-18)
+
+| 检查层 | 能证明什么 | 仍需什么 |
 | --- | --- | --- |
-| 提示“请返回 JSON” | 表达输出意图 | 可能夹带解释、Markdown 或无效 JSON |
-| JSON mode | 在接口规定的正常条件下约束 JSON 格式 | 不保证字段集合、类型和业务含义；仍需检查截断 |
-| JSON Schema 结构化输出 | 支持模型在正常完成路径下遵循受支持的 Schema | 不支持的关键字、拒绝和未完成响应需单独处理；不保证事实正确 |
-| 工具参数 strict | 约束调用参数的结构 | 不约束最终答案，也不证明应当执行该工具 |
+| JSON 可解析 | 语法完整 | 字段、类型、必填与额外属性检查 |
+| Schema 通过 | 满足被支持的结构约束 | 实体、金额、时效、权限、证据等业务校验 |
+| 业务验收通过 | 当前任务的必要断言成立 | 明确提交、交付和后续状态 |
 
-OpenAI 的 JSON mode 还要求上下文中有明确的 JSON 生成指令；Schema 模式只支持其规定的子集，不能把任意业务 Schema 原样提交。拒绝可能通过专门字段或内容类型返回，并不一定符合目标业务对象；达到生成上限也可能留下不完整内容。应用应先识别终态与拒绝，再提取完整对象并校验，不能遇到解析失败就一律重试。[[11]](#ref-11)
+例如退款字段均合法，也可能忽略处理中占款或适用政策。本章只定义协议保证，业务反例与三层校验参考[上下文任务契约](02-context-engineering.md#task-protocol)。模型输出的置信度不能当作规则通过证明。
 
-工具调用与最终结构化输出都可以承载机器可读数据，但用途不同：前者表达“希望调用哪个能力、参数是什么”，后者表达“交付给消费者的结果是什么”。`tool_choice` 可按支持范围禁用、自动选择、要求调用或指定工具；调用结果通过关联 ID 回填。自定义客户端函数由应用执行；供应商托管工具则可能在服务端执行，必须另查其生命周期、费用与数据边界。二者都不能仅凭模型输出就推导业务授权。[[10]](#ref-10)
-
-### 12.3.8 SSE、WebSocket 与异步任务不是同一维度
-
-| 形态 | 适合的交互 | 主要取舍 |
-| --- | --- | --- |
-| HTTP 非流式 | 一次提交、等待完整响应 | 简单，但长任务占用连接且缺少过程反馈 |
-| HTTP + SSE | 请求后单向接收增量，如文本聊天 | 容易转发；取消或新输入通常需额外请求 |
-| WebSocket / WebRTC 会话 | 持续双向输入输出，如音频交互 | 需处理会话、打断、重连及媒体传输 |
-| 后台生成任务 | 单次生成耗时较长，通过任务 ID 查询状态 | 连接与执行解耦；需核验轮询、取消和结果保留 |
-| Batch API | 大量可延后完成的独立请求 | 用等待时间换吞吐或成本，需逐项收集结果 |
-
-SSE、WebSocket 和 WebRTC 是传输选择，后台与 Batch 是执行和交付方式；支持异步并不意味着支持任意传输或事件续传。OpenAI Realtime 文档区分浏览器 WebRTC 与服务端 WebSocket 接入；后台模式与 Batch 另有独立的任务契约。[[31]](#ref-31)[[32]](#ref-32)[[30]](#ref-30)
+<a id="provider-errors"></a>
 
 ## 12.4 供应商适配与错误分类
 
+[![从提供方信号到处理责任](../images/review-llm-api-protocol-05.svg)](../images/review-llm-api-protocol-05.svg)
+
+
 ### 12.4.1 能力矩阵必须绑定提供方与协议版本
 
-下面按四种基础组合比较，不能将“OpenAI 兼容”或“Claude 兼容”当成能力证明。DeepSeek 的 Responses / Anthropic 兼容组合另按 12.2.5 核验。
+下面按四种基础组合比较，不能将“OpenAI 兼容”或“Claude 兼容”当成能力证明。DeepSeek 的 Responses / Anthropic 兼容组合另按[DeepSeek 兼容边界](#deepseek-compatibility)核验。
 
 | 维度 | OpenAI Responses | OpenAI Chat Completions | Anthropic Messages | DeepSeek Chat Completions |
 | --- | --- | --- | --- | --- |
@@ -712,37 +438,43 @@ SSE、WebSocket 和 WebRTC 是传输选择，后台与 Batch 是执行和交付�
 | 生成预算字段 | `max_output_tokens` | `max_completion_tokens`；旧字段兼容性另验 | `max_tokens` | `max_tokens` |
 | 完成判断 | response status / 终态事件，继续检查 output 类型 | choices 的 finish_reason | stop_reason 与 message_stop | choices 的 finish_reason；不要以收到任意 chunk 为成功 |
 
-矩阵依据本次已读官方协议与专项文档，不表示已完成真实端点兼容性测试。[[2]](#ref-2)[[3]](#ref-3)[[4]](#ref-4)[[15]](#ref-15)[[5]](#ref-5)[[14]](#ref-14)适配配置至少绑定 provider、base URL、API 形态、模型版本、SDK 版本、Schema hash 与已验证能力。关键能力缺失或被提供方静默忽略时，由适配器显式报错或按已评估策略降级，不能悄悄丢掉系统指令、工具定义或输出契约。
+矩阵依据本次已读官方协议与专项文档，不表示已完成真实端点兼容性测试。[[6]](#ref-6)[[5]](#ref-5)[[7]](#ref-7)[[18]](#ref-18)[[8]](#ref-8)[[17]](#ref-17) 适配配置至少绑定 provider、base URL、API 形态、模型版本、SDK 版本、Schema hash 与已验证能力。关键能力缺失或被提供方静默忽略时，由适配器显式报错或按已评估策略降级，不能悄悄丢掉系统指令、工具定义或输出契约。
 
-将 12.6 的输入移植到其他协议时，也应逐项处理来源：例如 Claude 基础请求没有 developer 消息位置时，把应用自己维护的受信 Skill 与基础规则组织进顶层 `system`；知识库、Memory 与工具观察仍保留其材料属性。这里是适配器明确执行的语义转换，不是供应商自动识别名为 Skill 或 Memory 的字段。不能为了消息结构相似就把全部材料提升为系统指令。
+将[退款核查案例](#refund-case)的输入移植到其他协议时，也应逐项处理来源：例如 Claude 基础请求没有 developer 消息位置时，把应用自己维护的受信 Skill 与基础规则组织进顶层 `system`；知识库、Memory 与工具观察仍保留其材料属性。这里是适配器明确执行的语义转换，不是供应商自动识别名为 Skill 或 Memory 的字段。不能为了消息结构相似就把全部材料提升为系统指令。
 
-### 12.4.2 稳定错误类型与重试责任
+### 12.4.2 从真实信号映射错误
 
-| 应用类别 | 例子 | 下一步 |
+| 原始信号 | 适配器分类 | Runtime 消费方式 |
 | --- | --- | --- |
-| capability_unsupported | 模型不支持工具或Schema关键字 | 调整已评估适配组合，不能盲重试 |
-| request_invalid / auth_denied | 消息不合法、凭据/权限拒绝 | 修配置或授权，禁止模型绕过 |
-| rate_limited / transient_provider | 限流、暂态服务错误 | 单一责任层在总deadline和预算内退避 |
-| stream_incomplete | 中断、长度截断、半个工具参数 | 标未完成；保留可展示内容，不执行参数 |
-| protocol_invalid | JSON损坏、关联ID缺失、事件不相容 | 停止该路径，隔离样本与版本，不能猜关联 |
-| model_refusal | 明确拒绝 | 交付拒绝或允许的替代，不循环改写绕过 |
-| tool_result_unknown | 工具请求已发但结果未知 | 按[Operation](03-agent-runtime.md#delivery-idempotency)查证与对账，禁止直接再执行 |
+| OpenAI 429 rate_limit_exceeded | rate_limited | 按剩余预算退避，尊重 Retry-After |
+| OpenAI 429 insufficient_quota | quota_exhausted | 修复额度，不持续重试 |
+| Anthropic 529 overloaded_error | provider_overloaded | 有界退避或经验证的降级 |
+| HTTP 401/403 | authentication/permission | 修复凭据/授权，不换工具绕过 |
+| HTTP 200 后流内 error | stream_failed | 保存已收项，标未完成 |
+| 参数或 Schema 不支持 | invalid_request | 修复请求，不按暂时故障重试 |
+| 拒绝内容/拒绝终态 | model_refusal | 提供合法替代，不循环绕过 |
+| 连接断开且未见终态 | stream_incomplete | 不执行未封口参数；未知结果分类保存 |
 
-记录原HTTP状态、provider错误码、request/response/call ID、attempt及可脱敏上下文。重试模型生成可能计费，也可能生成不同工具提案；不能因生成重试创建新的业务幂等键。参数/授权变化必须重新校验。
+保留原 HTTP 状态、提供方错误码、request/response/call ID 和 Attempt，不以归一化值抹掉差异。协议负责给出信号，重试责任和总预算由[Runtime 失败分类](03-agent-runtime.md#failure-model-tool)负责；工具已发出但业务结果未知时查询[原 Operation](03-agent-runtime.md#failure-side-effects)，不能重新生成后再执行一次。[[29]](#ref-29)[[30]](#ref-30)
 
 ### 12.4.3 HTTP 成功、生成完成与结果可用
 
-客户端应按层判断成功：HTTP 200 只说明已获得成功状态的 HTTP 响应，流中仍可能出现错误；协议正常结束说明本轮生成完成，内容仍可能是拒绝或工具请求；对象符合 Schema 后，还要通过应用验收。以 Chat Completions 为例，`stop` 可表示自然结束或命中停止序列，`length` 表示长度上限，`tool_calls` 表示提出工具调用。停止序列不等于结构化结果完整，长度截断也不能当作正常答案。[[3]](#ref-3)
+客户端应按层判断成功：HTTP 200 只说明已获得成功状态的 HTTP 响应，流中仍可能出现错误；协议正常结束说明本轮生成完成，内容仍可能是拒绝或工具请求；对象符合 Schema 后，还要通过应用验收。以 Chat Completions 为例，`stop` 可表示自然结束或命中停止序列，`length` 表示长度上限，`tool_calls` 表示提出工具调用。停止序列不等于结构化结果完整，长度截断也不能当作正常答案。[[5]](#ref-5)
 
 重试前先确定错误是否可能自行恢复。临时限流、过载与部分网络故障可在剩余总时限内重试；余额或配额耗尽、鉴权失败、参数错误需要先修复条件。存在 `Retry-After` 时应按服务端约定等待，另加抖动；没有该提示时采用有上限的指数退避。不能仅看 429 或 5xx 的状态码决定无限重试。[[29]](#ref-29)
 
 应用、网关与 SDK 应明确一个主要重试责任层，并核验 SDK 的实际默认行为，避免多层尝试相乘。连接超时、首响应等待、空闲读取和总 deadline 分别限制不同阶段；每次重试都消耗同一个总预算。网络超时不证明服务端没有处理请求，重新生成也可能产生新内容与额外费用；取消请求的发出与服务端确认取消，应记录为不同状态。
 
+<a id="conversation-tool-state"></a>
+
 ## 12.5 会话状态、工具关联与应用重连
+
+[![生成连接与任务订阅的状态边界](../images/review-llm-api-protocol-06.svg)](../images/review-llm-api-protocol-06.svg)
+
 
 ### 12.5.1 多轮对话的三种状态模型
 
-多轮对话通常靠再次提供历史，或由供应商将已保存的历史纳入新请求，不是模型权重在每次调用后记住用户。OpenAI Responses 同时提供显式历史、`previous_response_id` 响应链和 Conversations 会话对象等管理方式；不能据此假设其他兼容端点也保存状态。[[24]](#ref-24)
+多轮对话通常靠再次提供历史，或由供应商将已保存的历史纳入新请求，不是模型权重在每次调用后记住用户。OpenAI Responses 同时提供显式历史、`previous_response_id` 响应链和 Conversations 会话对象等管理方式；不能据此假设其他兼容端点也保存状态。[[31]](#ref-31)
 
 | 方式 | 谁管理历史 | 主要收益与代价 |
 | --- | --- | --- |
@@ -750,11 +482,11 @@ SSE、WebSocket 和 WebRTC 是传输选择，后台与 Batch 是执行和交付�
 | 响应 ID 续接 | 供应商按响应链恢复上下文 | 少传重复请求体；依赖保存期限、可访问性及续接语义 |
 | 持久会话对象 | 供应商维护有独立 ID 的会话项 | 便于跨请求使用；需要管理生命周期、并发写入与删除 |
 
-减少上传字节不等于减少计费 token。OpenAI 明确说明，使用 `previous_response_id` 时链中历史输入仍计入输入费用，缓存折扣再按实际命中计算。[[24]](#ref-24)旧请求的顶层 `instructions` 也不会仅因续接 ID 自动继承，应逐轮设置当前规则。[[1]](#ref-1)应用应选择清楚的历史管理方式，避免既续接又重传同一历史；服务端保存会话也不意味着输入可以无限增长。
+减少上传字节不等于减少计费 token。OpenAI 明确说明，使用 `previous_response_id` 时链中历史输入仍计入输入费用，缓存折扣再按实际命中计算。[[31]](#ref-31) 旧请求的顶层 `instructions` 也不会仅因续接 ID 自动继承，应逐轮设置当前规则。[[1]](#ref-1) 应用应选择清楚的历史管理方式，避免既续接又重传同一历史；服务端保存会话也不意味着输入可以无限增长。
 
-### 12.5.2 调用ID不是业务Operation
+### 12.5.2 调用 ID 不是业务 Operation
 
-教学Responses输出项与回填项分别如下，output里的JSON字符串是工具已返回的观察，不能由模型编造。[[10]](#ref-10)
+教学 Responses 输出项与回填项分别如下，output 里的 JSON 字符串是工具已返回的观察，不能由模型编造。[[15]](#ref-15)
 
 ```json
 {"type":"function_call","id":"fc_demo","call_id":"call_demo","name":"lookup_document","arguments":"{\"document_id\":\"policy-7\"}"}
@@ -764,19 +496,19 @@ SSE、WebSocket 和 WebRTC 是传输选择，后台与 Batch 是执行和交付�
 {"type":"function_call_output","call_id":"call_demo","output":"{\"status\":\"ok\",\"version\":\"v3\",\"evidence_ref\":\"ev7\"}"}
 ```
 
-应用先校验完整arguments、工具版本与当前权限，再执行并关联结果；同一call_id冲突内容应拒绝而非覆盖。保留协议要求的相关输出项，缺结果不能伪装为已完成对话。call_id只关联一轮模型调用，业务Operation的稳定幂等键由[Agent Runtime](03-agent-runtime.md#delivery-idempotency)维护。Skill是应用加载的程序性上下文，不自动变成供应商原生工具或权限。
+应用先校验完整 arguments、工具版本与当前权限，再执行并关联结果；同一 call_id 冲突内容应拒绝而非覆盖。保留协议要求的相关输出项，缺结果不能伪装为已完成对话。call_id 只关联一轮模型调用，业务 Operation 的稳定幂等键由[Agent Runtime](03-agent-runtime.md#delivery-idempotency)维护。Skill 是应用加载的程序性上下文，不自动变成供应商原生工具或权限。
 
-### 12.5.3 断线重连的两个层面
+### 12.5.3 生成断线与任务订阅断线
 
-教学时序：客户端订阅应用run-demo，确认事件40后断线；服务端继续按权威Run状态执行，先提交Step/产物/Event 41，再形成终态Event 42；客户端重连携带40，授权检查后重放41、42并去重，最后查询run结果。游标过期时使用[Runtime 快照与重新订阅契约](03-agent-runtime.md#result-delivery)，不伪造供应商续流。
+生成流断开时记录未完成 Attempt，完整工具参数也须有对应终态和校验，半段 JSON 不能执行；已经执行而结果未知的动作查原 Operation。应用订阅断线只影响结果展示，连接重建不产生新任务。事件 40 断开后如何重放 41/42、游标过期怎样切快照，参考[Runtime 交付与订阅](03-agent-runtime.md#result-delivery)。[OpenClaw Gateway](../part4/03-openclaw-architecture.md)是应用层实现，需要按其版本独立理解，不能等同供应商 SSE。
 
-如果断的是模型供应商连接且工具参数只收到一半，adapter把生成attempt记为stream_incomplete，不能据半个JSON执行工具。若已执行工具但结果未知，先查询Operation而不是重新生成后再执行一次。取消只表达停止意图，迟到结果仍需要写入事实账本。
-
-Anthropic文档的续写策略随模型版本区分，部分工具/思考块不能按文本方式恢复；这种“带部分输出重新请求”不是从旧SSE事件ID重放，也不保证续写逐字相同。[[23]](#ref-23)应用事件回放的保留期、权限、重复和过期语义仍由[Agent Runtime](03-agent-runtime.md#result-delivery)负责；[OpenClaw Gateway](../part4/03-openclaw-architecture.md)的具体实现需独立核验。
+<a id="refund-case"></a>
 
 ## 12.6 完整案例：构建退款核查 Agent 的有效输入与输出
 
 本例采用“查订单 → 查账务与政策 → 形成结构化结果”的三轮模型调用，展示同一个任务的输入如何逐轮变化。案例使用 OpenAI Responses 的字段形态；所有请求与响应均为教学片段，不是实际端点执行记录，也不构成完整可运行应用。
+
+本例使用支持推理项的 Responses 模型 `gpt-6.1-sol` 作为协议教学标识，不承诺账户可用。后续轮次通过完整 output 项回传，保留 opaque reasoning 项和调用项；不要把它们拼成文本，也不要求暴露原始思维链。[[3]](#ref-3)
 
 ### 12.6.1 先把用户目标变成输入与输出契约
 
@@ -806,7 +538,7 @@ Anthropic文档的续写策略随模型版本区分，部分工具/思考块不�
 
 [![LLM 请求组装与响应闭环：系统指令、用户任务、Skill、知识库、Memory、历史和工具定义映射到请求字段，模型返回工具调用或最终消息](../images/llm-request-response-assembly.png)](../images/llm-request-response-assembly.svg)
 
-下图按 OpenAI Responses 的字段绘制，其他协议的映射与兼容边界见 12.2。图中左侧是应用管理的来源，中间展示来源到请求字段的映射；实际消息顺序以 12.6.3 的请求体为准。**Skill、知识库、Memory 和工作区不是本例 Responses API 的原生顶层字段**；Context Builder 先选择、过滤与组织内容，Provider Adapter 再把它们放进协议支持的字段。工具注册表中的定义进入 `tools`，真正的工具实现与凭据留在应用侧。[[1]](#ref-1)[[10]](#ref-10)
+下图按 OpenAI Responses 的字段绘制，其他协议的映射与兼容边界见[协议核验](#provider-protocols)。图中左侧是应用管理的来源，中间展示来源到请求字段的映射；实际消息顺序以[教学请求体](#refund-request)为准。**Skill、知识库、Memory 和工作区不是本例 Responses API 的原生顶层字段**；Context Builder 先选择、过滤与组织内容，Provider Adapter 再把它们放进协议支持的字段。工具注册表中的定义进入 `tools`，真正的工具实现与凭据留在应用侧。[[1]](#ref-1)[[15]](#ref-15)
 
 | 来源 | 应用在请求前做什么 | 本例最终放在哪里 |
 | --- | --- | --- |
@@ -823,13 +555,15 @@ Anthropic文档的续写策略随模型版本区分，部分工具/思考块不�
 
 知识库片段是通用核查指南，尚不是本单的适用政策；Memory 只包含语言偏好，不包含“用户历史上退款成功，所以这次也能退”的推断。这个区别决定了模型仍须取回订单、账务与适用条款，而不能直接生成确定金额。
 
+<a id="refund-request"></a>
+
 ### 12.6.3 一份完整请求体：System、Skill、知识与 Memory 同时出现
 
-以下是一份发送到标准 OpenAI API `POST /v1/responses` 的教学请求体，**字段和值全部展开，不再用 `developer_instructions` 或 `tool_schemas` 等变量代替**。模型名选用官方提示指南举例的固定快照 `gpt-4.1-2025-04-14`，用于说明协议结构；实际使用前仍须核验账户可用性与目标模型能力。这不是 ChatGPT 登录代理路由的协议，也不是已调用端点的记录。[[1]](#ref-1)
+以下是一份发送到标准 OpenAI API `POST /v1/responses` 的教学请求体，关键字段和值直接展示，工具集合按下文说明展开。模型名固定为教学示例中的 `gpt-6.1-sol`，用于说明协议结构；实际使用前仍须核验账户可用性与目标模型能力。[[1]](#ref-1)
 
 ```json
 {
-  "model": "gpt-4.1-2025-04-14",
+  "model": "gpt-6.1-sol",
   "input": [
     {
       "role": "system",
@@ -890,59 +624,6 @@ Anthropic文档的续写策略随模型版本区分，部分工具/思考块不�
         "required": [
           "order_id",
           "line_id"
-        ],
-        "additionalProperties": false
-      }
-    },
-    {
-      "type": "function",
-      "name": "get_refund_ledger",
-      "description": "只读查询同一商品行的成功退款与仍占款的处理中退款，两类扣减互斥；返回币种、快照与证据 ID。",
-      "strict": true,
-      "parameters": {
-        "type": "object",
-        "properties": {
-          "order_id": {
-            "type": "string",
-            "description": "订单标识"
-          },
-          "line_id": {
-            "type": "string",
-            "description": "商品行标识"
-          }
-        },
-        "required": [
-          "order_id",
-          "line_id"
-        ],
-        "additionalProperties": false
-      }
-    },
-    {
-      "type": "function",
-      "name": "get_refund_policy",
-      "description": "只读检索并返回适用于该类别、签收日期和申请原因的售后条款、版本及证据 ID；未匹配到时明确返回缺项。",
-      "strict": true,
-      "parameters": {
-        "type": "object",
-        "properties": {
-          "category": {
-            "type": "string",
-            "description": "订单查询返回的商品类别"
-          },
-          "received_at": {
-            "type": "string",
-            "description": "订单查询返回的带时区签收时间"
-          },
-          "reason": {
-            "type": "string",
-            "description": "订单查询返回的申请原因"
-          }
-        },
-        "required": [
-          "category",
-          "received_at",
-          "reason"
         ],
         "additionalProperties": false
       }
@@ -1023,11 +704,13 @@ Anthropic文档的续写策略随模型版本区分，部分工具/思考块不�
 }
 ```
 
+为控制篇幅，这份请求体只完整展开首个工具；案例的账务与政策查询另按同一契约注册为 `get_refund_ledger`、`get_refund_policy`，分别接收订单/商品行与政策适用条件。完整运行必须将三项真实工具定义加入 tools，不能把本片段当作完整可运行请求。
+
 这里的 `knowledge_context`、`memory` 等标签只是 `input_text.text` 字符串内的应用格式，模型不会因此自动连接知识库或记忆数据库。Skill 的加载、RAG 检索、Memory 读取均已在 HTTP 请求前完成；相反，三个业务函数此时只有定义，尚未执行。`max_output_tokens: 1800` 是本例教学预算，不是通用推荐值。
 
-同一请求中的 `text.format` 约束最终文本结果，工具上的 `strict` 约束调用参数；它们不妨碍模型先生成工具调用来补证据。`parallel_tool_calls: true` 只允许所选接口支持的并行调用，不保证模型一定并行，也不替代应用的并发与权限控制。[[10]](#ref-10)[[11]](#ref-11)
+同一请求中的 `text.format` 约束最终文本结果，工具上的 `strict` 约束调用参数；它们不妨碍模型先生成工具调用来补证据。`parallel_tool_calls: true` 只允许所选接口支持的并行调用，不保证模型一定并行，也不替代应用的并发与权限控制。[[15]](#ref-15)[[28]](#ref-28)
 
-本例选择非流式，因为后端需要完整工具参数与完整业务对象。若选择流式，仍按 12.3 组装事件并等待完整参数，不能把半段 JSON 当成可执行调用。
+本例选择非流式，因为后端需要完整工具参数与完整业务对象。若选择流式，仍按[流式输出](#streaming-output)组装事件并等待完整参数，不能把半段 JSON 当成可执行调用。
 
 ### 12.6.4 第一轮输出成为第二轮输入：先取订单事实
 
@@ -1038,7 +721,7 @@ Anthropic文档的续写策略随模型版本区分，部分工具/思考块不�
   "id": "resp_refund_1",
   "object": "response",
   "status": "completed",
-  "model": "gpt-4.1-2025-04-14",
+  "model": "gpt-6.1-sol",
   "output": [
     {
       "type": "function_call",
@@ -1072,9 +755,9 @@ Runtime 校验参数、工具允许列表和商品行归属后执行查询，得
   → 第二轮模型输入
 ```
 
-不能只把工具结果另写成一句“我查到了订单”，同时丢掉原调用及 `call_id`。若响应包含必须续传的 reasoning 项，也应由适配器按协议保留，不能只保留可见文本。[[10]](#ref-10)这不要求记录或展示隐藏思维链。
+不能只把工具结果另写成一句“我查到了订单”，同时丢掉原调用及 `call_id`。若响应包含必须续传的 reasoning 项，也应由适配器按协议保留，不能只保留可见文本。[[15]](#ref-15) 这不要求记录或展示隐藏思维链。
 
-如果选择 `previous_response_id` 管理续接，应用应遵循相应状态契约，避免又重复拼接同一份历史。还要注意：此前请求中的 `instructions` 不会因使用 `previous_response_id` 自动沿用，后续请求仍需提供当前适用指令。[[1]](#ref-1)本例使用输入项保存 System 与 Skill，并在后续请求中保留这些输入项；若改用顶层 `instructions`，则逐轮显式设置。
+如果选择 `previous_response_id` 管理续接，应用应遵循相应状态契约，避免又重复拼接同一份历史。还要注意：此前请求中的 `instructions` 不会因使用 `previous_response_id` 自动沿用，后续请求仍需提供当前适用指令。[[1]](#ref-1) 本例使用输入项保存 System 与 Skill，并在后续请求中保留这些输入项；若改用顶层 `instructions`，则逐轮显式设置。
 
 ### 12.6.5 第二轮补证据：并行查询、按 ID 回填、保留冲突
 
@@ -1099,7 +782,7 @@ Runtime 校验参数、工具允许列表和商品行归属后执行查询，得
 ]
 ```
 
-这里假设所选模型与接口支持并行函数调用，且这轮确实返回两个调用；允许并行不保证模型一定同时选择它们。Runtime 分别执行并形成如下观察，结果即使先后顺序颠倒，也按 `call_id` 回填。[[10]](#ref-10)
+这里假设所选模型与接口支持并行函数调用，且这轮确实返回两个调用；允许并行不保证模型一定同时选择它们。Runtime 分别执行并形成如下观察，结果即使先后顺序颠倒，也按 `call_id` 回填。[[15]](#ref-15)
 
 | 调用关联 | 工具证据 | 关键结果 | 使用边界 |
 | --- | --- | --- | --- |
@@ -1108,9 +791,9 @@ Runtime 校验参数、工具允许列表和商品行归属后执行查询，得
 
 账务工具已保证两类扣减互斥且覆盖本例全部占用，因此本次资金维度可退上限为：
 
-\\[
+$$
 18000 - 3000 - 2000 = 13000\text{ 分} = 130\text{ 元}
-\\]
+$$
 
 如果金额口径不一致、币种不同，或发现无法解释的负余额，系统应报告数据不一致，不能把结果直接截成零。复杂分摊、运费和多币种并不在本例口径内，应交给权威计价或退款服务计算。
 
@@ -1120,9 +803,9 @@ Runtime 校验参数、工具允许列表和商品行归属后执行查询，得
 
 ### 12.6.6 第三轮生成结果：Schema 约束形状，应用核对事实
 
-证据已足以完成本次核查。Runtime 在第三轮将 `tools` 置为空集合，并使用 Responses 的 `text.format` 指定最终结果 Schema；`tool_choice` 只在相应工具配置下设置。结构化输出约束最终结果，前两轮工具的 `strict` 则约束调用参数，两者解决不同问题。[[11]](#ref-11)
+证据已足以完成本次核查。Runtime 在第三轮保留原有 `tools`，将 `tool_choice` 设为 `none` 禁止提出新调用，并使用 Responses 的 `text.format` 指定最终结果 Schema。结构化输出约束最终结果，前两轮工具的 `strict` 则约束调用参数，两者解决不同问题。[[28]](#ref-28)
 
-最终请求复用 12.6.3 已展开的 `text.format`，无需再定义另一套 Schema。应用移除工具选择配置并追加真实观察，示意如下；`response.output` 的输入转换按 SDK 和模型协议处理，不能丢失要求保留的项：
+最终请求复用[教学请求体](#refund-request)已展开的 `text.format`，无需再定义另一套 Schema。应用保留工具定义、禁止新调用并追加真实观察，示意如下；`response.output` 的输入转换按 SDK 和模型协议处理，不能丢失要求保留的项：
 
 ```python
 # 伪代码：request_1 是前面完整 JSON 解析后的对象；查询结果由 Runtime 真实取得。
@@ -1134,7 +817,7 @@ response_2 = runtime.call_model(request_2)
 request_3 = copy.deepcopy(request_2)
 request_3["input"] += adapter.to_input_items(response_2.output)
 request_3["input"] += [ledger_tool_output, policy_tool_output]
-request_3["tools"] = []
+request_3["tool_choice"] = "none"  # 保留原 tools 定义，当前轮禁止新工具调用
 request_3.pop("tool_choice", None)
 request_3.pop("parallel_tool_calls", None)
 response_3 = runtime.call_model(request_3)
@@ -1169,7 +852,7 @@ response_3 = runtime.call_model(request_3)
   "id": "resp_refund_3",
   "object": "response",
   "status": "completed",
-  "model": "gpt-4.1-2025-04-14",
+  "model": "gpt-6.1-sol",
   "output": [
     {
       "type": "message",
@@ -1188,11 +871,11 @@ response_3 = runtime.call_model(request_3)
 }
 ```
 
-Strict Schema 不能证明“130 元”正确，也不能证明引用确实支持结论；官方文档也明确说明结构化结果仍可能包含错误。[[11]](#ref-11)应用至少执行下面的验收：
+Strict Schema 不能证明“130 元”正确，也不能证明引用确实支持结论；官方文档也明确说明结构化结果仍可能包含错误。[[28]](#ref-28) 应用至少执行下面的验收：
 
 | 校验层 | 本例检查 | 未通过时的处理 |
 | --- | --- | --- |
-| 协议完成 | 响应正常完成，识别拒绝与截断，不把未处理工具调用当最终答案 | 按 12.4 分类处理，不解析半段结果交付 |
+| 协议完成 | 响应正常完成，识别拒绝与截断，不把未处理工具调用当最终答案 | 按[错误映射](#provider-errors)分类处理，不解析半段结果交付 |
 | 结构与对象 | 满足 Schema，订单与商品行匹配任务，金额为非负整数或允许的 `null` | 拒绝结果，返回明确校验错误 |
 | 业务数值 | 根据保存的工具证据重算 `18000 - 3000 - 2000`，核对币种与金额口径 | 不接受模型自算值覆盖账务；来源矛盾时转缺项或冲突处理 |
 | 判断一致性 | 申请 15000 分大于上限 13000 分，且质量凭证缺失，必须报告对应问题 | 修正或重新生成结果，不能以结构合法为由放行 |
@@ -1232,6 +915,9 @@ Strict Schema 不能证明“130 元”正确，也不能证明引用确实支�
 
 ## 12.7 性能、成本、数据契约与迁移验证
 
+[![分别计量延迟、缓存与治理](../images/review-llm-api-protocol-08.svg)](../images/review-llm-api-protocol-08.svg)
+
+
 ### 12.7.1 分开测量首字、生成和端到端耗时
 
 可以用下面的近似分解定位调用延迟；这是观测模型，不代表供应商一定暴露这些内部计时：
@@ -1241,7 +927,7 @@ Strict Schema 不能证明“130 元”正确，也不能证明引用确实支�
 首个可见文本延迟 ≈ 前置阶段 + 首个可见文本产生前的计算与传输
 ```
 
-应分别记录首响应、首事件、首个可见文本和终态时间。HTTP headers 或 `response.created` 很快到达，不意味着用户已经看到答案；推理模型也可能在首个可见文本前花费计算。没有供应商遥测时，只能提出“排队或输入处理较慢”的假设，不能从客户端总时长精确反推内部阶段。[[25]](#ref-25)[[26]](#ref-26)
+本书将客户端开始请求至首个可观测输出 token 定义为端到端 TTFT；若提供方单独报告服务端 TTFT，必须保留其不同起点。首响应是 HTTP headers 到达，首事件是首个协议事件，首个可见文本可能晚于推理 token；这四者不能混算。应分别记录首响应、首事件、首个可见文本和终态时间。HTTP headers 或 `response.created` 很快到达，不意味着用户已经看到答案；推理模型也可能在首个可见文本前花费计算。没有供应商遥测时，只能提出“排队或输入处理较慢”的假设，不能从客户端总时长精确反推内部阶段。[[2]](#ref-2)[[3]](#ref-3)
 
 | 现象 | 优先核查 | 候选改进与代价 |
 | --- | --- | --- |
@@ -1249,7 +935,7 @@ Strict Schema 不能证明“130 元”正确，也不能证明引用确实支�
 | 首字快但完成慢 | 输出量、推理量、事件间隔和慢客户端 | 约束回答长度、减少冗余字段；不能靠截断破坏结果完整性 |
 | 单次快但任务慢 | 多轮请求及外部等待 | 减少不必要调用；不能为少一轮而省略必要证据 |
 
-比较时应按模型、输入和输出规模、推理配置、缓存状态分组观察 p50、p95 与失败率，不能把不同负载混成一个平均值。流式主要改变展示时机；优化效果必须在同一任务集上同时比较质量、延迟与费用。[[25]](#ref-25)
+比较时应按模型、输入和输出规模、推理配置、缓存状态分组观察 p50、p95 与失败率，不能把不同负载混成一个平均值。流式主要改变展示时机；优化效果必须在同一任务集上同时比较质量、延迟与费用。[[2]](#ref-2)
 
 ### 12.7.2 RPM、TPM 与并发限制共同决定容量
 
@@ -1265,29 +951,17 @@ RPM 限制请求次数，TPM 限制 token 流量，并发限制约束同时在�
 
 ### 12.7.3 成本核算、Prompt caching 与 Batch
 
-费用应按实际计费桶求和：`费用 = Σ（该桶用量 × 对应单价）`。先确认普通输入、缓存读取、缓存写入、生成内容，以及图片、音频、托管工具是否分别收费。明细可能是总量的子项，也可能是独立计费项，不能把输入总量和全部缓存明细再次相加；推理 token 若已包含在生成量中，也不重复计费。[[27]](#ref-27)[[28]](#ref-28)
+费用应按实际计费桶求和：`费用 = Σ（该桶用量 × 对应单价）`。先确认普通输入、缓存读取、缓存写入、生成内容，以及图片、音频、托管工具是否分别收费。明细可能是总量的子项，也可能是独立计费项，不能把输入总量和全部缓存明细再次相加；推理 token 若已包含在生成量中，也不重复计费。[[4]](#ref-4)[[32]](#ref-32)
 
-Prompt caching 复用符合条件的输入前缀计算，不是把上次答案作为这次答案返回，也不是会话记忆。稳定指令和公共材料适合放在前部，动态内容尽量后置；工具定义、顺序和历史改写也可能影响命中。最低可缓存长度、缓存边界、保留时间、隔离范围及读写价格随模型而异，写入也可能收费。因此应观察实际 cached tokens、写入量和总费用，不以请求“看起来相似”判断命中，也不为凑缓存长度加入无用材料。[[28]](#ref-28)
+Prompt caching 复用符合条件的输入前缀计算，不是把上次答案作为这次答案返回，也不是会话记忆。稳定指令和公共材料适合放在前部，动态内容尽量后置；工具定义、顺序和历史改写也可能影响命中。最低可缓存长度、缓存边界、保留时间、隔离范围及读写价格随模型而异，写入也可能收费。Anthropic 缓存按 tools→system→messages 形成前缀，工具变化会影响后续命中，读写计费需按其模型与 TTL 说明核对。[[33]](#ref-33) 因此应观察实际 cached tokens、写入量和总费用，不以请求“看起来相似”判断命中，也不为凑缓存长度加入无用材料。[[32]](#ref-32)
 
-Batch API 适合允许延后交付的大量独立请求。它可能提供独立限流和更低价格，但折扣、完成窗口与支持端点是产品条款，不是异步 API 的普遍性质。OpenAI Batch 通过 `custom_id` 对应输入与结果，输出顺序可能不同，还需区分请求级错误与整批任务状态。[[30]](#ref-30)
+Batch API 适合允许延后交付的大量独立请求。它可能提供独立限流和更低价格，但折扣、完成窗口与支持端点是产品条款，不是异步 API 的普遍性质。OpenAI Batch 通过 `custom_id` 对应输入与结果，输出顺序可能不同，还需区分请求级错误与整批任务状态。[[34]](#ref-34)
 
-最终 usage 比本地按可见文字估算更适合核算，但流中断可能使客户端收不到结束 usage，不能据此记为零成本。[[3]](#ref-3)应记录请求 ID、attempt、实际模型、计费配置和“待核对”状态，在接口支持时取回最终对象，再与供应商用量报表或账单核对。任务费用包含失败与重试尝试；“每次成功回答的成本”应按总费用除以验收通过的交付数计算。
+最终 usage 比本地按可见文字估算更适合核算，但流中断可能使客户端收不到结束 usage，不能据此记为零成本。[[5]](#ref-5) 应记录请求 ID、attempt、实际模型、计费配置和“待核对”状态，在接口支持时取回最终对象，再与供应商用量报表或账单核对。任务费用包含失败与重试尝试；“每次成功回答的成本”应按总费用除以验收通过的交付数计算。
 
-### 12.7.4 数据契约是端点选择的一部分
+### 12.7.4 数据约束参与端点选择
 
-托管 API 接入前，应把下面几项分开核验，不能用“企业版”“不训练”或一个 `store` 参数代替全部承诺：
-
-| 维度 | 需要确认的契约 |
-| --- | --- |
-| 训练用途 | 输入与输出默认是否用于训练，是否存在主动共享选项 |
-| 保留 | 生成结果、会话、上传文件、缓存和滥用监控日志各保留什么、多久 |
-| 删除 | 删除哪个对象、何时生效，关联文件和其他日志是否另行处理 |
-| 区域 | 静态存储位置与推理处理位置是否都满足要求，哪些能力支持该区域 |
-| 第三方 | 代理、网关和托管工具是否引入额外的数据处理方 |
-
-例如 OpenAI 说明 API 数据默认不用于训练，除非主动选择共享；但同时区分滥用监控日志与应用状态，二者有不同保留规则。`store: false` 不能推导“所有数据零保留”，会话、文件、缓存、后台执行与零保留资格应按实际功能和账户配置核验。[[33]](#ref-33)[[32]](#ref-32)
-
-长期 API Key 应保存在服务端密钥管理设施中，按环境和项目隔离、限制权限并支持轮换；浏览器或移动端不能内置该长期密钥，直连能力应使用供应商明确支持的临时凭据机制。[[34]](#ref-34)[[31]](#ref-31)默认日志保留模型与端点、请求 ID、版本、耗时、usage、结束原因和错误类别；完整正文、附件 URL 与工具结果按用途脱敏、授权访问和限定保留，不记录鉴权 headers。
+训练用途、保留、删除、区域、第三方处理和密钥管理是端点选择的前提。`store:false` 不表示所有日志零保留，基础 API 兼容也不表示满足相同数据政策；完整检查表与凭据边界参考[治理中的数据边界](05-agent-governance-optimization.md#data-governance)。[[35]](#ref-35)
 
 ### 12.7.5 用契约测试与质量回归证明迁移可用
 
@@ -1300,9 +974,12 @@ Batch API 适合允许延后交付的大量独立请求。它可能提供独立�
 | 真实端点契约测试 | 实际角色、Schema、工具关联、流终态、错误与 usage 行为 | 所有任务的回答质量 |
 | 固定任务集质量回归 | 关键事实、结构、拒绝、延迟与成本的可比较表现 | 未来模型更新后的表现 |
 
-测试还应覆盖空内容、拒绝、长度截断、usage 缺失、并行调用关联，以及可控注入的断流、重复事件和未知事件；不能只测正常路径。升级时记录模型快照与别名、SDK、协议、提示模板、Schema hash 和适配器版本，重新核验关键能力。生产切换可基于脱敏样本回放或获得授权的少量流量验证，并保留回退配置；切换提供方本身也需要重新满足数据契约。这里给出验证方法，本章示例仍不代表已完成端点实测。
+测试还应覆盖空内容、拒绝、长度截断、usage 缺失、并行调用关联，以及可控注入的断流、重复事件和未知事件；不能只测正常路径。升级时记录模型快照与别名、SDK、协议、提示模板、Schema hash 和适配器版本，重新核验关键能力。生产切换可基于脱敏样本回放或获得授权的少量流量验证，并保留回退配置；切换提供方本身也需要重新满足数据契约。
 
 ## 本章小结
+
+[![协议消费的验收链](../images/review-llm-api-protocol-09.svg)](../images/review-llm-api-protocol-09.svg)
+
 
 LLM API 的接入契约覆盖输入组织、生成预算、输出类型、会话状态、终态与错误，也包括 usage、缓存及数据保留。降低温度不保证事实正确，Schema 合法不保证结论正确，HTTP 成功不保证生成完成，服务端续接也不代表历史免费。性能应分别测量首字、生成与端到端耗时，成本则按实际计费桶和全部尝试核算。
 
@@ -1313,39 +990,41 @@ Provider Adapter 把消息、工具关联、完整输出与错误映射成应用
 
 ## 参考资料
 
+[![协议资料如何支持实现](../images/review-llm-api-protocol-10.svg)](../images/review-llm-api-protocol-10.svg)
+
+
 1. <a id="ref-1"></a> OpenAI，[Prompt engineering](https://developers.openai.com/api/docs/guides/prompt-engineering)，rolling; 2026-10-20。
-2. <a id="ref-2"></a> OpenAI，[Migrate to the Responses API](https://developers.openai.com/api/docs/guides/migrate-to-responses)，核验于 2026-10-20。
-3. <a id="ref-3"></a> OpenAI，[Create chat completion](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create)，协议示例核验于 2026-10-20；采样、seed、停止与 usage 条款复核于 2026-10-22。
-4. <a id="ref-4"></a> Anthropic，[Create a Message](https://platform.claude.com/docs/en/api/messages/create)，核验于 2026-10-20。
-5. <a id="ref-5"></a> DeepSeek，[Chat Completions API](https://api-docs.deepseek.com/api/create-chat-completion/)，核验于 2026-10-20。
-6. <a id="ref-6"></a> DeepSeek，[Using the Responses API](https://api-docs.deepseek.com/guides/responses_api/)，核验于 2026-10-20。
-7. <a id="ref-7"></a> DeepSeek，[Using the Anthropic API](https://api-docs.deepseek.com/guides/anthropic_api/)，核验于 2026-10-20。
-8. <a id="ref-8"></a> OpenAI，[Text generation](https://developers.openai.com/api/docs/guides/text)，核验于 2026-10-20。
-9. <a id="ref-9"></a> OpenAI，[Images and vision](https://developers.openai.com/api/docs/guides/images-vision)，核验于 2026-10-20。
-10. <a id="ref-10"></a> OpenAI，[Function calling](https://developers.openai.com/api/docs/guides/function-calling)，rolling; 2026-10-20。
-11. <a id="ref-11"></a> OpenAI，[Structured model outputs](https://developers.openai.com/api/docs/guides/structured-outputs)，rolling; 2026-10-20。
-12. <a id="ref-12"></a> Anthropic，[Define tools](https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools)，核验于 2026-10-20。
-13. <a id="ref-13"></a> Anthropic，[Handle tool calls](https://platform.claude.com/docs/en/agents-and-tools/tool-use/handle-tool-calls)，核验于 2026-10-20。
-14. <a id="ref-14"></a> Anthropic，[Mid-conversation system messages and tool changes](https://platform.claude.com/docs/en/build-with-claude/mid-conversation-system-messages)，核验于 2026-10-20。
-15. <a id="ref-15"></a> Anthropic，[Structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs)，核验于 2026-10-20。
-16. <a id="ref-16"></a> DeepSeek，[Tool Calls](https://api-docs.deepseek.com/guides/tool_calls/)，rolling; 2026-10-20。
-17. <a id="ref-17"></a> Anthropic，[Claude Code CLI reference](https://code.claude.com/docs/en/cli-reference)，核验于 2026-10-20。
-18. <a id="ref-18"></a> Anthropic，[Run Claude Code programmatically](https://code.claude.com/docs/en/headless)，核验于 2026-10-20。
-19. <a id="ref-19"></a> go-openai maintainers，[chat.go, v1.43.0](https://github.com/sashabaranov/go-openai/blob/v1.43.0/chat.go)，核验于 2026-10-20。
-20. <a id="ref-20"></a> go-openai maintainers，[response.go, v1.43.0](https://github.com/sashabaranov/go-openai/blob/v1.43.0/response.go)，核验于 2026-10-20。
-21. <a id="ref-21"></a> WHATWG，[HTML Standard: Server-sent events](https://html.spec.whatwg.org/multipage/server-sent-events.html)，living; 2026-10-16。
-22. <a id="ref-22"></a> OpenAI，[Streaming API responses](https://developers.openai.com/api/docs/guides/streaming-responses)，rolling; 2026-10-20。
-23. <a id="ref-23"></a> Anthropic，[Streaming messages](https://platform.claude.com/docs/en/build-with-claude/streaming)，rolling; 2026-10-20。
-24. <a id="ref-24"></a> OpenAI，[Conversation state](https://developers.openai.com/api/docs/guides/conversation-state)，官方滚动文档，核验于 2026-10-22。
-25. <a id="ref-25"></a> OpenAI，[Latency optimization](https://developers.openai.com/api/docs/guides/latency-optimization)，官方滚动文档，核验于 2026-10-22。
-26. <a id="ref-26"></a> OpenAI，[Reasoning](https://developers.openai.com/api/docs/guides/reasoning)，官方滚动文档，核验于 2026-10-22。
-27. <a id="ref-27"></a> OpenAI，[Token counting](https://developers.openai.com/api/docs/guides/token-counting)，官方滚动文档，核验于 2026-10-22。
-28. <a id="ref-28"></a> OpenAI，[Prompt caching](https://developers.openai.com/api/docs/guides/prompt-caching)，官方滚动文档，核验于 2026-10-22。
+2. <a id="ref-2"></a> OpenAI，[Latency optimization](https://developers.openai.com/api/docs/guides/latency-optimization)，官方滚动文档，核验于 2026-10-22。
+3. <a id="ref-3"></a> OpenAI，[Reasoning](https://developers.openai.com/api/docs/guides/reasoning)，官方滚动文档，核验于 2026-10-22。
+4. <a id="ref-4"></a> OpenAI，[Token counting](https://developers.openai.com/api/docs/guides/token-counting)，官方滚动文档，核验于 2026-10-22。
+5. <a id="ref-5"></a> OpenAI，[Create chat completion](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create)，协议示例核验于 2026-10-20；采样、seed、停止与 usage 条款复核于 2026-10-22。
+6. <a id="ref-6"></a> OpenAI，[Migrate to the Responses API](https://developers.openai.com/api/docs/guides/migrate-to-responses)，核验于 2026-10-20。
+7. <a id="ref-7"></a> Anthropic，[Create a Message](https://platform.claude.com/docs/en/api/messages/create)，核验于 2026-10-20。
+8. <a id="ref-8"></a> DeepSeek，[Chat Completions API](https://api-docs.deepseek.com/api/create-chat-completion/)，核验于 2026-10-20。
+9. <a id="ref-9"></a> DeepSeek，[Using the Responses API](https://api-docs.deepseek.com/guides/responses_api/)，核验于 2026-10-20。
+10. <a id="ref-10"></a> DeepSeek，[Using the Anthropic API](https://api-docs.deepseek.com/guides/anthropic_api/)，核验于 2026-10-20。
+11. <a id="ref-11"></a> OpenAI，[Text generation](https://developers.openai.com/api/docs/guides/text)，核验于 2026-10-20。
+12. <a id="ref-12"></a> OpenAI，[Images and vision](https://developers.openai.com/api/docs/guides/images-vision)，核验于 2026-10-20。
+13. <a id="ref-13"></a> OpenAI，[Audio and voice](https://developers.openai.com/api/docs/guides/audio)，官方滚动文档，核验于 2026-10-22。
+14. <a id="ref-14"></a> OpenAI，[File inputs](https://developers.openai.com/api/docs/guides/file-inputs)，官方滚动文档，核验于 2026-10-22。
+15. <a id="ref-15"></a> OpenAI，[Function calling](https://developers.openai.com/api/docs/guides/function-calling)，rolling; 2026-10-20。
+16. <a id="ref-16"></a> Anthropic，[Handle tool calls](https://platform.claude.com/docs/en/agents-and-tools/tool-use/handle-tool-calls)，核验于 2026-10-20。
+17. <a id="ref-17"></a> Anthropic，[Mid-conversation system messages and tool changes](https://platform.claude.com/docs/en/build-with-claude/mid-conversation-system-messages)，核验于 2026-10-20。
+18. <a id="ref-18"></a> Anthropic，[Structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs)，核验于 2026-10-20。
+19. <a id="ref-19"></a> DeepSeek，[Thinking Mode](https://api-docs.deepseek.com/guides/thinking_mode/)，持续更新；核验于 2026-10-24。
+20. <a id="ref-20"></a> Anthropic，[Claude Code CLI reference](https://code.claude.com/docs/en/cli-reference)，核验于 2026-10-20。
+21. <a id="ref-21"></a> Anthropic，[Run Claude Code programmatically](https://code.claude.com/docs/en/headless)，核验于 2026-10-20。
+22. <a id="ref-22"></a> go-openai maintainers，[chat.go, v1.43.0](https://github.com/sashabaranov/go-openai/blob/v1.43.0/chat.go)，核验于 2026-10-20。
+23. <a id="ref-23"></a> go-openai maintainers，[response.go, v1.43.0](https://github.com/sashabaranov/go-openai/blob/v1.43.0/response.go)，核验于 2026-10-20。
+24. <a id="ref-24"></a> WHATWG，[HTML Standard: Server-sent events](https://html.spec.whatwg.org/multipage/server-sent-events.html)，living; 2026-10-16。
+25. <a id="ref-25"></a> OpenAI，[Streaming API responses](https://developers.openai.com/api/docs/guides/streaming-responses)，rolling; 2026-10-20。
+26. <a id="ref-26"></a> Anthropic，[Stop reasons and fallback](https://platform.claude.com/docs/en/build-with-claude/handling-stop-reasons)，持续更新；核验于 2026-10-24。
+27. <a id="ref-27"></a> Anthropic，[Streaming messages](https://platform.claude.com/docs/en/build-with-claude/streaming)，rolling; 2026-10-20。
+28. <a id="ref-28"></a> OpenAI，[Structured model outputs](https://developers.openai.com/api/docs/guides/structured-outputs)，rolling; 2026-10-20。
 29. <a id="ref-29"></a> OpenAI，[Rate limits](https://developers.openai.com/api/docs/guides/rate-limits)，官方滚动文档，核验于 2026-10-22。
-30. <a id="ref-30"></a> OpenAI，[Batch](https://developers.openai.com/api/docs/guides/batch)，官方滚动文档，核验于 2026-10-22。
-31. <a id="ref-31"></a> OpenAI，[Realtime API](https://developers.openai.com/api/docs/guides/realtime)，官方滚动文档，核验于 2026-10-22。
-32. <a id="ref-32"></a> OpenAI，[Background mode](https://developers.openai.com/api/docs/guides/background)，官方滚动文档，核验于 2026-10-22。
-33. <a id="ref-33"></a> OpenAI，[Your data](https://developers.openai.com/api/docs/guides/your-data)，官方滚动文档，核验于 2026-10-22。
-34. <a id="ref-34"></a> OpenAI，[Production best practices](https://developers.openai.com/api/docs/guides/production-best-practices)，官方滚动文档，核验于 2026-10-22。
-35. <a id="ref-35"></a> OpenAI，[Audio and voice](https://developers.openai.com/api/docs/guides/audio)，官方滚动文档，核验于 2026-10-22。
-36. <a id="ref-36"></a> OpenAI，[File inputs](https://developers.openai.com/api/docs/guides/file-inputs)，官方滚动文档，核验于 2026-10-22。
+30. <a id="ref-30"></a> Anthropic，[Errors](https://platform.claude.com/docs/en/api/errors)，持续更新；核验于 2026-10-24。
+31. <a id="ref-31"></a> OpenAI，[Conversation state](https://developers.openai.com/api/docs/guides/conversation-state)，官方滚动文档，核验于 2026-10-22。
+32. <a id="ref-32"></a> OpenAI，[Prompt caching](https://developers.openai.com/api/docs/guides/prompt-caching)，官方滚动文档，核验于 2026-10-22。
+33. <a id="ref-33"></a> Anthropic，[Prompt caching](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)，持续更新；核验于 2026-10-24。
+34. <a id="ref-34"></a> OpenAI，[Batch](https://developers.openai.com/api/docs/guides/batch)，官方滚动文档，核验于 2026-10-22。
+35. <a id="ref-35"></a> OpenAI，[Your data](https://developers.openai.com/api/docs/guides/your-data)，官方滚动文档，核验于 2026-10-22。
