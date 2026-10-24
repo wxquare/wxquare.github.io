@@ -1,20 +1,21 @@
-# 第19章 Pi Agent 系统：终端原生 Coding Agent Runtime 的实现、使用与调优
+# 第 19 章 Pi Agent 系统：终端原生 Coding Agent Runtime 的实现、使用与调优
 
 > Pi 的核心价值不是“又一个终端里的 AI 编程助手”，而是把 Coding Agent 做成一个小内核、强扩展、可嵌入的 Agent Harness：模型调用、工具执行、上下文构建、会话树、扩展系统、Skills、Prompt Templates 和 SDK 都围绕同一套运行时组织起来。也正因为内核克制，安全边界、逐次审批、沙箱这类能力要靠使用者和嵌入方自己补上。
 
-**资料核验日期：2026-10-23。** 本章分析的对象是 Pi（npm 包 `@earendil-works/pi-coding-agent`，版本 1.4.0，发布于 2026-10-21）。源码固定在仓库 `earendil-works/pi` 的主分支提交 `936e5f40aede9327b9142b63506ed2b68bc6b4ac`（提交时间 2026-10-22 21:32:38 UTC）；官方文档站 pi.dev 是滚动页面，本章引用的文档页与固定提交里 `packages/coding-agent/docs/` 的文件逐字节一致，因此文档类引用同时给出站点地址与固定提交副本，二者可以互相回查。
+**资料核验日期：2026-10-23。** 本章分析的对象是 Pi（npm 包 `@earendil-works/pi-coding-agent`，版本 1.4.0，发布于 2026-10-21）。源码固定在仓库 `earendil-works/pi` 的主分支提交 `936e5f40aede9327b9142b63506ed2b68bc6b4ac`（提交时间 2026-10-22 21:32:38 UTC）；官方文档站 pi.dev 是滚动页面，本章引用的文档页与固定提交里 `packages/coding-agent/docs/` 的文件绑定所列固定版本，因此文档类引用同时给出站点地址与固定提交副本，二者可以互相回查。
 
 Pi 的公开程度让本章可以同时使用两种证据，并在正文中分开标注：
 
 | 标记 | 含义 | 使用方式 |
 | --- | --- | --- |
-| 源码事实 | 固定提交中可定位的文件与符号、行号 | 只引用 `936e5f40aede…` 这一提交，不引用主分支 |
+| 源码事实 | 固定提交中可定位的文件与符号 | 只引用 `936e5f40aede…` 这一提交，不引用主分支 |
 | 官方文档事实 | 官方文档页与 README、CHANGELOG 的陈述 | 注明核验日期；文档写明版本门槛的保留 |
 | 系统推导 | 根据公开证据做的架构解释 | 帮助理解，不等于产品的精确实现 |
 | 本书建议 | 本书依据前述事实归纳的使用建议 | 只出现在实践与调优部分，与官方建议分开标注 |
-| 官方自报 | 官方文档或 CHANGELOG 里出现的数字 | 写明范围，不作为通用基准 |
 
-一条限制需要提前说明：本章的行为结论来自阅读源码与官方文档，没有运行验证、没有故障注入。正文里所有“行为是 A”的陈述，准确含义是“固定提交的源码（或官方文档）写了 A”，除非另有标注。文档与源码不一致的地方，正文会指出并以固定提交的源码为准；只在源码里能找到、文档没有承诺的行为，标注“源码事实，非文档承诺”。命令名、配置键、默认值、模型名与别名都是版本敏感内容，一律注明核验日期，正文不硬写模型名。
+官方自报数字属于官方文档事实的子类型，保留自述与条件，不作通用基准。
+
+一条限制需要提前说明：本章的行为结论来自阅读源码与官方文档，没有运行验证、没有故障注入。正文里所有“行为是 A”的陈述，准确含义是“固定提交的源码（或官方文档）写了 A”，除非另有标注。文档与源码不一致的地方，分别说明该提交实现与文档承诺，不推定读者安装的二进制与任意主分支提交一致；只在源码里能找到、文档没有承诺的行为，标注“源码事实，非文档承诺”。命令名、配置键、默认值、模型名与别名都是版本敏感内容，一律注明核验日期，正文不硬写模型名。
 
 ## 19.1 组成：Pi 由哪些部分构成
 
@@ -22,9 +23,9 @@ Pi 的公开程度让本章可以同时使用两种证据，并在正文中分�
 
 Pi 官方对自己的描述是“a minimal, extensible agent harness that you can make your own”（一个最小、可扩展、可以由用户改造成自己想要的形态的 Agent Harness）[[29]](#ref-29)。文档首页把它定位为“在终端里工作的可扩展 AI Agent”，用途列了软件开发、研究笔记、写作和数据文件处理[[1]](#ref-1)；npm 包的描述则是“带 read、bash、edit、write 工具和会话管理的 Coding Agent CLI”[[46]](#ref-46)。综合起来看，“Coding Agent”的限定在文档层面已经比早期放宽，“终端原生、可扩展、可嵌入”才是更稳定的定位。
 
-“小”不是功能少，而是核心职责克制。README 明确写了一句边界：Pi “skips features like sub-agents and plan mode”——不做子代理、不做内置 plan mode[[29]](#ref-29)。这两项能力在官方示例扩展里以另一种形式出现（见 18.5.8），但不在内核里。另一条更硬的边界是权限：Pi 官方安全页明确说它不逐次询问，工具以启动 Pi 的账户权限读写和执行[[6]](#ref-6)。这一条不是“缺一个功能”，而是整个安全模型的起点，18.1.6 和 18.4 会反复回到它。
+“小”不是功能少，而是核心职责克制。README 明确写了一句边界：Pi “skips features like sub-agents and plan mode”——不做子 Agent、不做内置 plan mode[[29]](#ref-29)。这两项能力在官方示例扩展里以另一种形式出现（见 19.5.8），但不在内核里。另一条更硬的边界是权限：Pi 官方安全页明确说它不逐次询问，工具以启动 Pi 的账户权限读写和执行[[6]](#ref-6)。这一条不是“缺一个功能”，而是整个安全模型的起点，19.1.6 和 19.4 会反复回到它。
 
-工程上，“小”对应的是明确的分层，而不是代码量小。这一点后文会给出数字约束。
+本章要回答三个选型问题：哪些复杂度留在内核，哪些必须由扩展或宿主承担，以及会话恢复能否覆盖业务动作的恢复。后文按组成、启动、执行、异常、实践与调优六个方面检验这些取舍。
 
 ### 19.1.2 包结构与分层
 
@@ -78,11 +79,11 @@ Pi 的状态分成两处：全局代理目录，和每个项目的 `.pi/` 目录
 
 代理目录默认是 `~/.pi/agent`，可由环境变量 `PI_CODING_AGENT_DIR` 或 SDK 的 `agentDir` 改变。里面放 `settings.json`、`keybindings.json`、`mcp.json`、`models.json`、`auth.json`、上下文文件（`AGENTS.override.md`、`AGENTS.md`、`CLAUDE.md` 等）、`SYSTEM.md`、`APPEND_SYSTEM.md`，以及 `extensions/`、`skills/`、`prompts/`、`themes/` 和 `sessions/`；另有运行时写入的 `trust.json`、`crashes.json`、`mcp.log`、`pi-debug.log`[[7]](#ref-7)。
 
-项目目录用 `.pi/` 前缀：`.pi/settings.json`、`.pi/mcp.json`、`.pi/SYSTEM.md`、`.pi/APPEND_SYSTEM.md`、`.pi/extensions/`、`.pi/skills/`、`.pi/prompts/`、`.pi/themes/`，另外项目还支持 `.agents/skills`（从当前目录向上到祖先，有仓库根则止于仓库根）[[7]](#ref-7)[[19]](#ref-19)。上下文文件（AGENTS.md 等）与 `.pi` 配置分开：前者不需要项目信任，后者需要（见 18.2 的信任机制）[[6]](#ref-6)。
+项目目录用 `.pi/` 前缀：`.pi/settings.json`、`.pi/mcp.json`、`.pi/SYSTEM.md`、`.pi/APPEND_SYSTEM.md`、`.pi/extensions/`、`.pi/skills/`、`.pi/prompts/`、`.pi/themes/`，另外项目还支持 `.agents/skills`（从当前目录向上到祖先，有仓库根则止于仓库根）[[7]](#ref-7)[[19]](#ref-19)。上下文文件（AGENTS.md 等）与 `.pi` 配置分开：前者不需要项目信任，后者需要（见 19.2 的信任机制）[[6]](#ref-6)。
 
 会话文件是 JSONL，每条一行一个条目，用 `id`/`parentId` 形成一棵树；文件头是 `type:"session"`、`version:3`、`cwd`，可选 `parentSession`。条目类型共 11 种：`message`、`thinking_level_change`、`model_change`、`usage`、`compaction`、`branch_summary`、`custom`、`custom_message`、`context_edit`、`label`、`session_info`。其中 `custom` 不进模型上下文，`custom_message` 进；`usage` 条目用于缓存预热这类非消息计费，不进上下文、在树中隐藏[[16]](#ref-16)[[32]](#ref-32)。
 
-值得强调的是“权威状态”的组织方式。模型每次看到的上下文不是把文件顺序重放一遍，而是由活动分支重建：取最近一个 `compaction` 条目，从 `firstKeptEntryId` 起保留，再应用此后的 `context_edit`。系统提示与工具声明则作为 **system 消息**写入转录——首个请求持久化完整的 sections 与 `toolsAdded`，之后以按 section 名的补丁记录变化。官方文档的原话是：按顺序重放它们就得到当前的提示与工具，没有独立的“提示状态条目”[[16]](#ref-16)。这一点决定了 18.4 里“会话文件损坏时能恢复什么”的边界。
+值得强调的是“权威状态”的组织方式。模型每次看到的上下文不是把文件顺序重放一遍，而是由活动分支重建：取最近一个 `compaction` 条目，从 `firstKeptEntryId` 起保留，再应用此后的 `context_edit`。系统提示与工具声明则作为 **system 消息**写入转录——首个请求持久化完整的 sections 与 `toolsAdded`，之后以按 section 名的补丁记录变化。官方文档的原话是：按顺序重放它们就得到当前的提示与工具，没有独立的“提示状态条目”[[16]](#ref-16)。这一点决定了 19.4 里“会话文件损坏时能恢复什么”的边界。
 
 会话文件路径是 `<agent-dir>/sessions/--<cwd 去掉前导分隔符并把 / \ : 替换成 ->--/<时间戳>_<session-id>.jsonl`，`session-id` 默认 UUID；文件版本 v3（v1 线性 → v2 树 → v3 改名 `custom`），旧文件加载时自动迁移并重写整个文件[[16]](#ref-16)[[32]](#ref-32)。
 
@@ -99,7 +100,7 @@ Pi 的状态分成两处：全局代理目录，和每个项目的 `.pi/` 目录
 
 用量结构 `Usage` 记录 `input`、`output`、`cacheRead`、`cacheWrite`、可选 `cacheWrite1h`、可选 `reasoning`（是 `output` 的子集）、`totalTokens` 和 `cost`；`cost` 是按模型目录价格算出来的 input/output/cacheRead/cacheWrite 与总计[[40]](#ref-40)。
 
-凭据解析顺序（文档给出）：运行时的 `--api-key` 优先，然后是 `auth.json`，再是 `models.json` 里的 `apiKey`，最后是 provider 的环境变量或云端环境凭据[[22]](#ref-22)。一个版本敏感的细节：Anthropic 订阅（OAuth）令牌走一套独立的客户端身份，user-agent 写死为 `claude-cli/2.1.280`、`x-app: cli`，并把与 Claude Code 工具名大小写不敏感匹配的工具名转成 Claude Code 的规范大小写；API key 路径则用 Pi 自己的身份。这是源码里写死的版本号，仅作记录，不是稳定接口[[40]](#ref-40)。
+认证适配可能包含提供方专属的兼容处理；这些实现细节不构成第三方客户端的通用接入承诺，使用者应遵循正式授权与支持范围。[[22]](#ref-22) [[40]](#ref-40)
 
 ### 19.1.6 内置工具与权限边界
 
@@ -115,7 +116,7 @@ Pi 的状态分成两处：全局代理目录，和每个项目的 `.pi/` 目录
 
 `bash` 的失败文案分得很细：非零退出码追加 “Command exited with code N”，中止追加 “Command aborted”，超时追加 “Command timed out after N seconds”，无退出码追加 “Command terminated without an exit code”，工作目录不存在直接报错[[37]](#ref-37)。同文件的写入由 `withFileMutationQueue` 按 `realpath` 串行化，不同文件并行[[37]](#ref-37)。
 
-权限边界是 Pi 最容易被误解的地方，也是它与多数同类产品差别最大的地方。**内置工具没有任何确认、审批、拒绝逻辑**：在工具源码与 `agent-session.ts` 里检索 confirm/approve/permission（排除 trust 相关）没有命中；路径解析也不限定在工作目录内；`bash` 子进程继承完整 `process.env`，并额外注入 `PI_SESSION_ID`、`PI_SESSION_FILE`、`PI_PROVIDER`、`PI_MODEL`、`PI_REASONING_LEVEL` 这几个环境变量[[37]](#ref-37)。官方安全页的原话是：Pi 不逐次询问，工具以启动它的账户权限读写和执行[[6]](#ref-6)。唯一的内置拦截点是扩展的 `tool_call` 钩子——确认与审批要靠使用者自己去写扩展（见 18.5.6），这不是缺陷，而是一个明确的设计选择。
+权限边界是 Pi 最容易被误解的地方，也是它与多数同类产品差别最大的地方。**内置工具没有任何确认、审批、拒绝逻辑**：在工具源码与 `agent-session.ts` 里检索 confirm/approve/permission（排除 trust 相关）没有命中；路径解析也不限定在工作目录内；`bash` 子进程继承完整 `process.env`，并额外注入 `PI_SESSION_ID`、`PI_SESSION_FILE`、`PI_PROVIDER`、`PI_MODEL`、`PI_REASONING_LEVEL` 这几个环境变量[[37]](#ref-37)。官方安全页的原话是：Pi 不逐次询问，工具以启动它的账户权限读写和执行[[6]](#ref-6)。唯一的内置拦截点是扩展的 `tool_call` 钩子——确认与审批要靠使用者自己去写扩展（见 19.5.6），这不是缺陷，而是一个明确的设计选择。
 
 ### 19.1.7 扩展点清单
 
@@ -133,24 +134,26 @@ Pi 的“强扩展”体现在一组清晰的扩展点。按从静态到可执�
 | MCP 服务器（`mcp.json`、`pi.registerMcpServer`） | 外部工具 | 是（外部进程） |
 | SDK 替换点 | `ResourceLoader`、`SettingsManager`、`SessionManager`、`ModelRuntime`、`customTools`、`extensionFactories` | 视宿主 |
 
-官方对“该用哪个”给过一条原则：“从满足需求的最弱机制开始”——持久指令用 AGENTS.md，复用提示用模板，任务专用指令与支持文件用 Skill，可执行工具/命令/事件处理用 Extension，定制终端组件用 TUI 组件，连接不支持的模型服务用自定义 provider，分发安装多个资源用 Package[[2]](#ref-2)。这条原则是 18.5 的骨架。
+官方对“该用哪个”给过一条原则：“从满足需求的最弱机制开始”——持久指令用 AGENTS.md，复用提示用模板，任务专用指令与支持文件用 Skill，可执行工具/命令/事件处理用 Extension，定制终端组件用 TUI 组件，连接不支持的模型服务用自定义 provider，分发安装多个资源用 Package[[2]](#ref-2)。这条原则是 19.5 的骨架。
 
-扩展的加载方式是“会话启动前由 `jiti` 即时编译”，扩展以 Pi 进程的 OS 权限运行[[18]](#ref-18)。这一点在 18.1.8 和 18.4 里是安全分析的支点：扩展是真正的代码边界，Packages 不形成权限沙箱[[21]](#ref-21)。
+扩展的加载方式是“会话启动前由 `jiti` 即时编译”，扩展以 Pi 进程的 OS 权限运行[[18]](#ref-18)。这一点在 19.1.8 和 19.4 里是安全分析的支点：扩展是真正的代码边界，Packages 不形成权限沙箱[[21]](#ref-21)。
 
 Packages 的资源声明支持过滤（`!pattern`、`+path`、`-path`），过滤只能收窄清单、不能暴露包未声明的资源；带版本的 npm 规格与 git tag/commit 视为钉死，更新只对账检出、不移动已配置的 ref[[21]](#ref-21)。
 
 ### 19.1.8 与 OpenClaw 的关系：一个需要绑定版本的事实
 
-Pi 官方 README 至今写着一句 “See OpenClaw for a real-world integration”[[29]](#ref-29)。这句描述与 OpenClaw 当前代码不一致，需要按 OpenClaw 固定提交 `ff7597025dd2…`（2026-10-23）的源码为准。
+Pi 官方 README 至今写着一句 “See OpenClaw for a real-world integration”[[29]](#ref-29)。这句描述与 OpenClaw 所列提交的依赖状态不一致，需要分别记录 README 的集成表述和固定提交 `ff7597025dd2…`（2026-10-23）的实现观察。
 
 OpenClaw 自己的文档声明：它拥有内置的 agent runtime，“不再有外部 Agent 框架包依赖”；`pi` 只是 `openclaw` 的 legacy 别名；`@earendil-works/pi-tui` 仍是第三方依赖，用于本地 TUI 与会话工具渲染[[47]](#ref-47)。`package.json` 里 Pi 系依赖确实只剩 `@earendil-works/pi-tui` 1.2.0，没有 `pi-coding-agent`、`pi-agent-core`、`pi-ai`；OpenClaw 自己有 `createAgentSession` 的同名实现[[47]](#ref-47)。
 
 依赖史可以用 OpenClaw 自己的 CHANGELOG 串起来（逐条是官方发布说明）：2026.2.1 “对齐内嵌 runner 与 pi-coding-agent 的 API 更新（pi 0.51.0）”；2026.2.21 把四个 `@mariozechner/pi-*` 升级到 0.54.0；2026.3.13 升到 0.58.0；2026.4.20 为对齐 pi-coding-agent 0.66.1 的事件命名重命名压缩事件；2026.5.12 迁移到 `@earendil-works` 命名空间；2026.5.22 “把此前的 Pi agent runtime 内化进 OpenClaw，移除 legacy 包依赖，只保留 Pi 命名的 SDK 别名作为弃用插件的兼容”，同一版本还关闭了内嵌 pi-coding-agent 的自动重试，以免 OpenClaw 自己的重试与故障转移循环把失败的工具调用重放一遍[[48]](#ref-48)。
 
-因此可以写成一句有版本绑定的结论：OpenClaw 在 2026.5.22 之前通过 npm 依赖嵌入 Pi 的 agent-core、ai、coding-agent、tui 四个包（版本 0.51 到 0.58 一带，命名空间先 `@mariozechner` 后 `@earendil-works`），2026.5.22 起内化为自有 runtime，固定提交只剩 `pi-tui 1.2.0` 这个 TUI 组件。3 月到 5 月之间各发布嵌入的精确版本没有逐条核对，Pi 官方 README 的“真实集成”描述属于文档滞后[[29]](#ref-29)[[48]](#ref-48)。这个例子本身也是一个教训：两个项目之间的关系是会随时间变化的事实，引用时必须绑定版本。
+因此可以写成一句有版本绑定的结论：OpenClaw 在 2026.5.22 之前通过 npm 依赖嵌入 Pi 的 agent-core、ai、coding-agent、tui 四个包（已查发布说明覆盖 0.51.0 至 0.66.1，命名空间先 `@mariozechner` 后 `@earendil-works`），2026.5.22 起内化为自有 runtime，固定提交只剩 `pi-tui 1.2.0` 这个 TUI 组件。Pi README 的集成表述不能单独证明所列 OpenClaw 提交仍依赖完整运行时[[29]](#ref-29)[[48]](#ref-48)。这个例子本身也是一个教训：两个项目之间的关系是会随时间变化的事实，引用时必须绑定版本。
 ## 19.2 启动：从 `pi` 到首个模型请求
 
 启动要回答的问题，是从敲下 `pi`（或 SDK 调 `createAgentSession`）到第一个模型请求发出之间发生了什么，以及每一步失败时系统停在哪里。Pi 的启动路径在源码里可以逐步定位，这是它作为开源对象最有教学价值的部分之一。
+
+启动阶段体现的取舍是“可替换资源加载器”与“统一可信入口”不能自动同时获得。CLI 替使用者解析项目信任，SDK 则把宿主当作可信编排者；同样一个工作目录，经两个入口加载的资源不一定相同。嵌入方应在创建会话前完成配置与扩展来源决策，而不是模型开始工作后再用提示词补救。这里决定的是哪些代码进入进程，后续 tool_call 的确认无法撤销导入时已经发生的代码执行。
 
 ### 19.2.1 CLI 主路径
 
@@ -173,9 +176,9 @@ CLI 入口只有两行：`setupCli()` 和 `main(process.argv.slice(2))`。`setup
 
 ### 19.2.2 资源加载顺序与项目信任
 
-`reload()` 的实际顺序（可选的）是：解析项目信任 → `settingsManager.reload()` → 包管理器解析 → CLI 扩展路径 → **扩展先于 Skills 加载** → Skills → Prompt Templates → Themes → 上下文文件 → `SYSTEM.md` → `APPEND_SYSTEM.md`[[33]](#ref-33)。系统提示的构造不在资源加载器里，而在 `AgentSession._rebuildSystemPrompt` 与 `system-prompt.ts`（见 18.3.4）。
+`reload()` 的实际顺序（可选的）是：解析项目信任 → `settingsManager.reload()` → 包管理器解析 → CLI 扩展路径 → **扩展先于 Skills 加载** → Skills → Prompt Templates → Themes → 上下文文件 → `SYSTEM.md` → `APPEND_SYSTEM.md`[[33]](#ref-33)。系统提示的构造不在资源加载器里，而在 `AgentSession._rebuildSystemPrompt` 与 `system-prompt.ts`（见 19.3.4）。
 
-项目信任是现稿缺掉、但最值得补的机制。需要信任决定的项目资源集合是源码常量给出的：`.pi/` 下的 `settings.json`、`mcp.json`、`extensions`、`skills`、`prompts`、`themes`、`SYSTEM.md`、`APPEND_SYSTEM.md`，以及当前目录到祖先的 `.agents/skills`（排除 `~/.agents/skills`）；裸的 `.pi` 目录不需要决定。决定顺序：命令行 `--approve/--no-approve` → 用户级/命令行扩展的 `project_trust` 事件（第一个返回 yes/no 的扩展拥有决定权）→ `trust.json` 里最近的已保存决定 → 全局 `defaultProjectTrust`（默认 `"ask"`）[[6]](#ref-6)[[35]](#ref-35)。
+项目信任是需要区分、但最值得补的机制。需要信任决定的项目资源集合是源码常量给出的：`.pi/` 下的 `settings.json`、`mcp.json`、`extensions`、`skills`、`prompts`、`themes`、`SYSTEM.md`、`APPEND_SYSTEM.md`，以及当前目录到祖先的 `.agents/skills`（排除 `~/.agents/skills`）；裸的 `.pi` 目录不需要决定。决定顺序：命令行 `--approve/--no-approve` → 用户级/命令行扩展的 `project_trust` 事件（第一个返回 yes/no 的扩展拥有决定权）→ `trust.json` 里最近的已保存决定 → 全局 `defaultProjectTrust`（默认 `"ask"`）[[6]](#ref-6)[[35]](#ref-35)。
 
 两个关键边界。第一，项目信任是“资源加载”门，不是工具权限：拒绝信任会跳过 `.pi` 下受保护的设置与资源，但 AGENTS.md/CLAUDE.md 仍加载，信任之后工具权限不变[[6]](#ref-6)。第二，非交互模式下无法弹窗，`defaultProjectTrust` 为 `always` 才加载受保护的项目资源，`ask` 或 `never` 都跳过；自动化场景应显式 `--approve`/`--no-approve`[[6]](#ref-6)。
 
@@ -189,7 +192,7 @@ SDK 的默认路径比 CLI 短，也少一环：`createAgentSession()` 不带参
 
 另一个差异是内置扩展：codemode、tool_search、MCP 在 SDK 里不自动加载，需通过 `DefaultResourceLoader` 的 `extensionFactories` 显式加入，并调用 `session.bindExtensions()`（MCP 在 `session_start` 才连接）。文档对这一点的表述是“SDK sessions do not”[[11]](#ref-11)。
 
-安装与更新也有几个版本敏感的事实。官方安装脚本 `curl -fsSL https://pi.dev/install.sh | sh`（安装器“pins all dependencies”），或 `npm install -g --ignore-scripts @earendil-works/pi-coding-agent`（不钉传递依赖，要求 Node ≥ 22.19）；Nix 版用 `nix profile upgrade pi`，`pi update` 无法更新 Nix 安装；`pi update` 无目标即更新 Pi 本身[[2]](#ref-2)[[9]](#ref-9)。官方强调，正常的 npm 安装不需要依赖生命周期脚本——这条与 18.5.5 里“包安装未见 `--ignore-scripts`”是两回事，前者是 Pi 自身的安装方式，后者是 Pi 安装第三方 package 时用的命令。
+安装与更新也有几个版本敏感的事实。官方安装脚本 `curl -fsSL https://pi.dev/install.sh | sh`（安装器“pins all dependencies”），或 `npm install -g --ignore-scripts @earendil-works/pi-coding-agent`（不钉传递依赖，要求 Node ≥ 22.19）；Nix 版用 `nix profile upgrade pi`，`pi update` 无法更新 Nix 安装；`pi update` 无目标即更新 Pi 本身[[2]](#ref-2)[[9]](#ref-9)。官方强调，正常的 npm 安装不需要依赖生命周期脚本——这条与 19.5.5 里“包安装未见 `--ignore-scripts`”是两回事，前者是 Pi 自身的安装方式，后者是 Pi 安装第三方 package 时用的命令。
 
 SDK 的官方示例一共 14 个，覆盖了嵌入时的常见组合：minimal、custom-model、custom-prompt、skills、tools、extensions、context-files、prompt-templates、api-keys-and-oauth、settings、sessions、full-control、session-runtime、codemode-mcp[[11]](#ref-11)。其中三个最值得对照：`full-control` 里自实现的 `ResourceLoader` 对象需要提供 11 个成员（`getExtensions/getSkills/getPrompts/getThemes/getAgentsFiles/getSystemPrompt/getAppendSystemPrompt/extendResources/reload` 等），`ModelRuntime.create` 加 `setRuntimeApiKey` 注入运行时密钥，`SettingsManager.inMemory` 里可以直接关压缩或改重试次数；`tools` 示例给出只读会话（`tools:["read","grep","find","ls"]`，内存会话）；`sessions` 示例说明 `SessionManager` 是已定稿模型上下文的权威，恢复外部历史要构造包含这些条目的 manager，而不是给 `session.agent.state.messages` 赋值[[45]](#ref-45)。
 
@@ -210,7 +213,7 @@ SDK 的官方示例一共 14 个，覆盖了嵌入时的常见组合：minimal�
 | MCP 配置/连接失败 | 启动后一次性报告，不阻塞启动 | 文档 |
 | 非 TTY 下的项目信任 | 无覆盖/扩展决定/已存决定时，仅 `always` 加载受保护资源 | 文档 + 源码 |
 
-可以看出一个总的原则：**配置解析错误、扩展加载失败、无可用模型这三类“无法安全继续”的问题会让启动终止；资源层面的可选项失败（单个 settings 文件、models.json、MCP）则降级继续，并通过诊断或启动头告知**。这是“fail fast 与 fail soft 分界”的一个具体例子，也回答了 18.4.8 里“哪些失败算启动失败”的口径。
+可以看出一个总的原则：**配置解析错误、扩展加载失败、无可用模型这三类“无法安全继续”的问题会让启动终止；资源层面的可选项失败（单个 settings 文件、models.json、MCP）则降级继续，并通过诊断或启动头告知**。这是“fail fast 与 fail soft 分界”的一个具体例子，也回答了 19.4.8 里“哪些失败算启动失败”的口径。
 
 ### 19.2.5 首个请求之前：从 `prompt()` 到 `streamFn`
 
@@ -221,6 +224,8 @@ SDK 的官方示例一共 14 个，覆盖了嵌入时的常见组合：minimal�
 进入 `agent.prompt(messages)` 后，`runAgentLoop` 先 `declareToolChanges`（把“可执行工具集 − 转录里已声明的工具集”的差异写成 system 消息的 `toolsAdded/toolsRemoved`），依次发 `agent_start`、`turn_start`、user 消息的 `message_start/end`，再进入循环[[30]](#ref-30)。每个模型请求前，`prepareRequest` 把请求上下文替换为会话投影，再做虚拟模型路由与阈值检查；随后经过扩展的 `context`/`context_with_system` 变换、图片处理、消息归一化，最终到 `streamFn`——也就是 `modelRuntime.streamSimple(model, context, requestOptions)`，这是第一个真正发出的模型请求[[31]](#ref-31)。
 
 ## 19.3 执行：一次任务从输入走到交付
+
+执行部分关注三个内核契约：事件是否代表定稿事实，工具是否经过同一拦截路径，会话投影怎样决定下一次模型输入。小内核把这些过程保持为可组合机制，宿主则承担跨事件的任务身份和完成判断。例如一次 prompt 被接受后，重试和压缩还可能继续；只订阅第一个 agent_end 就关闭任务，会截断内核本来准备进行的恢复。通用循环与副作用状态以[第 15 章](../part3/03-agent-runtime.md#execution-loop)为主，本章只追踪 Pi 的对象和事件边界。
 
 ### 19.3.1 Agent Loop：双层的循环
 
@@ -238,11 +243,11 @@ steering 与 follow-up 是两个独立的队列，各自有模式 `"all"`（一�
 
 事件分两层。底层 `Agent` 事件：`agent_start`、`agent_end`、`turn_start`、`turn_end`、`message_start`、`message_update`（仅 assistant）、`message_end`、`tool_execution_start`、`tool_execution_update`、`tool_execution_end`。`AgentSession` 在其上加一层：`agent_end.willRetry`、`agent_settled`、`queue_update`、`compaction_start/end`、`entry_appended`、`session_info_changed`、`thinking_level_changed`、`auto_retry_*`、`summarization_retry_*`、`bash_execution_update`[[15]](#ref-15)[[30]](#ref-30)。
 
-两个语义区分特别重要。第一，`agent_end` 只表示**一个低层 run 结束**，后面仍可能有自动重试、溢出恢复、压缩后重试、steering、follow-up；`agent_settled` 才表示“Pi 不会再自动继续”，其 `aborted` 字段区分被取消与自然结束。官方对使用者的建议是：宿主需要知道“Pi 不会自动继续”时，看 `agent_settled`[[11]](#ref-11)。第二，没有独立的 `error`/`interrupt` 事件：失败体现在 assistant 消息的 `stopReason: "error"/"aborted"`、`auto_retry_*`、`compaction_end.errorMessage`，RPC 另有 `extension_error`[[15]](#ref-15)。另外，笔记检索确认 JSON/RPC 事件里**没有 run id** 字段，只有 session id、toolCallId[[15]](#ref-15)。
+两个语义区分特别重要。第一，`agent_end` 只表示**一个低层 run 结束**，后面仍可能有自动重试、溢出恢复、压缩后重试、steering、follow-up；`agent_settled` 才表示“Pi 不会再自动继续”，其 `aborted` 字段区分被取消与自然结束。官方对使用者的建议是：宿主需要知道“Pi 不会自动继续”时，看 `agent_settled`[[11]](#ref-11)。第二，没有独立的 `error`/`interrupt` 事件：失败体现在 assistant 消息的 `stopReason: "error"/"aborted"`、`auto_retry_*`、`compaction_end.errorMessage`，RPC 另有 `extension_error`[[15]](#ref-15)。另外，在所列固定来源中 JSON/RPC 事件里**没有 run id** 字段，只有 session id、toolCallId[[15]](#ref-15)。
 
 JSON/RPC 线路上的 `message_update` 只传增量，`message_end` 是权威最终消息；顶层 `usage` 是当前响应的最新累计用量[[15]](#ref-15)。
 
-一次简单问答的事件顺序（官方 JSONL 示例）是固定的：`agent_start` → `turn_start` → user 的 `message_start/end` → assistant 的 `message_start`（`stopReason:"pending"`）→ 若干 `message_update` → assistant 的 `message_end` → `turn_end` → `agent_end{messages,willRetry}` → `agent_settled{aborted}`。带工具的回合，在 assistant 的 `message_end` 之后依次是每个调用的 `tool_execution_start` → `tool_execution_update`* → `tool_execution_end`，随后每个 toolResult 的 `message_start/end`，再 `turn_end`[[15]](#ref-15)。`agent_end.willRetry` 为真时，后面还会跟着 `auto_retry_*`，所以读事件流时“见到 `agent_end` 就认为结束”是错的，要等 `agent_settled`（见 18.3.2 的第一点）[[11]](#ref-11)。
+一次简单问答的事件顺序（官方 JSONL 示例）是固定的：`agent_start` → `turn_start` → user 的 `message_start/end` → assistant 的 `message_start`（`stopReason:"pending"`）→ 若干 `message_update` → assistant 的 `message_end` → `turn_end` → `agent_end{messages,willRetry}` → `agent_settled{aborted}`。带工具的回合，在 assistant 的 `message_end` 之后依次是每个调用的 `tool_execution_start` → `tool_execution_update`* → `tool_execution_end`，随后每个 toolResult 的 `message_start/end`，再 `turn_end`[[15]](#ref-15)。`agent_end.willRetry` 为真时，后面还会跟着 `auto_retry_*`，所以读事件流时“见到 `agent_end` 就认为结束”是错的，要等 `agent_settled`（见 19.3.2 的第一点）[[11]](#ref-11)。
 
 ### 19.3.3 系统提示的构成
 
@@ -270,7 +275,7 @@ JSON/RPC 线路上的 `message_update` 只传增量，`message_end` 是权威最
 
 `tool_call` 处理器按扩展加载顺序调用，第一个返回 `{block:true}` 立即短路，**处理器抛错不捕获**——抛错沿 `prepareToolCall` 变成错误结果，即“失败即阻止”（fail-safe）；而 `tool_result` 处理器逐个 try/catch，出错只上报不影响结果[[38]](#ref-38)。官方对门类处理器的要求是：无法做出安全决定时应“fail closed”[[18]](#ref-18)。
 
-工具负载（active tools）的中途变化会写入转录里的 system 消息；对无法表达这种中途变更的 provider，Pi 会发送完整转录检查点，**可能使缓存前缀失效**。因此官方建议先注册全部工具、把可选工具保持非激活，再用 `setActiveTools()` 选择[[18]](#ref-18)。这条建议在 18.6 的缓存调优里会再次出现。
+工具负载（active tools）的中途变化会写入转录里的 system 消息；对无法表达这种中途变更的 provider，Pi 会发送完整转录检查点，**可能使缓存前缀失效**。因此官方建议先注册全部工具、把可选工具保持非激活，再用 `setActiveTools()` 选择[[18]](#ref-18)。这条建议在 19.6 的缓存调优里会再次出现。
 
 ### 19.3.6 上下文构造与压缩
 
@@ -284,7 +289,7 @@ JSON/RPC 线路上的 `message_update` 只传增量，`message_end` 是权威最
 
 Pi 的会话是树。三个操作各有含义：`/tree` 在**同一文件内**移动叶子（旧分支不删除）；`/fork` 从更早的 user 消息创建新 session（文件）；`/clone` 把活动分支复制成新 session[[5]](#ref-5)。树导航的算法是：收集“旧叶子→公共祖先”的条目作为待摘要内容 → 触发 `session_before_tree`（可取消、可给摘要）→ 可选用 LLM 生成 `BranchSummaryEntry` → 落到目标位置 → `_restoreToolsFromTranscript()` 恢复该分支记录的工具负载[[31]](#ref-31)。
 
-两个关键边界。第一，`context_edit` 与摘要是**分支相对**的——导航到编辑之前的位置会让被省略的原始内容重新可见；扩展的状态应在 `session_start` 里用 `getBranch()` 重建，不要遍历全部文件条目，否则会把已放弃的分支当成有效历史[[16]](#ref-16)。第二，**树浏览不会撤销已执行的副作用**：转录只是消息树，shell、网络、文件修改已经发生；官方文档没有对导航/fork 后外部状态做任何回滚承诺，内核层面也没有文件检查点/撤销（未找到）。官方只在示例扩展里给了一种做法：`git-checkpoint.ts` 每个 turn 前 `git stash create`，fork 时询问是否恢复代码[[5]](#ref-5)[[45]](#ref-45)。这与多数同类产品“文件快照 ≠ 外部副作用”的原则一致，但 Pi 连文件快照都不内置，全交给版本控制或扩展。
+两个关键边界。第一，`context_edit` 与摘要是**分支相对**的——导航到编辑之前的位置会让被省略的原始内容重新可见；扩展的状态应在 `session_start` 里用 `getBranch()` 重建，不要遍历全部文件条目，否则会把已放弃的分支当成有效历史[[16]](#ref-16)。第二，**树浏览不会撤销已执行的副作用**：转录只是消息树，shell、网络、文件修改已经发生；官方文档没有对导航/fork 后外部状态做任何回滚承诺，在本章检查的 AgentSession、SessionManager 与官方会话文档中未见内建文件检查点/撤销契约。官方只在示例扩展里给了一种做法：`git-checkpoint.ts` 每个 turn 前 `git stash create`，fork 时询问是否恢复代码[[5]](#ref-5)[[45]](#ref-45)。这与多数同类产品“文件快照 ≠ 外部副作用”的原则一致，本章所查的会话接口没有把文件快照纳入导航事务，工作区恢复由版本控制或扩展处理。
 
 ### 19.3.8 四种运行形态与 RPC 协议
 
@@ -292,14 +297,16 @@ Pi 的会话是树。三个操作各有含义：`/tree` 在**同一文件内**�
 
 RPC 协议有四点值得记录。第一，成帧是严格 JSONL，一条记录一个 JSON 对象并以 LF 结尾，**不能用 Node 的 `readline`**（它还会按 U+2028/U+2029 切分，而这两个字符可合法出现在 JSON 字符串里）；客户端必须持续读 stdout，否则管道写满会让 Pi 阻塞[[12]](#ref-12)。第二，每条命令可带字符串 `id`，响应复述；命令异步处理，应按 `id` 关联而非顺序关联[[12]](#ref-12)。第三，`prompt` 的响应只表示“已接受/已排队/已被处理”（`disposition = started/queued/handled`），**不表示模型工作已完成**，完成要等 `agent_settled`；订阅事件必须先于发 prompt[[12]](#ref-12)。第四，输入流 `end` 触发有序 shutdown：先 abort 再发 `session_shutdown` 再退出；SIGTERM/SIGHUP 同样走 shutdown，退出码 143/129[[13]](#ref-13)。
 
-命令面一共 33 条，可以分成几组：运行控制（prompt、steer、follow_up、abort、clear_queue、abort_retry、bash、abort_bash）、会话（new_session、get_state、get_entries、get_tree、get_messages、switch_session、fork、clone、set_session_name、compact、set_auto_compaction、set_auto_retry）、模型（set_model、cycle_model、get_available_models、set_thinking_level、cycle_thinking_level、get_available_thinking_levels）、队列（set_steering_mode、set_follow_up_mode）、观测（get_session_stats、get_last_assistant_text、export_html、get_fork_messages、get_commands）[[13]](#ref-13)。对嵌入方来说，这组命令把 18.3 里的所有机制（循环、排队、压缩、树、模型切换）都暴露成了可编程的接口。
+RPC 的命令按宿主责任分组：运行控制负责提交、引导与取消；会话操作负责分支和上下文；模型配置影响后续请求；观测接口提供用量与最终消息。宿主只需选择自己承担的控制面，不必把全部终端命令复制到客户端。完整命令表查固定提交的 RPC 文档；本章关注接受、完成与取消的语义。[[13]](#ref-13)
 
 RPC 下扩展也有 UI 通道：`ctx.mode === "rpc"` 且 `ctx.hasUI === true`，对话类 UI 请求（select/confirm/input/editor）由客户端响应，带 `timeout` 的由 Pi 侧到期自动按默认值解析，客户端不必自己计时；通知类（notify/setStatus/setTitle 等）不需要响应[[14]](#ref-14)。
 
 官方对两种嵌入方式的边界表是：SDK = 进程内、直接 TypeScript 方法与事件，适合需要完整 API 的 Node/Bun 宿主；RPC = 子进程、JSONL 命令/响应/事件，适合其他语言、隔离进程、IDE、自定义客户端。文档还特别注明，“隔离”的含义**仅限进程边界**，Pi 并不因此提供沙箱[[12]](#ref-12)。
 ## 19.4 异常：失败、中断与恢复
 
-Pi 的异常处理有两个特点：一是大量行为可以精确到源码行号；二是有很多“未找到”，这些“未找到”本身就是结论——它们划定了 Pi 不提供什么保证。
+Pi 的异常处理按本章固定提交的文件与符号定位。检索范围内未出现某项实现，不足以证明所有版本都不支持它；产品保证仍需与文档及所用发行版一起判断。
+
+对小内核而言，错误被转成观察不等于业务被恢复。一次 bash 超时可以形成工具失败消息，却不能证明子进程没有向外部服务写入；一次 aborted assistant 可以被过滤出下一请求，却不应抹掉宿主的对账责任。下文因此分别检查工具结果、进程停止、会话文件和退出状态，避免把一个层面的成功推出另一个层面的保证。
 
 ### 19.4.1 异常分类与证据现状
 
@@ -318,7 +325,6 @@ Pi 的异常处理有两个特点：一是大量行为可以精确到源码行�
 
 底层 `Agent.abort()` 只是触发当前 run 的 `AbortController`，这个 signal 同时传给 provider 请求与每个工具的 `execute`。provider 流被中止时，以 `stopReason:"aborted"` 的 assistant 消息结束（带已收到的部分内容与部分用量）；循环遇到 `error`/`aborted` 响应就发 `turn_end`、`agent_end` 并**直接返回**，不再执行该消息里的工具调用[[30]](#ref-30)[[40]](#ref-40)。
 
-工具阶段的中止分两种
 bash 的失败文案在源码里是穷举的，值得原文记下，因为它是“失败作为一等结果回送模型”的具体样本：非零退出码在输出后追加 “Command exited with code N”，被中止追加 “Command aborted”，超时追加 “Command timed out after N seconds”，无退出码追加 “Command terminated without an exit code”，被信号杀死的 shell 退出码按 `128+信号号` 报告，工作目录不存在直接报错 “Working directory does not exist: …”[[37]](#ref-37)。模型能拿到的不只是“失败”两个字，而是可以据此决定下一步的失败类别。
 
 工具阶段的中止分两种：串行批次在每个工具之后检查 `signal.aborted` 并 `break`（后面的调用既不发 `tool_execution_start` 也没有结果）；并行批次在 prepare 阶段遇到 abort 就停止登记后续调用，已登记但尚未开始的调用得到 “Operation aborted” 错误结果。因此转录末尾可能出现“有 tool call 无 tool result”的 assistant 消息，由 provider 层在下一次请求时补合成结果[[30]](#ref-30)。
@@ -327,9 +333,9 @@ bash 的失败文案在源码里是穷举的，值得原文记下，因为它是
 
 `AgentSession.abort()` 更高一层：取消重试等待、压缩、分支摘要，调用 `agent.abort()`，**等待会话回到 idle**，最后在 `finally` 里发 `agent_settled{aborted:true}`[[31]](#ref-31)。被中止的 assistant 消息会持久化到会话文件（含部分内容），但下一次请求前 provider 层会整体跳过 `error`/`aborted` 的 assistant 消息——它留在文件里，不会重放给模型[[40]](#ref-40)。
 
-中止停不了什么？两个“未找到”要写清楚：官方文档没有“取消后无遗留子进程”的保证——被模型启动、又用 `setsid`/`nohup`/双 fork 脱离进程组的后台进程，不在 `kill(-pid)` 的覆盖范围内；print 模式只对 SIGTERM/SIGHUP 注册了清理，SIGINT 走 Node 默认退出，此时 detached 子进程是否被清理没有保证（系统推导，低置信度）[[42]](#ref-42)。同样，`/tree`、`/fork` 后外部副作用不随会话回滚（见 18.3.7）。
+中止停不了什么？两个“未找到”要写清楚：官方文档没有“取消后无遗留子进程”的保证——被模型启动、又用 `setsid`/`nohup`/双 fork 脱离进程组的后台进程，不在 `kill(-pid)` 的覆盖范围内；print 模式只对 SIGTERM/SIGHUP 注册了清理，SIGINT 走 Node 默认退出，此时 detached 子进程是否被清理没有保证（系统推导，低置信度）[[42]](#ref-42)。同样，`/tree`、`/fork` 后外部副作用不随会话回滚（见 19.3.7）。
 
-进程清理本身是尽力而为但结构清晰的：POSIX 下 `spawn` 用 `detached:true` 让命令自成进程组，中止、超时、父进程收到 SIGTERM/SIGHUP 时对进程组 `kill(-pid,"SIGKILL")`，失败回退单进程；Windows 用 `taskkill /F /T /PID`；所有活动的 detached 子进程登记在一个集合里，三种模式的 SIGTERM/SIGHUP 处理中统一清理。主分支（未发布）在 macOS 上先对进程组 `SIGSTOP` 再 `SIGKILL`，官方注释称这是“best-effort, not an atomic freeze”，这个分支不在 1.4.0 里[[42]](#ref-42)。
+进程清理本身是尽力而为但结构清晰的：POSIX 下 `spawn` 用 `detached:true` 让命令自成进程组，中止、超时、父进程收到 SIGTERM/SIGHUP 时对进程组 `kill(-pid,"SIGKILL")`，失败回退单进程；Windows 用 `taskkill /F /T /PID`；所有活动的 detached 子进程登记在一个集合里，三种模式的 SIGTERM/SIGHUP 处理中统一清理。本章不把未发布分支的清理变化并入所列发行版行为[[42]](#ref-42)。
 
 ### 19.4.3 模型请求失败：两层重试
 
@@ -361,25 +367,25 @@ Pi 的重试分两层，默认值不同，这是最容易配置错的地方。
 
 恢复的语义有一个容易踩的细节：加载后叶子 = 文件中**最后一个条目**；`branch(id)` 只改内存里的叶子指针，**不写入文件**（下一次 append 才形成新分支）。所以在 `/tree` 里切到旧分支后若没有新写入就退出，下次 `--continue`/`/resume` 会回到文件里最后追加的那条路径，而不是退出时所在的分支。`createBranchedSession(leafId)` 可把根到某叶子的单条路径抽成新会话文件[[32]](#ref-32)。
 
-崩溃点分析（系统推导）：流式中的 assistant 消息在 `message_end` 前不落盘，崩溃会丢失该条；工具副作用发生在结果落盘之前，崩溃可能留下“副作用已发生、转录里无记录”；恢复时若末尾是带 tool call 的 assistant 消息而没有 tool result，provider 层会合成 “No result provided”，模型会看到“这些调用没有结果”。**Pi 没有任何代码在恢复时重放或续跑未完成的工具调用**（未找到）[[31]](#ref-31)[[40]](#ref-40)。崩溃本身会记录到 `<agent-dir>/crashes.json`（最多 5 条，超过 7 天不再提示），下次启动提示 “Pi crashed on … Run /bug to report it”[[43]](#ref-43)。
+崩溃点分析（系统推导）：流式中的 assistant 消息在 `message_end` 前不落盘，崩溃会丢失该条；工具副作用发生在结果落盘之前，崩溃可能留下“副作用已发生、转录里无记录”；恢复时若末尾是带 tool call 的 assistant 消息而没有 tool result，provider 层会合成 “No result provided”，模型会看到“这些调用没有结果”。本章核查的 AgentSession 与 provider 恢复路径未发现自动重放未完成工具的契约，不能据此推断任意扩展的行为[[31]](#ref-31)[[40]](#ref-40)。崩溃本身会记录到 `<agent-dir>/crashes.json`（最多 5 条，超过 7 天不再提示），下次启动提示 “Pi crashed on … Run /bug to report it”[[43]](#ref-43)。
 
 ### 19.4.6 扩展抛错：fail-safe 与它的边界
 
 扩展处理器抛错的语义按事件类型不同。总则是“上报并尽量继续，`tool_call` 失败则阻止工具”。细节：`tool_call` 抛错→工具被阻止（fail-safe）；`tool_result` 逐个 try/catch→上报后继续；`context`/`context_with_system` 逐个 try/catch→上报并沿用上一版消息；`input`、`before_agent_start` 同样上报后继续；`user_bash` 处理器失败→**阻止命令**而不是回落到本地执行；`project_trust` 处理器出错→记为 warning，决定权回落到已存决定/默认值[[18]](#ref-18)[[38]](#ref-38)。
 
-错误上报通道是 `emitError`，把 `{extensionPath, event, error, stack}` 派发出去：print/json 打印到 stderr，RPC 输出 `{"type":"extension_error", …}` 记录[[15]](#ref-15)[[38]](#ref-38)。两个“未找到”要写清：**扩展处理器没有超时**（runner 里检索 timeout 无命中），官方只提醒流式事件处理器里不要做慢工作；`ctx` 在 reload/会话替换后失效，继续用旧 `ctx` 会抛 stale 错误[[18]](#ref-18)。官方的写作规范里还有一条对异常直接相关：工厂函数里不要启动进程、socket、监听器或定时器，长驻资源应在 `session_start` 启动、在**幂等**的 `session_shutdown` 里释放，因为取消、reload、会话替换和进程退出可能汇聚到同一条路径[[18]](#ref-18)。
+错误上报通道是 `emitError`，把 `{extensionPath, event, error, stack}` 派发出去：print/json 打印到 stderr，RPC 输出 `{"type":"extension_error", …}` 记录[[15]](#ref-15)[[38]](#ref-38)。两个“未找到”要写清：在所查 ExtensionRunner 事件分派路径中未见统一超时装配；这不证明其他宿主不能施加期限，官方只提醒流式事件处理器里不要做慢工作；`ctx` 在 reload/会话替换后失效，继续用旧 `ctx` 会抛 stale 错误[[18]](#ref-18)。官方的写作规范里还有一条对异常直接相关：工厂函数里不要启动进程、socket、监听器或定时器，长驻资源应在 `session_start` 启动、在**幂等**的 `session_shutdown` 里释放，因为取消、reload、会话替换和进程退出可能汇聚到同一条路径[[18]](#ref-18)。
 
-### 19.4.7 各模式的错误通道与退出码
+### 19.4.7 MCP 接入的失败边界
 
-MCP 的失败语义要单独说，因为它和内置工具不同：HTTP 瞬态错误（408/429/5xx）会重试 2 次，但**工具调用本身不重试**——官方给出的理由是服务器可能已经执行过该调用；每个请求的超时默认 60 秒，有进度通知时重置[[24]](#ref-24)。这条“调用不重试”与 18.4.3 里“副作用要先判断是否已执行”是同一个原则在 MCP 层的体现。
+MCP 的失败语义要单独说，因为它和内置工具不同：HTTP 瞬态错误（408/429/5xx）会重试 2 次，但**工具调用本身不重试**——官方给出的理由是服务器可能已经执行过该调用；每个请求的超时默认 60 秒，有进度通知时重置[[24]](#ref-24)。这条“调用不重试”与 19.4.3 里“副作用要先判断是否已执行”是同一个原则在 MCP 层的体现。
 
-### 19.4.7 各模式的错误通道与退出码
+### 19.4.8 各模式的错误通道与退出码
 
 RPC 的错误分三类：命令级失败（`{"type":"response",...,"success":false,"error":…}`）；非法 JSON（`command:"parse"`、无 `id` 的失败响应）；接受后的失败（provider 错误、中止）只出现在消息与事件流里，**不会**为同一请求 id 再发第二个 response[[12]](#ref-12)。
 
 退出码语义在三种非交互模式里不一致，这是脚本化的一个坑：print 模式最终 assistant 响应为 `error`/`aborted` 时 stderr 打印错误并退出非 0，`length` 也退出非 0；json 模式失败或中止的响应出现在事件流里但**不会**使退出码非 0，只有调用抛错才非 0，成败要读事件[[10]](#ref-10)[[41]](#ref-41)。`pi auth check` 以 0/1/2 表示 ready/not_ready/invalid；`pi mcp list` 有无效配置或未连接的启用服务器时退出 1[[9]](#ref-9)。
 
-### 19.4.8 未找到与待核验
+### 19.4.9 静态分析范围与尚未承诺的行为
 
 下面这些，在已读范围内没有找到，或只有间接证据。写出来是为了防止读者把空白当成默认行为：
 
@@ -402,7 +408,7 @@ RPC 的错误分三类：命令级失败（`{"type":"response",...,"success":fal
 
 用好 Pi 的第一步是接受它的默认：Pi 不逐次询问，模型提出的 `read/bash/edit/write`（含 `rm`、网络访问）在交互、print、json、rpc 四种模式下都直接执行，用 Pi 进程的 OS 权限[[6]](#ref-6)。官方安全页的三句话必须放在一起读：“把模型生成的命令与代码当作不可信”“安全来自限制 Pi 能访问和影响的文件、凭据、进程与网络服务”“看对话记录、用项目信任、审阅改动都不构成安全边界”[[6]](#ref-6)。所以 Pi 的使用本质是：**在运行环境层面为它造边界**，而不是指望它在运行时问你。
 
-官方给了三种运行方式的保护范围：直接运行（受限于 OS 用户权限，专用账户可收窄但仍共享 OS 与网络）；把整个 Pi 放进容器/虚拟机/沙箱（官方称“通常最强的实用选项”）；Pi 在外、只把内置工具放进隔离环境（更窄，Pi 本身与其他扩展仍在边界之外）[[6]](#ref-6)。无论哪种，官方建议只提供任务所需的文件与服务、凭据尽量放在环境之外或用窄权限短期凭据、命令不需要网络时限制网络[[6]](#ref-6)。这是官方建议，也是 18.5.6 里扩展层做“逐次确认”的语境：那个确认发生在工具层，不是系统边界。
+官方给了三种运行方式的保护范围：直接运行（受限于 OS 用户权限，专用账户可收窄但仍共享 OS 与网络）；把整个 Pi 放进容器/虚拟机/沙箱（官方称“通常最强的实用选项”）；Pi 在外、只把内置工具放进隔离环境（更窄，Pi 本身与其他扩展仍在边界之外）[[6]](#ref-6)。无论哪种，官方建议只提供任务所需的文件与服务、凭据尽量放在环境之外或用窄权限短期凭据、命令不需要网络时限制网络[[6]](#ref-6)。这是官方建议，也是 19.5.6 里扩展层做“逐次确认”的语境：那个确认发生在工具层，不是系统边界。
 
 ### 19.5.2 项目信任：先决定，再自动
 
@@ -412,7 +418,7 @@ RPC 的错误分三类：命令级失败（`{"type":"response",...,"success":fal
 
 ### 19.5.3 上下文文件与 SYSTEM.md 怎么写
 
-官方对上下文文件只说明加载规则，没有给“该写什么”的写作指南（未找到）：上下文文件在它所在目录及以下运行时生效，`AGENTS.override.md` 只替换同目录的 AGENTS.md/CLAUDE.md，不抑制代理目录或其他目录的上下文文件[[7]](#ref-7)。所以这里的内容是本书建议：上下文文件放模型猜不到、且从代码里读不出来的事实（构建命令、测试约定、风格、陷阱），因为它们每次请求都进上下文（见 18.6.2），不该放能被代码推断的信息；多个祖先目录的文件是累加的，写之前要想清楚每一层承担什么。
+官方对上下文文件只说明加载规则，没有给“该写什么”的写作指南（限本章所列文档检索范围）：上下文文件在它所在目录及以下运行时生效，`AGENTS.override.md` 只替换同目录的 AGENTS.md/CLAUDE.md，不抑制代理目录或其他目录的上下文文件[[7]](#ref-7)。所以这里的内容是本书建议：上下文文件放模型猜不到、且从代码里读不出来的事实（构建命令、测试约定、风格、陷阱），因为它们每次请求都进上下文（见 19.6.2），不该放能被代码推断的信息；多个祖先目录的文件是累加的，写之前要想清楚每一层承担什么。
 
 `SYSTEM.md` 替换的是默认前缀（preamble/tools/rules/docs），`addendum`、`project_context`、`skills`、`cwd` 段仍会追加[[33]](#ref-33)。官方给过一条选择原则——“从满足需求的最弱机制开始”：持久指令用 AGENTS.md，任务专用指令与支持文件用 Skill，复用提示用模板，可执行工具/命令/事件处理用 Extension，分发多个资源用 Package[[2]](#ref-2)。本书据此补一条：想改角色/语气用 `APPEND_SYSTEM.md` 或 Skill，想整体换掉 Pi 的默认行为准则时才动 `SYSTEM.md`，因为它会连同 tools/rules/docs 一起被替换。
 
@@ -430,18 +436,17 @@ Packages 用 npm/git/本地来源打包 extensions+skills+prompts+themes，`pack
 
 Pi 没有逐次审批，确认与拦截只能由扩展的 `tool_call` 钩子 + `ctx.ui.confirm/select` 实现。官方示例给了四个起点：`permission-gate.ts`（正则匹配 `rm -rf`、`sudo`、`chmod 777`，无 UI 时直接拦截）、`protected-paths.ts`（对 `write`/`edit` 命中 `.env`、`.git/`、`node_modules/` 的路径直接 `block`）、`confirm-destructive.ts`（清空/切换会话前确认）、`timed-confirm.ts`[[45]](#ref-45)。官方扩展文档里的一个正式要求是：门类处理器无法做出安全决定时应“fail closed”，而 `tool_call` 处理器抛错本身就是 fail-safe（错误会变成工具的失败结果）[[18]](#ref-18)[[38]](#ref-38)。
 
-OS 级的隔离另有官方示例 `sandbox`
-还有几个示例扩展体现了可迁移的工程模式：`git-checkpoint.ts` 每个 turn 前 `git stash create`，`/fork` 时询问是否恢复代码，用版本控制补上“会话树不回滚工作区”的缺口；`auto-commit-on-exit.ts` 在 `session_shutdown` 里做收尾提交；`ssh.ts` 复用工具的 operations 接口把内置工具路由到另一台机器[[45]](#ref-45)。这三个例子的共同点是：都借助了 18.1.6 提到的“工具 operations 接口可注入”与“shutdown 钩子幂等”这两个内核边界，而不是另起一套执行路径。
+还有几个示例扩展体现了可迁移的工程模式：`git-checkpoint.ts` 每个 turn 前 `git stash create`，`/fork` 时询问是否恢复代码，用版本控制补上“会话树不回滚工作区”的缺口；`auto-commit-on-exit.ts` 在 `session_shutdown` 里做收尾提交；`ssh.ts` 复用工具的 operations 接口把内置工具路由到另一台机器[[45]](#ref-45)。这三个例子的共同点是：都借助了 19.1.6 提到的“工具 operations 接口可注入”与“shutdown 钩子幂等”这两个内核边界，而不是另起一套执行路径。
 
-OS 级的隔离另有官方示例 `sandbox`：覆盖内置 `bash`，用 `@anthropic-ai/sandbox-runtime`（macOS `sandbox-exec`、Linux `bubblewrap`）施加文件系统与网络限制，配置来自 `~/.pi/agent/extensions/sandbox.json` 与 `.pi/sandbox.json`[[45]](#ref-45)。这和 18.5.1 的“第三种运行方式”（工具放进隔离环境）是同一个思路，但边界更细：文件系统 denyRead/allowWrite/denyWrite、网络 allowedDomains。官方容器化文档里有一条专门的警告：不要在沙箱里运行 `/login`，那会把真实凭据写进沙箱[[26]](#ref-26)。
+OS 级的隔离另有官方示例 `sandbox`：覆盖内置 `bash`，用 `@anthropic-ai/sandbox-runtime`（macOS `sandbox-exec`、Linux `bubblewrap`）施加文件系统与网络限制，配置来自 `~/.pi/agent/extensions/sandbox.json` 与 `.pi/sandbox.json`[[45]](#ref-45)。这和 19.5.1 的“第三种运行方式”（工具放进隔离环境）是同一个思路，但边界更细：文件系统 denyRead/allowWrite/denyWrite、网络 allowedDomains。官方容器化文档里有一条专门的警告：不要在沙箱里运行 `/login`，那会把真实凭据写进沙箱[[26]](#ref-26)。
 
 本书建议把放权做成分层：第一层是运行环境（容器/专用账户/网络限制），第二层是项目信任，第三层是扩展层的确认与路径保护。三层各管各的，不要指望任何一层单独承担全部。
 
-日常交互有几个功能值得单独记下：`@` 搜索并加文件（Tab 补全路径，可粘贴图片），`!cmd` 把命令输出带入对话，`!!cmd` 运行但不送入模型（`excludeFromContext`），`Ctrl+O` 展开/折叠工具输出，`Ctrl+T` 显示/隐藏思考块；页脚显示当前目录、会话、模型、上下文用量与累计用量/费用，启动头列出已加载的指令与资源[[4]](#ref-4)。`/session` 显示会话文件、ID、消息数、token 用量与费用；`--no-session` 是一次性会话（不可恢复）[[5]](#ref-5)。这些是功能说明，不是建议，但它们决定了使用者能“看见什么”。
+观察入口只保留与验收直接相关的三项：工具输出可展开检查，页脚提供上下文与累计用量，`/session` 给出会话文件和费用；完整键位查交互文档。一次性 `--no-session` 会话不能恢复，不能把这种运行模式用于需要后续追责或恢复的持久任务。[[4]](#ref-4)[[5]](#ref-5)
 
 ### 19.5.7 会话、诊断与工作节奏
 
-会话的日常操作是功能说明，但有几个值得单独说的边界。`/tree`、`/fork`、`/clone` 的选择规则官方写得清楚：相关备选留在同一文件用 `/tree`，备选应成为独立工作用 `/fork`，需要当前状态的独立副本用 `/clone`[[5]](#ref-5)。本书补充两条从机制推出的建议：树导航不撤销外部副作用（18.3.7），所以“回退到一个旧分支”不等于“回退工作区”，代码回退要靠版本控制或 `git-checkpoint.ts` 这类扩展[[45]](#ref-45)；会话文件里最后追加的条目决定下次 `--continue` 恢复到哪里，`/tree` 切走后如果没有新写入就退出，下次会回到最后写入的那条路径（18.4.5）[[32]](#ref-32)。
+会话的日常操作是功能说明，但有几个值得单独说的边界。`/tree`、`/fork`、`/clone` 的选择规则官方写得清楚：相关备选留在同一文件用 `/tree`，备选应成为独立工作用 `/fork`，需要当前状态的独立副本用 `/clone`[[5]](#ref-5)。本书补充两条从机制推出的建议：树导航不撤销外部副作用（19.3.7），所以“回退到一个旧分支”不等于“回退工作区”，代码回退要靠版本控制或 `git-checkpoint.ts` 这类扩展[[45]](#ref-45)；会话文件里最后追加的条目决定下次 `--continue` 恢复到哪里，`/tree` 切走后如果没有新写入就退出，下次会回到最后写入的那条路径（19.4.5）[[32]](#ref-32)。
 
 诊断与分享的边界也要注意：`/debug` 把渲染行与会话消息写进 `pi-debug.log`，`/bug` 生成可含会话文本或摘要的报告，`/share` 上传会话——官方都提醒分享前要审阅，因为会话可能包含提示、工具参数、命令输出、文件内容与暴露过的凭据[[6]](#ref-6)[[4]](#ref-4)。这条对任何 Agent 产品都成立，Pi 因为默认不设边界而尤其如此。
 
@@ -457,15 +462,15 @@ SDK 嵌入时，宿主是边界的所有者。官方示例给出了最小形态�
 
 | 现象 | 常见原因 | 对策 | 依据 |
 | --- | --- | --- | --- |
-| 项目 `.pi` 设置没生效 | 项目未受信任，或非交互模式下未 `--approve` | 显式 `--approve`，或 `/trust` 保存决定 | 18.2.2 |
+| 项目 `.pi` 设置没生效 | 项目未受信任，或非交互模式下未 `--approve` | 显式 `--approve`，或 `/trust` 保存决定 | 19.2.2 |
 | 加了 Skill 但模型从不读它 | description 缺“何时适用”，或模型漏加载 | 重写 description；需要强制时用 `/skill:name` | 官方建议 |
 | 改完设置/指令不生效 | 未 `/reload` | 改完 `/reload` | 官方建议 |
-| `/tree` 切走退出后，`--continue` 回到旧分支 | `branch()` 不落盘，叶子=文件最后条目 | 切走后要有新写入，或用 `/clone` 导出 | 18.4.5 |
+| `/tree` 切走退出后，`--continue` 回到旧分支 | `branch()` 不落盘，叶子=文件最后条目 | 切走后要有新写入，或用 `/clone` 导出 | 19.4.5 |
 | 无人值守脚本里工具直接执行了危险命令 | Pi 不逐次询问 | 容器/专用账户 + 扩展层拦截（permission-gate 等） | 官方建议 |
-| print 模式退出码是 0 但任务失败了 | print 与 json 的退出码语义不同，json 失败不置非 0 | 脚本里读事件流判断，别只看退出码 | 18.4.7 |
+| JSON 模式退出码是 0 但任务失败了 | JSON 失败不能仅靠进程退出码识别，应读取事件语义 | 脚本里读事件流判断，别只看退出码 | 19.4.7 |
 | 压缩反复失败 | 摘要请求用的模型不可用 | 修好 provider 再 `/compact` | 官方建议 |
-| 启动报 “Failed to load extension” | 某扩展抛错 | 修扩展，或 `pi -ne` 先不带扩展启动 | 18.2.4 |
-| 上下文很快就满 | 上下文文件太多 / Skill 描述太多 / 工具声明太多 | 精简上下文文件、`disable-model-invocation`、缩小工具集 | 18.6.2 |
+| 启动报 “Failed to load extension” | 某扩展抛错 | 修扩展，或 `pi -ne` 先不带扩展启动 | 19.2.4 |
+| 上下文很快就满 | 上下文文件太多 / Skill 描述太多 / 工具声明太多 | 精简上下文文件、`disable-model-invocation`、缩小工具集 | 19.6.2 |
 
 ### 19.5.10 案例：在受信项目里修一个失败的测试
 
@@ -473,22 +478,22 @@ SDK 嵌入时，宿主是边界的所有者。官方示例给出了最小形态�
 
 | 阶段 | 做法 | 依据 |
 | --- | --- | --- |
-| 准备与信任 | 在项目目录里启动；交互式下对项目信任弹窗选决定，非交互式（CI/脚本）显式 `--approve`，决定写进 `~/.pi/agent/trust.json` | 18.2.2 |
-| 交代任务 | 写清症状、大致位置和完成条件：“先写一个能复现问题的失败测试，修复后这个测试与既有测试都通过；不要改公共接口。”完成条件是测试通过，而不是“修好” | 本书建议；18.5 开头 |
-| 执行 | 默认工具 `read/bash/edit/write` 直接执行；改文件走 `edit`（每处 `oldText` 唯一匹配），跑测试走 `bash` 并看退出码 | 18.1.6、18.4.2 |
-| 边界 | Pi 不逐次询问，所以这次运行放在容器或专用目录里，改动只在项目目录内；若要危险命令拦截，挂 `permission-gate` 扩展 | 18.5.1、18.5.6 |
-| 验证 | 要求模型运行测试命令并出示退出码与输出，而不是“测试通过了”这句话；审查 `git diff` | 18.4.2（bash 退出码是失败类别） |
-| 收尾 | `/session` 看用量；下一个不相关的任务开新会话，需要试另一条路用 `/fork`，不污染当前会话 | 18.5.7 |
+| 准备与信任 | 在项目目录里启动；交互式下对项目信任弹窗选决定，非交互式（CI/脚本）显式 `--approve`，决定写进 `~/.pi/agent/trust.json` | 19.2.2 |
+| 交代任务 | 写清症状、大致位置和完成条件：“先写一个能复现问题的失败测试，修复后这个测试与既有测试都通过；不要改公共接口。”完成条件是测试通过，而不是“修好” | 本书建议；19.5 开头 |
+| 执行 | 默认工具 `read/bash/edit/write` 直接执行；改文件走 `edit`（每处 `oldText` 唯一匹配），跑测试走 `bash` 并看退出码 | 19.1.6、19.4.2 |
+| 边界 | Pi 不逐次询问，所以这次运行放在容器或专用目录里，改动只在项目目录内；若要危险命令拦截，挂 `permission-gate` 扩展 | 19.5.1、19.5.6 |
+| 验证 | 要求模型运行测试命令并出示退出码与输出，而不是“测试通过了”这句话；审查 `git diff` | 19.4.2（bash 退出码是失败类别） |
+| 收尾 | `/session` 看用量；下一个不相关的任务开新会话，需要试另一条路用 `/fork`，不污染当前会话 | 19.5.7 |
 
 这个案例里没有哪一步依赖更聪明的模型。每一步改善的都是运行时拿到的输入和边界：受信决定决定了哪些项目资源被加载，完成条件让“完成”可以被 `bash` 的退出码检验，容器/专用目录和扩展补上了 Pi 不内置的隔离，`/session` 让成本可核对。这正是 Pi 式使用的特征：内核只负责把机制跑起来，边界和验证是使用者自己搭的。
 
 ## 19.6 调优：控制上下文、成本与质量
 
-Pi 有完整的旋钮和默认值，但**没有任何官方实测数据**（系统提示 token 数、不同思考档位的成本/质量、压缩前后效果），官方也没有调优方法论。所以这一部分只写“旋钮与机制”，不写“调到多少好”；所有数字都是固定提交里的默认值，不是推荐值。
+本章核查的固定文档提供参数和默认值，未提供能直接用于当前任务的成本/质量对照实验；厂商自报的特定 token 算例也不能代替本地负载测量。所以这一部分只写“旋钮与机制”，不写“调到多少好”；所有数字都是固定提交里的默认值，不是推荐值。
 
 ### 19.6.1 度量：先看字段，再看口径
 
-调优之前要能读数据。事件流和会话文件是两块富矿：`message_update.usage` 是流式累计用量，`message_end` 带权威最终 `usage` 和 `stopReason`，`tool_execution_end.durationMs` 是工具耗时，`compaction_*` 与 `auto_retry_*` 记录自动动作；RPC 的 `get_session_stats` 返回 `tokens{input,output,cacheRead,cacheWrite,total}`、`cost`、`contextUsage{tokens,contextWindow,percent}`[[15]](#ref-15)[[13]](#ref-13)。会话文件里每条 assistant 消息都有 `usage`（含 `cost`）、`provider`、`model`、`thinkingLevel`，压缩条目有 `tokensBefore`[[16]](#ref-16)。
+调优之前要能读数据。事件流与会话文件提供不同时间尺度的观测：`message_update.usage` 是流式累计用量，`message_end` 带权威最终 `usage` 和 `stopReason`，`tool_execution_end.durationMs` 是工具耗时，`compaction_*` 与 `auto_retry_*` 记录自动动作；RPC 的 `get_session_stats` 返回 `tokens{input,output,cacheRead,cacheWrite,total}`、`cost`、`contextUsage{tokens,contextWindow,percent}`[[15]](#ref-15)[[13]](#ref-13)。会话文件里每条 assistant 消息都有 `usage`（含 `cost`）、`provider`、`model`、`thinkingLevel`，压缩条目有 `tokensBefore`[[16]](#ref-16)。
 
 口径上有两个要点。第一，`tokens` 和 `cost` 覆盖整个会话文件（含已被压缩掉的历史、工具自报的用量、压缩与分支摘要生成、缓存预热的 `usage` 条目），所以反映真实计费总量，而不是当前上下文的大小[[13]](#ref-13)。第二，`contextUsage.tokens/percent` 在压缩刚结束、尚无新响应时为 `null`[[17]](#ref-17)。分清楚“会话累计”与“当前上下文”两个口径，是避免误判的第一步（本书建议）。
 
@@ -500,7 +505,7 @@ Pi 有完整的旋钮和默认值，但**没有任何官方实测数据**（系�
 
 增长开销靠工具输出预算控制：`read`/`bash` 2000 行/50 KB、`grep` 100 条/单行 500 字符、`find` 1000 条、`ls` 500 条，压缩时工具结果再截到 2000 字符[[37]](#ref-37)[[17]](#ref-17)。codemode 是另一个降声明占用的手段：嵌套工具调用不进模型上下文，只有脚本输出进入；官方 1.0.0 changelog 自报“默认工具加 codemode 时，一个 GPT-5.6 请求从约 5,300 缩到约 3,300 token”——这是官方自报数字、模型与版本敏感，只能当量级参考，不能当基准[[25]](#ref-25)[[44]](#ref-44)。
 
-压缩参数是 `reserveTokens`（默认 16384，决定何时开始）和 `keepRecentTokens`（默认 20000，不摘要的最近 token）；触发线是 `contextWindow − reserveTokens`，所以窗口越大、同一 `reserveTokens` 下触发越晚。官方只给了“按模型覆盖”的机制和一个 1M 窗口配 `reserveTokens:400000` 的示例，**没有给推荐值**（未找到）[[8]](#ref-8)[[17]](#ref-17)。摘要默认用当前会话模型，内置设置里没有“摘要专用模型”，想换更便宜的模型要用扩展 `session_before_compact`（官方示例 `custom-compaction.ts`）[[17]](#ref-17)。
+压缩参数是 `reserveTokens`（默认 16384，决定何时开始）和 `keepRecentTokens`（默认 20000，不摘要的最近 token）；触发线是 `contextWindow − reserveTokens`，所以窗口越大、同一 `reserveTokens` 下触发越晚。官方只给了“按模型覆盖”的机制和一个 1M 窗口配 `reserveTokens:400000` 的示例，**没有给推荐值**（限本章所列文档检索范围）[[8]](#ref-8)[[17]](#ref-17)。摘要默认用当前会话模型，内置设置里没有“摘要专用模型”，想换更便宜的模型要用扩展 `session_before_compact`（官方示例 `custom-compaction.ts`）[[17]](#ref-17)。
 
 ### 19.6.3 模型与思考强度
 
@@ -508,13 +513,13 @@ Pi 有完整的旋钮和默认值，但**没有任何官方实测数据**（系�
 
 交互式里模型切换的入口是 `/model`（`Ctrl+L`）选择、`Ctrl+S` 存为新会话默认、`Ctrl+P` 在“范围模型”里循环；范围由 `--models`、`enabledModels` 或 `/scoped-models` 决定，这样可以把日常可用的模型圈在一个小子集里，避免 Ctrl+P 遍历全部[[22]](#ref-22)[[9]](#ref-9)。
 
-一个与压缩判断相关的细节：压缩检查会跳过“来自另一个模型的溢出错误”，避免从小窗口模型切到大窗口模型后用旧错误触发压缩；虚拟模型按路由后模型的限制判断压缩[[31]](#ref-31)。切换模型对提示缓存的影响，官方没有直接陈述（未找到）；缓存预热器明确“只预热选中模型的请求”[[31]](#ref-31)。
+一个与压缩判断相关的细节：压缩检查会跳过“来自另一个模型的溢出错误”，避免从小窗口模型切到大窗口模型后用旧错误触发压缩；虚拟模型按路由后模型的限制判断压缩[[31]](#ref-31)。切换模型对提示缓存的影响，官方没有直接陈述（限本章所列文档检索范围）；缓存预热器明确“只预热选中模型的请求”[[31]](#ref-31)。
 
 ### 19.6.4 缓存与成本
 
 Pi 的缓存预热是默认开启的（`cacheWarming` 默认 `"streaming"`）：在运行期间定时重放最近的请求以刷新 provider 提示缓存，仅当模型声明了缓存寿命且 Pi 估计避免的缓存未命中成本 ≥ $0.05 才发送，刷新点取 TTL 的 90% 且至少留 10 秒余量；重放请求限制 1 个输出 token，用量记为 `usage` 条目（`kind:"cache_warm"`）计入会话总计但不进上下文[[8]](#ref-8)[[39]](#ref-39)。**这意味着默认配置会产生额外的真实请求与费用**——官方说明了“只在预计划算时发送”，但使用者应当知道这条默认行为（本书建议：`cacheWarming:"off"` 可以关掉）。
 
-缓存的失效因素有四处：工具负载中途变化且 provider 无法表达时发完整检查点、压缩改写前缀、空闲超过 TTL（源码里 `CACHE_TTL_MS` 是 5 分钟，注释“Anthropic's default cache TTL is 5 minutes”）、切换模型[[39]](#ref-39)。这解释了 18.3.5 的那条官方建议：先注册全部工具、可选工具保持非激活，用 `setActiveTools()` 选择，避免缓存失效。`showCacheMissNotices`（默认 false）可以打开，显示显著缓存未命中、成功预热等通知；`cache-stats.ts` 的算法把低于 1024 token 的前缀差异当作断点粒度噪声[[39]](#ref-39)[[8]](#ref-8)。
+缓存的失效因素有四处：工具负载中途变化且 provider 无法表达时发完整检查点、压缩改写前缀、空闲超过 TTL（源码里 `CACHE_TTL_MS` 是 5 分钟，注释“Anthropic's default cache TTL is 5 minutes”）、切换模型[[39]](#ref-39)。这解释了 19.3.5 的那条官方建议：先注册全部工具、可选工具保持非激活，用 `setActiveTools()` 选择，避免缓存失效。`showCacheMissNotices`（默认 false）可以打开，显示显著缓存未命中、成功预热等通知；`cache-stats.ts` 的算法把低于 1024 token 的前缀差异当作断点粒度噪声[[39]](#ref-39)[[8]](#ref-8)。
 
 还有一些启动与网络旋钮值得记录：队列模式 `steeringMode`/`followUpMode`（`one-at-a-time` 默认 / `all`）、传输 `transport`（`auto/sse/websocket/websocket-cached`）、`httpIdleTimeoutMs`（默认 300000）、`websocketConnectTimeoutMs`（默认 15000）；启动开销可用 `--offline`（关目录刷新与版本/包更新检查）、`-ne/-ns/-np/-nc/--no-mcp` 关闭对应资源；`PI_TIMING=1` 输出各启动阶段耗时[[8]](#ref-8)[[9]](#ref-9)[[27]](#ref-27)[[43]](#ref-43)。MCP 还有一个启动细节：首个 prompt 最多等 10 秒，且只等有 `direct` 工具的服务器[[24]](#ref-24)。
 
@@ -526,13 +531,87 @@ Pi 的缓存预热是默认开启的（`cacheWarming` 默认 `"streaming"`）：
 
 官方如何评估 harness 的改动，是调优时可以参考的一个视角。Pi 自带一个评测包 `packages/evals`（私有包，不随主包分发），用 `vitest-evals` 分别在“本机”与“隔离容器”两个环境里跑 `without_docs` 与 `with_docs` 两个臂，计算文档带来的“提升（lift）”，需要 `PI_PROVIDER`、`PI_MODEL` 环境变量[[29]](#ref-29)。这里只有评测设计、没有公开的评测数值——它说明的是“怎么验证一个 harness 改动没有让任务变差”，而不是“哪个模型更好”。对自建 Pi-like 运行时或深度定制扩展的团队，这种“同一组任务、有/无某项能力”的双臂对比，比单点看成功率高更接近因果。
 
-有几类开销是不能省的（本书建议）。验证：Pi 没有内置验证机制，但省掉验证的代价在 18.5 的语境里尤其高——因为 Pi 不逐次询问，错误的代价靠环境边界和人工审查兜底，而不是靠模型自觉。隔离：降低打断不能靠关掉扩展层的拦截或放宽容器边界，只能靠把可预判的动作写成规则、把需要判断的留给人。项目信任：`--approve` 不能当作“跳过安全”的开关，它决定的是加载哪些可执行资源。缓存预热可以关（那是省费用），但逐动作的边界不能因为省 token 而放宽。
+有几类开销是不能省的（本书建议）。验证：Pi 没有内置验证机制，但省掉验证的代价在 19.5 的语境里尤其高——因为 Pi 不逐次询问，错误的代价靠环境边界和人工审查兜底，而不是靠模型自觉。隔离：降低打断不能靠关掉扩展层的拦截或放宽容器边界，只能靠把可预判的动作写成规则、把需要判断的留给人。项目信任：`--approve` 不能当作“跳过安全”的开关，它决定的是加载哪些可执行资源。缓存预热可以关（那是省费用），但逐动作的边界不能因为省 token 而放宽。
+
+### 19.6.7 小内核的四项成本由谁承担
+
+小内核的价值是缩短模型、工具、消息和事件之间的路径，让使用者更容易理解与替换机制。少一个内建控制层，也意味着对应责任需要由宿主、扩展或运营者承担。本节是根据本章已列接口作出的系统推导，不宣称 Pi 默认实现了下面所有企业治理能力。
+
+| 选择 | 内核获得什么 | 使用者承担什么 | 适用边界 |
+| --- | --- | --- | --- |
+| 少量核心工具 | 可见接口小，调用链清晰 | 自行提供业务契约、数据 ACL 与写入防重 | 个人可信项目优于敌对多租户 |
+| 扩展即代码 | 可以注册/拦截更多生命周期行为 | 审查依赖、更新与宿主权限 | 不可信扩展必须外部隔离 |
+| 会话树保留分支 | 可以回看和从旧点重新推理 | 识别外部动作已经发生 | 分支不是数据库回滚 |
+| 灵活循环预算 | 可处理未知长度调查 | 显式约束时间、调用、成本和停止 | 不以无限上下文或步数解释可靠性 |
+
+#### 一次只读分析怎样演进到业务写入
+
+假设先用 Pi 阅读一个项目并提出性能修复方案，宿主只开放项目读取与受限测试。这个阶段可以依赖较少内建机制，因为目标是形成可审查建议。若接下来允许改代码，宿主要定义写入目录、差异与测试验收；若再允许创建工单或发送通知，业务动作就跨出了文件树，必须增加稳定操作身份、授权与结果核验。不能因为读文件任务顺利便沿用同一权限配置处理外部写入。
+
+扩展能让这条路径接入业务工具，却不会自动成为隔离边界。它在 Pi 进程的 OS 权限下运行时，工具列表中没有 shell 也不能证明扩展不能调用进程 API。审查扩展应覆盖导入时执行、环境变量、网络出口、文件读写和安装脚本；只看注册出来的工具 Schema 会漏掉这些路径。Package 对资源清单的过滤解决分发范围，不等于内核对代码的权限裁剪。[[18]](#ref-18)[[21]](#ref-21)
+
+可以将高风险能力放进独立服务，通过受限 RPC 或 MCP 工具暴露；服务端仍按请求者检查资源范围，凭据不返回到模型或扩展上下文。这样内核保持简洁，复杂业务约束由真正拥有数据的服务强制执行。代价是多一个连接、版本和运维边界，错误与超时也需映射回结构化观察。这个设计适合需要复用能力且能承担服务维护成本的团队，不是所有个人任务都必须采用。
+
+#### 会话分支与外部世界的时间差
+
+用户从旧节点分支后，模型看到的历史可以回到“尚未创建事故单”的位置，外部服务中的事故单却不会消失。若分支再次提出创建操作，宿主应识别是否仍属同一个业务意图：相同意图沿原身份查询，真正的新意图需明确授权。仅通过消息内容相同判断重复，会错误合并用户两次独立操作；每次分支生成新随机键，则可能重复一次旧操作。
+
+因此会话树适合管理推理与交互的版本，业务事实必须另外核验。显示一条旧成功结果也不证明它现在仍有效：工单可能已关闭，权限可能撤销，文件可能被其他用户修改。交付前的查询与当前授权检查应以资源端为准。第 15 章 Operation 模型提供可借鉴的应用设计，不能反向说 Pi 默认内建了同样账本。
+
+#### 无内建上限不等于无需预算
+
+对有开放结束条件的研究任务，灵活循环可以避免过早停止；对无人值守任务，缺少上限会使无效工具调用、反复压缩或外部故障不断消耗资源。宿主应分别定义模型调用数、工具时限、总墙钟时间、输出成本、外部动作次数和任务完成条件。不能只限制单次模型 token，因为重试、摘要和子任务会把成本转移到其他调用。
+
+停止策略也需区分完成、缺证据、权限不足、预算耗尽与结果未知。预算耗尽可以终止新增计算，却不能删除已经发出的写入责任；取消时保留原操作标识，并把核验入口交给用户。对只读研究可以返回带缺口说明的部分报告，对修改代码必须说明哪些验证没有运行，对外部写入则明确已确认与未知事实。
+
+#### 什么时候选择这种内核
+
+如果团队的任务边界集中在可信代码仓库，希望直接控制事件与提示组织，并愿意维护扩展，Pi 的小内核有利于建立容易理解的工作流。若需要陌生用户共享服务、长期业务对账、强审计或托管式权限控制，选择 Pi 仍然可行，但要把这些要求计入宿主设计和维护成本。选型的核心问题是“省下的内建层，是否由一个有责任人、可验证的边界接住”，不能仅比较默认工具数量。
+
+验收时可让一个不了解扩展实现的人回答：当前主体能读取什么、能写什么、模型提案在哪被拒、会话分支后怎样查询既有动作、扩展更新后怎样撤销或回滚。若这些答案依赖模型自觉或隐含约定，说明宿主契约还没有完成。用这种问题评估小内核，比穷举所有快捷键更能迁移到其他 Runtime。
+
+### 19.6.8 把最终输出变成宿主可以验收的结果
+
+终端显示一段 final、RPC 返回一条结果、JSON 流正常关闭，分别描述产品交互层的结束条件。宿主仍需区分已验证完成、部分完成、缺少输入、预算耗尽、权限拒绝和外部结果未知。若任务是改代码，输出应关联差异与实际测试；若任务是读文档，输出应关联证据与范围；若任务跨外部动作，还需原操作的权威结果。不能通过模式名推导业务已经完成。
+
+这也解释了为什么相同提示在 interactive、print、JSON 和 RPC 入口中需要分别验收：可交互审批、事件订阅和退出码由入口契约决定。选型时先固定目标入口，给正常与失败各一个用例，检查消费方是否能从输出区分上述状态。事件订阅断开不应触发整个业务动作重做，连接身份与动作身份分开保存。
+
+### 19.6.9 宿主验收：先锁定事件，再检查业务证据
+
+下面是本书建议的宿主消费流程，不是 Pi 新增的原生状态机。宿主在发送 prompt 前建立事件订阅，记录应用侧 task_id、目标会话和消费游标；命令响应只改变“提交受理”状态。随后将 message_end 的定稿消息与工具结果归档，等待 agent_settled，再运行任务自身的验收。模型的最后一段文字不是唯一输入，aborted、压缩错误与测试未执行都可能改变交付结论。[[11]](#ref-11)[[13]](#ref-13)[[15]](#ref-15)
+
+| 观察 | 宿主可确认的事实 | 仍需核对 |
+| --- | --- | --- |
+| prompt disposition 为 queued | 消息已进入队列 | 是否最终被处理、是否因关闭而丢弃 |
+| 单次 agent_end | 低层 run 已结束 | 后续重试、压缩、follow-up 是否继续 |
+| agent_settled 且未 aborted | 本次不会自动继续 | 代码差异、测试与业务结果是否满足任务 |
+| RPC 断开而没有定稿事件 | 观察链路已中断 | 子进程存活、会话条目和外部效果，不能直接重发写入 |
+| 切换会话成功 | 活动 AgentSession 已替换 | 旧订阅解除、新订阅建立和宿主任务映射 |
+
+重连时应先读取已有条目并按稳定条目标识去重，再决定是否提交新 prompt。由于所查事件协议不提供应用所需的完整业务动作账本，宿主不能凭文本相似度推断“之前没有执行”；若涉及外部写入，查询原操作身份的结果优先于重新指示模型执行。反过来，纯读取任务可以允许重复计算，但应将重复费用计入原任务，而不是偷偷新建一项任务隐藏成本。
+
+验收可以从三个具体故障开始：受理后断开客户端；收到 agent_end 后发生自动恢复；切换会话后旧处理器收到迟到事件。每次记录预期责任和最终证据，确认宿主不会重复应用结果、漏掉失败或把旧会话消息归入新任务。这些是待部署团队执行的集成测试，本章没有宣称已运行。它们直接检验小内核交给宿主的责任，比为每个命令做一遍界面点击更有意义。
+
+### 19.6.10 版本敏感事实的核验入口
+
+| 事实 | 值与适用条件 | 固定依据与范围 |
+| --- | --- | --- |
+| npm 发布 | pi-coding-agent 1.4.0，2026-10-21 | npm 版本元数据[[46]](#ref-46)；与次日源码提交分别记录，不声称字节一致 |
+| 源码分析点 | `936e5f40aede`，2026-10-22 | 本章固定文件/符号；不以任意主分支实现覆盖安装版本 |
+| RPC 完成信号 | prompt 响应只表示受理；agent_settled 才表示不再自动继续 | 固定 RPC/SDK 文档[[11]](#ref-11)[[12]](#ref-12)；宿主仍验收业务结果 |
+| 压缩默认预算 | reserveTokens=16384，keepRecentTokens=20000 | 固定设置与压缩文档[[8]](#ref-8)[[17]](#ref-17)；不是所有窗口的推荐值 |
+| 工具结果预算 | read/bash 2000行/50KB；摘要每个结果截2000字符 | 固定内置工具与压缩实现[[37]](#ref-37)[[17]](#ref-17)；自定义工具另验收 |
+| 缓存预热 | 默认 streaming；预估避免的缓存未命中成本至少0.05美元才发起 | 固定设置与cache-warmer[[8]](#ref-8)[[39]](#ref-39)；额外请求计入费用，不是免费能力 |
+| OpenClaw 关系 | 所列提交仅依赖pi-tui 1.2.0，runtime已内化 | 固定package与历史发布说明[[47]](#ref-47)[[48]](#ref-48)；遗留别名与ACP目标分开 |
+
+
+表中原始资料核验日期沿用章首记录，本文未运行产品。文档页面改用固定提交副本后，读者可以在同一版本上下文核对文件；后续升级按实际安装发行版重新验收。
 
 ## 本章小结
 
-Pi 把 Coding Agent 拆成一条可定位的分层：`pi-ai` 归一模型协议，`pi-agent-core` 承担循环与工具执行，`pi-coding-agent` 负责会话、资源、扩展与四种运行形态。它的“小”是职责克制——不做子代理、不做 plan mode、不内置审批——而不是能力缺失：会话树、渐进披露的 Skills、可编译加载的扩展、SDK 与 RPC 两种嵌入方式，把可定制性留给了宿主和使用者。
+Pi 把 Coding Agent 拆成一条可定位的分层：`pi-ai` 归一模型协议，`pi-agent-core` 承担循环与工具执行，`pi-coding-agent` 负责会话、资源、扩展与四种运行形态。它的“小”是职责克制——不做子 Agent、不做 plan mode、不内置审批——而不是能力缺失：会话树、渐进披露的 Skills、可编译加载的扩展、SDK 与 RPC 两种嵌入方式，把可定制性留给了宿主和使用者。
 
-这套设计的两面都很清楚。正面是可控、可嵌入、可审计：启动路径、工具流水线、重试与压缩的判定都能在固定提交里读到行号。反面是安全责任外移：Pi 不设逐次审批、不限定路径、不内置沙箱，边界要靠运行环境、项目信任和扩展三层去补；会话文件没有 fsync 和跨进程锁，崩溃后不会重放未完成的工具调用，树导航不回滚外部副作用。这些“未找到”不是要掩盖的空白，而是 Pi 的边界本身，使用者应当据此决定它适合什么场景。
+这套设计的两面都很清楚。正面是可控、可嵌入、可审计：启动路径、工具流水线、重试与压缩的判定可沿固定提交的文件与符号追踪。反面是安全责任外移：Pi 不设逐次审批、不限定路径、不内置沙箱，边界要靠运行环境、项目信任和扩展三层去补；会话文件没有 fsync 和跨进程锁，崩溃后不会重放未完成的工具调用，树导航不回滚外部副作用。这些结论受本章固定源码和文档范围限制，不能据此宣称所有扩展都没有相应能力。需要开箱即用的多用户权限与业务对账时，应把补齐宿主能力的成本计入选型。
 
 调优方面，Pi 提供了完整的旋钮（思考档位、压缩参数、重试、缓存预热、工具声明预算）和丰富的观测字段，但没有官方实测数据，也没有官方推荐值。本章因此只讲机制与默认值，把“调到多少好”留给使用者用自己的工作负载去测。
 
@@ -540,34 +619,34 @@ Pi 把 Coding Agent 拆成一条可定位的分层：`pi-ai` 归一模型协议�
 
 官方文档是滚动页面；本章引用的文档页与固定提交 `936e5f40aede9327b9142b63506ed2b68bc6b4ac` 中 `packages/coding-agent/docs/` 的文件逐字一致，故文档类引用以站点地址给出、可用固定提交副本回查。源码一律钉到固定提交。核验日期均为 2026-10-23。
 
-1. <a id="ref-1"></a> Pi / Earendil，[Pi（文档首页）](https://pi.dev/docs/latest)；固定提交副本 `packages/coding-agent/docs/index.md`。
-2. <a id="ref-2"></a> Pi / Earendil，[Quickstart](https://pi.dev/docs/latest/quickstart)；固定提交副本 `packages/coding-agent/docs/quickstart.md`。
-3. <a id="ref-3"></a> Pi / Earendil，[How Pi works](https://pi.dev/docs/latest/how-pi-works)；固定提交副本 `packages/coding-agent/docs/how-pi-works.md`。
-4. <a id="ref-4"></a> Pi / Earendil，[Usage](https://pi.dev/docs/latest/usage)；固定提交副本 `packages/coding-agent/docs/usage.md`。
-5. <a id="ref-5"></a> Pi / Earendil，[Sessions](https://pi.dev/docs/latest/sessions)；固定提交副本 `packages/coding-agent/docs/sessions.md`。
-6. <a id="ref-6"></a> Pi / Earendil，[Security](https://pi.dev/docs/latest/security)；固定提交副本 `packages/coding-agent/docs/security.md`。
-7. <a id="ref-7"></a> Pi / Earendil，[Configuration](https://pi.dev/docs/latest/configuration)；固定提交副本 `packages/coding-agent/docs/configuration.md`。
-8. <a id="ref-8"></a> Pi / Earendil，[Settings](https://pi.dev/docs/latest/settings)；固定提交副本 `packages/coding-agent/docs/settings.md`。
-9. <a id="ref-9"></a> Pi / Earendil，[CLI](https://pi.dev/docs/latest/cli)；固定提交副本 `packages/coding-agent/docs/cli.md`。
-10. <a id="ref-10"></a> Pi / Earendil，[CLI integration](https://pi.dev/docs/latest/cli-integration)；固定提交副本 `packages/coding-agent/docs/cli-integration.md`。
-11. <a id="ref-11"></a> Pi / Earendil，[SDK](https://pi.dev/docs/latest/sdk)；固定提交副本 `packages/coding-agent/docs/sdk.md`。
-12. <a id="ref-12"></a> Pi / Earendil，[RPC](https://pi.dev/docs/latest/rpc)；固定提交副本 `packages/coding-agent/docs/rpc.md`。
-13. <a id="ref-13"></a> Pi / Earendil，[RPC commands](https://pi.dev/docs/latest/rpc-commands)；固定提交副本 `packages/coding-agent/docs/rpc-commands.md`。
-14. <a id="ref-14"></a> Pi / Earendil，[RPC extension UI](https://pi.dev/docs/latest/rpc-extension-ui)；固定提交副本 `packages/coding-agent/docs/rpc-extension-ui.md`。
-15. <a id="ref-15"></a> Pi / Earendil，[JSON mode](https://pi.dev/docs/latest/json)；固定提交副本 `packages/coding-agent/docs/json.md`。
-16. <a id="ref-16"></a> Pi / Earendil，[Session format](https://pi.dev/docs/latest/session-format)；固定提交副本 `packages/coding-agent/docs/session-format.md`。
-17. <a id="ref-17"></a> Pi / Earendil，[Compaction](https://pi.dev/docs/latest/compaction)；固定提交副本 `packages/coding-agent/docs/compaction.md`。
-18. <a id="ref-18"></a> Pi / Earendil，[Extensions](https://pi.dev/docs/latest/extensions)；固定提交副本 `packages/coding-agent/docs/extensions.md`。
-19. <a id="ref-19"></a> Pi / Earendil，[Skills](https://pi.dev/docs/latest/skills)；固定提交副本 `packages/coding-agent/docs/skills.md`。
-20. <a id="ref-20"></a> Pi / Earendil，[Prompt Templates](https://pi.dev/docs/latest/prompt-templates)；固定提交副本 `packages/coding-agent/docs/prompt-templates.md`。
-21. <a id="ref-21"></a> Pi / Earendil，[Packages](https://pi.dev/docs/latest/packages)；固定提交副本 `packages/coding-agent/docs/packages.md`。
-22. <a id="ref-22"></a> Pi / Earendil，[Models](https://pi.dev/docs/latest/models)；固定提交副本 `packages/coding-agent/docs/models.md`。
-23. <a id="ref-23"></a> Pi / Earendil，[Models configuration](https://pi.dev/docs/latest/models-configuration)；固定提交副本 `packages/coding-agent/docs/models-configuration.md`。
-24. <a id="ref-24"></a> Pi / Earendil，[MCP](https://pi.dev/docs/latest/mcp)；固定提交副本 `packages/coding-agent/docs/mcp.md`。
-25. <a id="ref-25"></a> Pi / Earendil，[Codemode](https://pi.dev/docs/latest/codemode)；固定提交副本 `packages/coding-agent/docs/codemode.md`。
-26. <a id="ref-26"></a> Pi / Earendil，[Containerization](https://pi.dev/docs/latest/containerization)；固定提交副本 `packages/coding-agent/docs/containerization.md`。
-27. <a id="ref-27"></a> Pi / Earendil，[Environment variables](https://pi.dev/docs/latest/environment-variables)；固定提交副本 `packages/coding-agent/docs/environment-variables.md`。
-28. <a id="ref-28"></a> Pi / Earendil，[Slash commands](https://pi.dev/docs/latest/slash-commands)；固定提交副本 `packages/coding-agent/docs/slash-commands.md`。
+1. <a id="ref-1"></a> Pi / Earendil，[Pi（文档首页）](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/docs/index.md)。
+2. <a id="ref-2"></a> Pi / Earendil，[Quickstart](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/docs/quickstart.md)。
+3. <a id="ref-3"></a> Pi / Earendil，[How Pi works](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/docs/how-pi-works.md)。
+4. <a id="ref-4"></a> Pi / Earendil，[Usage](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/docs/usage.md)。
+5. <a id="ref-5"></a> Pi / Earendil，[Sessions](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/docs/sessions.md)。
+6. <a id="ref-6"></a> Pi / Earendil，[Security](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/docs/security.md)。
+7. <a id="ref-7"></a> Pi / Earendil，[Configuration](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/docs/configuration.md)。
+8. <a id="ref-8"></a> Pi / Earendil，[Settings](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/docs/settings.md)。
+9. <a id="ref-9"></a> Pi / Earendil，[CLI](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/docs/cli.md)。
+10. <a id="ref-10"></a> Pi / Earendil，[CLI integration](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/docs/cli-integration.md)。
+11. <a id="ref-11"></a> Pi / Earendil，[SDK](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/docs/sdk.md)。
+12. <a id="ref-12"></a> Pi / Earendil，[RPC](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/docs/rpc.md)。
+13. <a id="ref-13"></a> Pi / Earendil，[RPC commands](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/docs/rpc-commands.md)。
+14. <a id="ref-14"></a> Pi / Earendil，[RPC extension UI](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/docs/rpc-extension-ui.md)。
+15. <a id="ref-15"></a> Pi / Earendil，[JSON mode](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/docs/json.md)。
+16. <a id="ref-16"></a> Pi / Earendil，[Session format](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/docs/session-format.md)。
+17. <a id="ref-17"></a> Pi / Earendil，[Compaction](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/docs/compaction.md)。
+18. <a id="ref-18"></a> Pi / Earendil，[Extensions](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/docs/extensions.md)。
+19. <a id="ref-19"></a> Pi / Earendil，[Skills](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/docs/skills.md)。
+20. <a id="ref-20"></a> Pi / Earendil，[Prompt Templates](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/docs/prompt-templates.md)。
+21. <a id="ref-21"></a> Pi / Earendil，[Packages](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/docs/packages.md)。
+22. <a id="ref-22"></a> Pi / Earendil，[Models](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/docs/models.md)。
+23. <a id="ref-23"></a> Pi / Earendil，[Models configuration](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/docs/models-configuration.md)。
+24. <a id="ref-24"></a> Pi / Earendil，[MCP](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/docs/mcp.md)。
+25. <a id="ref-25"></a> Pi / Earendil，[Codemode](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/docs/codemode.md)。
+26. <a id="ref-26"></a> Pi / Earendil，[Containerization](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/docs/containerization.md)。
+27. <a id="ref-27"></a> Pi / Earendil，[Environment variables](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/docs/environment-variables.md)。
+28. <a id="ref-28"></a> Pi / Earendil，[Slash commands](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/docs/slash-commands.md)。
 29. <a id="ref-29"></a> Pi / Earendil，[README](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/README.md)；[coding-agent CHANGELOG](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/CHANGELOG.md)，固定提交 `936e5f40aede…`。
 30. <a id="ref-30"></a> Pi / Earendil，agent-core 源码：[agent.ts](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/agent/src/agent.ts)、[agent-loop.ts](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/agent/src/agent-loop.ts)、[types.ts](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/agent/src/types.ts)，固定提交 `936e5f40aede…`。
 31. <a id="ref-31"></a> Pi / Earendil，coding-agent 会话核心源码：[agent-session.ts](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/src/core/agent-session.ts)、[agent-session-services.ts](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/src/core/agent-session-services.ts)、[agent-session-runtime.ts](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/src/core/agent-session-runtime.ts)、[sdk.ts](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/src/core/sdk.ts)，固定提交 `936e5f40aede…`。
@@ -585,6 +664,6 @@ Pi 把 Coding Agent 拆成一条可定位的分层：`pi-ai` 归一模型协议�
 43. <a id="ref-43"></a> Pi / Earendil，[main.ts](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/src/main.ts)、[cli.ts](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/src/cli.ts)、[cli/setup.ts](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/src/cli/setup.ts)、[config.ts](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/src/config.ts)、[crash-log.ts](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/src/core/crash-log.ts)、[timings.ts](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/src/core/timings.ts)，固定提交 `936e5f40aede…`。
 44. <a id="ref-44"></a> Pi / Earendil，[coding-agent CHANGELOG](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/CHANGELOG.md)，固定提交 `936e5f40aede…`；1.4.0 发布于 2026-10-21。
 45. <a id="ref-45"></a> Pi / Earendil，官方示例：[examples/sdk](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/examples/sdk/01-minimal.ts) 与 [examples/extensions](https://github.com/earendil-works/pi/blob/936e5f40aede9327b9142b63506ed2b68bc6b4ac/packages/coding-agent/examples/extensions/permission-gate.ts)（permission-gate、protected-paths、git-checkpoint、sandbox、subagent、plan-mode），固定提交 `936e5f40aede…`。
-46. <a id="ref-46"></a> npm，[@earendil-works/pi-coding-agent](https://registry.npmjs.org/@earendil-works%2Fpi-coding-agent)，latest=1.4.0，发布于 2026-10-21。
+46. <a id="ref-46"></a> npm，[@earendil-works/pi-coding-agent](https://www.npmjs.com/package/@earendil-works/pi-coding-agent/v/1.4.0)，版本 1.4.0，发布于 2026-10-21。
 47. <a id="ref-47"></a> OpenClaw maintainers，[Agent runtime architecture](https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/agent-runtime-architecture.md)、[package.json](https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/package.json)、[THIRD_PARTY_NOTICES.md](https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/THIRD_PARTY_NOTICES.md)、[src/agents/sessions/sdk.ts](https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/agents/sessions/sdk.ts)，固定提交 `ff7597025dd2…`。
-48. <a id="ref-48"></a> OpenClaw maintainers，CHANGELOG：[相关内容](https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.2.1.md)、[相关内容](https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.2.21.md)、[相关内容](https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.3.13.md)、[相关内容](https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.4.20.md)、[相关内容](https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.5.12.md)、[相关内容](https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.5.22.md)，固定提交 `ff7597025dd2…`。
+48. <a id="ref-48"></a> OpenClaw maintainers，CHANGELOG：[OpenClaw 2026.2.1 changelog](https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.2.1.md)、[OpenClaw 2026.2.21 changelog](https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.2.21.md)、[OpenClaw 2026.3.13 changelog](https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.3.13.md)、[OpenClaw 2026.4.20 changelog](https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.4.20.md)、[OpenClaw 2026.5.12 changelog](https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.5.12.md)、[OpenClaw 2026.5.22 changelog](https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.5.22.md)，固定提交 `ff7597025dd2…`。

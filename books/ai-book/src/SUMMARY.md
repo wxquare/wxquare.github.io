@@ -38,10 +38,10 @@
 
 # 第四部分：Agent 应用与实战
 
-- [第18章 成熟 Coding Agent 内部实现：Codex CLI、Claude Code 与 OpenCode](part4/01-coding-agent-systems.md)
-- [第19章 Pi Agent 架构解析：终端原生 Coding Agent Runtime、扩展系统与上下文工程](part4/02-pi-agent-architecture.md)
-- [第20章 OpenClaw 架构解析：个人 AI 助手的 Gateway、Runtime 与工具生态](part4/03-openclaw-architecture.md)
-- [第21章 Hermes Agent 架构解析：长期运行、自我进化与多入口 Agent Runtime](part4/04-hermes-agent-architecture.md)
+- [第 18 章 Coding Agent 系统](part4/01-coding-agent-systems.md)
+- [第 19 章 Pi Agent 系统：终端原生 Coding Agent Runtime 的实现、使用与调优](part4/02-pi-agent-architecture.md)
+- [第 20 章 OpenClaw 系统：个人 AI 助手的 Gateway 实现、使用与调优](part4/03-openclaw-architecture.md)
+- [第 21 章 Hermes Agent 系统：长期运行 Agent Runtime 的实现、使用与调优](part4/04-hermes-agent-architecture.md)
 
 ---
 

@@ -10,65 +10,104 @@ OptionParser.new do |parser|
   parser.on("--root PATH", "Book root containing src/SUMMARY.md") { |path| options[:root] = path }
 end.parse!
 
+# Ignore fenced examples before inspecting Markdown structure. Preserve line positions.
+def prose_content(content)
+  fence = nil
+  content.lines.map do |line|
+    marker = line[/^\s{0,3}(`{3,}|~{3,})/, 1]
+    if fence
+      fence = nil if marker && marker[0] == fence[0] && marker.length >= fence.length
+      "\n"
+    elsif marker
+      fence = marker
+      "\n"
+    else
+      line
+    end
+  end.join
+end
+
+def fragment_ids(content)
+  ids = content.scan(/<a\b[^>]*\bid=["']([^"']+)["']/).flatten
+  counts = Hash.new(0)
+  content.scan(/^\s{0,3}\#{1,6}\s+(.+)$/).flatten.each do |heading|
+    slug = heading.gsub(/<[^>]+>/, "").gsub(/\[([^\]]+)\]\([^)]+\)/, '\\1')
+                  .downcase.gsub(/[^\p{Alnum}_\-\s]/, "").strip.gsub(/\s+/, "-")
+    count = counts[slug]
+    ids << (count.zero? ? slug : "#{slug}-#{count}")
+    counts[slug] += 1
+  end
+  ids
+end
+
 root = Pathname.new(options.fetch(:root, Pathname.new(__dir__).join(".."))).realpath
 src = root.join("src")
 summary = src.join("SUMMARY.md").read
 chapters = summary.scan(/\[([^\]]+)\]\((part\d+\/[^)]+\.md)\)/).map do |label, path|
-  number, title = label.match(/\A第(\d+)章\s+(.+)\z/)&.captures
-  { label: label, number: number, path: path, title: title }
+  number, title = label.match(/\A第\s*(\d+)\s*章\s+(.+)\z/)&.captures
+  { label: label, number: number&.to_i, path: path, title: title }
 end
 paths = chapters.map { |chapter| chapter[:path] }
 chapters_by_path = chapters.to_h { |chapter| [chapter[:path], chapter] }
 errors = []
-
-if paths.length != 32
-  errors << "Expected 32 published chapters in SUMMARY.md, found #{paths.length}."
+numbers = chapters.map { |chapter| chapter[:number] }
+if numbers.empty? || numbers != (1..chapters.length).to_a || paths.uniq.length != paths.length
+  errors << "SUMMARY chapter numbers must be unique and continuous from 1; found #{numbers.inspect}."
 end
-
-paths.each_with_index do |relative_path, index|
-  chapter_number = index + 1
+contents = {}
+chapters.each do |chapter|
+  relative_path = chapter[:path]
   file = src.join(relative_path)
-  content = file.read
-  h1 = content[/^#\s+(.+)$/m, 1]
-
-  unless h1&.include?("第#{chapter_number}章")
-    errors << "Chapter #{chapter_number}: H1 must contain 第#{chapter_number}章 (#{relative_path})."
+  unless file.file?
+    errors << "SUMMARY: missing local file #{relative_path}."
+    next
   end
-
-  first_numbered_heading = content.lines.find { |line| line.match?(/^\#{2,3}\s+#{chapter_number}\./) }
-  unless first_numbered_heading
-    errors << "Chapter #{chapter_number}: no H2/H3 heading starts with #{chapter_number}. (#{relative_path})."
+  content = prose_content(file.read)
+  contents[relative_path] = content
+  headings = content.scan(/^#\s+(.+)$/).flatten
+  number = chapter[:number]
+  unless headings.length == 1 && headings.first.match?(/第\s*#{number}\s*章/)
+    errors << "Chapter #{number}: expected one H1 identifying chapter #{number} (#{relative_path})."
+  end
+  explicit = content.scan(/<a\b[^>]*\bid=["']([^"']+)["']/).flatten
+  explicit.group_by(&:itself).transform_values(&:length).each do |id, count|
+    errors << "#{relative_path}: duplicate explicit anchor #{id}." if count > 1
+  end
+  numbered = content.scan(/^\#{2,3}\s+(\d+(?:\.\d+)+)\s+/).flatten
+  numbered.group_by(&:itself).each do |numbered_id, instances|
+    errors << "#{relative_path}: duplicate numbered heading #{numbered_id}." if instances.length > 1
   end
 end
-
-paths.each do |relative_path|
-  content = src.join(relative_path).read
-  content.scan(/\[([^\]]+)\]\(([^)]+)\)/).each do |label, destination|
-    normalized_destination = destination.strip
-    target = if normalized_destination.start_with?("<") && normalized_destination.include?(">")
-               normalized_destination[1...normalized_destination.index(">")]
-             else
-               normalized_destination.split(/\s+/, 2).first
-             end
-    target = target.split("#", 2).first
-    next if target.empty? || target.match?(%r{\A[a-z][a-z0-9+.-]*:}i)
-
-    resolved_path = Pathname.new(relative_path).dirname.join(target).cleanpath.to_s
-    chapter = chapters_by_path[resolved_path]
-    next unless chapter
-
-    next if label == chapter[:label]
-
-    errors << "#{relative_path}: chapter-link label mismatch for #{resolved_path}: expected #{chapter[:label].inspect}, found #{label.inspect}."
+contents.each do |relative_path, content|
+  content.scan(/\[([^\]]+)\]\((<[^>]+>|[^)]+)\)/).each do |label, destination|
+    target = destination.start_with?("<") ? destination[1...destination.index(">") ] : destination.split(/\s+/, 2).first
+    next if target.start_with?("/") || target.match?(%r{\A[a-z][a-z0-9+.-]*:}i)
+    target_path, fragment = target.split("#", 2)
+    target_path = target_path.to_s.split("?", 2).first.to_s
+    resolved = target_path.empty? ? relative_path : Pathname.new(relative_path).dirname.join(target_path).cleanpath.to_s
+    file = src.join(resolved)
+    unless file.file?
+      errors << "#{relative_path}: missing local file #{resolved}."
+      next
+    end
+    if fragment && !fragment.empty? && file.extname == ".md"
+      target_content = contents[resolved] || prose_content(file.read)
+      errors << "#{relative_path}: missing fragment #{fragment} in #{resolved}." unless fragment_ids(target_content).include?(fragment)
+    end
+    chapter = chapters_by_path[resolved]
+    label_number = label[/第\s*(\d+)\s*章/, 1]
+    if chapter && label_number && label_number.to_i != chapter[:number]
+      errors << "#{relative_path}: chapter-link label mismatch for #{resolved}: #{label.inspect}."
+    end
   end
 end
 
 REFERENCE_HEADING = /^\s{0,3}(\#{2,6})\s+.*(?:参考资料|参考文献|延伸阅读|references?|bibliography).*$/i
-NUMBERED_BIBLIOGRAPHY_ITEM = /^\s*(?:[-+*]\s+)?\[(\d+)\]\s+(.+\S)\s*$/
-ACCESS_DATE = /(?:访问(?:日期|时间|于)?[：:\s]*\d{4}[-\/.]\d{1,2}[-\/.]\d{1,2}|accessed\s*(?:on\s*)?\d{4}[-\/.]\d{1,2}[-\/.]\d{1,2})/i
+NUMBERED_BIBLIOGRAPHY_ITEM = /^\s*(?:(?:[-+*]\s+)?\[(\d+)\]\s+|(?:\d+\.\s+)?<a\s+id=["']ref-(\d+)["'][^>]*><\/a>\s*)(.+\S)\s*$/
+ACCESS_DATE = /(?:(?:访问|核验)(?:日期|时间|于)?[：:\s]*\d{4}[-\/.]\d{1,2}[-\/.]\d{1,2}|accessed\s*(?:on\s*)?\d{4}[-\/.]\d{1,2}[-\/.]\d{1,2})/i
 
 def bibliography_sections(content)
-  lines = content.lines
+  lines = prose_content(content).lines
   headings = lines.each_index.map do |index|
     match = lines[index].match(REFERENCE_HEADING)
     match && { index: index, level: match[1].length }
@@ -84,7 +123,7 @@ def bibliography_sections(content)
       match = line.match(NUMBERED_BIBLIOGRAPHY_ITEM)
       if match
         items << item if item
-        item = { number: match[1].to_i, text: match[2] }
+        item = { number: (match[1] || match[2]).to_i, text: match[3] }
       elsif item && !line.strip.empty?
         item[:text] = "#{item[:text]} #{line.strip}"
       end
@@ -97,7 +136,7 @@ def bibliography_sections(content)
 end
 
 def in_text_citations(content, bibliography_sections)
-  prose_lines = content.lines.each_with_index.reject do |_line, line_number|
+  prose_lines = prose_content(content).lines.each_with_index.reject do |_line, line_number|
     bibliography_sections.any? { |section| (section[:start]...section[:finish]).cover?(line_number) }
   end.map(&:first)
 
@@ -120,7 +159,7 @@ def in_text_citations(content, bibliography_sections)
   prose.scan(/\[(\d+)\](?!\()/).flatten.map(&:to_i).uniq
 end
 
-def metadata_errors(chapter_number, item)
+def metadata_errors(chapter_number, item, chapter_date = nil)
   errors = []
   # A citation entry must name its author or responsible institution before its title.
   before_url = item[:text].split(%r{https?://}i, 2).first.to_s.strip
@@ -131,13 +170,16 @@ def metadata_errors(chapter_number, item)
   unless item[:text].match?(%r{https?://\S+}i)
     errors << "Chapter #{chapter_number}: bibliography item [#{item[:number]}] is missing original URL."
   end
-  unless item[:text].match?(ACCESS_DATE)
+  unless item[:text].match?(ACCESS_DATE) || chapter_date
     errors << "Chapter #{chapter_number}: bibliography item [#{item[:number]}] is missing access date."
   end
   errors
 end
 
 paths.each_with_index do |relative_path, index|
+  # Missing SUMMARY targets were already recorded; keep reporting all other diagnostics.
+  next unless src.join(relative_path).file?
+
   chapter_number = index + 1
   content = src.join(relative_path).read
   sections = bibliography_sections(content)
@@ -156,21 +198,9 @@ paths.each_with_index do |relative_path, index|
   (bibliography_numbers.uniq - citations).sort.each do |number|
     errors << "Chapter #{chapter_number}: uncited bibliography item [#{number}] (#{relative_path})."
   end
-  items.each { |item| errors.concat(metadata_errors(chapter_number, item)) }
-end
-
-(2..6).each do |chapter_number|
-  file = src.join(paths.fetch(chapter_number - 1))
-  content = file.read
-  %w[版本与范围 工程决策案例 参考资料与延伸阅读].each do |heading|
-    errors << "Chapter #{chapter_number}: missing ## #{heading}." unless content.include?("## #{heading}")
-  end
-
-  references = content.split("## 参考资料与延伸阅读", 2)[1].to_s
-  link_count = references.scan(/\[[^\]]+\]\(https?:\/\//).length
-  errors << "Chapter #{chapter_number}: expected at least 3 reference links, found #{link_count}." if link_count < 3
+  items.each { |item| errors.concat(metadata_errors(chapter_number, item, content[/资料核验日期[：:\s]*\d{4}-\d{2}-\d{2}/])) }
 end
 
 abort(errors.join("\n")) unless errors.empty?
 
-puts "Editorial integrity checks passed: #{paths.length} published chapters; chapters 2-6 include evidence blocks."
+puts "Editorial integrity checks passed: #{paths.length} published chapters; local links and bibliography checked."

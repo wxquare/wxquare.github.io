@@ -144,12 +144,12 @@ flowchart TB
 order-service P95 延迟升高，请分析可能原因。
 ```
 
-Agent 检索到一篇过期 Runbook，并在没有日志证据的情况下断言“数据库连接池耗尽”。值班工程师纠正后发现，真实原因是 09:35Z 完成的`deploy_8842`改变了`payment-client`超时与重试配置，09:37Z 开始 P95 从 210ms 升至 2.1s。本例告警 ALR-20260429-017、Run run_0429_017、Trace trace_20260429_017 与 Runtime/工具章一致，均为虚构教学设定。T4 建单回执丢失后查原键确认 INC-4821，T5 通知重复；这两类执行/交付问题与 T2 错误诊断分开归因，不能用不重复建单证明答案正确。
+Agent 检索到一篇过期 Runbook，并在没有日志证据的情况下断言“数据库连接池耗尽”。值班工程师纠正后发现，真实原因是 09:35Z 完成的`deploy_8842`改变了`payment-client`超时与重试配置，09:37Z 开始 P95 从 210ms 升至 2.1s。本例告警 ALR-20260429-017、Run run_0429_017、Trace 4bf92f3577b34da6a3ce929d0e0e4736 与 Runtime/工具章一致，均为虚构教学设定。T4 建单回执丢失后查原键确认 INC-4821，T5 通知重复；这两类执行/交付问题与 T2 错误诊断分开归因，不能用不重复建单证明答案正确。
 
 生产治理系统不能只记录“这个回答错了”。它应该把这次失败走完一条闭环：
 
 ```text
-trace_20260429_017
+4bf92f3577b34da6a3ce929d0e0e4736
   │
   ▼
 failure-0099: evidence_not_supported
@@ -209,7 +209,7 @@ AgentBench 与 tau-bench 分别从交互任务与工具/用户/规则约束评�
 schema: eval-case/v1
 case_id: eval-incident-0099
 case_version: 2
-source_trace_id: trace_20260429_017
+source_trace_id: 4bf92f3577b34da6a3ce929d0e0e4736
 task_type: incident_diagnosis
 input: order-service P95延迟升高，请调查并给出事故工单草稿
 frozen_context:
@@ -264,6 +264,8 @@ MT-Bench 研究指出位置、冗长和自我偏好等裁判偏差。[[4]](#ref-
 
 对于允许拒答或转人工的任务，再同时报告覆盖率与已回答部分的错误率。候选如果把所有难例都拒绝，可能降低已回答错误率，却让自动完成覆盖显著下降。安全优先不意味着可以隐藏服务能力的损失，门禁必须看到任务完成、合理拒答、错误拒答与证据未知的各自数量。
 
+Shankar 等人的 EvalGen 研究强调评价准则与人类偏好需要迭代对齐，不能由模型给自身输出写一套评分规则就视为可靠裁判。[[24]](#ref-24) 本书据此把准则开发、人工校准和留出验收分开：人工先独立判断并保留分歧，裁判在开发集暴露错判，调整准则后重新冻结版本，再在未参与调整的样本检查误通过与误拒绝。若用户任务或人群改变，原校准不自动迁移；模型裁判提供的是有限范围的语义判断，确定性权限和业务状态继续由代码与资源端核验。
+
 ### 17.2.6 Eval Runner 与四态结果
 
 以下函数只聚合已校准断言的结果，不执行 Agent 或评分器；它可独立运行，不将未定义的 score 函数伪装为完整 Runner。
@@ -292,9 +294,21 @@ Runner 固定 case_version、环境、候选版本和裁判，运行后持久保
 
 ### 17.2.7 版本比较、统计判定与实验停止
 
+本节只定义 Agent 门禁的应用协议，配对、区间、样本量及重复查看的一般统计解释统一见[评估与反馈闭环](../part2/04-data-eval.md)。每个实验先选独立单位：同一业务用例的多次运行保留在一个组内，按 case/会话聚类汇总，不把多跑几遍当作新增独立用户。pass^k 应报告连续 k 次均成功的目标与采样条件，不能与至少一次成功的 pass@k 混用。
+
+| 场景 | 事先选择的方法 | 实施约束 |
+| --- | --- | --- |
+| 配对翻转少 | 精确 McNemar 检验；差值区间选配对 score/exact 方法，或本例保守 Hoeffding 界 | McNemar 的 p 值不能代替差值置信区间；稀疏样本不默认使用百分位 bootstrap |
+| 同一用例重复运行 | 以 case 为组重采样或组级模型 | 保存组内随机性，给独立 case 数和每组运行次数 |
+| 中途多次查看 | 预设查看点的 group sequential 与 alpha spending，或验证过的序贯方案 | 固定停止规则、错误预算和最大样本；不能每次用普通 0.05 阈值 |
+| 同时检验多切片 | Holm 校正或预先声明的层级守门 | 先定义假设族和进入下一层的规则，不按结果挑显著切片 |
+
+上述是本书的实验设计建议，具体区间和序贯实现须由适用的一手统计资料及独立实现核验。证据不足时返回 review 并补样；已经触发安全或修复证据硬阻断时始终 block。一般方法、计算假设与可复算例子集中到第 10 章，避免这里再维护第二套公式。
+
+
 在相同冻结用例上配对，b 为基线通过候选失败，c 为基线失败候选通过，N 为有效配对数，成功率变化Δ=(c−b)/N。McNemar 针对不一致配对检验两种方向是否对称；不一致数较少时用精确二项检验，而不是直接比较两个独立通过率。[[6]](#ref-6) b=c=0 意味着未观察到翻转，不意味着未来零风险；p 值不显著也不证明候选不劣。
 
-本书门禁先定义可接受退化幅度ε，按独立任务或会话组做配对 bootstrap，检查Δ置信区间下界是否至少为−ε。安全违规单独硬阻断；本例比较优先级为安全、正确、成本，Win 须先满足前序约束，Tie 也须在预先声明的等价范围内。该优先级是业务策略，不是统计方法的普遍要求。
+本书门禁先定义可接受退化幅度ε，在样本充分且方法假设成立时，按独立任务或会话组做配对重采样；稀疏不一致对另选适用区间。下文教学代码采用有独立单位假设的保守 Hoeffding 配对均值界，不以稀疏 percentile bootstrap 放行；检查Δ区间下界是否至少为−ε。安全违规单独硬阻断；本例比较优先级为安全、正确、成本，Win 须先满足前序约束，Tie 也须在预先声明的等价范围内。该优先级是业务策略，不是统计方法的普遍要求。
 
 教学例：320 个相同用例中 b=5、c=2，Δ=−3/320≈−0.94 个百分点；仅看约三例差距不能做发布结论，还要检查逐例影响、区间和切片。零违规时，在独立同分布二项假设下 95%单侧上界 pU=1−0.05^(1/N)，N=320 时约 0.93%，大样本近似 3/N≈0.94%；这是由 P(零次)=(1−p)^N 推得的上界，不证明风险为零。小样本、相关样本或标签漏检不能套用这个保证。
 
@@ -405,7 +419,7 @@ URL 抓取、浏览器导航、上传和回调目标的协议、域名解析、�
 
 ### 17.3.4 副作用、审批、接管与隔离的治理验收
 
-执行协议由[Runtime](03-agent-runtime.md#human-control)定义，双轴风险和沙箱由[外围工具系统](04-skills-tools-mcp-connectors.md#tool-risk-levels)定义。本章只要求可核验的证据和回归，不再次定义 Operation 状态。精确动作批准与防重放的安全依据参考 OWASP。[[10]](#ref-10)
+执行协议由[Runtime](03-agent-runtime.md#human-control)定义，双轴风险和沙箱由[Agent 工具系统工程](04-skills-tools-mcp-connectors.md#tool-risk-levels)定义。本章只要求可核验的证据和回归，不再次定义 Operation 状态。精确动作批准与防重放的安全依据参考 OWASP。[[10]](#ref-10)
 
 | 控制点 | 必须保留的证据 | 回归用例 | 门禁信号 |
 | --- | --- | --- | --- |
@@ -422,10 +436,10 @@ unknown 未决清单必须有责任人、期限和核验入口，不能通过回
 
 工具单次调用的 `allow / deny / ask / escalate` 裁决由[Agent Runtime Policy Engine](03-agent-runtime.md#policy-engine)负责；风险等级与能力边界见[Agent 工具系统工程](04-skills-tools-mcp-connectors.md#tool-risk-levels)。本章只处理多次低风险操作累积后的治理信号，例如敏感记录读取量、写操作数、通知数和总费用。
 
-下面的函数只汇总超限项，不替 Runtime 裁决调用。汇总结果写入 Trace 与 Failure Registry，并进入评估用例和 Release Gate：
+下面是未连接真实系统的教学函数；`estimated_call_cost_usd` 由可信计费适配器按当前价目和调用上界计算后传入，单位 USD，估算不可得时应返回独立 unknown 信号并停止自动放行。函数只汇总超限项，不替 Runtime 裁决调用。汇总结果写入 Trace 与 Failure Registry，并进入评估用例和 Release Gate：
 
 ```python
-def budget_findings(tool, args, task_state):
+def budget_findings(tool, args, task_state, estimated_call_cost_usd):
     budget = task_state.risk_budget
     findings = []
 
@@ -433,7 +447,7 @@ def budget_findings(tool, args, task_state):
         findings.append("tool_call_budget_exceeded")
     if tool.has_side_effect and budget.write_actions >= budget.max_write_actions:
         findings.append("write_action_budget_exceeded")
-    if budget.total_cost_usd + estimate_cost(tool, args) > budget.max_cost_usd:
+    if budget.total_cost_usd + estimated_call_cost_usd > budget.max_cost_usd:
         findings.append("cost_budget_exceeded")
     if tool.reads_sensitive_data and task_state.sensitive_records_read >= budget.max_sensitive_records:
         findings.append("sensitive_read_budget_exceeded")
@@ -462,7 +476,7 @@ OWASP 指出外部文本/图像可携带间接注入，防线需要最小权限�
 
 还应验证护栏自身不可用的分支。权限服务超时、策略包读取失败、审计写入受阻和裁判调用失败，对业务的影响并不相同。本书按受保护的不变量设计出口：无法确认写入授权时阻止派发，非关键展示检查失败时可交付受限内容并标出缺口；不能统一吞掉异常后继续执行。降级决定及其策略版本必须可审计，错误原因不暴露秘密凭据。
 
-护栏的有效性要按它实际能观察到的边界解释。输入检查通过不能证明工具参数在执行前仍获授权，输出检查通过也不能撤销已经发送的数据。回归样本因此覆盖检查通过后输入被替换、批准过期、连接撤销和敏感字段被嵌入工具结果等交错。治理只判定这些边界是否有可信证据，具体审批与恢复协议仍参考 Runtime 和外围工具系统。
+护栏的有效性要按它实际能观察到的边界解释。输入检查通过不能证明工具参数在执行前仍获授权，输出检查通过也不能撤销已经发送的数据。回归样本因此覆盖检查通过后输入被替换、批准过期、连接撤销和敏感字段被嵌入工具结果等交错。治理只判定这些边界是否有可信证据，具体审批与恢复协议仍参考 Runtime 和Agent 工具系统工程。
 
 ### 17.3.8 Guardrails 的常见误区
 
@@ -494,17 +508,17 @@ OWASP 指出外部文本/图像可携带间接注入，防线需要最小权限�
 
 Trace 为调试、评估、审计和成本分析提供关联线索，但不能替代任务状态或业务 Operation 账本。OpenTelemetry 用 Trace、Span 和传播上下文关联一次请求中的操作；缺失的 Span、传播中断和导出失败也要记录。[[12]](#ref-12)
 
-同一条 Trace 可以用事件记录行为，再映射成父子 Span。以下示例沿用告警诊断案例的 `trace_20260429_017`：
+同一条 Trace 可以用事件记录行为，再映射成父子 Span。以下示例沿用告警诊断案例的 `4bf92f3577b34da6a3ce929d0e0e4736`：
 
 ```json
 {
-  "trace_id": "trace_20260429_017",
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
   "task_id": "task_0099",
   "task_type": "incident_diagnosis",
   "agent_version": "incident-agent-v42",
   "spans": [
     {
-      "span_id": "s1",
+      "span_id": "00f067aa0ba902b7",
       "parent_span_id": null,
       "name": "agent.run",
       "status": "Unset",
@@ -512,8 +526,8 @@ Trace 为调试、评估、审计和成本分析提供关联线索，但不能�
       "duration_ms": 3100
     },
     {
-      "span_id": "s2",
-      "parent_span_id": "s1",
+      "span_id": "00f067aa0ba902b8",
+      "parent_span_id": "00f067aa0ba902b7",
       "name": "retrieval.search",
       "status": "Unset",
       "attributes": {
@@ -525,8 +539,8 @@ Trace 为调试、评估、审计和成本分析提供关联线索，但不能�
       "duration_ms": 120
     },
     {
-      "span_id": "s3",
-      "parent_span_id": "s1",
+      "span_id": "00f067aa0ba902b9",
+      "parent_span_id": "00f067aa0ba902b7",
       "name": "model.answer",
       "status": "Unset",
       "attributes": {
@@ -545,6 +559,15 @@ Trace 为调试、评估、审计和成本分析提供关联线索，但不能�
 Trace 至少要能关联任务与会话、Agent 版本、上下文版本、检索和工具事件、策略决策、证据引用、验证结果、成本及各阶段耗时。Span 则记录父子关系、名称、状态、持续时间，以及模型、工具、错误类别等必要属性。任务、attempt、Operation、执行代次和交付状态应引用权威账本中的标识；不要把它们仅保存为 Trace 文本。
 
 这些字段能区分时间花在检索、模型、MCP、工具 API、排队还是输出校验，也能说明一个结论依赖哪些证据。完整敏感参数、Token、Cookie 和个人信息不得直接写入 Trace；高基数身份和内容摘要保存在受控追踪存储中，不作为无限扩张的监控标签。
+
+| 本书自定义 Span/字段 | 固定版本 OTel 对照 | 限定 |
+| --- | --- | --- |
+| agent.run | invoke_agent，gen_ai.operation.name | 应用任务状态仍从账本读取 |
+| 工具调用 Span | execute_tool 与工具名属性 | 工具完成不等于业务成功 |
+| model.answer | 模型调用的对应 GenAI 操作 | 模型、提供方和用量按所选版本属性映射 |
+| claim_id / evidence_ids | 应用自定义属性 | 不冒充标准命名空间，不暴露敏感正文 |
+
+此表固定参考 semantic-conventions v1.36.0 的 Agent/工具约定；当前 GenAI 已迁至独立仓库，升级需显式检查变化，不把滚动页面当作稳定 tag。[[23]](#ref-23)
 
 ### 17.4.2 Evidence Graph：让结论可追溯
 
@@ -625,24 +648,24 @@ Trace 至少要能关联任务与会话、Agent 版本、上下文版本、检�
 
 按租户、任务类型、模型与风险切片，同时观测队列最老年龄和 unknown 最老年龄。告警由用户影响、错误预算消耗与约定时限驱动；安全关键违例单独处置，CPU、GPU 和工具错误作为定位线索。这里定义的是设计口径，实际 SLO 数值仍需业务承诺与真实基线。
 
-### 17.4.6 质量漂移告警
+### 17.4.6 质量漂移与安全事件的分别处置
 
 以下数值仅为教学阈值，实际阈值应由任务风险、历史基线、样本量和用户承诺确定。
 
-Agent 质量会因为模型、prompt、索引、文档、工具、业务规则变化而漂移。建议设置这些告警：
+漂移比较与服务故障使用不同观察。质量漂移比较相同任务分布下的成熟标签，服务故障按已承诺SLI和错误预算消耗速度告警；已确认安全违规直接进入事件响应。
 
-```text
-evidence_support_rate < 90%
-tool_error_rate > 3%
-human_correction_rate > 15%
-avg_tokens_per_task increased by 50%
-approval_bypass_count > 0
-task_success_rate: 7日基线90% -> 当前成熟批次80%（绝对下降10个百分点；教学例），同时报告两个窗口样本量与unknown
-```
+| 信号 | 前置条件 | 判断与动作 |
+| --- | --- | --- |
+| 成功率/证据支持下降 | 固定任务与标注口径、成熟标签、预设最小独立单位数 | 报告变化区间和unknown，样本不足只报覆盖缺口 |
+| 按时完成/可见交付故障 | 确定SLO、失败分母和两个观察窗口 | 计算burn=窗口错误率/(1−SLO)，长短窗口同时越过预设门槛才升级 |
+| 用量或成本增加 | 同一任务组合、计费版本、失败与重试均计入 | 比较单位成功成本，按首次偏离点诊断 |
+| 审批绕过/跨租户读取 | 安全事件已确认 | 立即阻断受影响路径，不等待质量样本量或统计显著 |
 
-这些指标不需要一开始完美，但必须尽早记录。没有历史基线，就无法判断系统是否退化。
+教学策略可以预先要求当前窗口至少200个独立成熟任务、基线2000个；这只是示例样本门，不保证任意效应都可检测。若SLO为99%，1小时窗口1000个任务中有60个失败，burn=6；短窗口100个任务中有8个失败，burn=8。两个值都超过预设的5时可触发调查，但窗口之间重叠、标签延迟和低流量仍需处理。该例不是所有Agent通用的分页阈值，完整燃烧率策略沿用生产运营主讲章。[[16]](#ref-16)
 
 <a id="cost-accounting"></a>
+
+漂移判断需要最小独立样本量、基线窗口、当前窗口与延迟成熟条件。样本不足只发数据覆盖告警，不宣称质量漂移；时效性故障按用户影响和错误预算燃烧率处置。`approval_bypass_count>0` 等已确认安全事件立即阻断受影响动作并进入事件响应，不与一般漂移阈值平均或等待统计显著。
 
 ### 17.4.7 成本计量与归因
 
@@ -743,7 +766,7 @@ Trace 越完整，越容易调试；但 trace 也可能包含敏感信息。生�
 ```yaml
 failure_record:
   id: "failure-0099"
-  source_trace_id: "trace_20260429_017"
+  source_trace_id: "4bf92f3577b34da6a3ce929d0e0e4736"
   task_type: "incident_diagnosis"
   failure_type: "evidence_not_supported"
   root_cause_layer:
@@ -816,25 +839,28 @@ agent_version:
 
 高风险过程证据缺失时按 `unknown` 处理，并阻止相关范围发布。零次观测失败不能证明真实风险为零；门禁报告要说明样本量和不确定性，统计方法见[评估与反馈闭环](../part2/04-data-eval.md)。
 
-以下教学函数逐切片返回决定，不把无关 P1 扩展为全局阻断；修复集单独验收，稳定配对集只比较同一冻结用例。min_n、allowed_drop 和零事件上界限额都是事先声明的业务策略，不能照搬为通用标准。bootstrap 示例假设 pairs 相互独立，相关会话须改为组重采样；重复运行不是新增独立用户。
+以下教学函数逐切片返回决定，不把无关 P1 扩展为全局阻断；修复集单独验收，稳定配对集只比较同一冻结用例。min_n、allowed_drop 和零事件上界限额都是事先声明的业务策略，不能照搬为通用标准。下面用第 10 章的 Hoeffding 界给出无第三方依赖的保守示例；独立配对单位上的差值在 [-1,1]，半宽为 sqrt(2×ln(2/alpha)/n)。即使没有翻转也不会输出零宽区间；代价是较宽，不能把未放行解释成确定退化。相关会话必须先按独立组重设计；该固定时点区间不能被反复查看而沿用同一 alpha。
 
 ```python
-from math import comb
-from random import Random
+from math import comb, log, sqrt
 
-def paired_stats(pairs, draws=2000, seed=17):
+def paired_stats(pairs, alpha=0.05):
     if not pairs or any(a not in (0, 1) or b not in (0, 1) for a, b in pairs):
         raise ValueError("valid paired binary outcomes required")
+    if not 0 < alpha < 1:
+        raise ValueError("alpha must be between zero and one")
     n = len(pairs)
     loss = sum(a == 1 and b == 0 for a, b in pairs)
     gain = sum(a == 0 and b == 1 for a, b in pairs)
     discordant = loss + gain
     p = min(1.0, 2 * sum(comb(discordant, k) for k in range(min(loss, gain) + 1)) / 2**discordant) if discordant else 1.0
     delta = [b - a for a, b in pairs]
-    rng = Random(seed)
-    samples = sorted(sum(rng.choice(delta) for _ in delta) / n for _ in range(draws))
-    return {"n": n, "loss": loss, "gain": gain, "delta": sum(delta) / n,
-            "low": samples[int(.025 * draws)], "high": samples[int(.975 * draws)],
+    estimate = sum(delta) / n
+    radius = sqrt(2 * log(2 / alpha) / n)
+    return {"n": n, "loss": loss, "gain": gain, "delta": estimate,
+            "low": max(-1.0, estimate - radius),
+            "high": min(1.0, estimate + radius),
+            "method": "hoeffding-bounded-paired-mean",
             "mcnemar_exact_p": p}
 
 def release_gate(report, policy):
@@ -845,12 +871,12 @@ def release_gate(report, policy):
         return "block", "critical evidence unknown"
     if report["missing_regression"] or report["smoke"] != "passed":
         return "block", "required regression or smoke evidence missing"
-    if report["unknown"] or report["invalid"] or not report["pairs"]:
-        return "review", "evaluation evidence insufficient"
     if len(report["repair_results"]) < report["required_repairs"]:
         return "block", "repair evidence missing"
     if any(v != "passed" for v in report["repair_results"]):
         return "block", "repair set not proven"
+    if report["unknown"] or report["invalid"] or not report["pairs"]:
+        return "review", "evaluation evidence insufficient"
     stats = paired_stats(report["pairs"])
     if stats["n"] < policy["min_n"]:
         return "review", "too few paired cases"
@@ -920,7 +946,7 @@ Release Gate
 告警诊断案例贯穿同一组标识：
 
 ```text
-trace_20260429_017
+4bf92f3577b34da6a3ce929d0e0e4736
   -> failure-0099: evidence_not_supported
   -> eval-incident-0099: 固定输入和证据的回归用例
   -> incident-agent-v43: 与 incident-agent-v42 配对比较
@@ -1007,70 +1033,41 @@ experiment:
 
 单位成功成本等于评估窗口内的总成本除以已验证且满足安全约束的成功任务数。分子包含失败、重试、回退和评测开销；成功数为零时应报告总支出并将比值标记为不可计算。
 
-沿用告警诊断例子：`trace_20260429_017` 被标为 `failure-0099`，回归用例为 `eval-incident-0099`。修复检索过滤和证据校验后，用相同冻结输入比较 `incident-agent-v42` 与 `incident-agent-v43`，再由 Release Gate 检查历史失败、风险切片和线上指标。这个例子展示了从 Bad Case 到发布决策的路径；它不代表已运行评测。
+沿用告警诊断例子：`4bf92f3577b34da6a3ce929d0e0e4736` 被标为 `failure-0099`，回归用例为 `eval-incident-0099`。修复检索过滤和证据校验后，用相同冻结输入比较 `incident-agent-v42` 与 `incident-agent-v43`，再由 Release Gate 检查历史失败、风险切片和线上指标。这个例子展示了从 Bad Case 到发布决策的路径；它不代表已运行评测。
 
 <a id="prompt-output-tuning"></a>
 
-### 17.6.3 输出与工具路径的诊断实验
+### 17.6.3 将假设、变量和门禁信号放进同一张实验表
 
-结构协议保证参考[LLM API](01-llm-api-protocol.md#structured-output)，业务校验参考[上下文任务契约](02-context-engineering.md#task-protocol)。治理只比较固定切片中结构错误、业务失败、unknown、修复成本与门禁影响；更严格 Schema 若导致合法任务全部拒绝，同样需要验收。阈值是教学策略，不是产品默认。
-
-### 17.6.4 规划、反思与完成判定：让任务按证据收敛
-
-将大任务拆成有输入、依赖、交付物、验收与状态的步骤，而不是只列一串动词。对每一步保存“已观察事实、当前假设、已排除方向、未解决问题和下一次有效验证”；失败时仅失效受影响节点和下游，保留通过验收的独立产物。
-
-例如只读诊断可拆成“确认范围 → 获取指标 / 日志 / 部署 → 建立候选原因 → 验证关键假设 → 交付证据和限制”。指标与部署可以并行，但结论必须等待所依赖证据；若用户改变时间窗，旧证据需要核验适用性，而不是全盘保留或从零重做。
-
-| 触发条件 | 重规划或反思动作 | 结束 / 升级条件 |
-| --- | --- | --- |
-| 新事实否定原假设 | 标记假设失效，解释转向依据，更新必要依赖 | 验证后已有足够结论，不继续扩展范围 |
-| 工具错误 | 先分类参数、授权、限流、瞬时故障与未知副作用 | 无合法替代、剩余预算不足或结果待人工核验 |
-| 连续无新进展 | 检查重复签名与周期，改证据源或缩小问题 | 达到全局无进展 / 费用 / 时间边界 |
-| 验证器发现具体缺陷 | 提供失败事实，在受控范围内修复 | 修复次数上限；仍未通过则交付失败或部分结果 |
-| 子 Agent 结果冲突 | 回看来源、时间、对象版本和验收证据 | 无法消解则保留冲突，不用多数投票代替事实 |
-
-反思应改变下一步动作或产物，最好由测试、规则、工具状态或独立证据触发；“再想想是否正确”不构成可靠闭环。任务完成条件由真实产物和业务状态判定，不强制唯一轨迹；多个等价正确路径都可通过。任务分解效果看完成率、返工、依赖错误、委派开销与总耗时，不按步骤数或 Agent 数量奖励。
+规划、工具接入、压缩与缓存的机制分别由前面主讲章定义。本章只定义如何比较改变：先记录首次偏离点，每次改变一个可解释变量，在相同任务、权限、预算和环境下检查收益及退化。更多反思轮数、子 Agent 数量或更短输出都不能单独算成功。
 
 <a id="skill-tool-effect"></a>
-
 <a id="skill-tuning"></a>
 <a id="mcp-tuning"></a>
-
-### 17.6.5 能力层调优与执行诊断
-
-| 失败切片 | 控制变量实验 | 评估/门禁信号 |
-| --- | --- | --- |
-| Skill 误触发或漏步骤 | 固定工具、模型、输入，只改 description/方法或加载策略 | 有效触发、步骤验收、越权尝试与上下文成本 |
-| MCP/Connector | 固定任务与契约，比较连接/发现/结果大小和版本 | 错误分类、Schema 兼容、unknown 与授权回归 |
-| 工具参数/错误消费 | 固定候选调用，比较描述或验证器 | 参数通过、真实业务效果、缺口保留 |
-| Runtime 循环与重试 | 固定观察，比较停止判据/调度参数 | 无进展、总尝试、预算、恢复与迟到提交 |
-| RAG 证据错位 | 按 RAG 主讲章做 Flat/排序/充分证据替换 | 诊断归因、旧版命中、支持率和回归切片 |
-
-工具与 Skill 的版本、授权和写入契约参考[外围能力构建](04-skills-tools-mcp-connectors.md)；审批、提交和恢复参考[Runtime](03-agent-runtime.md#failure-scenarios)。RAG 的算法实验与分母参考[检索评估](02b-knowledge-retrieval.md#rag-evaluation)。治理保留失败路由、回归和发布证据，不再重复协议。缓存计费参考[LLM API](01-llm-api-protocol.md)，不能以命中率代替成功成本。
-
-### 17.6.6 上下文与 Memory 调优的回归切片
-
-上下文压缩、召回、遗忘和污染处理参考[上下文工程](02-context-engineering.md#context-evaluation)。本章固定源输入、权限、工具观察和模型，对比无记忆/原记忆/更新记忆与压缩前后包，观察必要约束保留、错误晋升、撤权复活、unknown 和后续完成质量。摘要更短或相似度更高不能单独通过发布。
-
 <a id="model-cache-tuning"></a>
 
-### 17.6.7 模型、Prompt 与缓存调优：比较实际收益
+| 失败假设 | 单次改变的变量 | 固定条件 | 质量与安全门禁信号 | 成本/性能信号 |
+| --- | --- | --- | --- | --- |
+| 结构输出或调用参数不清 | 描述/Schema/验证反馈之一 | 原输入、候选工具与模型 | 结构/业务失败、unknown；合法任务不能全部拒绝 | 修复次数与总费用 |
+| 分解遗漏依赖或反思不用证据 | 依赖表示、测试反馈或停止判据之一 | 同一任务与观察预算 | 返工、无证据完成、必需动作未知 | 总轮次、无进展与墙钟时间 |
+| Skill 误触发或漏步骤 | description、方法或加载策略之一 | 工具、模型与任务集 | 有效触发、步骤验收、越权尝试 | 加载 token 与单位成功成本 |
+| MCP/Connector 契约不匹配 | 连接策略、发现或结果大小之一 | 任务、服务版本与身份 | Schema 兼容、错误分类、授权回归 | 往返、初始化与大结果处理 |
+| RAG 返回了错误证据 | 精确候选/重排/充分证据替换之一 | 查询、ACL 与快照 | 旧版命中、支持率、撤权泄漏 | 检索/回读预算 |
+| Memory 或压缩丢约束 | 无记忆/原记忆/更新记忆，或单一压缩策略 | 源材料、权限与工具观察 | 错误晋升、冲突消失、撤权复活 | 装配+压缩+后续调用总费用 |
+| 路由选错模型 | 单一路由规则 | 同一输入、可用模型与验收 | 各语言/长度/风险切片成功、升级失败 | 升级与重试共享预算后的成本 |
+| 前缀布局影响缓存 | 稳定部分布局 | 同一业务内容与输出契约 | 任务质量、过期材料与权限失效 | cached usage、TTFT、成功成本 |
 
-Prompt 的角色是表达任务、输入解释、决策与输出契约。先修正目标歧义、示例偏差和相互冲突的规则，再评估模型能力是否不足；Schema 正确之后仍需业务校验。降低 Temperature 不能修复缺失证据或权限设计，也不能保证完全确定性；额外推理与输出长度应按任务成功和实际费用评测。
+RAG 的算法参照和分母见[检索评估](02b-knowledge-retrieval.md#rag-evaluation)，上下文反例与顺序实验见[上下文评估](02-context-engineering.md#context-evaluation)，工具契约见[能力构建](04-skills-tools-mcp-connectors.md)，恢复与提交见[Runtime](03-agent-runtime.md#failure-scenarios)。替换证据的实验用于定位误差，不代表线上可以凭空获得正确证据。
 
-模型路由按任务类型、语言、输入长度、工具能力、风险和数据位置选择。小模型先在已验证切片内承担分类、摘要或简单查询；校验失败可受控升级，但升级、修复和重试共享任务预算。路由器误判本身也要进入评测。备用供应商需要验证工具消息、结构化输出、媒体、窗口、拒绝及流式行为，接口形状兼容不等于可替代。
+### 17.6.4 让一个实验能推翻假设
 
-| 缓存种类 | 复用什么 | 键与边界 | 调优判据 |
-| --- | --- | --- | --- |
-| 精确结果缓存 | 满足同一业务条件的响应 | 输入、租户、授权范围、上下文及数据 / 策略版本 | 命中收益、过期答案、撤权失效 |
-| 语义缓存 | 经额外判定可等价的相似问题结果 | 相似度只召回候选；核对时间、主体、条件、否定与权限 | 近似但答案不同的负例、误命中损失 |
-| Prompt / 前缀缓存 | 相同前缀的计算或 KV | 依供应商 / 引擎的模型、序列与隔离规则 | 实际 cached usage、TTFT、总费用 |
+例如调查成功率下降，先从失败 Trace 提出“摘要遗漏生产环境限制”。对同一冻结材料比较原摘要与保留限制的新摘要，模型和工具观察不变；另用完整材料作为诊断参照。如果新摘要仍把 staging Runbook 当 production 指令，说明该修改没有修复关键误差；若完整材料也失败，不能继续把全部失败归给压缩。每个实验事先写出什么观察会否定假设，避免只挑支持自己的案例。
 
-计费和命中条件参考[协议中的缓存成本](01-llm-api-protocol.md)，前缀布局参考[上下文装配](02-context-engineering.md#context-assembly)。治理比较“装配/压缩成本+所有后续调用”的总费用、质量、TTFT 和撤权失效，不为缓存保留无关或过期数据。切换供应商仍保留原 Operation 身份，部分输出和已执行工具不能无痕从头重做。
+开发任务用于选择变量和阈值，留出任务用于最终验收。多个派生问题按原事故分组，重复运行按任务聚合。只在留出集上看一次确认性结果；若试了多种模型、排列或切片，使用事先定义的多重比较或分层门禁。安全违规和未知必需动作先阻断，不能以平均成功率抵消。具体统计方法回指第 10 章，Agent 应用口径见 17.2。
 
-<a id="performance-metrics"></a>
+缓存实验尤其要辨认复用对象：结果缓存复用答案，需要同主体、授权、数据版本和时效；语义缓存只用相似度找候选，仍需检查否定、实体与条件；前缀缓存复用计算，其计费与命中契约由提供方定义。结果命中后仍然重新检查当前授权，不把旧缓存作为读取被撤权内容的旁路。换供应商也保留原 Operation，不能无痕从头执行已经发出的工具动作。
 
-### 17.6.8 性能与容量：治理视角的边界
+### 17.6.5 性能与容量：治理视角的边界
 
 本章只保留 Agent 层的性能诊断和容量门禁。先区分用户看到首个有效结果的时间、模型 TTFT、生成速度、端到端任务耗时，以及满足质量与安全门槛的有效吞吐；这些指标的起止点和分母必须写清。模型服务指标可参考 vLLM 文档；尾延迟分析还应保留任务切片。[[19]](#ref-19)[[20]](#ref-20)
 
@@ -1113,29 +1110,29 @@ GPU 显存、KV Cache、Batching 和 Serving 参数属于模型服务层，详�
 
 未满足安全或业务硬门槛时，不扩大权限与流量；样本量不足、证据缺失或结果为 unknown 时，应标为待核验。零次观测失败不能单独证明风险为零。
 
-## 17.8 本章小结
+## 本章小结
 
 [![治理闭环的收敛条件](../images/review-agent-governance-optimization-08.svg)](../images/review-agent-governance-optimization-08.svg)
 
 
 治理将运行事实、失败记录、冻结用例、校准评分和发布范围连接起来。诊断正确性、执行可靠性和通知交付分别验收；unknown 与 invalid 保留分母和原因；版本比较使用配对证据及不确定性，安全硬约束不被综合分抵消。发布允许只表示证据支持在声明范围内进入灰度，灰度失败要回退并重开 Failure，不能把离线通过等同生产正确。
 
-## 17.9 参考资料
+## 参考资料
 
 [![治理资料如何支撑门禁](../images/review-agent-governance-optimization-09.svg)](../images/review-agent-governance-optimization-09.svg)
 
 
-1. <a id="ref-1"></a> Liu et al.，[AgentBench: Evaluating LLMs as Agents](https://arxiv.org/abs/2308.03688)，2023。
-2. <a id="ref-2"></a> Yao et al.，[tau-bench: A Benchmark for Tool-Agent-User Interaction in Real-World Domains](https://arxiv.org/abs/2406.12045)，2024。
+1. <a id="ref-1"></a> Liu et al.，[AgentBench: Evaluating LLMs as Agents](https://arxiv.org/abs/2308.03688)，2023。 访问日期：2026-10-24。
+2. <a id="ref-2"></a> Yao et al.，[tau-bench: A Benchmark for Tool-Agent-User Interaction in Real-World Domains](https://arxiv.org/abs/2406.12045)，2024。 访问日期：2026-10-24。
 3. <a id="ref-3"></a> Langfuse，[Writing good evaluators](https://langfuse.com/academy/evaluate/writing-evaluators)，持续更新文档；核验于 2026-10-21。支撑优先检查可验证状态、窄准则与分类判定，任务指标表为本章设计。
-4. <a id="ref-4"></a> Zheng et al.，[Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena](https://arxiv.org/abs/2306.05685)，2023。
+4. <a id="ref-4"></a> Zheng et al.，[Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena](https://arxiv.org/abs/2306.05685)，2023。 访问日期：2026-10-24。
 5. <a id="ref-5"></a> NIST/SEMATECH，[Confidence intervals for proportions](https://www.itl.nist.gov/div898/handbook/prc/section2/prc241.htm)，e-Handbook；核验于 2026-10-24。
 6. <a id="ref-6"></a> NIST，[McNemar Test](https://www.itl.nist.gov/div898/software/dataplot/refman1/auxillar/mcnemar.htm)，Dataplot Reference；核验于 2026-10-24。
 7. <a id="ref-7"></a> Microsoft Experimentation Platform，[Diagnosing Sample Ratio Mismatch in A/B Testing](https://www.microsoft.com/en-us/research/articles/diagnosing-sample-ratio-mismatch-in-a-b-testing/)，2020；核验于 2026-10-24。
 8. <a id="ref-8"></a> OpenAI，[Guardrails and human review](https://developers.openai.com/api/docs/guides/agents/guardrails-approvals)，持续更新文档；核验于 2026-10-21。
 9. <a id="ref-9"></a> OWASP，[Server Side Request Forgery Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html)，持续更新资料；核验于 2026-10-21。支撑 URL、地址与网络出口防护，Agent 内容外发授权为场景扩展。
 10. <a id="ref-10"></a> OWASP，[AI Agent Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html)，持续更新资料；核验于 2026-10-21。支撑独立执行授权、精确动作审批与防重放；审批到 Operation 的状态协议为本章组合设计。
-11. <a id="ref-11"></a> OWASP，[LLM01:2025 Prompt Injection](https://genai.owasp.org/llmrisk/llm01-prompt-injection/)，2025。
+11. <a id="ref-11"></a> OWASP，[LLM01:2025 Prompt Injection](https://genai.owasp.org/llmrisk/llm01-prompt-injection/)，2025。 访问日期：2026-10-24。
 12. <a id="ref-12"></a> OpenTelemetry，[Traces](https://opentelemetry.io/docs/concepts/signals/traces/)，持续更新文档；核验于 2026-10-21。
 13. <a id="ref-13"></a> OpenTelemetry，[Tracing API: Set Status](https://opentelemetry.io/docs/specs/otel/trace/api/#set-status)，核验于 2026-10-24。
 14. <a id="ref-14"></a> OpenTelemetry，[GenAI agent and framework spans](https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-agent-spans.md)，Development；核验于 2026-10-24。
@@ -1144,6 +1141,10 @@ GPU 显存、KV Cache、Batching 和 Serving 参数属于模型服务层，详�
 17. <a id="ref-17"></a> Langfuse，[Error Analysis for LLM Applications](https://langfuse.com/guides/cookbook/error-analysis-llm-applications)，持续更新指南；核验于 2026-10-21。支撑从观察、归类与量化决定修复的流程，本章 Bad Case 为自拟教学案例。
 18. <a id="ref-18"></a> Langfuse，[Choosing what to evaluate](https://langfuse.com/academy/evaluate/choosing-what-to-evaluate) 与 [Evaluation](https://langfuse.com/academy/evaluate)，持续更新文档；核验于 2026-10-21。支撑目标、约束、运行指标的区分及从失败建立评测的方法。
 19. <a id="ref-19"></a> vLLM，[Production Metrics](https://docs.vllm.ai/en/latest/usage/metrics/)，持续更新文档；核验于 2026-10-21。支撑模型服务各阶段指标的区分，实际名称和口径按部署版本核对。
-20. <a id="ref-20"></a> Jeffrey Dean、Luiz André Barroso，[The Tail at Scale](https://research.google/pubs/the-tail-at-scale/)，Communications of the ACM，56，2013，74–80。支撑分布式服务尾延迟问题；Agent 的性能验收为本章场景推导。
+20. <a id="ref-20"></a> Jeffrey Dean、Luiz André Barroso，[The Tail at Scale](https://research.google/pubs/the-tail-at-scale/)，Communications of the ACM，56，2013，74–80。支撑分布式服务尾延迟问题；Agent 的性能验收为本章场景推导。 访问日期：2026-10-24。
 21. <a id="ref-21"></a> Brendan Gregg，[The USE Method](https://www.brendangregg.com/usemethod.html)，作者方法文档；核验于 2026-10-21。支撑利用率、饱和与错误的资源排查思路；Agent 软件资源清单为本章应用。
 22. <a id="ref-22"></a> Google，[Site Reliability Engineering：Handling Overload](https://sre.google/sre-book/handling-overload/)，2016；核验于 2026-10-21。支撑容量约束与过载治理；Agent 的 Token 预算和租户策略为本章场景推导。
+
+23. <a id="ref-23"></a> OpenTelemetry maintainers，[GenAI agent and framework spans, v1.36.0](https://github.com/open-telemetry/semantic-conventions/blob/v1.36.0/docs/gen-ai/gen-ai-agent-spans.md)，Development 语义约定；核验于 2026-10-24。
+
+24. <a id="ref-24"></a> Shankar et al.，[Who Validates the Validators? Aligning LLM-Assisted Evaluation of LLM Outputs with Human Preferences](https://arxiv.org/abs/2404.12272)，2024；核验于 2026-10-24。
