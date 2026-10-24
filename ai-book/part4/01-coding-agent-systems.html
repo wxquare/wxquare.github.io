@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第17章 成熟 Coding Agent 内部实现：Codex CLI、Claude Code 与 OpenCode - AI Engineering：大模型与智能体系统工程</title>
+        <title>第18章 成熟 Coding Agent 内部实现：Codex CLI、Claude Code 与 OpenCode - AI Engineering：大模型与智能体系统工程</title>
 
 
         <!-- Custom HTML head -->
@@ -43,10 +43,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-30dde1cf.js";
+            window.path_to_searchindex_js = "../searchindex-a81d105a.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-d662c9eb.js"></script>
+        <script src="../toc-4a74a8e8.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -185,7 +185,7 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="第17章-coding-agent-系统"><a class="header" href="#第17章-coding-agent-系统">第17章 Coding Agent 系统</a></h1>
+                        <h1 id="第18章-coding-agent-系统"><a class="header" href="#第18章-coding-agent-系统">第18章 Coding Agent 系统</a></h1>
 <blockquote>
 <p>成熟的 Coding Agent 不是“会改代码的模型”，而是一个持续组织上下文、调度工具、约束副作用并验证结果的工程运行时。同一个运行时在不同人手里表现差异很大，差别主要来自使用者提供的任务、上下文、边界和验证。</p>
 </blockquote>
@@ -207,8 +207,8 @@
 </div>
 <p>Claude Code 没有公开核心源码，本章对它只引用官方文档，不使用逆向、泄露代码或社区猜测。官方没有使用“闭源”一词，仓库许可证只声明版权所有并指向商业条款，因此本章写作“核心程序未按开源许可证公开”。</p>
 <p>还有一条限制需要提前说明：本章的行为结论来自阅读源码与官方文档，没有经过运行验证或故障注入。文档与源码不一致的地方，正文会指出，并以固定提交的源码为准；只能在源码里找到、文档没有承诺的行为，会标注“源码事实，非文档承诺”。版本敏感的内容（默认权限模式、命令名、配置键、模型名与别名）一律写明核验日期，正文不硬写模型名。</p>
-<h2 id="171-组成三个产品由哪些部分构成"><a class="header" href="#171-组成三个产品由哪些部分构成">17.1 组成：三个产品由哪些部分构成</a></h2>
-<h3 id="1711-从代码生成到可审查交付"><a class="header" href="#1711-从代码生成到可审查交付">17.1.1 从代码生成到可审查交付</a></h3>
+<h2 id="181-组成三个产品由哪些部分构成"><a class="header" href="#181-组成三个产品由哪些部分构成">18.1 组成：三个产品由哪些部分构成</a></h2>
+<h3 id="1811-从代码生成到可审查交付"><a class="header" href="#1811-从代码生成到可审查交付">18.1.1 从代码生成到可审查交付</a></h3>
 <p>普通代码生成器的产物是文本片段。Coding Agent 的产物存在于仓库和执行环境里：它读取文件，向模型发起请求，调用工具修改代码、运行命令，再把结果交给人审查。模型的回答只是交付说明，不能代替真实的文件差异和验证结果。</p>
 <p>三个产品可以抽象成同一条工作路径。这是本书用于分析的共同模型，不是任何产品的源码模块图：</p>
 <pre><code class="language-mermaid">flowchart LR
@@ -238,7 +238,7 @@
 </table>
 </div>
 <p>一次模型响应可以只含解释，也可以含一个或多个工具请求。运行时要把工具请求解析为可执行操作，检查参数与权限，调用本地或外部能力，把结果归入会话，再决定是否继续采样。所以主循环是一个受控状态机，不是单次提示词调用。工具可能失败、超时、被用户拒绝或被中断，可靠的运行时要把这些情况作为不同结果回送给模型，而不是把失败输出包装成成功；取消也不会撤回已经发生的外部副作用，远端请求、数据库写入和命令进程各有各的恢复语义。这些问题在 17.4 逐一展开。</p>
-<h3 id="1712-三个产品与证据基础"><a class="header" href="#1712-三个产品与证据基础">17.1.2 三个产品与证据基础</a></h3>
+<h3 id="1812-三个产品与证据基础"><a class="header" href="#1812-三个产品与证据基础">18.1.2 三个产品与证据基础</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -254,7 +254,7 @@
 </div>
 <p>这张表也说明了开源与可审查的关系。源码可见提升了实现的可审计性，但代码存在不代表部署时启用了对应配置，默认功能也不代表每个版本、每个入口的行为一致；源码审查替代不了运行验证、权限测试和故障演练。闭源产品也并非不可分析：官方行为文档、协议说明和配置接口足以支撑严谨的系统比较，前提是把可观察事实和内部猜测分开。Claude Code 一栏的证据上限就是官方文档，本章不越过它。</p>
 <p>固定提交并不是形式要求。Codex 固定提交的时间是 2026-10-22 06:32 UTC，核验当天主分支已经前进了约 4 小时，其中被本章引用的 <code>state/turn.rs</code> 当天就改了注释措辞（机制未变）<a href="#ref-20">[20]</a>。如果引用主分支，同一个链接几小时后就可能不再支持原来的论断。</p>
-<h3 id="1713-运行时组成对照"><a class="header" href="#1713-运行时组成对照">17.1.3 运行时组成对照</a></h3>
+<h3 id="1813-运行时组成对照"><a class="header" href="#1813-运行时组成对照">18.1.3 运行时组成对照</a></h3>
 <p>下表按职责归纳三个产品的公开组成。同一格里的职责不意味着同一个进程或同一个源码模块；Claude Code 一列只描述官方文档公开的行为，不推测私有模块。</p>
 <div class="table-wrapper">
 <table>
@@ -274,21 +274,21 @@
 </div>
 <p><a href="../images/coding-agent-runtime-comparison.svg"><img src="../images/coding-agent-runtime-comparison.png" alt="Codex、Claude Code 与 OpenCode 的运行时组成对照：客户端、运行时职责、模型服务与执行后端"></a></p>
 <p><em>运行时组成对照。虚线框表示逻辑职责分组，不代表三款产品具有相同的进程划分；框内卡片不表示调用顺序。Claude Code 一列采用官方行为文档，不推测私有模块。图中标注的源码与文档依据见附录 B，点击图片查看 SVG。</em></p>
-<h3 id="1714-会话与执行对象sessionturn-与工作区"><a class="header" href="#1714-会话与执行对象sessionturn-与工作区">17.1.4 会话与执行对象：Session、Turn 与工作区</a></h3>
+<h3 id="1814-会话与执行对象sessionturn-与工作区"><a class="header" href="#1814-会话与执行对象sessionturn-与工作区">18.1.4 会话与执行对象：Session、Turn 与工作区</a></h3>
 <p>三个产品都把会话、本轮执行和工作区看作不同的东西，但对象的名字和边界各不相同。</p>
 <p>Codex 的外部协议用 Thread、Turn、Item 三层：Thread 是会话，包含多个 Turn，Turn 包含消息、命令、文件变化等 Item<a href="#ref-2">[2]</a>。核心里的 Session 保有线程、历史、配置和各类服务，长期存在；一个 Session 在任一时刻至多有一个运行中的任务。活动 Turn 的状态（取消令牌、待决审批、待处理输入、工具调用）挂在 Session 的 <code>active_turn</code> 之下，并不是独立于 Session 的对象<a href="#ref-20">[20]</a>。所以会话可以继续存在而某个 Turn 已经结束，Turn 也可以被中断或追加输入，而不必重建会话；对持久化、统计、恢复和取消来说，这是两个不同的状态对象。</p>
 <p>Claude Code 把对话、工具调用和结果写进本地明文 JSONL 会话文件。官方说明，resume 以同一会话 ID 重新打开并追加新消息，fork 则把历史复制到新的会话 ID；同一个会话在两个终端同时恢复且不 fork 时，两边的消息会交错写进同一份记录。官方还声明 JSONL 条目格式属于内部实现，随版本变化，不建议直接解析<a href="#ref-31">[31]</a><a href="#ref-38">[38]</a>。</p>
 <p>OpenCode 的会话归服务端持有。源码里执行过程以 drain 和 step 推进：开始执行时，Started 事件和执行声明在同一个事务里写入，这是它能在进程重启后续跑的基础（见 17.4.4）<a href="#ref-71">[71]</a><a href="#ref-72">[72]</a>。</p>
 <p>会话历史与工作区是第三组区别。官方文档明确写到，切换 Git 分支后 Claude 看到的是新分支的文件，会话历史保持不变<a href="#ref-31">[31]</a>。这个例子说明，磁盘上有文件不代表已进入上下文，会话里有描述也不代表工作区仍是那个样子。会话记录是上下文资产，工作区是外部事实，本轮是短时执行状态，三者不能互相替代。</p>
-<h3 id="1715-接入面与进程边界"><a class="header" href="#1715-接入面与进程边界">17.1.5 接入面与进程边界</a></h3>
+<h3 id="1815-接入面与进程边界"><a class="header" href="#1815-接入面与进程边界">18.1.5 接入面与进程边界</a></h3>
 <p>Codex 的变化最大。固定提交中，TUI 的 <code>Cargo.toml</code> 已经不再依赖 <code>codex-core</code>，TUI 和 <code>codex exec</code> 都通过进程内的 App Server 客户端接入，源码注释写明这样做是为了保留 App Server 的语义，同时避免进程边界<a href="#ref-25">[25]</a>。协议 crate 的 README 仍然写着“core 与 TUI 之间的内部类型”，已经落后于代码<a href="#ref-29">[29]</a>。更准确的说法是：TUI、exec 和外部客户端共用 App Server 的请求与事件语义，TUI 以进程内方式承载它。App Server 有 stdio（默认）、Unix socket、WebSocket 和关闭四种传输；官方文档称 WebSocket 为 experimental and unsupported，<code>codex app-server</code> 命令主要用于开发与调试，可能不经通知变化<a href="#ref-2">[2]</a><a href="#ref-14">[14]</a><a href="#ref-25">[25]</a>。</p>
 <p>Claude Code 的官方描述是：它是围绕模型的外围层，提供工具并管理模型所见的上下文，也就是所谓 agentic harness；各个界面共用同一个循环<a href="#ref-31">[31]</a>。官方没有公开进程和线程的划分。</p>
 <p>OpenCode 2.x 把界面放在服务端之上。CLI 默认发现或启动当前用户的共享后台服务，客户端连上它；<code>--standalone</code> 启动私有服务，<code>--server</code> 连接指定服务，两者不能同时给出<a href="#ref-57">[57]</a><a href="#ref-70">[70]</a>。私有服务由客户端拉起子进程，客户端关闭其标准输入时服务随之退出<a href="#ref-70">[70]</a>。这个细节决定了“关闭界面是否等于结束服务”的答案：共享服务模式下不等于，私有服务模式下等于。</p>
 <p>三者共同的取向，是把“怎样呈现任务”和“怎样执行任务”分开，前端不必复制一套模型循环。这是对公开协议与职责的架构概括（系统推导），不代表所有界面的功能完全相同。</p>
-<h3 id="1716-模型接入与扩展层"><a class="header" href="#1716-模型接入与扩展层">17.1.6 模型接入与扩展层</a></h3>
+<h3 id="1816-模型接入与扩展层"><a class="header" href="#1816-模型接入与扩展层">18.1.6 模型接入与扩展层</a></h3>
 <p>OpenCode 把模型接入做成可替换的部分：Provider 与模型目录来自 models.dev，Provider 通过 <code>package</code> 字段选择运行时包，本地模型（Ollama、LM Studio、vLLM）可自动发现，任意 OpenAI 兼容服务可手动配置<a href="#ref-60">[60]</a>。官方文档同时承认，这个抽象并不抹平差异：选项是 Provider 特定的，别的 Provider 包可能忽略或拒绝；目录之外的自定义模型默认假设 200,000 的上下文和 32,000 的输出上限，文档称这是回退假设，不是检测到的能力<a href="#ref-60">[60]</a>。Codex 的仓库也含适配组件，配置文档列出自定义模型提供商、<code>--oss</code> 本地模式和 Bedrock 提供商<a href="#ref-4">[4]</a>。Claude Code 使用 Claude 模型，通过 Anthropic API、云厂商平台或网关访问，缓存和推理都发生在服务端，“本地执行工具”并不意味着在本地运行模型<a href="#ref-46">[46]</a>。</p>
 <p>扩展层方面，三个产品的名字相近，但在循环中的位置不同。Claude Code 官方的划分最清楚：Skill 提供可复用的知识与工作流，MCP 接入外部服务，Hook 在生命周期事件上执行确定性动作，Subagent 把有边界的工作交给独立上下文，Plugin 只是打包与分发形式<a href="#ref-45">[45]</a>。Codex 的 Skill 采用渐进披露：启动时只带每个技能的名称与描述，选用时才读完整的 <code>SKILL.md</code>；描述列表最多占模型上下文窗口的 2%（窗口未知时为 8,000 字符）<a href="#ref-11">[11]</a>。OpenCode 的 Commands 里，<code>!</code> 嵌入的 Shell 块在工具权限流程之外运行，文档要求只使用可信来源；2.x 的插件 API 与 1.x 不兼容，1.x 插件不能在 2.x 运行<a href="#ref-65">[65]</a>。这些扩展的内部注册、调度与持久化方式，凡是没有公开源码或官方实现说明的，本章不作断言。</p>
-<h3 id="1717-权限沙箱与审批三层各管什么"><a class="header" href="#1717-权限沙箱与审批三层各管什么">17.1.7 权限、沙箱与审批：三层各管什么</a></h3>
+<h3 id="1817-权限沙箱与审批三层各管什么"><a class="header" href="#1817-权限沙箱与审批三层各管什么">18.1.7 权限、沙箱与审批：三层各管什么</a></h3>
 <p>权限相关的机制可以分成三层：决策层决定一个动作是否放行，隔离层限制放行后的进程能碰到什么，管理层决定谁能把规则收紧。</p>
 <div class="table-wrapper">
 <table>
@@ -306,11 +306,11 @@
 <p>OpenCode 的默认配置需要特别注意：每个 Agent 的默认策略是 <code>* * allow</code>，只有读取 <code>.env</code> 一类文件会询问，项目目录外的读写默认也不询问<a href="#ref-63">[63]</a>。所以“<code>ask</code> 会暂停动作”在默认配置下只覆盖很少的动作，想让它生效，要自己添加规则。</p>
 <p>另一类常见的误解，是把角色或提示词当作边界。OpenCode 文档明确写到，隐藏某个 Agent 只控制可见性，不是安全手段<a href="#ref-62">[62]</a>；Claude Code 文档则说，在 CLAUDE.md 或 Skill 里写“不要编辑 .env”只是请求而不是保证，必须发生的约束要放进 Hook<a href="#ref-45">[45]</a>。
 <a id="coding-agent-runtime-startup"></a></p>
-<h2 id="172-启动从进程启动到首个模型请求"><a class="header" href="#172-启动从进程启动到首个模型请求">17.2 启动：从进程启动到首个模型请求</a></h2>
-<h3 id="1721-三个时间尺度"><a class="header" href="#1721-三个时间尺度">17.2.1 三个时间尺度</a></h3>
+<h2 id="182-启动从进程启动到首个模型请求"><a class="header" href="#182-启动从进程启动到首个模型请求">18.2 启动：从进程启动到首个模型请求</a></h2>
+<h3 id="1821-三个时间尺度"><a class="header" href="#1821-三个时间尺度">18.2.1 三个时间尺度</a></h3>
 <p>启动不是一个瞬间。进程启动准备服务与连接，会话初始化选择工作区与配置并建立或恢复历史，轮次启动把新的输入送进模型与工具循环。三者可以连续发生，也可以相隔很久：一个后台服务可以承载多个会话，一个会话可以执行多轮。恢复历史只是读回记录；旧的命令进程是否恢复、文件是否回到历史时刻，因产品而异，见 17.4.4。</p>
 <p>后面三小节分别描述三个产品的启动路径，17.2.5 说明配置与指令什么时候生效，17.2.6 对照“就绪”在三个产品里分别指什么。</p>
-<h3 id="1722-codexapp-server-路径"><a class="header" href="#1722-codexapp-server-路径">17.2.2 Codex：App Server 路径</a></h3>
+<h3 id="1822-codexapp-server-路径"><a class="header" href="#1822-codexapp-server-路径">18.2.2 Codex：App Server 路径</a></h3>
 <p>以客户端启动 <code>codex app-server</code> 为例，协议路径是：启动服务、握手、建立或恢复 Thread、启动 Turn、消费事件直到 Turn 结束。TUI 与 <code>codex exec</code> 在固定提交中以进程内方式承载同一套 App Server 语义，没有进程边界，但步骤相同<a href="#ref-25">[25]</a>。</p>
 <div class="table-wrapper">
 <table>
@@ -329,7 +329,8 @@
 </div>
 <p>握手的硬顺序是连接、<code>initialize</code>、建立或恢复 Thread、启动 Turn。官方文档说，握手之前的任何请求都会被拒绝，重复的 <code>initialize</code> 返回 “Already initialized”<a href="#ref-2">[2]</a>。源码给出了更精确的细节：放行门设在 <code>initialize</code> 请求上，未初始化时返回 “Not initialized”；<code>initialized</code> 通知在服务端只被记录，并不参与放行<a href="#ref-25">[25]</a>。所以“握手前的业务请求被拒绝”成立，“必须先发 <code>initialized</code> 才放行”则不是服务端强制的。另外，<code>turn/completed</code> 的状态可能是 <code>interrupted</code> 或 <code>failed</code>，不能仅凭事件名认定需求已经实现<a href="#ref-2">[2]</a>。</p>
 <p>有两处需要标注版本的不一致。其一，<code>--code-mode-host</code> 控制的是 App Server 向其 Code Mode 宿主发起的外向连接，不改变 <code>--listen</code>，也就是客户端怎样连入 App Server；这是两条不同的连接。官方文档的示例写的是 <code>wss://</code> 地址，而固定提交的源码只接受 <code>http://</code> 或 <code>https://</code>，并在测试里把 <code>wss://</code> 列为非法端点，所以本章不写具体的地址方案<a href="#ref-2">[2]</a><a href="#ref-25">[25]</a>。其二，<code>code_mode_host</code> 特性默认开启，<code>code_mode</code> 特性仍在开发中、默认关闭，“默认会启动本地宿主”不能写成“默认启用 Code Mode”<a href="#ref-28">[28]</a>。</p>
-<h3 id="1723-claude-codeharness-与-session"><a class="header" href="#1723-claude-codeharness-与-session">17.2.3 Claude Code：Harness 与 Session</a></h3>
+<p><a id="claude-code"></a></p>
+<h3 id="1823-claude-codeharness-与-session"><a class="header" href="#1823-claude-codeharness-与-session">18.2.3 Claude Code：Harness 与 Session</a></h3>
 <p>官方公开的是产品行为、配置与生命周期事件，没有公开足以重建核心程序的源码。下表按依赖关系归纳启动过程，不是私有函数调用顺序，也不表示各项准备严格串行。</p>
 <div class="table-wrapper">
 <table>
@@ -347,7 +348,7 @@
 </div>
 <p>起始权限模式是版本敏感项。官方权限页写明：Claude Code v2.1.283 及以后，交互终端与 VS Code 会话内置的起始模式是 auto（由分类器模型审查动作）；<code>claude -p</code> 与 Agent SDK 在没有指定模式时，v2.1.302 及以后默认为 Manual，调用需要审批的动作会被拒绝，除非规则或 Hook 允许<a href="#ref-34">[34]</a>。更新记录把 auto 作为默认起始模式的条目放在 2.1.284 的小节里，与权限页的版本号有出入<a href="#ref-56">[56]</a>，所以正文不写死版本号，使用者以所用版本的文档为准。</p>
 <p>SessionStart Hook 里最容易误判的是“界面出现”与“首个模型请求可发送”。对交互式启动、启动时恢复和 <code>/clear</code>，Hook 在后台运行，用户可以立即输入，但 Claude 的首次响应要等 Hook 完成；等待期间提交的 prompt 要到 Hook 结束才会送达，按 Esc 可以取回输入，Hook 继续运行。会话内的 <code>/resume</code> 则相反，要等 Hook 完成后才切换会话<a href="#ref-42">[42]</a>。另一个事件 <code>Setup</code> 不在普通启动时触发，只用于 <code>--init-only</code>，或 <code>-p</code> 下的 <code>--init</code> 与 <code>--maintenance</code>；它不能阻塞，输出会被丢弃<a href="#ref-42">[42]</a>。</p>
-<h3 id="1724-opencode-2x连接服务与装配会话"><a class="header" href="#1724-opencode-2x连接服务与装配会话">17.2.4 OpenCode 2.x：连接服务与装配会话</a></h3>
+<h3 id="1824-opencode-2x连接服务与装配会话"><a class="header" href="#1824-opencode-2x连接服务与装配会话">18.2.4 OpenCode 2.x：连接服务与装配会话</a></h3>
 <p>OpenCode 的默认启动方式是发现或启动当前用户的共享后台服务，再让本地客户端连接它；该服务拥有会话、配置、集成、权限和工具执行<a href="#ref-57">[57]</a>。源码里的连接决策是这样展开的：<code>--server</code> 与 <code>--standalone</code> 同时给出会直接报错；<code>--server</code> 先做一次超时 5 秒的 <code>server.info</code> 健康检查，版本不一致只警告并继续；<code>--standalone</code>，或服务配置为 <code>disabled</code>，走私有进程；否则发现或启动共享服务<a href="#ref-70">[70]</a>。</p>
 <p>私有服务的启动路径更值得细看。客户端以子进程执行 <code>serve --stdio --port 0</code>，随机生成密码并通过环境变量传给子进程，把子进程标准输出的第一行 <code>{url}</code> 当作就绪信号；子进程在就绪前退出就报错。源码注释把客户端持有的标准输入称为“所有权租约”，服务端在 stdio 模式下读到输入结束就退出<a href="#ref-70">[70]</a>。</p>
 <div class="table-wrapper">
@@ -365,7 +366,7 @@
 </table>
 </div>
 <p>配置里声明了 Provider 并不证明持有有效凭证，<code>/connect</code> 之后还要选择模型。诊断共享服务可以用 <code>opencode service status|start|stop|restart</code>，以及 <code>opencode api get /api/info</code><a href="#ref-57">[57]</a>。</p>
-<h3 id="1725-配置与指令谁生效何时加载"><a class="header" href="#1725-配置与指令谁生效何时加载">17.2.5 配置与指令：谁生效、何时加载</a></h3>
+<h3 id="1825-配置与指令谁生效何时加载"><a class="header" href="#1825-配置与指令谁生效何时加载">18.2.5 配置与指令：谁生效、何时加载</a></h3>
 <p>“目录里有配置或说明文件”不等于“本次会话已经采用它”。三个产品对此各有规则。</p>
 <div class="table-wrapper">
 <table>
@@ -383,7 +384,7 @@
 </div>
 <p>Codex 还有一道受信门：项目配置层只在项目被信任时加载，源码的表述是“加载但禁用”，禁用范围包括项目本地配置、Hook 和执行策略<a href="#ref-26">[26]</a>。AGENTS.md 的处理在源码里另有一个条件，项目被显式标为 untrusted 时只返回用户层指令，而配置层的条件是“未被标为 trusted 即禁用”，两处边界情形不完全相同，本章没有运行验证<a href="#ref-26">[26]</a>。</p>
 <p>Claude Code 官方把这两种载体的性质写得很清楚：CLAUDE.md 与 Skill 是模型要解释的指令，Hook 是确定性执行；“不要编辑 .env”写在前者里只是请求<a href="#ref-45">[45]</a>。因此指令文件应当承载模型猜不到的事实（命令、风格、约定），必须成立的约束则交给权限规则或 Hook。这一点在 17.5.4 展开。</p>
-<h3 id="1726-就绪条件对照"><a class="header" href="#1726-就绪条件对照">17.2.6 就绪条件对照</a></h3>
+<h3 id="1826-就绪条件对照"><a class="header" href="#1826-就绪条件对照">18.2.6 就绪条件对照</a></h3>
 <p><a href="../images/coding-agent-startup-comparison.svg"><img src="../images/coding-agent-startup-comparison.png" alt="Codex、Claude Code 与 OpenCode 的启动时序图：参与者生命线、请求与响应、条件分支及模型工具循环"></a></p>
 <p><em>启动时序对照。三幅时序沿生命线向下阅读：实线为调用或请求，虚线为响应，橙色为通知或界面展示；<code>alt</code> 表示条件分支，<code>opt</code> 表示可选 Hook，<code>loop</code> 表示模型与工具的重复交互。参与者是逻辑角色，不保证对应独立进程；Claude Code 仅描述官方可观察顺序。图中标注的依据见附录 B。</em></p>
 <div class="table-wrapper">
@@ -400,12 +401,12 @@
 </table>
 </div>
 <p>通用的 Runtime 设计里，常把启动拆成加载配置、注册能力、编译策略、检查依赖、发布就绪几类职责。三个产品把这些职责分散在进程、工作区、会话、轮次四个阶段，部分延迟到首次使用，不能据此断言每个产品都有同名模块、会在启动时探测全部外部服务，或都会先跑完验证再接收输入。实践中应当分别检查连接、会话、模型请求与工具执行的可用条件：服务启动了，不代表会话建好；会话建好了，不代表某次工具调用已经获准。</p>
-<h2 id="173-执行一轮任务怎样推进"><a class="header" href="#173-执行一轮任务怎样推进">17.3 执行：一轮任务怎样推进</a></h2>
-<h3 id="1731-共同的循环收集上下文行动验证"><a class="header" href="#1731-共同的循环收集上下文行动验证">17.3.1 共同的循环：收集上下文、行动、验证</a></h3>
+<h2 id="183-执行一轮任务怎样推进"><a class="header" href="#183-执行一轮任务怎样推进">18.3 执行：一轮任务怎样推进</a></h2>
+<h3 id="1831-共同的循环收集上下文行动验证"><a class="header" href="#1831-共同的循环收集上下文行动验证">18.3.1 共同的循环：收集上下文、行动、验证</a></h3>
 <p>Claude Code 官方把工作过程描述为三个阶段：收集上下文、采取行动、验证结果；这些阶段会按任务需要交错，修复类任务会反复穿插编辑和验证，理解类任务可能只需要检索<a href="#ref-31">[31]</a>。官方同时把 Claude Code 定位为围绕模型的外围层，提供工具并管理上下文<a href="#ref-31">[31]</a>。</p>
 <p>Codex 的 Turn 主循环在源码里有一段骨架性的注释：模型请求函数调用时，运行时执行它，并在下一次采样请求里把输出送回模型；模型只返回助手消息时，运行时把它记入历史并认为这一轮完成<a href="#ref-20">[20]</a>。这段注释描述的只是骨架。实际的 <code>run_turn</code> 还包含采样前压缩、Hook、MCP 启动要求、采样后压缩、Stop Hook、收尾压缩，以及邮箱抢占，引用这段注释时要注明它写的是骨架<a href="#ref-20">[20]</a>。OpenCode 的 Session Runner 也一样：每一步请求之前先尝试自动压缩，处理步数上限，失败后再分流为重试、续写、输出超长、已压缩、整体恢复几类结果<a href="#ref-72">[72]</a>。</p>
 <p>三者共享的工程原则，是把模型的计划和工具的执行分开：模型提出候选动作，运行时解析、授权、执行并记录结果，再把观察带回下一轮。这个分工使人可以在循环中途介入。工具结果成为后续决策的新观察，用户的纠正也同样成为新输入，下一小节会看到三个产品各自怎样接收这类输入。</p>
-<h3 id="1732-三个产品的循环实现与控制点"><a class="header" href="#1732-三个产品的循环实现与控制点">17.3.2 三个产品的循环实现与控制点</a></h3>
+<h3 id="1832-三个产品的循环实现与控制点"><a class="header" href="#1832-三个产品的循环实现与控制点">18.3.2 三个产品的循环实现与控制点</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -421,32 +422,32 @@
 </table>
 </div>
 <p>Codex 的 Turn 状态值得多说一句。活动 Turn 里有取消令牌、待决审批、待处理输入和工具调用，所以追加输入、审批等待和中断都发生在同一个状态对象里，而会话本身不受影响<a href="#ref-20">[20]</a>。OpenCode 的循环则带有明确的持久化边界：每个模型步骤请求前后各捕获一次文件快照，步骤结束时把消耗的 token 和成本写进事件（见 17.6.1）<a href="#ref-66">[66]</a><a href="#ref-72">[72]</a><a href="#ref-77">[77]</a>。</p>
-<h3 id="1733-工具路由与权限裁决在循环中的位置"><a class="header" href="#1733-工具路由与权限裁决在循环中的位置">17.3.3 工具路由与权限裁决在循环中的位置</a></h3>
+<h3 id="1833-工具路由与权限裁决在循环中的位置"><a class="header" href="#1833-工具路由与权限裁决在循环中的位置">18.3.3 工具路由与权限裁决在循环中的位置</a></h3>
 <p>三个产品都把“模型能看到的工具声明”与“真正可执行的工具”分开。Codex 的 <code>ToolRouter</code> 里，<code>model_visible_specs</code>（模型可见的声明）和 <code>registry</code>（可执行的注册表）是两个不同的字段，模型返回的调用要先转换成内部的 <code>ToolCall</code> 再分发<a href="#ref-21">[21]</a>。OpenCode 的 <code>Tool.snapshot</code> 同样返回模型可见的定义和执行函数，被 <code>*</code> 整体拒绝的工具会从定义中移除<a href="#ref-76">[76]</a>。工具声明不等于执行权限，这是后面各种裁决的前提。</p>
 <p>Codex 把审批、沙箱选择和重试串成一个流程：先按审批策略决定是否放行，再在选定的沙箱里首次尝试；如果被沙箱拒绝，按策略决定是否请求“去掉沙箱重试”的批准，批准后再做第二次尝试。源码注释说明，在 <code>never</code> 或 <code>on-request</code> 策略下不会去掉沙箱重试，而是返回一条保留原始输出的简短拒绝；文件头的注释还写明，自动审核给出的批准只适用于已审核的授权范围，升级沙箱重试需要对这次重试重新审核<a href="#ref-21">[21]</a>。每次沙箱结果（拒绝、超时、信号、升级）都会作为遥测事件记录<a href="#ref-21">[21]</a>。MCP 工具走同一套审批：官方称带有破坏性注解的 app 或 MCP 工具调用始终需要审批（除非该工具同时声明了读取注解）；<code>default_tools_approval_mode</code> 可取 <code>auto</code>、<code>prompt</code>、<code>writes</code>、<code>approve</code>，MCP 服务器的启动超时默认 10 秒，工具超时默认 60 秒<a href="#ref-8">[8]</a><a href="#ref-12">[12]</a>。</p>
 <p>Claude Code 的裁决顺序是：规则先于模式，按 deny、ask、allow 求值，首个匹配生效，具体度不改变顺序；PreToolUse Hook 的决定不能绕过规则，命中 deny 仍然阻断，命中 ask 仍然询问<a href="#ref-35">[35]</a>。auto 模式在此之上加入一个分类器模型，在动作执行前审查：分类器看到的是用户消息、非只读的工具调用和 CLAUDE.md，工具结果被剥离，以免文件或网页里的敌对内容直接操纵分类器；读取、搜索和工作目录内的编辑不经过分类器。受保护的路径（<code>.git</code>、<code>.claude</code>、<code>.mcp.json</code> 等）的写入永远不被自动批准，bypass 模式除外<a href="#ref-34">[34]</a>。官方还写明，企业与 API 账户上分类器调用计入 token 用量，每次检查要多一次往返，开销主要来自 Shell 命令和网络操作<a href="#ref-34">[34]</a>。</p>
 <p>OpenCode 的求值写在 <code>permission.ts</code> 里：先取该 Agent 与会话的规则；只要任一资源命中 deny 就直接 deny，已保存的批准不参与；否则合并已保存的批准，任一资源为 ask 则 ask，否则 allow；最后触发插件的 <code>permission.evaluate</code> 钩子，Policies 就是在这一步生效的<a href="#ref-75">[75]</a>。规则为 ask 时，工具调用以 <code>Deferred</code> 挂起，客户端用 <code>once</code>、<code>always</code> 或 <code>reject</code> 回复，<code>always</code> 会写入项目级的持久 allow 规则，并且不会覆盖已配置的 deny<a href="#ref-63">[63]</a><a href="#ref-75">[75]</a>。</p>
 <p>这三套机制的共同点是：每一次动作都要单独裁决，不是在进入循环之前检查一次。差别在于谁来裁决——用户、规则、分类器，还是插件钩子——以及裁决之后进程还受不受沙箱约束（见 17.1.7）。</p>
-<h3 id="1734-上下文管理加载压缩与按需读取"><a class="header" href="#1734-上下文管理加载压缩与按需读取">17.3.4 上下文管理：加载、压缩与按需读取</a></h3>
+<h3 id="1834-上下文管理加载压缩与按需读取"><a class="header" href="#1834-上下文管理加载压缩与按需读取">18.3.4 上下文管理：加载、压缩与按需读取</a></h3>
 <p>上下文是三个产品共同的瓶颈，也是它们差异最大的地方之一。</p>
 <p>Claude Code 官方给出的上下文内容包括对话、文件与命令结果、项目指令、载入的 Skill 和系统指令。接近上限时，它先清理较旧的工具输出，必要时再摘要对话，官方明说，对话早期的详细指令可能因此丢失<a href="#ref-31">[31]</a>。压缩之后哪些内容还在，官方也列了出来：根目录的 CLAUDE.md、无作用域的规则和 auto memory 会从磁盘重新注入；已调用的 Skill 正文重新注入，单个上限 5,000 token、合计上限 25,000 token，旧的先丢；嵌套的 CLAUDE.md 与按路径作用域的规则是读到文件时才载入，载入后进入消息历史，压缩时和其他内容一起被摘要，需要再次读取才会回来<a href="#ref-39">[39]</a><a href="#ref-40">[40]</a>。触发点未设置时在模型的上下文上限处压缩，可以用 <code>autoCompactWindow</code>、<code>/autocompact</code> 或环境变量调整<a href="#ref-48">[48]</a>；自 v2.1.290 起还有空闲压缩，在提示缓存过期之前趁空闲时压缩<a href="#ref-41">[41]</a>。MCP 工具定义默认延迟加载，只有工具名和服务器说明进入上下文，但这只在受支持的模型上成立，Foundry 上的 Azure 托管部署、设置了 <code>CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS</code> 或使用 HIPAA 配置时会关闭<a href="#ref-54">[54]</a>。用户可以用 <code>/compact &lt;指令&gt;</code>、CLAUDE.md 里的 Compact Instructions 段落，以及 <code>/rewind</code> 中的“从此处摘要”来控制保留什么<a href="#ref-31">[31]</a><a href="#ref-37">[37]</a>。</p>
 <p>Codex 的自动压缩由阈值触发：当前范围内的 token 数达到自动压缩上限（含缓冲），或活动上下文达到模型的完整窗口，就强制压缩。源码里默认的上限是模型配置值与解析后窗口的 90% 之中较小的一个，官方文档只说“未设置时使用模型默认值”<a href="#ref-23">[23]</a><a href="#ref-5">[5]</a>。压缩分采样前、回合中、回合后三个相位，回合后压缩由 <code>model_post_turn_compact_threshold_percent</code> 控制，省略或设为 0 表示关闭<a href="#ref-23">[23]</a><a href="#ref-26">[26]</a>。压缩提示词要求产出一份“交接摘要”，包含进度、约束和剩余事项；它并没有声称摘要包含工作区的文件状态；压缩后保留的用户消息最多 20,000 token<a href="#ref-23">[23]</a>。</p>
 <p>OpenCode 2.x 的自动压缩默认开启：接近上限时总结整个当前对话，并在摘要旁保留最近约 15,000 token（<code>compaction.keep.tokens</code> 的默认值）；之后的压缩基于上一个检查点之后的对话更新已有摘要。每个步骤请求前都会检查：估算上下文达到天花板就压缩，天花板是窗口减去缓冲，缓冲未设置时取窗口的 15% 与 16k 中较大者；窗口未知则不触发自动压缩<a href="#ref-67">[67]</a><a href="#ref-73">[73]</a>。官方文档直言“压缩是有损的”，摘要是结构化文本（目标、决策、进行中的工作、阻塞与下一步、相关文件），保留的近期对话里较长的工具输出会被缩短；固定指令与工具 schema 占满窗口时，压缩无效<a href="#ref-67">[67]</a>。关于压缩用哪个模型，文档说“没有单独的压缩模型”，源码却会读取隐藏的 <code>compaction</code> Agent 的模型，二者的矛盾本章没有解决，不写成“可配置”，也不写成“绝对不能”<a href="#ref-67">[67]</a><a href="#ref-73">[73]</a>。</p>
 <p>三者共同说明了一件事：压缩保存的是任务的连续性，不是工作区的当前状态。压缩后的任务应当重新对照仓库：文件是否仍是记录中的版本，差异是否变了，测试是否针对当前差异运行。稳定的约束适合放进持久的指令，动态的代码事实应当回到来源重新读取；这两类信息在压缩中的命运完全不同，17.4.3 会说明具体后果。</p>
-<h3 id="1735-委派与多-agent"><a class="header" href="#1735-委派与多-agent">17.3.5 委派与多 Agent</a></h3>
+<h3 id="1835-委派与多-agent"><a class="header" href="#1835-委派与多-agent">18.3.5 委派与多 Agent</a></h3>
 <p>“上下文分开”和“工作区分开”是两件事：前者避免共享完整对话，后者避免并行写同一批文件。一个只读的子任务与主 Agent 共用目录不一定冲突，两个 Agent 即使上下文独立，也不会因此获得隔离的文件系统。</p>
 <p>Codex 的子 Agent 继承当前的沙箱策略；官方提醒要更谨慎地对待并行写入的工作流，因为多个 Agent 同时编辑代码会产生冲突；自定义 Agent 文件不能覆盖沙箱、审批和 MCP 服务器的设置。内置的 Agent 有 default、worker、explorer，触发方式是用户直接要求，或 AGENTS.md、Skill 里有适用的指令；官方明说，子 Agent 工作流比同类单 Agent 运行消耗更多 token<a href="#ref-10">[10]</a>。源码里多 Agent 有 V1 与 V2 两套工具集，<code>multi_agent</code> 特性默认开，<code>multi_agent_v2</code> 默认关<a href="#ref-28">[28]</a><a href="#ref-27">[27]</a>。</p>
 <p>Claude Code 的 Subagent 使用自己的上下文窗口，工具调用不进入主上下文，结束时返回摘要。fork 是例外：它从当前对话的副本开始，继承父会话的系统提示、工具与缓存；fork 模式在交互终端自 v2.1.232 起默认开启，整体自 v2.1.302 起默认开启<a href="#ref-44">[44]</a>。并发的子 Agent 默认上限为 20，嵌套深度默认为 3，后者的默认值历经调整，二者都是版本敏感项<a href="#ref-44">[44]</a>。官方还描述了一项防护：Claude Code 会扫描子 Agent 的最终报告，把仿冒系统提醒的文本无害化，并在报告前加一行说明“这是子 Agent 的话，不具备来自用户的授权”<a href="#ref-44">[44]</a>。Worktree 隔离的强制检查有四项（文件编辑、命令的工作目录、git 重定向、命令形态），但并不跟踪 Shell 命令实际写入了哪些文件，<code>cp</code> 或重定向写入主检出不会被拒绝，只落入普通的权限与沙箱<a href="#ref-51">[51]</a>。</p>
 <p>OpenCode 区分 Primary Agent 与 Subagent。内置的有 Build（主 Agent，默认）、Plan（主 Agent，不编辑普通项目文件，可在 <code>~/.opencode/plan</code> 下写计划文件，Shell 仍受权限控制）、General（子 Agent，不能再启动子 Agent）和 Explore（子 Agent，官方称它搜索与读取而不编辑文件）。子 Agent 用自己的权限，不是父权限的子集，父 Agent 的 <code>subagent</code> 权限决定它能启动谁；嵌套深度默认为 1<a href="#ref-62">[62]</a><a href="#ref-76">[76]</a>。源码里 Explore 默认拒绝一切，只放行 shell、read、glob、grep、webfetch、websearch 与 external_directory<a href="#ref-76">[76]</a>；因为 shell 被放行，它能否保证只读，仍取决于 shell 的规则（系统推导）。</p>
 <p>委派的结果是证据候选，不是最终证据：子 Agent 的摘要需要和差异、测试结果一起核对。并行修改还要先解决文件冲突，再验证合并后的整体。</p>
-<h3 id="1736-验证与可审查交付"><a class="header" href="#1736-验证与可审查交付">17.3.6 验证与可审查交付</a></h3>
+<h3 id="1836-验证与可审查交付"><a class="header" href="#1836-验证与可审查交付">18.3.6 验证与可审查交付</a></h3>
 <p>三个产品对“完成”的要求，官方材料的详细程度差别很大。</p>
 <p>Claude Code 的官方最佳实践把验证做成了一个由弱到强的阶梯：在同一条 prompt 里要求运行检查并迭代；用 <code>/goal</code> 条件，由一个独立的评估器在每轮后复核；用 Stop Hook 把检查作为确定性的闸门，在检查通过前阻止本轮结束；用验证子 Agent 或动态工作流，让一个新的模型尝试推翻结果，使做事的 Agent 不是给自己打分的那个<a href="#ref-32">[32]</a>。其中有两条边界需要记住：<code>/goal</code> 的评估器不调用工具，只能判断 Claude 已经呈现在对话里的内容<a href="#ref-53">[53]</a>；Stop Hook 连续阻止结束有上限，默认 8 次，第 9 次起被覆盖并结束本轮，防止永远不满足的条件造成死循环<a href="#ref-42">[42]</a>。</p>
 <p>Codex 提供 <code>/review</code> 与 <code>codex review</code>，目标可以是未提交的改动、与基础分支的差异、某个提交或自定义提示；评审在源码里是独立的任务类型，不接受同轮 steer<a href="#ref-14">[14]</a><a href="#ref-20">[20]</a><a href="#ref-27">[27]</a>。Codex 的 auto-review 要与它区分开：它是审批动作的审核人，不是代码评审，官方明说它是“换审核人”而不是授予权限<a href="#ref-9">[9]</a>。评审规则可以写进最近的 AGENTS.md，官方建议把格式与 lint 检查留给 CI<a href="#ref-6">[6]</a>。</p>
 <p>OpenCode 的 2.x 文档没有专门的验证页，只有会话差异的接口 <code>GET /api/session/{id}/diff</code>，可以读到本会话的文件变化<a href="#ref-68">[68]</a>。</p>
 <p>这些材料指向同一个结论：验证要以当前差异和真实的执行结果为准，不以模型的自述为准。“测试通过”要能追溯到命令、退出状态和对应的代码版本；diff、命令输出、权限决策和未覆盖的范围，应当是人可以核对的交付物，而不只是一段说明。</p>
-<h2 id="174-异常失败中断与恢复"><a class="header" href="#174-异常失败中断与恢复">17.4 异常：失败、中断与恢复</a></h2>
-<h3 id="1741-异常分类与证据现状"><a class="header" href="#1741-异常分类与证据现状">17.4.1 异常分类与证据现状</a></h3>
+<h2 id="184-异常失败中断与恢复"><a class="header" href="#184-异常失败中断与恢复">18.4 异常：失败、中断与恢复</a></h2>
+<h3 id="1841-异常分类与证据现状"><a class="header" href="#1841-异常分类与证据现状">18.4.1 异常分类与证据现状</a></h3>
 <p>Coding Agent 的异常不止“工具报错”。至少有八类：工具失败与拒绝、用户中断与取消、上下文溢出与压缩失败、模型请求失败与重试、用量与限额、进程崩溃与会话恢复、文件回退，以及子 Agent 的失败与晚到结果。下表给出三个产品在每一类上的公开程度。</p>
 <div class="table-wrapper">
 <table>
@@ -466,27 +467,27 @@
 </table>
 </div>
 <p>需要提醒的是，Codex 与 OpenCode 在这一部分的许多结论只来自源码，官方文档没有承诺，下文会逐处标注“源码事实，非文档承诺”；Claude Code 则完全依赖官方文档。这些结论没有经过故障注入验证。</p>
-<h3 id="1742-工具失败拒绝与取消作为不同的结果回送"><a class="header" href="#1742-工具失败拒绝与取消作为不同的结果回送">17.4.2 工具失败、拒绝与取消：作为不同的结果回送</a></h3>
+<h3 id="1842-工具失败拒绝与取消作为不同的结果回送"><a class="header" href="#1842-工具失败拒绝与取消作为不同的结果回送">18.4.2 工具失败、拒绝与取消：作为不同的结果回送</a></h3>
 <p>失败、拒绝、取消是三种不同的结果，可靠的运行时要分别回送，而不是合并成一个“失败”。</p>
 <p>Codex 的工具失败默认不终止 Turn。<code>RespondToModel</code> 类的错误被写成工具输出，并把“需要后续采样”置为真，让下一次采样继续；只有 <code>Fatal</code> 才向上返回致命错误。非零退出码、超时和沙箱拒绝同样带着输出回送给模型。<code>apply_patch</code> 还有一个值得注意的情形：补丁可能在已经提交了一个前缀之后才被拒绝，事件仍然标记为失败，但本轮的差异会消费这个前缀，也就是文件修改不是原子的<a href="#ref-21">[21]</a>。工具调用被取消时，回送给模型的是 “tool call cancelled”<a href="#ref-20">[20]</a>。</p>
 <p>Codex 的审批决定区分了“拒绝”与“中止”：<code>Denied</code> 表示这个动作不要执行，但会话继续，Agent 应当另想办法；<code>Abort</code> 表示 Agent 在用户下一条指令之前什么都不要做<a href="#ref-21">[21]</a>。App Server 把客户端的 <code>decline</code> 映射为 <code>Denied</code>（“rejected by user”），把 <code>cancel</code> 映射为 <code>Abort</code>，客户端响应本身出错则映射为 <code>Denied</code>（“approval request failed”）；两种拒绝的 Item 状态是 <code>declined</code>，请求失败是 <code>failed</code><a href="#ref-25">[25]</a><a href="#ref-2">[2]</a>。随后 <code>Denied</code> 变成回送模型的拒绝结果，<code>Abort</code> 变成 <code>TurnAborted</code> 结束本轮，回送的文案会被截断到 900 token。源码还留有一条 TODO：<code>ToolError::Rejected</code> 同时被用于“用户拒绝”和部分“运行时失败”，所以不能把所有 <code>declined</code> 都解读为用户拒绝<a href="#ref-21">[21]</a>。策略层面还有第三种拒绝：<code>approval_policy = never</code> 时，本该弹窗的请求直接得到拒绝理由，不会询问<a href="#ref-21">[21]</a>。自动审核的拒绝则带着强约束文案——不得通过变通、间接执行或绕过策略去追求同一结果；官方文档称，同一个 Turn 内连续 3 次拒绝，或最近 50 次审核中累计 10 次拒绝，会中断本轮，审核的构建、会话和解析失败按“失败即关闭”处理，超时单独呈现，动作同样不会运行<a href="#ref-9">[9]</a><a href="#ref-8">[8]</a>。源码中的阈值是同样的 3、10、50，但应用服务器的说明写明，只有 <code>circuit_break_action = "strict"</code> 时，<code>TurnAborted</code> 才携带“拒绝过多”的错误，文档没有区分这一点，默认值下的行为本章没有验证<a href="#ref-30">[30]</a><a href="#ref-27">[27]</a>。</p>
 <p>Claude Code 在权限提示上按 Esc 等于拒绝这个动作；后台子 Agent 的权限提示里，Esc 只拒绝那一次调用而不停止子 Agent<a href="#ref-31">[31]</a><a href="#ref-49">[49]</a>。auto 模式下被分类器拦截的动作会列入 <code>/permissions</code> 的“最近拒绝”，可以按 <code>r</code> 手动批准后重试；Claude 会收到拒绝的原因。连续被拦截 3 次或累计 20 次，auto 模式暂停并退回逐次询问，阈值不可配置；<code>-p</code> 下没有可询问的对象，被拦截的动作不运行，但 Claude 继续而不是停止整个运行<a href="#ref-34">[34]</a>。Hook 的失败语义是一个容易被忽略的细节：PreToolUse 的 command、http、mcp_tool 类 Hook 超时，默认不阻断工具调用，除非该 Hook 配置了 <code>onFailure: "block"</code>；退出码 2 才是阻断，其他非零退出码只是非阻断的错误<a href="#ref-42">[42]</a>。也就是说，用 Hook 做强制检查时，要明确超时与失败时的行为，否则检查本身出问题会让动作放行。</p>
 <p>OpenCode 的拒绝分两种形态。<code>reject</code> 不带说明，产生 <code>DeclinedError</code>：工具调用以 “The user declined this tool call” 失败，随后这一步以中断结束，回合停止；带说明的 <code>reject</code> 产生 <code>CorrectedError</code>，说明作为反馈交给模型，模型可以继续。同一个会话里其他待处理的权限请求会被一并拒绝。配置里的 deny 则产生 <code>BlockedError</code>，消息是 “Permission denied: &lt;动作&gt;” 或策略给出的原因<a href="#ref-75">[75]</a><a href="#ref-72">[72]</a>。非交互的 <code>opencode run</code> 在没有人可以批准时，默认自动拒绝并附上反馈，让模型“不要这个动作，继续”；<code>--auto</code> 则对没有被明确 deny 的权限自动批准。这是源码事实，非文档承诺<a href="#ref-77">[77]</a>。</p>
 <p>同一个“拒绝”在三个产品里后果不同：Codex 的 <code>Denied</code> 让 Agent 另想办法，<code>Abort</code> 则让它停下；OpenCode 不带说明的拒绝会让回合停下，带说明的才继续；Claude Code 的 auto 拦截会把原因告诉模型。对使用者的含义是，拒绝时附上理由，通常比单纯点拒绝更能让 Agent 改道（本书建议，OpenCode 的 <code>CorrectedError</code> 是这一做法的机制基础）。</p>
-<h3 id="1743-上下文溢出与有损压缩"><a class="header" href="#1743-上下文溢出与有损压缩">17.4.3 上下文溢出与有损压缩</a></h3>
+<h3 id="1843-上下文溢出与有损压缩"><a class="header" href="#1843-上下文溢出与有损压缩">18.4.3 上下文溢出与有损压缩</a></h3>
 <p>压缩是为了在上下文受限时继续推进，代价是细节丢失，而且压缩本身也会失败。</p>
 <p>Codex 的自动压缩是阈值触发的，不是溢出之后的补救。普通采样请求遇到 <code>ContextWindowExceeded</code> 时，源码的处理是标记总 token 已满并把错误抛出，这条路径里没有自动压缩后重试；唯一的例外是自动审核的预算耗尽时的一次压缩重试<a href="#ref-20">[20]</a>。压缩失败按相位处理：采样前压缩失败，先把新输入写入历史（保证不丢），再报错并结束本轮；回合中失败，报错并结束本轮；回合后失败，只发警告并保留已经完成的回答<a href="#ref-20">[20]</a>。压缩请求自己遇到超限时，从最老的历史项开始裁剪并重试，注释说明从开头裁剪是为了保住前缀缓存并保留近期消息；只剩一项仍超限则失败<a href="#ref-23">[23]</a>。这意味着单条过大的输入（比如超大的工具输出）仍可能让当前 Turn 直接失败，<code>tool_output_token_limit</code> 是前置的防线<a href="#ref-5">[5]</a>（系统推导）。</p>
 <p>Claude Code 在接近上限时给出 “Prompt is too long” 或 “Context limit reached” 提示，自动压缩被关闭时会附带说明；自动压缩失败时错误带有原因<a href="#ref-47">[47]</a>。如果单个文件或工具输出巨大，使压缩后立刻重新填满，数次之后会停止自动压缩并报错，不会无限循环，官方没有给出具体次数<a href="#ref-31">[31]</a>。PreCompact Hook 以退出码 2 可以阻止压缩；如果这次压缩是为了从已返回的上下文超限错误中恢复，被阻止后底层错误会上浮，当前请求失败<a href="#ref-42">[42]</a>。一个很实际的后果是：对话中口头说明的边界（比如“不要 push”）会被 auto 分类器当作阻断信号，但它不会被存成规则，而是每次从会话记录里重读，如果压缩把这条消息摘要掉，边界就可能丢失，官方的结论是硬性保证要用 deny 规则<a href="#ref-34">[34]</a>。</p>
 <p>OpenCode 的溢出恢复是：Provider 拒绝请求为“过长”且尚未产生输出时，压缩并重试一次；第二次仍被拒绝就作为错误返回。把自动压缩关掉，溢出恢复也一并关闭，只有用户可以压缩。溢出时压缩的目标会逐步缩小，首次取估算上下文的 70%，之后依次是 50% 和 35%<a href="#ref-67">[67]</a><a href="#ref-73">[73]</a>。压缩失败会发布失败事件，自动压缩失败使该步骤以失败结束；进程死亡留下的“运行中”压缩，会在下一次 drain 开头被标记为中断<a href="#ref-72">[72]</a>。</p>
 <p>三者的共同点是，摘要保存的是任务的连续性。恢复的第一步应当是回到仓库核对，而不是相信摘要：文件是否仍是记录中的版本，差异是否变了，验证针对的是否还是当前代码。让摘要保存目标、关键证据、差异、验证结果和待办，比保存对话的复述更有用（本书建议）。</p>
-<h3 id="1744-中断与恢复恢复了什么没有恢复什么"><a class="header" href="#1744-中断与恢复恢复了什么没有恢复什么">17.4.4 中断与恢复：恢复了什么，没有恢复什么</a></h3>
+<h3 id="1844-中断与恢复恢复了什么没有恢复什么"><a class="header" href="#1844-中断与恢复恢复了什么没有恢复什么">18.4.4 中断与恢复：恢复了什么，没有恢复什么</a></h3>
 <p><strong>中断。</strong> Codex 的取消令牌贯穿采样、工具与审批等待。中断的流程是：先发取消，给任务 100 毫秒的宽限期自行结束，仍未结束就强制 abort，然后写入“被中断”标记，运行中断 Hook，发出 <code>TurnAborted</code>，并把会话记录刷到磁盘。源码注释解释了两处顺序：标记要先持久可见再发事件，因为有的客户端收到事件后会同步重读会话记录；待决审批要等取消被任务观察到之后再清理，避免审批等待以“模型可见的拒绝”的形式先于 <code>TurnAborted</code> 出现<a href="#ref-22">[22]</a>。被中断的 Turn 会向模型历史写入一条说明：用户有意中断了上一轮，运行中的统一执行进程可能仍在后台运行，被中止的命令可能已部分执行<a href="#ref-22">[22]</a>。这条说明由 <code>agents.interrupt_message</code> 控制，默认开启<a href="#ref-5">[5]</a>。</p>
 <p>Claude Code 的 Esc 立即停止，取消运行中的工具调用，保留上下文；用户中断不触发 Stop Hook<a href="#ref-31">[31]</a><a href="#ref-42">[42]</a>。OpenCode 的中断接口先确认受理、后异步清理，空闲时是空操作。终态事件带有原因，<code>user</code> 会取消后台作业并释放执行声明，<code>shutdown</code> 保留声明以便重启续跑<a href="#ref-68">[68]</a><a href="#ref-71">[71]</a>。被中断的步骤与工具作为 <code>aborted</code> 错误写进助手消息，仍处于流式或运行中的工具调用，会在下一次 drain 开头被统一标记为失败：“Tool execution interrupted”<a href="#ref-72">[72]</a>。</p>
 <p><strong>会话恢复。</strong> 恢复读回的是历史，不等于世界回到了当时的样子。</p>
 <p>Codex 的 <code>thread/resume</code> 有三种入口，对非运行中的线程按 <code>history</code>、非空 <code>path</code>、<code>thread_id</code> 的顺序取优先级，官方源码注释建议尽量只用 <code>thread_id</code>；恢复时使用与记录不同的模型，会发出警告，并在下一轮应用一次性的模型切换指令。<code>thread/fork</code> 可以在指定轮次之前或包含该轮分叉；分叉时若快照停在 Turn 中间，会追加与真实中断一样的 <code>&lt;turn_aborted&gt;</code> 标记<a href="#ref-27">[27]</a><a href="#ref-2">[2]</a>。“恢复不会接管旧的命令进程”这一点，本章没有找到 Codex 的直接陈述，只有间接证据：中断标记自己承认后台进程可能仍在运行，<code>thread/revert</code> 不改文件。所以对 Codex，这句话只能写成推导。</p>
 <p>Claude Code 官方列出了恢复时的状态：恢复压缩后的摘要加未被摘要的消息，沿用原来的模型；恢复时仍在运行、被进程结束打断的工具调用既不会完成也不会重跑，Claude 会看到“被截断”的标记，并被告知先检查它是否已经生效（除非设置了 <code>CLAUDE_CODE_RESUME_INTERRUPTED_TURN</code>）；有效的 <code>/goal</code> 延续但计数清零；会话级定时任务（未过期）恢复，后台 Bash 与 monitor 不恢复，后台子 Agent 与工作流变成“未完成”的备注；<code>--mcp-config</code>、<code>--settings</code> 等参数要重新传入<a href="#ref-38">[38]</a>。官方还提到，后台会话（研究预览）是独立进程，可以脱离终端持续运行，这时“会话在不等于命令还在跑”的说法就不适用了<a href="#ref-38">[38]</a>。会话文件写入失败有明确警告，例如磁盘写满时会提示最近的消息可能无法用于恢复，工作可以继续，但之后 <code>--resume</code> 可能缺少这些消息<a href="#ref-47">[47]</a>。</p>
 <p>OpenCode 的恢复机制最完整，也最容易被文档遗漏。开始执行时，Started 事件和执行声明（claim）在同一个事务里写入；成功、失败和用户中断释放声明，关停引起的中断保留声明。进程崩溃、SIGKILL 和优雅重启在数据库里留下相同的特征，启动时由重启续跑逻辑接手，并注入一条合成消息：“The server restarted while you were working. Continue from where you left off without repeating completed work.”<a href="#ref-71">[71]</a>。源码注释把恢复语义写得很直白：恢复是至少一次的，本地协调防止的是并发的 drain，不是崩溃之后重复的外部副作用<a href="#ref-71">[71]</a>。每个回合最多续跑 10 次，次数持久保存、只被终态事件重置，超过后以失败终结；运行中的后台 Shell 被记为 “Command cancelled because the server restarted”，运行中的后台子 Agent 会被恢复并在完成后通知父会话<a href="#ref-71">[71]</a>。续跑只在服务以 service 模式运行（即共享后台服务）时安装，前台 <code>serve</code> 与 <code>--standalone</code> 私有进程不走这条路径（源码事实加推导）<a href="#ref-71">[71]</a>。文档里没有对应的专页，这些都是源码事实，非文档承诺。OpenCode 的事件流按契约是易失的：慢消费者会溢出并使流失败，断线期间的事件不会补发，需要重新读取会话消息<a href="#ref-68">[68]</a>。</p>
-<h3 id="1745-回退边界文件快照与外部副作用"><a class="header" href="#1745-回退边界文件快照与外部副作用">17.4.5 回退边界：文件快照与外部副作用</a></h3>
+<h3 id="1845-回退边界文件快照与外部副作用"><a class="header" href="#1845-回退边界文件快照与外部副作用">18.4.5 回退边界：文件快照与外部副作用</a></h3>
 <p>三个产品的回退机制覆盖的对象并不一样。</p>
 <div class="table-wrapper">
 <table>
@@ -503,12 +504,12 @@
 </div>
 <p>三点补充。第一，OpenCode 的快照存放在数据目录下独立的 Git 对象库里，不创建提交、不移动分支，但可能包含完整的文件内容，官方提醒要把数据目录当作敏感数据；提交回退后消息从活动视图中移除，但不会从历史或快照存储中删除，官方明说这不是安全擦除；恢复会覆盖当前内容，包括取消暂存时<a href="#ref-66">[66]</a>。第二，Codex 文档的指标表里仍有 <code>task.undo</code> 一项，但命令文档与源码里没有找到对应的用户入口，所以本章不写“Codex 有文件回滚”<a href="#ref-4">[4]</a>。第三，Claude Code 的回退菜单在回退到较早的位置后，如果没有发新 prompt 就退出，被回退的消息可能在下次恢复时回来<a href="#ref-37">[37]</a>。</p>
 <p>这三套机制共同的边界是：回退能力必须和副作用类型对应。文件快照覆盖不了数据库迁移、API 请求、远端仓库操作和部署，这些需要单独的幂等、补偿或审计设计。</p>
-<h3 id="1746-多-agent-的晚到冲突与收敛"><a class="header" href="#1746-多-agent-的晚到冲突与收敛">17.4.6 多 Agent 的晚到、冲突与收敛</a></h3>
+<h3 id="1846-多-agent-的晚到冲突与收敛"><a class="header" href="#1846-多-agent-的晚到冲突与收敛">18.4.6 多 Agent 的晚到、冲突与收敛</a></h3>
 <p>Codex 对子 Agent 消息的归属有明确建模。回答已经展示之后，晚到的子 Agent 邮件保持排队，留给下一轮；如果之后同一任务又有显式的同轮工作（被 steer 的用户提示，或未打标签的前言后的工具调用），才重新打开“当前轮”。子 Agent 的终态结果回送父 Agent 是尽力而为，指标区分“入队成功”和“投递失败”<a href="#ref-20">[20]</a><a href="#ref-27">[27]</a>。V2 的 <code>interrupt_agent</code> 不允许中断根 Agent 与自己，返回的是中断之前观察到的状态快照；目标未加载或已死亡视为成功中断<a href="#ref-27">[27]</a>。在非交互流程里，需要新审批的动作会失败，并把错误回传给父工作流；非活动线程的审批请求，也可能在用户看着主线程时冒出来<a href="#ref-10">[10]</a>。</p>
 <p>Claude Code 的子 Agent 因 API 错误提前结束时，前台子 Agent 返回带“被中断未完成”标记的部分输出，后台子 Agent 被标记失败，通知中带有错误名和最后的输出，不丢失已完成的工作；配置了备用模型链时自动切换，并在报告首行标注；并发上限为 20，超过后 Claude 被告知不要重试<a href="#ref-47">[47]</a><a href="#ref-44">[44]</a>。Agent teams 是实验功能，默认关闭，<code>/resume</code> 与 <code>/rewind</code> 不恢复进程内的队友<a href="#ref-44">[44]</a>。</p>
 <p>OpenCode 的子 Agent 失败以工具失败的形式返回父 Agent，并带上子会话 ID，方便继续：“Subagent failed (sessionID: …)”或“Subagent cancelled”；前台子 Agent 被中断时，同时中断子会话并取消作业；后台子 Agent 立即返回“正在后台工作”，完成后通知父会话<a href="#ref-76">[76]</a>。</p>
 <p>晚到的结果、被取消的任务和失败的子任务，都需要有明确的归属和终止条件。“spawn 之后等待”不是协作的全部，消息属于哪一轮、取消之后迟到的结果怎么处理，是更容易出问题的部分。</p>
-<h3 id="1747-限额限流与-provider-故障"><a class="header" href="#1747-限额限流与-provider-故障">17.4.7 限额、限流与 Provider 故障</a></h3>
+<h3 id="1847-限额限流与-provider-故障"><a class="header" href="#1847-限额限流与-provider-故障">18.4.7 限额、限流与 Provider 故障</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -525,17 +526,17 @@
 <p>Claude Code 的重试规则里有一条值得单独引用的理由：已经完成了一个文本块或工具调用之后，如果出现服务器错误、断连或停滞，不会整体重试，因为“重新发送请求可能把同一批工具调用执行两次”，所以改为保留 Claude 已完成的输出，运行已完成的工具调用，并从它们的结果继续（v2.1.199 起）<a href="#ref-47">[47]</a>。这是“重试要先区分有没有副作用”最直接的官方例证。无人值守时可以设置 <code>CLAUDE_CODE_RETRY_WATCHDOG=1</code>，对 429 与 529 无限重试，但对“花费上限或用量积分耗尽”的 429 立即失败<a href="#ref-47">[47]</a>。</p>
 <p>OpenCode 的输出被长度截断时，源码追加一条合成提示，要求把剩余工作拆小；连续三条助手消息都因长度结束就失败，错误是“仍然被截断”<a href="#ref-72">[72]</a>。</p>
 <p>以上数字只对各自产品、各自版本、各自配置口径成立，不能互相比较。</p>
-<h3 id="1748-未找到与待核验"><a class="header" href="#1748-未找到与待核验">17.4.8 未找到与待核验</a></h3>
+<h3 id="1848-未找到与待核验"><a class="header" href="#1848-未找到与待核验">18.4.8 未找到与待核验</a></h3>
 <p>下面这些问题，本章没有找到公开的答案。写出来是为了防止读者把空白当成默认行为。</p>
 <ul>
 <li>Codex：现行的文件级撤销机制；Plan mode 是否有运行时的强制，只在提示词模板里读到“可以执行不改变状态的动作，不得执行会改变状态的动作”的规则，不能写成沙箱级的保证<a href="#ref-29">[29]</a>；进程崩溃后自动续跑的机制；“恢复不接管旧进程”的直接陈述。</li>
 <li>Claude Code：Agent Loop 的内部终止判据与线程模型；会话 JSONL 的条目格式（官方称属内部实现）；压缩“反复重新填满”保护的具体次数<a href="#ref-31">[31]</a><a href="#ref-38">[38]</a>。</li>
 <li>OpenCode：中止时运行中的 Shell 子进程是否被终止；重启后待处理的权限请求是否保留，源码里只见内存中的映射，位置关闭时会被取消；分叉的内部实现；压缩模型是否可配置，文档与源码互相矛盾<a href="#ref-67">[67]</a><a href="#ref-73">[73]</a><a href="#ref-75">[75]</a>。</li>
 </ul>
-<h2 id="175-实践用好-coding-agent"><a class="header" href="#175-实践用好-coding-agent">17.5 实践：用好 Coding Agent</a></h2>
+<h2 id="185-实践用好-coding-agent"><a class="header" href="#185-实践用好-coding-agent">18.5 实践：用好 Coding Agent</a></h2>
 <p>前四部分描述了运行时怎样工作。这一部分讲使用者能做什么。</p>
 <p>本节每条做法都标注依据：“官方建议”指官方文档明确写出的建议；“本书建议”指本书依据前文机制归纳的做法；OpenCode 2.x 没有最佳实践或调优专页，相关内容只是功能说明，不写成官方建议。产品行为带版本门槛的地方，以所用版本的文档为准。</p>
-<h3 id="1751-杠杆在哪里四类输入"><a class="header" href="#1751-杠杆在哪里四类输入">17.5.1 杠杆在哪里：四类输入</a></h3>
+<h3 id="1851-杠杆在哪里四类输入"><a class="header" href="#1851-杠杆在哪里四类输入">18.5.1 杠杆在哪里：四类输入</a></h3>
 <p>运行时的表现在很大程度上取决于它拿到什么输入。使用者能影响的输入可以分成四类，与 17.1.1 的四层对应：</p>
 <div class="table-wrapper">
 <table>
@@ -552,7 +553,7 @@
 </div>
 <p>Claude Code 官方最佳实践页把大多数建议归到一个约束上：上下文窗口很快被填满，填满之后表现下降<a href="#ref-32">[32]</a>。官方没有给出退化的量化数据，这是定性的陈述，本章把它作为实践与调优两部分共同的前提。Codex 官方指南的总纲是：不要把它当作一次性的助手，而要当作一个需要配置并持续改进的队友<a href="#ref-19">[19]</a>。两者都在说同一件事：使用者的工作不是写出一条完美的提示，而是持续为运行时提供合适的输入。</p>
 <p>这些输入分属三种角色：交付任务的委派者、维护指令文件、权限和扩展的配置者，以及设定组织级规则的管理者（Claude Code 的 managed 设置、OpenCode 的 Policies）。同一条做法对不同角色的杠杆不同，下文会在需要时指明。</p>
-<h3 id="1752-交代任务目标上下文约束与完成条件"><a class="header" href="#1752-交代任务目标上下文约束与完成条件">17.5.2 交代任务：目标、上下文、约束与完成条件</a></h3>
+<h3 id="1852-交代任务目标上下文约束与完成条件"><a class="header" href="#1852-交代任务目标上下文约束与完成条件">18.5.2 交代任务：目标、上下文、约束与完成条件</a></h3>
 <p>Codex 官方建议提示包含四个要素：目标（Goal）、上下文（Context）、约束（Constraints）和完成条件（Done when）；完成条件的写法是“这一轮结束之前应当为真的事情，比如测试通过、行为改变、或某个缺陷不再复现”<a href="#ref-19">[19]</a>（官方建议）。</p>
 <p>Claude Code 官方用前后对照说明什么叫“具体”<a href="#ref-32">[32]</a>（官方建议）：</p>
 <div class="table-wrapper">
@@ -570,23 +571,23 @@
 </div>
 <p>官方同时说明，含糊的提示在探索阶段也有用，比如问“这个文件有什么可以改进的”，可能暴露自己没想到要问的东西<a href="#ref-32">[32]</a>。较大的功能，官方建议先让 Claude 访谈用户，把完整的规格写进 <code>SPEC.md</code>，再开一个新会话去执行：新会话的上下文干净，只专注于实现；好的规格是自包含的，点明涉及的文件和接口，写明不在范围内的内容，并以端到端的验证步骤收尾<a href="#ref-32">[32]</a>。Codex 同样建议在想法模糊时让 Codex 先反问<a href="#ref-19">[19]</a>。</p>
 <p>本书建议：一次只交代一个目标；把“不做什么”和“完成的证据是什么”写出来；缺少关键信息时，让 Agent 先提问，而不是任由它自行补全缺口。</p>
-<h3 id="1753-先探索再规划再实现以及何时跳过"><a class="header" href="#1753-先探索再规划再实现以及何时跳过">17.5.3 先探索再规划再实现，以及何时跳过</a></h3>
+<h3 id="1853-先探索再规划再实现以及何时跳过"><a class="header" href="#1853-先探索再规划再实现以及何时跳过">18.5.3 先探索再规划再实现，以及何时跳过</a></h3>
 <p>Claude Code 官方推荐的流程有四个阶段：探索、规划、实现、提交。探索与规划阶段进入 plan mode（<code>claude --permission-mode plan</code>，或按 Shift+Tab 切换），Agent 只读文件、回答问题而不修改；规划之后可以用 <code>Ctrl+G</code> 在编辑器里直接修改计划，再切出 plan mode 去实现<a href="#ref-32">[32]</a>（官方建议）。官方也明确指出 plan mode 有开销：改动一句话就能描述时，应当直接做，不必规划；规划在方向不确定、涉及多个文件或对被改的代码不熟悉时最有用<a href="#ref-32">[32]</a>。成本页提到，规划可以避免初始方向错误造成的昂贵返工<a href="#ref-33">[33]</a>。</p>
 <p>Codex 的 Plan mode 通过 <code>/plan</code> 或 Shift+Tab 进入，官方的说明是：先收集上下文、提出澄清问题，在实现之前形成更扎实的计划；更长的多步任务可以使用 <code>PLANS.md</code><a href="#ref-19">[19]</a>（官方建议）。已经在工作时 <code>/plan</code> 暂时不可用<a href="#ref-14">[14]</a>。有一点需要如实说明：源码里 Plan mode 的规则出现在提示词模板中，规定可以执行不改变状态的动作、不得执行会改变状态的动作；是否另有运行时的强制，本章没有核验，所以不能把它当作沙箱级的保证<a href="#ref-29">[29]</a>。</p>
 <p>OpenCode 2.x 有内置的 Plan 主 Agent：它探索并规划，不编辑普通项目文件，可以在 OpenCode 的计划目录下写计划文件，Shell 仍受权限控制；TUI 用 Shift+Tab 在 Agent 之间切换<a href="#ref-62">[62]</a><a href="#ref-57">[57]</a>。文档只描述了功能，没有给出“何时先规划”的建议。</p>
 <p>本书建议：用“能否一句话描述这次改动的 diff”来判断是否需要规划；规划的产物要落到文件里（<code>PLAN.md</code> 之类），因为 Claude Code 官方的对抗式审查示例，正是拿 diff 去对照 <code>PLAN.md</code> 检查每项需求是否实现<a href="#ref-32">[32]</a>。</p>
-<h3 id="1754-项目指令文件写什么不写什么"><a class="header" href="#1754-项目指令文件写什么不写什么">17.5.4 项目指令文件：写什么，不写什么</a></h3>
+<h3 id="1854-项目指令文件写什么不写什么"><a class="header" href="#1854-项目指令文件写什么不写什么">18.5.4 项目指令文件：写什么，不写什么</a></h3>
 <p>指令文件是使用者影响上下文最直接的手段，也是最容易写坏的。</p>
 <p>Claude Code 官方的判断标准很直接：对 CLAUDE.md 的每一行问一句“删掉它会让 Claude 出错吗”，不会就删。该写的是 Claude 从代码里猜不到的东西：Shell 命令、与默认不同的代码风格、测试说明、仓库的分支与 PR 约定、项目特有的架构决定、开发环境的特殊要求、不自明的陷阱；不该写的是读代码就能知道的内容、语言的标准约定、长篇教程、频繁变化的信息、逐文件的描述。官方还说，文件过长会让 Claude 忽略其中一半规则，要像对待代码一样对待它：出问题时回来审视，定期修剪，改完观察行为是否真的变化；个别反复被忽略的规则可以只在那一行加强调，强调的行多了就没有一行突出；可以用 <code>/init</code> 生成起点，用 <code>/doctor</code> 让 Claude 提出可删减的内容；仅在部分场景才用到的领域知识，用 Skill 按需加载，而不是塞进每次都加载的文件<a href="#ref-32">[32]</a>（官方建议）。官方成本页的数字建议是 CLAUDE.md 控制在 200 行以内<a href="#ref-33">[33]</a>。</p>
 <p>Codex 官方建议 AGENTS.md 覆盖仓库结构、运行与测试命令、约定、禁止事项以及如何验证；它的原话是，一个简短而准确的 AGENTS.md，比一个满是含糊规则的长文件更有用；Codex 反复犯同一个错误时，让它复盘，再把规则补进文件；<code>/init</code> 生成的模板要按团队的实际做法修改<a href="#ref-19">[19]</a>（官方建议）。核对 AGENTS.md 是否生效，官方给了具体的办法：在仓库根目录运行 <code>codex --ask-for-approval never "Summarize the current instructions."</code><a href="#ref-6">[6]</a>。官方定价页也建议缩小 AGENTS.md 以节省额度<a href="#ref-18">[18]</a>。</p>
 <p>OpenCode 2.x 的文档只说明了功能：它只认 AGENTS.md，不回退到 CLAUDE.md，不解决多个文件之间的冲突，下层目录的文件按需加载<a href="#ref-61">[61]</a>。把一个原本为 Claude Code 写的仓库迁到 OpenCode 2.x 时，这一点会直接影响指令是否生效。</p>
 <p>三个产品的文件名、层级、加载时机和大小限制都不同（见 17.2.5），必须分别核对。本书建议：只写 Agent 猜不到的事实，写完用行为去检验，而不是只看文件内容；必须成立的约束不要只放在这里，因为 Claude Code 官方明说，指令文件里的“不要编辑 .env”只是请求而不是保证，必须每次发生的事要用 Hook 或权限规则<a href="#ref-45">[45]</a>。</p>
-<h3 id="1755-让验证成为任务的一部分"><a class="header" href="#1755-让验证成为任务的一部分">17.5.5 让验证成为任务的一部分</a></h3>
+<h3 id="1855-让验证成为任务的一部分"><a class="header" href="#1855-让验证成为任务的一部分">18.5.5 让验证成为任务的一部分</a></h3>
 <p>Claude Code 最佳实践页把“给 Claude 一个能验证自己工作的办法”放在第一位，理由是：Claude 在工作“看起来完成”时就会停下，如果没有一个能运行的检查，“看起来完成”就是唯一的信号，使用者自己成了验证回路。检查可以是测试套件、构建的退出码、linter、与固定样本比对输出的脚本，或者与设计稿比对的浏览器截图<a href="#ref-32">[32]</a>（官方建议）。官方的对照示例是：不说“实现一个校验邮箱的函数”，而是给出几组期望的结果并要求实现后运行测试；不说“构建失败了”，而是贴出错误，要求修复并验证构建通过，同时“解决根因，不要压制错误”。官方还建议让 Claude 出示证据，而不是断言成功：测试输出、运行过的命令和返回值、或者结果的截图，因为审阅证据比自己重新验证更快，也适用于没有守着的会话<a href="#ref-32">[32]</a>。</p>
 <p>官方给出的闸门强度有四档（见 17.3.6）。对抗式审查需要注意一个细节：让审查者去“找缺口”，它通常会找出一些，即使工作本身没问题；追着每一条意见改，会造成过度设计，比如多余的抽象层和为不可能出现的情形写的测试。官方建议告诉审查者只报告影响正确性或既定需求的缺口，其余作为可选项<a href="#ref-32">[32]</a>。官方对没法验证的东西的态度也很明确：如果无法验证，就不要发布<a href="#ref-32">[32]</a>。</p>
 <p>Codex 的官方建议与此一致：让 Codex 写或更新测试、运行检查、在接受之前审查 diff；<code>/review</code> 可以审查未提交的改动、与基础分支的差异或某个提交，也可以带自定义的指令<a href="#ref-19">[19]</a><a href="#ref-14">[14]</a>。OpenCode 2.x 没有对应的官方建议，只有可以读到会话差异的接口<a href="#ref-68">[68]</a>。</p>
 <p>本书建议：把验证命令直接写进任务描述，把“完成”定义为命令的结果；审查时看命令、退出状态和对应的代码版本，而不是只看模型的叙述；判据不要由生成者来改写；报告里要写明哪些范围没有被验证。</p>
-<h3 id="1756-权限与沙箱从默认开始渐进放权"><a class="header" href="#1756-权限与沙箱从默认开始渐进放权">17.5.6 权限与沙箱：从默认开始，渐进放权</a></h3>
+<h3 id="1856-权限与沙箱从默认开始渐进放权"><a class="header" href="#1856-权限与沙箱从默认开始渐进放权">18.5.6 权限与沙箱：从默认开始，渐进放权</a></h3>
 <p>Claude Code 官方给出了六种权限模式和各自适用的场景<a href="#ref-34">[34]</a>：</p>
 <div class="table-wrapper">
 <table>
@@ -607,11 +608,11 @@
 <p>Codex 官方的建议是：新手从默认权限开始，只对可信的仓库或特定的工作流放宽；审批作用域选择“能让任务继续的最窄范围”，跨不相关的仓库时用单独的项目或 worktree，而不是放宽访问；<code>codex exec</code> 默认是只读沙箱，要写入需要显式指定 <code>--sandbox workspace-write</code>；自动审核会额外调用模型，增加用量<a href="#ref-19">[19]</a><a href="#ref-8">[8]</a><a href="#ref-13">[13]</a><a href="#ref-9">[9]</a>。</p>
 <p>OpenCode 2.x 的权限页给了一个“常见配置”示例：<code>shell</code> 默认询问，<code>git status</code>、<code>git diff</code> 允许，<code>git push</code> 拒绝；该页唯一明确的建议是优先使用窄的 Shell 允许列表，而不是试图识别所有危险命令的模式，因为目录推断是尽力而为的。想让项目目录外的访问先询问，要自己添加 <code>external_directory</code> 的 ask 规则<a href="#ref-63">[63]</a>。</p>
 <p>本书建议：把放权做成一个阶梯，从只读探索开始，依次是工作目录内的受限写入、允许列表内的命令、外部副作用的逐次审批；可预判的动作写成规则，需要判断的留给人；放权之前先确保有回退手段（版本控制）和验证手段。审批和隔离分开配置，不要指望点了同意就等于安全。</p>
-<h3 id="1757-会话与上下文卫生"><a class="header" href="#1757-会话与上下文卫生">17.5.7 会话与上下文卫生</a></h3>
+<h3 id="1857-会话与上下文卫生"><a class="header" href="#1857-会话与上下文卫生">18.5.7 会话与上下文卫生</a></h3>
 <p>Claude Code 官方的会话管理建议集中在“尽早纠偏、积极管理上下文”：不相关的任务之间用 <code>/clear</code>；同一个问题纠正超过两次，说明上下文里已经堆满失败的尝试，应当清空并写一个吸收了教训的更具体的提示重来；需要控制压缩保留什么时，用 <code>/compact &lt;指令&gt;</code>，或者在 CLAUDE.md 里写明压缩时必须保留的内容；<code>/btw</code> 提出的旁支问题不进入对话历史；会话用 <code>/rename</code> 命名并像分支一样对待，用 <code>--continue</code> 或 <code>--resume</code> 回来<a href="#ref-32">[32]</a>（官方建议）。官方还说，checkpoint 允许让 Claude 大胆尝试，不行就回退，但它只跟踪通过文件编辑工具做出的改动，不跟踪 Bash 命令，不能替代 git<a href="#ref-32">[32]</a>。</p>
 <p>Codex 官方建议一个对话对应一个连贯的工作单元，只在工作真正分叉时才 fork，用 <code>/compact</code> 或依赖自动压缩，用 <code>/status</code> 查看剩余的上下文容量，<code>/recap</code> 可以在不压缩上下文的情况下回顾对话<a href="#ref-19">[19]</a><a href="#ref-14">[14]</a>。OpenCode 2.x 的 TUI 提供 <code>/btw</code> 与 <code>/undo</code>，工作中按 Enter 是 steer，<code>Ctrl+X</code> 再 Enter 是排队<a href="#ref-57">[57]</a>，文档同样只是功能说明。</p>
 <p>本书建议：压缩之后或者长时间中断之后，先让 Agent 重新读取工作区的当前状态，并重述当前有效的约束，因为只在对话里口头说明的约束可能已经被摘要掉（见 17.4.3）；用“一个会话一个目标”作为默认，只有在深度处理一个复杂问题、历史本身有价值时，才让上下文累积，官方也承认这些模式不是铁律<a href="#ref-32">[32]</a>。</p>
-<h3 id="1758-用扩展承载重复工作skillmcphooksubagent"><a class="header" href="#1758-用扩展承载重复工作skillmcphooksubagent">17.5.8 用扩展承载重复工作：Skill、MCP、Hook、Subagent</a></h3>
+<h3 id="1858-用扩展承载重复工作skillmcphooksubagent"><a class="header" href="#1858-用扩展承载重复工作skillmcphooksubagent">18.5.8 用扩展承载重复工作：Skill、MCP、Hook、Subagent</a></h3>
 <p>Claude Code 官方的选择指引是按“出现了什么情况”来触发建设的<a href="#ref-45">[45]</a>（官方建议）：</p>
 <div class="table-wrapper">
 <table>
@@ -631,13 +632,13 @@
 </div>
 <p>官方还给出了各类机制对上下文的成本：CLAUDE.md 每次请求都带全文；Skill 每次请求只带描述；MCP 成本较低（工具名，schema 按需加载）；Hook 为零，除非返回输出；子 Agent 与主会话隔离<a href="#ref-45">[45]</a>。Codex 的官方建议与此呼应：重复使用同一条提示、或反复纠正同一个流程，就应当做成 Skill，从 2 到 3 个具体用例开始，一个 Skill 只做一件事，描述写清做什么、何时用；MCP 用于上下文在仓库之外、数据经常变化或需要可重复集成的场景，从一两个工具开始，不要一上来就把所有工具都接进来；“Skill 定义方法，定时任务定义时间表”，先手动跑到可靠再定时<a href="#ref-19">[19]</a><a href="#ref-11">[11]</a><a href="#ref-12">[12]</a>。OpenCode 2.x 也有 Skills、Commands、Plugins、MCP，文档只是功能说明；其中 Commands 的 Shell 块在权限流程之外运行，只应使用可信的来源<a href="#ref-65">[65]</a>。</p>
 <p>本书建议按约束的性质选择承载机制：必须每次发生的，用 Hook 或权限规则；方法和领域知识，用 Skill；外部数据与动作，用 MCP；边界清晰的独立调查，用子 Agent；模型猜不到的事实性约定，用指令文件。</p>
-<h3 id="1759-并行与规模化worktree非交互模式与批量"><a class="header" href="#1759-并行与规模化worktree非交互模式与批量">17.5.9 并行与规模化：worktree、非交互模式与批量</a></h3>
+<h3 id="1859-并行与规模化worktree非交互模式与批量"><a class="header" href="#1859-并行与规模化worktree非交互模式与批量">18.5.9 并行与规模化：worktree、非交互模式与批量</a></h3>
 <p>Claude Code 官方给出了几种并行方式：用 worktree 让多个会话在隔离的检出里互不冲突；<code>claude -p</code> 非交互运行，可以输出 JSON 或流式 JSON，默认仍会创建可恢复的会话，除非加 <code>--no-session-persistence</code>；批量迁移可以先让 Claude 把要迁移的文件列成清单，再用脚本循环调用 <code>claude -p</code>，用 <code>--allowedTools</code> 预先批准需要的工具，配合 <code>--permission-mode dontAsk</code> 拒绝其余一切，官方明确建议先在两三个文件上试跑，再全量运行；<code>/batch</code> 会把改动拆给 5 到 30 个子 Agent，各在自己的 worktree 里工作；Writer / Reviewer 模式用新的上下文做审查，因为它不会偏向自己刚写的代码<a href="#ref-32">[32]</a><a href="#ref-50">[50]</a><a href="#ref-51">[51]</a>（官方建议）。Agent teams 是实验功能，默认关闭<a href="#ref-32">[32]</a>。</p>
 <p>Codex 官方把“在同一批文件上不用 worktree 跑实时任务”列为常见错误；worktree 默认处于分离的 HEAD 状态，文档说明这样可以创建多个 worktree 而不污染分支，同时 Git 只允许一个分支同时在一处被检出；<code>codex exec --worktree</code> 可以直接在 worktree 里运行<a href="#ref-19">[19]</a><a href="#ref-15">[15]</a>。定时任务在无人值守时用默认的沙箱设置运行，在 <code>workspace-write</code> 下，需要修改工作区外的文件、访问网络或操作本机应用的工具调用会失败；官方建议先手动跑到可靠再定时<a href="#ref-16">[16]</a><a href="#ref-19">[19]</a>。CI 里的凭证，官方建议不要把 API key 设成会运行仓库受控代码的 job 级环境变量，GitHub 上用官方的 action<a href="#ref-13">[13]</a>。</p>
 <p>OpenCode 2.x 的 <code>opencode run</code> 支持 <code>--format json</code>、<code>--continue</code>、<code>--agent</code>、<code>--model provider/model#variant</code>；文档里的 CI 示例用 <code>--standalone</code>，让私有服务能拿到环境变量里的 API key<a href="#ref-57">[57]</a>。需要注意源码里的行为：非交互运行遇到权限询问默认自动拒绝，<code>--auto</code> 才会自动批准没有被明确 deny 的权限（源码事实，非文档承诺）<a href="#ref-77">[77]</a>。</p>
 <p>三个产品的非交互入口默认行为各不相同：<code>claude -p</code> 在没有指定模式时，v2.1.302 及以后默认是 Manual，需要审批的调用被拒绝；<code>codex exec</code> 默认是只读沙箱；<code>opencode run</code> 自动拒绝权限询问<a href="#ref-34">[34]</a><a href="#ref-13">[13]</a><a href="#ref-77">[77]</a>。这意味着同一个脚本换一个产品，需要的显式配置是不同的。</p>
 <p>本书建议：并行的读取与调查可以放心铺开；并行的写入必须隔离工作区，或指定单一写入者；批量任务先在少量样本上试跑；无人值守的运行要有精确的允许列表，并且放在容器或沙箱里。</p>
-<h3 id="17510-常见问题与诊断"><a class="header" href="#17510-常见问题与诊断">17.5.10 常见问题与诊断</a></h3>
+<h3 id="18510-常见问题与诊断"><a class="header" href="#18510-常见问题与诊断">18.5.10 常见问题与诊断</a></h3>
 <p>下表合并了 Claude Code 官方列出的失败模式、Codex 官方列出的常见错误，以及对应的对策。</p>
 <div class="table-wrapper">
 <table>
@@ -658,7 +659,7 @@
 </tbody>
 </table>
 </div>
-<h3 id="17511-案例修复一个失败的测试"><a class="header" href="#17511-案例修复一个失败的测试">17.5.11 案例：修复一个失败的测试</a></h3>
+<h3 id="18511-案例修复一个失败的测试"><a class="header" href="#18511-案例修复一个失败的测试">18.5.11 案例：修复一个失败的测试</a></h3>
 <p>下面是一个教学构造的案例，不是实测。它把前面几条做法串成一次完整的任务，只使用本章已经核对过的入口。任务是：用户报告会话超时之后登录失败，仓库已有测试，但没有覆盖这个情形。</p>
 <div class="table-wrapper">
 <table>
@@ -676,7 +677,7 @@
 </table>
 </div>
 <p>这个案例里没有哪一步依赖更聪明的模型。每一步改善的都是运行时拿到的输入：症状与完成条件让任务可验证，只读探索让方向先被审视，窄的权限限制了错误的影响范围，验证把“完成”变成可核对的结果，新的会话避免了无关的历史干扰。</p>
-<h3 id="17512-选择时该问的问题"><a class="header" href="#17512-选择时该问的问题">17.5.12 选择时该问的问题</a></h3>
+<h3 id="18512-选择时该问的问题"><a class="header" href="#18512-选择时该问的问题">18.5.12 选择时该问的问题</a></h3>
 <p>下表不是产品排名，只列出公开资料能回答的几个选择问题。</p>
 <div class="table-wrapper">
 <table>
@@ -692,14 +693,14 @@
 </tbody>
 </table>
 </div>
-<h2 id="176-调优控制上下文成本与质量"><a class="header" href="#176-调优控制上下文成本与质量">17.6 调优：控制上下文、成本与质量</a></h2>
+<h2 id="186-调优控制上下文成本与质量"><a class="header" href="#186-调优控制上下文成本与质量">18.6 调优：控制上下文、成本与质量</a></h2>
 <p>调优是在已经能用的基础上，有依据地改进耗时、成本、质量和稳定性。本章没有任何实测数据：下文出现的数字，要么是产品文档对当前版本行为的陈述，要么是厂商自报的数据，都会注明范围；调优建议标注“官方建议”或“本书建议”，OpenCode 2.x 在这一部分只有功能说明。</p>
-<h3 id="1761-调优什么怎样度量"><a class="header" href="#1761-调优什么怎样度量">17.6.1 调优什么，怎样度量</a></h3>
+<h3 id="1861-调优什么怎样度量"><a class="header" href="#1861-调优什么怎样度量">18.6.1 调优什么，怎样度量</a></h3>
 <p>可以调的目标有四个：任务质量、延迟、成本和可靠性。权限、验证与审查属于边界，不在调优的范围内（见 17.6.8）。</p>
 <p>度量时有几个容易犯的错误。第一，按“每次请求”算成本会掩盖失败后返工的代价，按“每个成功完成的任务”算才能和质量放在一起比较（本书建议）。第二，产品内置的成本数字多半是估算：Claude Code 的 <code>/usage</code> 在本地按标价用 token 数计算美元数，官方明说这是估算，权威的账单要看控制台；计划用量的数字来自本机的会话历史，不含其他设备<a href="#ref-33">[33]</a>。第三，模型的输出不确定，同一个任务要重复多次，看分布，而不是看一次运行（本书建议）。</p>
 <p>Claude Code 官方成本页建议，先用一个小规模的试点组建立基线，再用跟踪工具推广，因为每位开发者的成本随模型选择、代码库大小和使用方式（比如同时开多个实例、使用自动化）差异很大<a href="#ref-33">[33]</a>（官方建议）。官方自报的数字是：在企业部署中，平均每位开发者每个活跃日约 13 美元，每月 150 到 250 美元，90% 的用户每个活跃日低于 30 美元。这是 Anthropic 对其企业部署的自报，没有给出样本量、时间范围和模型构成，只能当作量级参考，不能当作可迁移的基准（厂商报告）<a href="#ref-33">[33]</a>。</p>
 <p>本书建议：先固定一组有代表性的任务，记录任务类型、上下文长度和工具调用次数；每次只改一个变量，在质量约束不变的条件下比较成功率、延迟和成本；把固定开销（每次请求都要付的系统提示、工具定义、指令文件、技能描述）与增长开销（对话、文件内容、命令输出）分开看。</p>
-<h3 id="1762-上下文预算最基本的约束"><a class="header" href="#1762-上下文预算最基本的约束">17.6.2 上下文预算：最基本的约束</a></h3>
+<h3 id="1862-上下文预算最基本的约束"><a class="header" href="#1862-上下文预算最基本的约束">18.6.2 上下文预算：最基本的约束</a></h3>
 <p>Claude Code 官方把上下文视为最重要的资源，并给出了一组具体手段<a href="#ref-33">[33]</a><a href="#ref-32">[32]</a>（官方建议）：</p>
 <ul>
 <li>任务之间用 <code>/clear</code> 重新开始，过期的上下文会在之后每条消息里白白消耗 token；清空前先用 <code>/rename</code>，之后可以 <code>/resume</code> 回来。</li>
@@ -713,23 +714,23 @@
 <p>Codex 官方给出的建议更简短：缩小 AGENTS.md，限制使用的 MCP 服务器数量，因为每个 MCP 服务器都会给消息增加上下文<a href="#ref-18">[18]</a>。可调的配置包括：Skill 描述列表的预算（最多占模型上下文窗口的 2%，窗口未知时为 8,000 字符，<code>skills.max_context_tokens</code> 上限为 10,000 token）、<code>tool_output_token_limit</code> 与逐工具的 <code>tools.&lt;tool&gt;.output_token_limit</code>（历史里单个工具输出的预算）、<code>project_doc_max_bytes</code>（默认 32 KiB）<a href="#ref-11">[11]</a><a href="#ref-5">[5]</a><a href="#ref-6">[6]</a>。</p>
 <p>OpenCode 2.x 的文档只列出了配置项：<code>compaction.keep.tokens</code> 默认 15,000，文档对这个参数唯一的取舍说明是“当近期的精确细节很重要时，加大 <code>keep.tokens</code>”；工具输出默认最多 2,000 行或 51,200 字节<a href="#ref-67">[67]</a><a href="#ref-58">[58]</a>。这些配置项没有被写成官方的调优建议。</p>
 <p>本书建议：先压缩固定开销，因为每一次请求都要付一遍，之后才轮到增长开销；对增长开销，靠隔离（子 Agent）、预处理（Hook 或脚本）和限定范围来控制，而不是等到上下文快满了再靠自动压缩补救。</p>
-<h3 id="1763-模型与推理强度"><a class="header" href="#1763-模型与推理强度">17.6.3 模型与推理强度</a></h3>
+<h3 id="1863-模型与推理强度"><a class="header" href="#1863-模型与推理强度">18.6.3 模型与推理强度</a></h3>
 <p>Claude Code 官方的措辞是：Sonnet 能很好地处理大多数编码任务，成本比 Opus 低，Opus 留给复杂的架构决策和多步骤推理；简单的子 Agent 任务可以在其配置里指定 Haiku 级的模型；会话中途可以用 <code>/model</code> 切换<a href="#ref-33">[33]</a>（官方建议，具体模型名和别名随版本变化，本章不硬写）。推理强度（effort）是另一个旋钮：扩展思考默认开启，思考 token 按输出计费，默认预算可达数万 token；简单任务可以用 <code>/effort</code> 降低强度，或在 <code>/config</code> 里关闭思考；有些模型无法关闭思考，<code>MAX_THINKING_TOKENS</code> 只对固定预算的模型有效，自适应推理的模型会忽略非零值<a href="#ref-33">[33]</a><a href="#ref-48">[48]</a>。官方还指出，强度刻度是按模型校准的，同名的级别不代表同一个底层数值，<code>max</code> 级别可能边际收益递减并倾向于过度思考，推广之前应先测试<a href="#ref-48">[48]</a>。</p>
 <p>Codex 的配置键是 <code>model_reasoning_effort</code>，可选值依模型与客户端而不同。官方文档的一般性建议是：更高的推理强度可以改善复杂任务的结果，但更慢、更耗 token；先用默认值，需要更深入的规划或分析时再提高；选型页给出的方法是“保留满足质量门槛的最轻档位”；最佳实践指南按任务给出了低、中或高、超高三档的粗略对应，并为具体的模型给出了起点，那些起点含模型名，随版本变化，这里不转述<a href="#ref-17">[17]</a><a href="#ref-5">[5]</a><a href="#ref-19">[19]</a>（官方建议）。Codex 还有快速模式：<code>/fast</code> 或 <code>service_tier = "fast"</code>，官方称它使用包含在订阅内的额度，倍率是标准的 2.5 倍，用购买的额度或企业按量计费时是 2 倍，这些倍率与模型有关，属版本敏感项<a href="#ref-17">[17]</a>。子 Agent 的默认模型和推理强度也可单独配置（<code>agents.default_subagent_model</code>、<code>agents.default_subagent_reasoning_effort</code>）<a href="#ref-10">[10]</a>。</p>
 <p>OpenCode 2.x 的模型选择有明确的优先级：会话已选的模型优先于配置里的默认值；Agent 与命令都可以带自己的 <code>model</code>，命令的 <code>model</code> 优先于命令所选 Agent 的 <code>model</code>，再优先于当前会话模型；子 Agent 没配置模型时继承父会话<a href="#ref-60">[60]</a><a href="#ref-62">[62]</a><a href="#ref-65">[65]</a>。推理相关的选项通过 <code>variants</code> 表达，例如 <code>reasoningEffort</code>；根配置的 <code>model</code> 只保留默认的 Provider 与模型，不保留变体，变体要在会话、运行、Agent 或命令上指定<a href="#ref-60">[60]</a>。有一个容易误用的地方：Agent 配置里的 <code>request</code>（请求头与请求体覆盖）在 2.x 中目前不会随模型请求发送，官方文档明确要求把生效的请求设置配在 Provider、模型或变体上，所以“按 Agent 设置 temperature”不能写成 2.x 可用的能力<a href="#ref-62">[62]</a>。小模型的用途是标题生成，写作 <code>agents.title.model</code>（1.x 的 <code>small_model</code> 被归一化到它）；标题生成不会阻塞模型执行<a href="#ref-59">[59]</a><a href="#ref-72">[72]</a>。OpenCode 文档没有关于“何时选哪个模型”的建议。</p>
-<h3 id="1764-缓存与会话节奏"><a class="header" href="#1764-缓存与会话节奏">17.6.4 缓存与会话节奏</a></h3>
+<h3 id="1864-缓存与会话节奏"><a class="header" href="#1864-缓存与会话节奏">18.6.4 缓存与会话节奏</a></h3>
 <p>Claude Code 官方对提示缓存写得最详细。缓存按请求前缀精确匹配，前缀中任何位置的变化都会令其后的全部内容重算，没有按文件或片段的缓存；请求的顺序是系统提示（核心指令与工具定义）、项目上下文（CLAUDE.md、auto memory、无作用域的规则）、对话，把不常变的放在前面<a href="#ref-46">[46]</a>。缓存因不活动而过期，每次命中重置计时，API 有 5 分钟与 1 小时两档，1 小时档的缓存写入费率更高。官方文档对当前版本的默认值是：订阅下、计划用量内的主对话请求 1 小时，其他情形（用量积分、API key、云厂商）为 5 分钟；子 Agent、工作流、fork、压缩、会话标题等其他请求默认 5 分钟<a href="#ref-46">[46]</a>。</p>
 <p>会使缓存失效的动作官方列得很具体：切换模型（每个模型各有缓存，<code>opusplan</code> 每次进出 plan 都是一次切换，自动的模型备用切换也算）；切换推理强度（多数模型如此）；开启快速模式；连接或移除 MCP 服务器（工具定义延迟加载时不受影响）；压缩（设计上就会令对话层失效，系统提示与项目上下文层可以保持）；累积大量图片；升级 Claude Code。不会使缓存失效的动作包括：编辑仓库里的文件（以系统提醒的形式追加）、切换权限模式、调用 Skill、<code>/rewind</code>（回到已缓存的前缀，反而命中）、派生子 Agent（它的首个请求不读父缓存，但父缓存不受影响）。会话中编辑 CLAUDE.md 既不使缓存失效，也不会生效，要等到 <code>/clear</code>、<code>/compact</code> 或重启<a href="#ref-46">[46]</a>。</p>
 <p>这解释了成本页的一个观察：离开超过缓存有效期之后的第一条消息会未命中缓存，需要重新处理整个上下文；恢复一个旧会话后立刻 <code>/compact</code> 最贵，因为历史要按未缓存的输入计费；缓存仍热时压缩则便宜得多。官方建议在任务自然的间隔处手动 <code>/compact</code>，而不是等自动压缩在任务中途触发，放弃某条路径用 <code>/rewind</code> 而不是压缩<a href="#ref-46">[46]</a><a href="#ref-33">[33]</a>（官方建议）。网关也是一个风险点：如果网关丢掉了 <code>cache_control</code> 标记却返回成功，整段对话历史每一轮都会按未缓存计费<a href="#ref-46">[46]</a>。</p>
 <p>Codex 在本章核对的材料里没有专门的缓存文档；源码里只有一条相关的注释：压缩请求超限时从最老的历史项开始裁剪，“是为了保住前缀缓存并保留近期消息”<a href="#ref-23">[23]</a>。OpenCode 2.x 在需要缓存断点的路由上自动放置断点，经 OpenAI 兼容的代理访问 Claude 时需要把 <code>compatibility.cacheFormat</code> 设为 <code>anthropic</code>（或 <code>alibaba</code>），默认缓存约 5 分钟；压缩请求发送完整对话以复用常规请求的缓存前缀，最后一步保留工具定义以保持前缀<a href="#ref-60">[60]</a><a href="#ref-73">[73]</a><a href="#ref-72">[72]</a>。它还有一个默认关闭的“保温”功能：空闲 4 分钟后发送一次丢弃响应的瞬态请求，持续到最近一次非保温请求之后 30 分钟，官方明说这会产生真实的 token 与费用<a href="#ref-65">[65]</a>。</p>
 <p>本书建议：长时间离开之前，在任务的自然断点处压缩或结束会话；避免在会话中途切换模型或推理强度；把稳定的内容留在前缀里，把易变的内容放在后面。</p>
-<h3 id="1765-扩展与并行的成本"><a class="header" href="#1765-扩展与并行的成本">17.6.5 扩展与并行的成本</a></h3>
+<h3 id="1865-扩展与并行的成本"><a class="header" href="#1865-扩展与并行的成本">18.6.5 扩展与并行的成本</a></h3>
 <p>扩展和并行会增加请求数，成本随之上升。</p>
 <p>Claude Code 官方列出了长会话里“看不见”的消耗来源：每次请求都发送完整对话；会话级的定时任务在空闲时仍按间隔触发并带着全部上下文；来自另一个会话的消息会在空闲时作为新的一轮送达；目标（goal）的检查在空闲时也会启动新的一轮，每个目标在两次用户提示之间最多 3 次空闲检查（v2.1.246 起），设置 <code>CLAUDE_CODE_GOAL_CHECKIN_MINUTES=0</code> 可关闭；子 Agent 与工作流各自发请求；Agent teams 的每个队友持续消耗直到退出；<code>/compact</code> 本身也要读完整对话<a href="#ref-33">[33]</a>。后台功能（对话摘要等）也会少量消耗，官方称通常每个会话低于 0.04 美元，没有给出测量条件（厂商报告）<a href="#ref-33">[33]</a>。</p>
 <p>关于 Agent teams，官方称在队友处于 plan mode 时，token 用量约为标准会话的 7 倍，没有给出工作负载与测量方法，只能当作厂商报告的量级；官方建议队友用 Sonnet 级模型、团队保持小规模、spawn 提示保持聚焦、工作完成就关闭队友<a href="#ref-33">[33]</a>。Agent teams 默认关闭<a href="#ref-33">[33]</a>。</p>
 <p>Codex 官方说明，子 Agent 工作流比同类的单 Agent 运行消耗更多 token；自动审核会额外调用模型，也增加用量；每个 MCP 服务器都会增加上下文<a href="#ref-10">[10]</a><a href="#ref-9">[9]</a><a href="#ref-18">[18]</a>。OpenCode 2.x 的子 Agent 嵌套深度默认为 1，限制了嵌套的层数；子 Agent 可以配置自己的模型<a href="#ref-62">[62]</a>。</p>
 <p>本书建议：并行的收益是吞吐与隔离，代价是 token 和冲突，先量出单会话的基线，再判断并行是否值得；空闲时仍在运行的定时任务、目标检查和跨会话消息，是长期开着的会话里最容易被忽略的成本。</p>
-<h3 id="1766-观测手段对照"><a class="header" href="#1766-观测手段对照">17.6.6 观测手段对照</a></h3>
+<h3 id="1866-观测手段对照"><a class="header" href="#1866-观测手段对照">18.6.6 观测手段对照</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -743,11 +744,11 @@
 </table>
 </div>
 <p>三者的度量口径不同，不能把数字直接拿来比较：同样叫“token”，Claude Code 的 <code>token.usage</code> 里 <code>input</code> 不含缓存读写，Codex 的 <code>token_type</code> 另有 <code>reasoning_output</code>，OpenCode 的成本把输出和推理合并计价<a href="#ref-52">[52]</a><a href="#ref-4">[4]</a><a href="#ref-77">[77]</a>。</p>
-<h3 id="1767-调优流程基线单变量质量约束与回退"><a class="header" href="#1767-调优流程基线单变量质量约束与回退">17.6.7 调优流程：基线、单变量、质量约束与回退</a></h3>
+<h3 id="1867-调优流程基线单变量质量约束与回退"><a class="header" href="#1867-调优流程基线单变量质量约束与回退">18.6.7 调优流程：基线、单变量、质量约束与回退</a></h3>
 <p>调优的流程本身与具体产品无关，但每一步都有产品层面的注意事项（本书建议）。</p>
 <p>先建立基线：固定任务集、固定模型与配置版本，记录成功率、轮数、token 与耗时的分布，而不是平均值。再提出假设，例如“把专项流程从 CLAUDE.md 挪进 Skill 会降低每次请求的固定开销”，每次只改一个变量。比较时先看质量约束是否仍然满足，再看成本与延迟；质量下降的提速不算优化。改动要能回退：把指令文件、Settings 或配置文件放进版本控制，让一次调整就是一次可以撤销的提交。</p>
 <p>产品的版本变化也会改变结果：默认的权限模式、压缩的触发点、缓存的有效期、模型别名所指向的模型，都随版本变化。调优记录里要写明产品版本和日期，升级之后用同一组任务复测，不要默认旧的结论仍然成立。</p>
-<h3 id="1768-不应为省-token-放弃的东西"><a class="header" href="#1768-不应为省-token-放弃的东西">17.6.8 不应为省 Token 放弃的东西</a></h3>
+<h3 id="1868-不应为省-token-放弃的东西"><a class="header" href="#1868-不应为省-token-放弃的东西">18.6.8 不应为省 Token 放弃的东西</a></h3>
 <p>有几类开销是不能省的。</p>
 <p>验证。Claude Code 官方的成本页自己就把“给出验证目标”列为省钱的做法：Claude 能验证自己的工作时，会在需要使用者要求修复之前就发现问题<a href="#ref-33">[33]</a>。去掉验证省下的 token，通常会以返工的形式加倍花掉。</p>
 <p>权限与审查。降低审批频率可以减少打断，但应当通过把可预判的动作写成规则、收窄权限范围来实现，而不是把保护关掉。官方对 bypass 模式的界定是仅限隔离的容器或虚拟机<a href="#ref-34">[34]</a>。</p>
