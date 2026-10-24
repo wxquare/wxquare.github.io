@@ -43,10 +43,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cec4fa4e.js";
+            window.path_to_searchindex_js = "../searchindex-509a0440.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-9a8a9538.js"></script>
+        <script src="../toc-77deff2b.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -367,7 +367,7 @@
 <p><code>_startRun</code> 先把会话标记为 busy（此后到来的消息进入本次 run 而不是另起一个），再 <code>_prepareRun</code>：对前一条 assistant 消息做压缩检查 → 触发扩展 <code>before_agent_start</code> → 拼 user 消息 → 并入挂起的 <code>nextTurn</code> 消息与扩展消息 → 生成 system 补丁消息。</p>
 <p>进入 <code>agent.prompt(messages)</code> 后，<code>runAgentLoop</code> 先 <code>declareToolChanges</code>（把“可执行工具集 − 转录里已声明的工具集”的差异写成 system 消息的 <code>toolsAdded/toolsRemoved</code>），依次发 <code>agent_start</code>、<code>turn_start</code>、user 消息的 <code>message_start/end</code>，再进入循环<a href="#ref-30">[30]</a>。每个模型请求前，<code>prepareRequest</code> 把请求上下文替换为会话投影，再做虚拟模型路由与阈值检查；随后经过扩展的 <code>context</code>/<code>context_with_system</code> 变换、图片处理、消息归一化，最终到 <code>streamFn</code>——也就是 <code>modelRuntime.streamSimple(model, context, requestOptions)</code>，这是第一个真正发出的模型请求<a href="#ref-31">[31]</a>。</p>
 <h2 id="193-执行一次任务从输入走到交付"><a class="header" href="#193-执行一次任务从输入走到交付">19.3 执行：一次任务从输入走到交付</a></h2>
-<p>执行部分关注三个内核契约：事件是否代表定稿事实，工具是否经过同一拦截路径，会话投影怎样决定下一次模型输入。小内核把这些过程保持为可组合机制，宿主则承担跨事件的任务身份和完成判断。例如一次 prompt 被接受后，重试和压缩还可能继续；只订阅第一个 agent_end 就关闭任务，会截断内核本来准备进行的恢复。通用循环与副作用状态以<a href="../part3/03-agent-runtime.html#execution-loop">第 15 章</a>为主，本章只追踪 Pi 的对象和事件边界。</p>
+<p>执行部分关注三个内核契约：事件是否代表定稿事实，工具是否经过同一拦截路径，会话投影怎样决定下一次模型输入。小内核把这些过程保持为可组合机制，宿主则承担跨事件的任务身份和完成判断。例如一次 prompt 被接受后，重试和压缩还可能继续；只订阅第一个 agent_end 就关闭任务，会截断内核本来准备进行的恢复。通用循环与副作用状态以<a href="../part3/03-agent-runtime.html#execution-loop">第 16 章</a>为主，本章只追踪 Pi 的对象和事件边界。</p>
 <h3 id="1931-agent-loop双层的循环"><a class="header" href="#1931-agent-loop双层的循环">19.3.1 Agent Loop：双层的循环</a></h3>
 <p>Pi 的循环是双层的。外层 <code>while(true)</code> 只在“排队的 follow-up 到达”或“扩展要求显式继续”时再转一圈；内层每圈是一个 turn：发 <code>turn_start</code> → 把准备好的消息与排队的 steering 写入上下文 → 流式取 assistant 响应 → 有 toolCall 则执行 → <code>finishTurn</code> → 发 <code>turn_end</code> → 再取 steering<a href="#ref-30">[30]</a>。官方对 turn 的定义是“一次 assistant 响应加上由它产生的工具调用与工具结果”；一个 run 重复 turn，之后检查是否还有更多工作（重试、恢复、压缩后重试、排队消息）再决定是否开始下一个低层 run<a href="#ref-3">[3]</a><a href="#ref-15">[15]</a>。</p>
 <p>停止条件在源码里是穷举的：①assistant 响应 <code>stopReason</code> 为 <code>error</code> 或 <code>aborted</code>：发 <code>turn_end</code>、<code>agent_end</code> 后<strong>立即返回</strong>，不执行工具；②<code>finishTurn</code> 返回 <code>action:"end"</code>；③一个回合没有（可执行的）工具调用、<code>terminate</code> 批次结束、且无 steering/follow-up/显式继续。<strong>没有最大轮数、没有 token 或费用上限</strong>——这是在 <code>agent/src</code> 与 <code>coding-agent/src</code> 里检索 <code>maxTurns</code> 与预算类标识无命中的结论<a href="#ref-30">[30]</a>。多数同类产品都会设步数或预算上限，Pi 没有，这是它的一个重要边界。</p>
@@ -583,7 +583,7 @@
 <p>可以将高风险能力放进独立服务，通过受限 RPC 或 MCP 工具暴露；服务端仍按请求者检查资源范围，凭据不返回到模型或扩展上下文。这样内核保持简洁，复杂业务约束由真正拥有数据的服务强制执行。代价是多一个连接、版本和运维边界，错误与超时也需映射回结构化观察。这个设计适合需要复用能力且能承担服务维护成本的团队，不是所有个人任务都必须采用。</p>
 <h4 id="会话分支与外部世界的时间差"><a class="header" href="#会话分支与外部世界的时间差">会话分支与外部世界的时间差</a></h4>
 <p>用户从旧节点分支后，模型看到的历史可以回到“尚未创建事故单”的位置，外部服务中的事故单却不会消失。若分支再次提出创建操作，宿主应识别是否仍属同一个业务意图：相同意图沿原身份查询，真正的新意图需明确授权。仅通过消息内容相同判断重复，会错误合并用户两次独立操作；每次分支生成新随机键，则可能重复一次旧操作。</p>
-<p>因此会话树适合管理推理与交互的版本，业务事实必须另外核验。显示一条旧成功结果也不证明它现在仍有效：工单可能已关闭，权限可能撤销，文件可能被其他用户修改。交付前的查询与当前授权检查应以资源端为准。第 15 章 Operation 模型提供可借鉴的应用设计，不能反向说 Pi 默认内建了同样账本。</p>
+<p>因此会话树适合管理推理与交互的版本，业务事实必须另外核验。显示一条旧成功结果也不证明它现在仍有效：工单可能已关闭，权限可能撤销，文件可能被其他用户修改。交付前的查询与当前授权检查应以资源端为准。第 16 章 Operation 模型提供可借鉴的应用设计，不能反向说 Pi 默认内建了同样账本。</p>
 <h4 id="无内建上限不等于无需预算"><a class="header" href="#无内建上限不等于无需预算">无内建上限不等于无需预算</a></h4>
 <p>对有开放结束条件的研究任务，灵活循环可以避免过早停止；对无人值守任务，缺少上限会使无效工具调用、反复压缩或外部故障不断消耗资源。宿主应分别定义模型调用数、工具时限、总墙钟时间、输出成本、外部动作次数和任务完成条件。不能只限制单次模型 token，因为重试、摘要和子任务会把成本转移到其他调用。</p>
 <p>停止策略也需区分完成、缺证据、权限不足、预算耗尽与结果未知。预算耗尽可以终止新增计算，却不能删除已经发出的写入责任；取消时保留原操作标识，并把核验入口交给用户。对只读研究可以返回带缺口说明的部分报告，对修改代码必须说明哪些验证没有运行，对外部写入则明确已确认与未知事实。</p>
