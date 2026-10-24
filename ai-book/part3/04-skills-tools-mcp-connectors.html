@@ -43,10 +43,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a81d105a.js";
+            window.path_to_searchindex_js = "../searchindex-cec4fa4e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-4a74a8e8.js"></script>
+        <script src="../toc-9a8a9538.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -215,49 +215,11 @@
 <h2 id="161-tool-calling-决策从函数调用到受控行动"><a class="header" href="#161-tool-calling-决策从函数调用到受控行动">16.1 Tool Calling 决策：从函数调用到受控行动</a></h2>
 <p><a href="../images/review-skills-tools-mcp-connectors-01.svg"><img src="../images/review-skills-tools-mcp-connectors-01.svg" alt="外围能力从提案到受控调用"></a></p>
 <p>本节回答三个问题：什么任务需要 Agent 动态调用工具，而不是写死一条后端流程；Function Calling、Tool、Skill、MCP、Connector 等概念各管哪一层；一个外部系统应该通过 API、CLI、MCP 还是 Browser Use 接入。概念总表和接入方式选择在全章只出现这一次，后续各节直接引用。</p>
-<h3 id="1611-直接-api-调用的局限"><a class="header" href="#1611-直接-api-调用的局限">16.1.1 直接 API 调用的局限</a></h3>
-<p>传统后端直接调用 API，前提是调用路径、参数和错误处理都已在代码里确定。Agent 面对的是另一类任务：用户目标可能模糊，所需信息分散在多个系统中，执行路径要根据观察结果动态调整。</p>
-<p>例如用户说：</p>
-<pre><code class="language-text">order-service 的 P95 延迟突然升高了，帮我看一下可能原因。
-</code></pre>
-<p>这句话并不对应一个确定的 API 请求，它隐含多步工作：</p>
-<ol>
-<li>确认服务、时间窗口和告警指标；</li>
-<li>查询指标、日志、部署记录、Pod 状态和历史案例；</li>
-<li>形成多个根因假设；</li>
-<li>用证据筛选假设；</li>
-<li>判断是否需要创建事故单或建议回滚；</li>
-<li>对高风险动作保留人工审批。</li>
-</ol>
-<p>如果写成固定的后端流程，分支会迅速膨胀。Agent 的价值在于由模型负责“下一步该查什么”的开放式判断；确定性执行和风险控制仍必须由 Runtime 承担。</p>
-<h3 id="1612-tool-calling-的运行闭环"><a class="header" href="#1612-tool-calling-的运行闭环">16.1.2 Tool Calling 的运行闭环</a></h3>
-<pre class="mermaid">
-flowchart TD
-    U[用户请求] --&gt; M[模型推理：选择工具并生成结构化参数]
-    M --&gt; P[工具调用提案]
-    P --&gt; R[Runtime：校验、裁决、执行、映射结果]
-    R --&gt; O[观察结果回到上下文]
-    O --&gt; M
-    M --&gt; F[继续调用或给出最终回答]
-</pre>
-
-<p><em>图 15-1：Tool Calling 的运行闭环</em></p>
-<p>OpenAI 文档区分了两件事：模型只提出调用，应用负责执行并回填结果<a href="#ref-2">[2]</a>。使用 Function Calling 并不会把执行责任转移给模型。</p>
-<p>Tool Calling 的工程价值，是在概率性推理和确定性执行之间建立一条可验证、可审计、可回滚的边界。闭环中最容易被低估的是 Runtime 这一层：参数是否合法、调用是否被允许、结果以什么形式回到模型，都由它决定。</p>
-<h3 id="1613-tool-calling-是运行时事务"><a class="header" href="#1613-tool-calling-是运行时事务">16.1.3 Tool Calling 是运行时事务</a></h3>
-<p>最小的工具调用演示只有三步：模型返回调用 JSON，应用执行对应函数，再把结果交回模型。这足以说明原理，却不足以上线。</p>
-<p>Tool Calling 不是一个 API 功能，而是一段可治理的运行时事务。每次调用都需要回答：</p>
-<ul>
-<li>调用的是哪个已登记的工具、哪个版本；</li>
-<li>参数是否符合 Schema；</li>
-<li>当前用户、环境和风险等级下是否允许执行，是否需要审批；</li>
-<li>在什么隔离环境中执行，超时和重试如何约束；</li>
-<li>原始结果如何归一化、裁剪后再交给模型；</li>
-<li>谁在何时、出于什么意图调用了什么工具，记录是否可追溯。</li>
-</ul>
-<p>缺少这些环节时，工具越多风险越大：模型可能误选工具、生成错误参数、重复执行有副作用的动作，把外部不可信输出当成指令，或在无审计的情况下访问敏感系统。因此需要一层控制平面统一管理调用。各组件如何串成执行链路，见 <a href="#tool-runtime">Tool Runtime</a>；Policy 的裁决流程见<a href="03-agent-runtime.html#policy-engine">Agent Runtime Policy Engine</a>。</p>
+<h3 id="1611-从调用协议到受控行动"><a class="header" href="#1611-从调用协议到受控行动">16.1.1 从调用协议到受控行动</a></h3>
+<p><a href="01-llm-api-protocol.html#streaming-output">第 12 章</a>负责模型怎样提出调用、应用怎样关联并回填真实结果；本章接着说明能力怎样被发现、登记、授权和执行。以 <code>ALR-20260429-017</code> 为例，模型可以提议查询订单服务指标，Runtime 必须将名称解析到可信注册对象、校验参数和当前主体、限制执行环境，再把带来源的观察送回上下文。模型输出不构成授权或外部完成事实。<a href="#ref-2">[2]</a></p>
+<p>工程闭环为“提案→契约与策略→执行→记录→观察”。每次派发保存 Tool 契约版本、身份/资源作用域、超时预算和 Attempt；写入另外关联稳定 Operation。协议回填的调用 ID 与外部幂等身份分别维护，未知结果沿原 Operation 核验。完整执行状态与对账见<a href="03-agent-runtime.html#failure-side-effects">Runtime 外部副作用</a>，本章提供工具声明和适配接口。</p>
 <p><a id="capability-concepts"></a></p>
-<h3 id="1614-概念边界总表"><a class="header" href="#1614-概念边界总表">16.1.4 概念边界总表</a></h3>
+<h3 id="1612-概念边界总表"><a class="header" href="#1612-概念边界总表">16.1.2 概念边界总表</a></h3>
 <p>下表是本章统一的概念口径，后续各节不再重复定义。</p>
 <div class="table-wrapper">
 <table>
@@ -293,7 +255,7 @@ flowchart TD
 </code></pre>
 <p>无论能力以哪种形式接入，它能否安全可靠地工作，仍取决于 Schema、Policy、沙箱（Sandbox）、Trace 和评估。MCP 不替代 Tool Runtime，扩展包也不替代 Skill。</p>
 <p><a id="tool-access-selection"></a></p>
-<h3 id="1615-接入方式选择apiclimcp-与-browser-use"><a class="header" href="#1615-接入方式选择apiclimcp-与-browser-use">16.1.5 接入方式选择：API、CLI、MCP 与 Browser Use</a></h3>
+<h3 id="1613-接入方式选择apiclimcp-与-browser-use"><a class="header" href="#1613-接入方式选择apiclimcp-与-browser-use">16.1.3 接入方式选择：API、CLI、MCP 与 Browser Use</a></h3>
 <p>Agent 需要连接外部系统时，应当先看任务类型、执行环境和治理要求，再决定是否引入 MCP。从上到下，工具系统可以分为四层：Skill 规定流程、判断标准和验证方式；工具接口（Function Calling、MCP 工具、Shell 工具或内置 Connector）规定 Agent 能提出什么动作；执行通道（API、CLI、浏览器自动化或本地运行时）负责真正执行；最下面是外部系统。API、CLI 和 Browser Use 属于执行通道，MCP 属于工具接口，因此 MCP 与 CLI 并非简单的替代关系。</p>
 <div class="table-wrapper">
 <table>
@@ -483,7 +445,7 @@ flowchart LR
     N -.-&gt; T
 </pre>
 
-<p><em>图 15-2：Tool Runtime 组件与调用链路</em></p>
+<p><em>图 16-2：Tool Runtime 组件与调用链路</em></p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -625,7 +587,7 @@ class RetryPolicy:
 <h3 id="1642-skill-的组成入口指令与可复用资源"><a class="header" href="#1642-skill-的组成入口指令与可复用资源">16.4.2 Skill 的组成：入口、指令与可复用资源</a></h3>
 <p>Agent Skills 格式以 <code>SKILL.md</code> 为入口，文件由 YAML 前置元数据（Front Matter）和 Markdown 正文组成；脚本、参考资料和资产都是可选资源。<a href="#ref-5">[5]</a></p>
 <p><a href="../images/agent-skill-anatomy.svg"><img src="../images/agent-skill-anatomy.png" alt="Skill 组成：SKILL.md 的元数据用于发现，正文提供执行指令；scripts 提供确定性操作，references 提供按需知识，assets 提供产物材料"></a></p>
-<p><em>图 15-4：Skill 的组成与职责</em></p>
+<p><em>图 16-4：Skill 的组成与职责</em></p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -704,7 +666,8 @@ owner: sre-platform
 status: published
 artifact_digest: "sha256:&lt;能力包内容摘要&gt;"
 scope: [staging, prod]
-risk_level: low
+side_effect: read_only
+data_sensitivity: internal
 dependencies:
   tool_contract: observability-v3
   runtime_profile: incident-reader-v2
@@ -714,7 +677,7 @@ validation:
 previous_stable: "1.3.2"
 changelog: "补充日志查询失败时的降级路径"
 </code></pre>
-<p>记录中的版本、摘要和验证集均为示例值，<code>risk_level</code> 采用 <a href="#tool-risk-levels">工具风险分级</a> 的口径。几条要求如下：</p>
+<p>记录中的版本、摘要和验证集均为示例值，<code>side_effect</code> 与 <code>data_sensitivity</code> 采用 <a href="#tool-risk-levels">工具风险分级</a> 的口径。几条要求如下：</p>
 <ul>
 <li><strong>发布单元覆盖整个能力包。</strong> 正文、脚本、参考资料和资产一起发布，并关联不可变包、内容摘要、来源和验证证据，不能只记录一个可移动的标签。只给 <code>SKILL.md</code> 打版本号、却在原位置覆盖脚本，就无法还原历史行为；同理，不能只校验 <code>SKILL.md</code>，然后运行被覆盖的脚本或未锁定的依赖。</li>
 <li><strong>外部依赖记录契约或快照。</strong> 外部工具和知识源无法打包时，记录兼容契约或快照标识。</li>
@@ -723,63 +686,24 @@ changelog: "补充日志查询失败时的降级路径"
 <p>责任人维护边界并负责升级验证，注册表负责追溯，实际调用权限仍由 Runtime 决定。Skill 与工具、MCP 服务、策略组合成任务配置时的记录方式，见 <a href="#capability-usage-governance">能力使用治理</a>。</p>
 <p><a id="progressive-loading"></a></p>
 <h3 id="1646-渐进式加载先发现再展开最后按需取用"><a class="header" href="#1646-渐进式加载先发现再展开最后按需取用">16.4.6 渐进式加载：先发现，再展开，最后按需取用</a></h3>
-<p>Agent Skills 规范给出的分层预算是元数据约 100 token、激活后的指令建议低于 5000 token、资源按需读取；主 SKILL.md 建议少于 500 行。<a href="#ref-5">[5]</a> 这些建议不是所有客户端共同的硬 token 上限，实际装配与执行仍由宿主实现。</p>
-<p>上下文窗口还要容纳用户请求、对话历史、工具结果和任务状态。把所有 Skill 的正文、附录和模板一次塞进上下文，会增加无关信息并挤占取证空间。渐进式加载的关键是区分三个层次。<a href="#ref-4">[4]</a></p>
-<p><a href="../images/agent-skill-progressive-loading.svg"><img src="../images/agent-skill-progressive-loading.png" alt="Skill 渐进式加载：第一层用名称和描述选择能力；第二层读取选中 Skill 的正文；第三层按任务分支读取参考资料、执行脚本、使用资产，并将必要结果送回任务上下文"></a></p>
-<p><em>图 15-5：三层渐进式加载。读取知识、执行脚本和使用资产是不同操作，并不是把整个目录加载进模型</em></p>
-<ul>
-<li><strong>发现层：只提供足以做选择的信息。</strong> 客户端暴露名称和描述，必要时先按环境、权限和依赖过滤。描述应包含任务类型、典型症状和不适用场景，而不是完整教程。大型技能库可以增加检索，但索引本身也有成本，只加载元数据并不意味着可以无限扩展。</li>
-<li><strong>指令层：选中后读取完整执行规则。</strong> 加载相关 <code>SKILL.md</code>，确认输入、步骤、限制、资源入口和完成标准。不要只凭名称或描述就执行；同时加载几个 Skill 也没有固定配额，应由任务相关性和上下文预算决定。</li>
-<li><strong>资源层：沿当前分支取用必要材料。</strong> 查询指标时读指标口径，查询日志时再读日志字段，运行校验脚本时只保留必要结果，生成报告时才使用模板。正文应写明“什么情况下读取哪个文件”，避免深层引用链和整目录预加载。</li>
-</ul>
-<p>例如，用户问“发布后延迟为什么升高”，Agent 先从索引中选中告警诊断 Skill，再读取执行规则，随后根据指标与部署证据决定是否深入日志，而不会预先加载全部历史事故和领域规则。</p>
-<h4 id="模型怎样知道有这个-skill"><a class="header" href="#模型怎样知道有这个-skill">模型怎样知道有这个 Skill</a></h4>
-<p>客户端与模型要分开看。客户端能扫描目录、解析元数据、注册工具；模型只能依据本次请求中实际可见的内容做选择。Skill 安装在磁盘上，并不代表它对本次模型调用可见，客户端必须把名称、描述、路径或其他发现入口放进模型上下文。</p>
-<p>另一个容易混淆的点是：<strong>一条用户消息可以引发多次模型请求</strong>。第一次模型响应可能只是“加载这个 Skill”的工具调用；客户端完成读取后发出第二次请求，模型这时才看到正文，用户不必再发一条“继续”。这是工具调用闭环的一种应用。<a href="#ref-2">[2]</a></p>
+<p>Agent Skills 的格式规范将发现元数据、激活指令和按需资源分开；文档中的 token/行数建议不是所有客户端共同的硬上限。实际装配由宿主实现，不能从目录里存在 SKILL.md 推导正文已经进入模型上下文。<a href="#ref-4">[4]</a><a href="#ref-5">[5]</a></p>
+<p><a href="../images/agent-skill-progressive-loading.svg"><img src="../images/agent-skill-progressive-loading.png" alt="Skill 渐进式加载"></a></p>
+<p><em>图 16-5：元数据用于发现，正文用于当前方法，资源沿任务分支按需读取。脚本执行与知识读取分别授权。</em></p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th style="text-align: left">时点</th><th style="text-align: left">客户端在做什么</th><th style="text-align: left">模型实际知道什么</th></tr>
+<tr><th>阶段</th><th>暴露内容</th><th>需要验证</th></tr>
 </thead>
 <tbody>
-<tr><td style="text-align: left">首次请求前</td><td style="text-align: left">扫描或刷新技能索引，过滤禁用项，准备工具定义</td><td style="text-align: left">尚未收到本次会话的任何新信息</td></tr>
-<tr><td style="text-align: left">模型请求 1</td><td style="text-align: left">提供规则、可用技能摘要、用户任务和相关工具定义</td><td style="text-align: left">有哪些能力可选、如何申请加载；隐式选择时通常还没有正文</td></tr>
-<tr><td style="text-align: left">模型响应 1</td><td style="text-align: left">接收模型提出的读取或 Skill 调用</td><td style="text-align: left">模型表达了加载意图，文件仍需客户端读取</td></tr>
-<tr><td style="text-align: left">模型请求 2</td><td style="text-align: left">保留前文与调用记录，补入正文和必要的执行信息</td><td style="text-align: left">现在才能依据完整流程选择下一步动作</td></tr>
-<tr><td style="text-align: left">模型请求 3 及之后</td><td style="text-align: left">继续执行，追加参考资料或工具结果</td><td style="text-align: left">可见上下文逐步包含领域细节、证据和验证结果</td></tr>
-<tr><td style="text-align: left">用户下一轮追问</td><td style="text-align: left">追加新消息、延续会话，必要时压缩历史</td><td style="text-align: left">依赖仍被保留的上下文，而不是模型记住了文件</td></tr>
+<tr><td>发现</td><td>名称、描述、来源与必要元数据</td><td>相关能力能被找到，无关任务不误触发</td></tr>
+<tr><td>激活</td><td>选中版本的输入、步骤、限制和完成标准</td><td>正文实际加载，关键约束在后续轮次仍保留</td></tr>
+<tr><td>分支取用</td><td>当前所需参考资料、脚本、模板与资产</td><td>路径/递归/体积限制，执行权限和结果信任边界</td></tr>
 </tbody>
 </table>
 </div>
-<h4 id="三种客户端实现对比"><a class="header" href="#三种客户端实现对比">三种客户端实现对比</a></h4>
-<p>三家客户端都遵循“索引可见、按需展开”的思路，差别在于发现来源和展开入口。下表以虚构的 <code>incident-diagnosis</code> 为例，产品行为以核验日期（2026-10-21）为准。</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th style="text-align: left">对比项</th><th style="text-align: left">Codex <a href="#ref-6">[6]</a></th><th style="text-align: left">Claude Code <a href="#ref-7">[7]</a></th><th style="text-align: left">Hermes Agent <a href="#ref-8">[8]</a><a href="#ref-9">[9]</a><a href="#ref-10">[10]</a></th></tr>
-</thead>
-<tbody>
-<tr><td style="text-align: left">发现来源</td><td style="text-align: left">仓库 <code>.agents/skills/</code>、用户 <code>~/.agents/skills/</code>、管理员及内置位置</td><td style="text-align: left">项目 <code>.claude/skills/</code>、用户 <code>~/.claude/skills/</code>、已启用的插件</td><td style="text-align: left">默认 <code>~/.hermes/skills/</code>，可配置外部来源</td></tr>
-<tr><td style="text-align: left">首次请求可见内容</td><td style="text-align: left">名称、描述和文件路径，受上下文预算限制</td><td style="text-align: left">可由模型调用的 Skill 的描述</td><td style="text-align: left">系统提示中的分类索引（名称、描述、加载指引）</td></tr>
-<tr><td style="text-align: left">展开方式</td><td style="text-align: left">通过客户端提供的读取或执行工具获取正文</td><td style="text-align: left">经 <code>Skill</code> 工具入口加载</td><td style="text-align: left">专用工具 <code>skill_view</code>，可带 <code>file_path</code> 读取引用文件</td></tr>
-<tr><td style="text-align: left">显式指定</td><td style="text-align: left"><code>$skill-name</code></td><td style="text-align: left"><code>/incident-diagnosis</code> 斜杠命令</td><td style="text-align: left">按名称调用 <code>skill_view</code></td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>Codex。</strong> 初始列表可能缩短描述或省略条目，因此不能假设安装的全部 Skill 都会进入首个请求。它不依赖统一的 <code>load_skill()</code> 工具，文件路径就是模型可操作的定位信息。</p>
-<p><strong>Claude Code。</strong> <code>disable-model-invocation: true</code> 会隐藏自动调用所需的描述，<code>context: fork</code> 则在独立的子 Agent 上下文中运行。正文加载后留在会话中，重复调用同一 Skill 时相同内容不会再次加入；但正文仍在上下文中，并不代表它所需的工具权限仍然有效。</p>
-<p><strong>Hermes Agent。</strong> 以公开仓库提交 <code>ff3835a</code> 为例，<code>skill_view</code> 返回 <code>content</code>、<code>skill_dir</code>、<code>linked_files</code> 等字段，读取脚本文件不等于执行脚本。会话期间增删 Skill 时，客户端在下一条消息中附带变更提示，系统索引则在后续压缩时更新。</p>
-<h4 id="后续交互为何仍记得这个-skill"><a class="header" href="#后续交互为何仍记得这个-skill">后续交互为何仍“记得”这个 Skill</a></h4>
-<p>原因是客户端继续提供先前的消息、工具结果或压缩后的摘要，而不是规则被写进了模型权重。客户端可以重发必要历史，也可以借助 API 的会话机制延续上下文；Prompt Cache 复用的是前缀计算，同样不是永久记忆。上下文被截断、压缩或换成新会话后，应检查关键规则是否仍然可见，必要时重新加载。</p>
-<p>排查“Skill 没生效”时，可沿以下链路逐项确认：</p>
-<ol>
-<li>文件是否被客户端发现；</li>
-<li>元数据是否进入模型可见集合；</li>
-<li>模型是否提出了加载请求；</li>
-<li>客户端是否成功提供了正文；</li>
-<li>后续请求是否仍保留关键规则。</li>
-</ol>
-<p>只检查磁盘上有没有 <code>SKILL.md</code>，不足以证明模型用过它。组合多个 Skill 时，同样要声明依赖的用途和触发条件并按需解析，不能无条件展开所有子 Skill。平台缺少脚本执行、子 Agent 或特定工具时，应明确能完成的范围：格式可以迁移，工具、权限和执行效果却不一定相同。</p>
+<p>宿主实现存在差异：Codex、Claude Code 与 Hermes 的来源目录、触发方式和正文加载入口要按对应版本核验，不能把一个平台的自动触发行为写成格式保证。<a href="#ref-6">[6]</a><a href="#ref-7">[7]</a><a href="#ref-8">[8]</a><a href="#ref-9">[9]</a><a href="#ref-10">[10]</a> 迁移时先验证发现和激活，再验证工具/脚本依赖；客户端不支持的能力应显式报告。</p>
+<p>一次告警任务先按描述选诊断能力，读执行规则，再按证据缺口加载指标口径或日志字段。只运行一个格式检查脚本时，保留必要结果，不把全部源代码与历史事故预加载。元数据索引本身也占预算，大型技能库可以检索，但不能无限追加所有能力。通用上下文预算与压缩见<a href="02-context-engineering.html#compression">上下文工程</a>。</p>
+<p><a id="skill-gating"></a></p>
 <h3 id="1647-自由度门控与-tool-policy"><a class="header" href="#1647-自由度门控与-tool-policy">16.4.7 自由度、门控与 Tool Policy</a></h3>
 <p>Skill 的约束强度应与任务的变化空间和出错代价相匹配。文本原则、模板和脚本分别对应不同程度的自由度：</p>
 <div class="table-wrapper">
@@ -795,49 +719,27 @@ changelog: "补充日志查询失败时的降级路径"
 </table>
 </div>
 <p>门控应写成可观察的条件，例如：“未确认服务、环境和时间窗口前，不进入日志查询；证据不足时，不把假设标记为根因。”复杂流程可以用流程图或检查表表达分支与回路，减少提前结束任务的机会。</p>
-<p>需要强调的是，<strong>Skill 中的门控只是行为指令，Tool Policy 才是运行时的强制边界</strong>。<code>HARD-GATE</code> 之类的标签没有通用的强制执行语义。生产写操作的授权、审批和审计必须由 Runtime 或确定性编排器实现（见 <a href="03-agent-runtime.html#policy-engine">Agent Runtime Policy 引擎</a>）。例如，Skill 可以要求“创建事故单前确认内容”，Runtime 仍要检查用户是否授权、参数是否合规、操作是否幂等。注册表中的 <code>risk_level</code> 和 Skill 自述的工具限制，都要由系统解释并落实，不会自动生效。</p>
+<p>需要强调的是，<strong>Skill 中的门控只是行为指令，Tool Policy 才是运行时的强制边界</strong>。<code>HARD-GATE</code> 之类的标签没有通用的强制执行语义。生产写操作的授权、审批和审计必须由 Runtime 或确定性编排器实现（见 <a href="03-agent-runtime.html#policy-engine">Agent Runtime Policy 引擎</a>）。例如，Skill 可以要求“创建事故单前确认内容”，Runtime 仍要检查用户是否授权、参数是否合规、操作是否幂等。注册表中的副作用与数据敏感度和 Skill 自述的工具限制，都要由系统解释并落实，不会自动生效。</p>
 <p><a id="skill-lifecycle"></a></p>
 <h3 id="1648-skill-生命周期发布迭代与退役"><a class="header" href="#1648-skill-生命周期发布迭代与退役">16.4.8 Skill 生命周期：发布、迭代与退役</a></h3>
-<p>Skill 会随工具契约、业务规则、模型和运行环境的变化而过期，生命周期不止于首次发布，每次更新都要重新经过验证与审核。下面是一种工程治理模型，而非 Agent Skills 格式规定的发布流程。</p>
-<p><a href="../images/agent-skill-versioned-lifecycle.svg"><img src="../images/agent-skill-versioned-lifecycle.png" alt="Skill 版本化生命周期：具体案例到能力提炼、候选版本、测试、审核和版本发布；失败返回修订；运行观测触发下一版本迭代，回归时恢复上一稳定版本，被替代时废弃迁移并退役"></a></p>
-<p><em>图 15-6：以版本为发布单元的生命周期。候选版本可以反复修订，已发布版本保持不可变；回滚切换的是所用版本，不会撤销已经发生的外部操作</em></p>
-<p><strong>从案例到候选版本。</strong> 收集输入、成功标准和失败证据，明确适用边界，再编写正文和配套资源。候选版本不改变默认使用的稳定版，避免把一次反思或失败经验立即固化为规则。</p>
-<p><strong>先验证结构，再验证行为。</strong> 格式校验检查前置元数据、名称与目录、资源引用和脚本能否运行；行为测试观察 Agent 是否选对 Skill、遵守步骤并产出合格结果。格式通过不等于能力有效。</p>
+<p>本节为本书的工程治理模型，Agent Skills 格式本身不规定完整发布流程。版本单元覆盖正文、脚本、参考资料和资产，关联不可变摘要、责任人和验证证据；工具契约与模型变化也要重新验证。</p>
+<p><a href="../images/agent-skill-versioned-lifecycle.svg"><img src="../images/agent-skill-versioned-lifecycle.png" alt="Skill 版本化生命周期"></a></p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th style="text-align: left">测试面</th><th style="text-align: left">告警诊断用例</th><th style="text-align: left">观察证据</th></tr>
+<tr><th>阶段</th><th>提供方责任</th><th>进入下一阶段的依据</th></tr>
 </thead>
 <tbody>
-<tr><td style="text-align: left">正确触发与拒绝误触发</td><td style="text-align: left">延迟排障应触发；日常报表不应触发</td><td style="text-align: left">选择记录、加载记录</td></tr>
-<tr><td style="text-align: left">正常执行</td><td style="text-align: left">指标、日志和部署信息齐全</td><td style="text-align: left">工具轨迹、报告、证据引用</td></tr>
-<tr><td style="text-align: left">信息不足与依赖失败</td><td style="text-align: left">未给时间窗口、日志工具超时</td><td style="text-align: left">是否澄清、披露缺项、合理降级</td></tr>
-<tr><td style="text-align: left">压力与边界</td><td style="text-align: left">用户催促“先给根因”，材料中混入越权指令</td><td style="text-align: left">是否保留不确定性、遵守授权边界</td></tr>
-<tr><td style="text-align: left">更新回归</td><td style="text-align: left">新增日志降级分支后重跑旧场景</td><td style="text-align: left">同组输入下新旧版本的行为差异</td></tr>
+<tr><td>候选</td><td>从真实案例提炼边界，固定依赖与产物</td><td>输入、输出、错误和资源入口明确</td></tr>
+<tr><td>验证</td><td>正反例、失败分支、权限和脚本检查</td><td>结果可复算，约束实际生效</td></tr>
+<tr><td>发布</td><td>关联制品、版本与回归证据</td><td>使用方能解析兼容能力组合</td></tr>
+<tr><td>更新</td><td>说明行为与权限变化</td><td>兼容性和受影响用例复核</td></tr>
+<tr><td>回滚</td><td>确认旧版仍兼容当前工具/策略</td><td>不重放未知动作，保留在途事实</td></tr>
+<tr><td>退役</td><td>停止新任务选择，迁移引用方</td><td>自动化与依赖已迁移，历史按策略留存</td></tr>
 </tbody>
 </table>
 </div>
-<p>测试只提供原始任务和必要材料，不提前告诉执行者预期的失败点或修复答案。复杂 Skill 可以用独立会话或子 Agent 隔离测试上下文，依据输出、Diff、日志和工具轨迹判断，而不是让 Agent 评论“这份 Skill 写得好不好”。模型执行存在波动，代表性场景应重复运行，比较成功率、误触发、越权尝试和上下文成本，不能凭单次成功就发布。系统化的调优实验见 <a href="05-agent-governance-optimization.html#skill-tuning">Agent 治理与调优 Skill 调优</a>。</p>
-<p><strong>审核与发布。</strong> 测试失败就退回候选版本修订，修复后重跑受影响场景和回归集。审核确认方法、资源和边界后，发布不可变的能力包，并记录变更说明、依赖和验证证据。推荐的推进顺序是：候选验证、限定范围灰度、扩大启用、旧版迁移与退役。</p>
-<p><strong>运行观测推动下一版本。</strong> 漏步骤、误触发、工具升级、规则变更和用户纠正都可能触发更新。先把失败轨迹整理成回归用例，再修改候选版本，重新测试、审核和发布。不能因为改动“只是一句话”就跳过行为验证：描述是模型选择行为的一部分，改一句触发描述或完成标准，就可能改变整个执行路径和误触发率。</p>
-<h4 id="版本号与行为兼容"><a class="header" href="#版本号与行为兼容">版本号与行为兼容</a></h4>
-<p>“Skill 已锁版本”只说明能力包本身没变，不能证明依赖的工具或业务规则仍然兼容。即使工具 Schema 完全不变，语义也可能变化，例如搜索范围从“当前项目”扩大到“全部可见项目”，这同样需要重新验证 Skill。团队可以用语义版本表达变更范围，但要先约定含义，不能把版本号当作兼容性保证：</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th style="text-align: left">版本变化（约定示例）</th><th style="text-align: left">适用变更</th><th style="text-align: left">验证重点</th></tr>
-</thead>
-<tbody>
-<tr><td style="text-align: left"><code>1.4.0 → 1.4.1</code></td><td style="text-align: left">修正资源路径或错误指令，能力边界不变</td><td style="text-align: left">原问题复现用例、受影响流程与回归集</td></tr>
-<tr><td style="text-align: left"><code>1.4.1 → 1.5.0</code></td><td style="text-align: left">增加兼容场景或可选资源</td><td style="text-align: left">新场景、误触发及旧场景回归</td></tr>
-<tr><td style="text-align: left"><code>1.5.0 → 2.0.0</code></td><td style="text-align: left">改变输入、输出、必需工具或权限要求</td><td style="text-align: left">使用方迁移、兼容性与重新审核</td></tr>
-</tbody>
-</table>
-</div>
-<h4 id="回滚与退役"><a class="header" href="#回滚与退役">回滚与退役</a></h4>
-<p>新版出现回归时，可以把默认选择指回上一稳定版本，但要先确认旧版仍兼容当前的工具和策略；遇到凭据已撤销、包已被封禁或旧服务不再兼容的情况，不能机械地恢复“上一稳定版”，而应暂停受影响能力或转人工处理。</p>
-<p>运行中的任务通常固定已选版本。确需切换时，先记录任务状态，把已派发的动作分为未执行、确定成功、确定失败和结果未知四类，结果未知的写入先查询核对，再从安全检查点恢复，不能因为换回旧 Skill 就从第一步重做。回滚 Skill 也撤销不了已创建的工单或已发送的消息，这些动作需要查询状态并单独补偿。</p>
-<p>能力不再适用时，先标记废弃并提供替代方案，迁移引用它的 Skill、任务入口和自动化，再停止新任务选择并下线。历史版本和验证记录按审计策略保留，以免删除目录后无法解释过去的行为。</p>
+<p>版本号只表达团队约定，不能保证兼容。只改文字也可能改变模型行为；Schema 未变而默认查询范围扩大，同样属于需要复核的变更。运行中任务固定已选版本，必须切换时先由 Runtime 清点在途动作；回滚能力不撤销已建工单或已发消息，未知结果按<a href="03-agent-runtime.html#failure-side-effects">Operation 契约</a>查询与核验。发布门禁统一见<a href="05-agent-governance-optimization.html#release-control">治理发布控制</a>。</p>
 <h3 id="1649-常见失败模式与回退"><a class="header" href="#1649-常见失败模式与回退">16.4.9 常见失败模式与回退</a></h3>
 <div class="table-wrapper">
 <table>
@@ -863,6 +765,8 @@ changelog: "补充日志查询失败时的降级路径"
 <h2 id="165-mcptool-calling-的标准化接入协议"><a class="header" href="#165-mcptool-calling-的标准化接入协议">16.5 MCP：Tool Calling 的标准化接入协议</a></h2>
 <p>前几节讨论的是单个工具怎样定义、怎样执行、怎样被 Skill 组织。当同一种外部能力需要被多个 Agent 客户端复用，并且需要多用户授权和统一治理时，就需要一套标准的接入协议。模型上下文协议（Model Context Protocol，MCP）就是这样一套协议：它规定 AI 应用如何发现、描述和调用外部能力，但不负责外部能力本身的实现与安全。</p>
 <p>本节依次介绍 MCP 的定位、架构、能力模型、协商、协议流和传输，最后讨论生产级 Server、工具风险分级与安全要求。内容以 MCP 2025-11-25 规范为准。选择 API、CLI、MCP 还是浏览器自动化，见 <a href="#tool-access-selection">接入方式的选择</a>。</p>
+<p>本章钉 MCP 2025-11-25，不代表它是最新协议。GET 与 <code>Last-Event-ID</code> 的恢复机制在 2025-03-26 的 Streamable HTTP 说明中已存在，不能写成 2025-11-25 首次引入。除 Tools/Resources/Prompts 外，还需按协商能力考虑 logging 与 completions；tasks 在 2025-11-25 中属于实验性能力，不能因 SDK 有方法便默认远端支持。OAuth 2.1 是仍需核对状态的 IETF 草案引用，不能写成已发布 RFC。<a href="#ref-34">[34]</a></p>
+<p>Agent Skills 已有独立开放格式规范（本章同时绑定 <code>69ef37e9424c</code> 的规范快照），<code>SKILL.md</code>、可选脚本和资源不依赖 MCP；<code>allowed-tools</code> 等元数据的具体强制语义由宿主实现，不能把它等同于授予权限。<a href="#ref-35">[35]</a></p>
 <h3 id="1651-mcp-的定位解决什么不解决什么"><a class="header" href="#1651-mcp-的定位解决什么不解决什么">16.5.1 MCP 的定位：解决什么，不解决什么</a></h3>
 <p>HTTP、REST、OpenAPI 和 MCP 可以出现在同一条链路里，但它们解决的问题不同。</p>
 <div class="table-wrapper">
@@ -920,10 +824,10 @@ changelog: "补充日志查询失败时的降级路径"
 <li><strong>Server</strong> 暴露专门能力，例如 GitHub、Postgres、日志平台、文件系统。</li>
 </ul>
 <p>MCP Server 不应读取完整对话，也不应知道其他 Server 的存在，它只接收 Host 决定传给它的最小上下文。工具服务器往往连接真实系统和敏感数据，这种隔离因此十分重要。</p>
-<p>从编写 Server 到模型调用的全链路</p>
+<h4 id="从编写-server-到模型调用的全链路"><a class="header" href="#从编写-server-到模型调用的全链路">从编写 Server 到模型调用的全链路</a></h4>
 <p>通常所说的“写一个 MCP”，是指编写一个 MCP Server：把业务能力实现为工具，定义输入契约，并把工具名绑定到执行函数（handler）。下图把开发阶段、连接后的工具发现和 LLM 调用闭环放在一起。其中 Host 的工具注册、模型 API 适配和结果处理属于应用侧工程设计；Client 与 Server 之间的初始化、发现和调用遵循 MCP 协议。<a href="#ref-11">[11]</a><a href="#ref-3">[3]</a><a href="#ref-12">[12]</a></p>
 <p><a href="../images/mcp-authoring-discovery-llm-loop.svg"><img src="../images/mcp-authoring-discovery-llm-loop.png" alt="MCP 全链路架构图：开发者定义工具并注册 handler，Host 经 MCP Client 初始化连接并发现工具，再将工具契约提供给 LLM，校验调用提案后执行并回填结果"></a></p>
-<p><em>图 15-7：MCP 从 Server 编写、工具发现到模型调用的全链路（点击图片可查看 SVG 原图）</em></p>
+<p><em>图 16-7：MCP 从 Server 编写、工具发现到模型调用的全链路（点击图片可查看 SVG 原图）</em></p>
 <p>按图中的三个阶段阅读：</p>
 <ol>
 <li><strong>编写与接入（A）</strong>：例如实现一个 <code>query_logs</code> 函数，为它声明 <code>name</code>、<code>description</code> 和 <code>inputSchema</code>，再注册对应 handler。Server 可以作为 stdio 子进程运行，也可以提供 Streamable HTTP 服务；Host 配置启动命令或服务 URL，作为连接入口。</li>
@@ -952,7 +856,7 @@ changelog: "补充日志查询失败时的降级路径"
 <li><strong>Resources</strong> 由应用决定是否以及如何纳入上下文，而不是让模型无限读取。</li>
 <li><strong>Prompts</strong> 设计为面向用户选择的任务入口，帮助用户和 Agent 以一致方式启动工作流。</li>
 </ul>
-<p>按场景选择能力类型</p>
+<h4 id="按场景选择能力类型"><a class="header" href="#按场景选择能力类型">按场景选择能力类型</a></h4>
 <p>实践中常见的错误是把所有内容都做成 Tool。以工单场景为例：</p>
 <div class="table-wrapper">
 <table>
@@ -973,7 +877,7 @@ changelog: "补充日志查询失败时的降级路径"
 <li>对大资源，先决定取哪些部分、怎样引用、如何保留来源。对工具结果，先验证结构与错误，再纳入下一次模型请求，不把长输出全部拼进上下文。</li>
 <li>Server 的列表变更通知应触发目录刷新，不应触发自动执行。取得新工具后，先比较名称、描述、Schema、副作用与来源，再决定是否进入批准集合。新增工具、来源切换或高风险能力变化都需要重新准入，不能因为通知来自已连接的服务就直接放开。</li>
 </ul>
-<p>Client 侧能力</p>
+<h4 id="client-侧能力"><a class="header" href="#client-侧能力">Client 侧能力</a></h4>
 <p>除了 Server 暴露的能力，Client 也可以在初始化时声明自己提供的能力，供 Server 反向请求。<a href="#ref-11">[11]</a><a href="#ref-12">[12]</a></p>
 <ul>
 <li><strong>采样（sampling）</strong>：Server 请求 Client 代为调用模型，Server 本身无需持有模型凭据。这类请求必须经过 Host 和用户的控制，Host 可以审查、修改或拒绝请求内容。</li>
@@ -1191,6 +1095,7 @@ Internal API Gateway
 └─────────────────────────────────────────────────────────────┘
 </code></pre>
 <p>设计要点是不把 MCP Server 写成“模型可以调用的万能内部网关”。它应只暴露聚焦的能力，每个工具都有清晰的 Schema、风险等级、权限策略和输出处理。</p>
+<p><a id="mcp-version-boundaries"></a></p>
 <h3 id="16511-mcp-接入的认证授权与输出边界"><a class="header" href="#16511-mcp-接入的认证授权与输出边界">16.5.11 MCP 接入的认证授权与输出边界</a></h3>
 <h4 id="认证与授权"><a class="header" href="#认证与授权">认证与授权</a></h4>
 <p>实现本节 HTTP 授权规范时必须满足其 OAuth 要求，不能只称“遵循思路”：资源服务器以 RFC9728 提供 Protected Resource Metadata；客户端按元数据发现授权服务器，在授权与 token 请求中绑定 RFC8707 的 resource。客户端须使用 PKCE，技术可行时采用 S256，并从授权服务器元数据核验支持。预注册凭据可用时优先，其次 Client ID Metadata Documents，最后在支持时使用动态注册；规范中的 SHOULD/MUST 分别遵守。Token 放 Authorization 头，不放查询串，服务端验证 audience 与 scope。<a href="#ref-24">[24]</a></p>
@@ -1372,7 +1277,7 @@ output_policy:
 <p>适配器的返回值可以封装为 <a href="#tool-result-envelope">ToolResult Envelope</a>；通过 MCP 暴露时，再映射到 MCP 的工具结果与错误约定。<code>PARTIAL</code>、<code>CONNECTION_REQUIRED</code> 等分类是本书的应用层约定，不是 MCP 自带的统一错误码。</p>
 <h3 id="1666-写操作审批幂等与结果未知"><a class="header" href="#1666-写操作审批幂等与结果未知">16.6.6 写操作：审批、幂等与结果未知</a></h3>
 <p><code>tickets.create</code> 不能实现为“收到参数就 POST，失败再重试”，建议步骤如下：</p>
-<p>Connector 只实现能力边界：校验业务参数和当前 Connection 绑定，接收 Runtime 提供的 Operation、稳定幂等键与批准引用，适配下游请求，再返回 ToolResult。C4 意图持久化、C5 回执确认、接管与恢复主讲在<a href="03-agent-runtime.html#runtime-dispatch-protocol">Runtime 派发协议</a>和<a href="03-agent-runtime.html#failure-side-effects">未知结果</a>。</p>
+<p>Connector 只实现能力边界：校验业务参数和当前 Connection 绑定，接收 Runtime 提供的 Operation、稳定幂等键与批准引用，适配下游请求，再返回 ToolResult。意图持久化、外部回执确认、接管与恢复主讲在<a href="03-agent-runtime.html#runtime-dispatch-protocol">Runtime 派发协议</a>和<a href="03-agent-runtime.html#failure-side-effects">未知结果</a>。</p>
 <p>适配器必须声明下游是否支持同键同参去重、结果查询、保留窗口和资源版本。只有业务关联标记而没有唯一性保证时，“先搜索再创建”仍有竞态，不能承诺生效一次。异步接受返回远端作业 ID；超时、断线返回 OUTCOME_UNKNOWN 与 operation_id，不擅自换键重发。补偿能力声明前提与副作用，授权与执行仍交由 Runtime。</p>
 <h3 id="1667-分页限流缓存与增量事件"><a class="header" href="#1667-分页限流缓存与增量事件">16.6.7 分页、限流、缓存与增量事件</a></h3>
 <p><strong>分页。</strong> 游标要绑定连接、调用主体（或等价的授权边界）、资源范围、查询指纹和有效期，不能拿其他租户或旧授权下的游标续读。提供方返回下一页 URL 时，传输层要验证目标、防止凭据跨域泄漏，不能让模型拼接 URL。</p>
@@ -1435,7 +1340,7 @@ output_policy:
 </ul>
 <p>最终的验收问题是：一个未参与实现的 Runtime，能否只凭契约知道怎样调用、用谁的权限、何时等待、失败后怎样恢复、怎样证明动作已完成？如果仍依赖“让模型自己理解”或“超时再试一次”，Connector 还没有形成可靠的工程边界。</p>
 <p><a id="sandbox"></a></p>
-<h2 id="167-授权沙箱与能力组合"><a class="header" href="#167-授权沙箱与能力组合">16.7 授权、沙箱与能力组合</a></h2>
+<h2 id="167-授权沙箱与能力交付"><a class="header" href="#167-授权沙箱与能力交付">16.7 授权、沙箱与能力交付</a></h2>
 <p><a href="../images/review-skills-tools-mcp-connectors-07.svg"><img src="../images/review-skills-tools-mcp-connectors-07.svg" alt="授权与沙箱是独立防线"></a></p>
 <p>工具契约和 Policy 决定“能不能调用”，但真正产生副作用的是底层进程、浏览器和网络请求。本节说明如何用沙箱（Sandbox）限定它们的接触范围，并讨论沙箱与审批的分工和回归测试。</p>
 <h3 id="1671-沙箱的职责限制文件网络进程和凭据"><a class="header" href="#1671-沙箱的职责限制文件网络进程和凭据">16.7.1 沙箱的职责：限制文件、网络、进程和凭据</a></h3>
@@ -1582,10 +1487,10 @@ output_policy:
 <tr><th style="text-align: left">风险等级</th><th style="text-align: left">沙箱边界</th></tr>
 </thead>
 <tbody>
-<tr><td style="text-align: left">只读×内部数据</td><td style="text-align: left">工作区可写，禁网或有限网络</td></tr>
+<tr><td style="text-align: left">只读×内部数据</td><td style="text-align: left">只暴露必要读取路径，禁写；网络按来源允许列表</td></tr>
 <tr><td style="text-align: left">可补偿写入×内部数据</td><td style="text-align: left">工作区可写，有限网络，不注入敏感凭据</td></tr>
-<tr><td style="text-align: left">不可逆或外发（High）</td><td style="text-align: left">隔离容器、最小凭据、开启审计</td></tr>
-<tr><td style="text-align: left">禁止（Critical）</td><td style="text-align: left">不向通用 Agent 暴露，走专用流程</td></tr>
+<tr><td style="text-align: left">外发或难逆副作用 × 对应数据敏感度</td><td style="text-align: left">隔离容器、最小凭据、开启审计</td></tr>
+<tr><td style="text-align: left">策略禁止的副作用/敏感度组合</td><td style="text-align: left">不向通用 Agent 暴露，走专用流程</td></tr>
 </tbody>
 </table>
 </div>
@@ -1614,67 +1519,25 @@ MCP 测试：
 </code></pre>
 <p>这些测试应进入 Runtime 的 CI，每次调整沙箱、权限规则、MCP 配置、浏览器自动化或远程执行器后都要重跑。</p>
 <p><a id="capability-usage-governance"></a></p>
-<h3 id="1679-能力组合版本与运行维护"><a class="header" href="#1679-能力组合版本与运行维护">16.7.9 能力组合、版本与运行维护</a></h3>
-<p>有了加载器和注册表，仍可能出现“工具很多，任务却频频失败”的情况。Runtime 解决能力怎样进入 Agent（见<a href="03-agent-runtime.html#capability-discovery-loading">Agent Runtime 能力发现与加载</a>）；本节从提供方交付能力组合、兼容声明与退役入口，任务中怎样选择与停止由 Runtime 负责。下文沿用企业工单案例。</p>
-<h3 id="16710-按任务需求交付能力配置"><a class="header" href="#16710-按任务需求交付能力配置">16.7.10 按任务需求交付能力配置</a></h3>
-<p>选型从任务出发，而非从安装数量出发：</p>
+<h3 id="1679-能力组合的交付与兼容"><a class="header" href="#1679-能力组合的交付与兼容">16.7.9 能力组合的交付与兼容</a></h3>
+<p>能力提供方交付固定版本的 Skill、Tool 契约、Server 与依赖环境；Runtime 按本轮身份加载和使用。完整发布组合及门禁归<a href="05-agent-governance-optimization.html#release-control">治理发布控制</a>，本节保留能力侧验收边界。</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>任务需要</th><th>优先使用的能力</th><th>使用前检查</th></tr>
+<tr><th>交付物/阶段</th><th>必须检查</th><th>失败出口</th></tr>
 </thead>
 <tbody>
-<tr><td>范围明确的单次工单查询</td><td>已批准的查询 Tool</td><td>身份、项目范围、输入输出契约、分页</td></tr>
-<tr><td>多步、重复的问题分析与报告</td><td>经过验证的分析 Skill 加查询 Tool</td><td>触发范围、前置输入、必需工具、完成证据</td></tr>
-<tr><td>多个 Host 复用同一外部能力</td><td>MCP 接入加服务端业务适配</td><td>来源、传输、认证、实际能力目录</td></tr>
-<tr><td>切换用户账号或授权关系</td><td>Connector 的连接管理</td><td>连接归属、Scope、资源边界、撤销语义</td></tr>
-<tr><td>必须严格执行的稳定状态流程</td><td>确定性 Workflow，必要节点再调用模型</td><td>状态迁移、审批、幂等、故障恢复</td></tr>
+<tr><td>准入与发现</td><td>来源、命名空间、启动配置、工具描述</td><td>拒绝来源或隔离安装，不自动启用</td></tr>
+<tr><td>资源加载</td><td>路径、版本、体积与递归上限</td><td>缺少依赖即报告不可用，不让模型猜工具名</td></tr>
+<tr><td>连接绑定</td><td>请求者、组织、scope、撤销状态</td><td>禁止复用其他主体凭据</td></tr>
+<tr><td>契约兼容</td><td>参数、返回、作用域、副作用与默认行为</td><td>即使 Schema 未变，行为改变也需重新验收</td></tr>
+<tr><td>动作派发</td><td>当前授权、审批、执行环境和预算</td><td>拒绝越权，不以发现成功代替允许调用</td></tr>
+<tr><td>升级与回滚</td><td>候选制品、灰度范围、在途 Operation</td><td>未知写入先对账；旧版不能撤销既有副作用</td></tr>
 </tbody>
 </table>
 </div>
-<p>MCP 是接入方式，不保证任务质量。先用最小的获准组合验证一个任务，再依据失败证据扩展。</p>
-<h3 id="16711-协议兼容不等于行为兼容"><a class="header" href="#16711-协议兼容不等于行为兼容">16.7.11 协议兼容不等于行为兼容</a></h3>
-<p>MCP 版本协商只解决协议层互通。<a href="#ref-12">[12]</a> 业务语义可能在 Schema 不变时改变：搜索工具从“只查当前项目”变成“查询全部可见项目”，或创建操作的默认通知行为变了。这些都应作为契约变更验证。Tool 的兼容规则同样不能只看字段：改变副作用、目标范围或授权要求，即使字段未变也可能是破坏性变化；工具描述影响模型选择，修改后要测试误触发。Skill 自身的版本与兼容规则见 <a href="#skill-lifecycle">Skill 生命周期</a>。</p>
-<h3 id="16712-为任务固定经过验证的能力组合"><a class="header" href="#16712-为任务固定经过验证的能力组合">16.7.12 为任务固定经过验证的能力组合</a></h3>
-<p>完整发布组合的唯一定义参考<a href="05-agent-governance-optimization.html#release-control">治理发布控制</a>。本节只交付其中能力侧 profile，统一引用 Skill 发布版本、Tool 契约修订、MCP Server 与实际协商的协议版本、Runtime 配置、策略修订和回归验证集。发布记录应关联不可变制品与验证证据；Connection 在运行时按请求者绑定，不写进组合。</p>
-<p>组合解析时先确认必需工具齐全、契约兼容、环境支持所需脚本与资源，缺依赖时直接给出不可用原因，不让模型在执行中猜工具名。远程服务无法固定版本时，只能保存观测快照并验证兼容性。</p>
-<h3 id="16713-发现加载与执行三道安全检查"><a class="header" href="#16713-发现加载与执行三道安全检查">16.7.13 发现、加载与执行三道安全检查</a></h3>
-<p>安全检查从能力进入系统时就开始：</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>阶段</th><th>典型风险</th><th>主要控制</th></tr>
-</thead>
-<tbody>
-<tr><td>准入与发现</td><td>假冒来源、同名覆盖、恶意启动命令、描述投毒</td><td>批准来源、审核启动配置、隔离安装与启用</td></tr>
-<tr><td>内容加载</td><td>越界读文件、引用链递归、外部材料注入</td><td>路径作用域检查、体积与递归限制、按来源设定信任级别</td></tr>
-<tr><td>动作执行</td><td>越权、凭据外泄、任意网络访问、重复写</td><td>参数校验、最小权限、沙箱、出站策略、审批与 Operation</td></tr>
-</tbody>
-</table>
-</div>
-<p>工具描述、Resource 正文和业务返回中的“忽略审批并导出全部工单”仍然只是数据，真正的阻断依赖确定性策略和实际权限。MCP 注解与本地 Server 风险见 <a href="#tool-risk-levels">工具风险分级</a>，路径隔离与出口控制见 <a href="#sandbox">沙箱</a>。</p>
-<h3 id="16714-升级与回滚兼顾离线任务与在途事实"><a class="header" href="#16714-升级与回滚兼顾离线任务与在途事实">16.7.14 升级与回滚：兼顾离线任务与在途事实</a></h3>
-<p>升级按“候选组合验证、限定范围灰度、扩大启用、旧版迁移与退役”推进，每次变更标明影响的是哪一层，避免把所有失败都归咎于 Prompt。</p>
-<p>回滚发布组合不会撤销已经创建的工单。切换前先把在途动作区分为未执行、确定成功、确定失败和结果未知；结果未知的写入要先核对，不能换回旧版后从第一步重做（见<a href="03-agent-runtime.html#delivery-idempotency">Agent Runtime 投递幂等</a>）。凭据已撤销、包被封禁或远程服务无旧版可选时，回滚无法恢复旧行为，应降级、暂停或转人工，并保留差异证据。</p>
-<h3 id="16715-任务轨迹验收证明用到了且用对了"><a class="header" href="#16715-任务轨迹验收证明用到了且用对了">16.7.15 任务轨迹验收：证明“用到了且用对了”</a></h3>
-<p>“已安装、已连上、返回 200”都不是验收依据。一次工单分析任务应能追踪：</p>
-<pre><code class="language-text">能力来源与准入决定
-  → 本次请求可见的能力集合
-  → Skill 选择与正文加载记录
-  → 实际能力组合版本
-  → 模型提出的调用与执行路由
-  → 身份、授权与审批裁决
-  → 外部结果、证据与 Operation 状态
-  → Verifier 对最终交付的验收
-</code></pre>
-<p>正文进入上下文只证明“已加载”，是否遵守关键步骤须结合轨迹与结果检查，不能凭模型自述验收。评估集还应覆盖引用缺失、同名工具冲突、目录中途变化、授权撤销、恶意资源文本和超时后重复提交。具体调优实验见<a href="05-agent-governance-optimization.html#skill-tuning">Agent 治理与调优 Skill 调优</a>与 <a href="05-agent-governance-optimization.html#mcp-tuning">MCP 调优</a>。</p>
-<h3 id="16716-从工单任务落地的最小实践"><a class="header" href="#16716-从工单任务落地的最小实践">16.7.16 从工单任务落地的最小实践</a></h3>
-<ol>
-<li>批准一个工单 MCP Server，启用查询 Connection 和一个只读分析 Skill，在测试组织中走通“搜索 → 读取 → 带引用报告”，检查分页和无权限对象。</li>
-<li>引入创建工具，单独验证写授权、草案审批、Operation、远端结果核对和停止条件。</li>
-<li>最后扩展到多用户、多 Server 和更多 Skill，验证命名空间、连接隔离、配额与缓存。</li>
-</ol>
-<p>生产环境始终保留停止路径：发现来源异常、Schema 突变或越权时，立即阻止新派发，保存在途动作状态，确定影响范围后再修复。</p>
+<p>能力 profile 记录不可变版本、实际协商的 MCP 协议、策略修订和回归集；Connection 在运行时绑定，凭据不写进组合。远程服务无法钉版本时保留观察快照并验证行为契约。任务轨迹需能解释“当时可见什么、加载了什么、实际调用什么、谁授权、外部产生什么事实”，仅返回 200 或模型自称遵守 Skill 不构成验收。工具选择与能力调优实验见<a href="05-agent-governance-optimization.html#skill-tuning">治理与调优</a>。</p>
+<p>生产停止路径应阻止新派发、保存未知动作并分配核验责任；回滚配置不改变原 Operation 身份。沙箱文件/网络/凭据边界仍按本节前述测试，审批风险分层和发布停止规则统一由第 17 章解释。</p>
 <p><a id="alert-diagnosis-case"></a></p>
 <h2 id="168-案例告警诊断-agent-的工具架构"><a class="header" href="#168-案例告警诊断-agent-的工具架构">16.8 案例：告警诊断 Agent 的工具架构</a></h2>
 <p><a href="../images/review-skills-tools-mcp-connectors-08.svg"><img src="../images/review-skills-tools-mcp-connectors-08.svg" alt="告警案例的能力提供方产物"></a></p>
@@ -1700,7 +1563,7 @@ MCP 测试：
 <tr><td style="text-align: left"><code>search_runbooks</code></td><td style="text-align: left">搜索历史案例</td><td style="text-align: left">只读×内部数据</td><td style="text-align: left">自动执行；检索内部 Runbook</td></tr>
 <tr><td style="text-align: left"><code>loki_search</code></td><td style="text-align: left">搜索日志摘要</td><td style="text-align: left">只读×敏感数据</td><td style="text-align: left">日志可能含敏感信息，返回前须脱敏，访问范围由策略授权</td></tr>
 <tr><td style="text-align: left"><code>create_incident_ticket</code></td><td style="text-align: left">创建事故单</td><td style="text-align: left">可补偿写入×内部数据</td><td style="text-align: left">需要用户确认或策略授权</td></tr>
-<tr><td style="text-align: left"><code>send_slack_message</code></td><td style="text-align: left">发送团队通知</td><td style="text-align: left">外发，按 High 管控</td><td style="text-align: left">消息发出后无法撤回，发送前需确认目标频道与内容</td></tr>
+<tr><td style="text-align: left"><code>send_slack_message</code></td><td style="text-align: left">发送团队通知</td><td style="text-align: left">外发副作用 × 团队内部数据，按目标和内容审批</td><td style="text-align: left">消息发出后无法撤回，发送前需确认目标频道与内容</td></tr>
 <tr><td style="text-align: left"><code>restart_service</code></td><td style="text-align: left">重启服务</td><td style="text-align: left">高影响修复动作</td><td style="text-align: left">不进入本 Skill 的可用工具集；Agent 只给建议，由人工审批后执行</td></tr>
 </tbody>
 </table>
@@ -1749,7 +1612,7 @@ MCP 测试：
 </tbody>
 </table>
 </div>
-<p>T1 的 loki_search 首次超时返回可读错误，在 Runtime 预算内建立新 Attempt；T3 的建单接收绑定草稿 hash 的审批；T4 用<code>alert-ALR-20260429-017-incident</code>查询查到<code>INC-4821</code>后返回已确认效果。Connector 不拥有全局恢复状态，完整时序参考<a href="03-agent-runtime.html#failure-scenarios">Runtime 故障案例</a>。通知接口若不能保证幂等或结果查询，契约明确披露 T5 重复风险。</p>
+<p>日志查询首次超时返回可读错误，在 Runtime 预算内建立新 Attempt；建单步骤接收绑定草稿 hash 的审批；结果查询用 <code>alert-ALR-20260429-017-incident</code> 查到 <code>INC-4821</code> 后返回已确认效果。Connector 不拥有全局恢复状态，完整时序参考<a href="03-agent-runtime.html#failure-scenarios">Runtime 故障案例</a>。通知接口若不能保证幂等或结果查询，契约明确披露通知步骤的重复风险。</p>
 <h3 id="1685-一次指标观察与策略证据"><a class="header" href="#1685-一次指标观察与策略证据">16.8.5 一次指标观察与策略证据</a></h3>
 <pre><code class="language-json">{
   "run_id": "run_0429_017",
@@ -1769,12 +1632,12 @@ MCP 测试：
   }
 }
 </code></pre>
-<h3 id="1686-合格报告标准与实际偏差"><a class="header" href="#1686-合格报告标准与实际偏差">16.8.6 合格报告标准与实际偏差</a></h3>
+<h3 id="1686-合格报告标准与教学设定中的偏差"><a class="header" href="#1686-合格报告标准与教学设定中的偏差">16.8.6 合格报告标准与教学设定中的偏差</a></h3>
 <p>合格报告需核对部署记录（本例 09:35Z 完成）、指标（09:37Z 开始异常）和 payment-client 日志，只能将时间接近写成待验证假设；资源指标正常不能直接排除全部数据库问题。每条证据带调用、版本和时间范围，缺证据就披露缺口。</p>
-<p>同一次 v42 运行实际在 T2 使用过期 Runbook v2，错误推断连接池耗尽，验证器漏拦；人工批准了建单并不证明这份诊断正确。错误草稿与上述质量标准形成对照，<code>failure-0099</code>怎样转成<code>eval-incident-0099</code>和 v43 门禁，参考<a href="05-agent-governance-optimization.html#release-control">治理失败闭环</a>。</p>
+<p>教学设定中的 v42 运行在证据读取步骤使用过期 Runbook v2，错误推断连接池耗尽，验证器漏拦；人工批准了建单并不证明这份诊断正确。错误草稿与上述质量标准形成对照，<code>failure-0099</code>怎样转成<code>eval-incident-0099</code>和 v43 门禁，参考<a href="05-agent-governance-optimization.html#release-control">治理失败闭环</a>。</p>
 <p><a id="checklist"></a></p>
-<h2 id="169-构建验收与本章小结"><a class="header" href="#169-构建验收与本章小结">16.9 构建验收与本章小结</a></h2>
-<p><a href="../images/review-skills-tools-mcp-connectors-09.svg"><img src="../images/review-skills-tools-mcp-connectors-09.svg" alt="外围工具系统的构建验收"></a></p>
+<h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
+<p><a href="../images/review-skills-tools-mcp-connectors-09.svg"><img src="../images/review-skills-tools-mcp-connectors-09.svg" alt="Agent 工具系统工程的构建验收"></a></p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -1791,42 +1654,114 @@ MCP 测试：
 </table>
 </div>
 <p>工具章交付外围能力体系及其接入契约，Runtime 用它组织任务执行。模型的提案通过受信映射、当前授权和隔离执行后才变成观察；MCP 统一协议，Connector 落实业务语义，Skill 沉淀方法，任何一层都不能代替其他层的保证。每个构建产物都应能沿同一告警案例找到消费接口和验收证据。</p>
-<h2 id="1610-参考资料"><a class="header" href="#1610-参考资料">16.10 参考资料</a></h2>
+<h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
 <p><a href="../images/review-skills-tools-mcp-connectors-10.svg"><img src="../images/review-skills-tools-mcp-connectors-10.svg" alt="工具资料按职责选择"></a></p>
 <ol>
-<li><a id="ref-1"></a> T. Lodderstedt、J. Bradley、A. Labunets、D. Fett，<a href="https://www.rfc-editor.org/rfc/rfc9700">RFC 9700: Best Current Practice for OAuth 2.0 Security</a>，IETF，2025；核验于 2026-10-21。</li>
-<li><a id="ref-2"></a> OpenAI，<a href="https://developers.openai.com/api/docs/guides/function-calling">Function calling</a>，持续更新；核验于 2026-10-18。</li>
-<li><a id="ref-3"></a> MCP maintainers，<a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">Tools</a>，2025-11-25；复核于 2026-10-24。</li>
-<li><a id="ref-4"></a> Anthropic，<a href="https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills">Equipping agents for the real world with Agent Skills</a>，2025-10-16。</li>
-<li><a id="ref-5"></a> Agent Skills maintainers，<a href="https://agentskills.io/specification">Specification</a>，持续更新；核验于 2026-10-21；复核于 2026-10-24。</li>
-<li><a id="ref-6"></a> OpenAI，<a href="https://developers.openai.com/codex/skills/">Build skills</a>，持续更新；核验于 2026-10-21。</li>
-<li><a id="ref-7"></a> Anthropic，<a href="https://code.claude.com/docs/en/skills">Extend Claude with skills</a>，持续更新；核验于 2026-10-21。</li>
-<li><a id="ref-8"></a> Nous Research，<a href="https://hermes-agent.nousresearch.com/docs/user-guide/features/skills">Skills System</a>，持续更新；核验于 2026-10-21。</li>
-<li><a id="ref-9"></a> Nous Research，Hermes Agent 源码：<a href="https://github.com/NousResearch/hermes-agent/blob/ff3835a630deb1f03054806d91ae5712b76f16d1/agent/prompt_builder.py">技能索引构造</a>、<a href="https://github.com/NousResearch/hermes-agent/blob/ff3835a630deb1f03054806d91ae5712b76f16d1/agent/system_prompt.py">系统提示组装</a>、<a href="https://github.com/NousResearch/hermes-agent/blob/ff3835a630deb1f03054806d91ae5712b76f16d1/tools/skills_tool.py">skills_list 与 skill_view</a>，提交 <code>ff3835a</code>；核验于 2026-10-21。</li>
-<li><a id="ref-10"></a> Nous Research，Hermes Agent 源码：<a href="https://github.com/NousResearch/hermes-agent/blob/ff3835a630deb1f03054806d91ae5712b76f16d1/agent/conversation_loop.py">对话循环</a>、<a href="https://github.com/NousResearch/hermes-agent/blob/ff3835a630deb1f03054806d91ae5712b76f16d1/agent/tool_dispatch_helpers.py">工具结果消息构造</a>，提交 <code>ff3835a</code>；核验于 2026-10-21。</li>
-<li><a id="ref-11"></a> MCP maintainers，<a href="https://modelcontextprotocol.io/specification/2025-11-25/architecture">Architecture</a>，2025-11-25；复核于 2026-10-24。</li>
-<li><a id="ref-12"></a> MCP maintainers，<a href="https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle">Lifecycle</a>，2025-11-25；复核于 2026-10-24。</li>
-<li><a id="ref-13"></a> MCP maintainers，<a href="https://modelcontextprotocol.io/specification/2025-11-25/server/resources">Resources</a>，2025-11-25；复核于 2026-10-24。</li>
-<li><a id="ref-14"></a> MCP maintainers，<a href="https://modelcontextprotocol.io/specification/2025-11-25/server/prompts">Prompts</a>，2025-11-25；复核于 2026-10-24。</li>
-<li><a id="ref-15"></a> MCP maintainers，<a href="https://modelcontextprotocol.io/specification/2025-11-25/basic/transports">Transports</a>，2025-11-25；复核于 2026-10-24。</li>
-<li><a id="ref-16"></a> MCP maintainers，<a href="https://github.com/modelcontextprotocol/servers">Reference servers and archived servers</a>，核验于 2026-10-24。</li>
-<li><a id="ref-17"></a> Linear，<a href="https://linear.app/docs/mcp">MCP server</a>，核验于 2026-10-24。</li>
-<li><a id="ref-18"></a> MCP maintainers，<a href="https://modelcontextprotocol.io/specification/2025-03-26/basic/transports">Transports</a>，2025-03-26；核验于 2026-10-24。</li>
-<li><a id="ref-19"></a> MCP maintainers，<a href="https://modelcontextprotocol.io/specification/2024-11-05/basic/transports">Transports</a>，2024-11-05；复核于 2026-10-24。</li>
-<li><a id="ref-20"></a> MCP maintainers，<a href="https://modelcontextprotocol.io/specification/2025-06-18/basic/transports">Transports</a>，2025-06-18；复核于 2026-10-24。</li>
-<li><a id="ref-21"></a> MCP maintainers，<a href="https://modelcontextprotocol.io/specification/2025-11-25/basic/utilities/tasks">Tasks</a>，实验性，2025-11-25；核验于 2026-10-24。</li>
-<li><a id="ref-22"></a> MCP maintainers，<a href="https://modelcontextprotocol.io/specification/2025-11-25/client/elicitation">Elicitation</a>，2025-11-25；核验于 2026-10-24。</li>
-<li><a id="ref-23"></a> MCP maintainers，<a href="https://registry.modelcontextprotocol.io/">Official MCP Registry</a>，持续更新；核验于 2026-10-18。</li>
-<li><a id="ref-24"></a> MCP maintainers，<a href="https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization">Authorization</a>，2025-11-25；复核于 2026-10-24。</li>
-<li><a id="ref-25"></a> MCP maintainers，<a href="https://modelcontextprotocol.io/specification/2025-11-25/basic/security_best_practices">Security Best Practices</a>，2025-11-25；复核于 2026-10-24。</li>
-<li><a id="ref-26"></a> GitHub，<a href="https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api">Best practices for using the REST API</a>，GitHub Docs，持续更新；核验于 2026-10-21。</li>
-<li><a id="ref-27"></a> GitHub，<a href="https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks">Best practices for using webhooks</a>，GitHub Docs，持续更新；核验于 2026-10-21。</li>
-<li><a id="ref-28"></a> T. Lodderstedt、S. Dronia、M. Scurtescu，<a href="https://www.rfc-editor.org/rfc/rfc7009.html">RFC 7009: OAuth 2.0 Token Revocation</a>，IETF，2013；核验于 2026-10-21。</li>
-<li><a id="ref-29"></a> Anthropic，<a href="https://code.claude.com/docs/en/sandboxing">Configure the sandboxed Bash tool</a>，持续更新；核验于 2026-10-18。</li>
-<li><a id="ref-30"></a> Anthropic，<a href="https://code.claude.com/docs/en/permissions">Configure permissions</a>，持续更新；核验于 2026-10-18。</li>
-<li><a id="ref-31"></a> Microsoft Playwright，<a href="https://playwright.dev/docs/locators">Locators</a>，持续更新；核验于 2026-10-18。</li>
-<li><a id="ref-32"></a> Microsoft Playwright，<a href="https://playwright.dev/docs/actionability">Auto-waiting</a>，持续更新；核验于 2026-10-18。</li>
-<li><a id="ref-33"></a> OWASP，<a href="https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html">Server Side Request Forgery Prevention Cheat Sheet</a>，持续更新；核验于 2026-10-18。</li>
+<li>
+<p><a id="ref-1"></a> T. Lodderstedt、J. Bradley、A. Labunets、D. Fett，<a href="https://www.rfc-editor.org/rfc/rfc9700">RFC 9700: Best Current Practice for OAuth 2.0 Security</a>，IETF，2025；核验于 2026-10-21。</p>
+</li>
+<li>
+<p><a id="ref-2"></a> OpenAI，<a href="https://developers.openai.com/api/docs/guides/function-calling">Function calling</a>，持续更新；核验于 2026-10-18。</p>
+</li>
+<li>
+<p><a id="ref-3"></a> MCP maintainers，<a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">Tools</a>，2025-11-25；复核于 2026-10-24。 访问日期：2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-4"></a> Anthropic，<a href="https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills">Equipping agents for the real world with Agent Skills</a>，2025-10-16。 访问日期：2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-5"></a> Agent Skills maintainers，<a href="https://agentskills.io/specification">Specification</a>，持续更新；核验于 2026-10-21；复核于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-6"></a> OpenAI，<a href="https://developers.openai.com/codex/skills/">Build skills</a>，持续更新；核验于 2026-10-21。</p>
+</li>
+<li>
+<p><a id="ref-7"></a> Anthropic，<a href="https://code.claude.com/docs/en/skills">Extend Claude with skills</a>，持续更新；核验于 2026-10-21。</p>
+</li>
+<li>
+<p><a id="ref-8"></a> Nous Research，<a href="https://hermes-agent.nousresearch.com/docs/user-guide/features/skills">Skills System</a>，持续更新；核验于 2026-10-21。</p>
+</li>
+<li>
+<p><a id="ref-9"></a> Nous Research，Hermes Agent 源码：<a href="https://github.com/NousResearch/hermes-agent/blob/ff3835a630deb1f03054806d91ae5712b76f16d1/agent/prompt_builder.py">技能索引构造</a>、<a href="https://github.com/NousResearch/hermes-agent/blob/ff3835a630deb1f03054806d91ae5712b76f16d1/agent/system_prompt.py">系统提示组装</a>、<a href="https://github.com/NousResearch/hermes-agent/blob/ff3835a630deb1f03054806d91ae5712b76f16d1/tools/skills_tool.py">skills_list 与 skill_view</a>，提交 <code>ff3835a</code>；核验于 2026-10-21。</p>
+</li>
+<li>
+<p><a id="ref-10"></a> Nous Research，Hermes Agent 源码：<a href="https://github.com/NousResearch/hermes-agent/blob/ff3835a630deb1f03054806d91ae5712b76f16d1/agent/conversation_loop.py">对话循环</a>、<a href="https://github.com/NousResearch/hermes-agent/blob/ff3835a630deb1f03054806d91ae5712b76f16d1/agent/tool_dispatch_helpers.py">工具结果消息构造</a>，提交 <code>ff3835a</code>；核验于 2026-10-21。</p>
+</li>
+<li>
+<p><a id="ref-11"></a> MCP maintainers，<a href="https://modelcontextprotocol.io/specification/2025-11-25/architecture">Architecture</a>，2025-11-25；复核于 2026-10-24。 访问日期：2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-12"></a> MCP maintainers，<a href="https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle">Lifecycle</a>，2025-11-25；复核于 2026-10-24。 访问日期：2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-13"></a> MCP maintainers，<a href="https://modelcontextprotocol.io/specification/2025-11-25/server/resources">Resources</a>，2025-11-25；复核于 2026-10-24。 访问日期：2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-14"></a> MCP maintainers，<a href="https://modelcontextprotocol.io/specification/2025-11-25/server/prompts">Prompts</a>，2025-11-25；复核于 2026-10-24。 访问日期：2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-15"></a> MCP maintainers，<a href="https://modelcontextprotocol.io/specification/2025-11-25/basic/transports">Transports</a>，2025-11-25；复核于 2026-10-24。 访问日期：2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-16"></a> MCP maintainers，<a href="https://github.com/modelcontextprotocol/servers">Reference servers and archived servers</a>，核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-17"></a> Linear，<a href="https://linear.app/docs/mcp">MCP server</a>，核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-18"></a> MCP maintainers，<a href="https://modelcontextprotocol.io/specification/2025-03-26/basic/transports">Transports</a>，2025-03-26；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-19"></a> MCP maintainers，<a href="https://modelcontextprotocol.io/specification/2024-11-05/basic/transports">Transports</a>，2024-11-05；复核于 2026-10-24。 访问日期：2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-20"></a> MCP maintainers，<a href="https://modelcontextprotocol.io/specification/2025-06-18/basic/transports">Transports</a>，2025-06-18；复核于 2026-10-24。 访问日期：2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-21"></a> MCP maintainers，<a href="https://modelcontextprotocol.io/specification/2025-11-25/basic/utilities/tasks">Tasks</a>，实验性，2025-11-25；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-22"></a> MCP maintainers，<a href="https://modelcontextprotocol.io/specification/2025-11-25/client/elicitation">Elicitation</a>，2025-11-25；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-23"></a> MCP maintainers，<a href="https://registry.modelcontextprotocol.io/">Official MCP Registry</a>，持续更新；核验于 2026-10-18。</p>
+</li>
+<li>
+<p><a id="ref-24"></a> MCP maintainers，<a href="https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization">Authorization</a>，2025-11-25；复核于 2026-10-24。 访问日期：2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-25"></a> MCP maintainers，<a href="https://modelcontextprotocol.io/specification/2025-11-25/basic/security_best_practices">Security Best Practices</a>，2025-11-25；复核于 2026-10-24。 访问日期：2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-26"></a> GitHub，<a href="https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api">Best practices for using the REST API</a>，GitHub Docs，持续更新；核验于 2026-10-21。</p>
+</li>
+<li>
+<p><a id="ref-27"></a> GitHub，<a href="https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks">Best practices for using webhooks</a>，GitHub Docs，持续更新；核验于 2026-10-21。</p>
+</li>
+<li>
+<p><a id="ref-28"></a> T. Lodderstedt、S. Dronia、M. Scurtescu，<a href="https://www.rfc-editor.org/rfc/rfc7009.html">RFC 7009: OAuth 2.0 Token Revocation</a>，IETF，2013；核验于 2026-10-21。</p>
+</li>
+<li>
+<p><a id="ref-29"></a> Anthropic，<a href="https://code.claude.com/docs/en/sandboxing">Configure the sandboxed Bash tool</a>，持续更新；核验于 2026-10-18。</p>
+</li>
+<li>
+<p><a id="ref-30"></a> Anthropic，<a href="https://code.claude.com/docs/en/permissions">Configure permissions</a>，持续更新；核验于 2026-10-18。</p>
+</li>
+<li>
+<p><a id="ref-31"></a> Microsoft Playwright，<a href="https://playwright.dev/docs/locators">Locators</a>，持续更新；核验于 2026-10-18。</p>
+</li>
+<li>
+<p><a id="ref-32"></a> Microsoft Playwright，<a href="https://playwright.dev/docs/actionability">Auto-waiting</a>，持续更新；核验于 2026-10-18。</p>
+</li>
+<li>
+<p><a id="ref-33"></a> OWASP，<a href="https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html">Server Side Request Forgery Prevention Cheat Sheet</a>，持续更新；核验于 2026-10-18。</p>
+</li>
+<li>
+<p><a id="ref-34"></a> MCP maintainers，<a href="https://modelcontextprotocol.io/specification/2025-03-26/basic/transports">2025-03-26 transports</a> 与 <a href="https://modelcontextprotocol.io/specification/2025-11-25/basic/utilities/tasks">2025-11-25 tasks</a>，版本化规范；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-35"></a> Agent Skills maintainers，<a href="https://agentskills.io/specification">Agent Skills specification</a> 与 <a href="https://github.com/agentskills/agentskills/blob/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/specification.mdx">固定规范快照</a>，开放格式规范；固定提交时间为 2026-08-09，不据此推断规范首次发布日期；核验于 2026-10-24。</p>
+</li>
 </ol>
 
                     </main>

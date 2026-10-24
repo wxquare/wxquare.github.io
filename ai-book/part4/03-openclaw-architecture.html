@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第20章 OpenClaw 架构解析：个人 AI 助手的 Gateway、Runtime 与工具生态 - AI Engineering：大模型与智能体系统工程</title>
+        <title>第 20 章 OpenClaw 系统：个人 AI 助手的 Gateway 实现、使用与调优 - AI Engineering：大模型与智能体系统工程</title>
 
 
         <!-- Custom HTML head -->
@@ -43,10 +43,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a81d105a.js";
+            window.path_to_searchindex_js = "../searchindex-cec4fa4e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-4a74a8e8.js"></script>
+        <script src="../toc-9a8a9538.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -185,7 +185,7 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="第20章-openclaw-系统个人-ai-助手的-gateway-实现使用与调优"><a class="header" href="#第20章-openclaw-系统个人-ai-助手的-gateway-实现使用与调优">第20章 OpenClaw 系统：个人 AI 助手的 Gateway 实现、使用与调优</a></h1>
+                        <h1 id="第-20-章-openclaw-系统个人-ai-助手的-gateway-实现使用与调优"><a class="header" href="#第-20-章-openclaw-系统个人-ai-助手的-gateway-实现使用与调优">第 20 章 OpenClaw 系统：个人 AI 助手的 Gateway 实现、使用与调优</a></h1>
 <blockquote>
 <p>OpenClaw 的核心不是“又一个聊天机器人”，而是把个人 AI 助手抽象成一个长期运行的本地 Gateway：它接入多渠道消息，管理会话与上下文，调度内置的 Agent Runtime，并用工具策略、沙箱、插件和审批控制行动边界。也正因为它是长期在线、可以替人行动的系统，安全边界比功能更重要。</p>
 </blockquote>
@@ -203,12 +203,25 @@
 </tbody>
 </table>
 </div>
-<p>三条诚实性限制需要提前说明。第一，OpenClaw 文档演进很快：相对现稿的旧提交，docs 目录在两个提交之间变更了 472 个文件（+15,937/−3,552 行），本章对“新旧之间发生了什么变化”的结论绑定这两个提交，不再往后追。第二，文档内部有若干处互相矛盾（技能优先级在两个页面写法不同、会话修剪的持久性说法不一致、<code>agents.entries</code> 与旧 <code>agents.list</code> 混用），正文遇到会点名，并以源码或更具体的页面为准。第三，官方文档里引用的第三方评测数据（如提示注入攻击成功率）不作为本书结论转述。</p>
+<p>资料边界：源码描述固定提交的实现，文档描述该版本的承诺；两者冲突时并列说明条件。本章没有运行验证，不能把静态阅读推导为故障注入结论。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>本章问题</th><th>OpenClaw 的特有入口</th><th>通用机制</th></tr>
+</thead>
+<tbody>
+<tr><td>谁能代表会话写入</td><td>会话控制器与转录 writer 声明</td><td><a href="../part3/03-agent-runtime.html#failure-side-effects">Runtime 状态与恢复</a></td></tr>
+<tr><td>重启后由谁继续</td><td>持久输入和恢复责任</td><td><a href="../part3/03-agent-runtime.html">任务受理</a></td></tr>
+<tr><td>已生成回复怎样发送</td><td>reply operation 与出站账本</td><td><a href="../part3/03-agent-runtime.html#result-delivery">交付机制</a></td></tr>
+<tr><td>共享部署能否放权</td><td>渠道身份、工具策略和 OS 边界</td><td><a href="../part3/04-skills-tools-mcp-connectors.html#sandbox">工具沙箱</a></td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="201-组成openclaw-由哪些部分构成"><a class="header" href="#201-组成openclaw-由哪些部分构成">20.1 组成：OpenClaw 由哪些部分构成</a></h2>
 <h3 id="2011-定位一个长期运行的-gateway"><a class="header" href="#2011-定位一个长期运行的-gateway">20.1.1 定位：一个长期运行的 Gateway</a></h3>
 <p>OpenClaw 的形态是一个单一、长期运行的 Gateway 进程，官方文档的表述是“A single long-lived Gateway owns all messaging surfaces”（一个长驻 Gateway 拥有全部消息面）<a href="#ref-1">[1]</a>。它默认接入 WhatsApp、Telegram、Slack、Discord、Signal、iMessage 和 WebChat 等渠道，README 称“20+ more”；渠道适配器在仓库的 <code>extensions/</code> 目录里，实际数量远多于文档摘要列出的几个<a href="#ref-38">[38]</a>。</p>
-<p>Gateway 同时是控制面。控制面客户端（Control UI、CLI、节点）经 WebSocket 连接，默认监听 <code>127.0.0.1:18789</code>；每台主机一个 Gateway，由状态目录锁保证唯一（见 19.2.1）。同一端口还复用 HTTP API（<code>/v1/models</code>、<code>/v1/chat/completions</code>、<code>/v1/responses</code> 等 OpenAI 兼容面）、插件 HTTP 路由、Control UI 静态资源和 hooks<a href="#ref-1">[1]</a><a href="#ref-23">[23]</a>。这个“一个端口承担消息渠道、控制面、HTTP API”的设计，是理解它后续安全模型（19.5.2 的暴露面阶梯）的前提。</p>
-<p>定位上要分清两件事：OpenClaw 是个人助手的运行时，不是敌对多租户平台。官方安全页明确写，它“不是一个针对相互敌对的用户的安全多租户边界”，混合信任或对抗用户必须拆分信任边界（独立 Gateway 与凭据，最好独立 OS 用户或主机）<a href="#ref-25">[25]</a>。这一条不是免责声明，而是 19.5 整个实践部分的框架。</p>
+<p>Gateway 同时是控制面。控制面客户端（Control UI、CLI、节点）经 WebSocket 连接，默认监听 <code>127.0.0.1:18789</code>；每台主机一个 Gateway，由状态目录锁保证唯一（见 20.2.1）。同一端口还复用 HTTP API（<code>/v1/models</code>、<code>/v1/chat/completions</code>、<code>/v1/responses</code> 等 OpenAI 兼容面）、插件 HTTP 路由、Control UI 静态资源和 hooks<a href="#ref-1">[1]</a><a href="#ref-23">[23]</a>。这个“一个端口承担消息渠道、控制面、HTTP API”的设计，是理解它后续安全模型（20.5.2 的暴露面阶梯）的前提。</p>
+<p>定位上要分清两件事：OpenClaw 是个人助手的运行时，不是敌对多租户平台。官方安全页明确写，它“不是一个针对相互敌对的用户的安全多租户边界”，混合信任或对抗用户必须拆分信任边界（独立 Gateway 与凭据，最好独立 OS 用户或主机）<a href="#ref-25">[25]</a>。这一条不是免责声明，而是 20.5 整个实践部分的框架。</p>
 <h3 id="2012-仓库包与进程形态"><a class="header" href="#2012-仓库包与进程形态">20.1.2 仓库、包与进程形态</a></h3>
 <p>仓库是 pnpm workspace（根 README 注明“不支持在仓库根直接 <code>npm install</code>”），根包 <code>openclaw</code> 版本 <code>2026.10.6</code>，MIT，<code>engines.node</code> 为 <code>&gt;=24.22.1 &lt;25 || &gt;=26.12.1</code>（README 写的 Node 版本范围与 package.json 不一致，以 package.json 为准）<a href="#ref-38">[38]</a>。顶层分几块：<code>src/</code>（核心：gateway、agents、auto-reply、channels、routing、sessions、context-engine、cron、plugins、skills、security、llm、tui、node-host）、<code>extensions/</code>（捆绑的渠道与 provider 插件）、<code>packages/</code>（内部包：agent-core、ai、gateway-protocol、gateway-client、plugin-sdk、worker-runtime、retry 等）、<code>apps/</code>（各平台应用）、<code>ui/</code>（Control UI 前端）、<code>docs/</code><a href="#ref-3">[3]</a>。</p>
 <p>进程形态有几种：前台 <code>openclaw gateway</code>，或经 <code>openclaw gateway install|start|stop</code> 管理的原生服务（launchd/systemd/Windows 计划任务）；还有独立的节点宿主（<code>openclaw node</code>）与 macOS/iOS/Android/Linux 应用。CPU 密集或隔离任务走 worker（<code>@openclaw/worker-runtime</code>），SQLite 通过 reader/writer worker 访问（reader 池上限 2 个），Gateway 主线程不使用 Node 磁盘模块编译缓存以避免同步 flush 阻塞事件循环<a href="#ref-3">[3]</a><a href="#ref-23">[23]</a>。</p>
@@ -230,19 +243,19 @@
 </table>
 </div>
 <p>会话的权威状态在 SQLite，不在 JSONL：官方文档明确“活动 agent 历史与 session 行一起存在 SQLite”，session ID 稳定且由 OpenClaw 选择；JSONL 转录只作遗留迁移、归档与导入导出<a href="#ref-2">[2]</a>。这修正了“OpenClaw 用 JSONL 存会话”的常见误解。数据库引擎除默认 SQLite 外，还声明支持 PostgreSQL（state/agent/workboard/logbook/team-reports 五个家族，schema 版本 state=31、agent=31），PostgreSQL 备份要求先停 Gateway<a href="#ref-38">[38]</a>。</p>
-<p>一个与恢复直接相关的表，是“哪些对象持久化在哪里”（19.4.6 会用到）：对话历史=每 agent SQLite；已接受的聊天跟进=每 agent SQLite 待处理输入；中断的 main 会话 turn=每 agent SQLite 会话行与转录；子 agent 运行=共享状态库；出站投递队列=SQLite；定时作业=SQLite cron store；重启 continuation=SQLite restart sentinel；后台 exec 进程与 Gateway 终端 PTY=仅进程内存，不恢复<a href="#ref-22">[22]</a>。</p>
+<p>一个与恢复直接相关的表，是“哪些对象持久化在哪里”（20.4.6 会用到）：对话历史=每 agent SQLite；已接受的聊天跟进=每 agent SQLite 待处理输入；中断的 main 会话 turn=每 agent SQLite 会话行与转录；子 agent 运行=共享状态库；出站投递队列=SQLite；定时作业=SQLite cron store；重启 continuation=SQLite restart sentinel；后台 exec 进程与 Gateway 终端 PTY=仅进程内存，不恢复<a href="#ref-22">[22]</a>。</p>
 <h3 id="2014-agent-runtime-与-pi-的关系"><a class="header" href="#2014-agent-runtime-与-pi-的关系">20.1.4 Agent Runtime 与 Pi 的关系</a></h3>
 <p>OpenClaw 拥有内置的 agent runtime，文档明确写“没有外部 agent framework 包保留”；运行时代码在 <code>src/agents/</code>、<code>src/llm/</code>，可复用核心在私有包 <code>packages/agent-core</code>（<code>@openclaw/agent-core</code>，<code>agent-loop.ts</code> 导出 <code>runAgentLoop</code>）<a href="#ref-3">[3]</a>。内置 runtime id 是 <code>openclaw</code>，遗留别名 <code>pi</code> 规范化为 <code>openclaw</code>，<code>codex-app-server</code> 规范化为 <code>codex</code><a href="#ref-3">[3]</a>。</p>
 <p>与 Pi 的关系必须写成有版本绑定的事实，因为它随时间变化过。固定提交的根 <code>package.json</code> 里 Pi 系依赖只有一个：<code>@earendil-works/pi-tui</code> 精确版本 1.2.0，仅用于本地 TUI 与会话工具渲染器；<code>THIRD_PARTY_NOTICES.md</code> 声明“OpenClaw 的部分代码改编自 Pi / pi-mono”（MIT，版权 Mario Zechner）<a href="#ref-38">[38]</a>。但在此之前 OpenClaw 确实嵌入过 Pi SDK：CHANGELOG 记载 2026.2.21 把 <code>@mariozechner/pi-agent-core</code>/<code>pi-ai</code>/<code>pi-coding-agent</code>/<code>pi-tui</code> 升级到 0.54.0，2026.3.13 升到 0.58.0，2026.5.12 迁到 <code>@earendil-works</code> 命名空间，2026.5.22 “把此前的 Pi agent runtime 内化进 OpenClaw、移除 legacy 包依赖、只保留 Pi 命名的 SDK 别名作为弃用插件兼容”，同一版本还关闭了内嵌 pi-coding-agent 的自动重试，以免 OpenClaw 自己的重试与故障转移循环把失败的工具调用重放一遍<a href="#ref-39">[39]</a>。</p>
 <p>所以准确的表述是：<strong>曾嵌入、现已内化，当前只保留 <code>pi-tui</code> 作为终端组件依赖，并保留改编代码的许可证声明</strong>。此外，Pi 仍可作为外部 Coding Agent 被调用：ACP/acpx 的 agent 目标表包含 <code>pi</code>，节点会话目录能读取 Pi 的 JSONL 会话存储并用 <code>pi --session &lt;id&gt;</code> 续跑——这是“读取/拉起外部 Pi CLI”，不是嵌入它的运行时，两者要分开<a href="#ref-36">[36]</a>。</p>
 <h3 id="2015-模型接入与-provider-抽象"><a class="header" href="#2015-模型接入与-provider-抽象">20.1.5 模型接入与 Provider 抽象</a></h3>
 <p>模型接入在 <code>src/llm/</code>，插件经契约 <code>openclaw/plugin-sdk/*</code> 提供 provider。认证用“profile”抽象：每个 provider 可有多个 profile（OAuth、静态 token、API key），<code>ModelRuntime</code> 在每次 run 前解析。启动时为每个已配置 agent 构建一个“准备好的模型运行时代”（auth 模板 + 模型注册表 + 模型目录的原子快照），run 从该快照派生可变存储<a href="#ref-3">[3]</a>。</p>
-<p>provider 认证 profile 的轮换顺序与“按会话粘住”是 19.4.3 故障转移的机制基础：未显式配置时按“OAuth → 静态 token → API key”的类型轮询、最久未用优先，但自动选中的 profile 会按会话粘住以保持 provider 缓存温热，只在 <code>/new</code>、<code>/reset</code> 或 profile 冷却/禁用时才轮换<a href="#ref-11">[11]</a>。</p>
+<p>provider 认证 profile 的轮换顺序与“按会话粘住”是 20.4.3 故障转移的机制基础：未显式配置时按“OAuth → 静态 token → API key”的类型轮询、最久未用优先，但自动选中的 profile 会按会话粘住以保持 provider 缓存温热，只在 <code>/new</code>、<code>/reset</code> 或 profile 冷却/禁用时才轮换<a href="#ref-11">[11]</a>。</p>
 <h3 id="2016-工具skillsplugin-与-context-engine"><a class="header" href="#2016-工具skillsplugin-与-context-engine">20.1.6 工具、Skills、Plugin 与 Context Engine</a></h3>
 <p>扩展能力分几层。<strong>工具</strong>：OpenClaw 自己的工具定义、参数 schema、tool policy 与 before/after tool-call 适配在 <code>src/agents/agent-tools*.ts</code>；内置工具按组归类（文件、exec/process、浏览器、web、message、canvas/nodes、cron/gateway、图像/音乐/视频生成、sessions/subagents 等）<a href="#ref-14">[14]</a>。<strong>Skills</strong>：<code>SKILL.md</code> 目录，按优先级发现（workspace → project agent → personal agent → managed → Workshop → bundled/Custodian → extraDirs + plugin skills），skill 是上下文不是执行权限，技能目录视为受信代码<a href="#ref-15">[15]</a>。<strong>Plugin</strong>：运行在 Gateway 进程内，可注册 channel/provider/tool/skill/speech/media/image-video/web/context engine/hooks 等十几类能力<a href="#ref-17">[17]</a>。<strong>Context Engine</strong>：内置 <code>legacy</code> 引擎默认使用，插件引擎经 <code>plugins.slots.contextEngine</code> 选择；memory 插件与 context engine 分离<a href="#ref-6">[6]</a>。</p>
 <h3 id="2017-权限与隔离的分层"><a class="header" href="#2017-权限与隔离的分层">20.1.7 权限与隔离的分层</a></h3>
 <p>OpenClaw 的权限不是一个开关，而是一条多层管线。单层内“deny 先匹配，空 allow=放行未被 deny 者”；跨层按运行时顺序逐层收窄：<code>tools.profile</code> → <code>tools.byProvider.profile</code> → 全局 <code>tools.allow/deny</code> → <code>tools.byProvider.allow</code> → agent <code>tools.allow</code> → agent <code>tools.byProvider.allow</code> → 群/会话 group allow → <code>tools.toolsBySender</code> → sandbox allow → subagent allow → runtime allow → inherited<a href="#ref-14">[14]</a><a href="#ref-43">[43]</a>。在这之上还有 <code>tools.gatewayPolicy</code>（部署所有者的具体工具与动作白名单，在普通授权之后施加、需重启生效）<a href="#ref-14">[14]</a>。</p>
-<p>另外两条独立的边界：<strong>exec 审批</strong>（决定 shell 命令能否执行、由谁批准，默认值见 19.5.4）和<strong>沙箱</strong>（<code>agents.defaults.sandbox</code>，mode 默认 <code>off</code>，启用后由 Docker/Podman 后端隔离文件系统与进程）。三者解决的问题不同：tool policy 决定“能不能调用这个工具”，exec 审批决定“这条命令要不要人点头”，沙箱决定“放行后进程能碰什么”。19.5.4 会把这三层串起来。</p>
+<p>另外两条独立的边界：<strong>exec 审批</strong>（决定 shell 命令能否执行、由谁批准，默认值见 20.5.4）和<strong>沙箱</strong>（<code>agents.defaults.sandbox</code>，mode 默认 <code>off</code>，启用后由 Docker/Podman 后端隔离文件系统与进程）。三者解决的问题不同：tool policy 决定“能不能调用这个工具”，exec 审批决定“这条命令要不要人点头”，沙箱决定“放行后进程能碰什么”。20.5.4 会把这三层串起来。</p>
 <p>协议层面还有几个组成事实。WebSocket 帧是 <code>{type:"req",id,method,params}</code> / <code>{type:"res",id,ok,payload|error}</code> / <code>{type:"event",event,payload,seq?,stateVersion?}</code>，协议版本 <code>PROTOCOL_VERSION=4</code>；入站帧用 JSON Schema 校验，握手首帧必须是 <code>connect</code>，预认证帧上限 64 KiB，每 IP 128 个未认证并发连接<a href="#ref-1">[1]</a>。Nodes 用同一 WS 服务、以 <code>role: node</code> 连接并声明 caps/commands（<code>camera.*</code>、<code>screen.record</code>、<code>location.get</code> 等）；Control UI 是 Gateway 同端口托管的浏览器控制台，经同一套 WS API 通信；WebChat 是静态 UI，经 Gateway WS API 取历史和发送<a href="#ref-1">[1]</a>。同一端口还复用 OpenAI 兼容 HTTP 面（<code>/v1/models</code>、<code>/v1/chat/completions</code>、<code>/v1/responses</code> 等），<code>/v1/models</code> 以 agent 为先<a href="#ref-23">[23]</a>。</p>
 <p>代码模式、压缩规划、文件工具规划走 <code>WorkerTaskPool</code>，CPU 准入上限 <code>max(1, availableParallelism()-1)</code>，每池默认 128 待处理任务与 256 MiB 报告输入，超限 <code>WorkerTaskError.code="overloaded"</code><a href="#ref-3">[3]</a>。</p>
 <p>渠道适配器的真实接口形态值得写清，因为它修正了“ChannelAdapter 有 start/stop/send/onMessage 方法”的教学构造：渠道插件对 Gateway 暴露 <code>plugin.config.{isEnabled,isConfigured,isLinked}</code> 与 <code>plugin.gateway.{startAccount,stopAccount}</code>，Gateway 的 <code>ChannelManager</code> 负责逐账号生命周期、运行时快照与重启退避；渠道账号快照字段含 <code>running/connected/lastStartAt/lastDisconnect/restartPending/ingressUnavailable/linked/terminalDisconnect</code> 等<a href="#ref-41">[41]</a>。控制面的事件/RPC 面由方法注册表组织，WS 连接处理在 <code>server/ws-connection.ts</code>；握手需签名 <code>connect.challenge</code> nonce，已配对设备元数据变化需修复配对<a href="#ref-1">[1]</a>。</p>
@@ -277,7 +290,7 @@
 <h3 id="2024-配置热重载与-last-known-good"><a class="header" href="#2024-配置热重载与-last-known-good">20.2.4 配置热重载与 last-known-good</a></h3>
 <p>配置热重载模式是 <code>hybrid</code>（默认：可热更项热应用，需要时自动重启）或 <code>off</code>；旧的 <code>hot</code>/<code>restart</code> 模式已退役。无效热重载被跳过，运行时保持上一份已接受配置<a href="#ref-26">[26]</a>。last-known-good 机制：每次成功启动后保存受信副本，但启动与热重载都<strong>不自动恢复</strong>，只有 <code>openclaw doctor --fix</code> 会；疑似“误覆盖”的写入（丢掉有效 <code>gateway.mode</code>、或文件缩小超过一半）被阻止并保存被拒载荷到 <code>&lt;path&gt;.rejected.&lt;timestamp&gt;</code>；含 <code>***</code>/<code>[redacted]</code> 占位符的候选不会提升为 last-known-good<a href="#ref-26">[26]</a>。</p>
 <h3 id="2025-渠道账号启动路径"><a class="header" href="#2025-渠道账号启动路径">20.2.5 渠道账号启动路径</a></h3>
-<p>渠道账号的启动在 <code>ChannelManager</code> 里逐账号走：解析账号 → 密钥不可用且 <code>skipUnavailableAccounts</code> 时标 skipped → <code>plugin.config.isEnabled</code>（否则 disabled）→ 凭据可用性诊断 → <code>plugin.config.isConfigured</code>（否则 unconfigured）→ <code>isLinked</code> → <code>plugin.gateway.startAccount(...)</code> 作为长驻任务。任务退出（无论是否报错）进入自动重启阶梯（见 19.4.2）<a href="#ref-41">[41]</a>。渠道在“会话投影准备 + 主会话孤儿标记”都完成后才启动；崩溃循环断路器触发时（3 次非干净启动/5 分钟），渠道插件与自启动副服务保持关闭，控制面仍启动，可手动 <code>openclaw gateway call channels.start</code> 覆盖<a href="#ref-22">[22]</a>。</p>
+<p>渠道账号的启动在 <code>ChannelManager</code> 里逐账号走：解析账号 → 密钥不可用且 <code>skipUnavailableAccounts</code> 时标 skipped → <code>plugin.config.isEnabled</code>（否则 disabled）→ 凭据可用性诊断 → <code>plugin.config.isConfigured</code>（否则 unconfigured）→ <code>isLinked</code> → <code>plugin.gateway.startAccount(...)</code> 作为长驻任务。任务退出（无论是否报错）进入自动重启阶梯（见 20.4.2）<a href="#ref-41">[41]</a>。渠道在“会话投影准备 + 主会话孤儿标记”都完成后才启动；崩溃循环断路器触发时（3 次非干净启动/5 分钟），渠道插件与自启动副服务保持关闭，控制面仍启动，可手动 <code>openclaw gateway call channels.start</code> 覆盖<a href="#ref-22">[22]</a>。</p>
 <p>一次 agent run 的创建路径是：<code>agent</code> RPC 校验并解析会话 → <code>agentCommand</code> → <code>runEmbeddedAgent</code>（预留 session controller turn → 全局容量准入 → 解析模型与 auth profile → 构建会话 → 订阅事件）→ 底层循环 <code>runAgentLoop</code><a href="#ref-7">[7]</a>。</p>
 <h3 id="2026-onboardingdoctor-与启动期诊断"><a class="header" href="#2026-onboardingdoctor-与启动期诊断">20.2.6 onboarding、doctor 与启动期诊断</a></h3>
 <p>五分钟本地启动路径（官方运行手册）是：<code>openclaw gateway --port 18789</code> → <code>openclaw gateway status</code>（健康基线：<code>Runtime: running</code>、连通性检查成功，<code>--require-rpc</code> 证明读范围 RPC）→ <code>openclaw status</code>、<code>openclaw logs --follow</code> → <code>openclaw channels status --probe</code><a href="#ref-23">[23]</a>。配置编辑的“两桶规则”是：根级放基础设施与跨 agent 默认，<code>agents.defaults</code> 放 agent-loop 行为，<code>agents.entries.*</code> 可覆盖；改配置前用 <code>config.schema.lookup</code> 或 <code>openclaw config schema</code> 取权威字段文档<a href="#ref-26">[26]</a>。post-ready 工作延迟 500ms 才释放，sidecars 就绪后再激活 cron 等定时服务；SQLite 快照回收每 15 分钟重复<a href="#ref-40">[40]</a>。</p>
@@ -290,8 +303,26 @@
 <h3 id="2031-完整流水线"><a class="header" href="#2031-完整流水线">20.3.1 完整流水线</a></h3>
 <p>文档版的入站→出站流水线是：<strong>routing/bindings → 会话键 → 去重 + 去抖 → （若已有活动 run 则）排队 → agent run（流式 + 工具）→ 出站回复（渠道限制 + 分块）</strong><a href="#ref-5">[5]</a>。这一步里的每一环都有明确的“事实”要管，下面逐段展开。</p>
 <p>入站去重是进程内缓存，键 = agent 范围 + 渠道路由（channel+peer+account+thread）+ message id，TTL 20 分钟或 5000 条先到者（源码常量一致）；这是内存去重，不跨重启，与持久 ingress 去重是两层<a href="#ref-45">[45]</a>。入站去抖只作用于文本消息、按 channel+会话作用域，媒体/附件立即 flush，控制命令绕过去抖；Telegram 普通文本默认 300ms 安静窗口，其他渠道无通用去抖延迟。注意 <code>messages.inbound.debounceMs</code>（入站去抖）与 <code>messages.queue</code> 的 500ms 队列 debounce 是两个不同的层<a href="#ref-5">[5]</a>。</p>
+<h4 id="权威状态与进程内状态的不同寿命"><a class="header" href="#权威状态与进程内状态的不同寿命">权威状态与进程内状态的不同寿命</a></h4>
+<p>以下是根据固定提交的会话、队列与转录设计作出的系统推导。Gateway 拥有会话的调度责任，但“由 Gateway 管”并不代表所有东西都在一次数据库事务里。转录、输入准入、恢复标记与发送记录可以持久化；队列对象、去重 Map、活动流和 PTY 则可能只存在于进程内。审查恢复时，应逐项问状态在哪里、何时算接受、重启后谁能重新发现，不能只画一个 SQLite 圆柱便宣称全部可恢复。<a href="#ref-7">[7]</a><a href="#ref-8">[8]</a><a href="#ref-9">[9]</a></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>状态</th><th>权威依据</th><th>重启后可依赖什么</th><th>不能推出什么</th></tr>
+</thead>
+<tbody>
+<tr><td>会话转录</td><td>已提交的存储记录及 writer 声明</td><td>可回读已提交消息和有效写者</td><td>未提交的流式片段一定存在</td></tr>
+<tr><td>已准入输入</td><td>对应入口的持久准入/恢复记录</td><td>可发现待履行输入</td><td>网络收到事件就等于已经持久接受</td></tr>
+<tr><td>活动执行</td><td>当前 run/attempt、控制器及执行权</td><td>可判断谁获准推进</td><td>旧进程已对远端做了什么</td></tr>
+<tr><td>进程内去重/排队</td><td>当前进程对象</td><td>正常生命周期内减少重复和组织顺序</td><td>崩溃后仍保留全部去重历史</td></tr>
+<tr><td>Shell/PTY</td><td>子进程及工具后端</td><td>取决于后端是否提供持久作业身份</td><td>恢复会话一定重连原 PTY</td></tr>
+</tbody>
+</table>
+</div>
+<p>假设渠道事件到达后，进程在持久准入前退出：本地还没有能够驱动恢复的责任记录，是否再次收到取决于渠道的重投协议。若持久准入已经提交、内存队列尚未创建，恢复应该从持久责任重新安排，而不是要求还原同一个 JavaScript 队列对象。若工具已经在远端执行、转录没有记下结果，恢复只能先核验工具原身份，不能从转录缺失推出未执行。这三个窗口分别属于入口投递、内部调度与外部副作用，不能合并成一个“支持重启”指标。</p>
+<p>因此故障演练需要在不同边界终止进程：接受前、接受后、模型完成后、工具已提交后、通知发送中。每一项都记录输入标识、run、attempt、reply operation 和外部对象。观察到进程重启并产生回复，只验证了一条可达路径；还要检查是否重复计费、重复写入、丢失责任，以及恢复权限是否仍有效。这里的演练步骤是本书建议，未声称已对 OpenClaw 执行。</p>
 <h3 id="2032-路由与会话键"><a class="header" href="#2032-路由与会话键">20.3.2 路由与会话键</a></h3>
-<p>路由匹配层级（源码 <code>resolveAgentRoute</code>，<code>matchedBy</code>）是：<code>binding.peer</code> → <code>binding.peer.parent</code> → <code>binding.peer.wildcard</code> → <code>binding.guild+roles</code> → <code>binding.guild</code> → <code>binding.team</code> → <code>binding.account</code> → <code>binding.channel</code> → 兜底。兜底取调用方 owner，否则唯一已配置 agent 或遗留 owner；多 agent 无 owner 且无匹配 binding 时报错，不会取名册第一项<a href="#ref-42">[42]</a>。这条顺序比现稿多了一个 <code>peer.wildcard</code>，末项也不是“default agent”。</p>
+<p>路由匹配层级（源码 <code>resolveAgentRoute</code>，<code>matchedBy</code>）是：<code>binding.peer</code> → <code>binding.peer.parent</code> → <code>binding.peer.wildcard</code> → <code>binding.guild+roles</code> → <code>binding.guild</code> → <code>binding.team</code> → <code>binding.account</code> → <code>binding.channel</code> → 兜底。兜底取调用方 owner，否则唯一已配置 agent 或遗留 owner；多 agent 无 owner 且无匹配 binding 时报错，不会取名册第一项<a href="#ref-42">[42]</a>。多 agent 路由应显式确定 owner，不能依赖名册顺序。</p>
 <p>会话键形状决定了隔离粒度：DM 默认 <code>agent:&lt;agentId&gt;:main</code>；群 <code>agent:&lt;agentId&gt;:&lt;channel&gt;:group:&lt;id&gt;</code>；频道/房间 <code>agent:&lt;agentId&gt;:&lt;channel&gt;:channel:&lt;id&gt;</code>；Slack/Discord 线程追加 <code>:thread:&lt;threadId&gt;</code>；Telegram 论坛主题 <code>:topic:&lt;topicId&gt;</code>。<code>session.dmScope</code>、<code>session.groupScope</code> 控制折叠<a href="#ref-13">[13]</a>。Main DM 的路由是固定的：<code>dmScope=main</code> 且 <code>allowFrom</code> 恰有一个非通配条目时，不匹配的发送者不会覆盖 main 会话的 <code>lastRoute</code>；模型不选渠道，回复路由遵循主机配置的固定规则<a href="#ref-13">[13]</a>。</p>
 <h3 id="2033-队列模式与会话控制器"><a class="header" href="#2033-队列模式与会话控制器">20.3.3 队列模式与会话控制器</a></h3>
 <p>入站 auto-reply 经一个进程内“车道感知 FIFO 队列”串行化。并发默认值：未配置的车道 1；<code>main</code> 车道 <code>max(8, CPU 并行度 × 4)</code>；普通子 agent 队列每个派生会话默认 8；Swarm collector 每组 32<a href="#ref-4">[4]</a>。优先级只做有限插队：前台工作最多超越普通工作 15 秒、后台最多 30 秒，运行中的 turn 不被抢占<a href="#ref-4">[4]</a>。</p>
@@ -313,21 +344,41 @@
 <p>会话控制器（<code>src/sessions/session-controller*</code>）是“下一个哪个 turn 可以使用会话”的所有者，不是运行时执行权限、数据库写围栏或并发限额的替代。文档给出的概念阶段是 <code>idle/admitting/preparing/running/finishing/settling/mutating</code>，并强调两句话：“请求取消不等于取消完成；释放调度槽不等于所有旧 writer 已落定”，以及逻辑 session key、存储会话化身、reply operation、后端 attempt 是四种不同身份<a href="#ref-9">[9]</a>。</p>
 <h3 id="2034-agent-loop-与转录写围栏"><a class="header" href="#2034-agent-loop-与转录写围栏">20.3.4 Agent Loop 与转录写围栏</a></h3>
 <p><code>agent</code> RPC 校验参数、解析会话、持久化会话元数据后<strong>立即返回</strong> <code>{runId, acceptedAt}</code>；真正的执行在 <code>runEmbeddedAgent</code> → <code>runAgentLoop</code> 里流式推进，事件经 <code>agent</code> 流（<code>tool</code>/<code>assistant</code>/<code>lifecycle</code>）桥接出来；<code>agent.wait</code> 等终态，返回 <code>{status: ok|error|timeout, …}</code><a href="#ref-7">[7]</a>。</p>
-<p>转录写围栏是 OpenClaw 对“并发写同一会话”的回答，也是现稿“session write lock”需要修正的地方：admitted run 在流式输出前记录持久 <code>activeWriterRunId</code> 声明；每次转录追加/重写必须带 <code>expectedWriterRunId</code>，同步提交事务校验其仍匹配；被取代的 run 无法提交过期转录<a href="#ref-7">[7]</a>。</p>
-<p>循环层（<code>packages/agent-core/src/agent-loop.ts</code>）与第17、18章是同一套骨架：外层 <code>while(true)</code> + 内层 <code>while(hasMoreToolCalls || pendingMessages.length&gt;0)</code>；每个 turn 发 <code>turn_start</code>，先把 pending（steering）消息提交进上下文，调模型流式取 assistant 消息，有 tool call 则 <code>executeToolCalls</code>，发 <code>turn_end</code>，检查停止条件，在检查点取 steering；内层结束取 follow-up，再复查 steering 以免 <code>agent_end</code> 丢失已接受的 steer<a href="#ref-44">[44]</a>。</p>
-<p>几个与失败相关、但属于正常路径设计的点。工具调用批里，steering 出现时未启动的调用被跳过（原因 <code>steering</code>）或因 <code>admission</code> 致命错误停止<a href="#ref-44">[44]</a>。工具失败/被拒绝/被取消作为不同结果回送：未启动的调用得到合成配对错误结果以保持转录合法；三次连续相同的工具错误（同一签名 + 同一结果哈希）总会以 <code>repeated_tool_error</code> 结束 turn，即使 <code>tools.loopDetection.enabled=false</code><a href="#ref-44">[44]</a>。回复整形只认整条 final 修剪后为大写 <code>NO_REPLY</code> 的静默回复；空 final 不是静默——恢复耗尽时记录失败结果，被准入的用户请求得到一条简短系统通知而不是伪造的回答<a href="#ref-7">[7]</a>。</p>
+<p>转录写围栏是 OpenClaw 对“并发写同一会话”的回答，其作用边界需要与 session write lock 分开：admitted run 在流式输出前记录持久 <code>activeWriterRunId</code> 声明；每次转录追加/重写必须带 <code>expectedWriterRunId</code>，同步提交事务校验其仍匹配；被取代的 run 无法提交过期转录<a href="#ref-7">[7]</a>。</p>
+<p>循环层（<code>packages/agent-core/src/agent-loop.ts</code>）通用骨架见<a href="../part3/03-agent-runtime.html#execution-loop">第 15 章执行循环</a>；此处只分析 OpenClaw 的消息检查点：外层 <code>while(true)</code> + 内层 <code>while(hasMoreToolCalls || pendingMessages.length&gt;0)</code>；每个 turn 发 <code>turn_start</code>，先把 pending（steering）消息提交进上下文，调模型流式取 assistant 消息，有 tool call 则 <code>executeToolCalls</code>，发 <code>turn_end</code>，检查停止条件，在检查点取 steering；内层结束取 follow-up，再复查 steering 以免 <code>agent_end</code> 丢失已接受的 steer<a href="#ref-44">[44]</a>。</p>
+<p>几个与失败相关、但属于正常路径设计的点。工具调用批里，steering 出现时未启动的调用被跳过（原因 <code>steering</code>）或因 <code>admission</code> 致命错误停止<a href="#ref-44">[44]</a>。工具失败/被拒绝/被取消作为不同结果回送：未启动的调用得到合成配对错误结果以保持转录合法；固定实现对三次连续相同的工具错误（同一签名 + 同一结果哈希）以 <code>repeated_tool_error</code> 结束 turn，即使 <code>tools.loopDetection.enabled=false</code><a href="#ref-44">[44]</a>。回复整形只认整条 final 修剪后为大写 <code>NO_REPLY</code> 的静默回复；空 final 不是静默——恢复耗尽时记录失败结果，被准入的用户请求得到一条简短系统通知而不是伪造的回答<a href="#ref-7">[7]</a>。</p>
+<h4 id="写围栏为什么不能替代外部动作防重"><a class="header" href="#写围栏为什么不能替代外部动作防重">写围栏为什么不能替代外部动作防重</a></h4>
+<p>session write lock 负责正常生命周期内的互斥；持久 writer 声明让提交事务核对当前写者，二者解决不同阶段的问题。当旧 run 被替换，它即使晚到也不能按旧声明提交转录。固定提交的 agent-loop 文档明确要求 append/rewrite 携带 expectedWriterRunId，并说明同步提交事务检查 activeWriterRunId。这里被保护的是转录提交，不是所有外部资源。<a href="#ref-7">[7]</a></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>机制</th><th>保证</th><th>不保证</th><th>故障窗口与恢复责任</th></tr>
+</thead>
+<tbody>
+<tr><td>会话控制器</td><td>组织会话阶段与下一轮调度</td><td>撤销已发出的 HTTP 请求</td><td>控制器交接时由当前 run owner 清点在途动作</td></tr>
+<tr><td>writer 围栏</td><td>旧 writer 无法覆盖新转录</td><td>旧工具调用不再产生业务效果</td><td>工具后端与当前责任人沿原操作核验</td></tr>
+<tr><td>SQLite writer 队列</td><td>对本地存储工作排序</td><td>外部 API 与本地提交原子化</td><td>外部成功/本地未记之间仍需对账</td></tr>
+<tr><td>输入 steer/collect</td><td>决定新输入影响哪一轮</td><td>自动获得新权限或回滚旧动作</td><td>入口授权与派发时授权都需成立</td></tr>
+</tbody>
+</table>
+</div>
+<p>以一个只读文档问答演变为创建提醒的教学例子看：旧 run 已发出创建请求，随后用户 interrupt 并开启新 run。旧 run 的文本回执会被转录围栏挡住，但远端提醒可能已经存在。新 run 若只看到没有成功消息便再创建一次，就制造了重复副作用。正确的应用责任是保留原动作身份，核验提醒是否已经创建，向用户说明取消范围，再决定是否授权删除。工具若没有查询或幂等能力，则应保留未知并转人工，而不是把围栏当作恰好一次执行的证明。</p>
+<p>steer 在同一个获准 turn 的检查点补充输入，仍使用当前转录写者的身份；它不意味着新输入可以借旧请求人的权限任意改变目标。collect 在适用入口中将兼容消息合并为后继 turn，后继 turn 要在交接后取得自己的有效声明。对于 durable ingress，文档说明 collect 退化为 followup，各消息保留独立准入生命周期。把两种情况区分清楚，才能解释为什么不能简单合并所有待处理输入再一次性确认。<a href="#ref-4">[4]</a></p>
+<p>这里还有一个容易忽略的可观测边界：writer 提交被拒是本地竞争的证据，不是外部未执行的证据。记录拒绝时应保留旧/新 run 的关联和外部动作引用，但不要把拒绝当成普通模型错误重新尝试工具。恢复者首先区分“需要重新生成文本”和“需要核验已发出的动作”，避免对同一个失败现象做相反处理。</p>
 <h3 id="2035-上下文引擎与系统提示"><a class="header" href="#2035-上下文引擎与系统提示">20.3.5 上下文引擎与系统提示</a></h3>
 <p>Gateway RPC 层还有一层幂等去重：每个连接状态里一个内存 <code>Map</code> 按 <code>DEDUPE_TTL_MS = 5 分钟</code> 清理、超过 <code>DEDUPE_MAX = 1000</code> 淘汰最旧条目，但不清理仍活动或“已接受待处理”的 run 条目；因为它是进程内 Map，不跨 Gateway 重启，跨重启的重复保护来自持久层（chat.send 的提交回执、durable ingress 去重、出站收据）<a href="#ref-45">[45]</a>。嵌入的 OpenAI Responses 有个边界：<code>end_turn:false</code> 时循环即使只有文本也请求下一次响应；输出上限命中且生成中的 tool call <strong>不执行</strong>，已准入工具完成后从其记录结果重试（受既有有界会话重试预算约束）<a href="#ref-7">[7]</a>。</p>
-<p>Context Engine 的生命周期接口比现稿的“四阶段”更全：<code>bootstrap?</code>、<code>maintain?</code>、<code>ingest</code>、<code>ingestBatch?</code>、<code>afterTurn?</code>、<code>commitTurn?</code>、<code>assemble</code>、<code>compact</code>、<code>prepareSubagentSpawn?</code>、<code>onSubagentEnded?</code>、<code>dispose?</code>。内置 <code>legacy</code> 引擎：ingest 是 no-op（会话管理器直接持久化）、assemble 原样返回（sanitize→validate→limit 流水线在别处）、compact 委托内置摘要、没有 afterTurn<a href="#ref-6">[6]</a>。引擎隔离是设计好的：非 legacy 引擎缺失、契约校验失败或抛错时，在当前 Gateway 进程内“隔离”该引擎并降级为 legacy，错误带操作名记录<a href="#ref-6">[6]</a>。</p>
+<p>Context Engine 的生命周期接口比本章的“四阶段”更全：<code>bootstrap?</code>、<code>maintain?</code>、<code>ingest</code>、<code>ingestBatch?</code>、<code>afterTurn?</code>、<code>commitTurn?</code>、<code>assemble</code>、<code>compact</code>、<code>prepareSubagentSpawn?</code>、<code>onSubagentEnded?</code>、<code>dispose?</code>。内置 <code>legacy</code> 引擎：ingest 是 no-op（会话管理器直接持久化）、assemble 原样返回（sanitize→validate→limit 流水线在别处）、compact 委托内置摘要、没有 afterTurn<a href="#ref-6">[6]</a>。引擎隔离是设计好的：非 legacy 引擎缺失、契约校验失败或抛错时，在当前 Gateway 进程内“隔离”该引擎并降级为 legacy，错误带操作名记录<a href="#ref-6">[6]</a>。</p>
 <p>首轮 workspace 引导：新 session 第一轮把 <code>AGENTS.md/SOUL.md/IDENTITY.md/USER.md/BOOTSTRAP.md/MEMORY.md</code> 注入系统提示的 Project Context；其中 <code>BOOTSTRAP.md</code> 只在全新 workspace 创建并在完成后删除，<code>MEMORY.md</code> 仅根目录存在时注入；空文件跳过，大文件截断并带标记（单文件 20000 字符、总 60000 字符，源码常量）<a href="#ref-2">[2]</a>。系统提示由 OpenClaw 基础提示、skills 提示、bootstrap 上下文与逐 run 覆盖构成，官方明确“OpenClaw owns the system prompt for every agent run; there is no runtime default prompt”<a href="#ref-19">[19]</a>。</p>
 <h3 id="2036-压缩"><a class="header" href="#2036-压缩">20.3.6 压缩</a></h3>
 <p>压缩把旧轮次摘要为一个 compact 条目写入会话转录，近期消息保持原样；<strong>完整历史仍在磁盘</strong>，压缩只改变模型下一轮看到的内容；分割点保持 assistant 工具调用与其 <code>toolResult</code> 成对<a href="#ref-10">[10]</a>。默认 <code>mode:"safeguard"</code>（更严格护栏 + 摘要质量审计），质量审计检查结构、待办请求与精确标识符；耗尽则存“最佳可得摘要”（有意有损），记录 <code>details.qualityDegraded</code> 并给可见警告<a href="#ref-10">[10]</a>。摘要被输出上限截断则拒绝：<code>mode:"default"</code> 自动压缩重试一次，手动压缩直接报错不重试；无有效摘要则原历史保留、不写压缩条目<a href="#ref-10">[10]</a>。</p>
 <p>自动压缩默认开启：接近上下文上限，或模型返回上下文溢出错误时压缩并重试（识别数十种 provider 溢出串）；溢出恢复无法适配时，失败回复建议 <code>/reset</code>、<code>/new</code> 或更大上下文模型<a href="#ref-10">[10]</a>。自动压缩摘要超时且无可复用摘要时，**“无摘要地提交压缩”**而不是终止 turn——近期消息保持原样，旧细节离开模型上下文（转录仍保留全部消息）<a href="#ref-10">[10]</a>。</p>
+<p>压缩前的“静默记忆冲刷（memory flush）”把持久上下文写入记忆，是可选维护，失败不重置会话或丢历史；<code>agents.defaults.compaction.memoryFlush.model</code> 可指定本地模型<a href="#ref-10">[10]</a>。活动转录字节守卫（opt-in，<code>maxActiveTranscriptBytes</code>）超限时用“有界近期历史视图”继续，省略最旧的整轮（工具调用与结果成对保留），不重写已存消息<a href="#ref-10">[10]</a>。provider 侧压缩受“上下文引擎压缩所有权”约束，保存的 checkpoint 上限 16 MiB，超限或不兼容时回退客户端压缩<a href="#ref-10">[10]</a>。</p>
 <h3 id="2037-工具策略求值"><a class="header" href="#2037-工具策略求值">20.3.7 工具策略求值</a></h3>
 <p>单层内 deny 先匹配（含工具组展开、通配符、归一化名），命中即拒绝；deny 之后若 allow 为空则放行，否则必须命中 allow。文档的 “Global tool allow/deny policy (deny wins)” 限于同一层<a href="#ref-14">[14]</a>。多层顺序（源码）是逐层收窄：<code>tools.profile</code> → <code>tools.byProvider.profile</code> → 全局 → <code>tools.byProvider.allow</code> → agent → agent byProvider → group → <code>toolsBySender</code> → sandbox → subagent → runtime → inherited<a href="#ref-43">[43]</a>。子 agent 有硬拒绝层：总是失去 <code>gateway</code>、<code>agents_list</code>、<code>session_status</code>、<code>progress_card</code>、<code>cron</code> 等<a href="#ref-16">[16]</a>。工具结果里 <code>toolResult.content</code> 对模型可见，<code>details</code> 只是运行时元数据，在 provider 重放与压缩输入前被剥离；持久化转录只保留有界 <code>details</code><a href="#ref-5">[5]</a>。</p>
 <h3 id="2038-子-agent-与多-agent"><a class="header" href="#2038-子-agent-与多-agent">20.3.8 子 Agent 与多 Agent</a></h3>
-<p>子 agent 由 <code>sessions_spawn</code> 创建后台 run，会话键 <code>agent:&lt;agentId&gt;:subagent:&lt;uuid&gt;</code>；默认递归深度 5、<code>maxChildrenPerAgent</code> 5、<code>maxConcurrent</code> 8；默认用自己的上下文，需要请求者当前转录时用 <code>context:"fork"</code>；请求者会话被沙箱化时，<code>sessions_spawn</code> 拒绝会无沙箱运行的目标<a href="#ref-16">[16]</a>。多 Agent 的“隔离”含义是：每个 agent 有自己的 workspace、状态目录与会话存储；路由选出 agent 后，该 agent 决定用哪个 workspace 与 session store<a href="#ref-13">[13]</a>。<code>agents.entries.*</code> 是当前的 per-agent 配置键（旧 <code>agents.list[]</code> 仍出现在个别文档示例，以 schema 为准）<a href="#ref-2">[2]</a>。### 19.3.9 系统提示与 hooks</p>
-<p>系统提示由 OpenClaw 基础提示、skills 提示、bootstrap 上下文与逐 run 覆盖构成，官方明确“每次 agent run 的系统提示由 OpenClaw 拥有，没有 runtime 默认提示”<a href="#ref-19">[19]</a>。固定小节含 Tooling、Execution Bias、Promised Work、Care、Runtime Context、Skills、OpenClaw Control、Messaging、Workspace、Sandbox、Assistant Output Directives、Reasoning 等；大块稳定内容（Project Context、固定执行与 provider 策略）放在“提示缓存边界”之上，易变内容（工具目录、Skills、Messaging、Runtime、日期时间）在其下<a href="#ref-19">[19]</a>。这个分层直接服务于 19.6.5 的缓存：把不常变的放前面，让缓存前缀稳定。</p>
+<p>子 agent 由 <code>sessions_spawn</code> 创建后台 run，会话键 <code>agent:&lt;agentId&gt;:subagent:&lt;uuid&gt;</code>；默认递归深度 5、<code>maxChildrenPerAgent</code> 5、<code>maxConcurrent</code> 8；默认用自己的上下文，需要请求者当前转录时用 <code>context:"fork"</code>；请求者会话被沙箱化时，<code>sessions_spawn</code> 拒绝会无沙箱运行的目标<a href="#ref-16">[16]</a>。多 Agent 的“隔离”含义是：每个 agent 有自己的 workspace、状态目录与会话存储；路由选出 agent 后，该 agent 决定用哪个 workspace 与 session store<a href="#ref-13">[13]</a>。<code>agents.entries.*</code> 是当前的 per-agent 配置键（旧 <code>agents.list[]</code> 仍出现在个别文档示例，以 schema 为准）<a href="#ref-2">[2]</a>。</p>
+<h3 id="2039-系统提示与-hooks"><a class="header" href="#2039-系统提示与-hooks">20.3.9 系统提示与 hooks</a></h3>
+<p>系统提示由 OpenClaw 基础提示、skills 提示、bootstrap 上下文与逐 run 覆盖构成，官方明确“每次 agent run 的系统提示由 OpenClaw 拥有，没有 runtime 默认提示”<a href="#ref-19">[19]</a>。固定小节含 Tooling、Execution Bias、Promised Work、Care、Runtime Context、Skills、OpenClaw Control、Messaging、Workspace、Sandbox、Assistant Output Directives、Reasoning 等；大块稳定内容（Project Context、固定执行与 provider 策略）放在“提示缓存边界”之上，易变内容（工具目录、Skills、Messaging、Runtime、日期时间）在其下<a href="#ref-19">[19]</a>。这个分层直接服务于 20.6.5 的缓存：把不常变的放前面，让缓存前缀稳定。</p>
 <p>hooks 有两套进程内系统：内部 hooks（<code>HOOK.md</code>，如 <code>agent:bootstrap</code>、<code>command:new|reset|stop</code>）与插件 hooks（<code>before_model_resolve</code>、<code>before_prompt_build</code>、<code>before_agent_reply</code>、<code>agent_end</code>、<code>before/after_compaction</code>、<code>before/after_tool_call</code>、<code>tool_result_persist</code>、<code>message_received/sending/sent</code>、<code>session_start/end</code>、<code>gateway_start/stop</code> 等）。<code>before_tool_call {block:true}</code> 是终止性的、停止低优先级处理器；<code>{block:false}</code> 是 no-op 不清除先前 block<a href="#ref-7">[7]</a>。</p>
 <h3 id="20310-回复整形分块与事件流"><a class="header" href="#20310-回复整形分块与事件流">20.3.10 回复整形、分块与事件流</a></h3>
 <p>回复整形有一组容易误判的边界。静默回复 <code>NO_REPLY</code> 仅限连接外部消息渠道的会话，只有整条 final 文本（忽略大小写与周围空白）是 <code>NO_REPLY</code> 才请求静默；带引号、JSON 包裹或附在其他文字后都视为可见文本。空 final 不是静默：有界恢复耗尽（仅推理/空输出）时记录失败结果，被准入的用户请求得到一条简短系统通知而不是伪造的回答<a href="#ref-7">[7]</a>。messaging 工具的发送被追踪，以抑制重复的助手确认；对当前来源会话确认的 final send/reply 结束 run 循环<a href="#ref-7">[7]</a>。</p>
@@ -371,10 +422,9 @@
 <h3 id="2045-压缩失败与上下文溢出"><a class="header" href="#2045-压缩失败与上下文溢出">20.4.5 压缩失败与上下文溢出</a></h3>
 <p>超时的精确数字（本提交文档）：<code>agent.wait</code> 默认 30s；<code>agents.defaults.timeoutSeconds</code> 默认 172800s（48h），是每次模型 attempt 的执行预算，每个 fallback 获得新预算故总时长可超过该值，进度不重置预算；模型 idle timeout 云端 120s / 自托管 300s，模型进度死线是 idle 窗口的 2 倍<a href="#ref-7">[7]</a>。限流冷却只来自 provider 给出的时间；非限流类冷却随 profile 近期错误数递增（30s → 1min → 5min 上限），计数在失败窗口过后重置，状态存于每 agent SQLite 的 <code>usageStats</code><a href="#ref-11">[11]</a>。认证 profile 轮换顺序是：存储的 per-agent 顺序 &gt; <code>auth.order[provider]</code> &gt; <code>auth.profiles</code> &gt; 存储的 profiles；自动选中的 profile 按会话粘住以保持 provider 缓存温热<a href="#ref-11">[11]</a>。</p>
 <p>自动压缩在接近上限或模型返回溢出错误时触发并重试；溢出恢复无法适配时，失败回复建议 <code>/reset</code>、<code>/new</code> 或更大上下文模型；恢复压缩本身失败（摘要模型出错/超时）则回复说明并建议重试或 <code>/compact</code><a href="#ref-10">[10]</a>。取消不是回滚：运行被停止或超时也会停止其溢出/超时恢复；已完成的压缩保留在转录并计数，不发送迟到回复<a href="#ref-10">[10]</a>。</p>
-<p>摘要无时间提交时“无摘要地提交压缩”（见 19.3.6）；若固定指令与工具本身就超过模型窗口，或无更多历史可压缩而请求仍过大，OpenClaw 报告估算的预算组成而非当作无害跳过，用 <code>/context detail</code> 找大头<a href="#ref-10">[10]</a>。手动 <code>/compact</code>：turn 活动时给它最多 60 秒完成，之后取消并再等最多 15 秒；Telegram 上先确认命令再中断，避免五分钟采纳看门狗中止并重放<a href="#ref-10">[10]</a>。</p>
+<p>摘要无时间提交时“无摘要地提交压缩”（见 20.3.6）；若固定指令与工具本身就超过模型窗口，或无更多历史可压缩而请求仍过大，OpenClaw 报告估算的预算组成而非当作无害跳过，用 <code>/context detail</code> 找大头<a href="#ref-10">[10]</a>。手动 <code>/compact</code>：turn 活动时给它最多 60 秒完成，之后取消并再等最多 15 秒；Telegram 上先确认命令再中断，避免五分钟采纳看门狗中止并重放<a href="#ref-10">[10]</a>。</p>
 <h3 id="2046-重启恢复recovery-is-always-on"><a class="header" href="#2046-重启恢复recovery-is-always-on">20.4.6 重启恢复：Recovery is always on</a></h3>
-<p>压缩前的“静默记忆冲刷（memory flush）”把持久上下文写入记忆，是可选维护，失败不重置会话或丢历史；<code>agents.defaults.compaction.memoryFlush.model</code> 可指定本地模型<a href="#ref-10">[10]</a>。活动转录字节守卫（opt-in，<code>maxActiveTranscriptBytes</code>）超限时用“有界近期历史视图”继续，省略最旧的整轮（工具调用与结果成对保留），不重写已存消息<a href="#ref-10">[10]</a>。provider 侧压缩受“上下文引擎压缩所有权”约束，保存的 checkpoint 上限 16 MiB，超限或不兼容时回退客户端压缩<a href="#ref-10">[10]</a>。</p>
-<p>这是现稿遗漏、但最值得补的机制。OpenClaw 的重启恢复<strong>始终开启</strong>：每次 Gateway 进程关闭（含 SIGTERM、systemd/launchd 停止、<code>openclaw gateway stop</code>）都保留可恢复的未完成 turn；崩溃、强杀、漏写关机标记后同样进入恢复<a href="#ref-22">[22]</a>。</p>
+<p>这个机制将会话写权限与工具执行分开。OpenClaw 的重启恢复<strong>始终开启</strong>：每次 Gateway 进程关闭（含 SIGTERM、systemd/launchd 停止、<code>openclaw gateway stop</code>）都保留可恢复的未完成 turn；崩溃、强杀、漏写关机标记后同样进入恢复<a href="#ref-22">[22]</a>。</p>
 <p>恢复的对象与边界（“重启后自动恢复/不恢复”的清单）<a href="#ref-22">[22]</a>：</p>
 <ul>
 <li><strong>会恢复</strong>：被重启打断的已准入 turn（含仍在队列或准备执行的）自动继续既有会话；重放保留已记录的工具调用与结果、复用原用户消息；已接受的 <code>chat.send</code> 输入在启动时按接受顺序从 SQLite 恢复（过去 24 小时内接受的输入，最多 4 个会话并行重放）；子 agent 由 registry 恢复；cron 会话由调度器恢复；ACP 管理的会话由 IDE/客户端恢复。</li>
@@ -383,6 +433,24 @@
 <p>恢复有预算：main 会话“每个中断周期 3 次计费的自动派发”，三次未能启动后端 turn 耗尽恢复预算，之后 tombstone 直至检查并替换<a href="#ref-22">[22]</a>。恢复的权限按当前 profile/role/grant/device 策略重新校验原调用者的记录权限；撤销仍停止恢复的 run；无法重建委托发送者权限则终止该 turn、记录一条本地中断通知与终止性 source receipt，防止重放；恢复耗尽后任务与转录保留，WebChat 的 <strong>Resume</strong> 以当前操作者权限继续<a href="#ref-8">[8]</a>。</p>
 <p>文档反复强调的一个口径：“A recovered count at startup means execution resumed. It does not prove that an assistant reply was delivered.”（启动时恢复计数只证明执行续跑，不证明回复已投递）<a href="#ref-22">[22]</a>。这与“不确定的副作用须先检查再重复”是同一个原则。</p>
 <p>优雅重启先排空：请求的重启（<code>openclaw gateway restart</code>、需要重启的配置变更、网关更新）不会立刻杀死在途工作；Gateway 停止接纳新工作，等待活动 agent turn 与后台任务完成，上限为排空预算（默认 5 分钟）；排空期间到达的消息被明确的重启错误拒绝（不静默排入将死进程）<a href="#ref-22">[22]</a>。</p>
+<h4 id="重启恢复的三项独立保证"><a class="header" href="#重启恢复的三项独立保证">重启恢复的三项独立保证</a></h4>
+<p>重启恢复应分别验收输入责任、执行连续性与最终投递。固定提交的恢复文档描述了恢复权限重验、预算和保留窗口；这些设置意味着恢复是有边界的协议，不是承诺任意长时间后都自动完成。所谓至少一次推进，也只针对满足持久准入、仍在恢复范围、后端可启动且当前授权有效的工作，不能推广到所有已到达网络的消息。<a href="#ref-8">[8]</a><a href="#ref-22">[22]</a></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>问题</th><th>可以依赖的依据</th><th>不在保证内</th><th>恢复责任</th></tr>
+</thead>
+<tbody>
+<tr><td>已接受输入还在吗</td><td>持久准入与恢复记录</td><td>接受记录提交前的进程崩溃</td><td>入口/渠道按协议重投或报告未接受</td></tr>
+<tr><td>哪一轮应该继续</td><td>会话身份、run 记录、恢复标记与有效权限</td><td>原内存对象、未提交 token 和任意 PTY 连续性</td><td>当前 Gateway 重建执行所需状态</td></tr>
+<tr><td>是否重复执行</td><td>工具原身份与后端防重/查询</td><td>仅凭转录缺失推定没有副作用</td><td>工具适配层与核验责任人</td></tr>
+<tr><td>用户是否收到回复</td><td>独立出站责任与渠道回执</td><td>模型完成就自动等于送达</td><td>出站处理器和渠道适配器</td></tr>
+</tbody>
+</table>
+</div>
+<p>固定文档明确，超出 24 小时自动 chat-input 恢复窗口，以及旧版本没有可恢复 custody 的输入，仍供显式 resend；这不是超过 24 小时后自动续跑，也不是超过窗口立即删除全部历史。已开始的有界恢复尝试可以在窗口结束后完成。<a href="#ref-22">[22]</a> 本书建议保留未完成工作的审计入口，由使用者选择人工检查或重发。重新提交前必须核验旧动作；新 Run 不是绕开旧未知结果的许可。若现有部署没有满足业务保留期的审计入口，这属于部署能力缺口，不能用延长模型超时解决。</p>
+<p>权限在恢复时可能已变化。例如原发送者被移出群组、设备授权撤销，或者工具 profile 收紧。保存原发送者标识的作用是重新核对责任，而不是永久保存其旧权限。恢复请求应在当前策略下验证；无法重建委托关系时停止并留下可见中断记录。用管理员身份无条件续跑用户任务会改变授权主体，不能作为默认恢复策略。</p>
+<p>恢复预算也要区分模型尝试、工具尝试和渠道投递。一个模型 fallback 可能得到新的调用预算，但外部创建操作不能因此获得新的业务身份；一轮回复重发也不应重复模型推理。运维面板至少要分别显示待恢复输入、恢复耗尽、未知工具效果和未完成投递，防止“所有进程健康”掩盖业务责任仍然悬空。这里是本书建议的观测拆分，指标名称并非声明产品已经原生提供。</p>
 <h3 id="2047-插件失败隔离与崩溃循环"><a class="header" href="#2047-插件失败隔离与崩溃循环">20.4.7 插件失败隔离与崩溃循环</a></h3>
 <p>插件加载失败的隔离：插件注册失败的贡献被回滚，失败记录留在插件诊断中，不进入执行范围，也不阻塞健康插件与核心 context-engine 准入；插件替换/重载失败时保留 last-good 运行时，待工作结束后自动重试一次<a href="#ref-17">[17]</a>。保留工作与在途调用共享 60 秒的 pre-stop 预算<a href="#ref-17">[17]</a>。</p>
 <p>崩溃循环断路器：3 次非干净启动在 5 分钟内触发；触发后下次启动抑制自启动副服务（渠道插件等保持关闭、控制面仍启动），安全模式同时暂停 main 会话重启恢复（不扣尝试次数、不落定、不发通知、不 tombstone），窗口排空后同进程自动重新武装恢复并只恢复一次<a href="#ref-22">[22]</a>。</p>
@@ -390,18 +458,31 @@
 <p>出站投递有持久队列：Gateway 启动时检查一次未完成的出站投递；新的 durable enqueue 在事务提交后唤醒恢复；有独立的投递尝试预算；生产者租约 60 秒、每 20 秒续约；租约过期不抹去“发送已开始”的证据，此类条目重放前仍需调和<a href="#ref-12">[12]</a>。重试原则：每个 HTTP 请求单独重试而非整条多步流，只重试当前步骤以保序，避免重复可能造成重复副作用的操作<a href="#ref-12">[12]</a>。</p>
 <p>渠道层对“发送后不明确”的处理是：Telegram 新文本消息发送只有在 429 flood control 或传输证明请求未开始时才重试；发送后断连/超时/丢响应属于“不明确”，<strong>不重放</strong>（避免重复消息）；可安全重复的操作（如预览编辑）可重试瞬时网络与 5xx<a href="#ref-12">[12]</a>。渠道发送重试默认 3 次、10% 抖动；Discord Gateway WS 重连另有循环：最多 50 次，2000ms 指数退避到 30000ms，无抖动<a href="#ref-12">[12]</a>。</p>
 <p>机器人对机器人循环保护是入站回复 runner 强制执行的滑动窗口速率守卫：默认 <code>enabled:true</code>、<code>maxEventsPerWindow:20</code>、<code>windowSeconds:60</code>、<code>cooldownSeconds:60</code>；A→B 与 B→A 计为同一对；不影响人类消息<a href="#ref-32">[32]</a>。</p>
+<h4 id="出站发送的提交点和不确定结果"><a class="header" href="#出站发送的提交点和不确定结果">出站发送的提交点和不确定结果</a></h4>
+<p>固定提交的 Retry 文档给出了两个需要分别理解的事实：持久队列在提交后唤醒恢复、未完成时继续推进；但“发送已开始”的证据不会因租约到期清除，重放前必须调和。它没有在该段定义所有渠道统一的自动调和 API，不能据此承诺全部消息至少一次或至多一次。Telegram 新文本发送则有更明确的策略：已出门且断连/超时的歧义发送不自动重放，以避免重复，代价是可能丢失。<a href="#ref-12">[12]</a></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>边界</th><th>固定文档支持的行为</th><th>不保证什么</th><th>故障后的责任</th></tr>
+</thead>
+<tbody>
+<tr><td>durable enqueue 提交后</td><td>唤醒队列恢复；启动也检查未完成条目</td><td>提交前已保存责任</td><td>生产者确认提交，入口保留原身份</td></tr>
+<tr><td>producer claim 失效或被替换</td><td>预留检查 owner/lease，不扣失效 claim 的尝试预算，可获取新 claim</td><td>拿到新租约就可重复发送</td><td>恢复器先核对发送开始证据</td></tr>
+<tr><td>已开始发送、未确认结果</td><td>租约失效不抹掉开始证据；未被替换的 owner 可记录迟到结果</td><td>默认无条件自动重发</td><td>具体渠道/恢复器调和；无法判定时由运营核验</td></tr>
+<tr><td>Telegram 新文本发送后歧义</td><td>不自动重放；仅 429 或确定请求未开始才重试</td><td>必达与恰好一次</td><td>检查渠道与任务原记录，显式决定是否重发</td></tr>
+<tr><td>多步骤发送部分成功</td><td>已完成步骤不重做，按请求重试</td><td>多步骤是跨系统原子事务</td><td>按已完成/未决步骤确认剩余交付</td></tr>
+</tbody>
+</table>
+</div>
+<p>这是有限文档证据下的保证边界。本书建议为无法调和的发送建立人工入口，显示原消息身份、内容、已开始证据和已收回执；人工选择重发需接受重复风险，选择不重发需接受丢失风险。文档中的租约数字只决定何时可接管，不决定远端是否收到；“恢复了 N 项”也不能写成“送达了 N 项”。</p>
+<p>多块回复更复杂。第一块成功、第二块失败时，整条回复既不是完全未发，也不是完整送达。应保存每块身份与发送事实，后续只处理未决块，或采用渠道支持的更新/替换协议。恢复后重新发送全部内容可能重复第一块；只发最后一块可能让用户看不到前提。长度分块、附件上传与正文通知若跨不同接口，也需要分别确认，不能用一条总成功日志覆盖。</p>
+<p>业务验收可以设置“模型终态、转录已提交、出站已接受、渠道已确认”四个观察点。它们有助于定位责任，但不能伪装为跨系统原子事务。对渠道不提供已读语义的情况，系统最多证明渠道确认或收件端接受，不能写成用户已经看见。</p>
 <h3 id="2049-基础设施故障与启动期失败"><a class="header" href="#2049-基础设施故障与启动期失败">20.4.9 基础设施故障与启动期失败</a></h3>
 <p>除渠道与模型外，基础设施层的失败有各自的语义。子运行时（child runtime）失效：Node 被升级/移除后，Gateway 进程活着但无法拉起子 worker；确认后 <code>childRuntime.available:false</code>，<code>/readyz</code> 503 且 <code>failing:["child-runtime"]</code>；服务托管的 Gateway 请求一次优雅重启，监管不可验证或五分钟内已因此关停则 report-only<a href="#ref-24">[24]</a>。共享状态完整性失败：终止性准入失败立即使 <code>/ready</code>、<code>/readyz</code> 503，<code>failing:["state-database"]</code><a href="#ref-24">[24]</a>。插件替换/恢复：<code>/readyz</code> 503 <code>failing:["plugin-reload"]</code>，带 <code>phase: reloading|recovering|failed</code> 与 deadline；替换期间健康监视器不消耗渠道重启次数<a href="#ref-24">[24]</a>。</p>
 <p>Gateway 状态锁与端口冲突：状态所有权等待最多 5 分钟（每 250ms 检查）；<code>EADDRINUSE</code> 重试 20 次×500ms；服务监管下新进程先查现有进程 <code>/healthz</code>，健康则让位（systemd 下以退出码 78 退出）<a href="#ref-23">[23]</a>。启动时配置冲突被分类为“需运维介入，非瞬时错误”<code>GatewayEffectiveConfigConflictError</code>，监管者的重启无济于事<a href="#ref-40">[40]</a>。上下文准备超时：模型上下文转录读取有三分钟本地 worker 死线；本地死线会停止模型 fallback，且不会把 provider 凭据标为不健康<a href="#ref-3">[3]</a>。worker 池过载：每池默认 128 待处理任务/256 MiB，超限 <code>WorkerTaskError.code="overloaded"</code><a href="#ref-3">[3]</a>。引擎清理死线：前台引擎 dispose 共享 agent 清理死线，默认 10 秒<a href="#ref-6">[6]</a>。</p>
 <p>诊断默认启用（<code>diagnostics.enabled:false</code> 关闭）；<code>openclaw gateway stability</code> 输出有界稳定性记录；致命退出、关停超时、重启启动失败在 <code>logs/stability/</code> 落盘；<code>openclaw gateway diagnostics export</code> 生成脱敏 zip<a href="#ref-24">[24]</a>。</p>
-<h3 id="20410-未找到与待核验"><a class="header" href="#20410-未找到与待核验">20.4.10 未找到与待核验</a></h3>
-<ul>
-<li>官方对 Agent Loop 最大迭代数/最大工具调用步数的设定：未找到（只有工具循环检测阈值与广播组 <code>maxTurns</code>）。</li>
-<li><code>agents.defaults.runRetries</code> 在当前 docs 的说明：未找到（仅 CHANGELOG 记载）。</li>
-<li>官方对队列等待时延、吞吐、并发调优的实测基准或推荐数值：未找到，调优部分只能写“旋钮与观测手段”。</li>
-<li>重启恢复文档的中段（宿主休眠/冻结、失败更新恢复、自动续跑细节、子 agent 恢复）本次未读，正文未据此展开。</li>
-<li>官方“个人助手应默认要求高风险动作确认”的表述：未找到；官方默认 <code>exec.security=full, ask=off</code>（见 19.5.4），“默认确认”是本书建议，不是产品默认。</li>
-</ul>
+<h3 id="20410-保证成立的范围"><a class="header" href="#20410-保证成立的范围">20.4.10 保证成立的范围</a></h3>
+<p>本章对循环上限和恢复行为的结论限定在所列固定提交、配置与入口。没有声明的统一步数上限、吞吐基准和推荐并发值，不能由局部默认参数推导出来。调优时应同时设置调用侧截止时间、预算和停止条件，保留终止后在途动作的核验责任。具体旋钮见 20.6，通用预算与未知结果见<a href="../part3/03-agent-runtime.html#failure-side-effects">Runtime 可靠性</a>。</p>
 <h2 id="205-实践用好-openclaw"><a class="header" href="#205-实践用好-openclaw">20.5 实践：用好 OpenClaw</a></h2>
 <p>这部分每条做法标注“官方建议”或“本书建议”。OpenClaw 的官方建议集中在安全加固上，这符合它的定位：一个长期在线、能替人行动的系统，安全边界比功能更重要。</p>
 <h3 id="2051-先理解信任模型"><a class="header" href="#2051-先理解信任模型">20.5.1 先理解信任模型</a></h3>
@@ -416,12 +497,45 @@
 <p>三个默认值要如实说明，因为它们与“更安全”的直觉不完全一致。</p>
 <p>第一，工具策略默认 <code>tools.profile:"full"</code>：full 选择工具，但不授予 Full Access 执行权限；<code>minimal</code> 只有 <code>session_status</code> 和仅 update 的 <code>gateway</code>；<code>coding</code>/<code>messaging</code> 是中间档<a href="#ref-14">[14]</a>。第二，exec 审批默认 <code>security:"full"</code>、<code>ask:"off"</code>——即受信运营者模型下，网关/节点主机的 exec 默认放行、不询问；“高风险动作默认确认”是本书建议，不是产品默认；审批只能收紧不能放松，需要提示但无 UI 或提示超时时按 <code>askFallback</code>（默认 <code>deny</code>）解析<a href="#ref-18">[18]</a>。第三，沙箱默认关闭：<code>agents.defaults.sandbox.mode</code> 默认 <code>off</code>，<code>workspaceAccess</code> 默认 <code>none</code>；启用时 <code>non-main</code> 沙箱化除 main 外的所有会话，backend 默认 Docker，<code>sandbox.docker.network</code> 默认 <code>"none"</code><a href="#ref-24">[24]</a>。</p>
 <p>官方对“高风险动作怎么管”给的是收紧路径，而不是默认：对处理不可信内容的 agent 默认 <code>tools.deny:["gateway","cron","sessions_spawn","sessions_send"]</code>；exec 需要审批时用 <code>ask:"always"</code> 加 <code>security:"deny"</code> 或严格 allowlist；<code>tools.elevated</code> 是显式逃生口，保持 <code>allowFrom</code> 收窄且不给陌生人；强制创建者角色沙箱（<code>sandbox:"required"</code>）在后端不可用时阻断执行，不回退到宿主机<a href="#ref-26">[26]</a>。官方还给了三个 access profile 的例子：个人 agent（全权限无沙箱）、家庭/工作 agent（沙箱 + 只读工具）、公开 agent（沙箱 + 无文件系统/shell 工具）<a href="#ref-26">[26]</a>。</p>
-<h3 id="2055-多-agent-与多用户"><a class="header" href="#2055-多-agent-与多用户">20.5.5 多 Agent 与多用户</a></h3>
+<h3 id="2055-不可信输入委托权限与多用户边界"><a class="header" href="#2055-不可信输入委托权限与多用户边界">20.5.5 不可信输入、委托权限与多用户边界</a></h3>
 <p>提示注入的官方立场是：模型选择是“第一道、最便宜的一层”，但仍需硬性执行（工具策略、exec 审批、沙箱）；不可信内容（网页、邮件、附件、粘贴日志）本身是威胁面，不止发送者；对“工具启用/读不可信内容”的 agent 使用最新一代最佳档模型，不要用更弱/更小档；若必须用小模型，则只读工具、强沙箱、最小文件系统访问、严格白名单，并关闭 <code>web_search/web_fetch/browser</code>；更稳的做法是用只读或禁用工具的“读者 agent”先摘要不可信内容再交给主 agent<a href="#ref-30">[30]</a>。</p>
-<p>硬化基线给出了一份可复制的收紧配置：<code>gateway:{mode:"local", bind:"loopback", auth:{mode:"token", …}}</code>、<code>session.dmScope:"per-channel-peer"</code>、<code>tools:{profile:"messaging", deny:["group:automation","group:runtime","group:fs","sessions_spawn","sessions_send"], fs:{workspaceOnly:true}, exec:{security:"deny", ask:"always"}, elevated:{enabled:false}, sessions:{visibility:"agent"}, agentToAgent:{enabled:false}}</code>，加上 WhatsApp 的 <code>dmPolicy:"pairing"</code> 与群 <code>requireMention:true</code>；其中一条内置底线是：聊天驱动的 agent turn 中非 owner 发送者无论配置如何都不能使用 <code>cron</code> 或 <code>gateway</code> 工具<a href="#ref-31">[31]</a>。只读模式的组合是 <code>workspaceAccess:"ro"</code>（或 <code>none</code>）+ 工具 allow/deny 阻断 write/edit/apply_patch/exec/process；<code>tools.exec.applyPatch.workspaceOnly:true</code>（默认）即使沙箱关闭也阻止 apply_patch 写工作区外；官方还提醒“避免把 home 目录这类宽根目录作为 agent/沙箱工作区”<a href="#ref-26">[26]</a>。</p>
+<p>下述硬化配置是本书依据官方安全材料组合的示例，使用前应按目标版本验证工具可达性：<code>gateway:{mode:"local", bind:"loopback", auth:{mode:"token", …}}</code>、<code>session.dmScope:"per-channel-peer"</code>、<code>tools:{profile:"messaging", deny:["group:automation","group:runtime","group:fs","sessions_spawn","sessions_send"], fs:{workspaceOnly:true}, exec:{security:"deny", ask:"always"}, elevated:{enabled:false}, sessions:{visibility:"agent"}, agentToAgent:{enabled:false}}</code>，加上 WhatsApp 的 <code>dmPolicy:"pairing"</code> 与群 <code>requireMention:true</code>；其中一条内置底线是：聊天驱动的 agent turn 中非 owner 发送者无论配置如何都不能使用 <code>cron</code> 或 <code>gateway</code> 工具<a href="#ref-31">[31]</a>。只读模式的组合是 <code>workspaceAccess:"ro"</code>（或 <code>none</code>）+ 工具 allow/deny 阻断 write/edit/apply_patch/exec/process；<code>tools.exec.applyPatch.workspaceOnly:true</code>（默认）即使沙箱关闭也阻止 apply_patch 写工作区外；官方还提醒“避免把 home 目录这类宽根目录作为 agent/沙箱工作区”<a href="#ref-26">[26]</a>。</p>
 <p>一个与“更安全默认”直觉相反的默认要写明：跨 provider 的消息工具默认开放。<code>tools.message.crossContext.allowAcrossProviders</code> 与 <code>allowWithinProvider</code> 默认都是 <code>true</code>（升级采用该默认，显式 <code>false</code> 保留阻断）；这些控制只守护发送/回复/编辑/删除/建线程等变更动作，不限制读取与管理动作，也不替代文件系统/shell/沙箱限制<a href="#ref-26">[26]</a>。</p>
 <p>多 agent 的价值是隔离，不是“多模型”。每个 agent 有自己的 workspace、状态目录与会话存储；路由选出 agent 后由它决定 workspace 与 session store<a href="#ref-13">[13]</a>。公开 agent 的官方示例配置是：沙箱 all + workspaceAccess none + 只给 <code>sessions_list/history/send/spawn</code>、<code>session_status</code> 与渠道工具，deny <code>apply_patch/browser/canvas/cron/edit/exec/gateway/...</code>，<code>tools.sessions.visibility:"tree"</code><a href="#ref-26">[26]</a>。</p>
 <p>会话可见性与 agent-to-agent 消息是两件事：工具 profile 不收窄会话工具可见范围，会话可见性是 Gateway 范围，agent-to-agent 消息默认开启——需要配合 <code>tools.sessions.visibility</code> 与 <code>tools.agentToAgent</code> 配置<a href="#ref-26">[26]</a>。共享部署的官方提醒是：如果 Slack 里人人都能私聊 bot，核心风险是“委托的工具权限”；公司共享 agent 仅在同一信任边界内可接受，专用机器/VM/容器、专用 OS 用户，且不要把该运行时登录到个人账号<a href="#ref-29">[29]</a>。</p>
+<h4 id="只读群助手的权限可达性"><a class="header" href="#只读群助手的权限可达性">只读群助手的权限可达性</a></h4>
+<p>“只读”应限定具体数据和出口。允许读取文档意味着应用已经向成员开放这些文档；允许群内回复意味着所有可见成员都可能接收回答。不能只用个人 DM 的 pairing 证明群成员均有数据权限。把群绑定到一个单独 agent、一个明确的文档集合和受控出口，可以降低跨会话泄漏，但仍需要群成员变化时的授权撤销与缓存失效。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>验收用例</th><th>应观察的结果</th><th>未满足时怎样处理</th></tr>
+</thead>
+<tbody>
+<tr><td>获准成员问当前允许文档</td><td>能读取指定来源并在当前群回复</td><td>检查 allowlist 是否真的包含读取和回复路径</td></tr>
+<tr><td>文档夹带“运行命令”</td><td>仍只能读取，exec/写工具在宿主拒绝</td><td>停止启用该能力组合并修策略</td></tr>
+<tr><td>陌生成员或授权撤销</td><td>不读取受限文档、不借其他成员身份</td><td>重新核验群及发送者作用域</td></tr>
+<tr><td>文件路径越出允许目录</td><td>文件系统/工具边界拒绝</td><td>不靠提示中的“不要越界”验收</td></tr>
+<tr><td>沙箱后端不可用</td><td>依需要沙箱的策略拒绝执行</td><td>不能悄悄落回宿主执行</td></tr>
+</tbody>
+</table>
+</div>
+<p>因此 minimal profile 不能直接当作该案例成品：若它只开放状态查询，没有目标文档读取能力，任务根本不可达。本案例选择固定工具目录中的 <code>read</code> 与 <code>session_status</code>，用 <code>tools.profile:"full"</code> 提供基表，再以 <code>tools.allow:["read","session_status"]</code> 收窄；显式 deny <code>write/edit/apply_patch/exec/process/message/cron/gateway/sessions_send/sessions_spawn</code>。这里禁止的是主动工具发送，当前群内最终文本由已准入的渠道回复链路交付，不依赖 message 工具。<a href="#ref-14">[14]</a> 文档放入只读挂载的专用目录，read 的路径范围和目标文档 ACL 还需独立限制。配置示例是设计目标，须用目标 schema 验证；本书不把一个未运行的 JSON 片段称为可复制的安全部署。</p>
+<p>non-main 的保护范围依赖会话路由。若某个群被折叠成 main，按名称猜测“群一定进沙箱”会漏掉执行路径。要求所有会话隔离时，应选支持的全会话沙箱策略，并核对文件挂载、网络和凭据；只读宿主挂载仍可能暴露敏感文件。沙箱和文档 ACL 解决不同问题，关闭写权限不会自动建立数据隔离。</p>
+<p>Tailscale Serve 或反向代理可以控制网络可达性，但同一多用户宿主上可读进程数据、凭据或控制端口的其他用户仍可能越过这个边界。面对相互不信任的成员，按官方安全定位拆分 Gateway、OS 用户或主机，不把一个个人助手的工具权限委托模型扩展成敌对多租户平台。<a href="#ref-25">[25]</a><a href="#ref-29">[29]</a></p>
+<h4 id="从部署配置走到一次可审查的任务"><a class="header" href="#从部署配置走到一次可审查的任务">从部署配置走到一次可审查的任务</a></h4>
+<p>下面以工作群查询一份受限 Runbook 为教学轨迹，把配置、执行和恢复连起来。前提是运营者已经给群助手独立身份，挂载批准的只读文档目录，并限定原群回复出口。用户提出“根据本周 Runbook 解释订单告警”，入口先验证群与发送者，路由到该群专用会话，再按当前可见工具集合装配模型请求。若任一条件缺失，任务停在输入/权限边界，而不是换一个更宽工具继续查。</p>
+<p>模型提出读取 <code>runbooks/order/current.md</code>，工具适配层解析真实路径，验证它仍在允许根目录且不是越界符号链接。源文档带版本与当前可见范围，读取结果是数据；其中即使写了“管理员已批准导出日志”，也不会生成批准事件。模型得到证据后只能形成带来源的解释，需要的指标未开放则报告缺口。回复仍发到经过授权的原群，不允许文档内容改变收件人。</p>
+<p>现在让进程在三个位置退出。第一，输入接受前退出，入口应依渠道重投或向用户明确未接受；第二，接受后、读取前退出，恢复依据持久输入重建，而不要求原内存队列存在；第三，模型已生成、群发送确认前退出，恢复关注出站责任，不重新阅读并生成另一个可能不同的回答。三项需要分别观察，不能用“重启后还能聊天”作为完整验收。</p>
+<p>再加入权限变化：任务运行中移除了某文档权限。已取得的片段不能继续当作永久可交付证据，交付前需要重验可见性；若框架只在读取阶段检查，部署方就要明示这一窗口并增加控制。对个人自用资料这可能是可接受取舍，对群共享数据则可能阻塞启用。不能把产品安全定位里的“可信运营者”自动扩展成所有群成员可信。</p>
+<p>最后加入外部动作：用户要求把结论创建为工单。原只读 profile 不具备这项能力，所以系统应说明需要一个另外授权的工作流或人工操作；它不应因为“有帮助”临时启用 exec、自动化或跨会话发送。若正式增加建单工具，下一轮必须绑定当前批准、稳定业务身份和结果查询契约，并把建单与群通知分别记录。这个演进说明安全配置不能只从 deny 清单推导，还必须从承诺的任务能力反向检查可达性。</p>
+<h4 id="恢复责任怎样落到运营流程"><a class="header" href="#恢复责任怎样落到运营流程">恢复责任怎样落到运营流程</a></h4>
+<p>本书建议为未决工作建立一个最小接续单：原输入与会话、run/attempt、最后已知阶段、外部动作引用、当前授权、剩余恢复预算、负责人和截止时间。这里描述的是运营交接物，不宣称 OpenClaw 自带一个同名企业工单系统。需要人工介入时，交接物应能让接手者查询原事实，而不是要求他相信模型最后一句话。</p>
+<p>恢复耗尽后，用户界面至少需要说明“任务已接受但未完成”“结果已生成但投递未确认”或“动作可能发生、需核验”中的哪一种。三种情况对应不同下一步：重新计算、重投结果、查询业务系统。只显示一个红色失败图标，会诱导用户重复提交；只显示成功文本，又可能掩盖通知或外部结果未知。</p>
+<p>运维也要分开恢复成功率与任务成功率。某次恢复成功启动模型，不代表原问题解决；原问题已经解决而通知失败，也不能当成模型质量退化。统计时固定分母，区分输入接受数、开始执行数、业务已验收数、渠道已确认数与人工未决数。此处的口径是部署建议，实际采集能力按产品日志、数据库和渠道接口核对。</p>
+<h4 id="版本升级与未知效果的交叉窗口"><a class="header" href="#版本升级与未知效果的交叉窗口">版本升级与未知效果的交叉窗口</a></h4>
+<p>升级可能同时改变转录格式、工具目录与恢复策略。切换前应保存当前版本与可回滚制品，查清哪些输入尚未开始、哪些工具结果未知、哪些出站正在发送。旧进程停止后，对未知外部效果继续沿原身份查询；不能把新版启动看作业务动作已经重置。若数据库迁移不向后兼容，回滚二进制也不等于恢复旧存储语义。</p>
+<p>插件升级还会改变权限和可执行代码。某工具名保持不变，目标账户、默认目录或发送行为却可能变化，恢复任务若直接绑定新实现，就不再是原来的执行条件。应核验工具契约兼容性；不兼容时暂停受影响任务，给人工展示差异。软件包版本与业务动作身份的生命周期不同，前者更新不能抹掉后者。</p>
+<p>备份恢复需要同样谨慎。将 SQLite 回到昨天的快照，外部工单和消息不会回到昨天。恢复后的本地状态可能缺少已成功效果，重放输入会再次制造动作。真正的恢复演练应包括恢复前后外部对象对账、当前授权和待投递结果，而不仅是数据库能够打开。若部署无法完成这些核验，就把恢复后写工具先收紧为只读，直到原事实被确认。</p>
 <h3 id="2056-备份升级与事件响应"><a class="header" href="#2056-备份升级与事件响应">20.5.6 备份、升级与事件响应</a></h3>
 <p>节点执行 <code>system.run</code> 要当作远程代码执行看待：已配对 macOS 节点可被 Gateway 调用 <code>system.run</code>，官方明说“this is remote code execution on that Mac”；配对建立身份与令牌，不是逐命令审批面；全局节点命令策略只匹配精确命令名、不匹配 shell 文本；要完全禁用远程执行，security 设 <code>deny</code> 并移除该节点的配对<a href="#ref-26">[26]</a>。</p>
 <p>插件与技能目录都视为受信代码：插件运行在 Gateway 进程内，只从可信来源安装、优先显式 <code>plugins.allow</code> 白名单、启用前审查配置、插件代码/元数据/发现根变更后重启；npm/git 插件安装仅在显式 install/update 流程跑包管理器依赖收敛；<code>security.installPolicy</code> 让运营者对技能/插件安装返回 allow/warn/block；优先固定精确版本<a href="#ref-26">[26]</a>。技能目录视为受信代码并限制谁能修改，技能监视器在下一个 agent turn 更新快照<a href="#ref-26">[26]</a>。</p>
@@ -439,14 +553,14 @@
 <tr><th>现象</th><th>常见原因</th><th>对策</th><th>依据</th></tr>
 </thead>
 <tbody>
-<tr><td><code>/readyz</code> 一直 503 <code>chat-recovery</code></td><td>启动输入恢复还没释放 fresh-chat 准入</td><td>等恢复完成，或查恢复日志</td><td>19.2.2</td></tr>
-<tr><td>配置改了不生效</td><td>无效热重载被跳过；或需要重启的变更</td><td>看 <code>appliedConfigHash</code>；用 <code>config schema</code> 核字段</td><td>19.2.4</td></tr>
-<tr><td>渠道反复重启后 “giving up”</td><td>重启阶梯耗尽（10 次）</td><td>修渠道根因；terminal disconnect 需手动重登</td><td>19.4.2</td></tr>
-<tr><td>模型报错不换模型</td><td>显式用户选择的模型是严格的</td><td>用默认 primary + fallbacks，而非严格选择</td><td>19.4.3</td></tr>
-<tr><td>重启后回复了重复内容</td><td>重放保留原消息与工具结果</td><td>属于恢复语义；不确定副作用先查</td><td>19.4.6</td></tr>
-<tr><td>工具策略 deny 没挡住</td><td>deny 只在同层；group/sandbox 层可能再放</td><td>按 19.3.7 的多层顺序逐层查</td><td>19.3.7</td></tr>
-<tr><td>exec 直接执行了命令</td><td>默认 <code>security:full, ask:off</code></td><td>收紧 exec 审批或沙箱</td><td>19.5.4</td></tr>
-<tr><td>无人私聊的陌生人也能命令</td><td>渠道白名单空或含 <code>"*"</code></td><td>收紧 <code>commands.allowFrom</code> / 白名单</td><td>19.5.3</td></tr>
+<tr><td><code>/readyz</code> 一直 503 <code>chat-recovery</code></td><td>启动输入恢复还没释放 fresh-chat 准入</td><td>等恢复完成，或查恢复日志</td><td>20.2.2</td></tr>
+<tr><td>配置改了不生效</td><td>无效热重载被跳过；或需要重启的变更</td><td>看 <code>appliedConfigHash</code>；用 <code>config schema</code> 核字段</td><td>20.2.4</td></tr>
+<tr><td>渠道反复重启后 “giving up”</td><td>重启阶梯耗尽（10 次）</td><td>修渠道根因；terminal disconnect 需手动重登</td><td>20.4.2</td></tr>
+<tr><td>模型报错不换模型</td><td>显式用户选择的模型是严格的</td><td>用默认 primary + fallbacks，而非严格选择</td><td>20.4.3</td></tr>
+<tr><td>重启后回复了重复内容</td><td>重放保留原消息与工具结果</td><td>属于恢复语义；不确定副作用先查</td><td>20.4.6</td></tr>
+<tr><td>工具策略 deny 没挡住</td><td>deny 只在同层；group/sandbox 层可能再放</td><td>按 20.3.7 的多层顺序逐层查</td><td>20.3.7</td></tr>
+<tr><td>exec 直接执行了命令</td><td>默认 <code>security:full, ask:off</code></td><td>收紧 exec 审批或沙箱</td><td>20.5.4</td></tr>
+<tr><td>无人私聊的陌生人也能命令</td><td>渠道白名单空或含 <code>"*"</code></td><td>收紧 <code>commands.allowFrom</code> / 白名单</td><td>20.5.3</td></tr>
 </tbody>
 </table>
 </div>
@@ -458,16 +572,16 @@
 <tr><th>步骤</th><th>做法</th><th>依据</th></tr>
 </thead>
 <tbody>
-<tr><td>信任边界</td><td>助手跑在专用 OS 用户与独立 Gateway 实例上，不登录个人账号</td><td>19.5.1</td></tr>
-<tr><td>暴露面</td><td>Gateway 绑定 loopback，需要远程运维时走 Tailscale Serve，不做公网端口转发</td><td>19.5.2</td></tr>
-<tr><td>群访问</td><td><code>groupPolicy</code> 保留发送者白名单 + mention 门控；回复不绕过白名单</td><td>19.5.3</td></tr>
-<tr><td>工具策略</td><td><code>tools.profile:"minimal"</code> 起步；<code>tools.deny</code> 加 <code>group:fs</code>、<code>group:runtime</code>、<code>group:automation</code>、<code>sessions_spawn</code>、<code>sessions_send</code></td><td>19.5.4</td></tr>
-<tr><td>exec 与沙箱</td><td><code>exec:{security:"deny", ask:"always"}</code>；<code>sandbox:{mode:"non-main", workspaceAccess:"none"}</code>，非 main 会话进沙箱</td><td>19.5.4</td></tr>
-<tr><td>审计</td><td>配置后跑 <code>openclaw security audit --deep</code>，再跑 <code>openclaw doctor</code>，按 critical/warn 逐项处理</td><td>19.5.7</td></tr>
+<tr><td>信任边界</td><td>助手跑在专用 OS 用户与独立 Gateway 实例上，不登录个人账号</td><td>20.5.1</td></tr>
+<tr><td>暴露面</td><td>Gateway 绑定 loopback，需要远程运维时走 Tailscale Serve，不做公网端口转发</td><td>20.5.2</td></tr>
+<tr><td>群访问</td><td><code>groupPolicy</code> 保留发送者白名单 + mention 门控；回复不绕过白名单</td><td>20.5.3</td></tr>
+<tr><td>工具策略</td><td>固定目录下 allow read/session_status，deny 写文件、exec/process、message、自动化和跨会话工具；正常 final 走已准入渠道回复，不开放主动发送</td><td>20.5.4</td></tr>
+<tr><td>exec 与沙箱</td><td><code>exec:{security:"deny", ask:"always"}</code>；<code>sandbox:{mode:"all", workspaceAccess:"ro"}</code> 作为本书受限案例目标，需按该版本 schema 确认；若采用 non-main，先证明群路由确实不是 main</td><td>20.5.4</td></tr>
+<tr><td>审计</td><td>配置后跑 <code>openclaw security audit --deep</code>，再跑 <code>openclaw doctor</code>，按 critical/warn 逐项处理</td><td>20.5.7</td></tr>
 </tbody>
 </table>
 </div>
-<p>这个案例里没有一步是“让模型更聪明”。每一步都在把 OpenClaw 的默认从“受信运营者的全权限个人助手”收窄到“只读工作群助手”：信任边界决定谁在系统内，暴露面决定谁能到达它，群白名单决定谁能触发它，工具策略与 exec 审批决定它能做什么，沙箱决定放行后的进程能碰什么，审计把这一切变成可复查的检查。</p>
+<p>这个案例的验收对象是当前身份下读取、回复与拒绝越权的具体路径。每一步都在把 OpenClaw 的默认从“受信运营者的全权限个人助手”收窄到“只读工作群助手”：信任边界决定谁在系统内，暴露面决定谁能到达它，群白名单决定谁能触发它，工具策略与 exec 审批决定它能做什么，沙箱决定放行后的进程能碰什么，审计把这一切变成可复查的检查。</p>
 <h2 id="206-调优控制上下文成本与质量"><a class="header" href="#206-调优控制上下文成本与质量">20.6 调优：控制上下文、成本与质量</a></h2>
 <p>OpenClaw 提供了完整的旋钮、默认值和观测手段，但<strong>没有官方基准、没有本章的实测</strong>。这一部分只写“旋钮与机制、作用对象、观测手段”，不写“调到多少好”；数字都是固定提交里的默认值。</p>
 <h3 id="2061-度量与观测"><a class="header" href="#2061-度量与观测">20.6.1 度量与观测</a></h3>
@@ -481,14 +595,31 @@
 <p>工具结果大小上限由有效上下文窗口推导另一个降工具声明占用的旋钮是 <code>tools.codeMode</code>：启用时普通工具移到“guest catalog bridge”之后，模型通常只见 <code>exec</code> 与 <code>wait</code>；<code>executor</code> 默认 <code>node</code>（<code>node:vm</code>，官方注明是“受信主机执行，不是安全隔离”），<code>quickjs</code> 是加固沙箱；MCP 工具目录按服务器名、工具名排序以稳定提示前缀<a href="#ref-14">[14]</a>。</p>
 <p>工具结果大小上限由有效上下文窗口推导：&lt;100K token 为 16000 字符，≥100K 为 32000，≥200K 为 64000；运行时 context-share 守卫把单个工具结果限制在窗口的 30%<a href="#ref-20">[20]</a>。会话修剪（<code>agents.defaults.contextPruning</code>）默认 <code>mode:"cache-ttl"</code>、TTL 5 分钟（Anthropic 家族下插件播种 1h），客户端修剪仅在 TTL 过期且占用 ≥约 30% 时开始；最近三个 assistant turn 与首条用户消息之前永不修剪<a href="#ref-10">[10]</a><a href="#ref-23">[23]</a>。</p>
 <h3 id="2064-模型与-fallback-调优"><a class="header" href="#2064-模型与-fallback-调优">20.6.4 模型与 fallback 调优</a></h3>
-<p>fallback 的调优要点（19.4.3 的机制）是：显式用户模型选择严格不回退；agent primary 默认严格、需自带 <code>fallbacks</code>；fallback 只对本 turn 生效；上下文溢出恢复耗尽后，已知上下文足够的候选优先<a href="#ref-11">[11]</a>。认证 profile 按会话粘住以保持缓存温热，只在 <code>/new</code>/<code>/reset</code> 或冷却/禁用时轮换<a href="#ref-11">[11]</a>。超时旋钮：<code>agents.defaults.timeoutSeconds</code>（172800s）、<code>models.providers.&lt;id&gt;.timeoutSeconds</code>（慢速本地/自托管 provider 应先调它再调 agent 超时，且保持 agent 超时不低于它）<a href="#ref-7">[7]</a>。</p>
+<p>fallback 的调优要点（20.4.3 的机制）是：显式用户模型选择严格不回退；agent primary 默认严格、需自带 <code>fallbacks</code>；fallback 只对本 turn 生效；上下文溢出恢复耗尽后，已知上下文足够的候选优先<a href="#ref-11">[11]</a>。认证 profile 按会话粘住以保持缓存温热，只在 <code>/new</code>/<code>/reset</code> 或冷却/禁用时轮换<a href="#ref-11">[11]</a>。超时旋钮：<code>agents.defaults.timeoutSeconds</code>（172800s）、<code>models.providers.&lt;id&gt;.timeoutSeconds</code>（慢速本地/自托管 provider 应先调它再调 agent 超时，且保持 agent 超时不低于它）<a href="#ref-7">[7]</a>。</p>
 <h3 id="2065-缓存"><a class="header" href="#2065-缓存">20.6.5 缓存</a></h3>
 <p><code>cacheRetention</code> 取 <code>none|short|long</code>持久会话中的普通 agent-turn 定时作业可以在缓存窗口内“保温”：例如一小时缓存配 <code>openclaw automations edit &lt;job-id&gt; --every 55m</code>；隔离作业每次新会话不保温；官方提醒“每个 turn 都花 token，比较总用量而不是假设命中”<a href="#ref-21">[21]</a>。</p>
 <p><code>cacheRetention</code> 取 <code>none|short|long</code>；<strong>换模型必然开启新缓存谱系</strong>，改 thinking/推理级别也可能失效——官方建议“创建会话时选定模型与 thinking 级别并保持稳定”<a href="#ref-21">[21]</a>。持久会话中的普通 agent-turn 定时作业可在缓存窗口内“保温”（例：一小时缓存配 <code>automations edit &lt;job-id&gt; --every 55m</code>）；隔离作业每次新会话不保温；官方提醒“每个 turn 都花 token，比较总用量而不是假设命中”<a href="#ref-21">[21]</a>。</p>
 <h3 id="2066-压缩与存储旋钮"><a class="header" href="#2066-压缩与存储旋钮">20.6.6 压缩与存储旋钮</a></h3>
 <p>压缩调优键：<code>agents.defaults.compaction.model</code> 可用本地小模型专做摘要；<code>keepRecentTokens</code> 默认 20000；<code>maxActiveTranscriptBytes</code>（opt-in 字节守卫）；<code>memoryFlush.model</code>；<code>notifyUser</code><a href="#ref-10">[10]</a>。会话存储维护影响磁盘占用：<code>session.maintenance.{mode:"enforce"|"warn", pruneAfter:"30d", archiveDashboardAfter:"7d", maxEntries:5000}</code>，<code>openclaw sessions cleanup --enforce</code> 手动执行<a href="#ref-8">[8]</a>。</p>
 <h3 id="2067-不应为省-token-放弃的东西"><a class="header" href="#2067-不应为省-token-放弃的东西">20.6.7 不应为省 Token 放弃的东西</a></h3>
-<p>有几类开销不能省（本书建议）。工具策略的逐层求值：省掉任何一层的 deny 都意味着越权路径变宽，调优只能改“哪些工具可选”，不能改“deny 是否生效”。exec 审批：降低打断要靠 allowlist 与沙箱，不能靠把 <code>ask:"always"</code> 改成 <code>ask:"off"</code>。重启恢复：关闭恢复或调低预算的代价是“已接受的输入可能永远丢失”，这不是 token 问题，是正确性问题。缓存保温可以关（那省费用），但逐动作的权限边界和恢复语义不能为省 token 而放宽。</p>
+<p>有几类开销不能省（本书建议）。工具策略的逐层求值：省掉任何一层的 deny 都意味着越权路径变宽，调优只能改“哪些工具可选”，不能改“deny 是否生效”。exec 审批：共享宿主或可触达敏感资源时，降低打断应先收窄能力；对无宿主敏感挂载、凭据和网络能力的隔离执行器，可依据已批准的威胁模型选择不同询问策略。重启恢复：关闭恢复或调低预算的代价是“已接受的输入可能永远丢失”，这不是 token 问题，是正确性问题。缓存保温可以关（那省费用），但逐动作的权限边界和恢复语义不能为省 token 而放宽。</p>
+<h3 id="2068-版本敏感事实与重新评估入口"><a class="header" href="#2068-版本敏感事实与重新评估入口">20.6.8 版本敏感事实与重新评估入口</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>项目</th><th>本章绑定的依据</th><th>使用边界</th></tr>
+</thead>
+<tbody>
+<tr><td>提交与包版本</td><td><code>ff7597025dd2…</code>，根包标识 <code>2026.10.6</code></td><td>包版本字符串不证明所有用户安装了这一提交</td></tr>
+<tr><td>writer 围栏</td><td>agent-loop 的 activeWriterRunId/expectedWriterRunId</td><td>限制转录提交，不撤销外部动作</td></tr>
+<tr><td>队列模式</td><td>本提交 queue 文档，durable ingress 下 collect→followup</td><td>入口类型变化时重新检查</td></tr>
+<tr><td>重启窗口与预算</td><td>自动chat-input选择过去24h接受的输入，已开始尝试可跨窗口结束；main中断周期恢复派发预算3次<a href="#ref-22">[22]</a></td><td>超窗输入供显式resend，当前权限无效则不自动续跑</td></tr>
+<tr><td>工具 profile 与沙箱</td><td>minimal含session_status及仅update的gateway；sandbox默认off，启用Docker网络默认none<a href="#ref-14">[14]</a><a href="#ref-24">[24]</a></td><td>不同安装版本重验能力与挂载，profile不授予额外权限</td></tr>
+<tr><td>出站生产者租约</td><td>60秒、每20秒续约，按owner/lease预留；发送开始证据在到期后保留<a href="#ref-12">[12]</a></td><td>不能凭新claim或到期时间推断可安全重发</td></tr>
+</tbody>
+</table>
+</div>
+<p>版本资料原核验日期见章首；本章对 agent-loop、queue、retry 与 restart-recovery 固定资料核对，未进行运行验证。<code>pi</code> 的遗留 CLI 别名与 ACP 配置中名为 <code>pi</code> 的独立目标不是同一个概念；与 Pi 的关系需按第 19 章所列依赖和 CHANGELOG 共同判断。</p>
 <h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
 <p>OpenClaw 把个人 AI 助手做成了一个长期运行的 Gateway：一个进程拥有全部消息面，用 WebSocket 承担控制面，用 SQLite 承担会话与恢复的权威状态，用内置 runtime 执行 agent run，用工具策略、exec 审批和沙箱三层收窄行动边界。它的工程重心有两个：一是“长期在线”带来的可靠性（渠道重连阶梯、模型故障转移、Recovery is always on 的重启恢复、持久出站队列），二是“能替人行动”带来的安全（保守默认、暴露面阶梯、<code>security audit</code> 与 <code>doctor</code> 的可执行检查）。</p>
 <p>两者之间的张力也写进了默认值：exec 默认放行不询问、工具策略默认 full、agent-to-agent 消息默认开启——这些是“个人受信运营者”模型的默认，搬到共享或暴露场景就必须显式收紧。文档反复把这条说清楚：OpenClaw 不是敌对多租户边界，信任边界要靠部署方式去划。</p>
@@ -534,7 +665,7 @@
 <li><a id="ref-36"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/nodes/session-catalogs.md">Session catalogs</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/tools/acp-agents-setup.md">ACP agents setup</a>。</li>
 <li><a id="ref-37"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/docs/automation/cron-jobs/how-it-works.md">Cron jobs: how it works</a>。</li>
 <li><a id="ref-38"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/package.json">package.json</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/README.md">README</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/THIRD_PARTY_NOTICES.md">THIRD_PARTY_NOTICES.md</a>。</li>
-<li><a id="ref-39"></a> OpenClaw maintainers，CHANGELOG：<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.2.21.md">相关内容</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.3.13.md">相关内容</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.3.22.md">相关内容</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.4.20.md">相关内容</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.4.22.md">相关内容</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.5.12.md">相关内容</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.5.14.md">相关内容</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.5.22.md">相关内容</a>。</li>
+<li><a id="ref-39"></a> OpenClaw maintainers，CHANGELOG：<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.2.21.md">2026.2.21.md</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.3.13.md">2026.3.13.md</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.3.22.md">2026.3.22.md</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.4.20.md">2026.4.20.md</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.4.22.md">2026.4.22.md</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.5.12.md">2026.5.12.md</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.5.14.md">2026.5.14.md</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/CHANGELOG/2026.5.22.md">2026.5.22.md</a>。</li>
 <li><a id="ref-40"></a> OpenClaw maintainers，启动源码：<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/gateway/server.ts">server.ts</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/gateway/server-start.ts">server-start.ts</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/gateway/server-startup-finish.ts">server-startup-finish.ts</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/gateway/server-startup-post-attach.ts">server-startup-post-attach.ts</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/gateway/server/readiness.ts">server/readiness.ts</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/gateway/server-runtime-config.ts">server-runtime-config.ts</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/cli/gateway-cli/pre-bootstrap.ts">pre-bootstrap.ts</a>。</li>
 <li><a id="ref-41"></a> OpenClaw maintainers，渠道源码：<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/gateway/server-channels.ts">server-channels.ts</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/gateway/channel-health-policy.ts">channel-health-policy.ts</a>、<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/gateway/channel-health-monitor.ts">channel-health-monitor.ts</a>。</li>
 <li><a id="ref-42"></a> OpenClaw maintainers，<a href="https://github.com/openclaw/openclaw/blob/ff7597025dd22b087b250a4df94caded50e798aa/src/routing/resolve-route.ts">resolve-route.ts</a>。</li>

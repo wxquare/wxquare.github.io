@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第18章 成熟 Coding Agent 内部实现：Codex CLI、Claude Code 与 OpenCode - AI Engineering：大模型与智能体系统工程</title>
+        <title>第 18 章 Coding Agent 系统 - AI Engineering：大模型与智能体系统工程</title>
 
 
         <!-- Custom HTML head -->
@@ -43,10 +43,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a81d105a.js";
+            window.path_to_searchindex_js = "../searchindex-cec4fa4e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-4a74a8e8.js"></script>
+        <script src="../toc-9a8a9538.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -185,7 +185,7 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="第18章-coding-agent-系统"><a class="header" href="#第18章-coding-agent-系统">第18章 Coding Agent 系统</a></h1>
+                        <h1 id="第-18-章-coding-agent-系统"><a class="header" href="#第-18-章-coding-agent-系统">第 18 章 Coding Agent 系统</a></h1>
 <blockquote>
 <p>成熟的 Coding Agent 不是“会改代码的模型”，而是一个持续组织上下文、调度工具、约束副作用并验证结果的工程运行时。同一个运行时在不同人手里表现差异很大，差别主要来自使用者提供的任务、上下文、边界和验证。</p>
 </blockquote>
@@ -201,12 +201,27 @@
 <tr><td>官方文档事实</td><td>官方文档页的陈述</td><td>文档滚动更新、没有版本快照，一律注明核验日期；文档写明版本门槛的，保留“vX 及以后”</td></tr>
 <tr><td>系统推导</td><td>根据公开证据做的架构解释</td><td>帮助理解，不等于产品内部的精确实现</td></tr>
 <tr><td>本书建议</td><td>本书依据前述事实归纳的使用建议</td><td>只出现在实践与调优两部分，与官方建议分开标注</td></tr>
-<tr><td>厂商报告</td><td>厂商自报的数字</td><td>写明范围与来源，不作为通用基准</td></tr>
 </tbody>
 </table>
 </div>
 <p>Claude Code 没有公开核心源码，本章对它只引用官方文档，不使用逆向、泄露代码或社区猜测。官方没有使用“闭源”一词，仓库许可证只声明版权所有并指向商业条款，因此本章写作“核心程序未按开源许可证公开”。</p>
-<p>还有一条限制需要提前说明：本章的行为结论来自阅读源码与官方文档，没有经过运行验证或故障注入。文档与源码不一致的地方，正文会指出，并以固定提交的源码为准；只能在源码里找到、文档没有承诺的行为，会标注“源码事实，非文档承诺”。版本敏感的内容（默认权限模式、命令名、配置键、模型名与别名）一律写明核验日期，正文不硬写模型名。</p>
+<p>还有一条限制需要提前说明：本章的行为结论来自阅读源码与官方文档，没有经过运行验证或故障注入。文档与源码不一致的地方，分别说明文档承诺和固定提交实现；固定提交未必对应读者安装的发行版；只能在源码里找到、文档没有承诺的行为，会标注“源码事实，非文档承诺”。版本敏感的内容（默认权限模式、命令名、配置键、模型名与别名）一律写明核验日期，正文不硬写模型名。</p>
+<p>本章用同一组问题比较三个产品：谁控制状态，启动怎样形成上下文，执行怎样推进，异常怎样收敛，实践中怎样授权，调优怎样验证。第 19–21 章沿用这六维度，分别深入 Pi、OpenClaw 和 Hermes。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>维度</th><th>本章应交付的判断</th><th>通用机制主位置</th></tr>
+</thead>
+<tbody>
+<tr><td>组成</td><td>Host、模型适配、工具、状态的职责</td><td><a href="../part3/03-agent-runtime.html">Runtime 架构</a></td></tr>
+<tr><td>启动</td><td>规则、能力、身份怎样进入首轮</td><td><a href="../part3/02-context-engineering.html">上下文工程</a></td></tr>
+<tr><td>执行</td><td>模型提案与确定性执行在哪里分界</td><td><a href="../part3/04-skills-tools-mcp-connectors.html">工具系统</a></td></tr>
+<tr><td>异常</td><td>取消、恢复与未知外部效果怎样解释</td><td><a href="../part3/03-agent-runtime.html#failure-side-effects">副作用与核验</a></td></tr>
+<tr><td>实践</td><td>哪些条件下可以授予哪些能力</td><td><a href="../part3/05-agent-governance-optimization.html">治理控制点</a></td></tr>
+<tr><td>调优</td><td>假设、变量与证据是否支持变更</td><td><a href="../part2/04-data-eval.html">评估闭环</a></td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="181-组成三个产品由哪些部分构成"><a class="header" href="#181-组成三个产品由哪些部分构成">18.1 组成：三个产品由哪些部分构成</a></h2>
 <h3 id="1811-从代码生成到可审查交付"><a class="header" href="#1811-从代码生成到可审查交付">18.1.1 从代码生成到可审查交付</a></h3>
 <p>普通代码生成器的产物是文本片段。Coding Agent 的产物存在于仓库和执行环境里：它读取文件，向模型发起请求，调用工具修改代码、运行命令，再把结果交给人审查。模型的回答只是交付说明，不能代替真实的文件差异和验证结果。</p>
@@ -237,7 +252,7 @@
 </tbody>
 </table>
 </div>
-<p>一次模型响应可以只含解释，也可以含一个或多个工具请求。运行时要把工具请求解析为可执行操作，检查参数与权限，调用本地或外部能力，把结果归入会话，再决定是否继续采样。所以主循环是一个受控状态机，不是单次提示词调用。工具可能失败、超时、被用户拒绝或被中断，可靠的运行时要把这些情况作为不同结果回送给模型，而不是把失败输出包装成成功；取消也不会撤回已经发生的外部副作用，远端请求、数据库写入和命令进程各有各的恢复语义。这些问题在 17.4 逐一展开。</p>
+<p>一次模型响应可以只含解释，也可以含一个或多个工具请求。运行时要把工具请求解析为可执行操作，检查参数与权限，调用本地或外部能力，把结果归入会话，再决定是否继续采样。所以主循环是一个受控状态机，不是单次提示词调用。工具可能失败、超时、被用户拒绝或被中断，可靠的运行时要把这些情况作为不同结果回送给模型，而不是把失败输出包装成成功；取消也不会撤回已经发生的外部副作用，远端请求、数据库写入和命令进程各有各的恢复语义。这些问题在 18.4 逐一展开。</p>
 <h3 id="1812-三个产品与证据基础"><a class="header" href="#1812-三个产品与证据基础">18.1.2 三个产品与证据基础</a></h3>
 <div class="table-wrapper">
 <table>
@@ -278,7 +293,7 @@
 <p>三个产品都把会话、本轮执行和工作区看作不同的东西，但对象的名字和边界各不相同。</p>
 <p>Codex 的外部协议用 Thread、Turn、Item 三层：Thread 是会话，包含多个 Turn，Turn 包含消息、命令、文件变化等 Item<a href="#ref-2">[2]</a>。核心里的 Session 保有线程、历史、配置和各类服务，长期存在；一个 Session 在任一时刻至多有一个运行中的任务。活动 Turn 的状态（取消令牌、待决审批、待处理输入、工具调用）挂在 Session 的 <code>active_turn</code> 之下，并不是独立于 Session 的对象<a href="#ref-20">[20]</a>。所以会话可以继续存在而某个 Turn 已经结束，Turn 也可以被中断或追加输入，而不必重建会话；对持久化、统计、恢复和取消来说，这是两个不同的状态对象。</p>
 <p>Claude Code 把对话、工具调用和结果写进本地明文 JSONL 会话文件。官方说明，resume 以同一会话 ID 重新打开并追加新消息，fork 则把历史复制到新的会话 ID；同一个会话在两个终端同时恢复且不 fork 时，两边的消息会交错写进同一份记录。官方还声明 JSONL 条目格式属于内部实现，随版本变化，不建议直接解析<a href="#ref-31">[31]</a><a href="#ref-38">[38]</a>。</p>
-<p>OpenCode 的会话归服务端持有。源码里执行过程以 drain 和 step 推进：开始执行时，Started 事件和执行声明在同一个事务里写入，这是它能在进程重启后续跑的基础（见 17.4.4）<a href="#ref-71">[71]</a><a href="#ref-72">[72]</a>。</p>
+<p>OpenCode 的会话归服务端持有。源码里执行过程以 drain 和 step 推进：开始执行时，Started 事件和执行声明在同一个事务里写入，这是它能在进程重启后续跑的基础（见 18.4.4）<a href="#ref-71">[71]</a><a href="#ref-72">[72]</a>。</p>
 <p>会话历史与工作区是第三组区别。官方文档明确写到，切换 Git 分支后 Claude 看到的是新分支的文件，会话历史保持不变<a href="#ref-31">[31]</a>。这个例子说明，磁盘上有文件不代表已进入上下文，会话里有描述也不代表工作区仍是那个样子。会话记录是上下文资产，工作区是外部事实，本轮是短时执行状态，三者不能互相替代。</p>
 <h3 id="1815-接入面与进程边界"><a class="header" href="#1815-接入面与进程边界">18.1.5 接入面与进程边界</a></h3>
 <p>Codex 的变化最大。固定提交中，TUI 的 <code>Cargo.toml</code> 已经不再依赖 <code>codex-core</code>，TUI 和 <code>codex exec</code> 都通过进程内的 App Server 客户端接入，源码注释写明这样做是为了保留 App Server 的语义，同时避免进程边界<a href="#ref-25">[25]</a>。协议 crate 的 README 仍然写着“core 与 TUI 之间的内部类型”，已经落后于代码<a href="#ref-29">[29]</a>。更准确的说法是：TUI、exec 和外部客户端共用 App Server 的请求与事件语义，TUI 以进程内方式承载它。App Server 有 stdio（默认）、Unix socket、WebSocket 和关闭四种传输；官方文档称 WebSocket 为 experimental and unsupported，<code>codex app-server</code> 命令主要用于开发与调试，可能不经通知变化<a href="#ref-2">[2]</a><a href="#ref-14">[14]</a><a href="#ref-25">[25]</a>。</p>
@@ -296,8 +311,8 @@
 <tr><th>层次</th><th>Codex CLI</th><th>Claude Code</th><th>OpenCode 2.x</th></tr>
 </thead>
 <tbody>
-<tr><td>决策：动作是否放行</td><td>审批策略 <code>on-request</code>、<code>never</code>、<code>granular</code>（<code>untrusted</code> 已退役）；auto-review 可以代替用户审核已经需要审批的动作，但它是“换审核人”，不是授权<a href="#ref-8">[8]</a><a href="#ref-9">[9]</a></td><td>六种权限模式；规则按 deny → ask → allow 求值，首个匹配生效；PreToolUse Hook 的决定不能绕过规则<a href="#ref-34">[34]</a><a href="#ref-35">[35]</a></td><td>有序规则，三元组为 action、resource、effect，最后一个匹配者生效；多资源操作中任一资源命中 deny 即 deny<a href="#ref-63">[63]</a><a href="#ref-75">[75]</a></td></tr>
-<tr><td>隔离：放行后能碰什么</td><td>沙箱模式 <code>read-only</code>、<code>workspace-write</code>、<code>danger-full-access</code>；<code>workspace-write</code> 下 <code>.git</code>、<code>.agents</code>、<code>.codex</code>、<code>.aws</code> 递归只读<a href="#ref-7">[7]</a></td><td>沙箱默认关闭，支持 macOS、Linux、WSL2；只覆盖 Shell 命令及其子进程，文件工具、MCP、Hook 在沙箱之外；官方称它降低风险，但不是完整的隔离边界<a href="#ref-36">[36]</a></td><td>未发现内置 OS 沙箱；<code>shell</code> 以宿主用户的文件系统、进程和网络权限运行<a href="#ref-63">[63]</a></td></tr>
+<tr><td>决策：动作是否放行</td><td>审批策略 <code>on-request</code>、<code>never</code>、<code>granular</code>（审批策略值 <code>untrusted</code> 已退役，项目 <code>trust_level="untrusted"</code> 仍有效）；auto-review 可以代替用户审核已经需要审批的动作，但它是“换审核人”，不是授权<a href="#ref-8">[8]</a><a href="#ref-9">[9]</a></td><td>六种权限模式；规则按 deny → ask → allow 求值，首个匹配生效；PreToolUse Hook 的决定不能绕过规则<a href="#ref-34">[34]</a><a href="#ref-35">[35]</a></td><td>有序规则，三元组为 action、resource、effect，最后一个匹配者生效；多资源操作中任一资源命中 deny 即 deny<a href="#ref-63">[63]</a><a href="#ref-75">[75]</a></td></tr>
+<tr><td>隔离：放行后能碰什么</td><td>沙箱模式 <code>read-only</code>、<code>workspace-write</code>、<code>danger-full-access</code>；<code>workspace-write</code> 下 <code>.git</code>、<code>.agents</code>、<code>.codex</code>、<code>.aws</code> 递归只读<a href="#ref-7">[7]</a></td><td>沙箱默认关闭，支持 macOS、Linux、WSL2；只覆盖 Shell 命令及其子进程，文件工具、MCP、Hook 在沙箱之外；官方称它降低风险，但不是完整的隔离边界<a href="#ref-36">[36]</a></td><td>在本章核查的权限、Shell 插件和进程执行路径中未见 OS 沙箱装配；不能据此断言所有部署都没有外层隔离<a href="#ref-63">[63]</a></td></tr>
 <tr><td>管理：谁能收紧</td><td>配置层级与受管配置<a href="#ref-3">[3]</a></td><td>managed 设置优先级最高，managed 中的 deny 不能被覆盖<a href="#ref-41">[41]</a><a href="#ref-35">[35]</a></td><td>Policies：二元、不弹窗、只能收紧；来源越宽优先级越高<a href="#ref-64">[64]</a></td></tr>
 </tbody>
 </table>
@@ -308,8 +323,8 @@
 <a id="coding-agent-runtime-startup"></a></p>
 <h2 id="182-启动从进程启动到首个模型请求"><a class="header" href="#182-启动从进程启动到首个模型请求">18.2 启动：从进程启动到首个模型请求</a></h2>
 <h3 id="1821-三个时间尺度"><a class="header" href="#1821-三个时间尺度">18.2.1 三个时间尺度</a></h3>
-<p>启动不是一个瞬间。进程启动准备服务与连接，会话初始化选择工作区与配置并建立或恢复历史，轮次启动把新的输入送进模型与工具循环。三者可以连续发生，也可以相隔很久：一个后台服务可以承载多个会话，一个会话可以执行多轮。恢复历史只是读回记录；旧的命令进程是否恢复、文件是否回到历史时刻，因产品而异，见 17.4.4。</p>
-<p>后面三小节分别描述三个产品的启动路径，17.2.5 说明配置与指令什么时候生效，17.2.6 对照“就绪”在三个产品里分别指什么。</p>
+<p>启动不是一个瞬间。进程启动准备服务与连接，会话初始化选择工作区与配置并建立或恢复历史，轮次启动把新的输入送进模型与工具循环。三者可以连续发生，也可以相隔很久：一个后台服务可以承载多个会话，一个会话可以执行多轮。恢复历史只是读回记录；旧的命令进程是否恢复、文件是否回到历史时刻，因产品而异，见 18.4.4。</p>
+<p>后面三小节分别描述三个产品的启动路径，18.2.5 说明配置与指令什么时候生效，18.2.6 对照“就绪”在三个产品里分别指什么。</p>
 <h3 id="1822-codexapp-server-路径"><a class="header" href="#1822-codexapp-server-路径">18.2.2 Codex：App Server 路径</a></h3>
 <p>以客户端启动 <code>codex app-server</code> 为例，协议路径是：启动服务、握手、建立或恢复 Thread、启动 Turn、消费事件直到 Turn 结束。TUI 与 <code>codex exec</code> 在固定提交中以进程内方式承载同一套 App Server 语义，没有进程边界，但步骤相同<a href="#ref-25">[25]</a>。</p>
 <div class="table-wrapper">
@@ -377,13 +392,13 @@
 <tr><td>配置层次（高到低）</td><td>命令行与 <code>--config</code>、项目 <code>.codex/config.toml</code>（从根到当前目录，近者胜）、<code>--profile</code> 文件、用户、云端托管、系统、内置默认；项目层只在项目受信时生效<a href="#ref-3">[3]</a></td><td>managed、命令行、project local、共享 project、user；列表合并，managed 的 deny 不可覆盖<a href="#ref-41">[41]</a></td><td>全局、项目、系统三处位置；2.x 仍读取 1.x 的位置并归一化<a href="#ref-58">[58]</a><a href="#ref-59">[59]</a></td></tr>
 <tr><td>指令文件</td><td>AGENTS.md；全局目录先读 <code>AGENTS.override.md</code>，否则 <code>AGENTS.md</code>；项目从根（默认以 <code>.git</code> 为标记）走到当前目录，每目录至多一个文件，靠近当前目录的在后<a href="#ref-6">[6]</a><a href="#ref-26">[26]</a></td><td>CLAUDE.md，从当前目录向上逐级拼接；子目录的按需载入；以 user message 的形式在系统提示之后送达<a href="#ref-40">[40]</a></td><td>只认 AGENTS.md，不回退到 CLAUDE.md；全局加上从当前目录向上的所有 AGENTS.md，不解决它们之间的冲突；下层目录的文件在读取文件或列目录时按需加载、就近优先<a href="#ref-61">[61]</a></td></tr>
 <tr><td>加载时机</td><td>每次运行（TUI 为每个会话开始时）重建指令链，没有缓存需要手工清除<a href="#ref-6">[6]</a></td><td>会话开始载入；会话中编辑 CLAUDE.md 不会立刻生效，要到 <code>/clear</code>、<code>/compact</code> 或重启<a href="#ref-46">[46]</a></td><td>根与全局文件的修改在下一次模型请求前以“指令更新”注入；已加载的嵌套文件被修改不会被自动检测，需要新会话<a href="#ref-61">[61]</a></td></tr>
-<tr><td>大小上限</td><td><code>project_doc_max_bytes</code> 默认 32 KiB，是各层合计的上限（源码如此；文档的几处表述口径互相矛盾，以源码为准）<a href="#ref-6">[6]</a><a href="#ref-26">[26]</a></td><td>单个 CLAUDE.md 达到 4 MiB 即被跳过，官方建议少于 200 行；官方还指出，过长会让规则被淹没<a href="#ref-40">[40]</a><a href="#ref-32">[32]</a></td><td><code>instructions</code> 数组可追加文件、glob 与 HTTP(S) 地址，地址拉取超时 5 秒<a href="#ref-61">[61]</a><a href="#ref-77">[77]</a></td></tr>
+<tr><td>大小上限</td><td><code>project_doc_max_bytes</code> 默认 32 KiB，是各层合计的上限（固定提交的合计口径；不据此推断其他发行版）<a href="#ref-6">[6]</a><a href="#ref-26">[26]</a></td><td>启动时单个 CLAUDE.md 大于 4 MiB 才整份跳过；小于等于 4 MiB 全文加载，子目录文件另有较小上限，官方建议少于 200 行；官方还指出，过长会让规则被淹没<a href="#ref-40">[40]</a><a href="#ref-32">[32]</a></td><td><code>instructions</code> 数组可追加文件、glob 与 HTTP(S) 地址，地址拉取超时 5 秒<a href="#ref-61">[61]</a><a href="#ref-77">[77]</a></td></tr>
 <tr><td>如何核对实际加载了什么</td><td>响应中的 <code>instructionSources</code>；或在仓库根运行 <code>codex --ask-for-approval never "Summarize the current instructions."</code><a href="#ref-2">[2]</a><a href="#ref-6">[6]</a></td><td>运行 <code>/context</code> 确认文件已载入<a href="#ref-32">[32]</a></td><td>未找到专门的核对手段</td></tr>
 </tbody>
 </table>
 </div>
 <p>Codex 还有一道受信门：项目配置层只在项目被信任时加载，源码的表述是“加载但禁用”，禁用范围包括项目本地配置、Hook 和执行策略<a href="#ref-26">[26]</a>。AGENTS.md 的处理在源码里另有一个条件，项目被显式标为 untrusted 时只返回用户层指令，而配置层的条件是“未被标为 trusted 即禁用”，两处边界情形不完全相同，本章没有运行验证<a href="#ref-26">[26]</a>。</p>
-<p>Claude Code 官方把这两种载体的性质写得很清楚：CLAUDE.md 与 Skill 是模型要解释的指令，Hook 是确定性执行；“不要编辑 .env”写在前者里只是请求<a href="#ref-45">[45]</a>。因此指令文件应当承载模型猜不到的事实（命令、风格、约定），必须成立的约束则交给权限规则或 Hook。这一点在 17.5.4 展开。</p>
+<p>Claude Code 官方把这两种载体的性质写得很清楚：CLAUDE.md 与 Skill 是模型要解释的指令，Hook 是确定性执行；“不要编辑 .env”写在前者里只是请求<a href="#ref-45">[45]</a>。因此指令文件应当承载模型猜不到的事实（命令、风格、约定），必须成立的约束则交给权限规则或 Hook。这一点在 18.5.4 展开。</p>
 <h3 id="1826-就绪条件对照"><a class="header" href="#1826-就绪条件对照">18.2.6 就绪条件对照</a></h3>
 <p><a href="../images/coding-agent-startup-comparison.svg"><img src="../images/coding-agent-startup-comparison.png" alt="Codex、Claude Code 与 OpenCode 的启动时序图：参与者生命线、请求与响应、条件分支及模型工具循环"></a></p>
 <p><em>启动时序对照。三幅时序沿生命线向下阅读：实线为调用或请求，虚线为响应，橙色为通知或界面展示；<code>alt</code> 表示条件分支，<code>opt</code> 表示可选 Hook，<code>loop</code> 表示模型与工具的重复交互。参与者是逻辑角色，不保证对应独立进程；Claude Code 仅描述官方可观察顺序。图中标注的依据见附录 B。</em></p>
@@ -421,28 +436,27 @@
 </tbody>
 </table>
 </div>
-<p>Codex 的 Turn 状态值得多说一句。活动 Turn 里有取消令牌、待决审批、待处理输入和工具调用，所以追加输入、审批等待和中断都发生在同一个状态对象里，而会话本身不受影响<a href="#ref-20">[20]</a>。OpenCode 的循环则带有明确的持久化边界：每个模型步骤请求前后各捕获一次文件快照，步骤结束时把消耗的 token 和成本写进事件（见 17.6.1）<a href="#ref-66">[66]</a><a href="#ref-72">[72]</a><a href="#ref-77">[77]</a>。</p>
+<p>Codex 的 Turn 状态值得多说一句。活动 Turn 里有取消令牌、待决审批、待处理输入和工具调用，所以追加输入、审批等待和中断都发生在同一个状态对象里，而会话本身不受影响<a href="#ref-20">[20]</a>。OpenCode 的循环则带有明确的持久化边界：每个模型步骤请求前后各捕获一次文件快照，步骤结束时把消耗的 token 和成本写进事件（见 18.6.1）<a href="#ref-66">[66]</a><a href="#ref-72">[72]</a><a href="#ref-77">[77]</a>。</p>
 <h3 id="1833-工具路由与权限裁决在循环中的位置"><a class="header" href="#1833-工具路由与权限裁决在循环中的位置">18.3.3 工具路由与权限裁决在循环中的位置</a></h3>
 <p>三个产品都把“模型能看到的工具声明”与“真正可执行的工具”分开。Codex 的 <code>ToolRouter</code> 里，<code>model_visible_specs</code>（模型可见的声明）和 <code>registry</code>（可执行的注册表）是两个不同的字段，模型返回的调用要先转换成内部的 <code>ToolCall</code> 再分发<a href="#ref-21">[21]</a>。OpenCode 的 <code>Tool.snapshot</code> 同样返回模型可见的定义和执行函数，被 <code>*</code> 整体拒绝的工具会从定义中移除<a href="#ref-76">[76]</a>。工具声明不等于执行权限，这是后面各种裁决的前提。</p>
 <p>Codex 把审批、沙箱选择和重试串成一个流程：先按审批策略决定是否放行，再在选定的沙箱里首次尝试；如果被沙箱拒绝，按策略决定是否请求“去掉沙箱重试”的批准，批准后再做第二次尝试。源码注释说明，在 <code>never</code> 或 <code>on-request</code> 策略下不会去掉沙箱重试，而是返回一条保留原始输出的简短拒绝；文件头的注释还写明，自动审核给出的批准只适用于已审核的授权范围，升级沙箱重试需要对这次重试重新审核<a href="#ref-21">[21]</a>。每次沙箱结果（拒绝、超时、信号、升级）都会作为遥测事件记录<a href="#ref-21">[21]</a>。MCP 工具走同一套审批：官方称带有破坏性注解的 app 或 MCP 工具调用始终需要审批（除非该工具同时声明了读取注解）；<code>default_tools_approval_mode</code> 可取 <code>auto</code>、<code>prompt</code>、<code>writes</code>、<code>approve</code>，MCP 服务器的启动超时默认 10 秒，工具超时默认 60 秒<a href="#ref-8">[8]</a><a href="#ref-12">[12]</a>。</p>
 <p>Claude Code 的裁决顺序是：规则先于模式，按 deny、ask、allow 求值，首个匹配生效，具体度不改变顺序；PreToolUse Hook 的决定不能绕过规则，命中 deny 仍然阻断，命中 ask 仍然询问<a href="#ref-35">[35]</a>。auto 模式在此之上加入一个分类器模型，在动作执行前审查：分类器看到的是用户消息、非只读的工具调用和 CLAUDE.md，工具结果被剥离，以免文件或网页里的敌对内容直接操纵分类器；读取、搜索和工作目录内的编辑不经过分类器。受保护的路径（<code>.git</code>、<code>.claude</code>、<code>.mcp.json</code> 等）的写入永远不被自动批准，bypass 模式除外<a href="#ref-34">[34]</a>。官方还写明，企业与 API 账户上分类器调用计入 token 用量，每次检查要多一次往返，开销主要来自 Shell 命令和网络操作<a href="#ref-34">[34]</a>。</p>
 <p>OpenCode 的求值写在 <code>permission.ts</code> 里：先取该 Agent 与会话的规则；只要任一资源命中 deny 就直接 deny，已保存的批准不参与；否则合并已保存的批准，任一资源为 ask 则 ask，否则 allow；最后触发插件的 <code>permission.evaluate</code> 钩子，Policies 就是在这一步生效的<a href="#ref-75">[75]</a>。规则为 ask 时，工具调用以 <code>Deferred</code> 挂起，客户端用 <code>once</code>、<code>always</code> 或 <code>reject</code> 回复，<code>always</code> 会写入项目级的持久 allow 规则，并且不会覆盖已配置的 deny<a href="#ref-63">[63]</a><a href="#ref-75">[75]</a>。</p>
-<p>这三套机制的共同点是：每一次动作都要单独裁决，不是在进入循环之前检查一次。差别在于谁来裁决——用户、规则、分类器，还是插件钩子——以及裁决之后进程还受不受沙箱约束（见 17.1.7）。</p>
+<p>这三套机制的共同点是：每一次动作都要单独裁决，不是在进入循环之前检查一次。差别在于谁来裁决——用户、规则、分类器，还是插件钩子——以及裁决之后进程还受不受沙箱约束（见 18.1.7）。</p>
 <h3 id="1834-上下文管理加载压缩与按需读取"><a class="header" href="#1834-上下文管理加载压缩与按需读取">18.3.4 上下文管理：加载、压缩与按需读取</a></h3>
-<p>上下文是三个产品共同的瓶颈，也是它们差异最大的地方之一。</p>
 <p>Claude Code 官方给出的上下文内容包括对话、文件与命令结果、项目指令、载入的 Skill 和系统指令。接近上限时，它先清理较旧的工具输出，必要时再摘要对话，官方明说，对话早期的详细指令可能因此丢失<a href="#ref-31">[31]</a>。压缩之后哪些内容还在，官方也列了出来：根目录的 CLAUDE.md、无作用域的规则和 auto memory 会从磁盘重新注入；已调用的 Skill 正文重新注入，单个上限 5,000 token、合计上限 25,000 token，旧的先丢；嵌套的 CLAUDE.md 与按路径作用域的规则是读到文件时才载入，载入后进入消息历史，压缩时和其他内容一起被摘要，需要再次读取才会回来<a href="#ref-39">[39]</a><a href="#ref-40">[40]</a>。触发点未设置时在模型的上下文上限处压缩，可以用 <code>autoCompactWindow</code>、<code>/autocompact</code> 或环境变量调整<a href="#ref-48">[48]</a>；自 v2.1.290 起还有空闲压缩，在提示缓存过期之前趁空闲时压缩<a href="#ref-41">[41]</a>。MCP 工具定义默认延迟加载，只有工具名和服务器说明进入上下文，但这只在受支持的模型上成立，Foundry 上的 Azure 托管部署、设置了 <code>CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS</code> 或使用 HIPAA 配置时会关闭<a href="#ref-54">[54]</a>。用户可以用 <code>/compact &lt;指令&gt;</code>、CLAUDE.md 里的 Compact Instructions 段落，以及 <code>/rewind</code> 中的“从此处摘要”来控制保留什么<a href="#ref-31">[31]</a><a href="#ref-37">[37]</a>。</p>
 <p>Codex 的自动压缩由阈值触发：当前范围内的 token 数达到自动压缩上限（含缓冲），或活动上下文达到模型的完整窗口，就强制压缩。源码里默认的上限是模型配置值与解析后窗口的 90% 之中较小的一个，官方文档只说“未设置时使用模型默认值”<a href="#ref-23">[23]</a><a href="#ref-5">[5]</a>。压缩分采样前、回合中、回合后三个相位，回合后压缩由 <code>model_post_turn_compact_threshold_percent</code> 控制，省略或设为 0 表示关闭<a href="#ref-23">[23]</a><a href="#ref-26">[26]</a>。压缩提示词要求产出一份“交接摘要”，包含进度、约束和剩余事项；它并没有声称摘要包含工作区的文件状态；压缩后保留的用户消息最多 20,000 token<a href="#ref-23">[23]</a>。</p>
 <p>OpenCode 2.x 的自动压缩默认开启：接近上限时总结整个当前对话，并在摘要旁保留最近约 15,000 token（<code>compaction.keep.tokens</code> 的默认值）；之后的压缩基于上一个检查点之后的对话更新已有摘要。每个步骤请求前都会检查：估算上下文达到天花板就压缩，天花板是窗口减去缓冲，缓冲未设置时取窗口的 15% 与 16k 中较大者；窗口未知则不触发自动压缩<a href="#ref-67">[67]</a><a href="#ref-73">[73]</a>。官方文档直言“压缩是有损的”，摘要是结构化文本（目标、决策、进行中的工作、阻塞与下一步、相关文件），保留的近期对话里较长的工具输出会被缩短；固定指令与工具 schema 占满窗口时，压缩无效<a href="#ref-67">[67]</a>。关于压缩用哪个模型，文档说“没有单独的压缩模型”，源码却会读取隐藏的 <code>compaction</code> Agent 的模型，二者的矛盾本章没有解决，不写成“可配置”，也不写成“绝对不能”<a href="#ref-67">[67]</a><a href="#ref-73">[73]</a>。</p>
-<p>三者共同说明了一件事：压缩保存的是任务的连续性，不是工作区的当前状态。压缩后的任务应当重新对照仓库：文件是否仍是记录中的版本，差异是否变了，测试是否针对当前差异运行。稳定的约束适合放进持久的指令，动态的代码事实应当回到来源重新读取；这两类信息在压缩中的命运完全不同，17.4.3 会说明具体后果。</p>
+<p>三者共同说明了一件事：压缩保存的是任务的连续性，不是工作区的当前状态。压缩后的任务应当重新对照仓库：文件是否仍是记录中的版本，差异是否变了，测试是否针对当前差异运行。稳定的约束适合放进持久的指令，动态的代码事实应当回到来源重新读取；这两类信息在压缩中的命运完全不同，18.4.3 会说明具体后果。</p>
 <h3 id="1835-委派与多-agent"><a class="header" href="#1835-委派与多-agent">18.3.5 委派与多 Agent</a></h3>
 <p>“上下文分开”和“工作区分开”是两件事：前者避免共享完整对话，后者避免并行写同一批文件。一个只读的子任务与主 Agent 共用目录不一定冲突，两个 Agent 即使上下文独立，也不会因此获得隔离的文件系统。</p>
 <p>Codex 的子 Agent 继承当前的沙箱策略；官方提醒要更谨慎地对待并行写入的工作流，因为多个 Agent 同时编辑代码会产生冲突；自定义 Agent 文件不能覆盖沙箱、审批和 MCP 服务器的设置。内置的 Agent 有 default、worker、explorer，触发方式是用户直接要求，或 AGENTS.md、Skill 里有适用的指令；官方明说，子 Agent 工作流比同类单 Agent 运行消耗更多 token<a href="#ref-10">[10]</a>。源码里多 Agent 有 V1 与 V2 两套工具集，<code>multi_agent</code> 特性默认开，<code>multi_agent_v2</code> 默认关<a href="#ref-28">[28]</a><a href="#ref-27">[27]</a>。</p>
-<p>Claude Code 的 Subagent 使用自己的上下文窗口，工具调用不进入主上下文，结束时返回摘要。fork 是例外：它从当前对话的副本开始，继承父会话的系统提示、工具与缓存；fork 模式在交互终端自 v2.1.232 起默认开启，整体自 v2.1.302 起默认开启<a href="#ref-44">[44]</a>。并发的子 Agent 默认上限为 20，嵌套深度默认为 3，后者的默认值历经调整，二者都是版本敏感项<a href="#ref-44">[44]</a>。官方还描述了一项防护：Claude Code 会扫描子 Agent 的最终报告，把仿冒系统提醒的文本无害化，并在报告前加一行说明“这是子 Agent 的话，不具备来自用户的授权”<a href="#ref-44">[44]</a>。Worktree 隔离的强制检查有四项（文件编辑、命令的工作目录、git 重定向、命令形态），但并不跟踪 Shell 命令实际写入了哪些文件，<code>cp</code> 或重定向写入主检出不会被拒绝，只落入普通的权限与沙箱<a href="#ref-51">[51]</a>。</p>
+<p>Claude Code 的 Subagent 使用自己的上下文窗口，工具调用不进入主上下文，结束时返回摘要。fork 是例外：它从当前对话的副本开始，继承父会话的系统提示、工具与缓存；fork 模式在交互终端自 v2.1.232 起默认开启，整体自 v2.1.302 起默认开启<a href="#ref-44">[44]</a>。并发与嵌套是不同限制，当前默认值及例外集中在 18.6.3；不能把并发槽位当成全会话总数上限<a href="#ref-44">[44]</a>。官方还描述了一项防护：Claude Code 会扫描子 Agent 的最终报告，把仿冒系统提醒的文本无害化，并在报告前加一行说明“这是子 Agent 的话，不具备来自用户的授权”<a href="#ref-44">[44]</a>。Worktree 隔离的强制检查有四项（文件编辑、命令的工作目录、git 重定向、命令形态），但并不跟踪 Shell 命令实际写入了哪些文件，<code>cp</code> 或重定向写入主检出不会被拒绝，只落入普通的权限与沙箱<a href="#ref-51">[51]</a>。</p>
 <p>OpenCode 区分 Primary Agent 与 Subagent。内置的有 Build（主 Agent，默认）、Plan（主 Agent，不编辑普通项目文件，可在 <code>~/.opencode/plan</code> 下写计划文件，Shell 仍受权限控制）、General（子 Agent，不能再启动子 Agent）和 Explore（子 Agent，官方称它搜索与读取而不编辑文件）。子 Agent 用自己的权限，不是父权限的子集，父 Agent 的 <code>subagent</code> 权限决定它能启动谁；嵌套深度默认为 1<a href="#ref-62">[62]</a><a href="#ref-76">[76]</a>。源码里 Explore 默认拒绝一切，只放行 shell、read、glob、grep、webfetch、websearch 与 external_directory<a href="#ref-76">[76]</a>；因为 shell 被放行，它能否保证只读，仍取决于 shell 的规则（系统推导）。</p>
 <p>委派的结果是证据候选，不是最终证据：子 Agent 的摘要需要和差异、测试结果一起核对。并行修改还要先解决文件冲突，再验证合并后的整体。</p>
 <h3 id="1836-验证与可审查交付"><a class="header" href="#1836-验证与可审查交付">18.3.6 验证与可审查交付</a></h3>
 <p>三个产品对“完成”的要求，官方材料的详细程度差别很大。</p>
-<p>Claude Code 的官方最佳实践把验证做成了一个由弱到强的阶梯：在同一条 prompt 里要求运行检查并迭代；用 <code>/goal</code> 条件，由一个独立的评估器在每轮后复核；用 Stop Hook 把检查作为确定性的闸门，在检查通过前阻止本轮结束；用验证子 Agent 或动态工作流，让一个新的模型尝试推翻结果，使做事的 Agent 不是给自己打分的那个<a href="#ref-32">[32]</a>。其中有两条边界需要记住：<code>/goal</code> 的评估器不调用工具，只能判断 Claude 已经呈现在对话里的内容<a href="#ref-53">[53]</a>；Stop Hook 连续阻止结束有上限，默认 8 次，第 9 次起被覆盖并结束本轮，防止永远不满足的条件造成死循环<a href="#ref-42">[42]</a>。</p>
+<p>Claude Code 的官方最佳实践把验证做成了一个由弱到强的阶梯：在同一条 prompt 里要求运行检查并迭代；用 <code>/goal</code> 条件，由一个独立的评估器在每轮后复核；用 Stop Hook 把检查作为确定性的闸门，在检查通过前阻止本轮结束；用验证子 Agent 或动态工作流，让一个新的模型尝试推翻结果，使做事的 Agent 不是给自己打分的那个<a href="#ref-32">[32]</a>。其中有两条边界需要记住：<code>/goal</code> 的评估器不调用工具，只能判断 Claude 已经呈现在对话里的内容<a href="#ref-53">[53]</a>；Stop Hook 连续阻止结束有上限，默认连续 8 次，下一次阻止会被覆盖；调用工具会重置连续计数，可用环境变量调整，详见 18.6.3。因此它不是不可绕过的发布闸门<a href="#ref-42">[42]</a>。</p>
 <p>Codex 提供 <code>/review</code> 与 <code>codex review</code>，目标可以是未提交的改动、与基础分支的差异、某个提交或自定义提示；评审在源码里是独立的任务类型，不接受同轮 steer<a href="#ref-14">[14]</a><a href="#ref-20">[20]</a><a href="#ref-27">[27]</a>。Codex 的 auto-review 要与它区分开：它是审批动作的审核人，不是代码评审，官方明说它是“换审核人”而不是授予权限<a href="#ref-9">[9]</a>。评审规则可以写进最近的 AGENTS.md，官方建议把格式与 lint 检查留给 CI<a href="#ref-6">[6]</a>。</p>
 <p>OpenCode 的 2.x 文档没有专门的验证页，只有会话差异的接口 <code>GET /api/session/{id}/diff</code>，可以读到本会话的文件变化<a href="#ref-68">[68]</a>。</p>
 <p>这些材料指向同一个结论：验证要以当前差异和真实的执行结果为准，不以模型的自述为准。“测试通过”要能追溯到命令、退出状态和对应的代码版本；diff、命令输出、权限决策和未覆盖的范围，应当是人可以核对的交付物，而不只是一段说明。</p>
@@ -471,7 +485,7 @@
 <p>失败、拒绝、取消是三种不同的结果，可靠的运行时要分别回送，而不是合并成一个“失败”。</p>
 <p>Codex 的工具失败默认不终止 Turn。<code>RespondToModel</code> 类的错误被写成工具输出，并把“需要后续采样”置为真，让下一次采样继续；只有 <code>Fatal</code> 才向上返回致命错误。非零退出码、超时和沙箱拒绝同样带着输出回送给模型。<code>apply_patch</code> 还有一个值得注意的情形：补丁可能在已经提交了一个前缀之后才被拒绝，事件仍然标记为失败，但本轮的差异会消费这个前缀，也就是文件修改不是原子的<a href="#ref-21">[21]</a>。工具调用被取消时，回送给模型的是 “tool call cancelled”<a href="#ref-20">[20]</a>。</p>
 <p>Codex 的审批决定区分了“拒绝”与“中止”：<code>Denied</code> 表示这个动作不要执行，但会话继续，Agent 应当另想办法；<code>Abort</code> 表示 Agent 在用户下一条指令之前什么都不要做<a href="#ref-21">[21]</a>。App Server 把客户端的 <code>decline</code> 映射为 <code>Denied</code>（“rejected by user”），把 <code>cancel</code> 映射为 <code>Abort</code>，客户端响应本身出错则映射为 <code>Denied</code>（“approval request failed”）；两种拒绝的 Item 状态是 <code>declined</code>，请求失败是 <code>failed</code><a href="#ref-25">[25]</a><a href="#ref-2">[2]</a>。随后 <code>Denied</code> 变成回送模型的拒绝结果，<code>Abort</code> 变成 <code>TurnAborted</code> 结束本轮，回送的文案会被截断到 900 token。源码还留有一条 TODO：<code>ToolError::Rejected</code> 同时被用于“用户拒绝”和部分“运行时失败”，所以不能把所有 <code>declined</code> 都解读为用户拒绝<a href="#ref-21">[21]</a>。策略层面还有第三种拒绝：<code>approval_policy = never</code> 时，本该弹窗的请求直接得到拒绝理由，不会询问<a href="#ref-21">[21]</a>。自动审核的拒绝则带着强约束文案——不得通过变通、间接执行或绕过策略去追求同一结果；官方文档称，同一个 Turn 内连续 3 次拒绝，或最近 50 次审核中累计 10 次拒绝，会中断本轮，审核的构建、会话和解析失败按“失败即关闭”处理，超时单独呈现，动作同样不会运行<a href="#ref-9">[9]</a><a href="#ref-8">[8]</a>。源码中的阈值是同样的 3、10、50，但应用服务器的说明写明，只有 <code>circuit_break_action = "strict"</code> 时，<code>TurnAborted</code> 才携带“拒绝过多”的错误，文档没有区分这一点，默认值下的行为本章没有验证<a href="#ref-30">[30]</a><a href="#ref-27">[27]</a>。</p>
-<p>Claude Code 在权限提示上按 Esc 等于拒绝这个动作；后台子 Agent 的权限提示里，Esc 只拒绝那一次调用而不停止子 Agent<a href="#ref-31">[31]</a><a href="#ref-49">[49]</a>。auto 模式下被分类器拦截的动作会列入 <code>/permissions</code> 的“最近拒绝”，可以按 <code>r</code> 手动批准后重试；Claude 会收到拒绝的原因。连续被拦截 3 次或累计 20 次，auto 模式暂停并退回逐次询问，阈值不可配置；<code>-p</code> 下没有可询问的对象，被拦截的动作不运行，但 Claude 继续而不是停止整个运行<a href="#ref-34">[34]</a>。Hook 的失败语义是一个容易被忽略的细节：PreToolUse 的 command、http、mcp_tool 类 Hook 超时，默认不阻断工具调用，除非该 Hook 配置了 <code>onFailure: "block"</code>；退出码 2 才是阻断，其他非零退出码只是非阻断的错误<a href="#ref-42">[42]</a>。也就是说，用 Hook 做强制检查时，要明确超时与失败时的行为，否则检查本身出问题会让动作放行。</p>
+<p>Claude Code 在权限提示上按 Esc 等于拒绝这个动作；后台子 Agent 的权限提示里，Esc 只拒绝那一次调用而不停止子 Agent<a href="#ref-31">[31]</a><a href="#ref-49">[49]</a>。auto 模式下被分类器拦截的动作会列入 <code>/permissions</code> 的“最近拒绝”，可以按 <code>r</code> 手动批准后重试；Claude 会收到拒绝的原因。连续被拦截 3 次或累计 20 次，auto 模式暂停并退回逐次询问，阈值不可配置；<code>-p</code> 下没有可询问的对象，被拦截的动作不运行，但 Claude 继续而不是停止整个运行<a href="#ref-34">[34]</a>。Hook 的失败语义是一个容易被忽略的细节：PreToolUse 的 command、http、mcp_tool 类 Hook 超时，默认不阻断工具调用，command/http Hook 可在 v2.1.295 起配置 <code>onFailure: "block"</code> 改变失败行为，不能把这个配置泛化到 mcp_tool；退出码 2 在支持的事件上可阻断，其他非零退出码在默认语义下是非阻断错误<a href="#ref-42">[42]</a>。也就是说，用 Hook 做强制检查时，要明确超时与失败时的行为，否则检查本身出问题会让动作放行。</p>
 <p>OpenCode 的拒绝分两种形态。<code>reject</code> 不带说明，产生 <code>DeclinedError</code>：工具调用以 “The user declined this tool call” 失败，随后这一步以中断结束，回合停止；带说明的 <code>reject</code> 产生 <code>CorrectedError</code>，说明作为反馈交给模型，模型可以继续。同一个会话里其他待处理的权限请求会被一并拒绝。配置里的 deny 则产生 <code>BlockedError</code>，消息是 “Permission denied: &lt;动作&gt;” 或策略给出的原因<a href="#ref-75">[75]</a><a href="#ref-72">[72]</a>。非交互的 <code>opencode run</code> 在没有人可以批准时，默认自动拒绝并附上反馈，让模型“不要这个动作，继续”；<code>--auto</code> 则对没有被明确 deny 的权限自动批准。这是源码事实，非文档承诺<a href="#ref-77">[77]</a>。</p>
 <p>同一个“拒绝”在三个产品里后果不同：Codex 的 <code>Denied</code> 让 Agent 另想办法，<code>Abort</code> 则让它停下；OpenCode 不带说明的拒绝会让回合停下，带说明的才继续；Claude Code 的 auto 拦截会把原因告诉模型。对使用者的含义是，拒绝时附上理由，通常比单纯点拒绝更能让 Agent 改道（本书建议，OpenCode 的 <code>CorrectedError</code> 是这一做法的机制基础）。</p>
 <h3 id="1843-上下文溢出与有损压缩"><a class="header" href="#1843-上下文溢出与有损压缩">18.4.3 上下文溢出与有损压缩</a></h3>
@@ -513,253 +527,152 @@
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th></th><th>Codex CLI</th><th>Claude Code</th><th>OpenCode 2.x</th></tr>
+<tr><th>异常维度</th><th>产品</th><th>固定来源下的行为</th></tr>
 </thead>
 <tbody>
-<tr><td>自动重试</td><td>退避从 200 毫秒起翻倍，最多 10% 抖动；<code>stream_max_retries</code> 默认 5（源码上限 100），<code>request_max_retries</code> 默认 4，<code>stream_idle_timeout_ms</code> 默认 300000<a href="#ref-5">[5]</a><a href="#ref-24">[24]</a></td><td>瞬时失败最多重试 10 次，指数退避（<code>CLAUDE_CODE_MAX_RETRIES</code> 默认 10）<a href="#ref-47">[47]</a></td><td>指数退避自 2 秒起，间隔上限 10 秒，最多 10 次，带抖动，总等待约 84 秒；Provider 的 <code>retryAfter</code> 取较大者，上限 15 分钟；传输超时类最多 3 次；响应头与流式块间隔的超时默认各 5 分钟<a href="#ref-72">[72]</a><a href="#ref-60">[60]</a></td></tr>
-<tr><td>不重试的情形</td><td><code>ContextWindowExceeded</code>、<code>UsageLimitReached</code>、<code>QuotaExceeded</code>、<code>InvalidRequest</code>、<code>Sandbox</code>、<code>Interrupted</code> 等；<code>ServerOverloaded</code> 仅当服务端给出建议延迟时才重试<a href="#ref-24">[24]</a></td><td>TLS 证书失败；已完成一个文本块或工具调用之后的服务器错误、断连或停滞；响应已完整之后的失败；组织策略拒绝<a href="#ref-47">[47]</a></td><td>未找到不重试情形的完整清单；限流与 Provider 内部错误属于可重试的分支<a href="#ref-72">[72]</a></td></tr>
-<tr><td>流中断之后</td><td>连接类失败默认无限重试，5 秒起翻倍、上限 60 秒（<code>unbounded_connection_retries</code> 默认开）；重试用尽后可从 WebSocket 回退到 HTTPS<a href="#ref-24">[24]</a></td><td>无人值守时，对“含文本、无工具调用”的截断响应自动让 Claude 继续，最多连续 3 次；交互会话里回复 <code>continue</code><a href="#ref-47">[47]</a></td><td>尚未输出可整体重试；已开始输出的中断流重试并注入“上一次回答被中断，从中断处继续”的合成提示；传输层的整体恢复只尝试一次<a href="#ref-72">[72]</a></td></tr>
-<tr><td>用量限额</td><td><code>UsageLimitReached</code> 不自动重试，但会刷新并保存最新的速率限制快照；TUI 在用量达 50%、75%、90%、95% 时预警，90% 时建议切换到更省额度的模型；官方称活动 Turn 触及限额时，Agent 可以继续该 Turn，受公平使用限制<a href="#ref-24">[24]</a><a href="#ref-18">[18]</a></td><td>session 与 weekly 限额跨模型共享，换模型无效；Opus 或 Sonnet 系列限额只限该系列；v2.1.234 起，交互会话在 claude.ai 订阅登录下可等待重置后自动续跑，且不重发上一条消息，再次触限最多再等 2 次<a href="#ref-47">[47]</a><a href="#ref-49">[49]</a></td><td>文档只写了 Console 的预算：超限请求返回 HTTP 429，属于产品说明，不是本地运行时功能；本地 Provider 的限流走重试分支<a href="#ref-60">[60]</a><a href="#ref-72">[72]</a></td></tr>
+<tr><td>自动重试</td><td>Codex CLI</td><td>退避从 200 毫秒起翻倍，最多 10% 抖动；<code>stream_max_retries</code> 默认 5（源码上限 100），<code>request_max_retries</code> 默认 4，<code>stream_idle_timeout_ms</code> 默认 300000<a href="#ref-5">[5]</a><a href="#ref-24">[24]</a></td></tr>
+<tr><td>自动重试</td><td>Claude Code</td><td>瞬时失败最多重试 10 次，指数退避（<code>CLAUDE_CODE_MAX_RETRIES</code> 默认 10）<a href="#ref-47">[47]</a></td></tr>
+<tr><td>自动重试</td><td>OpenCode 2.x</td><td>指数退避自 2 秒起，间隔上限 10 秒，最多 10 次，带抖动，总等待约 84 秒；Provider 的 <code>retryAfter</code> 取较大者，上限 15 分钟；传输超时类最多 3 次；响应头与流式块间隔的超时默认各 5 分钟<a href="#ref-72">[72]</a><a href="#ref-60">[60]</a></td></tr>
+<tr><td>不重试的情形</td><td>Codex CLI</td><td><code>ContextWindowExceeded</code>、<code>UsageLimitReached</code>、<code>QuotaExceeded</code>、<code>InvalidRequest</code>、<code>Sandbox</code>、<code>Interrupted</code> 等；<code>ServerOverloaded</code> 仅当服务端给出建议延迟时才重试<a href="#ref-24">[24]</a></td></tr>
+<tr><td>不重试的情形</td><td>Claude Code</td><td>TLS 证书失败；已完成一个文本块或工具调用之后的服务器错误、断连或停滞；响应已完整之后的失败；组织策略拒绝<a href="#ref-47">[47]</a></td></tr>
+<tr><td>不重试的情形</td><td>OpenCode 2.x</td><td>未找到不重试情形的完整清单；限流与 Provider 内部错误属于可重试的分支<a href="#ref-72">[72]</a></td></tr>
+<tr><td>流中断之后</td><td>Codex CLI</td><td>连接类失败默认无限重试，5 秒起翻倍、上限 60 秒（<code>unbounded_connection_retries</code> 默认开）；重试用尽后可从 WebSocket 回退到 HTTPS<a href="#ref-24">[24]</a></td></tr>
+<tr><td>流中断之后</td><td>Claude Code</td><td>无人值守时，对“含文本、无工具调用”的截断响应自动让 Claude 继续，最多连续 3 次；交互会话里回复 <code>continue</code><a href="#ref-47">[47]</a></td></tr>
+<tr><td>流中断之后</td><td>OpenCode 2.x</td><td>尚未输出可整体重试；已开始输出的中断流重试并注入“上一次回答被中断，从中断处继续”的合成提示；传输层的整体恢复只尝试一次<a href="#ref-72">[72]</a></td></tr>
+<tr><td>用量限额</td><td>Codex CLI</td><td><code>UsageLimitReached</code> 不自动重试，但会刷新并保存最新的速率限制快照；TUI 在用量达 50%、75%、90%、95% 时预警，90% 时建议切换到更省额度的模型；官方称活动 Turn 触及限额时，Agent 可以继续该 Turn，受公平使用限制<a href="#ref-24">[24]</a><a href="#ref-18">[18]</a></td></tr>
+<tr><td>用量限额</td><td>Claude Code</td><td>session 与 weekly 限额跨模型共享，换模型无效；Opus 或 Sonnet 系列限额只限该系列；v2.1.234 起，交互会话在 claude.ai 订阅登录下可等待重置后自动续跑，且不重发上一条消息，再次触限最多再等 2 次<a href="#ref-47">[47]</a><a href="#ref-49">[49]</a></td></tr>
+<tr><td>用量限额</td><td>OpenCode 2.x</td><td>文档只写了 Console 的预算：超限请求返回 HTTP 429，属于产品说明，不是本地运行时功能；本地 Provider 的限流走重试分支<a href="#ref-60">[60]</a><a href="#ref-72">[72]</a></td></tr>
 </tbody>
 </table>
 </div>
 <p>Claude Code 的重试规则里有一条值得单独引用的理由：已经完成了一个文本块或工具调用之后，如果出现服务器错误、断连或停滞，不会整体重试，因为“重新发送请求可能把同一批工具调用执行两次”，所以改为保留 Claude 已完成的输出，运行已完成的工具调用，并从它们的结果继续（v2.1.199 起）<a href="#ref-47">[47]</a>。这是“重试要先区分有没有副作用”最直接的官方例证。无人值守时可以设置 <code>CLAUDE_CODE_RETRY_WATCHDOG=1</code>，对 429 与 529 无限重试，但对“花费上限或用量积分耗尽”的 429 立即失败<a href="#ref-47">[47]</a>。</p>
 <p>OpenCode 的输出被长度截断时，源码追加一条合成提示，要求把剩余工作拆小；连续三条助手消息都因长度结束就失败，错误是“仍然被截断”<a href="#ref-72">[72]</a>。</p>
 <p>以上数字只对各自产品、各自版本、各自配置口径成立，不能互相比较。</p>
-<h3 id="1848-未找到与待核验"><a class="header" href="#1848-未找到与待核验">18.4.8 未找到与待核验</a></h3>
-<p>下面这些问题，本章没有找到公开的答案。写出来是为了防止读者把空白当成默认行为。</p>
+<h3 id="1848-公开证据未覆盖的保证"><a class="header" href="#1848-公开证据未覆盖的保证">18.4.8 公开证据未覆盖的保证</a></h3>
+<p>以下范围限定为本章固定源码提交与已列官方文档。没有直接证据支持的机制不当作默认保证；新版本需重新核对，不能从检索未命中推断实现绝对不存在。</p>
 <ul>
 <li>Codex：现行的文件级撤销机制；Plan mode 是否有运行时的强制，只在提示词模板里读到“可以执行不改变状态的动作，不得执行会改变状态的动作”的规则，不能写成沙箱级的保证<a href="#ref-29">[29]</a>；进程崩溃后自动续跑的机制；“恢复不接管旧进程”的直接陈述。</li>
 <li>Claude Code：Agent Loop 的内部终止判据与线程模型；会话 JSONL 的条目格式（官方称属内部实现）；压缩“反复重新填满”保护的具体次数<a href="#ref-31">[31]</a><a href="#ref-38">[38]</a>。</li>
 <li>OpenCode：中止时运行中的 Shell 子进程是否被终止；重启后待处理的权限请求是否保留，源码里只见内存中的映射，位置关闭时会被取消；分叉的内部实现；压缩模型是否可配置，文档与源码互相矛盾<a href="#ref-67">[67]</a><a href="#ref-73">[73]</a><a href="#ref-75">[75]</a>。</li>
 </ul>
-<h2 id="185-实践用好-coding-agent"><a class="header" href="#185-实践用好-coding-agent">18.5 实践：用好 Coding Agent</a></h2>
-<p>前四部分描述了运行时怎样工作。这一部分讲使用者能做什么。</p>
-<p>本节每条做法都标注依据：“官方建议”指官方文档明确写出的建议；“本书建议”指本书依据前文机制归纳的做法；OpenCode 2.x 没有最佳实践或调优专页，相关内容只是功能说明，不写成官方建议。产品行为带版本门槛的地方，以所用版本的文档为准。</p>
-<h3 id="1851-杠杆在哪里四类输入"><a class="header" href="#1851-杠杆在哪里四类输入">18.5.1 杠杆在哪里：四类输入</a></h3>
-<p>运行时的表现在很大程度上取决于它拿到什么输入。使用者能影响的输入可以分成四类，与 17.1.1 的四层对应：</p>
+<h2 id="185-实践按影响范围决定授权"><a class="header" href="#185-实践按影响范围决定授权">18.5 实践：按影响范围决定授权</a></h2>
+<h3 id="1851-先定义可审查交付"><a class="header" href="#1851-先定义可审查交付">18.5.1 先定义可审查交付</a></h3>
+<p>一个任务应说明允许读取与修改的路径、预期产物、验证命令、停止条件和外部副作用边界。代码差异与运行证据是验收对象；最终说明不能替代仓库状态。通用任务契约见<a href="../part3/02-context-engineering.html#task-protocol">上下文工程</a>，本章关注三种产品怎样承载它。</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>输入</th><th>内容</th><th>对应的机制</th></tr>
+<tr><th>工作</th><th>可先授予的能力</th><th>增加能力前的证据</th></tr>
 </thead>
 <tbody>
-<tr><td>任务</td><td>目标、范围、验收标准、禁区</td><td>本轮循环（17.3.1）</td></tr>
-<tr><td>上下文</td><td>稳定约束与动态事实</td><td>指令加载与压缩（17.2.5、17.3.4）</td></tr>
-<tr><td>边界</td><td>权限、沙箱、审批</td><td>裁决与隔离（17.1.7、17.3.3）</td></tr>
-<tr><td>验证</td><td>可运行的检查与审查方式</td><td>验证与交付（17.3.6）</td></tr>
+<tr><td>阅读与定位</td><td>项目范围只读工具</td><td>来源可追溯、敏感路径不可读</td></tr>
+<tr><td>小范围可逆编辑</td><td>明确工作区写入</td><td>diff 可审查，验证命令可信</td></tr>
+<tr><td>运行构建或测试</td><td>限定命令和环境</td><td>依赖、网络、子进程与凭据边界清楚</td></tr>
+<tr><td>外发、部署或数据变更</td><td>按具体对象单独授权</td><td>影响预览、当前身份、批准与恢复责任</td></tr>
+<tr><td>长时间无人值守</td><td>受限执行器与有界任务</td><td>预算、停止、日志、未知效果和人工接管均可观察</td></tr>
 </tbody>
 </table>
 </div>
-<p>Claude Code 官方最佳实践页把大多数建议归到一个约束上：上下文窗口很快被填满，填满之后表现下降<a href="#ref-32">[32]</a>。官方没有给出退化的量化数据，这是定性的陈述，本章把它作为实践与调优两部分共同的前提。Codex 官方指南的总纲是：不要把它当作一次性的助手，而要当作一个需要配置并持续改进的队友<a href="#ref-19">[19]</a>。两者都在说同一件事：使用者的工作不是写出一条完美的提示，而是持续为运行时提供合适的输入。</p>
-<p>这些输入分属三种角色：交付任务的委派者、维护指令文件、权限和扩展的配置者，以及设定组织级规则的管理者（Claude Code 的 managed 设置、OpenCode 的 Policies）。同一条做法对不同角色的杠杆不同，下文会在需要时指明。</p>
-<h3 id="1852-交代任务目标上下文约束与完成条件"><a class="header" href="#1852-交代任务目标上下文约束与完成条件">18.5.2 交代任务：目标、上下文、约束与完成条件</a></h3>
-<p>Codex 官方建议提示包含四个要素：目标（Goal）、上下文（Context）、约束（Constraints）和完成条件（Done when）；完成条件的写法是“这一轮结束之前应当为真的事情，比如测试通过、行为改变、或某个缺陷不再复现”<a href="#ref-19">[19]</a>（官方建议）。</p>
-<p>Claude Code 官方用前后对照说明什么叫“具体”<a href="#ref-32">[32]</a>（官方建议）：</p>
+<p>“只运行测试”也要看仓库脚本。测试命令可能安装依赖、调用网络或触发钩子，不能仅凭名字判为无副作用。工作区隔离能降低文件冲突，不能自动隔离共享数据库、发布凭据和外部接口。对并发写入指定单一写者或使用隔离工作区，合并时再验证共同状态。</p>
+<h3 id="1852-策略沙箱与-hook-的执行强度"><a class="header" href="#1852-策略沙箱与-hook-的执行强度">18.5.2 策略、沙箱与 Hook 的执行强度</a></h3>
+<p>权限策略决定动作是否获准，OS 沙箱决定进程能实际触达什么，Hook 决定某些生命周期点运行什么逻辑。Hook 的超时、错误和放行策略会改变阻断强度；存在默认放行或未覆盖的执行路径时，不能把它等同于资源端 deny。先检查有效策略与沙箱，再把 Hook 用作补充检查与审计。</p>
+<p>下表把隔离实现、网络入口和启动失败分开。它描述核验日的文档及固定源码，没有在这些平台上实测。网络默认指受限执行路径；解除沙箱、排除命令或外层容器策略会改变结果。<a href="#ref-78">[78]</a><a href="#ref-79">[79]</a><a href="#ref-80">[80]</a></p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>方法</th><th>含糊的写法</th><th>具体的写法</th></tr>
+<tr><th>产品与平台</th><th>OS 实现与覆盖范围</th><th>网络默认与配置</th><th>无法实施隔离时</th></tr>
 </thead>
 <tbody>
-<tr><td>限定范围</td><td>“给 foo.py 加测试”</td><td>“为 foo.py 写一个测试，覆盖用户已登出的边界情形，避免使用 mock”</td></tr>
-<tr><td>指向来源</td><td>“ExecutionFactory 的接口为什么这么怪？”</td><td>“翻一下 ExecutionFactory 的 git 历史，总结这个接口是怎么变成现在这样的”</td></tr>
-<tr><td>引用既有模式</td><td>“加一个日历组件”</td><td>指向首页上已有的组件作为模式，要求沿用，并说明不要引入代码库里没有的库</td></tr>
-<tr><td>描述症状</td><td>“修一下登录的 bug”</td><td>描述现象、可能的位置和“修好”的标准，并要求先写一个能复现问题的失败测试</td></tr>
+<tr><td>Codex，macOS</td><td>Seatbelt，按实际沙箱策略限制工具进程</td><td>受限模式默认不启用网络；workspace-write 可设 <code>network_access=true</code>，托管代理/域名策略另行控制</td><td>无法实施所需受限策略时拒绝执行，不能解释成默认裸跑</td></tr>
+<tr><td>Codex，Linux/WSL</td><td>bubblewrap 与 seccomp；固定源码保留旧 Landlock 兼容路径</td><td>bwrap 按策略加 <code>--unshare-net</code>；受管代理可形成有策略的网络路径</td><td>legacy Landlock 不能隔离 App Server Unix socket，受限文件系统策略下会拒绝该不兼容组合</td></tr>
+<tr><td>Codex，原生 Windows</td><td>官方区分 MXC/进程隔离与旧 elevated/unelevated 路径；WSL 使用 Linux 路径</td><td>取决于所选实现与有效策略，不能套用 Linux namespace 结论</td><td>必须核对实际后端与启动日志，本文不声称全后端能力相同</td></tr>
+<tr><td>Claude Code，macOS</td><td>Seatbelt（sandbox-exec）；沙箱默认关闭，启用后覆盖 Shell 及子进程</td><td>无直接外连，走本地代理；allowedDomains 初始为空，未列域名按权限模式处理</td><td>默认依赖缺失/平台不支持时可无沙箱运行；<code>sandbox.failIfUnavailable=true</code> 改为启动失败</td></tr>
+<tr><td>Claude Code，Linux/WSL2</td><td>bubblewrap+socat，范围同上；原生 Windows 不支持此沙箱</td><td>strictAllowlist 等策略可拒绝未列域名；WebFetch 自有权限规则，不受此列表直接约束</td><td>除 failIfUnavailable，还应检查 excludedCommands 和无沙箱重试是否被允许</td></tr>
+<tr><td>OpenCode，所查固定提交</td><td>检查 Permission.evaluate、Shell 插件与 Shell.create 路径，未见同类 OS 沙箱装配</td><td>本章所查命令路径依赖宿主网络；webfetch 规则不自动约束 shell 内的 curl</td><td>需要由宿主容器/专用账户/网络策略提供隔离；这里是有限源码观察，不是全产品否定结论</td></tr>
 </tbody>
 </table>
 </div>
-<p>官方同时说明，含糊的提示在探索阶段也有用，比如问“这个文件有什么可以改进的”，可能暴露自己没想到要问的东西<a href="#ref-32">[32]</a>。较大的功能，官方建议先让 Claude 访谈用户，把完整的规格写进 <code>SPEC.md</code>，再开一个新会话去执行：新会话的上下文干净，只专注于实现；好的规格是自包含的，点明涉及的文件和接口，写明不在范围内的内容，并以端到端的验证步骤收尾<a href="#ref-32">[32]</a>。Codex 同样建议在想法模糊时让 Codex 先反问<a href="#ref-19">[19]</a>。</p>
-<p>本书建议：一次只交代一个目标；把“不做什么”和“完成的证据是什么”写出来；缺少关键信息时，让 Agent 先提问，而不是任由它自行补全缺口。</p>
-<h3 id="1853-先探索再规划再实现以及何时跳过"><a class="header" href="#1853-先探索再规划再实现以及何时跳过">18.5.3 先探索再规划再实现，以及何时跳过</a></h3>
-<p>Claude Code 官方推荐的流程有四个阶段：探索、规划、实现、提交。探索与规划阶段进入 plan mode（<code>claude --permission-mode plan</code>，或按 Shift+Tab 切换），Agent 只读文件、回答问题而不修改；规划之后可以用 <code>Ctrl+G</code> 在编辑器里直接修改计划，再切出 plan mode 去实现<a href="#ref-32">[32]</a>（官方建议）。官方也明确指出 plan mode 有开销：改动一句话就能描述时，应当直接做，不必规划；规划在方向不确定、涉及多个文件或对被改的代码不熟悉时最有用<a href="#ref-32">[32]</a>。成本页提到，规划可以避免初始方向错误造成的昂贵返工<a href="#ref-33">[33]</a>。</p>
-<p>Codex 的 Plan mode 通过 <code>/plan</code> 或 Shift+Tab 进入，官方的说明是：先收集上下文、提出澄清问题，在实现之前形成更扎实的计划；更长的多步任务可以使用 <code>PLANS.md</code><a href="#ref-19">[19]</a>（官方建议）。已经在工作时 <code>/plan</code> 暂时不可用<a href="#ref-14">[14]</a>。有一点需要如实说明：源码里 Plan mode 的规则出现在提示词模板中，规定可以执行不改变状态的动作、不得执行会改变状态的动作；是否另有运行时的强制，本章没有核验，所以不能把它当作沙箱级的保证<a href="#ref-29">[29]</a>。</p>
-<p>OpenCode 2.x 有内置的 Plan 主 Agent：它探索并规划，不编辑普通项目文件，可以在 OpenCode 的计划目录下写计划文件，Shell 仍受权限控制；TUI 用 Shift+Tab 在 Agent 之间切换<a href="#ref-62">[62]</a><a href="#ref-57">[57]</a>。文档只描述了功能，没有给出“何时先规划”的建议。</p>
-<p>本书建议：用“能否一句话描述这次改动的 diff”来判断是否需要规划；规划的产物要落到文件里（<code>PLAN.md</code> 之类），因为 Claude Code 官方的对抗式审查示例，正是拿 diff 去对照 <code>PLAN.md</code> 检查每项需求是否实现<a href="#ref-32">[32]</a>。</p>
-<h3 id="1854-项目指令文件写什么不写什么"><a class="header" href="#1854-项目指令文件写什么不写什么">18.5.4 项目指令文件：写什么，不写什么</a></h3>
-<p>指令文件是使用者影响上下文最直接的手段，也是最容易写坏的。</p>
-<p>Claude Code 官方的判断标准很直接：对 CLAUDE.md 的每一行问一句“删掉它会让 Claude 出错吗”，不会就删。该写的是 Claude 从代码里猜不到的东西：Shell 命令、与默认不同的代码风格、测试说明、仓库的分支与 PR 约定、项目特有的架构决定、开发环境的特殊要求、不自明的陷阱；不该写的是读代码就能知道的内容、语言的标准约定、长篇教程、频繁变化的信息、逐文件的描述。官方还说，文件过长会让 Claude 忽略其中一半规则，要像对待代码一样对待它：出问题时回来审视，定期修剪，改完观察行为是否真的变化；个别反复被忽略的规则可以只在那一行加强调，强调的行多了就没有一行突出；可以用 <code>/init</code> 生成起点，用 <code>/doctor</code> 让 Claude 提出可删减的内容；仅在部分场景才用到的领域知识，用 Skill 按需加载，而不是塞进每次都加载的文件<a href="#ref-32">[32]</a>（官方建议）。官方成本页的数字建议是 CLAUDE.md 控制在 200 行以内<a href="#ref-33">[33]</a>。</p>
-<p>Codex 官方建议 AGENTS.md 覆盖仓库结构、运行与测试命令、约定、禁止事项以及如何验证；它的原话是，一个简短而准确的 AGENTS.md，比一个满是含糊规则的长文件更有用；Codex 反复犯同一个错误时，让它复盘，再把规则补进文件；<code>/init</code> 生成的模板要按团队的实际做法修改<a href="#ref-19">[19]</a>（官方建议）。核对 AGENTS.md 是否生效，官方给了具体的办法：在仓库根目录运行 <code>codex --ask-for-approval never "Summarize the current instructions."</code><a href="#ref-6">[6]</a>。官方定价页也建议缩小 AGENTS.md 以节省额度<a href="#ref-18">[18]</a>。</p>
-<p>OpenCode 2.x 的文档只说明了功能：它只认 AGENTS.md，不回退到 CLAUDE.md，不解决多个文件之间的冲突，下层目录的文件按需加载<a href="#ref-61">[61]</a>。把一个原本为 Claude Code 写的仓库迁到 OpenCode 2.x 时，这一点会直接影响指令是否生效。</p>
-<p>三个产品的文件名、层级、加载时机和大小限制都不同（见 17.2.5），必须分别核对。本书建议：只写 Agent 猜不到的事实，写完用行为去检验，而不是只看文件内容；必须成立的约束不要只放在这里，因为 Claude Code 官方明说，指令文件里的“不要编辑 .env”只是请求而不是保证，必须每次发生的事要用 Hook 或权限规则<a href="#ref-45">[45]</a>。</p>
-<h3 id="1855-让验证成为任务的一部分"><a class="header" href="#1855-让验证成为任务的一部分">18.5.5 让验证成为任务的一部分</a></h3>
-<p>Claude Code 最佳实践页把“给 Claude 一个能验证自己工作的办法”放在第一位，理由是：Claude 在工作“看起来完成”时就会停下，如果没有一个能运行的检查，“看起来完成”就是唯一的信号，使用者自己成了验证回路。检查可以是测试套件、构建的退出码、linter、与固定样本比对输出的脚本，或者与设计稿比对的浏览器截图<a href="#ref-32">[32]</a>（官方建议）。官方的对照示例是：不说“实现一个校验邮箱的函数”，而是给出几组期望的结果并要求实现后运行测试；不说“构建失败了”，而是贴出错误，要求修复并验证构建通过，同时“解决根因，不要压制错误”。官方还建议让 Claude 出示证据，而不是断言成功：测试输出、运行过的命令和返回值、或者结果的截图，因为审阅证据比自己重新验证更快，也适用于没有守着的会话<a href="#ref-32">[32]</a>。</p>
-<p>官方给出的闸门强度有四档（见 17.3.6）。对抗式审查需要注意一个细节：让审查者去“找缺口”，它通常会找出一些，即使工作本身没问题；追着每一条意见改，会造成过度设计，比如多余的抽象层和为不可能出现的情形写的测试。官方建议告诉审查者只报告影响正确性或既定需求的缺口，其余作为可选项<a href="#ref-32">[32]</a>。官方对没法验证的东西的态度也很明确：如果无法验证，就不要发布<a href="#ref-32">[32]</a>。</p>
-<p>Codex 的官方建议与此一致：让 Codex 写或更新测试、运行检查、在接受之前审查 diff；<code>/review</code> 可以审查未提交的改动、与基础分支的差异或某个提交，也可以带自定义的指令<a href="#ref-19">[19]</a><a href="#ref-14">[14]</a>。OpenCode 2.x 没有对应的官方建议，只有可以读到会话差异的接口<a href="#ref-68">[68]</a>。</p>
-<p>本书建议：把验证命令直接写进任务描述，把“完成”定义为命令的结果；审查时看命令、退出状态和对应的代码版本，而不是只看模型的叙述；判据不要由生成者来改写；报告里要写明哪些范围没有被验证。</p>
-<h3 id="1856-权限与沙箱从默认开始渐进放权"><a class="header" href="#1856-权限与沙箱从默认开始渐进放权">18.5.6 权限与沙箱：从默认开始，渐进放权</a></h3>
-<p>Claude Code 官方给出了六种权限模式和各自适用的场景<a href="#ref-34">[34]</a>：</p>
+<p>启用沙箱也不自动隐藏继承的环境变量或已有凭据。一个允许网络的命令若拿到广权限令牌，仍可能调用远端生产服务；本地只读策略不能撤回这种远端权限。部署时用受限测试身份，核对一个禁止路径、一个未允许域名和一次沙箱启动失败，分别确认拒绝发生在哪里；这些是本书建议的验收动作，不是本章已经执行的实验。</p>
+<h3 id="1853-按可逆性和影响范围逐级放权"><a class="header" href="#1853-按可逆性和影响范围逐级放权">18.5.3 按可逆性和影响范围逐级放权</a></h3>
+<p>任务设计保留四项输入：目标、当前上下文、约束、完成条件。Codex 将它们归纳为 Goal、Context、Constraints、Done when；Claude Code 的最佳实践强调给出可执行验证、尽早纠偏和控制上下文。<a href="#ref-19">[19]</a><a href="#ref-32">[32]</a> 这些输入不等于权限：一份清楚的任务描述仍需匹配实际执行边界。</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>模式</th><th>无需询问的内容</th><th>官方给出的适用场景</th></tr>
+<tr><th>决策问题</th><th>可采用的工作方式</th><th>放权前要看到的证据</th><th>回退边界</th></tr>
 </thead>
 <tbody>
-<tr><td><code>default</code>（界面名 Manual）</td><td>仅读取</td><td>逐项审查、敏感工作</td></tr>
-<tr><td><code>acceptEdits</code></td><td>读取、文件编辑，以及工作目录内常见的文件系统命令（<code>mkdir</code>、<code>touch</code>、<code>rm</code>、<code>rmdir</code>、<code>mv</code>、<code>cp</code>、<code>sed</code>）</td><td>迭代之后会在编辑器或 <code>git diff</code> 里审查的代码</td></tr>
-<tr><td><code>plan</code></td><td>读取；auto 可用时还有分类器批准的命令</td><td>修改前探索</td></tr>
-<tr><td><code>auto</code></td><td>全部，附带后台的安全检查</td><td>长任务、减少提示疲劳</td></tr>
-<tr><td><code>dontAsk</code></td><td>工作目录内的读取与预先批准的工具，其余一律拒绝</td><td>CI 与脚本</td></tr>
-<tr><td><code>bypassPermissions</code></td><td>全部</td><td>仅限隔离的容器或虚拟机</td></tr>
+<tr><td>只需理解代码吗</td><td>限范围读取与搜索，按需补充材料</td><td>来源、适用版本、未决问题</td><td>可重新调查，仍需控制敏感内容读取</td></tr>
+<tr><td>需要修改本地代码吗</td><td>独立分支/检出、限定写入目录、运行验证</td><td>实际 diff、测试输出和影响范围</td><td>git/checkpoint 只覆盖各自跟踪的文件变化</td></tr>
+<tr><td>要安装依赖或联网测试吗</td><td>明确网络出口、测试身份与依赖来源</td><td>依赖变更、锁文件、有效沙箱与域名策略</td><td>远端调用及安装脚本的效果不由文件回退撤销</td></tr>
+<tr><td>要提交、发布或改远端数据吗</td><td>将候选产物、批准和执行分开</td><td>具体版本、目标、审批范围及资源端回执</td><td>需要远端恢复流程，不能通过会话 rewind 撤销</td></tr>
+<tr><td>要批量或并行修改吗</td><td>先少量试跑、独立工作区、明确写者和合并者</td><td>单项差异、整体测试与冲突处理</td><td>分支隔离不隔离共享数据库、凭据或外部 API</td></tr>
 </tbody>
 </table>
 </div>
-<p>三点需要强调。第一，官方对 auto 的表述是“减少权限提示，但不保证安全”，deny 规则在所有模式下都生效，包括 bypass<a href="#ref-34">[34]</a>。第二，起始模式依版本而定（见 17.2.3），使用者不要凭印象判断“默认是逐次询问”。第三，官方最佳实践提醒，Manual 模式下点到第十次，往往就变成了点击而不是审查，减少提示的两种办法是预先批准确信安全的工具，以及启用沙箱<a href="#ref-32">[32]</a>。</p>
-<p>Codex 官方的建议是：新手从默认权限开始，只对可信的仓库或特定的工作流放宽；审批作用域选择“能让任务继续的最窄范围”，跨不相关的仓库时用单独的项目或 worktree，而不是放宽访问；<code>codex exec</code> 默认是只读沙箱，要写入需要显式指定 <code>--sandbox workspace-write</code>；自动审核会额外调用模型，增加用量<a href="#ref-19">[19]</a><a href="#ref-8">[8]</a><a href="#ref-13">[13]</a><a href="#ref-9">[9]</a>。</p>
-<p>OpenCode 2.x 的权限页给了一个“常见配置”示例：<code>shell</code> 默认询问，<code>git status</code>、<code>git diff</code> 允许，<code>git push</code> 拒绝；该页唯一明确的建议是优先使用窄的 Shell 允许列表，而不是试图识别所有危险命令的模式，因为目录推断是尽力而为的。想让项目目录外的访问先询问，要自己添加 <code>external_directory</code> 的 ask 规则<a href="#ref-63">[63]</a>。</p>
-<p>本书建议：把放权做成一个阶梯，从只读探索开始，依次是工作目录内的受限写入、允许列表内的命令、外部副作用的逐次审批；可预判的动作写成规则，需要判断的留给人；放权之前先确保有回退手段（版本控制）和验证手段。审批和隔离分开配置，不要指望点了同意就等于安全。</p>
-<h3 id="1857-会话与上下文卫生"><a class="header" href="#1857-会话与上下文卫生">18.5.7 会话与上下文卫生</a></h3>
-<p>Claude Code 官方的会话管理建议集中在“尽早纠偏、积极管理上下文”：不相关的任务之间用 <code>/clear</code>；同一个问题纠正超过两次，说明上下文里已经堆满失败的尝试，应当清空并写一个吸收了教训的更具体的提示重来；需要控制压缩保留什么时，用 <code>/compact &lt;指令&gt;</code>，或者在 CLAUDE.md 里写明压缩时必须保留的内容；<code>/btw</code> 提出的旁支问题不进入对话历史；会话用 <code>/rename</code> 命名并像分支一样对待，用 <code>--continue</code> 或 <code>--resume</code> 回来<a href="#ref-32">[32]</a>（官方建议）。官方还说，checkpoint 允许让 Claude 大胆尝试，不行就回退，但它只跟踪通过文件编辑工具做出的改动，不跟踪 Bash 命令，不能替代 git<a href="#ref-32">[32]</a>。</p>
-<p>Codex 官方建议一个对话对应一个连贯的工作单元，只在工作真正分叉时才 fork，用 <code>/compact</code> 或依赖自动压缩，用 <code>/status</code> 查看剩余的上下文容量，<code>/recap</code> 可以在不压缩上下文的情况下回顾对话<a href="#ref-19">[19]</a><a href="#ref-14">[14]</a>。OpenCode 2.x 的 TUI 提供 <code>/btw</code> 与 <code>/undo</code>，工作中按 Enter 是 steer，<code>Ctrl+X</code> 再 Enter 是排队<a href="#ref-57">[57]</a>，文档同样只是功能说明。</p>
-<p>本书建议：压缩之后或者长时间中断之后，先让 Agent 重新读取工作区的当前状态，并重述当前有效的约束，因为只在对话里口头说明的约束可能已经被摘要掉（见 17.4.3）；用“一个会话一个目标”作为默认，只有在深度处理一个复杂问题、历史本身有价值时，才让上下文累积，官方也承认这些模式不是铁律<a href="#ref-32">[32]</a>。</p>
-<h3 id="1858-用扩展承载重复工作skillmcphooksubagent"><a class="header" href="#1858-用扩展承载重复工作skillmcphooksubagent">18.5.8 用扩展承载重复工作：Skill、MCP、Hook、Subagent</a></h3>
-<p>Claude Code 官方的选择指引是按“出现了什么情况”来触发建设的<a href="#ref-45">[45]</a>（官方建议）：</p>
+<p>Claude plan 模式用于先分析，但不是 OS 只读保证：auto 可用时允许分类器批准的命令，交互会话中 bypass 可用时还有例外，判断以有效权限模式与沙箱为准。<a href="#ref-34">[34]</a> Claude 的 checkpoint 不跟踪 Bash 造成的全部文件变化，不能替代版本控制；worktree 分开文件检出，也不自动隔离网络和凭据。<a href="#ref-32">[32]</a><a href="#ref-51">[51]</a></p>
+<p>把稳定、无法从代码猜到的约定放进项目指令；把条件使用的知识放进 Skill；让 MCP 或工具提供外部能力；用 Hook 做有明确失败语义的检查；用子 Agent 分隔调查上下文。不要为每一种输入重复维护同一条长规则。项目指令过长时先删除可从代码恢复的信息，再观察是否影响任务验收；一条强调过的句子不构成强制边界。<a href="#ref-32">[32]</a><a href="#ref-45">[45]</a></p>
+<p>例如“修复会话超时后的登录失败”，完成条件应是能复现的失败用例通过、既有测试未回归、公共接口保持约定。Agent 交付 diff 和实际执行记录，使用者再决定是否提交。若测试需要生产令牌，先提供受限测试身份，不能因本地修改可逆就放开生产权限。批量迁移也先固定清单，在少量文件验证后扩大；每批冻结输入与验收口径，失败时保留是哪一批、哪些文件和哪些检查尚未完成。</p>
+<h2 id="186-调优把产品旋钮变成可检验假设"><a class="header" href="#186-调优把产品旋钮变成可检验假设">18.6 调优：把产品旋钮变成可检验假设</a></h2>
+<h3 id="1861-先定位误差再调整配置"><a class="header" href="#1861-先定位误差再调整配置">18.6.1 先定位误差，再调整配置</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>出现的情况</th><th>该用什么</th></tr>
+<tr><th>症状</th><th>假设</th><th>单次改变</th><th>验收信号</th></tr>
 </thead>
 <tbody>
-<tr><td>同一个约定或命令错了两次</td><td>写进 CLAUDE.md</td></tr>
-<tr><td>反复敲同一条提示，或第三次粘贴同一个流程</td><td>做成可调用的 Skill</td></tr>
-<tr><td>反复从浏览器或外部系统复制数据</td><td>MCP</td></tr>
-<tr><td>为了找符号要读很多文件</td><td>代码智能插件</td></tr>
-<tr><td>旁支任务淹没了主会话</td><td>子 Agent</td></tr>
-<tr><td>要求“每次都发生”</td><td>Hook</td></tr>
-<tr><td>第二个仓库要同样的配置</td><td>插件</td></tr>
+<tr><td>长任务偏离目标</td><td>状态或压缩丢了限制</td><td>更换摘要/回源策略</td><td>约束保真、成功率与总成本</td></tr>
+<tr><td>工具反复失败</td><td>错误反馈或权限不匹配</td><td>修契约/可见工具集合</td><td>无效调用、越权和重复动作</td></tr>
+<tr><td>token 成本高</td><td>静态前缀或重复材料过多</td><td>固定内容布局</td><td>同任务成功成本，不能只看缓存命中</td></tr>
+<tr><td>子任务互相覆盖</td><td>写入责任不清</td><td>指定写者/隔离工作区</td><td>合并冲突、重复修改和验证结果</td></tr>
+<tr><td>看似完成但没有产物</td><td>完成判定只信模型文本</td><td>加入差异/测试验收</td><td>未验证成功声明被识别</td></tr>
+<tr><td>取消后仍出现外部效果</td><td>请求已经发出</td><td>增加原动作查询/核验</td><td>未知项收敛，不能用更短超时替代</td></tr>
 </tbody>
 </table>
 </div>
-<p>官方还给出了各类机制对上下文的成本：CLAUDE.md 每次请求都带全文；Skill 每次请求只带描述；MCP 成本较低（工具名，schema 按需加载）；Hook 为零，除非返回输出；子 Agent 与主会话隔离<a href="#ref-45">[45]</a>。Codex 的官方建议与此呼应：重复使用同一条提示、或反复纠正同一个流程，就应当做成 Skill，从 2 到 3 个具体用例开始，一个 Skill 只做一件事，描述写清做什么、何时用；MCP 用于上下文在仓库之外、数据经常变化或需要可重复集成的场景，从一两个工具开始，不要一上来就把所有工具都接进来；“Skill 定义方法，定时任务定义时间表”，先手动跑到可靠再定时<a href="#ref-19">[19]</a><a href="#ref-11">[11]</a><a href="#ref-12">[12]</a>。OpenCode 2.x 也有 Skills、Commands、Plugins、MCP，文档只是功能说明；其中 Commands 的 Shell 块在权限流程之外运行，只应使用可信的来源<a href="#ref-65">[65]</a>。</p>
-<p>本书建议按约束的性质选择承载机制：必须每次发生的，用 Hook 或权限规则；方法和领域知识，用 Skill；外部数据与动作，用 MCP；边界清晰的独立调查，用子 Agent；模型猜不到的事实性约定，用指令文件。</p>
-<h3 id="1859-并行与规模化worktree非交互模式与批量"><a class="header" href="#1859-并行与规模化worktree非交互模式与批量">18.5.9 并行与规模化：worktree、非交互模式与批量</a></h3>
-<p>Claude Code 官方给出了几种并行方式：用 worktree 让多个会话在隔离的检出里互不冲突；<code>claude -p</code> 非交互运行，可以输出 JSON 或流式 JSON，默认仍会创建可恢复的会话，除非加 <code>--no-session-persistence</code>；批量迁移可以先让 Claude 把要迁移的文件列成清单，再用脚本循环调用 <code>claude -p</code>，用 <code>--allowedTools</code> 预先批准需要的工具，配合 <code>--permission-mode dontAsk</code> 拒绝其余一切，官方明确建议先在两三个文件上试跑，再全量运行；<code>/batch</code> 会把改动拆给 5 到 30 个子 Agent，各在自己的 worktree 里工作；Writer / Reviewer 模式用新的上下文做审查，因为它不会偏向自己刚写的代码<a href="#ref-32">[32]</a><a href="#ref-50">[50]</a><a href="#ref-51">[51]</a>（官方建议）。Agent teams 是实验功能，默认关闭<a href="#ref-32">[32]</a>。</p>
-<p>Codex 官方把“在同一批文件上不用 worktree 跑实时任务”列为常见错误；worktree 默认处于分离的 HEAD 状态，文档说明这样可以创建多个 worktree 而不污染分支，同时 Git 只允许一个分支同时在一处被检出；<code>codex exec --worktree</code> 可以直接在 worktree 里运行<a href="#ref-19">[19]</a><a href="#ref-15">[15]</a>。定时任务在无人值守时用默认的沙箱设置运行，在 <code>workspace-write</code> 下，需要修改工作区外的文件、访问网络或操作本机应用的工具调用会失败；官方建议先手动跑到可靠再定时<a href="#ref-16">[16]</a><a href="#ref-19">[19]</a>。CI 里的凭证，官方建议不要把 API key 设成会运行仓库受控代码的 job 级环境变量，GitHub 上用官方的 action<a href="#ref-13">[13]</a>。</p>
-<p>OpenCode 2.x 的 <code>opencode run</code> 支持 <code>--format json</code>、<code>--continue</code>、<code>--agent</code>、<code>--model provider/model#variant</code>；文档里的 CI 示例用 <code>--standalone</code>，让私有服务能拿到环境变量里的 API key<a href="#ref-57">[57]</a>。需要注意源码里的行为：非交互运行遇到权限询问默认自动拒绝，<code>--auto</code> 才会自动批准没有被明确 deny 的权限（源码事实，非文档承诺）<a href="#ref-77">[77]</a>。</p>
-<p>三个产品的非交互入口默认行为各不相同：<code>claude -p</code> 在没有指定模式时，v2.1.302 及以后默认是 Manual，需要审批的调用被拒绝；<code>codex exec</code> 默认是只读沙箱；<code>opencode run</code> 自动拒绝权限询问<a href="#ref-34">[34]</a><a href="#ref-13">[13]</a><a href="#ref-77">[77]</a>。这意味着同一个脚本换一个产品，需要的显式配置是不同的。</p>
-<p>本书建议：并行的读取与调查可以放心铺开；并行的写入必须隔离工作区，或指定单一写入者；批量任务先在少量样本上试跑；无人值守的运行要有精确的允许列表，并且放在容器或沙箱里。</p>
-<h3 id="18510-常见问题与诊断"><a class="header" href="#18510-常见问题与诊断">18.5.10 常见问题与诊断</a></h3>
-<p>下表合并了 Claude Code 官方列出的失败模式、Codex 官方列出的常见错误，以及对应的对策。</p>
+<h3 id="1862-使用产品差异建立同口径实验"><a class="header" href="#1862-使用产品差异建立同口径实验">18.6.2 使用产品差异建立同口径实验</a></h3>
+<p>循环与恢复见<a href="../part3/03-agent-runtime.html">Runtime</a>，压缩见<a href="../part3/02-context-engineering.html#compression">上下文工程</a>，缓存计费见<a href="../part3/01-llm-api-protocol.html">LLM API</a>。这里比较产品能提供的观察。每次冻结代码、模型、工具、策略、数据与环境，滚动服务无法固定时记录实际时间和可见版本；统计与发布门禁参考第10、17章。</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>现象</th><th>常见原因</th><th>对策</th><th>依据</th></tr>
+<tr><th>决策对象</th><th>产品具体信号</th><th>验收边界</th></tr>
 </thead>
 <tbody>
-<tr><td>会话越来越慢、越来越贵，早先的指令像被忘了</td><td>一个会话里混杂了不相关的任务；纠正了多次仍然错，上下文里全是失败的尝试</td><td>不相关的任务之间清空；两次纠正未果就改写提示重来</td><td>Claude Code 官方失败模式<a href="#ref-32">[32]</a></td></tr>
-<tr><td>指令文件里的规则被忽略</td><td>文件太长，规则被淹没；措辞含糊</td><td>修剪；必须成立的规则改成 Hook</td><td>Claude Code 官方<a href="#ref-32">[32]</a></td></tr>
-<tr><td>报告完成，但边界情形没处理</td><td>没有给可运行的验证</td><td>把验证命令写进任务，要求出示证据</td><td>Claude Code 官方<a href="#ref-32">[32]</a></td></tr>
-<tr><td>调查读了几百个文件，上下文被占满</td><td>开放式的“去调查一下”</td><td>限定范围，或交给子 Agent</td><td>Claude Code 官方<a href="#ref-32">[32]</a></td></tr>
-<tr><td>同一条提示里堆了很多长期规则</td><td>把持久的约定写进每个提示</td><td>放进 AGENTS.md 或 Skill</td><td>Codex 官方常见错误<a href="#ref-19">[19]</a></td></tr>
-<tr><td>方向错了才发现，已经改了很多</td><td>跳过了探索与规划</td><td>先规划再实现</td><td>Codex、Claude Code 官方<a href="#ref-19">[19]</a><a href="#ref-32">[32]</a></td></tr>
-<tr><td>并行任务互相覆盖</td><td>在同一批文件上并行，没有隔离</td><td>用 worktree，或指定单一写入者</td><td>Codex 官方<a href="#ref-19">[19]</a></td></tr>
-<tr><td>一开始就给了全部权限</td><td>没有从默认权限起步</td><td>从默认开始，对可信场景再放宽</td><td>Codex 官方<a href="#ref-19">[19]</a></td></tr>
-<tr><td>定时任务时好时坏</td><td>手动运行尚未可靠就定了时</td><td>先手动稳定再定时</td><td>Codex 官方<a href="#ref-19">[19]</a></td></tr>
-<tr><td>审批总是点同意</td><td>审批太多，失去了审查的意义</td><td>把可预判的动作写成规则，保留需要判断的审批</td><td>Claude Code 官方<a href="#ref-32">[32]</a></td></tr>
+<tr><td>运行入口</td><td>Codex exec 的结构输出、结束状态和沙箱配置<a href="#ref-13">[13]</a>；自动化另查执行身份与失败记录<a href="#ref-16">[16]</a></td><td>先选入口再设计实验，交互审批结果不能直接替代CI无人值守结果</td></tr>
+<tr><td>模型与推理</td><td>Codex 的模型/推理/快速模式配置<a href="#ref-17">[17]</a>；Claude effort按模型校准，MAX_THINKING_TOKENS并非对所有模式生效<a href="#ref-48">[48]</a></td><td>同名强度不是同一计算量；分别测任务质量、首响应、总时长和实际费用</td></tr>
+<tr><td>用量计价</td><td>Claude本地usage为按标价估算，以控制台账单为准<a href="#ref-33">[33]</a>；其token.usage的input不含缓存读写；Codex有reasoning_output；OpenCode输出与推理合并计价<a href="#ref-52">[52]</a><a href="#ref-4">[4]</a><a href="#ref-77">[77]</a></td><td>先统一桶和单位，失败、重试、摘要与后台调用都计入任务总成本</td></tr>
+<tr><td>前缀布局</td><td>Claude按精确前缀匹配，变更会影响其后复用，缓存寿命与付费入口有关<a href="#ref-46">[46]</a></td><td>不用命中率代替质量；不为保缓存继续携带过期或撤权资料</td></tr>
+<tr><td>并行与委派</td><td>独立工作区、子任务事件和合并后的整体验证</td><td>各分支通过不等于集成通过，合并/审查费用与冲突都计入原任务</td></tr>
 </tbody>
 </table>
 </div>
-<h3 id="18511-案例修复一个失败的测试"><a class="header" href="#18511-案例修复一个失败的测试">18.5.11 案例：修复一个失败的测试</a></h3>
-<p>下面是一个教学构造的案例，不是实测。它把前面几条做法串成一次完整的任务，只使用本章已经核对过的入口。任务是：用户报告会话超时之后登录失败，仓库已有测试，但没有覆盖这个情形。</p>
+<p>以登录超时修复为教学实验：同一仓库快照、失败测试、权限与总预算下，比较一个配置变化。采集首次有效定位、最终差异、实际测试结果、全部调用费用与返工次数；模型写出“测试通过”却没有执行记录时判为验收不足。重复运行按任务配对，不能挑一次最短轨迹报告提速。</p>
+<p>若降低effort后更快，但漏掉取消竞态，调整没有满足质量约束；若拆子任务后搜索更快但合并冲突更多，计算总任务成本后才有可比结论。先解释收益来自单步计算、轮次数量还是等待变化，再决定扩大范围。这里是本书实验设计，未运行三个产品的横向基准，不给缺少测量条件的排名。</p>
+<p>验证本身也有成本，但删除必要测试会改变交付定义。可优化测试选择、缓存或执行顺序，必须保持同一任务验收；对安全、权限与未知必需动作的检查不能因节省token而取消。优化失败时回退配置，已产生的外部责任继续核验。</p>
+<h3 id="1863-版本敏感事实值适用路径和证据"><a class="header" href="#1863-版本敏感事实值适用路径和证据">18.6.3 版本敏感事实：值、适用路径和证据</a></h3>
+<p>下表集中记录容易被误当成永久常量的值。源码固定点与滚动文档属于不同证据，均不自动对应读者机器上的二进制；源码与文档不同，应保留差异并核对发行版，不能一概宣称某一方覆盖另一方。除注明外，下面各项核验于 2026-10-24，未运行产品实验。</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>阶段</th><th>做法</th><th>Claude Code</th><th>Codex CLI</th><th>OpenCode 2.x</th></tr>
+<tr><th>主张/事实</th><th>值与适用条件</th><th>证据与升级边界</th></tr>
 </thead>
 <tbody>
-<tr><td>交代任务</td><td>写出症状、可能的位置和完成条件：先写一个能复现问题的失败测试，修复后该测试与既有测试都通过；写明不改动公共接口</td><td>按官方“描述症状”的写法<a href="#ref-32">[32]</a></td><td>目标、上下文、约束、完成条件四要素<a href="#ref-19">[19]</a></td><td>同左，文档没有对应的写法建议</td></tr>
-<tr><td>探索与规划</td><td>先只读：读认证流程，列出要改的文件，把计划写成文件；改动超出一句话时才值得规划</td><td><code>claude --permission-mode plan</code><a href="#ref-32">[32]</a></td><td><code>/plan</code><a href="#ref-14">[14]</a></td><td>切换到 Plan 主 Agent<a href="#ref-62">[62]</a></td></tr>
-<tr><td>实现</td><td>在工作目录内可写，命令仍按规则询问或放行；不放宽到工作区之外</td><td>权限允许列表与沙箱<a href="#ref-32">[32]</a></td><td>默认的沙箱与审批<a href="#ref-19">[19]</a></td><td>自行添加 Shell 允许列表与 <code>external_directory</code> 的 ask 规则<a href="#ref-63">[63]</a></td></tr>
-<tr><td>验证</td><td>运行测试，要求出示命令、退出状态和输出，不接受“测试通过”的自述</td><td>官方：要求出示证据<a href="#ref-32">[32]</a></td><td>“完成条件”里写明测试通过<a href="#ref-19">[19]</a></td><td>读取会话差异，自行核对<a href="#ref-68">[68]</a></td></tr>
-<tr><td>审查</td><td>看 diff；让没有参与实现的一方对照计划审查，只报告影响正确性或既定需求的缺口</td><td>新的子 Agent 对照计划审查<a href="#ref-32">[32]</a></td><td><code>/review</code> 审查未提交的改动<a href="#ref-14">[14]</a></td><td>没有对应的专门功能，自行审查差异</td></tr>
-<tr><td>收尾</td><td>提交；下一个任务开新会话，不在这个会话里继续</td><td><code>/clear</code> 或 <code>/rename</code> 后切换<a href="#ref-32">[32]</a></td><td>一个对话一个工作单元<a href="#ref-19">[19]</a></td><td>同左，文档没有对应的建议</td></tr>
+<tr><td>Codex 子 Agent 深度</td><td>固定提交 V1 的 <code>agents.max_depth</code> 默认 1；配置注释明确 V2 忽略此字段</td><td>源码事实，<code>86e17e98c7f9</code>，config/mod.rs 的 DEFAULT_AGENT_MAX_DEPTH 与 V1 注释<a href="#ref-81">[81]</a>；先确认工具集 V1/V2，不能把 1 泛化为所有多 Agent 路径</td></tr>
+<tr><td>Codex 受信配置</td><td>项目 <code>trust_level="untrusted"</code> 仍可禁用项目配置；退役的是审批策略同名值</td><td>官方文档事实，permissions/agent-approvals-security<a href="#ref-78">[78]</a>；分开检查项目资源加载与工具审批的有效配置</td></tr>
+<tr><td>Codex Linux 实现开关</td><td>固定提交 UseLinuxSandboxBwrap 已标 Removed；UseLegacyLandlock 标 Deprecated，默认 false</td><td>源码事实，features/src/lib.rs；bwrap.rs 的网络 namespace 参数<a href="#ref-79">[79]</a>；不复制旧文章中的启用 bwrap 实验开关；检查受限策略兼容性</td></tr>
+<tr><td>Claude Stop Hook 连续阻止</td><td>默认 8，工具调用重置；<code>CLAUDE_CODE_STOP_HOOK_BLOCK_CAP</code> 可调整</td><td>官方文档事实，Hooks 的 Stop 章节<a href="#ref-82">[82]</a>；不是一次任务只允许 8 次，更不是不可覆盖的提交闸门</td></tr>
+<tr><td>Claude Hook 失败时阻断</td><td>command/http 的 <code>onFailure:"block"</code> 要求 v2.1.295+；默认 continue</td><td>官方文档事实，Hooks 的 Block the action when a hook fails<a href="#ref-82">[82]</a>；检查事件是否可阻断、Hook 类型、超时与启动错误，不推广到所有 Hook</td></tr>
+<tr><td>Claude 启动指令文件</td><td>CLAUDE.md ≤4 MiB 全文加载，&gt;4 MiB 整份跳过；子目录规则另有限制</td><td>官方文档事实，Memory 的文件上限说明<a href="#ref-83">[83]</a>；200 行是建议，不是启动硬上限；导入文件仍占上下文</td></tr>
+<tr><td>Claude 子 Agent 嵌套/并发</td><td>v2.1.219 起默认最多主会话下三层；并发默认 20，v2.1.217+，ultracode 豁免；恢复等入口还有例外</td><td>官方文档事实，Subagents 的 depth/concurrency 章节<a href="#ref-84">[84]</a>；两个环境变量分别控制深度与并发；不限制全会话累计创建数</td></tr>
+<tr><td>OpenCode 权限匹配</td><td>最后匹配生效，无匹配 fallback 为 ask；Agent 默认策略可先匹配 allow</td><td>源码事实，<code>c93aaae37157</code>，Permission.evaluate<a href="#ref-75">[75]</a>；区分算法兜底和实际规则，不把 ask 说成默认所有动作都会询问</td></tr>
+<tr><td>OpenCode 子 Agent 深度</td><td><code>experimental.subagent_depth ?? 1</code>，达到上限拒绝启动</td><td>源码事实，固定提交 tool/plugin/subagent.ts 的 depth 检查<a href="#ref-76">[76]</a>；启动权限与子 Agent 自身权限分别检查</td></tr>
 </tbody>
 </table>
 </div>
-<p>这个案例里没有哪一步依赖更聪明的模型。每一步改善的都是运行时拿到的输入：症状与完成条件让任务可验证，只读探索让方向先被审视，窄的权限限制了错误的影响范围，验证把“完成”变成可核对的结果，新的会话避免了无关的历史干扰。</p>
-<h3 id="18512-选择时该问的问题"><a class="header" href="#18512-选择时该问的问题">18.5.12 选择时该问的问题</a></h3>
-<p>下表不是产品排名，只列出公开资料能回答的几个选择问题。</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>问题</th><th>公开资料给出的信息</th></tr>
-</thead>
-<tbody>
-<tr><td>需要审计内部实现吗？</td><td>Codex 与 OpenCode 的源码可读，结论可以绑定固定提交；Claude Code 只能依据官方文档</td></tr>
-<tr><td>需要什么样的隔离？</td><td>Codex 有内置的沙箱模式；Claude Code 的沙箱可选、默认关闭且只覆盖 Shell 命令；OpenCode 2.x 的文档里未发现内置 OS 沙箱，需要容器与权限规则来补</td></tr>
-<tr><td>需要接入哪些模型？</td><td>OpenCode 有 Provider 目录与本地模型；Codex 可配置自定义提供商；Claude Code 使用 Claude 模型，但接入路径多样</td></tr>
-<tr><td>需要官方的使用指南吗？</td><td>Claude Code 与 Codex 有；OpenCode 2.x 没有专页</td></tr>
-<tr><td>要无人值守或进 CI 吗？</td><td>三者都有非交互入口，默认的权限行为各不相同（见 17.5.9）</td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="186-调优控制上下文成本与质量"><a class="header" href="#186-调优控制上下文成本与质量">18.6 调优：控制上下文、成本与质量</a></h2>
-<p>调优是在已经能用的基础上，有依据地改进耗时、成本、质量和稳定性。本章没有任何实测数据：下文出现的数字，要么是产品文档对当前版本行为的陈述，要么是厂商自报的数据，都会注明范围；调优建议标注“官方建议”或“本书建议”，OpenCode 2.x 在这一部分只有功能说明。</p>
-<h3 id="1861-调优什么怎样度量"><a class="header" href="#1861-调优什么怎样度量">18.6.1 调优什么，怎样度量</a></h3>
-<p>可以调的目标有四个：任务质量、延迟、成本和可靠性。权限、验证与审查属于边界，不在调优的范围内（见 17.6.8）。</p>
-<p>度量时有几个容易犯的错误。第一，按“每次请求”算成本会掩盖失败后返工的代价，按“每个成功完成的任务”算才能和质量放在一起比较（本书建议）。第二，产品内置的成本数字多半是估算：Claude Code 的 <code>/usage</code> 在本地按标价用 token 数计算美元数，官方明说这是估算，权威的账单要看控制台；计划用量的数字来自本机的会话历史，不含其他设备<a href="#ref-33">[33]</a>。第三，模型的输出不确定，同一个任务要重复多次，看分布，而不是看一次运行（本书建议）。</p>
-<p>Claude Code 官方成本页建议，先用一个小规模的试点组建立基线，再用跟踪工具推广，因为每位开发者的成本随模型选择、代码库大小和使用方式（比如同时开多个实例、使用自动化）差异很大<a href="#ref-33">[33]</a>（官方建议）。官方自报的数字是：在企业部署中，平均每位开发者每个活跃日约 13 美元，每月 150 到 250 美元，90% 的用户每个活跃日低于 30 美元。这是 Anthropic 对其企业部署的自报，没有给出样本量、时间范围和模型构成，只能当作量级参考，不能当作可迁移的基准（厂商报告）<a href="#ref-33">[33]</a>。</p>
-<p>本书建议：先固定一组有代表性的任务，记录任务类型、上下文长度和工具调用次数；每次只改一个变量，在质量约束不变的条件下比较成功率、延迟和成本；把固定开销（每次请求都要付的系统提示、工具定义、指令文件、技能描述）与增长开销（对话、文件内容、命令输出）分开看。</p>
-<h3 id="1862-上下文预算最基本的约束"><a class="header" href="#1862-上下文预算最基本的约束">18.6.2 上下文预算：最基本的约束</a></h3>
-<p>Claude Code 官方把上下文视为最重要的资源，并给出了一组具体手段<a href="#ref-33">[33]</a><a href="#ref-32">[32]</a>（官方建议）：</p>
-<ul>
-<li>任务之间用 <code>/clear</code> 重新开始，过期的上下文会在之后每条消息里白白消耗 token；清空前先用 <code>/rename</code>，之后可以 <code>/resume</code> 回来。</li>
-<li>用 <code>/compact &lt;指令&gt;</code> 或 CLAUDE.md 里的 Compact Instructions 告诉压缩该保留什么。</li>
-<li>MCP 工具定义默认延迟加载；有现成命令行工具时优先用命令行（<code>gh</code>、<code>aws</code>、<code>gcloud</code>、<code>sentry-cli</code>），因为它们不增加逐个工具的清单；<code>/mcp</code> 可以禁用不用的服务器。</li>
-<li>用 Hook 预处理输出：官方的示例是让 Hook 用 grep 取出日志里的 <code>ERROR</code> 行，把上下文从“数万个 token”降到“数百个”，这是示意性的说法，不是实测。</li>
-<li>把流程性的专项指令从 CLAUDE.md 挪进 Skill，使基础上下文更小，CLAUDE.md 控制在 200 行以内。</li>
-<li>把冗长的操作（跑测试、抓文档、处理日志）交给子 Agent，只让摘要回到主对话；子 Agent 自己的请求仍然计入用量。</li>
-<li>写具体的提示：官方举例，“改进这个代码库”会触发大范围的扫描，而“给 auth.ts 里的登录函数加输入校验”则让读取的文件很少。</li>
-</ul>
-<p>Codex 官方给出的建议更简短：缩小 AGENTS.md，限制使用的 MCP 服务器数量，因为每个 MCP 服务器都会给消息增加上下文<a href="#ref-18">[18]</a>。可调的配置包括：Skill 描述列表的预算（最多占模型上下文窗口的 2%，窗口未知时为 8,000 字符，<code>skills.max_context_tokens</code> 上限为 10,000 token）、<code>tool_output_token_limit</code> 与逐工具的 <code>tools.&lt;tool&gt;.output_token_limit</code>（历史里单个工具输出的预算）、<code>project_doc_max_bytes</code>（默认 32 KiB）<a href="#ref-11">[11]</a><a href="#ref-5">[5]</a><a href="#ref-6">[6]</a>。</p>
-<p>OpenCode 2.x 的文档只列出了配置项：<code>compaction.keep.tokens</code> 默认 15,000，文档对这个参数唯一的取舍说明是“当近期的精确细节很重要时，加大 <code>keep.tokens</code>”；工具输出默认最多 2,000 行或 51,200 字节<a href="#ref-67">[67]</a><a href="#ref-58">[58]</a>。这些配置项没有被写成官方的调优建议。</p>
-<p>本书建议：先压缩固定开销，因为每一次请求都要付一遍，之后才轮到增长开销；对增长开销，靠隔离（子 Agent）、预处理（Hook 或脚本）和限定范围来控制，而不是等到上下文快满了再靠自动压缩补救。</p>
-<h3 id="1863-模型与推理强度"><a class="header" href="#1863-模型与推理强度">18.6.3 模型与推理强度</a></h3>
-<p>Claude Code 官方的措辞是：Sonnet 能很好地处理大多数编码任务，成本比 Opus 低，Opus 留给复杂的架构决策和多步骤推理；简单的子 Agent 任务可以在其配置里指定 Haiku 级的模型；会话中途可以用 <code>/model</code> 切换<a href="#ref-33">[33]</a>（官方建议，具体模型名和别名随版本变化，本章不硬写）。推理强度（effort）是另一个旋钮：扩展思考默认开启，思考 token 按输出计费，默认预算可达数万 token；简单任务可以用 <code>/effort</code> 降低强度，或在 <code>/config</code> 里关闭思考；有些模型无法关闭思考，<code>MAX_THINKING_TOKENS</code> 只对固定预算的模型有效，自适应推理的模型会忽略非零值<a href="#ref-33">[33]</a><a href="#ref-48">[48]</a>。官方还指出，强度刻度是按模型校准的，同名的级别不代表同一个底层数值，<code>max</code> 级别可能边际收益递减并倾向于过度思考，推广之前应先测试<a href="#ref-48">[48]</a>。</p>
-<p>Codex 的配置键是 <code>model_reasoning_effort</code>，可选值依模型与客户端而不同。官方文档的一般性建议是：更高的推理强度可以改善复杂任务的结果，但更慢、更耗 token；先用默认值，需要更深入的规划或分析时再提高；选型页给出的方法是“保留满足质量门槛的最轻档位”；最佳实践指南按任务给出了低、中或高、超高三档的粗略对应，并为具体的模型给出了起点，那些起点含模型名，随版本变化，这里不转述<a href="#ref-17">[17]</a><a href="#ref-5">[5]</a><a href="#ref-19">[19]</a>（官方建议）。Codex 还有快速模式：<code>/fast</code> 或 <code>service_tier = "fast"</code>，官方称它使用包含在订阅内的额度，倍率是标准的 2.5 倍，用购买的额度或企业按量计费时是 2 倍，这些倍率与模型有关，属版本敏感项<a href="#ref-17">[17]</a>。子 Agent 的默认模型和推理强度也可单独配置（<code>agents.default_subagent_model</code>、<code>agents.default_subagent_reasoning_effort</code>）<a href="#ref-10">[10]</a>。</p>
-<p>OpenCode 2.x 的模型选择有明确的优先级：会话已选的模型优先于配置里的默认值；Agent 与命令都可以带自己的 <code>model</code>，命令的 <code>model</code> 优先于命令所选 Agent 的 <code>model</code>，再优先于当前会话模型；子 Agent 没配置模型时继承父会话<a href="#ref-60">[60]</a><a href="#ref-62">[62]</a><a href="#ref-65">[65]</a>。推理相关的选项通过 <code>variants</code> 表达，例如 <code>reasoningEffort</code>；根配置的 <code>model</code> 只保留默认的 Provider 与模型，不保留变体，变体要在会话、运行、Agent 或命令上指定<a href="#ref-60">[60]</a>。有一个容易误用的地方：Agent 配置里的 <code>request</code>（请求头与请求体覆盖）在 2.x 中目前不会随模型请求发送，官方文档明确要求把生效的请求设置配在 Provider、模型或变体上，所以“按 Agent 设置 temperature”不能写成 2.x 可用的能力<a href="#ref-62">[62]</a>。小模型的用途是标题生成，写作 <code>agents.title.model</code>（1.x 的 <code>small_model</code> 被归一化到它）；标题生成不会阻塞模型执行<a href="#ref-59">[59]</a><a href="#ref-72">[72]</a>。OpenCode 文档没有关于“何时选哪个模型”的建议。</p>
-<h3 id="1864-缓存与会话节奏"><a class="header" href="#1864-缓存与会话节奏">18.6.4 缓存与会话节奏</a></h3>
-<p>Claude Code 官方对提示缓存写得最详细。缓存按请求前缀精确匹配，前缀中任何位置的变化都会令其后的全部内容重算，没有按文件或片段的缓存；请求的顺序是系统提示（核心指令与工具定义）、项目上下文（CLAUDE.md、auto memory、无作用域的规则）、对话，把不常变的放在前面<a href="#ref-46">[46]</a>。缓存因不活动而过期，每次命中重置计时，API 有 5 分钟与 1 小时两档，1 小时档的缓存写入费率更高。官方文档对当前版本的默认值是：订阅下、计划用量内的主对话请求 1 小时，其他情形（用量积分、API key、云厂商）为 5 分钟；子 Agent、工作流、fork、压缩、会话标题等其他请求默认 5 分钟<a href="#ref-46">[46]</a>。</p>
-<p>会使缓存失效的动作官方列得很具体：切换模型（每个模型各有缓存，<code>opusplan</code> 每次进出 plan 都是一次切换，自动的模型备用切换也算）；切换推理强度（多数模型如此）；开启快速模式；连接或移除 MCP 服务器（工具定义延迟加载时不受影响）；压缩（设计上就会令对话层失效，系统提示与项目上下文层可以保持）；累积大量图片；升级 Claude Code。不会使缓存失效的动作包括：编辑仓库里的文件（以系统提醒的形式追加）、切换权限模式、调用 Skill、<code>/rewind</code>（回到已缓存的前缀，反而命中）、派生子 Agent（它的首个请求不读父缓存，但父缓存不受影响）。会话中编辑 CLAUDE.md 既不使缓存失效，也不会生效，要等到 <code>/clear</code>、<code>/compact</code> 或重启<a href="#ref-46">[46]</a>。</p>
-<p>这解释了成本页的一个观察：离开超过缓存有效期之后的第一条消息会未命中缓存，需要重新处理整个上下文；恢复一个旧会话后立刻 <code>/compact</code> 最贵，因为历史要按未缓存的输入计费；缓存仍热时压缩则便宜得多。官方建议在任务自然的间隔处手动 <code>/compact</code>，而不是等自动压缩在任务中途触发，放弃某条路径用 <code>/rewind</code> 而不是压缩<a href="#ref-46">[46]</a><a href="#ref-33">[33]</a>（官方建议）。网关也是一个风险点：如果网关丢掉了 <code>cache_control</code> 标记却返回成功，整段对话历史每一轮都会按未缓存计费<a href="#ref-46">[46]</a>。</p>
-<p>Codex 在本章核对的材料里没有专门的缓存文档；源码里只有一条相关的注释：压缩请求超限时从最老的历史项开始裁剪，“是为了保住前缀缓存并保留近期消息”<a href="#ref-23">[23]</a>。OpenCode 2.x 在需要缓存断点的路由上自动放置断点，经 OpenAI 兼容的代理访问 Claude 时需要把 <code>compatibility.cacheFormat</code> 设为 <code>anthropic</code>（或 <code>alibaba</code>），默认缓存约 5 分钟；压缩请求发送完整对话以复用常规请求的缓存前缀，最后一步保留工具定义以保持前缀<a href="#ref-60">[60]</a><a href="#ref-73">[73]</a><a href="#ref-72">[72]</a>。它还有一个默认关闭的“保温”功能：空闲 4 分钟后发送一次丢弃响应的瞬态请求，持续到最近一次非保温请求之后 30 分钟，官方明说这会产生真实的 token 与费用<a href="#ref-65">[65]</a>。</p>
-<p>本书建议：长时间离开之前，在任务的自然断点处压缩或结束会话；避免在会话中途切换模型或推理强度；把稳定的内容留在前缀里，把易变的内容放在后面。</p>
-<h3 id="1865-扩展与并行的成本"><a class="header" href="#1865-扩展与并行的成本">18.6.5 扩展与并行的成本</a></h3>
-<p>扩展和并行会增加请求数，成本随之上升。</p>
-<p>Claude Code 官方列出了长会话里“看不见”的消耗来源：每次请求都发送完整对话；会话级的定时任务在空闲时仍按间隔触发并带着全部上下文；来自另一个会话的消息会在空闲时作为新的一轮送达；目标（goal）的检查在空闲时也会启动新的一轮，每个目标在两次用户提示之间最多 3 次空闲检查（v2.1.246 起），设置 <code>CLAUDE_CODE_GOAL_CHECKIN_MINUTES=0</code> 可关闭；子 Agent 与工作流各自发请求；Agent teams 的每个队友持续消耗直到退出；<code>/compact</code> 本身也要读完整对话<a href="#ref-33">[33]</a>。后台功能（对话摘要等）也会少量消耗，官方称通常每个会话低于 0.04 美元，没有给出测量条件（厂商报告）<a href="#ref-33">[33]</a>。</p>
-<p>关于 Agent teams，官方称在队友处于 plan mode 时，token 用量约为标准会话的 7 倍，没有给出工作负载与测量方法，只能当作厂商报告的量级；官方建议队友用 Sonnet 级模型、团队保持小规模、spawn 提示保持聚焦、工作完成就关闭队友<a href="#ref-33">[33]</a>。Agent teams 默认关闭<a href="#ref-33">[33]</a>。</p>
-<p>Codex 官方说明，子 Agent 工作流比同类的单 Agent 运行消耗更多 token；自动审核会额外调用模型，也增加用量；每个 MCP 服务器都会增加上下文<a href="#ref-10">[10]</a><a href="#ref-9">[9]</a><a href="#ref-18">[18]</a>。OpenCode 2.x 的子 Agent 嵌套深度默认为 1，限制了嵌套的层数；子 Agent 可以配置自己的模型<a href="#ref-62">[62]</a>。</p>
-<p>本书建议：并行的收益是吞吐与隔离，代价是 token 和冲突，先量出单会话的基线，再判断并行是否值得；空闲时仍在运行的定时任务、目标检查和跨会话消息，是长期开着的会话里最容易被忽略的成本。</p>
-<h3 id="1866-观测手段对照"><a class="header" href="#1866-观测手段对照">18.6.6 观测手段对照</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th></th><th>Claude Code</th><th>Codex CLI</th><th>OpenCode 2.x</th></tr>
-</thead>
-<tbody>
-<tr><td>会话内查看</td><td><code>/usage</code>（本地按标价估算；<code>/clear</code> 后归零自 v2.1.211 起；v2.1.251 起有 <code>Prompt cache (main)</code> 一行，给出缓存命中占比、未命中次数与原因）、<code>/context</code>、状态栏字段（<code>context_window.used_percentage</code> 只按输入 token 计算）、<code>/insights</code>（单次最多分析 200 个尚未分析过的会话）；计划用量按 Skill、子 Agent、插件、MCP 服务器归因并给出占比至少 10% 的建议<a href="#ref-33">[33]</a></td><td><code>/status</code>（剩余的上下文容量与 token 用量）、<code>/usage</code>（需要服务端账号认证）、<code>/statusline</code> 页脚项；<code>codex exec --json</code> 的 <code>turn.completed.usage</code> 给出输入、缓存输入、输出、推理输出 token<a href="#ref-14">[14]</a><a href="#ref-13">[13]</a><a href="#ref-18">[18]</a></td><td><code>opencode stats</code>，官方 CLI 页只有一句“显示可分享的用量统计”；对应的服务端接口属于实验接口<a href="#ref-57">[57]</a><a href="#ref-68">[68]</a></td></tr>
-<tr><td>指标导出</td><td>OpenTelemetry：8 个指标（含 <code>cost.usage</code>，以及按 input、output、cacheRead、cacheCreation 区分的 <code>token.usage</code>、<code>active_time.total</code>），事件含 <code>api_request</code>、<code>api_error</code>、<code>api_retries_exhausted</code>（带 <code>total_attempts</code> 与 <code>total_retry_duration_ms</code>）、<code>compaction</code><a href="#ref-52">[52]</a></td><td>OpenTelemetry 默认关闭，<code>[otel]</code> 选择导出器；指标含 <code>turn.e2e_duration_ms</code>、<code>turn.ttft.duration_ms</code>、<code>turn.ttfm.duration_ms</code>、<code>turn.token_usage</code>、<code>tool.call.duration_ms</code>、<code>approval.requested</code>、<code>task.compact</code>；<code>log_user_prompt</code> 默认不记录提示内容<a href="#ref-4">[4]</a></td><td>未在 2.x 文档中找到；<code>openTelemetry</code> 这个实验配置键在 2.x 中被忽略<a href="#ref-59">[59]</a></td></tr>
-<tr><td>成本口径</td><td>按标价估算；官方称 OpenTelemetry 是唯一能近实时把每用户的 token 与成本推送到自有观测栈的方式<a href="#ref-33">[33]</a></td><td>额度以用量面板与 <code>/status</code> 为准；token 用量随事件给出<a href="#ref-18">[18]</a><a href="#ref-2">[2]</a></td><td>每一步的成本按模型目录的价格表计算（输入、输出加推理、缓存读写，支持按上下文大小分层定价），写入步骤结束事件；Copilot 的实际计费未接入（源码里有 TODO）<a href="#ref-77">[77]</a></td></tr>
-</tbody>
-</table>
-</div>
-<p>三者的度量口径不同，不能把数字直接拿来比较：同样叫“token”，Claude Code 的 <code>token.usage</code> 里 <code>input</code> 不含缓存读写，Codex 的 <code>token_type</code> 另有 <code>reasoning_output</code>，OpenCode 的成本把输出和推理合并计价<a href="#ref-52">[52]</a><a href="#ref-4">[4]</a><a href="#ref-77">[77]</a>。</p>
-<h3 id="1867-调优流程基线单变量质量约束与回退"><a class="header" href="#1867-调优流程基线单变量质量约束与回退">18.6.7 调优流程：基线、单变量、质量约束与回退</a></h3>
-<p>调优的流程本身与具体产品无关，但每一步都有产品层面的注意事项（本书建议）。</p>
-<p>先建立基线：固定任务集、固定模型与配置版本，记录成功率、轮数、token 与耗时的分布，而不是平均值。再提出假设，例如“把专项流程从 CLAUDE.md 挪进 Skill 会降低每次请求的固定开销”，每次只改一个变量。比较时先看质量约束是否仍然满足，再看成本与延迟；质量下降的提速不算优化。改动要能回退：把指令文件、Settings 或配置文件放进版本控制，让一次调整就是一次可以撤销的提交。</p>
-<p>产品的版本变化也会改变结果：默认的权限模式、压缩的触发点、缓存的有效期、模型别名所指向的模型，都随版本变化。调优记录里要写明产品版本和日期，升级之后用同一组任务复测，不要默认旧的结论仍然成立。</p>
-<h3 id="1868-不应为省-token-放弃的东西"><a class="header" href="#1868-不应为省-token-放弃的东西">18.6.8 不应为省 Token 放弃的东西</a></h3>
-<p>有几类开销是不能省的。</p>
-<p>验证。Claude Code 官方的成本页自己就把“给出验证目标”列为省钱的做法：Claude 能验证自己的工作时，会在需要使用者要求修复之前就发现问题<a href="#ref-33">[33]</a>。去掉验证省下的 token，通常会以返工的形式加倍花掉。</p>
-<p>权限与审查。降低审批频率可以减少打断，但应当通过把可预判的动作写成规则、收窄权限范围来实现，而不是把保护关掉。官方对 bypass 模式的界定是仅限隔离的容器或虚拟机<a href="#ref-34">[34]</a>。</p>
-<p>规划。官方成本页说明，规划可以避免初始方向错误造成的昂贵返工<a href="#ref-33">[33]</a>；对复杂任务，省掉规划往往不是省钱。</p>
-<p>推理强度。把强度降到低档适合明确、范围小的任务；对需要深入规划或调试的任务降低强度，可能得到更差的结果，再靠更多轮次补救（本书建议，官方的表述是“满足质量门槛的最轻档位”）<a href="#ref-17">[17]</a>。</p>
-<p>调优可以改变什么时候检查、以什么成本检查，但不应当改变是否检查。</p>
+<p>版本表承担数字与配置的追溯，正文承担选择逻辑。性能改善、隔离有效性和任务完成率都需要对应环境下的测量；本章没有把文档事实或源码观察记成运行验证。</p>
 <h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
 <p>三个产品都把模型放进了一个由上下文、工具、权限和验证组成的闭环，公开程度和实现重点不同：Codex 与 OpenCode 可以沿固定提交的源码追踪运行时，Claude Code 只能依据官方文档分析它的外部行为与配置边界。</p>
 <p>从实现看，有几条判断反复出现。会话、本轮执行和工作区是三种不同的对象，会话历史不能替代工作区的当前状态。界面出现不等于首个模型请求可以发送，服务启动也不等于会话已经建立。审批决定动作是否放行，沙箱限制放行后的进程能碰什么，两者不能互相替代。拒绝、失败和取消是不同的结果，应当分别回送。压缩保存的是任务的连续性，不是工作区的事实，恢复之后先回仓库核对。回退能力必须和副作用类型对应，文件快照覆盖不了数据库、接口和部署。</p>
-<p>从使用看，运行时的表现取决于使用者提供的四类输入：任务、上下文、边界和验证。官方的最佳实践在这几点上高度一致：给出可运行的验证，复杂任务先规划，指令文件保持简短并持续修剪，一个会话处理一个目标，权限从保守开始渐进放宽，把调查隔离到子 Agent。成本主要由上下文大小和缓存命中情况决定，调优可以改变何时检查、以什么成本检查，但不应当改变是否检查。</p>
-<p>本章的局限也要重申：所有行为结论来自阅读源码与官方文档，没有经过运行验证；文档与源码不一致处，以固定提交的源码为准并已标注；默认权限模式、命令名、配置键、模型名和各类阈值随版本变化，使用前应核对所用版本；OpenCode 2.x 在实践与调优方面没有官方建议，相关内容只是功能说明。</p>
+<p>任务、上下文、边界和验证共同决定交付；权限按可逆性与影响范围逐级放开。成本主要由上下文大小和缓存命中情况决定，调优可以改变何时检查、以什么成本检查，但不应当改变是否检查。</p>
+<p>本章基于静态源码与官方文档，未运行产品。源码、文档与安装版本可能不同，升级时按 18.6.3 复核；OpenCode 的实践部分为功能解释与本书建议。</p>
 <h2 id="附录-a阅读一个-coding-agent-仓库的方法"><a class="header" href="#附录-a阅读一个-coding-agent-仓库的方法">附录 A：阅读一个 Coding Agent 仓库的方法</a></h2>
 <p>分析另一个 Coding Agent 时，可以沿着下面的问题追源码，而不是从目录树开始随机浏览。表中的入口来自本章已经核对过的固定提交。</p>
 <div class="table-wrapper">
@@ -780,105 +693,261 @@
 </table>
 </div>
 <p>读源码时有三条纪律。第一，结论绑定提交、版本或核验日期；主分支当天就会前进。第二，README 和注释可能滞后于代码，例如 Codex 的协议 README 仍在描述已经不存在的 core 与 TUI 的直接通信，要以代码和依赖关系为准<a href="#ref-29">[29]</a><a href="#ref-25">[25]</a>。第三，没有公开证据时，明确写“未找到”或“未知”，比补造一套内部架构更可靠。</p>
-<h2 id="附录-b图示的文档与源码依据"><a class="header" href="#附录-b图示的文档与源码依据">附录 B：图示的文档与源码依据</a></h2>
-<p>两张图使用统一的证据标注。源码固定在 Codex <code>86e17e98c7f9</code> 与 OpenCode <code>c93aaae37157</code>（均核验于 2026-10-22）。连线、逻辑角色和时序排列是本书依据公开接口和实现归纳的说明，不把图中的每个中文职责名当成产品内部的类名。图中的标注是否与本表一致，需要对照图重新核对，本表按文字材料整理。</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>图中标注</th><th>外部文档或代码入口</th><th>支撑的节点与关系</th></tr>
-</thead>
-<tbody>
-<tr><td>C1：Codex 服务与会话</td><td><code>app-server/src/lib.rs::run_main_with_transport_options</code>、<code>message_processor.rs</code>、<code>core/src/thread_manager.rs::ThreadManager</code></td><td>服务启动、初始化检查、Thread 与 Turn 请求分发、会话管理<a href="#ref-25">[25]</a><a href="#ref-27">[27]</a></td></tr>
-<tr><td>C2：Codex 循环与工具</td><td><code>core/src/session/turn.rs::run_turn</code>、<code>core/src/tools/router.rs::ToolRouter</code></td><td>模型采样、工具分发、结果进入下一轮；审批与沙箱在相邻的控制路径落实<a href="#ref-20">[20]</a><a href="#ref-21">[21]</a></td></tr>
-<tr><td>O1：OpenCode 连接路径</td><td><code>packages/cli/src/services/server-connection.ts::resolve</code>、<code>standalone.ts::start</code></td><td>指定服务检查、共享服务发现与启动、私有子进程与就绪输出的等待<a href="#ref-70">[70]</a></td></tr>
-<tr><td>O2：OpenCode 会话与工具</td><td><code>packages/core/src/session/runner/llm.ts::drain</code>、<code>packages/core/src/tool.ts::snapshot</code> 与 <code>execute</code></td><td>待处理输入、模型传输、步骤、事件与工具结果的归一化<a href="#ref-72">[72]</a><a href="#ref-76">[76]</a></td></tr>
-<tr><td>D1：Codex 公开协议</td><td>官方 App Server 文档</td><td>每连接一次的握手、Thread、Turn、Item、审批与流式事件<a href="#ref-2">[2]</a></td></tr>
-<tr><td>D2：Claude Code 公开职责</td><td>官方 How Claude Code works、Settings、Memory、Skills、Permissions</td><td>Harness、配置与指令、会话历史、按需加载、循环与工具权限<a href="#ref-31">[31]</a><a href="#ref-41">[41]</a><a href="#ref-40">[40]</a><a href="#ref-43">[43]</a><a href="#ref-35">[35]</a></td></tr>
-<tr><td>D3：Claude Code 生命周期</td><td>官方 Hooks reference 的 <code>SessionStart</code> 与 <code>Setup</code></td><td>启动与恢复时的 Hook，首个模型请求的等待条件<a href="#ref-42">[42]</a></td></tr>
-<tr><td>D4：OpenCode 2.x 产品约定</td><td>官方 CLI、Config、Providers、Instructions</td><td>共享服务的职责、工作区配置、Agent 与模型的选择、项目指令<a href="#ref-57">[57]</a><a href="#ref-58">[58]</a><a href="#ref-60">[60]</a><a href="#ref-61">[61]</a></td></tr>
-</tbody>
-</table>
-</div>
 <h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
 <p>官方文档是滚动页面，没有版本快照；源码一律钉到固定提交。Codex 固定提交的提交时间为 2026-10-22 06:32 UTC，OpenCode 固定提交对应包版本 2.1.2。</p>
 <ol>
-<li><a id="ref-1"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/open-source">Open Source</a>，Codex 开源组件清单与非开源组件说明；核验于 2026-10-22。</li>
-<li><a id="ref-2"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/app-server">Codex App Server</a>，连接握手、Thread / Turn / Item、审批、错误与限流事件；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-3"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/config-file/config-basic">Config basics</a>，分层配置、受信项目与特性开关；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-4"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/config-file/config-advanced">Advanced configuration</a>，模型提供商、OpenTelemetry 与指标、状态位置；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-5"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/config-file/config-reference">Configuration reference</a>，配置键与默认值；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-6"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/agent-configuration/agents-md">Custom instructions with AGENTS.md</a>，指令发现、加载与大小上限；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-7"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/sandboxing">Sandboxing</a>，沙箱模式与受保护路径；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-8"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/agent-approvals-security">Agent approvals &amp; security</a>，审批策略与安全；旧地址 <code>developers.openai.com/codex/security</code> 现指向另一产品 Codex Security，不要使用；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-9"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/sandboxing/auto-review">Auto-review</a>，自动审核与连续拒绝的中断条件；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-10"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/agent-configuration/subagents">Subagents</a>，子 Agent 的继承、配置与成本；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-11"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/build-skills">Build skills</a>，Skill 的渐进披露与上下文预算；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-12"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/extend/mcp">MCP</a>，MCP 配置、超时与审批；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-13"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/non-interactive-mode">Non-interactive mode</a>，<code>codex exec</code> 的沙箱、输出与 CI 凭证；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-14"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/developer-commands">Developer commands</a>，命令与斜杠命令；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-15"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/environments/git-worktrees">Git worktrees</a>，worktree 的行为；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-16"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/automations">Automations</a>，定时任务的权限与失败；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-17"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/models">Models</a>；<a href="https://learn.chatgpt.com/docs/model-selection">Model selection</a>；<a href="https://learn.chatgpt.com/docs/agent-configuration/speed">Speed</a>，模型、推理强度与快速模式；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-18"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/pricing">Pricing</a>，用量、限额与节省额度的建议；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-19"></a> OpenAI，<a href="https://learn.chatgpt.com/guides/best-practices">Best practices</a>，官方最佳实践指南（HTML 页，<code>.md</code> 孪生页返回 404）；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-20"></a> OpenAI，<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/session/turn.rs">core/src/session/turn.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/session/session.rs">core/src/session/session.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/state/session.rs">core/src/state/session.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/state/turn.rs">core/src/state/turn.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/function_tool.rs">core/src/function_tool.rs</a>，Turn 主循环、Session 与 Turn 状态、取消与失败的回送；固定提交 <code>86e17e98c7f9</code>，核验于 2026-10-22。</li>
-<li><a id="ref-21"></a> OpenAI，<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/tools/router.rs">core/src/tools/router.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/tools/approvals.rs">core/src/tools/approvals.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/tools/sandboxing.rs">core/src/tools/sandboxing.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/tools/orchestrator.rs">core/src/tools/orchestrator.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/tools/events.rs">core/src/tools/events.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/stream_events_utils.rs">core/src/stream_events_utils.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/protocol/src/protocol.rs">protocol/src/protocol.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/config/mod.rs">core/src/config/mod.rs</a>，工具路由、审批、沙箱选择与重试、结果回送、审批决定类型；固定提交 <code>86e17e98c7f9</code>，核验于 2026-10-22。</li>
-<li><a id="ref-22"></a> OpenAI，<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/tasks/mod.rs">core/src/tasks/mod.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/context/turn_aborted.rs">core/src/context/turn_aborted.rs</a>，中断流程与被中断标记；固定提交 <code>86e17e98c7f9</code>，核验于 2026-10-22。</li>
-<li><a id="ref-23"></a> OpenAI，<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/session/context_window.rs">core/src/session/context_window.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/compact.rs">core/src/compact.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/protocol/src/openai_models.rs">protocol/src/openai_models.rs</a>，上下文窗口、压缩触发与失败处理；固定提交 <code>86e17e98c7f9</code>，核验于 2026-10-22。</li>
-<li><a id="ref-24"></a> OpenAI，<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/responses_retry.rs">core/src/responses_retry.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/async-utils/src/backoff.rs">async-utils/src/backoff.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/model-provider-info/src/lib.rs">model-provider-info/src/lib.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/protocol/src/error.rs">protocol/src/error.rs</a>，重试、退避、可重试错误与用量限制错误；固定提交 <code>86e17e98c7f9</code>，核验于 2026-10-22。</li>
-<li><a id="ref-25"></a> OpenAI，<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/app-server/src/lib.rs">app-server/src/lib.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/app-server/src/message_processor.rs">app-server/src/message_processor.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/app-server/src/request_processors/initialize_processor.rs">app-server/src/request_processors/initialize_processor.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/app-server/src/in_process.rs">app-server/src/in_process.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/app-server/src/bespoke_event_handling.rs">app-server/src/bespoke_event_handling.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/app-server/src/code_mode_host.rs">app-server/src/code_mode_host.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/app-server-transport/src/transport/mod.rs">app-server-transport/src/transport/mod.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/tui/src/lib.rs">tui/src/lib.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/tui/Cargo.toml">tui/Cargo.toml</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/cli/src/main.rs">cli/src/main.rs</a>，App Server 的传输、握手、审批映射，TUI 的进程内接入；固定提交 <code>86e17e98c7f9</code>，核验于 2026-10-22。</li>
-<li><a id="ref-26"></a> OpenAI，<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/config/src/loader/mod.rs">config/src/loader/mod.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/config/src/config_layer_source.rs">config/src/config_layer_source.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/config/src/config_toml.rs">config/src/config_toml.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/agents_md.rs">core/src/agents_md.rs</a>，配置分层、受信项目与 AGENTS.md 加载；固定提交 <code>86e17e98c7f9</code>，核验于 2026-10-22。</li>
-<li><a id="ref-27"></a> OpenAI，<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/agent/control/interrupt.rs">core/src/agent/control/interrupt.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/agent/control/completion.rs">core/src/agent/control/completion.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/session/input_queue.rs">core/src/session/input_queue.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/thread_manager.rs">core/src/thread_manager.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/app-server-protocol/src/protocol/v2/thread.rs">app-server-protocol/src/protocol/v2/thread.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/app-server/README.md">app-server/README.md</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/protocol/src/protocol.rs">protocol/src/protocol.rs</a>，多 Agent 控制、邮箱投递、fork、revert 与协议类型；固定提交 <code>86e17e98c7f9</code>，核验于 2026-10-22。</li>
-<li><a id="ref-28"></a> OpenAI，<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/features/src/lib.rs">features/src/lib.rs</a>，特性开关与默认值；固定提交 <code>86e17e98c7f9</code>，核验于 2026-10-22。</li>
-<li><a id="ref-29"></a> OpenAI，<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/README.md">core/README.md</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/protocol/README.md">protocol/README.md</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/collaboration-mode-templates/templates/plan.md">collaboration-mode-templates/templates/plan.md</a>，README 自述与 Plan mode 的提示词模板；固定提交 <code>86e17e98c7f9</code>，核验于 2026-10-22。</li>
-<li><a id="ref-30"></a> OpenAI，<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/ext/guardian-reviewer/src/circuit_breaker.rs">ext/guardian-reviewer/src/circuit_breaker.rs</a>，自动审核的断路器常量；固定提交 <code>86e17e98c7f9</code>，核验于 2026-10-22。</li>
-<li><a id="ref-31"></a> Anthropic，<a href="https://code.claude.com/docs/en/how-claude-code-works">How Claude Code works</a>，Agent Loop、会话、上下文、压缩、Checkpoint；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-32"></a> Anthropic，<a href="https://code.claude.com/docs/en/best-practices">Best practices</a>，验证、规划、指令文件、权限、会话管理、并行与失败模式；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-33"></a> Anthropic，<a href="https://code.claude.com/docs/en/costs">Manage costs effectively</a>，成本度量、降本手段、长会话成本、Agent teams；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-34"></a> Anthropic，<a href="https://code.claude.com/docs/en/permission-modes">Permission modes</a>，权限模式、默认模式、auto 模式的分类器与回退；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-35"></a> Anthropic，<a href="https://code.claude.com/docs/en/permissions">Configure permissions</a>，权限规则的求值顺序与 Hook 的优先关系；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-36"></a> Anthropic，<a href="https://code.claude.com/docs/en/sandboxing">Sandboxing</a>，沙箱的覆盖范围与限制；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-37"></a> Anthropic，<a href="https://code.claude.com/docs/en/checkpointing">Checkpointing</a>，Checkpoint 与 rewind 的范围、限制；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-38"></a> Anthropic，<a href="https://code.claude.com/docs/en/sessions">Manage sessions</a>；<a href="https://code.claude.com/docs/en/agent-view">Agent view</a>，会话存储、恢复与后台会话；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-39"></a> Anthropic，<a href="https://code.claude.com/docs/en/context-window">Context window</a>，压缩后保留的内容；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-40"></a> Anthropic，<a href="https://code.claude.com/docs/en/memory">How Claude remembers your project</a>，CLAUDE.md 与 auto memory 的加载；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-41"></a> Anthropic，<a href="https://code.claude.com/docs/en/settings">Settings files and precedence</a>；<a href="https://code.claude.com/docs/en/settings-reference">Settings reference</a>，配置优先级、自动压缩与空闲压缩设置；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-42"></a> Anthropic，<a href="https://code.claude.com/docs/en/hooks">Hooks reference</a>，SessionStart、Setup、Stop、PreToolUse 与失败语义；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-43"></a> Anthropic，<a href="https://code.claude.com/docs/en/skills">Extend Claude with skills</a>，Skill 的按需加载；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-44"></a> Anthropic，<a href="https://code.claude.com/docs/en/sub-agents">Create custom subagents</a>；<a href="https://code.claude.com/docs/en/agent-teams">Agent teams</a>，子 Agent 的上下文、fork、并发与失败；Agent teams 的限制；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-45"></a> Anthropic，<a href="https://code.claude.com/docs/en/features-overview">Extend Claude Code</a>，Skill、MCP、Hook、Subagent、Plugin 的职责与选择；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-46"></a> Anthropic，<a href="https://code.claude.com/docs/en/prompt-caching">Prompt caching</a>，缓存机制、有效期、失效与保持的动作；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-47"></a> Anthropic，<a href="https://code.claude.com/docs/en/errors">Error reference</a>，错误分类、自动重试、用量与限额；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-48"></a> Anthropic，<a href="https://code.claude.com/docs/en/model-config">Model configuration</a>，推理强度与自动压缩窗口；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-49"></a> Anthropic，<a href="https://code.claude.com/docs/en/interactive-mode">Interactive mode</a>，消息排队、中断与用量限额后的自动续跑；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-50"></a> Anthropic，<a href="https://code.claude.com/docs/en/headless">Run Claude Code programmatically</a>；<a href="https://code.claude.com/docs/en/cli-reference">CLI reference</a>，非交互模式与命令行参数；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-51"></a> Anthropic，<a href="https://code.claude.com/docs/en/worktrees">Worktrees</a>，worktree 隔离的强制范围；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-52"></a> Anthropic，<a href="https://code.claude.com/docs/en/monitoring-usage">Monitoring usage</a>，OpenTelemetry 指标与事件；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-53"></a> Anthropic，<a href="https://code.claude.com/docs/en/goal">Goal</a>，<code>/goal</code> 条件与评估；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-54"></a> Anthropic，<a href="https://code.claude.com/docs/en/mcp">MCP</a>，MCP 工具搜索与延迟加载；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-55"></a> Anthropic，<a href="https://github.com/anthropics/claude-code">Claude Code GitHub repository</a>；<a href="https://github.com/anthropics/claude-code/blob/main/LICENSE.md">LICENSE.md</a>，仓库内容与版权声明；核验于 2026-10-22。</li>
-<li><a id="ref-56"></a> Anthropic，<a href="https://code.claude.com/docs/en/changelog">Changelog</a>，版本锚点（核验日最新为 2.1.308）；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-57"></a> OpenCode，<a href="https://opencode.ai/v2/docs/cli/">CLI</a>；<a href="https://opencode.ai/v2/docs/cli/commands/">CLI commands</a>；<a href="https://opencode.ai/v2/docs/cli/tui/">TUI</a>，共享后台服务、standalone 与 server 连接、命令、steer 与排队；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-58"></a> OpenCode，<a href="https://opencode.ai/v2/docs/config/">Config</a>，配置位置与工具输出限制；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-59"></a> OpenCode，<a href="https://opencode.ai/v2/docs/migrate-v1/">Migrate from V1</a>，1.x 与 2.x 的差异与被忽略的配置键；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-60"></a> OpenCode，<a href="https://opencode.ai/v2/docs/providers/">Providers</a>；<a href="https://opencode.ai/v2/docs/models/">Models</a>；<a href="https://opencode.ai/v2/docs/console/budgets/">Console budgets</a>，Provider 与模型目录、变体、超时、提示缓存、Console 预算；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-61"></a> OpenCode，<a href="https://opencode.ai/v2/docs/instructions/">Instructions</a>，AGENTS.md 的加载与注入；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-62"></a> OpenCode，<a href="https://opencode.ai/v2/docs/agents/">Agents</a>，Primary Agent、Subagent、内置 Agent、步数上限；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-63"></a> OpenCode，<a href="https://opencode.ai/v2/docs/permissions/">Permissions</a>，权限规则、默认基线与审批；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-64"></a> OpenCode，<a href="https://opencode.ai/v2/docs/policies/">Policies</a>，只能收紧的策略；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-65"></a> OpenCode，<a href="https://opencode.ai/v2/docs/tools/">Tools</a>；<a href="https://opencode.ai/v2/docs/skills/">Skills</a>；<a href="https://opencode.ai/v2/docs/commands/">Commands</a>；<a href="https://opencode.ai/v2/docs/plugins/">Plugins</a>；<a href="https://opencode.ai/v2/docs/mcp-servers/">MCP servers</a>；<a href="https://opencode.ai/v2/docs/warming/">Warming</a>，工具、Skill、命令、插件、MCP 与缓存保温；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-66"></a> OpenCode，<a href="https://opencode.ai/v2/docs/snapshots/">Snapshots</a>，快照与回退；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-67"></a> OpenCode，<a href="https://opencode.ai/v2/docs/compaction/">Compaction</a>，自动压缩与溢出恢复；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-68"></a> OpenCode，<a href="https://opencode.ai/v2/docs/api">API</a>，Session、事件、权限、回退、差异与压缩接口；持续更新，核验于 2026-10-22。</li>
-<li><a id="ref-69"></a> Anomaly Innovations，<a href="https://github.com/anomalyco/opencode">OpenCode repository</a>，开源项目与 MIT 许可证；核验于 2026-10-22。</li>
-<li><a id="ref-70"></a> Anomaly Innovations，<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/cli/src/services/server-connection.ts">packages/cli/src/services/server-connection.ts</a>；<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/cli/src/services/standalone.ts">packages/cli/src/services/standalone.ts</a>；<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/cli/src/server-process.ts">packages/cli/src/server-process.ts</a>，连接决策、私有服务启动与所有权租约；固定提交 <code>c93aaae37157</code>，核验于 2026-10-22。</li>
-<li><a id="ref-71"></a> Anomaly Innovations，<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/session/execution.ts">packages/core/src/session/execution.ts</a>；<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/session/execution/restart.ts">packages/core/src/session/execution/restart.ts</a>；<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/server/src/process.ts">packages/server/src/process.ts</a>，中断、写前声明与重启续跑；固定提交 <code>c93aaae37157</code>，核验于 2026-10-22。</li>
-<li><a id="ref-72"></a> Anomaly Innovations，<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/session/runner/llm.ts">packages/core/src/session/runner/llm.ts</a>；<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/session/runner/step.ts">packages/core/src/session/runner/step.ts</a>；<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/session/runner/retry.ts">packages/core/src/session/runner/retry.ts</a>；<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/model-retry.ts">packages/core/src/model-retry.ts</a>，模型循环、失败分流与重试；固定提交 <code>c93aaae37157</code>，核验于 2026-10-22。</li>
-<li><a id="ref-73"></a> Anomaly Innovations，<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/session/compaction.ts">packages/core/src/session/compaction.ts</a>，自动压缩与溢出恢复；固定提交 <code>c93aaae37157</code>，核验于 2026-10-22。</li>
-<li><a id="ref-74"></a> Anomaly Innovations，<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/session/revert.ts">packages/core/src/session/revert.ts</a>；<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/session.ts">packages/core/src/session.ts</a>；<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/snapshot.ts">packages/core/src/snapshot.ts</a>，回退与快照；固定提交 <code>c93aaae37157</code>，核验于 2026-10-22。</li>
-<li><a id="ref-75"></a> Anomaly Innovations，<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/permission.ts">packages/core/src/permission.ts</a>；<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/config/plugin/policy.ts">packages/core/src/config/plugin/policy.ts</a>，权限求值与 Policies；固定提交 <code>c93aaae37157</code>，核验于 2026-10-22。</li>
-<li><a id="ref-76"></a> Anomaly Innovations，<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/tool.ts">packages/core/src/tool.ts</a>；<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/tool/plugin/subagent.ts">packages/core/src/tool/plugin/subagent.ts</a>；<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/plugin/agent.ts">packages/core/src/plugin/agent.ts</a>，工具注册、子 Agent 工具与内置 Agent 权限；固定提交 <code>c93aaae37157</code>，核验于 2026-10-22。</li>
-<li><a id="ref-77"></a> Anomaly Innovations，<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/session/usage.ts">packages/core/src/session/usage.ts</a>；<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/cli/src/commands/handlers/stats.ts">packages/cli/src/commands/handlers/stats.ts</a>；<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/cli/src/run/noninteractive.ts">packages/cli/src/run/noninteractive.ts</a>；<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/config/plugin/instruction.ts">packages/core/src/config/plugin/instruction.ts</a>，成本计算、用量统计、非交互运行与指令文件；固定提交 <code>c93aaae37157</code>，核验于 2026-10-22。</li>
+<li>
+<p><a id="ref-1"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/open-source">Open Source</a>，Codex 开源组件清单与非开源组件说明；核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-2"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/app-server">Codex App Server</a>，连接握手、Thread / Turn / Item、审批、错误与限流事件；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-3"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/config-file/config-basic">Config basics</a>，分层配置、受信项目与特性开关；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-4"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/config-file/config-advanced">Advanced configuration</a>，模型提供商、OpenTelemetry 与指标、状态位置；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-5"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/config-file/config-reference">Configuration reference</a>，配置键与默认值；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-6"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/agent-configuration/agents-md">Custom instructions with AGENTS.md</a>，指令发现、加载与大小上限；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-7"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/sandboxing">Sandboxing</a>，沙箱模式与受保护路径；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-8"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/agent-approvals-security">Agent approvals &amp; security</a>，审批策略与安全；旧地址 <code>developers.openai.com/codex/security</code> 现指向另一产品 Codex Security，不要使用；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-9"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/sandboxing/auto-review">Auto-review</a>，自动审核与连续拒绝的中断条件；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-10"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/agent-configuration/subagents">Subagents</a>，子 Agent 的继承、配置与成本；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-11"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/build-skills">Build skills</a>，Skill 的渐进披露与上下文预算；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-12"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/extend/mcp">MCP</a>，MCP 配置、超时与审批；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-13"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/non-interactive-mode">Non-interactive mode</a>，<code>codex exec</code> 的沙箱、输出与 CI 凭证；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-14"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/developer-commands">Developer commands</a>，命令与斜杠命令；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-15"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/environments/git-worktrees">Git worktrees</a>，worktree 的行为；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-16"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/automations">Automations</a>，定时任务的权限与失败；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-17"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/models">Models</a>；<a href="https://learn.chatgpt.com/docs/model-selection">Model selection</a>；<a href="https://learn.chatgpt.com/docs/agent-configuration/speed">Speed</a>，模型、推理强度与快速模式；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-18"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/pricing">Pricing</a>，用量、限额与节省额度的建议；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-19"></a> OpenAI，<a href="https://learn.chatgpt.com/guides/best-practices">Best practices</a>，官方最佳实践指南（HTML 页，<code>.md</code> 孪生页返回 404）；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-20"></a> OpenAI，<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/session/turn.rs">core/src/session/turn.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/session/session.rs">core/src/session/session.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/state/session.rs">core/src/state/session.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/state/turn.rs">core/src/state/turn.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/function_tool.rs">core/src/function_tool.rs</a>，Turn 主循环、Session 与 Turn 状态、取消与失败的回送；固定提交 <code>86e17e98c7f9</code>，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-21"></a> OpenAI，<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/tools/router.rs">core/src/tools/router.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/tools/approvals.rs">core/src/tools/approvals.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/tools/sandboxing.rs">core/src/tools/sandboxing.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/tools/orchestrator.rs">core/src/tools/orchestrator.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/tools/events.rs">core/src/tools/events.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/stream_events_utils.rs">core/src/stream_events_utils.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/protocol/src/protocol.rs">protocol/src/protocol.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/config/mod.rs">core/src/config/mod.rs</a>，工具路由、审批、沙箱选择与重试、结果回送、审批决定类型；固定提交 <code>86e17e98c7f9</code>，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-22"></a> OpenAI，<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/tasks/mod.rs">core/src/tasks/mod.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/context/turn_aborted.rs">core/src/context/turn_aborted.rs</a>，中断流程与被中断标记；固定提交 <code>86e17e98c7f9</code>，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-23"></a> OpenAI，<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/session/context_window.rs">core/src/session/context_window.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/compact.rs">core/src/compact.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/protocol/src/openai_models.rs">protocol/src/openai_models.rs</a>，上下文窗口、压缩触发与失败处理；固定提交 <code>86e17e98c7f9</code>，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-24"></a> OpenAI，<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/responses_retry.rs">core/src/responses_retry.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/async-utils/src/backoff.rs">async-utils/src/backoff.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/model-provider-info/src/lib.rs">model-provider-info/src/lib.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/protocol/src/error.rs">protocol/src/error.rs</a>，重试、退避、可重试错误与用量限制错误；固定提交 <code>86e17e98c7f9</code>，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-25"></a> OpenAI，<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/app-server/src/lib.rs">app-server/src/lib.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/app-server/src/message_processor.rs">app-server/src/message_processor.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/app-server/src/request_processors/initialize_processor.rs">app-server/src/request_processors/initialize_processor.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/app-server/src/in_process.rs">app-server/src/in_process.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/app-server/src/bespoke_event_handling.rs">app-server/src/bespoke_event_handling.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/app-server/src/code_mode_host.rs">app-server/src/code_mode_host.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/app-server-transport/src/transport/mod.rs">app-server-transport/src/transport/mod.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/tui/src/lib.rs">tui/src/lib.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/tui/Cargo.toml">tui/Cargo.toml</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/cli/src/main.rs">cli/src/main.rs</a>，App Server 的传输、握手、审批映射，TUI 的进程内接入；固定提交 <code>86e17e98c7f9</code>，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-26"></a> OpenAI，<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/config/src/loader/mod.rs">config/src/loader/mod.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/config/src/config_layer_source.rs">config/src/config_layer_source.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/config/src/config_toml.rs">config/src/config_toml.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/agents_md.rs">core/src/agents_md.rs</a>，配置分层、受信项目与 AGENTS.md 加载；固定提交 <code>86e17e98c7f9</code>，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-27"></a> OpenAI，<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/agent/control/interrupt.rs">core/src/agent/control/interrupt.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/agent/control/completion.rs">core/src/agent/control/completion.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/session/input_queue.rs">core/src/session/input_queue.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/thread_manager.rs">core/src/thread_manager.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/app-server-protocol/src/protocol/v2/thread.rs">app-server-protocol/src/protocol/v2/thread.rs</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/app-server/README.md">app-server/README.md</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/protocol/src/protocol.rs">protocol/src/protocol.rs</a>，多 Agent 控制、邮箱投递、fork、revert 与协议类型；固定提交 <code>86e17e98c7f9</code>，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-28"></a> OpenAI，<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/features/src/lib.rs">features/src/lib.rs</a>，特性开关与默认值；固定提交 <code>86e17e98c7f9</code>，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-29"></a> OpenAI，<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/README.md">core/README.md</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/protocol/README.md">protocol/README.md</a>；<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/collaboration-mode-templates/templates/plan.md">collaboration-mode-templates/templates/plan.md</a>，README 自述与 Plan mode 的提示词模板；固定提交 <code>86e17e98c7f9</code>，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-30"></a> OpenAI，<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/ext/guardian-reviewer/src/circuit_breaker.rs">ext/guardian-reviewer/src/circuit_breaker.rs</a>，自动审核的断路器常量；固定提交 <code>86e17e98c7f9</code>，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-31"></a> Anthropic，<a href="https://code.claude.com/docs/en/how-claude-code-works">How Claude Code works</a>，Agent Loop、会话、上下文、压缩、Checkpoint；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-32"></a> Anthropic，<a href="https://code.claude.com/docs/en/best-practices">Best practices</a>，验证、规划、指令文件、权限、会话管理、并行与失败模式；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-33"></a> Anthropic，<a href="https://code.claude.com/docs/en/costs">Manage costs effectively</a>，成本度量、降本手段、长会话成本、Agent teams；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-34"></a> Anthropic，<a href="https://code.claude.com/docs/en/permission-modes">Permission modes</a>，权限模式、默认模式、auto 模式的分类器与回退；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-35"></a> Anthropic，<a href="https://code.claude.com/docs/en/permissions">Configure permissions</a>，权限规则的求值顺序与 Hook 的优先关系；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-36"></a> Anthropic，<a href="https://code.claude.com/docs/en/sandboxing">Sandboxing</a>，沙箱的覆盖范围与限制；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-37"></a> Anthropic，<a href="https://code.claude.com/docs/en/checkpointing">Checkpointing</a>，Checkpoint 与 rewind 的范围、限制；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-38"></a> Anthropic，<a href="https://code.claude.com/docs/en/sessions">Manage sessions</a>；<a href="https://code.claude.com/docs/en/agent-view">Agent view</a>，会话存储、恢复与后台会话；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-39"></a> Anthropic，<a href="https://code.claude.com/docs/en/context-window">Context window</a>，压缩后保留的内容；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-40"></a> Anthropic，<a href="https://code.claude.com/docs/en/memory">How Claude remembers your project</a>，CLAUDE.md 与 auto memory 的加载；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-41"></a> Anthropic，<a href="https://code.claude.com/docs/en/settings">Settings files and precedence</a>；<a href="https://code.claude.com/docs/en/settings-reference">Settings reference</a>，配置优先级、自动压缩与空闲压缩设置；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-42"></a> Anthropic，<a href="https://code.claude.com/docs/en/hooks">Hooks reference</a>，SessionStart、Setup、Stop、PreToolUse 与失败语义；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-43"></a> Anthropic，<a href="https://code.claude.com/docs/en/skills">Extend Claude with skills</a>，Skill 的按需加载；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-44"></a> Anthropic，<a href="https://code.claude.com/docs/en/sub-agents">Create custom subagents</a>；<a href="https://code.claude.com/docs/en/agent-teams">Agent teams</a>，子 Agent 的上下文、fork、并发与失败；Agent teams 的限制；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-45"></a> Anthropic，<a href="https://code.claude.com/docs/en/features-overview">Extend Claude Code</a>，Skill、MCP、Hook、Subagent、Plugin 的职责与选择；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-46"></a> Anthropic，<a href="https://code.claude.com/docs/en/prompt-caching">Prompt caching</a>，缓存机制、有效期、失效与保持的动作；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-47"></a> Anthropic，<a href="https://code.claude.com/docs/en/errors">Error reference</a>，错误分类、自动重试、用量与限额；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-48"></a> Anthropic，<a href="https://code.claude.com/docs/en/model-config">Model configuration</a>，推理强度与自动压缩窗口；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-49"></a> Anthropic，<a href="https://code.claude.com/docs/en/interactive-mode">Interactive mode</a>，消息排队、中断与用量限额后的自动续跑；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-50"></a> Anthropic，<a href="https://code.claude.com/docs/en/headless">Run Claude Code programmatically</a>；<a href="https://code.claude.com/docs/en/cli-reference">CLI reference</a>，非交互模式与命令行参数；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-51"></a> Anthropic，<a href="https://code.claude.com/docs/en/worktrees">Worktrees</a>，worktree 隔离的强制范围；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-52"></a> Anthropic，<a href="https://code.claude.com/docs/en/monitoring-usage">Monitoring usage</a>，OpenTelemetry 指标与事件；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-53"></a> Anthropic，<a href="https://code.claude.com/docs/en/goal">Goal</a>，<code>/goal</code> 条件与评估；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-54"></a> Anthropic，<a href="https://code.claude.com/docs/en/mcp">MCP</a>，MCP 工具搜索与延迟加载；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-55"></a> Anthropic，<a href="https://github.com/anthropics/claude-code">Claude Code GitHub repository</a>；<a href="https://github.com/anthropics/claude-code/blob/main/LICENSE.md">LICENSE.md</a>，仓库内容与版权声明；核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-56"></a> Anthropic，<a href="https://code.claude.com/docs/en/changelog">Changelog</a>，版本锚点（核验日最新为 2.1.308）；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-57"></a> OpenCode，<a href="https://opencode.ai/v2/docs/cli/">CLI</a>；<a href="https://opencode.ai/v2/docs/cli/commands/">CLI commands</a>；<a href="https://opencode.ai/v2/docs/cli/tui/">TUI</a>，共享后台服务、standalone 与 server 连接、命令、steer 与排队；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-58"></a> OpenCode，<a href="https://opencode.ai/v2/docs/config/">Config</a>，配置位置与工具输出限制；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-59"></a> OpenCode，<a href="https://opencode.ai/v2/docs/migrate-v1/">Migrate from V1</a>，1.x 与 2.x 的差异与被忽略的配置键；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-60"></a> OpenCode，<a href="https://opencode.ai/v2/docs/providers/">Providers</a>；<a href="https://opencode.ai/v2/docs/models/">Models</a>；<a href="https://opencode.ai/v2/docs/console/budgets/">Console budgets</a>，Provider 与模型目录、变体、超时、提示缓存、Console 预算；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-61"></a> OpenCode，<a href="https://opencode.ai/v2/docs/instructions/">Instructions</a>，AGENTS.md 的加载与注入；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-62"></a> OpenCode，<a href="https://opencode.ai/v2/docs/agents/">Agents</a>，Primary Agent、Subagent、内置 Agent、步数上限；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-63"></a> OpenCode，<a href="https://opencode.ai/v2/docs/permissions/">Permissions</a>，权限规则、默认基线与审批；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-64"></a> OpenCode，<a href="https://opencode.ai/v2/docs/policies/">Policies</a>，只能收紧的策略；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-65"></a> OpenCode，<a href="https://opencode.ai/v2/docs/tools/">Tools</a>；<a href="https://opencode.ai/v2/docs/skills/">Skills</a>；<a href="https://opencode.ai/v2/docs/commands/">Commands</a>；<a href="https://opencode.ai/v2/docs/plugins/">Plugins</a>；<a href="https://opencode.ai/v2/docs/mcp-servers/">MCP servers</a>；<a href="https://opencode.ai/v2/docs/warming/">Warming</a>，工具、Skill、命令、插件、MCP 与缓存保温；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-66"></a> OpenCode，<a href="https://opencode.ai/v2/docs/snapshots/">Snapshots</a>，快照与回退；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-67"></a> OpenCode，<a href="https://opencode.ai/v2/docs/compaction/">Compaction</a>，自动压缩与溢出恢复；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-68"></a> OpenCode，<a href="https://opencode.ai/v2/docs/api">API</a>，Session、事件、权限、回退、差异与压缩接口；持续更新，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-69"></a> Anomaly Innovations，<a href="https://github.com/anomalyco/opencode">OpenCode repository</a>，开源项目与 MIT 许可证；核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-70"></a> Anomaly Innovations，<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/cli/src/services/server-connection.ts">packages/cli/src/services/server-connection.ts</a>；<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/cli/src/services/standalone.ts">packages/cli/src/services/standalone.ts</a>；<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/cli/src/server-process.ts">packages/cli/src/server-process.ts</a>，连接决策、私有服务启动与所有权租约；固定提交 <code>c93aaae37157</code>，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-71"></a> Anomaly Innovations，<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/session/execution.ts">packages/core/src/session/execution.ts</a>；<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/session/execution/restart.ts">packages/core/src/session/execution/restart.ts</a>；<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/server/src/process.ts">packages/server/src/process.ts</a>，中断、写前声明与重启续跑；固定提交 <code>c93aaae37157</code>，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-72"></a> Anomaly Innovations，<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/session/runner/llm.ts">packages/core/src/session/runner/llm.ts</a>；<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/session/runner/step.ts">packages/core/src/session/runner/step.ts</a>；<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/session/runner/retry.ts">packages/core/src/session/runner/retry.ts</a>；<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/model-retry.ts">packages/core/src/model-retry.ts</a>，模型循环、失败分流与重试；固定提交 <code>c93aaae37157</code>，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-73"></a> Anomaly Innovations，<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/session/compaction.ts">packages/core/src/session/compaction.ts</a>，自动压缩与溢出恢复；固定提交 <code>c93aaae37157</code>，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-74"></a> Anomaly Innovations，<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/session/revert.ts">packages/core/src/session/revert.ts</a>；<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/session.ts">packages/core/src/session.ts</a>；<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/snapshot.ts">packages/core/src/snapshot.ts</a>，回退与快照；固定提交 <code>c93aaae37157</code>，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-75"></a> Anomaly Innovations，<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/permission.ts">packages/core/src/permission.ts</a>；<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/config/plugin/policy.ts">packages/core/src/config/plugin/policy.ts</a>，权限求值与 Policies；固定提交 <code>c93aaae37157</code>，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-76"></a> Anomaly Innovations，<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/tool.ts">packages/core/src/tool.ts</a>；<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/tool/plugin/subagent.ts">packages/core/src/tool/plugin/subagent.ts</a>；<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/plugin/agent.ts">packages/core/src/plugin/agent.ts</a>，工具注册、子 Agent 工具与内置 Agent 权限；固定提交 <code>c93aaae37157</code>，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-77"></a> Anomaly Innovations，<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/session/usage.ts">packages/core/src/session/usage.ts</a>；<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/cli/src/commands/handlers/stats.ts">packages/cli/src/commands/handlers/stats.ts</a>；<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/cli/src/run/noninteractive.ts">packages/cli/src/run/noninteractive.ts</a>；<a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/config/plugin/instruction.ts">packages/core/src/config/plugin/instruction.ts</a>，成本计算、用量统计、非交互运行与指令文件；固定提交 <code>c93aaae37157</code>，核验于 2026-10-22。</p>
+</li>
+<li>
+<p><a id="ref-78"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/permissions">Codex permissions 与 sandboxing</a>，另见 <a href="https://learn.chatgpt.com/docs/sandboxing">Sandboxing</a> 与 <a href="https://learn.chatgpt.com/docs/agent-approvals-security">Agent approvals security</a>；滚动官方文档；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-79"></a> OpenAI，<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/linux-sandbox/src/bwrap.rs">Codex Linux/macOS 沙箱实现</a>，另见同提交 sandboxing/src/seatbelt.rs 与 features/src/lib.rs；核查 create_bwrap_command_args、create_seatbelt_command_args 及特性状态；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-80"></a> Anthropic / Anomaly Innovations，<a href="https://code.claude.com/docs/en/sandboxing">Claude Code sandboxing</a>，滚动官方文档；核查实现、默认值、网络与 failIfUnavailable；另见 <a href="https://github.com/anomalyco/opencode/blob/c93aaae37157d785f76a8e9a9243a6560e286468/packages/core/src/tool/plugin/shell.ts">OpenCode Shell 插件</a> 及同提交 shell.ts；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-81"></a> OpenAI，<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/core/src/config/mod.rs#L266">Codex agent depth configuration</a>，DEFAULT_AGENT_MAX_DEPTH；同文件 L979 明确 V1、V2 条件；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-82"></a> Anthropic，<a href="https://code.claude.com/docs/en/hooks">Claude Code Hooks reference</a>，滚动官方文档；Stop 连续计数和 onFailure 版本条件；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-83"></a> Anthropic，<a href="https://code.claude.com/docs/en/memory">Claude Code Memory reference</a>，滚动官方文档；启动时与子目录文件上限分别核查；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-84"></a> Anthropic，<a href="https://code.claude.com/docs/en/sub-agents">Claude Code Subagents reference</a>，滚动官方文档；depth limit 与 concurrent subagent limit，含版本变化和例外；核验于 2026-10-24。</p>
+</li>
 </ol>
 
                     </main>

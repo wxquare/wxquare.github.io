@@ -43,10 +43,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a81d105a.js";
+            window.path_to_searchindex_js = "../searchindex-cec4fa4e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-4a74a8e8.js"></script>
+        <script src="../toc-9a8a9538.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -235,7 +235,7 @@ flowchart TB
     end
 </pre>
 
-<p>离线链路决定知识质量上限。在线链路决定用户问题能否命中正确证据。只优化 embedding 模型而忽略文档解析、chunk、metadata 和 rerank，通常不会得到稳定效果。</p>
+<p>离线阶段保存可定位版本，在线阶段按当前任务和身份选择证据。任一阶段漏掉字段或限定条件，后续高相似度都无法恢复已丢失的信息。解析的元素化入口参考 Unstructured，下面再定义本书的版本与验收契约。<a href="#ref-6">[6]</a></p>
 <h3 id="1422-文档摄取解析清洗版本与生命周期"><a class="header" href="#1422-文档摄取解析清洗版本与生命周期">14.2.2 文档摄取：解析、清洗、版本与生命周期</a></h3>
 <p>文档摄取不是简单读文件。不同来源有不同风险。</p>
 <div class="table-wrapper">
@@ -266,31 +266,22 @@ flowchart TB
 </ul>
 <p>清洗时要删除导航、广告、重复页脚、无意义模板和过期提示，但不能把引用、表格标题和代码上下文误删。</p>
 <p>生命周期也很重要。每个文档和 chunk 都应该有稳定 ID、版本、更新时间、失效状态和来源链接。否则引用会漂移，debug 时无法复现。</p>
-<h3 id="1423-chunk-策略检索单位上下文单位引用单位"><a class="header" href="#1423-chunk-策略检索单位上下文单位引用单位">14.2.3 Chunk 策略：检索单位、上下文单位、引用单位</a></h3>
-<p>Chunk 不是越小越好，也不是越大越好。它至少有三种角色：</p>
-<pre><code class="language-text">检索单位：用于召回
-上下文单位：放入 prompt
-引用单位：展示给用户追溯
-</code></pre>
-<p>常见切分策略：</p>
+<h3 id="1423-chunk分别设计召回读取和引用单位"><a class="header" href="#1423-chunk分别设计召回读取和引用单位">14.2.3 Chunk：分别设计召回、读取和引用单位</a></h3>
+<p>召回单位追求能够被准确匹配，读取单位追求限定条件完整，引用单位追求主张可以定位；三者不必相同。父子模式让 child 存入检索索引，命中后按 parent_id 扩展上下文，最终引用回到支持结论的实际跨度。父子关系必须绑定同一文档版本；当前子块不能拼接上一个版本的父块。扩展前重新检查父段可见性，子块命中不授予读取父文档全部内容的权限。</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th style="text-align: left">策略</th><th style="text-align: left">优点</th><th style="text-align: left">缺点</th><th style="text-align: left">适合场景</th></tr>
+<tr><th>切分方法</th><th>适用输入</th><th>主要误差</th><th>验收重点</th></tr>
 </thead>
 <tbody>
-<tr><td style="text-align: left">固定长度切分</td><td style="text-align: left">简单稳定</td><td style="text-align: left">容易切断语义</td><td style="text-align: left">低结构文本</td></tr>
-<tr><td style="text-align: left">结构化切分</td><td style="text-align: left">保留标题和段落</td><td style="text-align: left">依赖文档结构</td><td style="text-align: left">Markdown、HTML、Wiki</td></tr>
-<tr><td style="text-align: left">语义切分</td><td style="text-align: left">语义完整</td><td style="text-align: left">成本高、结果不稳定</td><td style="text-align: left">长段落、论文</td></tr>
-<tr><td style="text-align: left">Parent-child Chunk</td><td style="text-align: left">召回细粒度，展示大上下文</td><td style="text-align: left">实现复杂</td><td style="text-align: left">技术文档、代码文档</td></tr>
+<tr><td>固定 token 窗口</td><td>结构弱、段落很长</td><td>切断条件与结论</td><td>答案跨度是否被覆盖，overlap 是否造成重复计分</td></tr>
+<tr><td>文档结构切分</td><td>有标题、列表、代码和表格节点</td><td>错误解析造成结构漂移</td><td>标题继承、代码围栏和表头/脚注保留</td></tr>
+<tr><td>语义切分</td><td>主题切换明显的长材料</td><td>编码/阈值改变边界</td><td>固定解析与切分版本，测稳定性和增量成本</td></tr>
+<tr><td>父子检索</td><td>小块匹配、大段才能解释</td><td>扩展引入噪声或过期父块</td><td>同版本父子映射、扩展预算和精确引用</td></tr>
 </tbody>
 </table>
 </div>
-<p>工程上常用 parent-child 模式：</p>
-<pre><code class="language-text">child chunk：用于 embedding 和召回
-parent section：用于上下文展示和引用
-</code></pre>
-<p>这样可以兼顾召回精度和回答完整性。</p>
+<p>这些选择由任务证据跨度决定。假设 Runbook 的“仅适用于 staging”在前段，而操作命令在后段，只召回命令会改变原意。解决方式可以是父段扩展，也可以是把适用条件显式继承到子块；不能仅靠缩小 chunk 来追求更高表面相似度。无标题与 OCR 的具体解析责任在 14.2.5，本文不再重复另一套父子规则。</p>
 <h3 id="1424-metadata让检索从相似走向可控"><a class="header" href="#1424-metadata让检索从相似走向可控">14.2.4 Metadata：让检索从“相似”走向“可控”</a></h3>
 <p>没有 metadata 的 RAG 只能做“相似文本搜索”。生产系统需要可控检索。</p>
 <p>推荐 metadata 包含：</p>
@@ -359,21 +350,24 @@ RAG text embedding：检索系统把 query / document 映射成语义索引
 <p>单向量相似度不能保证实体、错误码、订单号、版本和否定条件的精确匹配；其细节保留程度取决于模型与训练任务。对本场景先保留词法与结构过滤基线，再测稠密召回增益，避免以相似度替代字段校验和权限控制。</p>
 <h3 id="1432-非对称编码与空间契约"><a class="header" href="#1432-非对称编码与空间契约">14.3.2 非对称编码与空间契约</a></h3>
 <p>DPR 使用 query 与 passage 双编码器，而不是把两段字符串任意送入不同模型后比较。<a href="#ref-3">[3]</a> 例如 e5-base-v2 模型卡要求 query:/passage:前缀并展示归一化，这只适用于该模型约定，不能机械推广。<a href="#ref-7">[7]</a> 记录模型 revision、tokenizer、前缀、pooling、截断、维度、归一化与 metric；短 query 和长 chunk 可得到同维表示，长度不同不妨碍计算，却可能因截断/信息稀释降低相关性。</p>
-<p>相似度 cos(q,d)=q·d/(||q||||d||)，仅单位归一化时内积等于余弦；对单位向量有平方 L2=2−2q·d。换模型即使维度相同也不能混用空间；不要通用除以文本长度“修正”分数。Token embedding 属于生成模型内部权重，检索 embedding 属于外部编码契约。</p>
-<h3 id="1433-flathnswivf-与-pq-的取舍"><a class="header" href="#1433-flathnswivf-与-pq-的取舍">14.3.3 Flat、HNSW、IVF 与 PQ 的取舍</a></h3>
-<p>HNSW 通过分层近邻图搜索，查询宽度、图连接和构建投入分别影响召回、内存与构建成本。<a href="#ref-8">[8]</a> Faiss 索引文档区分全扫描 Flat、聚类分桶 IVF、图索引与 PQ 压缩。<a href="#ref-9">[9]</a> IVF 选择探测桶再算候选，nprobe 影响速度/召回；PQ 将子向量编码为码本索引，减少载荷但引入近似误差，可对候选用原向量重评分。</p>
-<p>Flat 精确近邻可作为 ANN Recall@K 基线，但近邻正确不等于业务相关证据正确。强权限过滤后候选可能不足，比较过滤前/中/后策略及小集合精确搜索；禁止为补足 K 返回越权对象。删除、更新、持久化和租户隔离是数据库能力，不能从“使用 Faiss”自动推出。</p>
-<p>教学容量账本：100 万条 1536 维 float32 向量，原始载荷为 N×d×4=6.144GB（十进制）。另计图/倒排、payload、原文、复制、临时构建和新旧双索引；该数既非实测内存，也不表示必须全部常驻 RAM。冷热缓存、分片扇出、过滤选择性、写入积压与 P95/P99 共同决定选型。</p>
+<p>相似度 cos(q,d)=q·d/(||q||||d||)，仅单位归一化时内积等于余弦；对单位向量有平方 L2=2−2q·d。换模型即使维度相同也不能混用空间；不要通用除以文本长度“修正”分数。</p>
+<h3 id="1433-先固定精确参照再比较索引误差"><a class="header" href="#1433-先固定精确参照再比较索引误差">14.3.3 先固定精确参照，再比较索引误差</a></h3>
+<p>Flat 对给定集合逐一计算距离，提供精确近邻参照；HNSW、IVF 和 PQ 分别引入图导航、粗分桶裁剪和距离压缩方面的取舍，机制集中在 14.3.5–6，选型汇总在 14.3.7。<a href="#ref-9">[9]</a> 一个配置的 ANN Recall 很高，只说明它接近同一表示下的精确近邻，不说明这些邻居能支持业务答案。</p>
+<p>参照集合必须应用与候选相同的权限、时间和版本条件。若允许集合只有七项而请求 K=10，先明确有效 K 为七，再比较近邻重合；不能把其他租户的三项填进结果，也不能将天然不足十项误判成算法漏召回。标注相关证据和精确向量邻居是两套真值，14.8 分别统计。</p>
+<p>容量使用一个统一账本：原向量、索引结构、元数据/原文、副本、构建峰值和双索引迁移。14.3.5 给出具体算例；算法名本身不承诺持久化、实时删除和租户隔离，这些能力由数据库实现另行验收。</p>
 <h3 id="1434-稀疏稠密与多向量表示分别保留什么"><a class="header" href="#1434-稀疏稠密与多向量表示分别保留什么">14.3.4 稀疏、稠密与多向量表示分别保留什么</a></h3>
 <p>BM25 的一种常见写法为：</p>
 <p>$$s(q,d)=\sum_{t\in q}\mathrm{IDF}(t)\frac{f(t,d)(k_1+1)}{f(t,d)+k_1(1-b+b|d|/\mathrm{avgdl})}.$$</p>
 <p>其中 f 为词频，k1 控制重复词收益的饱和，b 控制文档长度归一化强度；IDF 的平滑形式随实现不同。<a href="#ref-2">[2]</a> 对服务名、错误码和版本号，精确词项保留了单向量可能压缩掉的信息；中文分词、代码符号切分与字段权重影响很大，不能把英文默认分析器当中文业务基线。</p>
-<p>DPR 的双编码器分别编码问题和段落，在同一训练目标约束的空间中匹配。<a href="#ref-3">[3]</a> e5-base-v2 的 query/passsage 前缀、平均池化与归一化属于其模型契约，该模型卡还限制英文与最多 512 token，不适合作为中文长文的无条件默认。<a href="#ref-7">[7]</a> 本场景若选择多语言表示，M3-Embedding 与智源 bge-m3 模型卡提供了多语言、稀疏/稠密/多向量能力的一手依据；是否适合本业务仍需同一留出集比较。<a href="#ref-10">[10]</a><a href="#ref-11">[11]</a></p>
+<p>表示空间与前缀契约见14.3.2；e5-base-v2模型卡还限制英文与最多512 token，不适合作为中文长文的无条件默认。<a href="#ref-7">[7]</a> 本场景若选择多语言表示，M3-Embedding 与智源 bge-m3 模型卡提供了多语言、稀疏/稠密/多向量能力的一手依据；是否适合本业务仍需同一留出集比较。<a href="#ref-10">[10]</a><a href="#ref-11">[11]</a></p>
 <p>ColBERT 预先编码文档 token，查询时进行 late interaction，它比单向量保留更多局部匹配信息，代价是表示和索引更大；不能把它直接称为普通 cross-encoder。<a href="#ref-4">[4]</a> 数字、否定、版本适用性与权限仍需单独校验，表示精细不代表事实正确。</p>
-<h3 id="1435-hnsw构建预算与查询预算分开"><a class="header" href="#1435-hnsw构建预算与查询预算分开">14.3.5 HNSW：构建预算与查询预算分开</a></h3>
-<p>HNSW 在多层图中先粗定位再细搜索。M 控制邻接连接规模，efConstruction 控制插入时探索宽度，efSearch 控制查询候选探索宽度；增加 M 主要牵动图内存与连接质量，增加 efConstruction 主要影响构建时间和图质量，增加 efSearch 主要交换查询延迟与召回。<a href="#ref-8">[8]</a><a href="#ref-9">[9]</a> Milvus 中文文档将相应查询宽度称为 ef，具体字段按引擎版本映射。<a href="#ref-12">[12]</a></p>
-<p>不能把论文中的对数尺度表现写成任意数据、过滤和参数下最坏 O(log N)保证。图退化、聚簇、维数、删除比例和严格过滤都会改变访问节点数；距离计算还与维度及硬件有关。实际构建成本取决于每次插入搜索和邻居选择，查询成本取决于层间导航及底层探索，不能只用 N 解释。采用图索引前保留 Flat 结果与样本查询，用访问量和延迟分布检验收益。</p>
-<p>调参分两阶段。先固定 M、efConstruction 和数据快照建多个图，比较构建耗时、峰值内存、持久化大小及目标召回下的查询曲线；再在选定图上扫描 efSearch。只调查询宽度不能修复差的构图或错误 embedding，重复重建也不能修复错误权限过滤。工程候选值必须标教学范围，最终参数从项目测量产生。</p>
+<h3 id="1435-hnsw构图决定可走的路查询预算决定探索多少"><a class="header" href="#1435-hnsw构图决定可走的路查询预算决定探索多少">14.3.5 HNSW：构图决定可走的路，查询预算决定探索多少</a></h3>
+<p>图索引先在稀疏上层接近目标，再在底层细找。M 控制连接规模，efConstruction 控制插入点时寻找连接的候选投入，efSearch 控制查询探索宽度。增大前两项会改变图的结构或构建质量，增大最后一项只在既有图上探索更多；图没有建好的连接，不能保证靠更大的查询预算完全补回。<a href="#ref-8">[8]</a></p>
+<p>实验分两阶段：先固定数据快照、编码和距离函数，比较不同 M/efConstruction 建出的图；再在每张图上扫描查询宽度。对每个目标 Recall 报告构建时间、峰值内存、持久大小、访问节点和尾延迟，而不是分别拿“最高 Recall”和“最低时延”拼成同一个配置。Milvus 将查询宽度字段命名为 ef；此处 efSearch 是算法责任的统称，调用时映射到目标版本字段。<a href="#ref-12">[12]</a></p>
+<p>以 hnswlib v0.8.0 为具体实现，底层允许的邻居数设为 <code>maxM0_=2*M_</code>，上层使用 <code>maxM_=M_</code>，层级采样系数使用 <code>1/log(M_)</code>；这些是该实现的选择。查询时的有效候选宽度还要覆盖请求的 K，调用方应显式保证 <code>efSearch≥K</code>，并核对封装是否自动提升。不能把参数名相似理解成所有数据库都采用相同的层级分布、删除实现或持久化方式。<a href="#ref-27">[27]</a></p>
+<p>层级搜索的直观收益是先在稀疏上层接近目标，再到密集底层细找。对分布适当的数据，查询通常表现为随规模缓慢增加的工作量，但图近邻搜索不存在对任意数据、任意过滤谓词都成立的固定对数时延保证。重复向量、狭窄簇、异常高维和与几何结构相关的过滤条件，都可能让一次搜索扩展许多节点。容量计划应给距离计算次数、访问节点数和实测尾延迟，而不是只写一个理想复杂度。原论文的算法分析与具体系统的服务延迟属于不同层次。<a href="#ref-8">[8]</a></p>
+<p>下面是本书的容量推导。假设 N 个向量、维度 d、每维 b 字节，原向量载荷为 <code>N*d*b</code>。若仅估计底层邻接表，边槽位约为 <code>N*2M</code>，再乘节点标识字节数；这仍没有包括上层边、每点头信息、对齐、标签映射、删除位图和分配器开销。假设一百万条、768 维 float32，单纯向量约 3.07GB 十进制字节；M=32、每个邻居 ID 为 4 字节时，底层边槽位又约 256MB。这里是数量级估算，不是某数据库实测内存，副本、元数据和写入缓冲必须另算。</p>
+<p>删除同样分两层。在 hnswlib 的标记删除模式中，结果会排除被标记对象，图中仍可能保留可用于遍历的结构；业务上的不可见不等于磁盘和内存立即回收。大量删除后应比较召回、节点访问、容量和重建费用，并核验系统是否支持槽位复用。涉及隐私删除时，还要追踪原向量、备份、缓存和源文本，而不能以近邻结果不再出现作为全部删除证明。<a href="#ref-27">[27]</a></p>
 <h3 id="1436-ivf-与-pq把候选裁剪误差和压缩误差拆开"><a class="header" href="#1436-ivf-与-pq把候选裁剪误差和压缩误差拆开">14.3.6 IVF 与 PQ：把候选裁剪误差和压缩误差拆开</a></h3>
 <p>IVF 训练粗聚类中心，把向量分到 nlist 个倒排桶；查询探测 nprobe 个桶。nlist 太少时桶大，扫描成本高；太多则训练和分桶负担上升，数据稀疏或分布漂移时可能出现不均衡。增大 nprobe 通常扩大候选覆盖，但也增加扫描，不能只固定一个值比较不同数据库。Faiss 文档提供索引结构与选择指南。<a href="#ref-9">[9]</a><a href="#ref-13">[13]</a></p>
 <p>PQ 将向量划分为子空间，每段用码本编号表示；若分为 m 段、每段 b bit，编码主体约 m×b/8 字节，另计 ID、码本、桶或图结构。这个容量公式是编码账本，不是完整数据库内存。查询可以用查表近似距离，对初筛候选回读原向量精排；若不存原向量，不能承诺精排消除全部量化误差。Faiss 论文讨论了索引、压缩与计算的取舍空间。<a href="#ref-14">[14]</a></p>
@@ -397,6 +391,29 @@ RAG text embedding：检索系统把 query / document 映射成语义索引
 <p>比较 ANN 之前，先定义当前查询的合法候选集合。本书将其限定为同一租户、环境、适用版本和当前授权下可参与排名的向量；Flat 与 ANN 必须在这个集合上使用相同距离计算。否则一个系统先全库召回再过滤，另一个系统先缩小集合再搜索，最后比较的“召回率”混入了不同任务。Faiss 将精确索引作为近似方案的参照，具体数据库的过滤执行计划仍需独立说明。<a href="#ref-13">[13]</a></p>
 <p>若合法集合不足 K，参照分母使用实际可用近邻数量并单列空集合查询；距离并列时约定稳定排序或等价集合，避免把任意次序当成算法错误。向量正确但原文已失效的对象不应因为位于 Flat 前列就被标成业务正例。业务相关性标签与向量近邻标签分别保存，才能解释“近邻重合很高，答案仍然错误”的情况。</p>
 <p>压测也要区分单查询代价与并发下的等待。固定索引快照、查询分布、过滤选择性和并发，分别观察距离计算、候选过滤、原文回读与排队。某组参数在空载下延迟很低，增加候选宽度后却可能使队列积压；因此参数决策应基于目标负载下的曲线，而不是选择某次最快请求。更新或删除改变了合法集合时重建对照，不继续沿用旧标签宣布性能提升。</p>
+<p>一个对照记录可以写成：合法集合有七项、有效 K=7，ANN 返回五项且都在精确集合内，近邻重合率为 5/7；若标注的业务充分证据只有两项，而返回结果只包含其中一项，则证据召回为 1/2。两个分母分别回答索引近似与业务证据覆盖，不能把 5/7 当成回答正确率。出现不足七项时，再按集合规模、过滤阶段和预算原因拆解，后续才能决定调索引还是补文档。</p>
+<h3 id="1439-过滤为什么会改变近邻搜索"><a class="header" href="#1439-过滤为什么会改变近邻搜索">14.3.9 过滤为什么会改变近邻搜索</a></h3>
+<p>过滤近邻搜索的目标，是在满足谓词的集合中找到距离最近的 K 项。假设全库最近的前十个结果都属于其他租户，那么全库 top-10 后过滤会返回空集，即使当前租户有大量相关文档。这不是 embedding 没学会业务词，而是求解的问题从“全库最近”变成了“约束集合内最近”。评估真值也应随谓词变化：以允许集合上的精确搜索为参照，不能拿全库 top-K 作 Recall 分母。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>策略</th><th>候选怎样产生</th><th>主要收益</th><th>典型代价</th></tr>
+</thead>
+<tbody>
+<tr><td>前过滤后精确/近似检索</td><td>先确定允许集合，在集合上检索</td><td>很小的集合可直接精确计算，结果天然满足谓词</td><td>通用全局图难直接裁剪；频繁变化的组合不适合为每种条件重建索引</td></tr>
+<tr><td>后过滤与扩大候选</td><td>全库 ANN，随后去掉不合格项，必要时继续取候选</td><td>可复用已有索引，工程接入简单</td><td>选择率低或过滤与距离强相关时，候选和延迟可能急剧增长</td></tr>
+<tr><td>搜索中过滤</td><td>在遍历时结合谓词调整扩展和结果接纳</td><td>可减少无效结果与部分计算</td><td>必须处理不合格节点作为路径桥梁的作用，正确性依实现</td></tr>
+</tbody>
+</table>
+</div>
+<p>一个容易误用的推导是“允许比例为 s，取 K/s 个候选就够”。它只是在过滤与距离独立时的粗略期望，不能作为召回保证。若相似向量恰好集中在被排除的团队，最相关的允许项可能排得远比这个估计更后；若同团队文档聚成一簇，则前面的全局入口又可能偏离允许子图。应在不同选择率和相关性下分层报告曲线，不能用一个平均选择率预测所有租户的尾延迟。</p>
+<p>图上的过滤还有连通性问题。一个不满足 ACL 的点可以在内部导航中连接两个满足条件的区域；若遇到它就停止扩展，允许子图可能变成不连通。若允许穿越但禁止输出，就必须确保内部计算、日志和侧信道也符合安全模型，尤其不能把未授权文本送入重排器或模型。ACORN 研究的谓词子图遍历正是在处理图结构与过滤结合的问题；它提供算法设计思路，并不说明任何标有 HNSW 的产品自动具备同样的过滤能力。<a href="#ref-25">[25]</a></p>
+<p>Filtered-DiskANN 则把向量几何与标签一起用于构图，区分可流式构建与批量构建的方案。原论文主要研究单标签过滤，相关真值在该标签允许集合中计算；不能从其结果推断任意复杂租户ACL都已解决。<a href="#ref-29">[29]</a> 与ACORN对读时，重点比较过滤怎样改变图的连接与遍历，而非把论文里的特定数据集性能当作数据库默认能力。</p>
+<p>本书建议把选择率看作路由变量。极小允许集合可尝试精确扫描；较大集合再比较过滤感知索引和扩大候选。路由阈值由数据规模、权限计算成本与延迟预算测出。不能为了提高 Recall 临时关闭 ACL，也不能在超时后无提示返回全库结果。若允许集合本身为空，系统应返回没有可授权证据；若允许集合非空而预算耗尽，应说明检索未充分完成。这两种情况需要不同的诊断标签。</p>
+<p>撤权后评估要同时检查结果和中间载荷：向量候选只带最小 ID，授权后才取文本，重排输入不得夹带被拒内容，Trace 不保存无权正文。过滤谓词的版本与授权水位进入查询记录，定位一次错误时才能区分索引遗漏、ACL 陈旧与搜索预算不足。</p>
+<p>过滤扩候选还应报告“拿到足够结果”的概率，而不只看平均数量。以下为本书的简化推导：若每个候选独立以概率 s 合格，取 n 个时合格数 X 服从二项分布，期望为 ns。但设置 n=K/s 只让期望达到 K，并不保证 X≥K。最简单的 K=1、s=0.1、n=10，至少一个合格结果的概率为 1−0.9^10，约 65.1%；要让该概率达到 95%，独立模型下至少需 29 个候选。此时计算的是“数量够不够”，仍没有证明取到了允许集合中真正最近的点。</p>
+<p>真实数据里合格事件与距离通常相关，二项模型失效，因此上述算例只用来反驳把期望当保证的做法。实验要保存每个查询的允许集合大小、搜索访问数、候选数、过滤后数量、有效 K 和未完成原因。一个系统为找满十项花了三轮扩候选，另一个只返回三项，不能以平均请求时延直接宣布后者更快；应在相同结果契约下比较。若产品允许少于 K，结果里显式区分集合不足、预算不足和算法没有找到。</p>
+<p>还要比较授权计算成本与向量计算成本。允许集合很小且谓词可由倒排或位图迅速算出时，先筛再精确扫描可能优于在大图里兜圈；允许集合很大、谓词昂贵时，预计算或搜索中谓词缓存可能划算。缓存的可见性依赖当前授权水位，不能跨撤权继续复用。路由阈值应按过滤选择率、相关性和负载分层求出，并保留超预算返回路径，不以对另一租户开放候选来换性能。</p>
 <p><a id="rag-retrieval"></a></p>
 <h2 id="144-查询理解混合召回融合与重排"><a class="header" href="#144-查询理解混合召回融合与重排">14.4 查询理解、混合召回、融合与重排</a></h2>
 <p><a href="../images/review-knowledge-retrieval-04.svg"><img src="../images/review-knowledge-retrieval-04.svg" alt="从多路召回到可比较的候选集"></a></p>
@@ -487,7 +504,7 @@ rewrite:
 <p>这些信息对后续 debug 很有价值。</p>
 <h3 id="1445-rerank让结果从相似变成有用"><a class="header" href="#1445-rerank让结果从相似变成有用">14.4.5 Rerank：让结果从“相似”变成“有用”</a></h3>
 <p>Rerank 解决的是候选结果排序问题。Embedding 检索通常负责从大量文档中快速召回候选，例如 top 50 或 top 100；reranker 负责对候选进行更精细排序，例如选出 top 5。可以把它压缩成一句话：</p>
-<pre><code class="language-text">召回要快，排序要准。
+<pre><code class="language-text">召回与排序分别承担候选覆盖和相关性辨别。
 </code></pre>
 <p>相似不等于有用。一个 chunk 可能和问题很像，但内容过期、权限不匹配、只讲背景、不包含答案。</p>
 <p>Rerank 可以考虑：</p>
@@ -509,6 +526,7 @@ rewrite:
 <pre><code class="language-text">设计文档 + API schema + 最近变更 + 历史事故
 </code></pre>
 <p>权限过滤必须发生在进入模型上下文之前。模型不应该看到用户无权访问的证据，再靠 prompt 要求它“不泄露”。权限应该由检索层或资源层强制执行。</p>
+<p>融合的单位也要固定。两个路由命中同一文档的相邻重叠块，若把它们作为两份独立证据，既可能占满top-K，也会在后续支持率中虚增分母。先按稳定文档版本和证据跨度归并候选，保存各路原始rank；融合仍可在块级计算，但向模型交付和评估必须知道哪些块来自同一份材料。去重不能只按纯文本哈希，因为相同文字可能来自不同租户、版本或适用条件。</p>
 <h3 id="1447-融合与重排不共享一个万能分数"><a class="header" href="#1447-融合与重排不共享一个万能分数">14.4.7 融合与重排不共享一个“万能分数”</a></h3>
 <p>BM25/稠密分数尺度不同，不能未经校准直接相加。RRF 按排名融合：score(d)=Σ_r 1/(k+rank_r(d))，缺席某路不贡献；k 和候选数需任务集调优。<a href="#ref-15">[15]</a> 加权融合先做可靠校准，硬权限/时间适用条件不以低权重代替。</p>
 <p>BERT 重排联合读 query 与 passage，可在有限候选集上精细判断。<a href="#ref-16">[16]</a> ColBERT 则保留 token 级表示并做 late interaction，不能与单向量或普通 CrossEncoder 混称。<a href="#ref-4">[4]</a> 候选 N、重排截断长度和最终证据 K 各有预算；增加 N 可能修召回，也可能增加延迟和噪声。未经核验的模型分数不代表事实可信度，版本新也不代表当前实体适用。</p>
@@ -521,258 +539,110 @@ rewrite:
 <p>在线检索可以先放置一个已知文档探针：若任务已给出准确 Runbook 标识，先按标识和适用条件读取，而不是让查询改写再次猜测。标识精确命中但权限不符时停止该读取，不通过语义近邻寻找同一私密内容的镜像。只有文档身份尚不明确，才让稀疏与稠密通道共同产生候选。这个分流是本书对诊断场景的设计，并非要求所有问答都多走一次查询。</p>
 <p>候选预算与证据预算需要分开。前者控制多少材料进入重排，后者控制多少原文及其条件真正交给生成器。某个候选得分很高，只能说明值得进一步检查；回源后发现过期、截断或与问题范围不符，仍须排除并记录原因。若排除后证据不足，应按剩余预算补取下一批，不能把被排除候选的摘要留下充数，也不能把不足的数量解释为没有风险。</p>
 <p>对复杂问题，最终选择应说明每条材料覆盖哪个子问题。相邻三个块可能都解释现象，却没有一个说明发布变更；此时降低重复材料占用、补取部署证据，比继续增加同类块更有价值。重排模型负责相关性次序，完整性、权限和证据支持由相应检查负责。保留召回名次、重排名次、排除原因与最终读取范围，才能判断质量变化来自搜索、排序，还是后续选择策略。</p>
+<h3 id="14410-分数归一化融合权重与候选缺失"><a class="header" href="#14410-分数归一化融合权重与候选缺失">14.4.10 分数归一化、融合权重与候选缺失</a></h3>
+<p>BM25 的分数、向量相似度和 cross-encoder 输出描述不同对象。即使数值都落在零到一，也不意味着它们是同一事件的概率。直接相加会让量纲较大的通道支配结果；每批做 min-max 虽然统一范围，却可能因为一个异常候选改变其他所有文档的相对权重。归一化应该与查询分布、候选截断和权重共同验证，而不是只检查最终数值漂亮。</p>
+<p>若采用加权分数融合，可写成 <code>score=α*lexical_norm+(1-α)*dense_norm</code>，并记录归一化参数在何处拟合。训练和验证不能共享同一份调权样本，线上也不能用最终人工标签反向影响待评查询。若通道只返回 top-L，未出现的候选到底记零、记缺失，还是使用该通道的下界分数，都会改变排序；这属于融合契约的一部分。候选 ID 去重、父文档聚合和权限过滤应发生在约定阶段，否则权重实验没有可比性。</p>
+<p>RRF 使用名次而不是原始分值，降低了跨通道分数标定的接入成本，但它仍受候选深度、常数和通道数量影响。某文档在两个通道都出现会获得累加贡献，复制一个高度相关的检索通道也可能等效于给它增加权重。因此把相同 embedding 的两个近似配置当成独立证据通道，可能只是重复计票。Bruch 等人的融合分析比较了 RRF 与凸组合，并指出参数和数据分布会改变结果；不能据此宣布一种融合在所有语料上最好。<a href="#ref-26">[26]</a></p>
+<p>建议先锁定候选并比较融合，随后锁定融合再比较召回深度，最后比较是否值得增加重排。以告警案例为教学对象，可分出服务名精确匹配、错误码、自然语言描述和跨版本追溯四类查询。如果融合仅改善宽泛描述，却降低了错误码精确查询的正确版本命中，就应考虑条件路由或分层门禁。一个总体平均值不能代替关键切片的保护。</p>
+<p>融合也不能补回从未进入并集的证据。先检查 gold evidence 是否在任一通道候选中，再检查融合后是否保留，最后检查重排和读取。按这三个位置计算损失，可以判断该调候选深度、改权重还是改善读取预算。候选已经正确而答案无依据时，应回到引用与生成验收，不继续盲目扩大向量搜索。</p>
 <p><a id="agentic-rag"></a></p>
 <h2 id="145-agentic-rag-与多跳证据链"><a class="header" href="#145-agentic-rag-与多跳证据链">14.5 Agentic RAG 与多跳证据链</a></h2>
 <p><a href="../images/review-knowledge-retrieval-05.svg"><img src="../images/review-knowledge-retrieval-05.svg" alt="多跳检索的预算与停止规则"></a></p>
-<h3 id="1451-为什么普通-rag-不够"><a class="header" href="#1451-为什么普通-rag-不够">14.5.1 为什么普通 RAG 不够</a></h3>
-<p>普通 RAG 假设一次检索就能找到足够证据。但很多任务不满足这个假设：</p>
-<ul>
-<li>问题太宽，需要先拆解；</li>
-<li>答案需要多跳证据；</li>
-<li>不同来源互相冲突；</li>
-<li>需要验证当前事实；</li>
-<li>需要比较多个方案；</li>
-<li>需要结合文档、代码、日志、指标和数据库。</li>
-</ul>
-<p>例如：</p>
-<pre><code class="language-text">我们最近几次订单超时事故的共同根因是什么？现在这个告警是不是同类问题？
-</code></pre>
-<p>这不是一次 top-k 检索能解决的问题。Agent 需要先查历史事故，再抽取共同模式，再查当前日志和指标，最后判断是否相似。</p>
-<h3 id="1452-什么时候需要-agentic-rag"><a class="header" href="#1452-什么时候需要-agentic-rag">14.5.2 什么时候需要 Agentic RAG</a></h3>
-<p>满足以下条件时，应该考虑 Agentic RAG：</p>
-<ul>
-<li>需要拆解成多个子问题；</li>
-<li>需要跨知识源检索；</li>
-<li>需要多跳实体追踪；</li>
-<li>需要验证或反证；</li>
-<li>需要动态决定下一步；</li>
-<li>需要维护证据状态；</li>
-<li>需要过程 trace 和可恢复性。</li>
-</ul>
-<p>不应该把所有问题都升级成 Agentic RAG。简单 FAQ、明确文档问答、单资源读取不需要多轮搜索，否则只会增加延迟、成本和不稳定性。</p>
-<h3 id="1453-plan把问题拆成可检索任务"><a class="header" href="#1453-plan把问题拆成可检索任务">14.5.3 Plan：把问题拆成可检索任务</a></h3>
-<p>Agentic RAG 的第一步是生成检索计划。</p>
-<pre><code class="language-json">{
-  "goal": "分析当前订单超时告警是否与历史支付补偿问题相关",
-  "subtasks": [
-    {
-      "id": "Q1",
-      "question": "历史订单超时事故有哪些共同根因？",
-      "source": "incident_rag"
-    },
-    {
-      "id": "Q2",
-      "question": "当前 order-service 在告警窗口内有哪些错误日志？",
-      "source": "log_tool"
-    },
-    {
-      "id": "Q3",
-      "question": "当前是否有相关发布或配置变更？",
-      "source": "deployment_tool"
-    }
-  ],
-  "budget": {
-    "max_rounds": 4,
-    "max_sources": 5
-  }
-}
-</code></pre>
-<p>计划必须包含预算。没有预算的 Agentic RAG 容易无限检索。</p>
-<h3 id="1454-retrieve按子问题检索"><a class="header" href="#1454-retrieve按子问题检索">14.5.4 Retrieve：按子问题检索</a></h3>
-<p>Retrieve 阶段按子问题选择不同工具和知识源。它不是简单循环调用同一个 search。</p>
-<pre><code class="language-text">Q1 → incident RAG
-Q2 → log tool
-Q3 → deployment tool
-Q4 → runbook Resource
-</code></pre>
-<p>每次检索都要记录：</p>
-<ul>
-<li>子问题；</li>
-<li>使用的知识源；</li>
-<li>查询参数；</li>
-<li>返回候选；</li>
-<li>是否命中；</li>
-<li>失败原因；</li>
-<li>进入 evidence state 的内容。</li>
-</ul>
-<h3 id="1455-read抽取结构化证据"><a class="header" href="#1455-read抽取结构化证据">14.5.5 Read：抽取结构化证据</a></h3>
-<p>Agentic RAG 不应该把检索结果原样堆进上下文。Read 阶段要把结果抽取成结构化证据。</p>
-<pre><code class="language-json">{
-  "evidence_id": "E7",
-  "supports": ["Q2"],
-  "claim": "当前告警窗口内 payment callback timeout 错误显著增加",
-  "source": {
-    "type": "log_tool",
-    "query": "service=order-service keyword='payment callback timeout'",
-    "time_range": "last_30m"
-  },
-  "verification_status": "unverified",
-  "limitations": "只覆盖 prod 环境 order-service 日志"
-}
-</code></pre>
-<p>这是 Read 阶段的候选摘录，不是完整 Evidence Packet。成为可用证据前还要绑定 source_id/source_version、原文 locator、采集时间与权限范围，并核验主张支持关系；verification_status 不能由模型自报 confidence 代替。完整契约参考<a href="02-context-engineering.html#knowledge">来源与证据</a>。</p>
-<h3 id="1456-evidence-state维护证据状态"><a class="header" href="#1456-evidence-state维护证据状态">14.5.6 Evidence State：维护证据状态</a></h3>
-<p>Evidence State 是 Agentic RAG 的工作记忆，不等于长期 Memory。</p>
-<p>它应该记录：</p>
-<ul>
-<li>已回答的子问题；</li>
-<li>未回答的问题；</li>
-<li>支持某个结论的证据；</li>
-<li>反驳某个结论的证据；</li>
-<li>冲突点；</li>
-<li>已经访问过的来源；</li>
-<li>预算消耗；</li>
-<li>下一步候选动作。</li>
-</ul>
-<pre><code class="language-text">Evidence State
-├─ answered_questions
-├─ open_questions
-├─ supporting_evidence
-├─ contradicting_evidence
-├─ conflicts
-├─ visited_sources
-└─ budget_used
-</code></pre>
-<h3 id="1457-decide-next-step继续检索换源验证或停止"><a class="header" href="#1457-decide-next-step继续检索换源验证或停止">14.5.7 Decide Next Step：继续检索、换源、验证或停止</a></h3>
-<p>每轮检索后，Agent 需要决定下一步：</p>
-<ul>
-<li>证据足够，进入综合；</li>
-<li>证据不足，继续检索；</li>
-<li>来源不可信，换源；</li>
-<li>存在冲突，做反证检索；</li>
-<li>超出预算，降级回答；</li>
-<li>用户问题不清晰，要求澄清。</li>
-</ul>
-<p>停止条件应区分“证据就绪”与“无法继续”。以下是本书任务契约的示意；后面三项仅触发停止检索，不能把缺证据的结果升级为成功：</p>
-<pre><code class="language-text">stop if:
-- all required subquestions answered
-- each required claim has current authorized supporting evidence
-- required counterchecks complete; no unresolved critical conflict
-- no new useful evidence in last round
-- max_rounds reached
-- cost or latency budget exhausted
-</code></pre>
-<h3 id="1458-synthesize--verify综合与验证"><a class="header" href="#1458-synthesize--verify综合与验证">14.5.8 Synthesize + Verify：综合与验证</a></h3>
-<p>综合阶段不是简单总结所有证据，而是把证据映射到 claim。</p>
-<p>输出前应检查：</p>
-<ul>
-<li>每个关键 claim 是否有 evidence；</li>
-<li>是否存在未解决冲突；</li>
-<li>是否有过期证据；</li>
-<li>是否把历史案例误当当前事实；</li>
-<li>是否超出证据做了预测；</li>
-<li>是否需要声明不确定性。</li>
-</ul>
-<p>一个可靠回答应该区分：</p>
-<pre><code class="language-text">已证实事实
-合理推断
-证据不足
-建议下一步验证
-</code></pre>
-<h3 id="1459-query-decomposition-的风险"><a class="header" href="#1459-query-decomposition-的风险">14.5.9 Query Decomposition 的风险</a></h3>
-<p>Query Decomposition 可以提升复杂问题处理能力，但也会引入风险：</p>
-<ul>
-<li>拆出的子问题偏离用户目标；</li>
-<li>子问题过多导致成本失控；</li>
-<li>子问题之间重复；</li>
-<li>模型创造不存在的实体；</li>
-<li>子问题缺少可检索来源。</li>
-</ul>
-<p>因此拆解结果应满足：</p>
-<pre><code class="language-text">每个子问题都可检索
-每个子问题都服务总目标
-每个子问题都有预期来源
-子问题数量受预算约束
-</code></pre>
-<h3 id="14510-multi-hop-retrieval跨证据链路检索"><a class="header" href="#14510-multi-hop-retrieval跨证据链路检索">14.5.10 Multi-hop Retrieval：跨证据链路检索</a></h3>
-<p>Multi-hop Retrieval 用于答案需要跨多个证据节点时。</p>
-<p>例如：</p>
-<pre><code class="language-text">哪个配置变更导致了最近的支付超时？
-</code></pre>
-<p>可能需要：</p>
-<pre><code class="language-text">告警时间 → 相关服务 → 最近部署 → 配置 diff → 代码路径 → 历史事故
-</code></pre>
-<p>每一跳都要产生新的实体或约束，而不是盲目继续搜索。</p>
-<h3 id="14511-bridge-entity通过中间实体继续追踪"><a class="header" href="#14511-bridge-entity通过中间实体继续追踪">14.5.11 Bridge Entity：通过中间实体继续追踪</a></h3>
-<p>Bridge Entity 是多跳检索中的桥梁实体。它可能是服务名、接口名、错误码、配置 key、人员、公司、论文术语或数据库表。</p>
-<p>例如：</p>
-<pre><code class="language-text">用户问题：为什么 checkout 最近变慢？
-
-第一跳：checkout latency increase
-桥接实体：pricing-service
-第二跳：pricing-service timeout
-桥接实体：promotion_rule_cache
-第三跳：promotion_rule_cache miss spike
-</code></pre>
-<p>Bridge Entity 必须来自证据，而不是模型凭空生成。</p>
-<h3 id="14512-graphrag当关系比文本相似更重要"><a class="header" href="#14512-graphrag当关系比文本相似更重要">14.5.12 GraphRAG：当关系比文本相似更重要</a></h3>
-<p>GraphRAG 研究从实体关系和社区摘要支持全局问题，图是检索组织方式，抽取出的边仍需原文证据。<a href="#ref-19">[19]</a></p>
-<p>本书建议在以下关系密集场景中评估图检索；实际收益仍须与文本基线对照：</p>
-<ul>
-<li>服务依赖；</li>
-<li>调用链；</li>
-<li>人和项目；</li>
-<li>公司和供应链；</li>
-<li>论文概念网络；</li>
-<li>事故传播路径。</li>
-</ul>
-<p>图谱查询通常分为两类：</p>
+<h3 id="1451-使用条件下一次查询是否依赖上一次证据"><a class="header" href="#1451-使用条件下一次查询是否依赖上一次证据">14.5.1 使用条件：下一次查询是否依赖上一次证据</a></h3>
+<p>一次性检索适合已知文档、明确问答和小范围完整材料；如果下一次需要查询的实体或来源，要在读过上一份材料后才能确定，才值得增加调查循环。IRCoT 研究交错检索与推理，Self-RAG 研究按需检索与自我评价，这些是特定训练/推理方法；不能把给普通模型增加一句“继续反思”视为同一算法。<a href="#ref-20">[20]</a><a href="#ref-21">[21]</a></p>
+<p>本章继续使用 <code>ALR-20260429-017</code>。问题是“这次订单超时是否与上次事故同类”，第一轮可以查历史复盘；若复盘指出某个支付组件，再读当前部署与指标验证。是否查这个组件来自证据，当前故障是否属于同类则来自当前观测，两者不能互换。把三个已经确定的查询并行执行只是固定检索工作流，不必为了形式引入动态 Agent。</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th style="text-align: left">查询类型</th><th style="text-align: left">目标</th><th style="text-align: left">示例</th></tr>
+<tr><th>信息缺口</th><th>应选择的路径</th><th>增加循环的理由</th></tr>
 </thead>
 <tbody>
-<tr><td style="text-align: left">Local Query</td><td style="text-align: left">从一个实体出发查邻域</td><td style="text-align: left">order-service 依赖哪些服务</td></tr>
-<tr><td style="text-align: left">Global Query</td><td style="text-align: left">汇总全图模式</td><td style="text-align: left">哪些服务是稳定性瓶颈</td></tr>
+<tr><td>明确一份 Runbook 的条款</td><td>直接按版本回读</td><td>无需循环，关键是完整适用条件</td></tr>
+<tr><td>缺少服务别名</td><td>查询注册/命名资料，再按稳定标识检索</td><td>后续查询依赖前一份证据</td></tr>
+<tr><td>历史资料与当前观测冲突</td><td>回读原文、查当前指标或部署</td><td>需要区分版本差异与真实反例</td></tr>
+<tr><td>只有宽泛用户猜测</td><td>先澄清对象与窗口</td><td>不用不断搜索代替任务定义</td></tr>
+<tr><td>当前允许来源已全部用尽</td><td>输出有范围的不足报告</td><td>扩大权限不是检索策略</td></tr>
 </tbody>
 </table>
 </div>
-<p>GraphRAG 的风险是图谱过期、边关系错误、实体消歧困难。它应该和文本证据、工具结果结合，而不是替代所有检索。</p>
-<h3 id="14513-long-context-与-rag-的组合"><a class="header" href="#14513-long-context-与-rag-的组合">14.5.13 Long-context 与 RAG 的组合</a></h3>
-<p>长上下文研究显示位置影响某些任务的利用率，不能只以窗口大小判定无需检索。<a href="#ref-5">[5]</a></p>
-<p>小范围材料可以直接用长上下文完成任务；在本场景中，扩大窗口并不自动替代检索侧的版本、权限与回源控制。</p>
-<p>长上下文解决的是：</p>
-<ul>
-<li>可以放入更多文档；</li>
-<li>保留更完整上下文；</li>
-<li>减少过度切分。</li>
-</ul>
-<p>仅扩大窗口不能自动保证：</p>
-<ul>
-<li>该读哪些文档；</li>
-<li>文档是否过期；</li>
-<li>用户是否有权限；</li>
-<li>哪些证据最相关；</li>
-<li>如何引用；</li>
-<li>如何评估召回质量。</li>
-</ul>
-<p>推荐模式是：</p>
-<pre><code class="language-text">RAG 负责选择
-Long-context 负责容纳
-Rerank 负责排序
-Context Builder 负责组织
+<p>循环新增的成本包括查询、原文读取、重排、摘要、生成和恢复；收益应是在同一任务预算内缩小具体争议。用户只要一份条款时，多次搜索可能把旧版本或相似但不适用的内容混进来。应先比较受控固定链路与动态循环，再决定是否承担更多不确定性。</p>
+<h3 id="1452-有界循环计划检索读取状态与停止"><a class="header" href="#1452-有界循环计划检索读取状态与停止">14.5.2 有界循环：计划、检索、读取、状态与停止</a></h3>
+<p>一个可审计循环保存必要子问题、候选证据、来源血缘、冲突、预算和下一步动作，不保存完整隐含思维链。计划负责把任务约束转成可核验缺项；Retrieve 按缺项路由到文档、指标、日志或部署；Read 回到实际版本原文；State 保存新增证据与未决项；Decide 在继续、换源、澄清和停止之间选择。各步骤形成的不是“更长聊天记录”，而是同一证据状态的版本推进。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>阶段</th><th>输入与持久记录</th><th>此阶段必须拒绝的捷径</th></tr>
+</thead>
+<tbody>
+<tr><td>Plan</td><td>必要主张、对象、时间、预算与允许来源</td><td>创造来源中不存在的服务或查询其他租户</td></tr>
+<tr><td>Retrieve</td><td>子问题 ID、规范化查询、过滤与来源版本、候选 ID</td><td>将调用失败解释为没有相关事实</td></tr>
+<tr><td>Read</td><td>原文定位、实体/版本/权限和支持关系</td><td>把搜索摘要直接当成完整权威证据</td></tr>
+<tr><td>State</td><td>支持/反对/不足、来源依赖、消耗和下一缺项</td><td>用模型 confidence 把 unverified 晋级</td></tr>
+<tr><td>Decide</td><td>尚缺观察、可用动作、停止原因</td><td>为消除 unknown 无限制扩大查询</td></tr>
+</tbody>
+</table>
+</div>
+<p>下面是本书的教学状态片段，约束不对应某个产品的原生 API。它只记录能决定下一步的事实，完整 Evidence Packet 复用<a href="02-context-engineering.html#knowledge">第 13 章契约</a>。</p>
+<pre><code class="language-yaml">investigation:
+  case_id: ALR-20260429-017
+  revision: 3
+  required_claims:
+    - id: symptom_window
+      state: supported
+      evidence_refs: [metric-p95-v1]
+    - id: deployment_change
+      state: insufficient
+      missing_observation: release_diff_in_window
+    - id: causal_attribution
+      state: conflicted
+      evidence_refs: [runbook-v2, runbook-v3]
+  next_action:
+    kind: read_deployment_diff
+    changes_claim: deployment_change
+  budget_remaining:
+    retrieval_rounds: 2
+  stop_reason: null
 </code></pre>
-<h3 id="14514-反证检索与-self-verification"><a class="header" href="#14514-反证检索与-self-verification">14.5.14 反证检索与 Self-Verification</a></h3>
-<p>高风险回答需要反证检索。不要只检索支持当前结论的证据，也要检索可能推翻结论的证据。</p>
-<p>例如：</p>
-<pre><code class="language-text">初步结论：超时由支付网关变慢导致。
-
-反证检索：
-- 是否有 order-service 自身 CPU 异常？
-- 是否有数据库慢查询？
-- 是否有最近部署？
-- 是否只有部分机房受影响？
-</code></pre>
-<p>Self-Verification 的目标不是让模型“自信”，而是让系统检查回答是否被证据支持。</p>
-<h3 id="14515-交错检索的来源与停止规则"><a class="header" href="#14515-交错检索的来源与停止规则">14.5.15 交错检索的来源与停止规则</a></h3>
-<p>IRCoT 在知识密集多步问题中交错检索与推理；Self-RAG 训练按需检索与自我评价 token。<a href="#ref-20">[20]</a><a href="#ref-21">[21]</a> 两者提供方法思路，不意味着给任意模型加一句“反思”就复制论文机制。本书不保存完整思维链，只保存可审计的子问题、候选行动、证据、裁决和停止理由。</p>
-<p>桥接实体必须包含 source_id、version、locator 与原文命中，模型提出但未在原文出现的服务名只能是候选假设，不能直接用于跨租户查询。每轮记录规范化查询指纹、来源/过滤版本和新增独立证据集合；同一查询换写法却只返回相同原文，不算进展。相邻重叠块也不能被记为多个独立支持。</p>
-<p>充分性不是模型自报 confidence 达到阈值。本场景以契约列出的必要主张为单位，逐项核对支持证据、反证、当前版本和关键未知：延迟发生时间、部署变化和依赖错误缺任一项，就不能写确定根因。可以交付“尚缺日志”的受限报告；授权拒绝、无新证据、查询预算耗尽或所有候选来源失败分别保存停止原因。不能为消除 unknown 不断扩大查询。</p>
-<p>GraphRAG 的原工作以实体图和社区摘要处理全局总结，不证明所有实时故障定位都适合图检索。<a href="#ref-19">[19]</a> 全局摘要回到原文后才能支撑具体配置判断，抽取错误和社区摘要过期会沿关系传播。若需求只是查当前 payment-client 配置，直接读受控配置比构图更清楚。</p>
-<p>检索过程还需要一张可检查的缺项表，而不是只有“再搜一次”的指令。本书为每个必要主张记录当前支持、相反证据、尚缺观察和可用来源。下一轮查询须指向一个缺项，并说明成功取得观察后会改变哪个判断。例如已知延迟与部署时间相近，继续搜索更多同义告警不能验证配置因果；读取配置差异或查明依赖错误的起始时间，才可能排除候选原因。</p>
-<p>独立证据数量也不能直接当作下一轮价值。两个日志平台可能复制同一采集源，五篇事故摘要可能来自同一复盘。缺项表保留原始来源关系，优先选择能区分相互竞争假设的观察；如果所有可访问来源都复述同一事实，允许结束检索并明确剩余未知。这里衡量的是能否缩小具体争议，不要求模型给每次搜索编造一个无法验证的信息增益分数。</p>
-<p>查询失败时保留它没有回答的问题。日志超时意味着当前无法核对某段时间，不能将其当成“没有错误日志”；外部来源拒绝授权，也不能靠不断改写关键词绕过。预算耗尽前按缺项的重要性确定交付范围：可以确认症状与时间线，保留原因假设，指出哪项获授权观察有助于继续判断。这样，停止检索产生的是有边界的诊断结果，而不是强行凑齐的确定答案。</p>
+<p>每轮必须说明新查询将改变哪项判断。已经知道延迟与发布时间相近，继续搜索更多同义告警不会增强因果证据；读取差异或核对依赖错误起点才可能区分假设。来源之间也可能相关：两个日志平台共享同一采集源，五份摘要来自同一篇复盘，不能记成七份独立证据。查询指纹相同、返回原文集合相同而没有新增限定条件，判为无新进展。</p>
+<p>停止分成两类。证据就绪要求必要主张有当前可授权支持、关键反证已检查、重要冲突已解释；预算耗尽、授权拒绝、来源故障和无新进展只说明无法继续。后一类可以交付症状与时间线，但不能把根因标为已确认。部署差异仍缺失时，哪怕模型已经写完一段流畅报告，也不满足当前任务完成条件。</p>
+<p>恢复时先回读权威调查状态和当前权限，再判断缓存证据是否仍有效；旧状态里的“可访问”不是永久授权。已完成的只读查询可复用对应版本观察，结果未知的外部动作按 Runtime 的原 Operation 核验。这里限定检索接续所需状态，通用 Checkpoint、调度和幂等机制见<a href="03-agent-runtime.html#failure-recovery">第 15 章</a>，不另造第二套恢复规则。</p>
+<h3 id="1453-多跳桥接实体与图索引的建设成本"><a class="header" href="#1453-多跳桥接实体与图索引的建设成本">14.5.3 多跳、桥接实体与图索引的建设成本</a></h3>
+<p>多跳是证据之间的有向连接。第一份材料给出组件 ID，第二份给出该组件使用的配置键，第三份才解释配置在指定版本的语义。中间的组件或配置键称为桥接实体；每一跳都保存其原文出现位置、来源版本与允许范围，模型猜出的名称只算候选。路径长度本身没有价值，关键是相邻两条证据是否确实在说同一对象。</p>
+<p>例如 <code>order-service → payment-client → retry_timeout</code> 只有在部署资料确认使用该组件、配置说明绑定当前版本时，才能用于当前任务。另一个环境也出现 retry_timeout，不能因同名合并；同一服务改名时则需要显式别名证据。把字符串相等当成实体同一，会让检索链跨环境、跨版本甚至跨租户跳转。</p>
+<p>GraphRAG 将实体关系和社区摘要作为检索组织方式。其原工作面向全局主题总结，不能证明文本构出的图适合所有实时根因分析。<a href="#ref-19">[19]</a> Microsoft 库的 Local/Global 是具体方法入口：前者结合相关实体邻域与文本，后者通过社区报告回答较宽的全局问题；这些命名不等于图数据库任意邻居查询。软件入口按本章固定发行版与工作流核对。<a href="#ref-28">[28]</a></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>阶段</th><th>新增工作</th><th>正确性与成本责任</th></tr>
+</thead>
+<tbody>
+<tr><td>初始建图</td><td>抽实体/关系、消歧、聚类、社区报告</td><td>记录抽取模型、提示、源片段和失败重试，不能只算向量化费用</td></tr>
+<tr><td>文档变更</td><td>找受影响实体/边和报告，局部或全量重算</td><td>一句修改可能经共享实体传播到多份报告</td></tr>
+<tr><td>删除/撤权</td><td>移除可见来源并使其派生内容失效</td><td>更新命令支持追加不代表支持完整撤权闭环</td></tr>
+<tr><td>查询</td><td>找入口、扩展关系、回读文本和生成</td><td>图摘要提供路径，具体结论仍需可授权原文</td></tr>
+</tbody>
+</table>
+</div>
+<p>本书的增量设计先维护 <code>source → edge → community/report</code> 血缘。若一个关系有三个独立来源，删除其中一份不必抹掉关系，但需重新核对剩余支持及报告措辞；若它是唯一来源，依赖它的结论必须失效。社区重新划分会使更多报告变化，不能把“只重算变更文档”当作所有派生产物更新充分的证明。实际库是否完成这些传播，以固定代码为准，表中描述的是应用需要验收的责任。</p>
+<p>因此选型要先证明关系组织带来的收益：任务是否真的跨多份来源，实体是否容易稳定消歧，更新扇出和来源回读是否可接受。若只是查当前 payment-client 配置，直接读取权威配置更简单。若问题是“哪些复盘共同描述相同故障传播模式”，可以将图路线与相同证据预算的文本基线配对，比较覆盖、错误关联、更新时延和总成本。</p>
+<h3 id="1454-综合与反证把证据链变成有限定的回答"><a class="header" href="#1454-综合与反证把证据链变成有限定的回答">14.5.4 综合与反证：把证据链变成有限定的回答</a></h3>
+<p>综合先建立主张到证据的映射，再组织语言。对告警案例可以分别回答症状窗口、部署变化、相关依赖、因果支持和建议；每项声明证实、推断或不足。详细的引用定位与充分性在 14.6 统一解释。本节只负责调查结束时怎样收敛，避免在每一轮重写一份不同的答案标准。</p>
+<p>反证不是要求模型再想一遍，而是寻找能区分竞争解释的观察。假设“支付网关变慢”解释了超时，那么订单服务自身 CPU、数据库等待、发布差异和机房切片可以提供区分信息；但这些检查须在获准工具和任务范围内。观察没有支持原假设时保留负结果，来源拒绝或查询超时则保留缺项，两者不能都归为“没有异常”。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>观察结果</th><th>可以得出的结论</th><th>不能跨越的推断</th></tr>
+</thead>
+<tbody>
+<tr><td>延迟升高与发布相邻</td><td>两个事件有时间关系</td><td>发布造成故障</td></tr>
+<tr><td>旧 Runbook 建议扩大连接池</td><td>历史方法存在该处置</td><td>当前版本适用且已经获准变更</td></tr>
+<tr><td>当前依赖指标正常</td><td>在所查窗口未观察到该异常</td><td>任何时间、任何集群都不存在问题</td></tr>
+<tr><td>多份摘要重复一个原因</td><td>该原因被反复转述</td><td>存在多个独立来源支持</td></tr>
+</tbody>
+</table>
+</div>
+<p>长上下文和检索也在这里配合：检索按版本/权限选择材料，重排确定读取优先级，Context Builder 保留必要限定，模型在可容纳范围内综合。窗口扩大有助于保留更完整条款，但不会自动决定该读哪份资料。位置影响利用率的研究说明还需控制装配与位置实验，不能从某个窗口规格直接推导回答正确。<a href="#ref-5">[5]</a></p>
+<p>最终交付应保存主张、支持/反对证据、未解决冲突、适用范围与停止理由。后续再取得部署差异时，只重新核对受影响主张和依赖，不用悄悄覆盖此前“证据不足”的历史。用户要求扩大到根因处置时，先形成新的授权目标；本轮检索的成功不等于可执行回滚。这样结束一次调查，获得的是可接续的证据结论，而不是更长的提示词。</p>
 <p><a id="retrieval-evidence"></a></p>
 <h2 id="146-从候选片段到可引用证据"><a class="header" href="#146-从候选片段到可引用证据">14.6 从候选片段到可引用证据</a></h2>
 <p><a href="../images/review-knowledge-retrieval-06.svg"><img src="../images/review-knowledge-retrieval-06.svg" alt="证据包连接检索与上下文"></a></p>
@@ -784,6 +654,24 @@ Context Builder 负责组织
 <p>沿用告警案例，可以把报告拆成三个不同强度的主张：延迟在指定窗口升高、同一窗口发生客户端配置变化、配置变化导致延迟。前两个分别需要指标与变更记录，第三个还需要机制上的关联证据及对替代解释的检查。检索侧应交付这些事实的原文范围和限制，不因三条记录时间相近就把它们合并成一条已证实因果。证据怎样参与最终任务验收，仍由上下文与治理契约决定。</p>
 <p>反证也应针对具体主张。旧 Runbook 指向数据库连接池，只能生成一个待查方向；当前数据库指标正常可能削弱该方向，但若采样未覆盖故障窗口，就不能证明连接池没有问题。相反，一段明确来自旧环境的异常日志，即使文字高度相关，也不能推翻当前环境的完整观测。有效的证据比较需要共同实体、时间范围和适用版本，否则应先补齐可比条件。</p>
 <p>交付时保存事实与推导之间的连接，使后续修复能精确失效。若部署时间被纠正，依赖该时间先后关系的结论需要重验，但独立的延迟观测不必被抹掉。引用读取失败、授权撤销或原文版本不可用时，标明哪项支持关系已无法复核，不能悄悄替换成搜索到的新页面。检索层提供候选与血缘，不在这里重新定义一套可信度枚举或发布通过规则。</p>
+<h3 id="1462-引用生成是证据到主张的映射"><a class="header" href="#1462-引用生成是证据到主张的映射">14.6.2 引用生成是证据到主张的映射</a></h3>
+<p>检索结果中存在一个文档，只能说明文档进入了工作集。最终回答每个需要支撑的主张，还必须绑定到确实支持它的片段。引用契约至少区分 claim_id、evidence_id、source_version、locator 和支持关系。一个来源可能支持“发生了延迟升高”，却不足以支持“数据库就是根因”；不能因为同一段里出现数据库一词，就把整段答案挂在它下面。</p>
+<p>本书的教学流程分三步。先把候选答案拆成可核验主张；再对每条主张找直接支持、反对或仅作背景的证据；最后检查缺失的限定条件。告警案例里，P95 的测量窗口、服务名、聚合方式都是主张的一部分。若证据来自另一集群、另一发布版本，词面相似也只能形成待验证线索。引用的准确性检查和事实的当前有效性检查需要同时通过。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>主张</th><th>所需证据</th><th>不充分的替代物</th></tr>
+</thead>
+<tbody>
+<tr><td>当前窗口 P95 为 2.1s</td><td>可回读的指标窗口及查询口径</td><td>上月截图或用户转述</td></tr>
+<tr><td>某次部署早于告警</td><td>对应环境的发布事件时间</td><td>Runbook 中的示例版本号</td></tr>
+<tr><td>回滚可以消除故障</td><td>复现实验、因果证据或适用的已验证处置条件</td><td>时间上相邻的部署记录</td></tr>
+<tr><td>可以执行回滚</td><td>当前授权、批准与资源版本</td><td>文档写着“必要时回滚”</td></tr>
+</tbody>
+</table>
+</div>
+<p>生成阶段可以把多个片段归纳为一句话，但必须保留父证据集合与转换版本。摘要中使用“所有”“唯一”“总会”等量词时，证据范围也要覆盖相应集合。抽样看到几个服务都依赖同一数据库，不能推出整个系统只有一个依赖点。对于无法完整覆盖的集合，应写成在已检查范围内观察到的关系，并说明尚未检查的边界。</p>
+<p>引用充分性可以通过人工标注的最小支持集合来评估。一个答案引用很多条内容，并不比精确引用两条更可靠；重复 chunk 会虚增证据数量。对相互矛盾的来源，保留冲突并按第 13 章的五态契约处理。最终交付前重验可见性，不能以“模型已经看过”作为继续披露撤权信息的理由。</p>
 <p><a id="index-evolution"></a></p>
 <h2 id="147-索引演化删除撤权与一致性"><a class="header" href="#147-索引演化删除撤权与一致性">14.7 索引演化、删除撤权与一致性</a></h2>
 <p><a href="../images/review-knowledge-retrieval-07.svg"><img src="../images/review-knowledge-retrieval-07.svg" alt="索引演化保持可回滚与可撤权"></a></p>
@@ -799,154 +687,46 @@ Context Builder 负责组织
 <p>索引切换不能只考虑切换动作本身，还要考虑已在运行的查询。一次请求可能从旧索引取到候选，随后经新路由读取原文，再命中另一个版本的摘要缓存。每个组件单独返回成功，拼在一起却不一定是同一份知识视图。本书建议请求记录索引 manifest、源版本与授权核验时点；原文读取发现版本不匹配时重取或显式失效，不能仅按文档 ID 拼接结果。</p>
 <p>Elastic 的别名动作可以在一个原子操作中更新，但保证范围是该别名操作，并不包含外部权限服务和应用缓存。<a href="#ref-22">[22]</a> 因此在本场景中，切换后先阻止新请求使用旧 manifest，在途查询可按声明的兼容规则结束；涉及当前撤权的读取则立即重新校验，不能因任务开始较早获得继续访问的豁免。删除与撤权的安全要求优先于固定历史快照的便利。</p>
 <p>迁移演练至少覆盖三种交错：删除发生在回填之后，撤权发生在候选产生之后，回滚发生在新摘要写入之后。分别检查被删块不会重新入库、无权内容不会进入输出、缓存不会绕过当前来源版本。发生不一致时保存关联版本与请求范围，收窄受影响读取，而不是把所有查询都重试到成功。只有水位、失败队列、撤权传播和回源探针共同满足条件，才回收旧索引及其兼容路径。</p>
+<h3 id="1474-缓存身份授权水位与撤权竞态"><a class="header" href="#1474-缓存身份授权水位与撤权竞态">14.7.4 缓存身份、授权水位与撤权竞态</a></h3>
+<p>缓存应复用计算，同时服从当前事实与权限。下面是本书参考设计，不是向量数据库的通用原生字段。检索缓存身份至少覆盖 <code>tenant_id</code>、可见范围哈希、规范化 query、过滤谓词与检索配置、索引 manifest、源版本集合或相应水位、授权水位。重排缓存再绑定模型/提示版本和有序候选内容哈希；答案缓存再绑定任务约束、证据集合及输出协议。</p>
+<p>源版本集合可能很大，实际实现可以使用不可变 manifest 加内容寻址，不能仅把版本字段写在日志里却不参与命中判断。授权水位由哪个服务产生、是租户级还是资源级、查询怎样证明追平，都要有明确契约。随便取一个本地时间戳当水位无法证明最新撤权已可见；两个服务时钟一致也不能代替事件消费进度。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>故障顺序</th><th>应有行为</th><th>恢复责任</th></tr>
+</thead>
+<tbody>
+<tr><td>缓存已热，随后撤权</td><td>失效相关候选/摘要/答案，并拒绝原文回读</td><td>授权事件消费者和缓存维护者</td></tr>
+<tr><td>新索引故障，回滚旧 manifest</td><td>使用当前权限，旧授权快照不随索引恢复</td><td>查询网关与权限服务</td></tr>
+<tr><td>源文档已更新，缓存仍有旧段落</td><td>不将旧版本当当前事实；可作为明确历史材料</td><td>版本解析和证据装配层</td></tr>
+<tr><td>同一问题切换租户</td><td>身份作用域不匹配，不复用载荷</td><td>缓存键和隔离边界</td></tr>
+<tr><td>检索后、交付前发生撤权</td><td>交付阶段再次鉴权；失败则移除相关主张或拒绝交付</td><td>交付控制面</td></tr>
+</tbody>
+</table>
+</div>
+<p>缓存键只能阻止已知版本之间的错误复用，不能消除撤权传播过程中的时间窗口。如果权限检查与数据读取不在同一权威快照里，就要说明一致性策略：在敏感场景中向权限服务同步确认，或把撤权期间的相关请求阻塞到水位追平。选择异步传播时，应给出最大暴露窗口、可观测指标和事件丢失后的补偿扫描；不能宣称最终一致即可保证立即撤权。</p>
+<p>主动失效与命中校验应互补。主动失效减少旧对象继续占用和被请求的概率，命中校验防止失效消息丢失或在途响应继续泄露。权限服务不可用时，对敏感证据采取明确的拒绝/待确认策略，而不是退回最近一次允许结果。对于低敏公开内容可以采用不同可用性取舍，但这是按数据等级批准的策略，不能由模型临时决定。</p>
+<p>索引别名切换也不能视为跨系统事务。可以记录一次查询使用的 manifest、授权水位、源版本和生成配置，按这个证据信封定位结果。在迁移期间，删除与撤权事件同时应用到新旧读路径；关闭旧索引前确认增量追平、失败队列清空或有明确责任、抽样回读可见性一致。Elastic alias 的路由切换仅提供其中一个机制，其余条件由应用补齐。<a href="#ref-22">[22]</a></p>
 <p><a id="rag-evaluation"></a></p>
 <h2 id="148-评估故障诊断与选型实验"><a class="header" href="#148-评估故障诊断与选型实验">14.8 评估、故障诊断与选型实验</a></h2>
 <p><a href="../images/review-knowledge-retrieval-08.svg"><img src="../images/review-knowledge-retrieval-08.svg" alt="用对照实验定位检索损失"></a></p>
-<h3 id="1481-检索证据与生成的分层指标"><a class="header" href="#1481-检索证据与生成的分层指标">14.8.1 检索、证据与生成的分层指标</a></h3>
-<p>RAG 质量不能只看最终回答。一个回答错了，可能是没有召回正确证据，也可能是排错序、上下文污染、证据冲突、生成总结错误、权限过滤错误或索引过期。</p>
-<p>因此生产级 RAG eval 应该拆成一条质量链路：</p>
+<h3 id="1481-分层归因先定位在哪个边界丢掉证据"><a class="header" href="#1481-分层归因先定位在哪个边界丢掉证据">14.8.1 分层归因：先定位在哪个边界丢掉证据</a></h3>
+<p>本章只解释检索特有质量指标；通用任务成功、审批、重试和发布门禁由第 15、17 章负责。所有指标的分母统一在 14.8.3 定义，不在这里再次列一套名称相同但含义不同的清单。</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th style="text-align: left">阶段</th><th style="text-align: left">关注指标</th><th style="text-align: left">典型问题</th></tr>
+<tr><th>观测边界</th><th>要核对的对象</th><th>失败后优先检查</th></tr>
 </thead>
 <tbody>
-<tr><td style="text-align: left">Retrieval</td><td style="text-align: left">retrieval recall、Recall@k、source routing accuracy</td><td style="text-align: left">正确文档是否进入候选集</td></tr>
-<tr><td style="text-align: left">Rerank</td><td style="text-align: left">rerank precision、nDCG、MRR</td><td style="text-align: left">正确证据是否排在前面</td></tr>
-<tr><td style="text-align: left">Evidence</td><td style="text-align: left">evidence sufficiency、citation coverage、freshness</td><td style="text-align: left">进入上下文的证据是否足够、可信、可引用</td></tr>
-<tr><td style="text-align: left">Generation</td><td style="text-align: left">answer faithfulness、citation accuracy、unsupported claim rate</td><td style="text-align: left">模型是否忠实使用证据</td></tr>
-<tr><td style="text-align: left">Governance</td><td style="text-align: left">latency、token cost、permission correctness</td><td style="text-align: left">是否满足成本、延迟和权限约束</td></tr>
+<tr><td>原文→可索引元素</td><td>源版本、解析位置、字段和授权</td><td>表格/OCR/清洗及摄取覆盖</td></tr>
+<tr><td>合法集合→ANN 候选</td><td>同一过滤集合上的精确邻居</td><td>图/桶/压缩、过滤与预算</td></tr>
+<tr><td>候选→读取材料</td><td>排名、截断位置、父块扩展</td><td>融合、重排、去重与读取上限</td></tr>
+<tr><td>材料→证据主张</td><td>原文支持范围和限定条件</td><td>冲突、版本、引用定位与充分性</td></tr>
+<tr><td>已确认材料→最终回答</td><td>当前授权和主张支持关系</td><td>装配、生成和交付前验证</td></tr>
 </tbody>
 </table>
 </div>
-<p>这张表的价值在于把“RAG 效果不好”拆成可定位的问题，而不是笼统地换 embedding 模型或增加 top-k。</p>
-<p>检索层指标</p>
-<p>检索层关注“是否找到了该找的证据”。</p>
-<p>常见指标：</p>
-<ul>
-<li>Recall@k；</li>
-<li>Precision@k；</li>
-<li>MRR；</li>
-<li>nDCG；</li>
-<li>source routing accuracy；</li>
-<li>permission filter accuracy；</li>
-<li>stale document rate；</li>
-<li>duplicate rate。</li>
-</ul>
-<p>评估集应该包含真实用户问题、期望证据、不可回答问题和权限受限问题。</p>
-<p>证据层指标</p>
-<p>证据层关注“进入上下文的证据是否可用”。</p>
-<p>指标包括：</p>
-<ul>
-<li>evidence sufficiency；</li>
-<li>citation coverage；</li>
-<li>evidence freshness；</li>
-<li>evidence diversity；</li>
-<li>conflict detection rate；</li>
-<li>unsupported claim rate。</li>
-</ul>
-<p>证据层指标能帮助区分“检索没找到”和“找到了但模型没用好”。</p>
-<p>生成层指标</p>
-<p>生成层关注最终回答。</p>
-<p>常见指标：</p>
-<ul>
-<li>factual correctness；</li>
-<li>answer completeness；</li>
-<li>citation correctness；</li>
-<li>refusal correctness；</li>
-<li>instruction following；</li>
-<li>clarity；</li>
-<li>actionability。</li>
-</ul>
-<p>对于企业知识助手，不能只看答案是否流畅，而要看是否有证据、有权限、有引用、有边界。</p>
-<p>Agentic RAG 过程指标</p>
-<p>Agentic RAG 还需要过程指标：</p>
-<ul>
-<li>plan quality；</li>
-<li>subquestion relevance；</li>
-<li>tool selection accuracy；</li>
-<li>evidence state correctness；</li>
-<li>stop condition correctness；</li>
-<li>unnecessary retrieval rate；</li>
-<li>budget overrun rate；</li>
-<li>recovery success rate。</li>
-</ul>
-<p>这些指标必须依赖 trace。只看最终答案，很难知道 Agent 是靠正确过程得到答案，还是误打误撞。</p>
-<p>Trace 与可观测性</p>
-<p>知识系统 trace 应记录：</p>
-<pre><code class="language-text">user query
-→ parsed intent
-→ source routing decision
-→ rewritten queries
-→ retrieval candidates
-→ rerank scores
-→ selected evidence
-→ context package
-→ model output
-→ citations
-→ verification result
-</code></pre>
-<p>Agentic RAG 还要记录每一轮计划、工具调用、证据状态和停止原因。</p>
-<p>没有 trace 的 RAG 系统很难生产化。用户说“答错了”，你需要知道错在召回、排序、上下文压缩、证据冲突、模型生成，还是数据源本身过期。</p>
-<p>预算、缓存与可恢复性</p>
-<p>知识系统的成本来自：</p>
-<ul>
-<li>embedding；</li>
-<li>向量检索；</li>
-<li>rerank；</li>
-<li>Web Search；</li>
-<li>网页抓取；</li>
-<li>工具调用；</li>
-<li>长上下文生成；</li>
-<li>多轮 Agentic RAG。</li>
-</ul>
-<p>预算控制包括：</p>
-<ul>
-<li>最大检索轮数；</li>
-<li>最大工具调用数；</li>
-<li>最大来源数量；</li>
-<li>最大 token；</li>
-<li>最大延迟；</li>
-<li>最大成本。</li>
-</ul>
-<p>缓存可以放在多个层次：</p>
-<ul>
-<li>query rewrite 缓存；</li>
-<li>retrieval 结果缓存；</li>
-<li>rerank 结果缓存；</li>
-<li>resource 读取缓存；</li>
-<li>网页正文缓存；</li>
-<li>evidence summary 缓存。</li>
-</ul>
-<p>可恢复性要求 Agentic RAG 的状态能 checkpoint。任务中断后，应能从 evidence state 恢复，而不是重新搜索一遍。</p>
-<p>常见失败模式与修复路径</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th style="text-align: left">失败模式</th><th style="text-align: left">可能原因</th><th style="text-align: left">修复方向</th></tr>
-</thead>
-<tbody>
-<tr><td style="text-align: left">答非所问</td><td style="text-align: left">query understanding 错</td><td style="text-align: left">增加意图识别和 query rewrite 评估</td></tr>
-<tr><td style="text-align: left">找不到正确文档</td><td style="text-align: left">chunk 或 metadata 差</td><td style="text-align: left">改文档解析、chunk、metadata</td></tr>
-<tr><td style="text-align: left">找到旧文档</td><td style="text-align: left">生命周期缺失</td><td style="text-align: left">加更新时间、版本、过期过滤</td></tr>
-<tr><td style="text-align: left">引用不支持结论</td><td style="text-align: left">context package 混乱</td><td style="text-align: left">做 claim-level citation</td></tr>
-<tr><td style="text-align: left">实时事实错误</td><td style="text-align: left">用 RAG 查实时状态</td><td style="text-align: left">改用 Tool / API</td></tr>
-<tr><td style="text-align: left">成本过高</td><td style="text-align: left">Agentic RAG 无预算</td><td style="text-align: left">加 stop condition 和预算</td></tr>
-<tr><td style="text-align: left">权限泄露</td><td style="text-align: left">过滤太晚</td><td style="text-align: left">在检索层和 resource 层做权限</td></tr>
-<tr><td style="text-align: left">回答过度自信</td><td style="text-align: left">无证据充分性检查</td><td style="text-align: left">加拒答和不确定性表达</td></tr>
-</tbody>
-</table>
-</div>
-<p>Debug 顺序建议：</p>
-<pre><code class="language-text">1. 用户问题是否被正确理解？
-2. Source Routing 是否选对？
-3. 候选召回是否包含正确证据？
-4. Rerank 是否把正确证据排前？
-5. Context Package 是否保留了关键内容？
-6. 模型是否正确使用证据？
-7. 引用是否支持 claim？
-8. 数据源本身是否过期或错误？
-</code></pre>
+<p>每次失败沿这个顺序找首次偏离，不要因为答案错误就先换 embedding。查询记录保留规范化输入、过滤/索引/源版本、候选与读取 ID、排除原因、证据和停止理由；通用 Trace 结构回指<a href="05-agent-governance-optimization.html#trace-observability">治理可观测性</a>。缓存与撤权统一见 14.7.4，调查预算与接续统一见 14.5.2。</p>
 <h3 id="1482-控制变量实验与故障回源"><a class="header" href="#1482-控制变量实验与故障回源">14.8.2 控制变量实验与故障回源</a></h3>
 <p>所有行均为实验设计，结果待测。按<a href="../part2/04-data-eval.html">数据与评估的 Eval Case</a>固定源快照、问题/证据标注、租户/ACL、生成模型与温度；开发调参集与留出集分开，来源范围标注避免重叠 chunk 虚增召回。</p>
 <div class="table-wrapper">
@@ -995,39 +775,113 @@ Context Builder 负责组织
 <p>故障实验应逐项注入原文回读超时、索引分片不可用、权限查询失败与重排超时。每次观察系统返回完整、部分还是无法核验的结果，并核对缺口是否传到最终报告。容错策略可以省略昂贵重排，也可以缩小来源范围，但不能隐藏未覆盖的服务或以默认允许绕过授权。恢复后再验证缓存和临时降级状态已收敛，防止一次短暂故障形成长期旧答案。</p>
 <p>最终选型报告保留固定数据、查询与标签版本，列出质量、延迟、内存、更新和恢复成本的取舍。未测量项明确写未知，下一次数据分布或权限策略改变时重新评估；不要将一次留出集的领先当成永久结论。</p>
 <p>一次实验还要保留原始逐查询结果，而不只有汇总曲线。某参数降低平均延迟，却可能持续漏掉低频服务的唯一有效条款；另一参数召回更多块，却未增加必要主张覆盖。评审时将这些差异对应到具体问题和原文，再判断是否接受取舍。无法解释的差异先保留为待核验，不以重新随机抽样直到胜出代替问题定位。</p>
+<h3 id="1487-摄取失败的最小定位实验"><a class="header" href="#1487-摄取失败的最小定位实验">14.8.7 摄取失败的最小定位实验</a></h3>
+<p>当相同问题偶尔找不到同一份 Runbook，先固定源文档版本、解析器和索引 manifest，再沿证据身份检查。原文存在而块不存在，定位摄取/解析；块存在但 embedding 缺失，定位任务失败或模型空间变更；向量存在而过滤后不见，检查元数据和 ACL；候选中存在而最终引用缺失，再检查重排、读取与生成。每一步保存具体 ID 和查询，不用同一条“检索失败”标签概括。</p>
+<p>教学故障集可以各注入一个错误：表格跨页导致列名丢失，OCR 将服务名识错，去重把两个版本合成一条，乱序更新复活旧块，源删除没有传播到摘要。它们可能在向量数量和平均 Recall 上表现相似，修复却完全不同。测试结果应同时核对源定位、实体/版本、授权和生成主张，不能仅确认某个向量 ID 能被查到。</p>
+<p>对于没有完整 gold evidence 的业务问题，可以让审阅者给出一组能支撑结论的最小来源和可替代来源，再验证检索是否获得其中一种充分组合。不要把审阅者最初选的一条 chunk 当成唯一答案；新的有效证据应经复核加入标注。保留标注版本和分歧，避免为了让新配置得分更高而静默改变真值。</p>
+<p>摄取修复后重新跑受影响的来源切片，再检查全局索引与缓存版本。单条查询成功只能验证局部链路；上线还要检查失败队列、更新延迟和删除/授权水位。若无法从源版本追到最终引用，说明可审计链尚未闭合，应先补身份与来源记录，再扩大语料。</p>
+<h3 id="1488-把改写收益和过滤成本分开验收"><a class="header" href="#1488-把改写收益和过滤成本分开验收">14.8.8 把改写收益和过滤成本分开验收</a></h3>
+<p>一次检索实验应先写清要改变的误差。假设告警用户使用了内部简称，而索引只含标准服务名，查询改写可能扩大正确命名的覆盖；若问题是索引漏摄取，改写不会创造原始证据。HyDE 等方法研究如何用生成内容改善检索表示，生成的假设文本仍是查询辅助，不能升级为本次事件的证据。<a href="#ref-17">[17]</a></p>
+<p>本书建议构造配对实验：原查询、规则归一化、模型改写三个分支使用同一语料/ACL/索引快照、相同最终读取预算和同一评估集。记录每次改写新增/删去的实体、版本和时间限定；检查召回提升是否来自扩大了语义范围。若把“华东集群当前版本”改写成无区域无版本的泛问，即使检索命中更多，也可能增加错误证据。改写模型、提示和温度作为配置版本保存。</p>
+<p>评估集合应包含可回答、不可回答、冲突和无权访问的查询。无权访问的正确行为不是尽量找别的租户资料补答案；不可回答也不能因为模型生成了流畅文本而计为成功。将 gold evidence 标注为集合或允许的支持组合，避免只认一个固定 chunk；长文档的分块变化不应让同一来源被重复奖励。没有完整证据标注时，把指标称为已标注集合上的覆盖，不声称是真实总体 Recall。</p>
+<p>过滤实验另外固定查询和模型，扫描允许集合比例、谓词与向量的相关性、租户规模和更新频率。前过滤精确扫描作为小集合真值，比较后过滤、搜索中过滤和不同候选预算。报告结果不足 K 的比例、Recall、节点访问、P50/P95/P99、CPU/内存、权限服务开销，而不是只报平均 ANN 时延。高选择性小租户与宽权限管理员应分别切片。</p>
+<p>重排收益也要与其成本配对。一种配置可能只提升前十项顺序，却使读取原文的尾延迟增加到超预算。把检索、权限、重排、读取、生成及重试分别计时，再报告端到端任务成功和单位成功成本。对于同一问题的多个改写，按原问题聚类，避免把相关样本当成独立试验。统计方法统一参考<a href="../part2/04-data-eval.html">评估与反馈闭环</a>，本节只定义检索实验的变量。</p>
+<p>上线验收先影子运行只比较结果，随后有限流量使用新配置；每一步保留确定的回滚配置。撤权、源删除和故障恢复属于独立硬条件，不能用较好的总体相关性分数抵消。回滚后继续检查授权水位和在途请求，不把切回旧模型当作所有风险已消失。这样才能区分算法收益、成本转移和一致性退化。</p>
 <p><a id="rag-summary"></a></p>
-<h2 id="149-方法总结与适用边界"><a class="header" href="#149-方法总结与适用边界">14.9 方法总结与适用边界</a></h2>
+<h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
 <p><a href="../images/review-knowledge-retrieval-09.svg"><img src="../images/review-knowledge-retrieval-09.svg" alt="检索设计的四项判断"></a></p>
 <p>检索系统的交付物是可被检查的证据，而不是相似度最高的几段文本。先用来源、版本、权限和定位决定候选能否使用，再用表示、索引、融合与重排改善命中；只在下一步证据需求不确定时采用有界多轮检索。选择的收益必须连同内存、时延、更新、删除和恢复成本一起验收。</p>
 <p>设计评审沿四条链检查：原文到块与向量的派生血缘；查询到候选及证据选择的记录；主张到具体原文的支持关系；更新撤权到所有派生缓存的传播。任一链条缺失，都不能靠更大模型或更多 token 代替。算法论文的结果限定在其任务和实验配置，本书的业务断言、停止规则和迁移协议需要本项目证据。</p>
-<h2 id="1410-参考资料"><a class="header" href="#1410-参考资料">14.10 参考资料</a></h2>
-<p><a href="../images/review-knowledge-retrieval-10.svg"><img src="../images/review-knowledge-retrieval-10.svg" alt="RAG 论点的来源结构"></a></p>
+<h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
 <p>下列来源支撑相邻机制；案例、参数候选、容量与故障实验为本书推导。官方滚动文档核验于 2026-10-24，未重跑论文实验。</p>
 <ol>
-<li><a id="ref-1"></a> Lewis et al.，<a href="https://arxiv.org/abs/2005.11401">RAG</a>，2020；核验于 2026-10-24。</li>
-<li><a id="ref-2"></a> Robertson/Zaragoza，<a href="https://www.staff.city.ac.uk/~sbrp622/papers/foundations_bm25_review.pdf">The Probabilistic Relevance Framework: BM25 and Beyond</a>，2009；核验于 2026-10-24。</li>
-<li><a id="ref-3"></a> Karpukhin et al.，<a href="https://arxiv.org/abs/2004.04906">DPR</a>，2020；核验于 2026-10-24。</li>
-<li><a id="ref-4"></a> Khattab/Zaharia，<a href="https://arxiv.org/abs/2004.12832">ColBERT</a>，2020；核验于 2026-10-24。</li>
-<li><a id="ref-5"></a> Liu et al.，<a href="https://arxiv.org/abs/2307.03172">Lost in the Middle</a>，2023；核验于 2026-10-24。</li>
-<li><a id="ref-6"></a> Unstructured，<a href="https://docs.unstructured.io/open-source/core-functionality/partitioning">Partitioning</a>，持续更新；核验于 2026-10-24。</li>
-<li><a id="ref-7"></a> intfloat，<a href="https://huggingface.co/intfloat/e5-base-v2">e5-base-v2 model card</a>，持续更新；核验于 2026-10-24。</li>
-<li><a id="ref-8"></a> Malkov/Yashunin，<a href="https://arxiv.org/abs/1603.09320">HNSW</a>，2016/2018；核验于 2026-10-24。</li>
-<li><a id="ref-9"></a> Faiss maintainers，<a href="https://github.com/facebookresearch/faiss/wiki/Faiss-indexes">Faiss indexes</a>，持续更新；核验于 2026-10-24。</li>
-<li><a id="ref-10"></a> Chen et al.，<a href="https://arxiv.org/abs/2402.03216">M3-Embedding</a>，2024；核验于 2026-10-24。</li>
-<li><a id="ref-11"></a> 北京智源人工智能研究院，<a href="https://huggingface.co/BAAI/bge-m3">bge-m3 模型卡</a>，持续更新；核验于 2026-10-24。</li>
-<li><a id="ref-12"></a> Milvus，<a href="https://milvus.io/docs/zh/hnsw.md">HNSW 中文文档</a>，v3.0.x；核验于 2026-10-24。</li>
-<li><a id="ref-13"></a> Faiss maintainers，<a href="https://github.com/facebookresearch/faiss/wiki/Guidelines-to-choose-an-index">Guidelines to choose an index</a>，持续更新；核验于 2026-10-24。</li>
-<li><a id="ref-14"></a> Douze et al.，<a href="https://arxiv.org/abs/2401.08281">The Faiss library</a>，2024；核验于 2026-10-24。</li>
-<li><a id="ref-15"></a> Cormack/Clarke/Buettcher，<a href="https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf">Reciprocal Rank Fusion</a>，2009；核验于 2026-10-24。</li>
-<li><a id="ref-16"></a> Nogueira/Cho，<a href="https://arxiv.org/abs/1901.04085">Passage Re-ranking with BERT</a>，2019；核验于 2026-10-24。</li>
-<li><a id="ref-17"></a> Gao et al.，<a href="https://arxiv.org/abs/2212.10496">HyDE</a>，2022；核验于 2026-10-24。</li>
-<li><a id="ref-18"></a> Anthropic，<a href="https://www.anthropic.com/research/contextual-retrieval">Contextual Retrieval</a>，2024-09-19；核验于 2026-10-24。</li>
-<li><a id="ref-19"></a> Edge et al.，<a href="https://arxiv.org/abs/2404.16130">GraphRAG</a>，2024；核验于 2026-10-24。</li>
-<li><a id="ref-20"></a> Trivedi et al.，<a href="https://arxiv.org/abs/2212.10509">IRCoT</a>，2022/ACL2023；核验于 2026-10-24。</li>
-<li><a id="ref-21"></a> Asai et al.，<a href="https://arxiv.org/abs/2310.11511">Self-RAG</a>，2023；核验于 2026-10-24。</li>
-<li><a id="ref-22"></a> Elastic，<a href="https://www.elastic.co/docs/manage-data/data-store/aliases">Aliases</a>，持续更新；核验于 2026-10-24。</li>
-<li><a id="ref-23"></a> Thakur et al.，<a href="https://arxiv.org/abs/2104.08663">BEIR</a>，2021；核验于 2026-10-24。</li>
-<li><a id="ref-24"></a> Es et al.，<a href="https://arxiv.org/abs/2309.15217">Ragas</a>，2023；核验于 2026-10-24。</li>
+<li>
+<p><a id="ref-1"></a> Lewis et al.，<a href="https://arxiv.org/abs/2005.11401">RAG</a>，2020；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-2"></a> Robertson/Zaragoza，<a href="https://www.staff.city.ac.uk/~sbrp622/papers/foundations_bm25_review.pdf">The Probabilistic Relevance Framework: BM25 and Beyond</a>，2009；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-3"></a> Karpukhin et al.，<a href="https://arxiv.org/abs/2004.04906">DPR</a>，2020；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-4"></a> Khattab/Zaharia，<a href="https://arxiv.org/abs/2004.12832">ColBERT</a>，2020；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-5"></a> Liu et al.，<a href="https://arxiv.org/abs/2307.03172">Lost in the Middle</a>，2023；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-6"></a> Unstructured，<a href="https://docs.unstructured.io/open-source/core-functionality/partitioning">Partitioning</a>，持续更新；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-7"></a> intfloat，<a href="https://huggingface.co/intfloat/e5-base-v2">e5-base-v2 model card</a>，持续更新；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-8"></a> Malkov/Yashunin，<a href="https://arxiv.org/abs/1603.09320">HNSW</a>，2016/2018；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-9"></a> Faiss maintainers，<a href="https://github.com/facebookresearch/faiss/wiki/Faiss-indexes">Faiss indexes</a>，持续更新；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-10"></a> Chen et al.，<a href="https://arxiv.org/abs/2402.03216">M3-Embedding</a>，2024；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-11"></a> 北京智源人工智能研究院，<a href="https://huggingface.co/BAAI/bge-m3">bge-m3 模型卡</a>，持续更新；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-12"></a> Milvus，<a href="https://milvus.io/docs/zh/hnsw.md">HNSW 中文文档</a>，版本以所选部署的文档选择器为准；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-13"></a> Faiss maintainers，<a href="https://github.com/facebookresearch/faiss/wiki/Guidelines-to-choose-an-index">Guidelines to choose an index</a>，持续更新；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-14"></a> Douze et al.，<a href="https://arxiv.org/abs/2401.08281">The Faiss library</a>，2024；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-15"></a> Cormack/Clarke/Buettcher，<a href="https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf">Reciprocal Rank Fusion</a>，2009；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-16"></a> Nogueira/Cho，<a href="https://arxiv.org/abs/1901.04085">Passage Re-ranking with BERT</a>，2019；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-17"></a> Gao et al.，<a href="https://arxiv.org/abs/2212.10496">HyDE</a>，2022；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-18"></a> Anthropic，<a href="https://www.anthropic.com/research/contextual-retrieval">Contextual Retrieval</a>，2024-09-19；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-19"></a> Edge et al.，<a href="https://arxiv.org/abs/2404.16130">GraphRAG</a>，2024；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-20"></a> Trivedi et al.，<a href="https://arxiv.org/abs/2212.10509">IRCoT</a>，2022/ACL2023；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-21"></a> Asai et al.，<a href="https://arxiv.org/abs/2310.11511">Self-RAG</a>，2023；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-22"></a> Elastic，<a href="https://www.elastic.co/docs/manage-data/data-store/aliases">Aliases</a>，持续更新；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-23"></a> Thakur et al.，<a href="https://arxiv.org/abs/2104.08663">BEIR</a>，2021；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-24"></a> Es et al.，<a href="https://arxiv.org/abs/2309.15217">Ragas</a>，2023；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-25"></a> Patel, Kraft, Guestrin, Zaharia，<a href="https://arxiv.org/abs/2403.04871v1">ACORN: Performant and Predicate-Agnostic Search Over Vector Embeddings and Structured Data</a>，2024；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-26"></a> Bruch, Gai, Ingber，<a href="https://arxiv.org/abs/2210.11934v2">An Analysis of Fusion Functions for Hybrid Retrieval</a>，2023；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-27"></a> hnswlib maintainers，<a href="https://github.com/nmslib/hnswlib/blob/v0.8.0/ALGO_PARAMS.md">v0.8.0 algorithm parameters</a> 与 <a href="https://github.com/nmslib/hnswlib/blob/v0.8.0/hnswlib/hnswalg.h">hnswalg.h</a>，2023；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-28"></a> Microsoft，<a href="https://github.com/microsoft/graphrag/blob/v3.3.0/docs/index/default_dataflow.md">GraphRAG default indexing workflow</a> 与 <a href="https://github.com/microsoft/graphrag/blob/v3.3.0/docs/cli.md">CLI reference</a>，固定发行版 v3.3.0（2026-10-08）；核验于 2026-10-24。</p>
+</li>
+<li>
+<p><a id="ref-29"></a> Gollapudi et al.，<a href="https://harsha-simhadri.org/pubs/Filtered-DiskANN23.pdf">Filtered-DiskANN: Graph Algorithms for Approximate Nearest Neighbor Search with Filters</a>，WWW，2023，DOI 10.1145/3543507.3583552；核验于 2026-10-24。</p>
+</li>
 </ol>
 
                     </main>

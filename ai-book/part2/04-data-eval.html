@@ -43,10 +43,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a81d105a.js";
+            window.path_to_searchindex_js = "../searchindex-cec4fa4e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-4a74a8e8.js"></script>
+        <script src="../toc-9a8a9538.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -343,6 +343,8 @@ result:
 <h3 id="零失败配对变化与分层不确定性"><a class="header" href="#零失败配对变化与分层不确定性">零失败、配对变化与分层不确定性</a></h3>
 <p>NIST手册说明比例区间以及小样本/少失败时的二项精确方法 <a href="#ref-21">[21]</a>。一个便于复算的例子：独立同分布的n次验收全通过，失败率p下观察零失败的概率是(1−p)^n；令其等于0.05，得到95%单侧精确上界p=1−0.05^(1/n)。n=100时约2.95%，所以100次通过不能声明线上成功率100%；这里不是双侧区间，也不适用于高度相关会话或定向挑选的简单题。</p>
 <p>比较候选与基线时，应在同一case、同一环境和预算上做配对，记录“都成功/只候选成功/只基线成功/都失败”。</p>
+<p>对独立配对单位，一个保守、无需重采样的替代是 Hoeffding 均值界。令 Xi 为候选成功指标减去基线成功指标，则 Xi∈[-1,1]；对 n 个独立单位，由双侧界 P(|平均值−期望|≥r)≤2exp(−nr²/2)，取 r=sqrt(2ln(2/alpha)/n)，得到覆盖至少 1−alpha 的区间，并截到差值可行范围 [-1,1]。这是本书从有界独立变量不等式作的应用推导，不是最窄的配对比例差区间。<a href="#ref-25">[25]</a></p>
+<p>零翻转时估计差为零，但区间仍有正半宽；稀疏数据不会因重采样全为零而产生虚假确定性。可复算夹具取 n=100、alpha=2exp(−2)，半宽恰为0.2；若五例退化、两例改善，估计−0.03，区间为[-0.23,0.17]。这个置信水平约72.9%，仅为手算测试；正常报告另用事先约定水平。生产若采用更有效率的配对 score/exact 区间，应核对方法假设与实现，不能将两个独立比例的普通区间直接套给配对数据。相关样本、数据后选择和重复查看都需要另外处理。</p>
 <h3 id="样本量规划要检测到多少提升才需要多少样本"><a class="header" href="#样本量规划要检测到多少提升才需要多少样本">样本量规划：要检测到多少提升才需要多少样本</a></h3>
 <p>置信区间回答“这个分数有多不确定”，但评估设计还有一个前置问题：<strong>要检测到一个给定幅度的提升，需要多少样本？</strong> 这属于统计功效分析，缺了它，团队容易在小样本上看到波动就宣布提升，或者在大样本上为 0.3% 的差异投入不成比例的成本。</p>
 <p>对二分类任务，可以用一个便于估算的近似。设基线成功率约为 \(p\)，希望检测到的最小绝对提升为 \(\delta\)，在双侧显著性 \(\alpha\) 和功效 \(1-\beta\) 下，每组所需样本量大致为：</p>
@@ -354,6 +356,10 @@ n\approx\frac{2p(1-p)}{\delta^{2}}\left(z_{1-\alpha/2}+z_{1-\beta}\right)^{2}.
 <p>因此评估报告除了给出分数和区间，还应写明“这个样本量下能检测到的最小效应是多少”。若实际差异小于该阈值，正确的结论是 INCONCLUSIVE 并补样，而不是“没有差异”。</p>
 <p>对相关会话按group重采样，对多轮随机运行先保留case内部方差，再估计跨case变化；不能把同一题跑一百次当一百个业务场景。选择bootstrap或其他区间时记录采样单位、次数和置信水平，区间含零表示证据不足，不能说“证明完全相同”。多切片、多版本连续试验还会增加偶然胜出，停止规则及多重比较处理需预先约定。</p>
 <p>报告至少并列总体与关键切片的分母、有效数、覆盖率、变化区间和失败例。服务超时若属于端到端任务目标，应在任务成功分母体现失败；数据损坏或裁判无效则单列并按协议报告，不静默变成负例也不靠剔除提高分数。只要关键切片样本不足，门禁可为INCONCLUSIVE并补样，而非输出虚假的小数精度。</p>
+<h3 id="重复查看与多重比较先分配错误预算"><a class="header" href="#重复查看与多重比较先分配错误预算">重复查看与多重比较：先分配错误预算</a></h3>
+<p>以下为本书的可复算实验设计例子。若一次实验最多在五个预先声明的样本量检查效果，给每次检查分配 0.01 的显著性预算，各次采用在该固定样本量下有效的检验，则由并集上界，至少一次误拒绝的概率不超过 0.05。各次数据可以重叠，这个保守控制不要求检查之间独立；代价是通常不如专门设计的 group sequential/alpha-spending 边界有效率。临时加查看次数、换指标或选择有利切片会破坏原协议，不能沿用原阈值。更复杂方案应记录算法、假设、实现与边界，不能只写“采用序贯检验”。</p>
+<p>同一轮有多个切片时，先定义假设族。Holm 步降法将 m 个有效 p 值从小到大排序，第 i 个与 alpha/(m-i+1) 比较；遇到第一个不满足便停止拒绝后续假设。教学例为 p=(0.003,0.04,0.045)、alpha=0.05：第一个通过约 0.0167 的阈值，第二个未通过 0.025，第三个也不宣称显著。不能因为最后一个小于 0.05 就单独报告获胜。方法控制的是事先声明假设族的错误率，不代替效果大小、区间或业务重要性。</p>
+<p>序贯与多切片可能同时存在，错误预算要覆盖两层选择。可先按明确层级守门，仅总体达到事前条件后检验指定切片，或选用能覆盖完整假设族与查看过程的方案；不能各自声称控制 0.05 后忽略组合选择。对同一 case 的多次模型运行，以 case/会话为独立单位保留组内相关性。配对差区间、精确检验和 bootstrap 各有假设，特别是翻转极少时，示意重采样代码不能当作已校准门禁。</p>
 <h2 id="105-llm-as-judge与人工校准"><a class="header" href="#105-llm-as-judge与人工校准">10.5 LLM-as-Judge与人工校准</a></h2>
 <h3 id="裁判模型的用途"><a class="header" href="#裁判模型的用途">裁判模型的用途</a></h3>
 <p>LLM-as-judge 可以在开放式生成任务中提供较便宜的质量评分、pairwise preference、维度解释和样本筛选。G-Eval、MT-Bench 等工作展示了裁判模型在自动评估中的应用 <a href="#ref-22">[22]</a><a href="#ref-23">[23]</a>。但裁判不是绝对真值，可能偏好更长答案、熟悉风格、特定模型、位置靠前的答案或带有特定格式的答案。</p>
@@ -528,6 +534,9 @@ n\approx\frac{2p(1-p)}{\delta^{2}}\left(z_{1-\alpha/2}+z_{1-\beta}\right)^{2}.
 <p><a id="ref-22"></a>[22] Liu, Y., et al. <em>G-Eval: NLG Evaluation using GPT-4 with Better Human Alignment</em>. 2023. https://arxiv.org/abs/2303.16634 核验2026-10-17</p>
 <p><a id="ref-23"></a>[23] Zheng, L., et al. <em>Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena</em>. 2023. https://arxiv.org/abs/2306.05685 核验2026-10-17</p>
 <p><a id="ref-24"></a>[24] Sigelman, B. H., et al. <em>Dapper, a Large-Scale Distributed Systems Tracing Infrastructure</em>. Google Research, 2010. https://research.google/pubs/dapper-a-large-scale-distributed-systems-tracing-infrastructure/ 访问日期：2026-10-17</p>
+<ol start="25">
+<li><a id="ref-25"></a> Wassily Hoeffding，<a href="https://doi.org/10.1080/01621459.1963.10500830">Probability Inequalities for Sums of Bounded Random Variables</a>，JASA 58(301)，1963，13–30；核验于 2026-10-24。</li>
+</ol>
 
                     </main>
 
