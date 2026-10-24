@@ -255,11 +255,77 @@ NIST手册说明比例区间以及小样本/少失败时的二项精确方法 [[
 
 比较候选与基线时，应在同一case、同一环境和预算上做配对，记录“都成功/只候选成功/只基线成功/都失败”。
 
-对独立配对单位，一个保守、无需重采样的替代是 Hoeffding 均值界。令 Xi 为候选成功指标减去基线成功指标，则 Xi∈[-1,1]；对 n 个独立单位，由双侧界 P(|平均值−期望|≥r)≤2exp(−nr²/2)，取 r=sqrt(2ln(2/alpha)/n)，得到覆盖至少 1−alpha 的区间，并截到差值可行范围 [-1,1]。这是本书从有界独立变量不等式作的应用推导，不是最窄的配对比例差区间。[[25]](#ref-25)
+对独立配对单位，一个保守、无需重采样的替代是 Hoeffding 均值界。令 Xi 为候选成功指标减去基线成功指标，则 Xi∈[-1,1]；对 n 个独立单位，由双侧界 P(|平均值−期望|≥r)≤2exp(−nr²/2)，取 r=sqrt(2ln(2/alpha)/n)，得到覆盖至少 1−alpha 的区间，并截到差值可行范围 [-1,1]。这是本书从有界独立变量不等式作的应用推导，不是最窄的配对比例差区间。[[22]](#ref-22)
 
 零翻转时估计差为零，但区间仍有正半宽；稀疏数据不会因重采样全为零而产生虚假确定性。可复算夹具取 n=100、alpha=2exp(−2)，半宽恰为0.2；若五例退化、两例改善，估计−0.03，区间为[-0.23,0.17]。这个置信水平约72.9%，仅为手算测试；正常报告另用事先约定水平。生产若采用更有效率的配对 score/exact 区间，应核对方法假设与实现，不能将两个独立比例的普通区间直接套给配对数据。相关样本、数据后选择和重复查看都需要另外处理。
 
-### 样本量规划：要检测到多少提升才需要多少样本
+### 配对二元结果的可复算保守区间
+
+Hoeffding 在 alpha=.05、n=320 时半宽约 15.18 个百分点，压到 2 个百分点需要至少 18445 个独立单位；这是界宽要求，不是非劣效检验功效规划。它适合作为分布无关的保守参照，不宜让读者误以为几百例通常足以用该界放行 2% 容差。
+
+对于独立同分布的配对二元结果，差值为“改善对概率−退化对概率”。下面分别对两个不一致单元格的边际二项率求精确界，再用 Bonferroni 合成：四个单侧界各分配 alpha/4，总覆盖至少 1−alpha。二者同属一个配对表，不要求它们互相独立。二项求根依据 NIST，组合为本书应用推导；Bonferroni 一般不等式不要求事件独立。[[21]](#ref-21)[[23]](#ref-23)
+
+```python
+from math import exp, fsum, lgamma, log, log1p
+
+def _binom_cdf(k, n, p):
+    if k < 0:
+        return 0.0
+    if k >= n or p == 0:
+        return 1.0
+    if p == 1:
+        return 0.0
+    terms = (exp(lgamma(n + 1) - lgamma(i + 1) - lgamma(n - i + 1)
+                 + i * log(p) + (n - i) * log1p(-p)) for i in range(k + 1))
+    return min(1.0, fsum(terms))
+
+def _cdf_root(k, n, target):
+    lo, hi = 0.0, 1.0
+    for _ in range(70):
+        mid = (lo + hi) / 2
+        if _binom_cdf(k, n, mid) > target:
+            lo = mid
+        else:
+            hi = mid
+    return (lo + hi) / 2
+
+def _cell_bounds(k, n, tail):
+    low = 0.0 if k == 0 else _cdf_root(k - 1, n, 1 - tail)
+    high = 1.0 if k == n else _cdf_root(k, n, tail)
+    return low, high
+
+def paired_binary_interval(pairs, alpha=0.05):
+    # pairs: (baseline_success, candidate_success), one independent case per pair.
+    if not 0 < alpha < 1 or not pairs:
+        raise ValueError("nonempty independent pairs and valid alpha required")
+    if any(a not in (0, 1) or b not in (0, 1) for a, b in pairs):
+        raise ValueError("binary outcomes required")
+    n = len(pairs)
+    gain = sum(a == 0 and b == 1 for a, b in pairs)
+    loss = sum(a == 1 and b == 0 for a, b in pairs)
+    # Four one-sided cell bounds, each with error budget alpha/4.
+    gain_lo, gain_hi = _cell_bounds(gain, n, alpha / 4)
+    loss_lo, loss_hi = _cell_bounds(loss, n, alpha / 4)
+    return {"method": "paired-binomial-bonferroni", "alpha": alpha,
+            "unit": "independent_case", "n": n, "gain": gain, "loss": loss,
+            "delta": (gain - loss) / n,
+            "low": max(-1.0, gain_lo - loss_hi),
+            "high": min(1.0, gain_hi - loss_lo)}
+
+def zero_event_bound(n, alpha=0.05):
+    if not isinstance(n, int) or n <= 0 or not 0 < alpha < 1:
+        raise ValueError("positive independent sample count and valid alpha required")
+    return {"method": "zero-event-binomial-upper", "alpha": alpha,
+            "n": n, "upper": 1 - alpha ** (1 / n)}
+```
+
+这是可独立运行的教学参考，不是最窄的配对 score/exact 区间；生产可选择核验过的 Tango/Newcombe 等配对方法，并记录方法版本。零翻转仍有非零宽度，不使用全零 percentile bootstrap 制造确定性。NIST 的 n=20、4 次事件、90% 区间约为 [0.071354, 0.401029]，可作为单元格求根的交叉校验。固定时点、代表性采样及独立单位的假设不能省略；聚类和反复查看需要另行设计。
+
+例如 320 对零翻转、alpha=.05 时，本方法界约为 ±1.36 个百分点；它仍可能因样本、切片或其他门禁不足不能发布。五例退化、两例改善须按实际不一致数计算，不能只看净差。McNemar 检查相应差异假设，不显著不等于已证明非劣效。
+
+### 样本量规划：区分差异检测与非劣效
+
+下文独立两组双侧差异公式仅用于差异检测的粗略规划；配对单侧非劣效需指定可接受退化幅度、不一致对概率、功效及独立单位，按所选检验规划或模拟，不能照搬每组 n。
 
 置信区间回答“这个分数有多不确定”，但评估设计还有一个前置问题：**要检测到一个给定幅度的提升，需要多少样本？** 这属于统计功效分析，缺了它，团队容易在小样本上看到波动就宣布提升，或者在大样本上为 0.3% 的差异投入不成比例的成本。
 
@@ -291,7 +357,7 @@ n\\approx\\frac{2p(1-p)}{\\delta^{2}}\\left(z_{1-\\alpha/2}+z_{1-\\beta}\\right)
 
 ### 裁判模型的用途
 
-LLM-as-judge 可以在开放式生成任务中提供较便宜的质量评分、pairwise preference、维度解释和样本筛选。G-Eval、MT-Bench 等工作展示了裁判模型在自动评估中的应用 [[22]](#ref-22)[[23]](#ref-23)。但裁判不是绝对真值，可能偏好更长答案、熟悉风格、特定模型、位置靠前的答案或带有特定格式的答案。
+LLM-as-judge 可以在开放式生成任务中提供较便宜的质量评分、pairwise preference、维度解释和样本筛选。G-Eval、MT-Bench 等工作展示了裁判模型在自动评估中的应用 [[24]](#ref-24)[[25]](#ref-25)。但裁判不是绝对真值，可能偏好更长答案、熟悉风格、特定模型、位置靠前的答案或带有特定格式的答案。
 
 评估平台要保存 judge model、prompt、temperature、候选顺序、schema、评分尺度和原始理由。pairwise 评估随机交换 A/B，避免位置偏差；多次采样测量方差；对高影响发布保留人工复核。裁判的输出只能支持明确的论点，例如“在这组任务上相对偏好提高”，不能泛化为“模型整体更智能”。
 
@@ -338,7 +404,7 @@ Kappa 低本身不是标注者的问题，往往是任务定义的问题。遇�
 
 先冻结标签字典与正类方向。例如正类定义“必须升级人工”，人判升级而judge判解决是FN漏放，人判解决而judge判升级是FP误杀。合法标签才进入TP/FP/FN/TN；越界、空响应和非法JSON记invalid并报告有效数，不能转成默认negative。给人工和judge同样必要证据，但不向judge提供该实验待预测的人工标签；参考答案式评分可以提供独立任务答案，两者任务定义不同。
 
-准确率为(TP+TN)/有效数，召回为TP/(TP+FN)，精确率为TP/(TP+FP)，还应观察正常样本正确保留比例TN/(TN+FP)。分母为零记未定义，并检查稀有风险是否根本没覆盖。全判解决也可能在极不平衡数据上准确率很高，但严重漏放召回为零；高风险自动门禁必须按误判代价设置阈值和人工复核，不能采用通用准确率 cutoff。换序盲评、控制答案长度、检查自偏好和多次评分不稳在dev进行，test只评估冻结版本；版本或任务分布变化后重新校准并建立桥接报告 [[23]](#ref-23)。
+准确率为(TP+TN)/有效数，召回为TP/(TP+FN)，精确率为TP/(TP+FP)，还应观察正常样本正确保留比例TN/(TN+FP)。分母为零记未定义，并检查稀有风险是否根本没覆盖。全判解决也可能在极不平衡数据上准确率很高，但严重漏放召回为零；高风险自动门禁必须按误判代价设置阈值和人工复核，不能采用通用准确率 cutoff。换序盲评、控制答案长度、检查自偏好和多次评分不稳在dev进行，test只评估冻结版本；版本或任务分布变化后重新校准并建立桥接报告 [[25]](#ref-25)。
 
 ## 10.6 RAG、工具调用与线上反馈闭环
 
@@ -370,7 +436,7 @@ RAG 任务至少拆成检索、重排、上下文组装、生成和引用。Raga
 
 输入长度、语言、主题、来源、工具类型、用户群和时间可能发生变化。数据剖面比较当前窗口与基线窗口，检测 token 长度、embedding、类别比例、错误、拒答、cache 命中和任务成功的变化。漂移不是一定的质量问题，但会触发扩大评估、增加采样或暂停自动发布。
 
-输出漂移包括长度、停止原因、重复、格式、引用、工具参数、拒答和安全判定。模型没有换版本时输出也可能因上游知识库、prompt、路由和用户分布变化而漂移。OpenTelemetry 和 Prometheus 可以把请求上下文与时间序列指标连接起来 [[18]](#ref-18)[[19]](#ref-19)；Dapper 的追踪思想帮助定位漂移涉及的下游组件 [[24]](#ref-24)。
+输出漂移包括长度、停止原因、重复、格式、引用、工具参数、拒答和安全判定。模型没有换版本时输出也可能因上游知识库、prompt、路由和用户分布变化而漂移。OpenTelemetry 和 Prometheus 可以把请求上下文与时间序列指标连接起来 [[18]](#ref-18)[[19]](#ref-19)；Dapper 的追踪思想帮助定位漂移涉及的下游组件 [[26]](#ref-26)。
 
 ### 线上回放
 
@@ -530,53 +596,29 @@ Prompt 变更看似不改模型，却可能改变 token 长度、prefix cache、
 
 ## 10.10 参考资料
 
-<a id="ref-1"></a>[1] Zaharia, M., et al. *Resilient Distributed Datasets: A Fault-Tolerant Abstraction for In-Memory Cluster Computing*. NSDI, 2012. https://www.usenix.org/conference/nsdi12/technical-sessions/presentation/zaharia 访问日期：2026-10-17
-
-<a id="ref-2"></a>[2] Dean, J., & Ghemawat, S. *MapReduce: Simplified Data Processing on Large Clusters*. OSDI, 2004. https://research.google/pubs/mapreduce-simplified-data-processing-on-large-clusters/ 访问日期：2026-10-17
-
-<a id="ref-3"></a>[3] lakeFS. *Version Data*. 官方文档，核验2026-10-17. https://docs.lakefs.io/guides/version-data/
-
-<a id="ref-4"></a>[4] TensorFlow. *TensorFlow Data Validation*. https://www.tensorflow.org/tfx/guide/tfdv 访问日期：2026-10-17
-
-<a id="ref-5"></a>[5] Liang, P., et al. *Holistic Evaluation of Language Models (HELM)*. 2022. https://arxiv.org/abs/2211.09110 访问日期：2026-10-17
-
-<a id="ref-6"></a>[6] Srivastava, A., et al. *Beyond the Imitation Game: Quantifying and extrapolating the capabilities of language models*. 2022. https://arxiv.org/abs/2206.04615 核验2026-10-17
-
-<a id="ref-7"></a>[7] Es, S., et al. *Ragas: Automated Evaluation of Retrieval Augmented Generation*. 2023，v2 2025. https://arxiv.org/abs/2309.15217 核验2026-10-17
-
-<a id="ref-8"></a>[8] Delta Lake. *Delta Lake Documentation: Introduction*. 核验2026-10-17. https://docs.delta.io/
-
-<a id="ref-9"></a>[9] MLflow. *ML Tracking Documentation*. https://mlflow.org/docs/latest/ml/tracking/ 访问日期：2026-10-17
-
-<a id="ref-10"></a>[10] Langfuse. *Datasets*. 官方文档，核验2026-10-17. https://langfuse.com/docs/evaluation/experiments/datasets
-
-<a id="ref-11"></a>[11] Apache Spark. *RDD Programming Guide*. 官方4.2.0在线文档，核验2026-10-17. https://spark.apache.org/docs/latest/rdd-programming-guide.html
-
-<a id="ref-12"></a>[12] Great Expectations. *GX Core Overview*. 1.24.0，核验2026-10-17. https://docs.greatexpectations.io/docs/core/introduction/gx_overview/
-
-<a id="ref-13"></a>[13] Gao, L., et al. *The Pile*. 2020. https://arxiv.org/abs/2101.00027 访问日期：2026-10-17
-
-<a id="ref-14"></a>[14] Grattafiori, A., et al. *The Llama 3 Herd of Models*. arXiv v3, 2024. https://arxiv.org/abs/2407.21783 核验日期：2026-10-17
-
-<a id="ref-15"></a>[15] DVC. *Get Started with DVC*. 官方数据版本入门，核验2026-10-17. https://doc.dvc.org/start
-
-<a id="ref-16"></a>[16] 《动手学深度学习》作者. *4.4 模型选择、欠拟合和过拟合*. 中文2.0.0. https://zh.d2l.ai/chapter_multilayer-perceptrons/underfit-overfit.html 核验2026-10-17
-
-<a id="ref-17"></a>[17] Hugging Face. *Datasets: Process*. 官方文档，核验2026-10-17. https://huggingface.co/docs/datasets/process
-
-<a id="ref-18"></a>[18] Prometheus Authors. *Prometheus Documentation*. https://prometheus.io/docs/introduction/overview/ 访问日期：2026-10-17
-
-<a id="ref-19"></a>[19] OpenTelemetry Authors. *Signals*. 在线文档，核验2026-10-17. https://opentelemetry.io/docs/concepts/signals/
-
-<a id="ref-20"></a>[20] Hendrycks, D., et al. *Measuring Massive Multitask Language Understanding*. 2020. https://arxiv.org/abs/2009.03300 访问日期：2026-10-17
-
-<a id="ref-21"></a>[21] NIST/SEMATECH. *e-Handbook of Statistical Methods: 7.2.4.1 Confidence Intervals*. 在线手册，核验2026-10-17. https://www.itl.nist.gov/div898/handbook/prc/section2/prc241.htm
-
-<a id="ref-22"></a>[22] Liu, Y., et al. *G-Eval: NLG Evaluation using GPT-4 with Better Human Alignment*. 2023. https://arxiv.org/abs/2303.16634 核验2026-10-17
-
-<a id="ref-23"></a>[23] Zheng, L., et al. *Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena*. 2023. https://arxiv.org/abs/2306.05685 核验2026-10-17
-
-<a id="ref-24"></a>[24] Sigelman, B. H., et al. *Dapper, a Large-Scale Distributed Systems Tracing Infrastructure*. Google Research, 2010. https://research.google/pubs/dapper-a-large-scale-distributed-systems-tracing-infrastructure/ 访问日期：2026-10-17
-
-
-25. <a id="ref-25"></a> Wassily Hoeffding，[Probability Inequalities for Sums of Bounded Random Variables](https://doi.org/10.1080/01621459.1963.10500830)，JASA 58(301)，1963，13–30；核验于 2026-10-24。
+1. <a id="ref-1"></a> Zaharia, M., et al. [Resilient Distributed Datasets: A Fault-Tolerant Abstraction for In-Memory Cluster Computing](https://www.usenix.org/conference/nsdi12/technical-sessions/presentation/zaharia). NSDI, 2012. 访问日期：2026-10-17
+2. <a id="ref-2"></a> Dean, J., & Ghemawat, S. [MapReduce: Simplified Data Processing on Large Clusters](https://research.google/pubs/mapreduce-simplified-data-processing-on-large-clusters/). OSDI, 2004. 访问日期：2026-10-17
+3. <a id="ref-3"></a> lakeFS. [Version Data](https://docs.lakefs.io/guides/version-data/). 官方文档，核验2026-10-17.
+4. <a id="ref-4"></a> TensorFlow. [TensorFlow Data Validation](https://www.tensorflow.org/tfx/guide/tfdv). 访问日期：2026-10-17
+5. <a id="ref-5"></a> Liang, P., et al. [Holistic Evaluation of Language Models (HELM)](https://arxiv.org/abs/2211.09110). 2022. 访问日期：2026-10-17
+6. <a id="ref-6"></a> Srivastava, A., et al. [Beyond the Imitation Game: Quantifying and extrapolating the capabilities of language models](https://arxiv.org/abs/2206.04615). 2022. 核验2026-10-17
+7. <a id="ref-7"></a> Es, S., et al. [Ragas: Automated Evaluation of Retrieval Augmented Generation](https://arxiv.org/abs/2309.15217). 2023，v2 2025. 核验2026-10-17
+8. <a id="ref-8"></a> Delta Lake. [Delta Lake Documentation: Introduction](https://docs.delta.io/). 核验2026-10-17.
+9. <a id="ref-9"></a> MLflow. [ML Tracking Documentation](https://mlflow.org/docs/latest/ml/tracking/). 访问日期：2026-10-17
+10. <a id="ref-10"></a> Langfuse. [Datasets](https://langfuse.com/docs/evaluation/experiments/datasets). 官方文档，核验2026-10-17.
+11. <a id="ref-11"></a> Apache Spark. [RDD Programming Guide](https://spark.apache.org/docs/latest/rdd-programming-guide.html). 官方4.2.0在线文档，核验2026-10-17.
+12. <a id="ref-12"></a> Great Expectations. [GX Core Overview](https://docs.greatexpectations.io/docs/core/introduction/gx_overview/). 1.24.0，核验2026-10-17.
+13. <a id="ref-13"></a> Gao, L., et al. [The Pile](https://arxiv.org/abs/2101.00027). 2020. 访问日期：2026-10-17
+14. <a id="ref-14"></a> Grattafiori, A., et al. [The Llama 3 Herd of Models](https://arxiv.org/abs/2407.21783). arXiv v3, 2024. 核验日期：2026-10-17
+15. <a id="ref-15"></a> DVC. [Get Started with DVC](https://doc.dvc.org/start). 官方数据版本入门，核验2026-10-17.
+16. <a id="ref-16"></a> 《动手学深度学习》作者. [4.4 模型选择、欠拟合和过拟合](https://zh.d2l.ai/chapter_multilayer-perceptrons/underfit-overfit.html). 中文2.0.0. 核验2026-10-17
+17. <a id="ref-17"></a> Hugging Face. [Datasets: Process](https://huggingface.co/docs/datasets/process). 官方文档，核验2026-10-17.
+18. <a id="ref-18"></a> Prometheus Authors. [Prometheus Documentation](https://prometheus.io/docs/introduction/overview/). 访问日期：2026-10-17
+19. <a id="ref-19"></a> OpenTelemetry Authors. [Signals](https://opentelemetry.io/docs/concepts/signals/). 在线文档，核验2026-10-17.
+20. <a id="ref-20"></a> Hendrycks, D., et al. [Measuring Massive Multitask Language Understanding](https://arxiv.org/abs/2009.03300). 2020. 访问日期：2026-10-17
+21. <a id="ref-21"></a> NIST/SEMATECH. [e-Handbook of Statistical Methods: 7.2.4.1 Confidence Intervals](https://www.itl.nist.gov/div898/handbook/prc/section2/prc241.htm). 在线手册，核验2026-10-17.
+22. <a id="ref-22"></a> Wassily Hoeffding，[Probability Inequalities for Sums of Bounded Random Variables](https://doi.org/10.1080/01621459.1963.10500830)，JASA 58(301)，1963，13–30；核验于 2026-10-24。
+23. <a id="ref-23"></a> NIST/SEMATECH，[Bonferroni’s method](https://www.itl.nist.gov/div898/handbook/prc/section4/prc473.htm)，一般概率不等式；核验于 2026-10-24。配对单元格区间组合为本书推导。
+24. <a id="ref-24"></a> Liu, Y., et al. [G-Eval: NLG Evaluation using GPT-4 with Better Human Alignment](https://arxiv.org/abs/2303.16634). 2023. 核验2026-10-17
+25. <a id="ref-25"></a> Zheng, L., et al. [Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena](https://arxiv.org/abs/2306.05685). 2023. 核验2026-10-17
+26. <a id="ref-26"></a> Sigelman, B. H., et al. [Dapper, a Large-Scale Distributed Systems Tracing Infrastructure](https://research.google/pubs/dapper-a-large-scale-distributed-systems-tracing-infrastructure/). Google Research, 2010. 访问日期：2026-10-17

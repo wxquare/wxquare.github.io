@@ -1,24 +1,8 @@
 # 第 17 章 Agent 治理与调优：从质量闭环到分层落地
 
-本章把一次实际失败连接到 Trace、Failure、Eval 和发布决定，明确哪些证据允许扩大自动化范围，哪些结果要求阻断、核验或回退。
+一次 ALR 诊断错误怎样变成可定位根因、可验证修复和下一次发布前的门禁？本章连接 Trace、Failure、Eval 和发布决定，明确扩大自动化范围所需的证据与阻断、核验和回退条件。
 
 版本与范围：既有资料保留 2026-10-21 的核验记录；本次新增统计与 OTel 条款复核于 2026-10-24。文中的评测用例、评分、门禁阈值和案例均为教学示例，不代表真实系统的测试结果或生产结论。
-
-前面几章讨论了 Agent 的架构、工具、知识系统、工作流和 Memory。到这里，一个 Agent 已经具备了“思考、检索、记忆、行动”的能力。
-
-但只具备能力还不够。生产环境真正关心的是：
-
-- 它什么时候会错？
-- 错了能不能发现？
-- 高风险动作会不会被拦截？
-- 成本是否可控？
-- 线上质量是否在变差？
-- 失败样本能否沉淀为改进？
-- 人类是否能在关键节点接管？
-
-本章把 Evals、Guardrails、Observability、Lifecycle 和 Failure Debugging 合并为一个完整治理闭环，并进一步讨论如何调优 Runtime、Skill、MCP、上下文、检索、模型路由和容量。为了避免把它们讲成几个孤立模块，本章始终围绕一个主问题展开：
-
-> 一次线上 Agent 失败，如何变成可定位的根因、可验证的调优，以及下一次发布前的门禁？
 
 本章与相邻章节的分工如下：[生产运营与治理控制](../part2/05-production-operations-governance.md)讲 Infra 层的 SLO、错误预算、运营与灾备；[Agent Runtime](03-agent-runtime.md)统一讲持久执行、状态、恢复和副作用；Agent 工具系统工程讲 Skill、Tool、MCP 与 Sandbox 如何暴露和隔离能力。本章聚焦质量与安全评估、线上证据、发布门禁和失败改进，执行状态与工具契约沿用前述章节的定义。
 
@@ -45,11 +29,12 @@ Release Gate
 
 ---
 
-配图可点击查看原图；窄屏阅读时可单独打开并放大。
 
 ## 17.1 为什么 Agent 治理比普通应用更难
 
 [![治理把运行证据转为发布判断](../images/review-agent-governance-optimization-01.svg)](../images/review-agent-governance-optimization-01.svg)
+
+*图 17-1：治理把运行证据转为发布判断*
 
 
 传统后端系统的行为主要由代码决定，测试通常验证确定性逻辑。Agent 系统不同：
@@ -74,7 +59,7 @@ Release Gate
 
 | 维度 | 治理必须保证什么 | 调优主要改变什么 | 验证依据 |
 | --- | --- | --- | --- |
-| Runtime | 有效执行归属、任务终态、取消、预算、结果提交资格 | 循环、调度、重试、检查点和恢复成本 | 状态账本、故障注入、关键路径 |
+| runtime | 有效执行归属、任务终态、取消、预算、结果提交资格 | 循环、调度、重试、检查点和恢复成本 | 状态账本、故障注入、关键路径 |
 | Skill | 来源、版本、适用范围、脚本权限、发布责任 | 发现准确性、流程清晰度、按需加载 | 正反例触发、步骤验收、配对实验 |
 | MCP / Tool | 身份、Schema、业务校验、副作用和数据出口 | 候选工具、参数表达、结果大小、连接与并发 | 契约测试、调用轨迹、服务端结果 |
 | Context / Memory | 硬约束、事实来源、权限、时效、删除传播 | 动态组装、压缩、检索、去重、前缀稳定性 | 装配清单、压缩后续跑、污染回归 |
@@ -144,7 +129,7 @@ flowchart TB
 order-service P95 延迟升高，请分析可能原因。
 ```
 
-Agent 检索到一篇过期 Runbook，并在没有日志证据的情况下断言“数据库连接池耗尽”。值班工程师纠正后发现，真实原因是 09:35Z 完成的`deploy_8842`改变了`payment-client`超时与重试配置，09:37Z 开始 P95 从 210ms 升至 2.1s。本例告警 ALR-20260429-017、Run run_0429_017、Trace 4bf92f3577b34da6a3ce929d0e0e4736 与 Runtime/工具章一致，均为虚构教学设定。T4 建单回执丢失后查原键确认 INC-4821，T5 通知重复；这两类执行/交付问题与 T2 错误诊断分开归因，不能用不重复建单证明答案正确。
+Agent 检索到一篇过期 Runbook，并在没有日志证据的情况下断言“数据库连接池耗尽”。教学设定中，后续对配置、payment-client 日志与受控对照的核验支持： 02:35Z 完成的`deploy_8842`改变了`payment-client`超时与重试配置，02:37Z 开始 P95 从 210ms 升至 2.1s。本例告警 ALR-20260429-017、Run run_0429_017、Trace 4bf92f3577b34da6a3ce929d0e0e4736 与 Runtime/工具章一致，均为虚构教学设定。T4 建单回执丢失后查原键确认 INC-4821，T5 通知重复；这两类执行/交付问题与 T2 错误诊断分开归因，不能用不重复建单证明答案正确。
 
 生产治理系统不能只记录“这个回答错了”。它应该把这次失败走完一条闭环：
 
@@ -172,9 +157,141 @@ incident-agent-v43：Release Gate 检查旧失败是否复发
 
 ---
 
+<a id="1751-核心数据模型"></a>
+
+### 17.1.6 核心数据模型
+
+一个最小治理控制面可以从九张逻辑表开始。
+
+| 数据对象 | 关键字段 | 用途 |
+|:---|:---|:---|
+| `agent_runs` | `run_id`、`user_id`、`task_type`、`status`、`cost`、`latency` | 记录一次任务 |
+| `agent_steps` | `run_id`、`step_id`、`span_type`、`model`、`tool`、`status` | 记录推理、检索、工具调用 |
+| `policy_decisions` | `run_id`、`tool`、`risk`、`decision`、`reason`、`approver` | 审计权限判断 |
+| `evidence_items` | `evidence_id`、`source`、`hash`、`trust_level`、`expires_at` | 管理证据 |
+| `failure_records` | `failure_id`、`source_trace_id`、`failure_type`、`root_cause_layer`、`severity`、`owner` | 管理失败样本和修复责任 |
+| `eval_cases` | `case_id`、`source_trace_id`、`task_contract`、`frozen_context` | 管理评估样本 |
+| `eval_results` | `case_id`、`agent_version`、`scores`、`trace_id`、`failure_type` | 比较版本质量 |
+| `release_reports` | `release_id`、`candidate_agent_version`、`base_agent_version`、`eval_suite`、`gate_decision`、`blocking_reason` | 记录候选版本相对基线的门禁结果 |
+| `agent_versions` | `agent_version`、`model_profile`、`prompt`、`tools`、`policy`、`index`、`schema` | 固化一次发布的完整组合 |
+
+这几张表解决的是治理系统最基础的问题：
+
+- 某个线上回答为什么这么说？
+- 某个工具调用是谁批准的？
+- 某次失败是否已经变成回归样本？
+- 新版本是否修复了旧失败？
+- 质量下降是模型、prompt、索引还是工具导致的？
+- 当前发布是否还带着未关闭的高风险失败？
+
+<a id="failure-registry"></a>
+
+<a id="1752-failure-registry跟进失败样本与修复"></a>
+
+### 17.1.7 Failure Registry：跟进失败样本与修复
+
+`Failure Registry` 不应该只是一个错误日志列表。日志回答“发生了什么”，Failure Registry 回答“这类失败是否已经被系统性处理”。
+
+记录时要把观察到的 `failure_type` 和确认后的 `root_cause_layer` 分开。前者描述可复现的失败现象，后者表示证据支持的责任层；一次失败可以有多个根因层，但不能把假设写成已确认根因。`root_cause_layer` 使用受控值 `intent`、`context`、`retrieval`、`reasoning`、`tool`、`policy`、`runtime`、`verification`、`output`、`delivery`、`platform`、`data` 或 `unknown`。下表是本章的失败标签，与[Agent Runtime 的故障修复矩阵](03-agent-runtime.md#failure-repair-matrix)对应。
+
+| `failure_type` | 观察到的问题 | 常见根因层 |
+| --- | --- | --- |
+| `incorrect_result` | 结果与权威事实不符 | reasoning、tool、data |
+| `evidence_not_supported` | 关键结论没有适用证据支持 | retrieval、context、verification |
+| `retrieval_miss` | 应有证据没有进入候选集 | retrieval、data |
+| `context_missing_or_stale` | 当前上下文缺少约束或包含过期事实 | context、runtime |
+| `tool_selection_error` | 选择的能力不符合任务契约 | intent、tool |
+| `tool_argument_error` | 参数不符合 Schema 或业务条件 | tool、policy |
+| `tool_execution_error` | 工具明确失败或返回不完整 | tool、platform |
+| `policy_violation` | 动作超出授权或审批边界 | policy、runtime |
+| `runtime_recovery_error` | 中断后状态、恢复或副作用处理错误 | runtime、tool |
+| `output_contract_error` | 产物格式或业务字段不符合契约 | output |
+| `delivery_failure` | 结果交付未确认或未收敛 | delivery、platform |
+| `budget_exceeded` | 超出任务资源边界 | runtime、platform |
+| `unknown` | 现有证据不足以归类 | unknown |
+
+归因寻找首次偏离契约的位置；关联因素允许多个，但必须有证据。后续表格沿用这组受控值。
+
+`model_hallucination` 等宽泛说法可以保留为自然语言描述，但不作为根因标签；例如无证据断言应标为 `evidence_not_supported`，再依据 Trace 判断是检索遗漏、上下文丢失还是推理越界。
+
+一个失败记录至少要包含：
+
+```yaml
+failure_record:
+  id: "failure-0099"
+  source_trace_id: "4bf92f3577b34da6a3ce929d0e0e4736"
+  task_type: "incident_diagnosis"
+  failure_type: "evidence_not_supported"
+  root_cause_layer:
+    - retrieval
+    - verification
+  severity: "p1"
+  user_impact: "误导值班工程师排查数据库连接池"
+  regression_case_id: "eval-incident-0099"
+  frozen_context:
+    agent_version: "incident-agent-v42"
+    prompt_version: "incident-diagnosis-v12"
+    policy_version: "prod-policy-v5"
+    retrieval_index: "runbook-index-v18"
+    metrics_snapshot: "snapshots/metrics_0099.json"
+    log_snapshot: "snapshots/logs_0099.json"
+  required_regression:
+    - "必须检索 payment-client timeout 日志"
+    - "没有证据时不能断言数据库故障"
+  owner: "incident-governance"
+  status: "regression_created"
+```
+
+这个对象把线上事实、根因层级、冻结上下文、修复责任和回归要求连接起来。关闭须修复集和稳定回归通过、相关安全证据齐备、灰度完成且责任人确认；只过离线 Gate 不关闭。复发进入 reopened，wont_fix 须接受风险与到期复核，duplicate 关联主记录并继承其处置证据，不假装已修复。
+
+可以把状态流设计成：
+
+```text
+observed -> triaged -> reproduced -> fixed -> gate_passed -> canary -> closed
+复发 -> reopened -> triaged
+有明确理由 -> wont_fix（风险接受与复核）或duplicate（关联主记录）
+```
+
+如果没有这个状态流，团队很容易陷入“每次都在聊天群里复盘，但系统没有变强”的循环。
+
+复盘沿同一 Failure 对象填写现象/影响、T0–T6 时间线、原始证据引用、首次偏离契约的位置、受控根因标签、修复与回归、责任人、灰度和关闭证据。缺失字段明确 unknown；不另造另一套复盘 Schema。
+
+<a id="release-bundle"></a>
+
+<a id="1753-版本对象"></a>
+
+### 17.1.8 版本对象
+
+生产 Agent 由模型、Runtime、Prompt、工具、策略、索引和 Schema 等版本对象组合而成。
+
+```yaml
+agent_version:
+  id: "incident-agent-v42"
+  model_profile: "reasoning-model-prod"
+  runtime_build: "runtime:v6"
+  scheduler_policy: "scheduler:v3"
+  context_builder: "context:v9"
+  compaction_policy: "compaction:v4"
+  skill_bundle: "skills:v12"
+  mcp_capability_snapshot: "mcp-contracts:v8"
+  routing_cache_policy: "routing-cache:v3"
+  system_prompt: "prompt:incident:v12"
+  tool_registry: "tools:v8"
+  policy_bundle: "policy:prod:v5"
+  retrieval_index: "runbook-index-v18"
+  memory_schema: "memory:v3"
+  output_schema: "incident-report:v4"
+  eval_suite: "incident-regression:v17"
+```
+
+如果线上质量变差，只知道“换了模型”是不够的。治理控制面必须记录完整组合，否则无法定位是哪一个版本对象引入了回归。
+
+
 ## 17.2 Agent Evals：从任务契约到配对证据
 
 [![四态评估与证据充分性](../images/review-agent-governance-optimization-02.svg)](../images/review-agent-governance-optimization-02.svg)
+
+*图 17-2：四态评估与证据充分性*
 
 
 AgentBench 与 tau-bench 分别从交互任务与工具/用户/规则约束评估 Agent，提示评估必须覆盖任务结果和过程。[[1]](#ref-1)[[2]](#ref-2) 本章沿用[数据与评估](../part2/04-data-eval.md)的用例版本和环境清单，下面为 eval-case/v1 的教学投影，字段不另构成一份生产标准。
@@ -264,7 +381,7 @@ MT-Bench 研究指出位置、冗长和自我偏好等裁判偏差。[[4]](#ref-
 
 对于允许拒答或转人工的任务，再同时报告覆盖率与已回答部分的错误率。候选如果把所有难例都拒绝，可能降低已回答错误率，却让自动完成覆盖显著下降。安全优先不意味着可以隐藏服务能力的损失，门禁必须看到任务完成、合理拒答、错误拒答与证据未知的各自数量。
 
-Shankar 等人的 EvalGen 研究强调评价准则与人类偏好需要迭代对齐，不能由模型给自身输出写一套评分规则就视为可靠裁判。[[24]](#ref-24) 本书据此把准则开发、人工校准和留出验收分开：人工先独立判断并保留分歧，裁判在开发集暴露错判，调整准则后重新冻结版本，再在未参与调整的样本检查误通过与误拒绝。若用户任务或人群改变，原校准不自动迁移；模型裁判提供的是有限范围的语义判断，确定性权限和业务状态继续由代码与资源端核验。
+Shankar 等人的 EvalGen 研究强调评价准则与人类偏好需要迭代对齐，不能由模型给自身输出写一套评分规则就视为可靠裁判。[[6]](#ref-6) 本书据此把准则开发、人工校准和留出验收分开：人工先独立判断并保留分歧，裁判在开发集暴露错判，调整准则后重新冻结版本，再在未参与调整的样本检查误通过与误拒绝。若用户任务或人群改变，原校准不自动迁移；模型裁判提供的是有限范围的语义判断，确定性权限和业务状态继续由代码与资源端核验。
 
 ### 17.2.6 Eval Runner 与四态结果
 
@@ -294,7 +411,7 @@ Runner 固定 case_version、环境、候选版本和裁判，运行后持久保
 
 ### 17.2.7 版本比较、统计判定与实验停止
 
-本节只定义 Agent 门禁的应用协议，配对、区间、样本量及重复查看的一般统计解释统一见[评估与反馈闭环](../part2/04-data-eval.md)。每个实验先选独立单位：同一业务用例的多次运行保留在一个组内，按 case/会话聚类汇总，不把多跑几遍当作新增独立用户。pass^k 应报告连续 k 次均成功的目标与采样条件，不能与至少一次成功的 pass@k 混用。
+本节只定义 Agent 门禁的应用协议，配对、区间、样本量及重复查看的一般统计解释统一见[评估与反馈闭环](../part2/04-data-eval.md)。每个实验先选独立单位：同一业务用例的多次运行保留在一个组内，按 case/会话聚类汇总，不把多跑几遍当作新增独立用户。pass^k 表示 k 次独立同分布试验全部成功；若每任务 n≥k 次试验中成功 c 次，按任务平均估计 C(c,k)/C(n,k)，c<k 时记零；应披露独立性与采样条件，不能与至少一次成功的 pass@k 混用。
 
 | 场景 | 事先选择的方法 | 实施约束 |
 | --- | --- | --- |
@@ -306,13 +423,11 @@ Runner 固定 case_version、环境、候选版本和裁判，运行后持久保
 上述是本书的实验设计建议，具体区间和序贯实现须由适用的一手统计资料及独立实现核验。证据不足时返回 review 并补样；已经触发安全或修复证据硬阻断时始终 block。一般方法、计算假设与可复算例子集中到第 10 章，避免这里再维护第二套公式。
 
 
-在相同冻结用例上配对，b 为基线通过候选失败，c 为基线失败候选通过，N 为有效配对数，成功率变化Δ=(c−b)/N。McNemar 针对不一致配对检验两种方向是否对称；不一致数较少时用精确二项检验，而不是直接比较两个独立通过率。[[6]](#ref-6) b=c=0 意味着未观察到翻转，不意味着未来零风险；p 值不显著也不证明候选不劣。
+在相同冻结用例上配对，b 为基线通过候选失败，c 为基线失败候选通过，N 为有效配对数，成功率变化Δ=(c−b)/N。McNemar 针对不一致配对检验两种方向是否对称；不一致数较少时用精确二项检验，而不是直接比较两个独立通过率。[[7]](#ref-7) b=c=0 意味着未观察到翻转，不意味着未来零风险；p 值不显著也不证明候选不劣。
 
-本书门禁先定义可接受退化幅度ε，在样本充分且方法假设成立时，按独立任务或会话组做配对重采样；稀疏不一致对另选适用区间。下文教学代码采用有独立单位假设的保守 Hoeffding 配对均值界，不以稀疏 percentile bootstrap 放行；检查Δ区间下界是否至少为−ε。安全违规单独硬阻断；本例比较优先级为安全、正确、成本，Win 须先满足前序约束，Tie 也须在预先声明的等价范围内。该优先级是业务策略，不是统计方法的普遍要求。
+本书门禁事先声明可接受退化 ε，检查所选配对差值区间的下界是否至少为 −ε。计算与方法选择统一见[统计不确定性](../part2/04-data-eval.md#配对二元结果的可复算保守区间)，本章只消费方法、alpha、独立单位、样本量和界限。320 例净退化三例不能独立决定发布；同样，零违规报告必须附适用二项上界和真实安全断言样本量。
 
-教学例：320 个相同用例中 b=5、c=2，Δ=−3/320≈−0.94 个百分点；仅看约三例差距不能做发布结论，还要检查逐例影响、区间和切片。零违规时，在独立同分布二项假设下 95%单侧上界 pU=1−0.05^(1/N)，N=320 时约 0.93%，大样本近似 3/N≈0.94%；这是由 P(零次)=(1−p)^N 推得的上界，不证明风险为零。小样本、相关样本或标签漏检不能套用这个保证。
-
-线上 A/B 按会话或合适实体随机化，事先固定 MDE、α、power、指标和窗口。二组等量二项率的粗略规划为每组 n≈2(z_(1−α/2)+z_power)^2 p0(1−p0)/δ²；教学假设 p0=.9、δ=.02、α=.05、power=.8 时约 3528/组。该近似未含聚类、流失或多重比较，实际需调整。SRM 先比较实际分组与计划比例，发现不匹配先诊断，不能继续解读效果。[[7]](#ref-7) 采用固定窗口不反复偷看提前停止；如需序贯分析，事先选择相应方法并控制错误率，标签延迟和共享下游干扰也要披露。
+线上 A/B 固定随机化单位、MDE、功效、窗口和停止规则；与离线配对非劣效使用不同设计。SRM 先诊断实际分组与预定比例偏差，不能带着分组异常解释收益。[[8]](#ref-8) 固定窗口不反复偷看，序贯分析需预先选定并控制错误率。
 
 比较多个候选时，先区分探索与确认。开发集可以用于试验不同检索过滤、提示和路由，但据此选出的优胜方案不能继续把同一批样本当成独立确认集。每次查看结果后修改候选，都会使“刚好通过”的机会增多；固定随机种子只能帮助复现，不能消除这种选择偏差。确认阶段冻结候选及断言，使用预留数据，记录提前查看或改动评估规则的事实；规则确需改变时重开实验，不把旧报告重新命名为新证据。
 
@@ -326,8 +441,10 @@ Runner 固定 case_version、环境、候选版本和裁判，运行后持久保
 
 [![护栏分别约束输入、行动与数据](../images/review-agent-governance-optimization-03.svg)](../images/review-agent-governance-optimization-03.svg)
 
+*图 17-3：护栏分别约束输入、行动与数据*
 
-Guardrails 是运行时检查。OpenAI 文档区分自动检查与人工审批，也区分阻塞和并行执行；存在高风险副作用时，执行前检查不能由并行的事后检测代替。[[8]](#ref-8)
+
+Guardrails 是运行时检查。OpenAI 文档区分自动检查与人工审批，也区分阻塞和并行执行；存在高风险副作用时，执行前检查不能由并行的事后检测代替。[[9]](#ref-9)
 
 ```text
 User Input
@@ -357,7 +474,11 @@ Output Guardrail
 User / Human Reviewer
 ```
 
-### 17.3.1 输入 Guardrails
+### 17.3.1 输入与上下文边界
+
+<a id="1731-输入-guardrails"></a>
+
+**输入 Guardrails**
 
 输入层需要处理：
 
@@ -379,7 +500,10 @@ User / Human Reviewer
 4. 应拒绝或转人工审批。
 ```
 
-### 17.3.2 上下文 Guardrails
+
+<a id="1732-上下文-guardrails"></a>
+
+**上下文 Guardrails**
 
 上下文不是越多越好。上下文层需要：
 
@@ -396,7 +520,7 @@ User / Human Reviewer
 context_items:
   - id: doc_001
     source: confluence
-    trust_level: medium
+    trust_level: unverified
     instruction_policy: data_only
     permission: team_internal
     content: "..."
@@ -405,9 +529,14 @@ context_items:
 <a id="outbound-security"></a>
 <a id="data-governance"></a>
 
-### 17.3.3 数据出口与租户边界
 
-URL 抓取、浏览器导航、上传和回调目标的协议、域名解析、重定向及网络出口限制，属于工具与沙箱的实现边界，详见[Agent 工具系统工程 Sandbox](04-skills-tools-mcp-connectors.md#sandbox)。OWASP 的 SSRF 指南可作为相关防护依据。[[9]](#ref-9)
+### 17.3.2 数据出口与结果交付
+
+<a id="1733-数据出口与租户边界"></a>
+
+**数据出口与租户边界**
+
+URL 抓取、浏览器导航、上传和回调目标的协议、域名解析、重定向及网络出口限制，属于工具与沙箱的实现边界，详见[Agent 工具系统工程 Sandbox](04-skills-tools-mcp-connectors.md#sandbox)。OWASP 的 SSRF 指南可作为相关防护依据。[[10]](#ref-10)
 
 治理评估还要区分目标可访问与内容可外发：按数据分类、租户、字段和批准范围检查实际发送内容。租户身份应贯穿索引、缓存、Memory、产物、日志和治理后台；PII 进入模型或观测系统前按用途最小化，权限撤销与删除还要沿派生数据传播。来源网页、图片和工具结果中的指令仍是非可信数据，不能授予读取或外发权限。
 
@@ -417,45 +546,10 @@ URL 抓取、浏览器导航、上传和回调目标的协议、域名解析、�
 
 端点数据契约分别核验训练用途、生成/会话/文件/缓存/监控日志的保留、删除生效、处理/存储区域和第三方处理方。`store:false`不等于全部数据零保留；长期 API Key 留在服务端密钥管理设施，按项目/环境隔离、轮换并限制作用域，直连客户端仅使用提供方明确支持的临时凭据。提供方数据政策参考[协议章来源](01-llm-api-protocol.md)，具体条款按选定功能和账户配置核验。
 
-### 17.3.4 副作用、审批、接管与隔离的治理验收
 
-执行协议由[Runtime](03-agent-runtime.md#human-control)定义，双轴风险和沙箱由[Agent 工具系统工程](04-skills-tools-mcp-connectors.md#tool-risk-levels)定义。本章只要求可核验的证据和回归，不再次定义 Operation 状态。精确动作批准与防重放的安全依据参考 OWASP。[[10]](#ref-10)
+<a id="1736-输出-guardrails"></a>
 
-| 控制点 | 必须保留的证据 | 回归用例 | 门禁信号 |
-| --- | --- | --- | --- |
-| 准入与范围 | 主体/租户、连接、目标、策略版本和裁决 | 越权读取、跨租户游标 | 违规范围阻断 |
-| 参数绑定审批 | 规范化 hash、资源版本、审批人/有效期 | 改参、过期、并发消费同一批准 | 任何绕过不能由质量分抵消 |
-| T4 写入未知 | 原 Operation、幂等键、INC-4821 回执与对账 | 回执丢失/取消后晚到成功 | 缺事实为 unknown，禁止扩大相关写入 |
-| 旧代接管 | 新旧 epoch、claim 与资源端拒绝证据 | 不同载荷迟到写入、强制接管 | 旧结果不覆盖当前状态 |
-| 隔离与撤权 | 文件/网络/凭据边界、当前 ACL | 恶意 Server、越界目录、撤权回调 | 越权或恢复旧权限阻断 |
-| T5 通知重复 | notification_id、Outbox、渠道回执 | 已送达但本地丢回执 | 业务完成和交付失败分开统计 |
-
-unknown 未决清单必须有责任人、期限和核验入口，不能通过回滚版本删除。复盘使用统一根因词表，敏感载荷保存受控引用。
-
-### 17.3.5 累计风险预算与门禁信号
-
-工具单次调用的 `allow / deny / ask / escalate` 裁决由[Agent Runtime Policy Engine](03-agent-runtime.md#policy-engine)负责；风险等级与能力边界见[Agent 工具系统工程](04-skills-tools-mcp-connectors.md#tool-risk-levels)。本章只处理多次低风险操作累积后的治理信号，例如敏感记录读取量、写操作数、通知数和总费用。
-
-下面是未连接真实系统的教学函数；`estimated_call_cost_usd` 由可信计费适配器按当前价目和调用上界计算后传入，单位 USD，估算不可得时应返回独立 unknown 信号并停止自动放行。函数只汇总超限项，不替 Runtime 裁决调用。汇总结果写入 Trace 与 Failure Registry，并进入评估用例和 Release Gate：
-
-```python
-def budget_findings(tool, args, task_state, estimated_call_cost_usd):
-    budget = task_state.risk_budget
-    findings = []
-
-    if budget.tool_calls >= budget.max_tool_calls:
-        findings.append("tool_call_budget_exceeded")
-    if tool.has_side_effect and budget.write_actions >= budget.max_write_actions:
-        findings.append("write_action_budget_exceeded")
-    if budget.total_cost_usd + estimated_call_cost_usd > budget.max_cost_usd:
-        findings.append("cost_budget_exceeded")
-    if tool.reads_sensitive_data and task_state.sensitive_records_read >= budget.max_sensitive_records:
-        findings.append("sensitive_read_budget_exceeded")
-
-    return findings
-```
-
-### 17.3.6 输出 Guardrails
+**输出 Guardrails**
 
 输出层需要检查：
 
@@ -468,9 +562,54 @@ def budget_findings(tool, args, task_state, estimated_call_cost_usd):
 
 <a id="guardrail-errors"></a>
 
-### 17.3.7 护栏误杀与漏放的配对回归
 
-OWASP 指出外部文本/图像可携带间接注入，防线需要最小权限和独立控制，不能只测试用户直接攻击。[[11]](#ref-11) 构造标签为“允许/阻止/需审批”的合法请求、恶意请求、引用攻击文字的正常教学请求，以及跨工具/Memory 污染样本；固定候选版本前后配对。
+### 17.3.3 动作控制点与累计风险
+
+<a id="1734-副作用审批接管与隔离的治理验收"></a>
+
+**副作用、审批、接管与隔离的治理验收**
+
+按副作用与数据敏感度组合决定控制点，实际资格仍由当前主体、资源和环境确定。下表是本书策略，不是 MCP annotations 的保证。
+
+| 副作用轴 | 公开/普通业务数据 | 敏感/受限数据 |
+| --- | --- | --- |
+| 只读 | 授权范围内自动读取，保留来源 | 字段最小化、目的/对象授权；必要时审批，仍属于只读 |
+| 可补偿写入 | 预览、策略授权或批准，记录 Operation | 加数据出口与审批范围校验，补偿本身另授权 |
+| 外发或难逆动作 | 核对目标与内容，按风险人工控制 | 缩小数据范围、强审计；无法落实控制则拒绝 |
+| 禁止通用 Agent 执行 | 不暴露，转专用业务流程 | 不暴露，不能靠换工具绕过 |
+
+
+执行协议由[Runtime](03-agent-runtime.md#human-control)定义，双轴风险和沙箱由[Agent 工具系统工程](04-skills-tools-mcp-connectors.md#tool-risk-levels)定义。本章只要求可核验的证据和回归，不再次定义 Operation 状态。精确动作批准与防重放的安全依据参考 OWASP。[[11]](#ref-11)
+
+| 控制点 | 必须保留的证据 | 回归用例 | 门禁信号 |
+| --- | --- | --- | --- |
+| 准入与范围 | 主体/租户、连接、目标、策略版本和裁决 | 越权读取、跨租户游标 | 违规范围阻断 |
+| 参数绑定审批 | 规范化 hash、资源版本、审批人/有效期 | 改参、过期、并发消费同一批准 | 任何绕过不能由质量分抵消 |
+| T4 写入未知 | 原 Operation、幂等键、INC-4821 回执与对账 | 回执丢失/取消后晚到成功 | 缺事实为 unknown，禁止扩大相关写入 |
+| 旧代接管 | 新旧 epoch、claim 与资源端拒绝证据 | 不同载荷迟到写入、强制接管 | 旧结果不覆盖当前状态 |
+| 隔离与撤权 | 文件/网络/凭据边界、当前 ACL | 恶意 Server、越界目录、撤权回调 | 越权或恢复旧权限阻断 |
+| T5 通知重复 | notification_id、Outbox、渠道回执 | 已送达但本地丢回执 | 业务完成和交付失败分开统计 |
+
+unknown 未决清单必须有责任人、期限和核验入口，不能通过回滚版本删除。复盘使用统一根因词表，敏感载荷保存受控引用。
+
+
+<a id="1735-累计风险预算与门禁信号"></a>
+
+**累计风险预算与门禁信号**
+
+Runtime 持有轮数、Token、费用与截止时间的根预算，本章只消费治理信号：敏感记录读取量、不同对象覆盖量、外发字节与目的地、写操作及通知数量。逐次允许的低风险读取也可能累积为不被允许的大规模导出。
+
+评估记录每个信号的统计窗口、计量单位、去重身份和策略限额，检查跨工具与跨子任务累计是否绕过约束。无法计算敏感读取量时返回 unknown 并限制该路径，而不是按零处理。费用和调用额度沿用 Runtime 账本，不维护第二份预算状态。
+
+
+
+### 17.3.4 误杀漏放与边界回归
+
+<a id="1737-护栏误杀与漏放的配对回归"></a>
+
+**护栏误杀与漏放的配对回归**
+
+OWASP 指出外部文本/图像可携带间接注入，防线需要最小权限和独立控制，不能只测试用户直接攻击。[[12]](#ref-12) 构造标签为“允许/阻止/需审批”的合法请求、恶意请求、引用攻击文字的正常教学请求，以及跨工具/Memory 污染样本；固定候选版本前后配对。
 
 分别报告合法样本被错误阻断的误杀率、违规样本被放行的漏放率、需审批却直接执行率、invalid 和未覆盖数。被拦截多不证明安全更好，低漏放也不能遮住合法用户完全无法完成任务。阈值与例外需在独立集验证，连同处置 owner 和回滚目标记录后才能进入发布决策。
 
@@ -478,23 +617,21 @@ OWASP 指出外部文本/图像可携带间接注入，防线需要最小权限�
 
 护栏的有效性要按它实际能观察到的边界解释。输入检查通过不能证明工具参数在执行前仍获授权，输出检查通过也不能撤销已经发送的数据。回归样本因此覆盖检查通过后输入被替换、批准过期、连接撤销和敏感字段被嵌入工具结果等交错。治理只判定这些边界是否有可信证据，具体审批与恢复协议仍参考 Runtime 和Agent 工具系统工程。
 
-### 17.3.8 Guardrails 的常见误区
 
-| 误区 | 问题 | 更好的做法 |
-|:---|:---|:---|
-| 把安全都写进 prompt | 模型会遗忘或误解 | 用 Policy Engine 强制执行 |
-| 只做输入过滤 | 工具和输出仍可能越界 | 输入、上下文、工具、输出全链路防护 |
-| 把所有风险都拒绝 | 系统不可用 | allow / ask / escalate / deny 分级 |
-| 忽略上下文注入 | 文档和网页可能包含恶意指令 | 外部内容隔离、标注、降权 |
-| 没有审批记录 | 事后无法审计 | 保存审批人、时间、理由和 tool call |
+<a id="1738-guardrails-的常见误区"></a>
 
----
+**Guardrails 的常见误区**
+
+执行前检查、当前授权和审批记录是确定性边界，提示词与输出扫描仅提供辅助。误杀与漏放分别验收，不能靠全部拒绝取得安全高分。
+
 
 <a id="trace-observability"></a>
 
 ## 17.4 可观测性：让每一步都有证据
 
 [![可观测性连接调用与业务效果](../images/review-agent-governance-optimization-04.svg)](../images/review-agent-governance-optimization-04.svg)
+
+*图 17-4：可观测性连接调用与业务效果*
 
 
 生产级 Agent 必须能回答四个问题：
@@ -506,14 +643,16 @@ OWASP 指出外部文本/图像可携带间接注入，防线需要最小权限�
 
 ### 17.4.1 Trace 事件与 Span 映射
 
-Trace 为调试、评估、审计和成本分析提供关联线索，但不能替代任务状态或业务 Operation 账本。OpenTelemetry 用 Trace、Span 和传播上下文关联一次请求中的操作；缺失的 Span、传播中断和导出失败也要记录。[[12]](#ref-12)
+Trace 为调试、评估、审计和成本分析提供关联线索，但不能替代任务状态或业务 Operation 账本。OpenTelemetry 用 Trace、Span 和传播上下文关联一次请求中的操作；缺失的 Span、传播中断和导出失败也要记录。[[13]](#ref-13)
 
 同一条 Trace 可以用事件记录行为，再映射成父子 Span。以下示例沿用告警诊断案例的 `4bf92f3577b34da6a3ce929d0e0e4736`：
 
 ```json
 {
   "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
-  "task_id": "task_0099",
+  "trace_label": "trace_20260429_017",
+  "run_id": "run_0429_017",
+  "task_id": "task_0429_017",
   "task_type": "incident_diagnosis",
   "agent_version": "incident-agent-v42",
   "spans": [
@@ -522,7 +661,7 @@ Trace 为调试、评估、审计和成本分析提供关联线索，但不能�
       "parent_span_id": null,
       "name": "agent.run",
       "status": "Unset",
-      "start_time": "2026-04-29T09:37:00Z",
+      "start_time": "2026-04-29T02:37:00Z",
       "duration_ms": 3100
     },
     {
@@ -554,7 +693,7 @@ Trace 为调试、评估、审计和成本分析提供关联线索，但不能�
 }
 ```
 
-上例 span 状态使用 OpenTelemetry 的 Unset/Ok/Error，不把业务 completed/success 写成 SpanStatus；业务结果放应用属性，Unset 也不表示业务成功。GenAI 约定当前仍为 Development，且已迁到独立维护仓库；可用 gen_ai.operation.name=invoke_agent/execute_tool 描述 Agent 与工具操作，属性映射应固定到核验快照，不冒充稳定标准。[[13]](#ref-13)[[14]](#ref-14)
+上例 span 状态使用 OpenTelemetry 的 Unset/Ok/Error，不把业务 completed/success 写成 SpanStatus；业务结果放应用属性，Unset 也不表示业务成功。本表采用仍为 Development 的固定 GenAI tag；可用 gen_ai.operation.name=invoke_agent/execute_tool 描述 Agent 与工具操作，属性映射应固定到核验快照，不冒充稳定标准。[[14]](#ref-14)[[15]](#ref-15)
 
 Trace 至少要能关联任务与会话、Agent 版本、上下文版本、检索和工具事件、策略决策、证据引用、验证结果、成本及各阶段耗时。Span 则记录父子关系、名称、状态、持续时间，以及模型、工具、错误类别等必要属性。任务、attempt、Operation、执行代次和交付状态应引用权威账本中的标识；不要把它们仅保存为 Trace 文本。
 
@@ -567,7 +706,7 @@ Trace 至少要能关联任务与会话、Agent 版本、上下文版本、检�
 | model.answer | 模型调用的对应 GenAI 操作 | 模型、提供方和用量按所选版本属性映射 |
 | claim_id / evidence_ids | 应用自定义属性 | 不冒充标准命名空间，不暴露敏感正文 |
 
-此表固定参考 semantic-conventions v1.36.0 的 Agent/工具约定；当前 GenAI 已迁至独立仓库，升级需显式检查变化，不把滚动页面当作稳定 tag。[[23]](#ref-23)
+此表固定参考 semantic-conventions v1.36.0：Agent 操作见 gen-ai-agent-spans.md，execute_tool 见 gen-ai-spans.md；当前 GenAI 已迁至独立仓库，升级需显式检查变化，不把滚动页面当作稳定 tag。[[15]](#ref-15)
 
 ### 17.4.2 Evidence Graph：让结论可追溯
 
@@ -601,7 +740,7 @@ Trace 至少要能关联任务与会话、Agent 版本、上下文版本、检�
 
 ### 17.4.3 采样策略
 
-全量保存所有 prompt、上下文和工具结果成本很高，也有隐私风险。按最终失败/高成本保留需要尾部采样：先在受控缓冲中等待任务达到采样决策点，再按结果保留；入口头部采样无法事后找回已丢的 span。[[15]](#ref-15) 长任务缓冲有上限，超过窗口时明确回放覆盖缺口。实践中可以分层采样：
+全量保存所有 prompt、上下文和工具结果成本很高，也有隐私风险。按最终失败/高成本保留需要尾部采样：先在受控缓冲中等待任务达到采样决策点，再按结果保留；入口头部采样无法事后找回已丢的 span。[[16]](#ref-16) 长任务缓冲有上限，超过窗口时明确回放覆盖缺口。实践中可以分层采样：
 
 | 数据 | 保存策略 |
 |:---|:---|
@@ -617,9 +756,11 @@ Trace 至少要能关联任务与会话、Agent 版本、上下文版本、检�
 
 采样记录和总体指标应来自不同责任路径。一个周期内完成了多少任务、多少需要审批、多少交付未确认，由可信计数产生；为诊断保留了多少条 Trace，则由采样策略决定。两者都应绑定统计窗口与版本，但不能互作分母。即使对已保留样本进行加权，也需要已知且适用的入选概率；无法恢复采样概率时，应将报告限定为诊断样本，不能给出总体失败率。
 
-头部采样更容易控制入口成本，尾部采样可以依据后续异常保留材料，但会引入缓冲、决策延迟和容量限制。[[15]](#ref-15) 本场景中的长任务可能跨越缓冲窗口，应记录哪些阶段尚无完整载荷。审批日志存在而工具回执丢失时，审计可以证明动作被批准，却不能证明结果已确认；仅有最终回答，也不能证明此前没有越权读取。门禁检查证据覆盖时应识别这些缺口，而不是将“找到 Trace”当作所有过程断言均通过。
+头部采样更容易控制入口成本，尾部采样可以依据后续异常保留材料，但会引入缓冲、决策延迟和容量限制。[[16]](#ref-16) 本场景中的长任务可能跨越缓冲窗口，应记录哪些阶段尚无完整载荷。审批日志存在而工具回执丢失时，审计可以证明动作被批准，却不能证明结果已确认；仅有最终回答，也不能证明此前没有越权读取。门禁检查证据覆盖时应识别这些缺口，而不是将“找到 Trace”当作所有过程断言均通过。
 
 ### 17.4.4 生产指标面板
+
+下表面板必须附窗口、任务/租户切片及有效独立单位数。任务成功率分母为已受理且进入统计窗口的任务；工具错误率分母为实际派发 Attempt；人工接管率分母为进入自动化路径的任务；引用支持率分母为需要证据的必要主张。未完成、unknown、invalid 和取消按事先声明口径单列，不能无声剔除。各延迟分位数同时报告样本数。
 
 建议把指标拆成四块面板。
 
@@ -634,7 +775,7 @@ Trace 至少要能关联任务与会话、Agent 版本、上下文版本、检�
 
 ### 17.4.5 SLI 与 SLO：先写清用户承诺和分母
 
-错误预算和燃烧率的完整机制参考[生产运营与治理控制](../part2/05-production-operations-governance.md)。Google SRE 用 SLI 描述可测服务表现、用 SLO 表达目标。[[16]](#ref-16) 在 Agent 场景中，本章建议分别定义接收、排队、执行、验证与交付指标，不用接口 200 代替业务成功：
+错误预算和燃烧率的完整机制参考[生产运营与治理控制](../part2/05-production-operations-governance.md)。Google SRE 用 SLI 描述可测服务表现、用 SLO 表达目标。[[17]](#ref-17) 在 Agent 场景中，本章建议分别定义接收、排队、执行、验证与交付指标，不用接口 200 代替业务成功：
 
 | 指标 | 建议口径 | 易漏问题 |
 | --- | --- | --- |
@@ -661,13 +802,15 @@ Trace 至少要能关联任务与会话、Agent 版本、上下文版本、检�
 | 用量或成本增加 | 同一任务组合、计费版本、失败与重试均计入 | 比较单位成功成本，按首次偏离点诊断 |
 | 审批绕过/跨租户读取 | 安全事件已确认 | 立即阻断受影响路径，不等待质量样本量或统计显著 |
 
-教学策略可以预先要求当前窗口至少200个独立成熟任务、基线2000个；这只是示例样本门，不保证任意效应都可检测。若SLO为99%，1小时窗口1000个任务中有60个失败，burn=6；短窗口100个任务中有8个失败，burn=8。两个值都超过预设的5时可触发调查，但窗口之间重叠、标签延迟和低流量仍需处理。该例不是所有Agent通用的分页阈值，完整燃烧率策略沿用生产运营主讲章。[[16]](#ref-16)
+教学策略可以预先要求当前窗口至少200个独立成熟任务、基线2000个；这只是示例样本门，不保证任意效应都可检测。若SLO为99%，1小时窗口1000个任务中有60个失败，burn=6；短窗口100个任务中有8个失败，burn=8。两个值都超过预设的5时可触发调查，但窗口之间重叠、标签延迟和低流量仍需处理。该例不是所有Agent通用的分页阈值，燃烧率与多窗口告警依据 SRE Workbook《Alerting on SLOs》。[[18]](#ref-18)
 
 <a id="cost-accounting"></a>
 
-漂移判断需要最小独立样本量、基线窗口、当前窗口与延迟成熟条件。样本不足只发数据覆盖告警，不宣称质量漂移；时效性故障按用户影响和错误预算燃烧率处置。`approval_bypass_count>0` 等已确认安全事件立即阻断受影响动作并进入事件响应，不与一般漂移阈值平均或等待统计显著。
+漂移判断需要最小独立样本量、基线窗口、当前窗口与延迟成熟条件。样本不足只发数据覆盖告警，不宣称质量漂移；时效性故障按用户影响和错误预算燃烧率处置。[[18]](#ref-18)`approval_bypass_count>0` 等已确认安全事件立即阻断受影响动作并进入事件响应，不与一般漂移阈值平均或等待统计显著。
 
 ### 17.4.7 成本计量与归因
+
+单位成功成本等于评估窗口内的总成本除以已验证且满足安全约束的成功任务数。分子包含失败、重试、回退和评测开销；成功数为零时应报告总支出并将比值标记为不可计算。
 
 成本按父任务、子任务、Step、Operation 建立可追溯成本树，模型、工具、存储、评估和人工消耗逐级汇总；同一叶子事件只计入一次，父节点汇总不能再当作新增费用。成本事件携带稳定事件 ID、Operation、计量类型和版本，重复回执按原计费事件去重；同一业务操作的结算以 Operation 去重，独立的模型重试或供应商尝试仍按实际调用和计费契约计量，不能为避免重复结算而抹去真实成本。
 
@@ -701,6 +844,8 @@ Trace 越完整，越容易调试；但 trace 也可能包含敏感信息。生�
 
 [![从故障登记到可控发布](../images/review-agent-governance-optimization-05.svg)](../images/review-agent-governance-optimization-05.svg)
 
+*图 17-5：从故障登记到可控发布*
+
 
 当 Agent 进入生产环境，Evals、Guardrails 和 Observability 不能是三套孤立系统。它们应该共享同一个治理控制面。
 
@@ -708,199 +853,71 @@ Trace 越完整，越容易调试；但 trace 也可能包含敏感信息。生�
 
 > 每一次 Agent 行为，能否被记录、评估、解释，并反过来影响下一次发布？
 
-### 17.5.1 核心数据模型
-
-一个最小治理控制面可以从九张逻辑表开始。
-
-| 数据对象 | 关键字段 | 用途 |
-|:---|:---|:---|
-| `agent_runs` | `run_id`、`user_id`、`task_type`、`status`、`cost`、`latency` | 记录一次任务 |
-| `agent_steps` | `run_id`、`step_id`、`span_type`、`model`、`tool`、`status` | 记录推理、检索、工具调用 |
-| `policy_decisions` | `run_id`、`tool`、`risk`、`decision`、`reason`、`approver` | 审计权限判断 |
-| `evidence_items` | `evidence_id`、`source`、`hash`、`trust_level`、`expires_at` | 管理证据 |
-| `failure_records` | `failure_id`、`source_trace_id`、`failure_type`、`root_cause_layer`、`severity`、`owner` | 管理失败样本和修复责任 |
-| `eval_cases` | `case_id`、`source_trace_id`、`task_contract`、`frozen_context` | 管理评估样本 |
-| `eval_results` | `case_id`、`agent_version`、`scores`、`trace_id`、`failure_type` | 比较版本质量 |
-| `release_reports` | `release_id`、`candidate_agent_version`、`base_agent_version`、`eval_suite`、`gate_decision`、`blocking_reason` | 记录候选版本相对基线的门禁结果 |
-| `agent_versions` | `agent_version`、`model_profile`、`prompt`、`tools`、`policy`、`index`、`schema` | 固化一次发布的完整组合 |
-
-这几张表解决的是治理系统最基础的问题：
-
-- 某个线上回答为什么这么说？
-- 某个工具调用是谁批准的？
-- 某次失败是否已经变成回归样本？
-- 新版本是否修复了旧失败？
-- 质量下降是模型、prompt、索引还是工具导致的？
-- 当前发布是否还带着未关闭的高风险失败？
-
-<a id="failure-registry"></a>
-
-### 17.5.2 Failure Registry：跟进失败样本与修复
-
-`Failure Registry` 不应该只是一个错误日志列表。日志回答“发生了什么”，Failure Registry 回答“这类失败是否已经被系统性处理”。
-
-记录时要把观察到的 `failure_type` 和确认后的 `root_cause_layer` 分开。前者描述可复现的失败现象，后者表示证据支持的责任层；一次失败可以有多个根因层，但不能把假设写成已确认根因。`root_cause_layer` 使用受控值 `intent`、`context`、`retrieval`、`reasoning`、`tool`、`policy`、`runtime`、`verification`、`output`、`delivery`、`platform`、`data` 或 `unknown`。下表是本章的失败标签，与[Agent Runtime 的故障修复矩阵](03-agent-runtime.md#failure-repair-matrix)对应。
-
-| `failure_type` | 观察到的问题 | 常见根因层 |
-| --- | --- | --- |
-| `incorrect_result` | 结果与权威事实不符 | reasoning、tool、data |
-| `evidence_not_supported` | 关键结论没有适用证据支持 | retrieval、context、verification |
-| `retrieval_miss` | 应有证据没有进入候选集 | retrieval、data |
-| `context_missing_or_stale` | 当前上下文缺少约束或包含过期事实 | context、runtime |
-| `tool_selection_error` | 选择的能力不符合任务契约 | intent、tool |
-| `tool_argument_error` | 参数不符合 Schema 或业务条件 | tool、policy |
-| `tool_execution_error` | 工具明确失败或返回不完整 | tool、platform |
-| `policy_violation` | 动作超出授权或审批边界 | policy、runtime |
-| `runtime_recovery_error` | 中断后状态、恢复或副作用处理错误 | runtime、tool |
-| `output_contract_error` | 产物格式或业务字段不符合契约 | output |
-| `delivery_failure` | 结果交付未确认或未收敛 | delivery、platform |
-| `budget_exceeded` | 超出任务资源边界 | runtime、platform |
-| `unknown` | 现有证据不足以归类 | unknown |
-
-根因受控词表统一为 intent/context/retrieval/data/reasoning/tool/policy/runtime/verification/output/delivery/platform/unknown；词表描述失败首先偏离契约的位置，允许多个有证据的关联因素。下游表格和复盘都使用这组值，不另定义“七层”等互不相同枚举。
-
-`model_hallucination` 等宽泛说法可以保留为自然语言描述，但不作为根因标签；例如无证据断言应标为 `evidence_not_supported`，再依据 Trace 判断是检索遗漏、上下文丢失还是推理越界。
-
-一个失败记录至少要包含：
-
-```yaml
-failure_record:
-  id: "failure-0099"
-  source_trace_id: "4bf92f3577b34da6a3ce929d0e0e4736"
-  task_type: "incident_diagnosis"
-  failure_type: "evidence_not_supported"
-  root_cause_layer:
-    - retrieval
-    - verification
-  severity: "p1"
-  user_impact: "误导值班工程师排查数据库连接池"
-  regression_case_id: "eval-incident-0099"
-  frozen_context:
-    agent_version: "incident-agent-v42"
-    prompt_version: "incident-diagnosis-v12"
-    policy_version: "prod-policy-v5"
-    retrieval_index: "runbook-index-v18"
-    metrics_snapshot: "snapshots/metrics_0099.json"
-    log_snapshot: "snapshots/logs_0099.json"
-  required_regression:
-    - "必须检索 payment-client timeout 日志"
-    - "没有证据时不能断言数据库故障"
-  owner: "incident-governance"
-  status: "regression_created"
-```
-
-这个对象把线上事实、根因层级、冻结上下文、修复责任和回归要求连接起来。关闭须修复集和稳定回归通过、相关安全证据齐备、灰度完成且责任人确认；只过离线 Gate 不关闭。复发进入 reopened，wont_fix 须接受风险与到期复核，duplicate 关联主记录并继承其处置证据，不假装已修复。
-
-可以把状态流设计成：
-
-```text
-observed -> triaged -> reproduced -> fixed -> gate_passed -> canary -> closed
-复发 -> reopened -> triaged
-有明确理由 -> wont_fix（风险接受与复核）或duplicate（关联主记录）
-```
-
-如果没有这个状态流，团队很容易陷入“每次都在聊天群里复盘，但系统没有变强”的循环。
-
-复盘沿同一 Failure 对象填写现象/影响、T0–T6 时间线、原始证据引用、首次偏离契约的位置、受控根因标签、修复与回归、责任人、灰度和关闭证据。缺失字段明确 unknown；不另造另一套复盘 Schema。
-
-<a id="release-bundle"></a>
-
-### 17.5.3 版本对象
-
-生产 Agent 由模型、Runtime、Prompt、工具、策略、索引和 Schema 等版本对象组合而成。
-
-```yaml
-agent_version:
-  id: "incident-agent-v42"
-  model_profile: "reasoning-model-prod"
-  runtime_build: "runtime:v6"
-  scheduler_policy: "scheduler:v3"
-  context_builder: "context:v9"
-  compaction_policy: "compaction:v4"
-  skill_bundle: "skills:v12"
-  mcp_capability_snapshot: "mcp-contracts:v8"
-  routing_cache_policy: "routing-cache:v3"
-  system_prompt: "prompt:incident:v12"
-  tool_registry: "tools:v8"
-  policy_bundle: "policy:prod:v5"
-  retrieval_index: "runbook-index-v18"
-  memory_schema: "memory:v3"
-  output_schema: "incident-report:v4"
-  eval_suite: "incident-regression:v17"
-```
-
-如果线上质量变差，只知道“换了模型”是不够的。治理控制面必须记录完整组合，否则无法定位是哪一个版本对象引入了回归。
-
 <a id="release-control"></a>
 
-### 17.5.4 Release Gate 的决策逻辑
+<a id="1754-release-gate-的决策逻辑"></a>
+
+### 17.5.1 Release Gate 的决策逻辑
 
 发布证据包应包含候选与基线版本、用例和数据版本、断言器与裁判校准信息、失败样本及切片结果、护栏误杀和漏放、Trace 覆盖率、未关闭风险及责任人，以及灰度目标、回滚目标和审批记录。
 
 高风险过程证据缺失时按 `unknown` 处理，并阻止相关范围发布。零次观测失败不能证明真实风险为零；门禁报告要说明样本量和不确定性，统计方法见[评估与反馈闭环](../part2/04-data-eval.md)。
 
-以下教学函数逐切片返回决定，不把无关 P1 扩展为全局阻断；修复集单独验收，稳定配对集只比较同一冻结用例。min_n、allowed_drop 和零事件上界限额都是事先声明的业务策略，不能照搬为通用标准。下面用第 10 章的 Hoeffding 界给出无第三方依赖的保守示例；独立配对单位上的差值在 [-1,1]，半宽为 sqrt(2×ln(2/alpha)/n)。即使没有翻转也不会输出零宽区间；代价是较宽，不能把未放行解释成确定退化。相关会话必须先按独立组重设计；该固定时点区间不能被反复查看而沿用同一 alpha。
+以下函数消费第 10 章的统计报告，不再次实现区间。教学策略可以将总错误预算 .05 分为质量 .025 与安全 .025；多切片/多主张还须继续分配，不能直接复制同一 .05。min_n 与 allowed_drop 是事先声明的业务策略，不能照搬成通用门槛。
 
 ```python
-from math import comb, log, sqrt
-
-def paired_stats(pairs, alpha=0.05):
-    if not pairs or any(a not in (0, 1) or b not in (0, 1) for a, b in pairs):
-        raise ValueError("valid paired binary outcomes required")
-    if not 0 < alpha < 1:
-        raise ValueError("alpha must be between zero and one")
-    n = len(pairs)
-    loss = sum(a == 1 and b == 0 for a, b in pairs)
-    gain = sum(a == 0 and b == 1 for a, b in pairs)
-    discordant = loss + gain
-    p = min(1.0, 2 * sum(comb(discordant, k) for k in range(min(loss, gain) + 1)) / 2**discordant) if discordant else 1.0
-    delta = [b - a for a, b in pairs]
-    estimate = sum(delta) / n
-    radius = sqrt(2 * log(2 / alpha) / n)
-    return {"n": n, "loss": loss, "gain": gain, "delta": estimate,
-            "low": max(-1.0, estimate - radius),
-            "high": min(1.0, estimate + radius),
-            "method": "hoeffding-bounded-paired-mean",
-            "mcnemar_exact_p": p}
+from math import isfinite
 
 def release_gate(report, policy):
-    # report covers ONE declared release slice; thresholds are teaching policy inputs.
+    # One declared slice; reports are produced by the versioned evaluation service.
+    if not (0 < policy["quality_alpha"] < 1 and 0 < policy["safety_alpha"] < 1):
+        raise ValueError("valid alpha allocation required")
+    if policy["quality_alpha"] + policy["safety_alpha"] > policy["total_alpha"]:
+        raise ValueError("joint error budget exceeded")
     if report["open_p0"] or report["affected_p1"] or report["safety_violations"]:
         return "block", "unresolved risk in this slice"
     if report["critical_unknown"]:
         return "block", "critical evidence unknown"
     if report["missing_regression"] or report["smoke"] != "passed":
         return "block", "required regression or smoke evidence missing"
-    if len(report["repair_results"]) < report["required_repairs"]:
-        return "block", "repair evidence missing"
+    if len(report["repair_results"]) != report["required_repairs"]:
+        return "block", "repair evidence mismatch"
     if any(v != "passed" for v in report["repair_results"]):
         return "block", "repair set not proven"
-    if report["unknown"] or report["invalid"] or not report["pairs"]:
+    if report["unknown"] or report["invalid"]:
         return "review", "evaluation evidence insufficient"
-    stats = paired_stats(report["pairs"])
+    stats = report.get("paired")
+    if not stats or stats["method"] != policy["paired_method"]:
+        return "review", "paired report absent or method not approved"
+    if stats["alpha"] != policy["quality_alpha"] or stats["unit"] != policy["unit"]:
+        return "review", "confidence or independent unit mismatch"
+    if not all(isfinite(stats[k]) for k in ("low", "delta", "high")):
+        return "review", "non-finite quality bound"
+    if not -1 <= stats["low"] <= stats["delta"] <= stats["high"] <= 1:
+        return "review", "invalid quality interval"
     if stats["n"] < policy["min_n"]:
-        return "review", "too few paired cases"
+        return "review", "too few independent paired cases"
     if report["unresolved_new_failures"]:
         return "review", "per-case regressions need disposition"
     if stats["low"] < -policy["allowed_drop"]:
         return "review", "noninferiority not established"
-    if report["safety_n"] <= 0:
-        return "review", "independent safety sample count missing"
-    zero_event_upper = 1 - .05 ** (1 / report["safety_n"])
-    if zero_event_upper > policy["max_zero_event_upper"]:
+    safety = report.get("safety_bound")
+    if not safety or safety["n"] <= 0:
+        return "review", "independent safety evidence missing"
+    if safety["method"] != "zero-event-binomial-upper" or safety["alpha"] != policy["safety_alpha"]:
+        return "review", "safety bound configuration mismatch"
+    if not isfinite(safety["upper"]) or not 0 <= safety["upper"] <= 1:
+        return "review", "invalid safety bound"
+    if safety["upper"] > policy["max_zero_event_upper"]:
         return "review", "zero-event risk bound too wide"
     if report["cost_over"] or report["latency_over"]:
         return "review", "efficiency budget needs decision"
     return "allow", "evidence supports canary in this slice"
 ```
 
-`safety_n` 必须是实际执行相应安全断言的独立样本数，不能直接借用总用例数。零事件上界假设每次观测适用同一风险事件定义、近似独立且采样覆盖目标切片；条件不成立时需要重新设计评估，不能照算。`required_repairs` 来自已登记的修复清单，空修复集只有在清单确实为空时才有效。
+报告由已校验、版本化评估器生成；入口要核验字段、有限数值、样本身份与数据版本，不接受模型自报的 low 或 upper。safety_bound.n 只统计执行了相应安全断言的独立单位，不借用任务总数。空修复集只有在修复清单确实为空时成立。
 
-这里的 `block` 和 `review` 要区分清楚：
-
-- `block`：高风险违规，不能发布；
-- `review`：质量或成本变化，需要人工判断收益是否值得；
-- `allow`：满足门禁，可以进入灰度。
+block 包括已知高风险问题和必要证据缺失；review 包括样本不足、非劣效未成立、证据不确定及待裁决收益，默认不放行；allow 仅允许当前切片进入下一灰度阶段。不能通过人工把尚未满足的统计证明改写为“已证明”。
 
 门禁汇集四类信号：
 
@@ -913,7 +930,11 @@ def release_gate(report, policy):
 
 这样发布门禁就不再是“跑完一组测试”，而是一次面向生产风险的决策。
 
-### 17.5.5 从控制面到改进闭环
+<a id="1755-从控制面到改进闭环"></a>
+
+<a id="failure-improvement-loop"></a>
+
+### 17.5.2 从控制面到改进闭环
 
 一个成熟闭环应该像这样运转：
 
@@ -960,7 +981,9 @@ Release Gate
 
 <a id="release-lifecycle"></a>
 
-### 17.5.6 渐进发布与降级
+<a id="1756-渐进发布与降级"></a>
+
+### 17.5.3 渐进发布与降级
 
 每次扩大自动化范围前，都要用[发布门禁](#release-control)检查候选版本、已知失败、策略事件和线上指标。阶段变化应绑定同一份 `agent_version` 清单，不能只记录模型版本。
 
@@ -983,12 +1006,44 @@ Release Gate
 
 ---
 
+<a id="177-治理落地与检查清单"></a>
+
+**发布阶段的通过证据**
+
+[![上线前的四类证据](../images/review-agent-governance-optimization-07.svg)](../images/review-agent-governance-optimization-07.svg)
+
+*图 17-6：上线前的四类证据*
+
+
+按依赖逐步扩大自动化范围。下表将基线、最小交付和上线前检查合为一份清单；“通过”需要对应证据，不能只凭配置存在或流程已执行判断。
+
+| 阶段 | 检查项 | 通过证据 |
+| --- | --- | --- |
+| 建立基线 | 任务契约分别定义终态、过程、安全和预算要求 | 可复现的用例、固定版本与明确分母 |
+| 建立基线 | Evals 覆盖 Smoke、Regression、Safety 和端到端场景 | 失败样本有来源 Trace、判定依据和覆盖说明 |
+| 建立基线 | Trace 能关联任务、版本、证据、策略、工具结果与验证结果 | Trace 可追溯，敏感信息已脱敏且受访问控制 |
+| 建立基线 | Failure Registry 使用受控分类，并记录严重度、责任人和回归用例 | 高影响失败可从线上 Trace 追到修复与关闭证据 |
+| 治理能力 | 输入、上下文、工具和输出边界均有确定性检查 | 越权、注入、外发和高风险动作有反例验收 |
+| 治理能力 | 工具契约、身份、权限、副作用和结果未知均有处理策略 | Schema 与业务校验、审批和 Operation 证据齐全 |
+| 治理能力 | Memory、缓存和派生数据支持撤权、失效与删除传播 | 重建、恢复和回滚后旧数据不会重新可见 |
+| 发布准备 | agent_version 固定模型、Prompt、Skill、工具、Policy、索引和 Schema | 候选与基线可比较，变更范围可追溯 |
+| 发布准备 | Release Gate 综合 Eval、Failure Registry、Policy 和线上指标 | 未关闭高影响失败、安全违规或硬门槛退化会阻止发布 |
+| Shadow / Beta | 先影子运行，再限制用户、任务和流量 | 人工对照、误杀漏放、纠正率、成本和延迟有分层结果 |
+| 小流量 | 为停止、降级、转人工和回滚预先设定条件 | 触发过程可审计，回滚不抹去副作用或当前安全政策 |
+| 扩大自动化 | 接管、取消、unknown 对账和消息交付已通过故障验收 | 最慢未决任务、晚到结果和恢复责任都有处置入口 |
+| 持续运营 | 质量、风险、成本和性能按任务与租户监控 | 发现漂移后能定位首次偏离、创建回归并由门禁复验 |
+
+未满足安全或业务硬门槛时，不扩大权限与流量；样本量不足、证据缺失或结果为 unknown 时，应标为待核验。零次观测失败不能单独证明风险为零。
+
+
 ## 17.6 分层诊断与调优：从现象、假设到实验
 
 [![以可验证假设驱动调优](../images/review-agent-governance-optimization-06.svg)](../images/review-agent-governance-optimization-06.svg)
 
+*图 17-7：以可验证假设驱动调优*
 
-Agent 失败不能一概归因于 Prompt 或模型。诊断时先固定可复现证据，再找 Trace 中首次偏离任务契约的位置；最后一个报错可能只是更早缺证据、参数错误或状态丢失的后果。线上 Bad Case 的归类与量化可以为修复优先级提供依据。[[17]](#ref-17)
+
+Agent 失败不能一概归因于 Prompt 或模型。诊断时先固定可复现证据，再找 Trace 中首次偏离任务契约的位置；最后一个报错可能只是更早缺证据、参数错误或状态丢失的后果。线上 Bad Case 的归类与量化可以为修复优先级提供依据。[[19]](#ref-19)
 
 ### 17.6.1 五步诊断法与归因表
 
@@ -1000,13 +1055,13 @@ Agent 失败不能一概归因于 Prompt 或模型。诊断时先固定可复现
 
 | 根因层 | 需要核对的证据 | 常见修复方向 |
 | --- | --- | --- |
-| Intent | 用户目标、范围、时间窗和澄清记录 | 修订任务契约与澄清条件 |
-| Context / Retrieval | 上下文清单、来源版本、召回和过滤记录 | 修解析、索引、权限过滤或装配 |
-| Reasoning | 证据与主张的对应关系、反例和冲突 | 修判断边界、验证器或引用规则 |
-| Tool / Policy | 候选能力、参数来源、服务端结果、策略决策 | 修发现描述、Schema、权限或审批 |
-| Runtime | Run、Step、Checkpoint、Operation 和恢复事件 | 修状态转换、进展检测与恢复协议 |
-| Output / Delivery | Schema 校验、产物引用、交付回执 | 修输出契约、持久化或交付状态 |
-| Platform / Budget | 排队、调用耗时、资源水位、任务预算 | 修容量、超时、限额或降级策略 |
+| intent | 用户目标、范围、时间窗和澄清记录 | 修订任务契约与澄清条件 |
+| context / retrieval / data | 上下文清单、来源版本、召回和过滤记录 | 修解析、索引、权限过滤或装配 |
+| reasoning / verification | 证据与主张的对应关系、反例和冲突 | 修判断边界、验证器或引用规则 |
+| tool / policy | 候选能力、参数来源、服务端结果、策略决策 | 修发现描述、Schema、权限或审批 |
+| runtime | Run、Step、Checkpoint、Operation 和恢复事件 | 修状态转换、进展检测与恢复协议 |
+| output / delivery | Schema 校验、产物引用、交付回执 | 修输出契约、持久化或交付状态 |
+| platform（预算是症状） | 排队、调用耗时、资源水位、任务预算 | 修容量、超时、限额或降级策略 |
 
 一次失败可以同时有多个影响层，但应把“观察到的现象”和“已验证根因”分开记录。修复优先级看用户影响、严重程度、出现频率、可验证性和成本；确定性错误用规则或权威状态检查，不必额外交给 LLM 裁判。
 
@@ -1014,7 +1069,7 @@ Agent 失败不能一概归因于 Prompt 或模型。诊断时先固定可复现
 
 ### 17.6.2 单变量实验与线上闭环
 
-Langfuse 建议从已观察失败和明确目标选择指标，并将目标、不可退化约束与运行成本分开。[[18]](#ref-18) 每次实验先提出可被推翻的假设，再只改变一个主要变量；同时检查质量、安全和成本。
+Langfuse 建议从已观察失败和明确目标选择指标，并将目标、不可退化约束与运行成本分开。[[20]](#ref-20) 每次实验先提出可被推翻的假设，再只改变一个主要变量；同时检查质量、安全和成本。
 
 ~~~yaml
 experiment:
@@ -1031,7 +1086,7 @@ experiment:
 
 执行时冻结版本与数据，记录无法原样重放的事实；在开发集上定位首次偏离并做单项消融，再用按会话、实体或来源隔离的留出集验收。报告基线、候选、配对差异、样本量、无效原因和关键切片。超时、未完成和 `unknown` 不得从分母中静默删除。上线后按预设停止条件回退，并把新增失败送入 Failure Registry。
 
-单位成功成本等于评估窗口内的总成本除以已验证且满足安全约束的成功任务数。分子包含失败、重试、回退和评测开销；成功数为零时应报告总支出并将比值标记为不可计算。
+单位成功成本沿用[成本计量](#cost-accounting)的同一分子、分母和零成功处理，不在实验节另设口径。
 
 沿用告警诊断例子：`4bf92f3577b34da6a3ce929d0e0e4736` 被标为 `failure-0099`，回归用例为 `eval-incident-0099`。修复检索过滤和证据校验后，用相同冻结输入比较 `incident-agent-v42` 与 `incident-agent-v43`，再由 Release Gate 检查历史失败、风险切片和线上指标。这个例子展示了从 Bad Case 到发布决策的路径；它不代表已运行评测。
 
@@ -1069,82 +1124,54 @@ RAG 的算法参照和分母见[检索评估](02b-knowledge-retrieval.md#rag-eva
 
 ### 17.6.5 性能与容量：治理视角的边界
 
-本章只保留 Agent 层的性能诊断和容量门禁。先区分用户看到首个有效结果的时间、模型 TTFT、生成速度、端到端任务耗时，以及满足质量与安全门槛的有效吞吐；这些指标的起止点和分母必须写清。模型服务指标可参考 vLLM 文档；尾延迟分析还应保留任务切片。[[19]](#ref-19)[[20]](#ref-20)
+本章只保留 Agent 层的性能诊断和容量门禁。先区分用户看到首个有效结果的时间、模型 TTFT、生成速度、端到端任务耗时，以及满足质量与安全门槛的有效吞吐；这些指标的起止点和分母必须写清。模型服务指标可参考 vLLM 文档；尾延迟分析还应保留任务切片。[[21]](#ref-21)[[22]](#ref-22)
 
 | 观察层 | 应关联的时间或资源 | 优先检查 |
 | --- | --- | --- |
 | 模型 | 排队、TTFT、生成速度、输入输出 Token | 输入长度、模型路由、供应商队列与限额 |
 | Tool / MCP | 启动、发现、连接、执行、传输和结果处理 | 串行等待、重复往返、大结果搬运和下游 P95 |
 | Skill / Context | Skill 加载、累计上下文 Token、压缩与回源 | 是否重复加载、是否遗漏有效证据、是否频繁压缩 |
-| Runtime | 调度、等待、重试、重规划和恢复耗时 | 轮次增长、循环、并发排队和检查点返工 |
+| runtime | 调度、等待、重试、重规划和恢复耗时 | 轮次增长、循环、并发排队和检查点返工 |
 | 平台资源 | CPU、内存、网络、GPU、队列和租户配额 | 利用率、饱和、错误与配额触顶 |
 
-把 Trace 时间线与资源指标放在一起，才能区分“单步变慢”“轮次变多”和“等待资源”三类问题。USE 方法可用于逐资源检查利用率、饱和和错误。[[21]](#ref-21) 优化后要重新运行相同任务切片，并同时比较任务成功、风险、P95 和单位成功成本；不能以减少必要检查或缩小失败分母换取表面提速。
+把 Trace 时间线与资源指标放在一起，才能区分“单步变慢”“轮次变多”和“等待资源”三类问题。USE 方法可用于逐资源检查利用率、饱和和错误。[[23]](#ref-23) 优化后要重新运行相同任务切片，并同时比较任务成功、风险、P95 和单位成功成本；不能以减少必要检查或缩小失败分母换取表面提速。
 
-容量门禁要覆盖稳态、突发、下游限额下降和故障恢复。为供应商 Token、工具并发、队列、租户和全任务预算设置共同上限，并验证超限时能排队、拒绝、降级或转人工。队列只能平滑到达，不能提高下游实际吞吐。[[22]](#ref-22)
+容量门禁要覆盖稳态、突发、下游限额下降和故障恢复。为供应商 Token、工具并发、队列、租户和全任务预算设置共同上限，并验证超限时能排队、拒绝、降级或转人工。队列只能平滑到达，不能提高下游实际吞吐。[[24]](#ref-24)
 
 GPU 显存、KV Cache、Batching 和 Serving 参数属于模型服务层，详细机制见[推理服务与资源调度](../part2/03-inference.md)；Agent Runtime 的状态与恢复机制见[Agent Runtime](03-agent-runtime.md)。
-
-## 17.7 治理落地与检查清单
-
-[![上线前的四类证据](../images/review-agent-governance-optimization-07.svg)](../images/review-agent-governance-optimization-07.svg)
-
-
-按依赖逐步扩大自动化范围。下表将基线、最小交付和上线前检查合为一份清单；“通过”需要对应证据，不能只凭配置存在或流程已执行判断。
-
-| 阶段 | 检查项 | 通过证据 |
-| --- | --- | --- |
-| 建立基线 | 任务契约分别定义终态、过程、安全和预算要求 | 可复现的用例、固定版本与明确分母 |
-| 建立基线 | Evals 覆盖 Smoke、Regression、Safety 和端到端场景 | 失败样本有来源 Trace、判定依据和覆盖说明 |
-| 建立基线 | Trace 能关联任务、版本、证据、策略、工具结果与验证结果 | Trace 可追溯，敏感信息已脱敏且受访问控制 |
-| 建立基线 | Failure Registry 使用受控分类，并记录严重度、责任人和回归用例 | 高影响失败可从线上 Trace 追到修复与关闭证据 |
-| 治理能力 | 输入、上下文、工具和输出边界均有确定性检查 | 越权、注入、外发和高风险动作有反例验收 |
-| 治理能力 | 工具契约、身份、权限、副作用和结果未知均有处理策略 | Schema 与业务校验、审批和 Operation 证据齐全 |
-| 治理能力 | Memory、缓存和派生数据支持撤权、失效与删除传播 | 重建、恢复和回滚后旧数据不会重新可见 |
-| 发布准备 | agent_version 固定模型、Prompt、Skill、工具、Policy、索引和 Schema | 候选与基线可比较，变更范围可追溯 |
-| 发布准备 | Release Gate 综合 Eval、Failure Registry、Policy 和线上指标 | 未关闭高影响失败、安全违规或硬门槛退化会阻止发布 |
-| Shadow / Beta | 先影子运行，再限制用户、任务和流量 | 人工对照、误杀漏放、纠正率、成本和延迟有分层结果 |
-| 小流量 | 为停止、降级、转人工和回滚预先设定条件 | 触发过程可审计，回滚不抹去副作用或当前安全政策 |
-| 扩大自动化 | 接管、取消、unknown 对账和消息交付已通过故障验收 | 最慢未决任务、晚到结果和恢复责任都有处置入口 |
-| 持续运营 | 质量、风险、成本和性能按任务与租户监控 | 发现漂移后能定位首次偏离、创建回归并由门禁复验 |
-
-未满足安全或业务硬门槛时，不扩大权限与流量；样本量不足、证据缺失或结果为 unknown 时，应标为待核验。零次观测失败不能单独证明风险为零。
 
 ## 本章小结
 
 [![治理闭环的收敛条件](../images/review-agent-governance-optimization-08.svg)](../images/review-agent-governance-optimization-08.svg)
+
+*图 17-8：治理闭环的收敛条件*
 
 
 治理将运行事实、失败记录、冻结用例、校准评分和发布范围连接起来。诊断正确性、执行可靠性和通知交付分别验收；unknown 与 invalid 保留分母和原因；版本比较使用配对证据及不确定性，安全硬约束不被综合分抵消。发布允许只表示证据支持在声明范围内进入灰度，灰度失败要回退并重开 Failure，不能把离线通过等同生产正确。
 
 ## 参考资料
 
-[![治理资料如何支撑门禁](../images/review-agent-governance-optimization-09.svg)](../images/review-agent-governance-optimization-09.svg)
-
-
 1. <a id="ref-1"></a> Liu et al.，[AgentBench: Evaluating LLMs as Agents](https://arxiv.org/abs/2308.03688)，2023。 访问日期：2026-10-24。
 2. <a id="ref-2"></a> Yao et al.，[tau-bench: A Benchmark for Tool-Agent-User Interaction in Real-World Domains](https://arxiv.org/abs/2406.12045)，2024。 访问日期：2026-10-24。
 3. <a id="ref-3"></a> Langfuse，[Writing good evaluators](https://langfuse.com/academy/evaluate/writing-evaluators)，持续更新文档；核验于 2026-10-21。支撑优先检查可验证状态、窄准则与分类判定，任务指标表为本章设计。
 4. <a id="ref-4"></a> Zheng et al.，[Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena](https://arxiv.org/abs/2306.05685)，2023。 访问日期：2026-10-24。
 5. <a id="ref-5"></a> NIST/SEMATECH，[Confidence intervals for proportions](https://www.itl.nist.gov/div898/handbook/prc/section2/prc241.htm)，e-Handbook；核验于 2026-10-24。
-6. <a id="ref-6"></a> NIST，[McNemar Test](https://www.itl.nist.gov/div898/software/dataplot/refman1/auxillar/mcnemar.htm)，Dataplot Reference；核验于 2026-10-24。
-7. <a id="ref-7"></a> Microsoft Experimentation Platform，[Diagnosing Sample Ratio Mismatch in A/B Testing](https://www.microsoft.com/en-us/research/articles/diagnosing-sample-ratio-mismatch-in-a-b-testing/)，2020；核验于 2026-10-24。
-8. <a id="ref-8"></a> OpenAI，[Guardrails and human review](https://developers.openai.com/api/docs/guides/agents/guardrails-approvals)，持续更新文档；核验于 2026-10-21。
-9. <a id="ref-9"></a> OWASP，[Server Side Request Forgery Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html)，持续更新资料；核验于 2026-10-21。支撑 URL、地址与网络出口防护，Agent 内容外发授权为场景扩展。
-10. <a id="ref-10"></a> OWASP，[AI Agent Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html)，持续更新资料；核验于 2026-10-21。支撑独立执行授权、精确动作审批与防重放；审批到 Operation 的状态协议为本章组合设计。
-11. <a id="ref-11"></a> OWASP，[LLM01:2025 Prompt Injection](https://genai.owasp.org/llmrisk/llm01-prompt-injection/)，2025。 访问日期：2026-10-24。
-12. <a id="ref-12"></a> OpenTelemetry，[Traces](https://opentelemetry.io/docs/concepts/signals/traces/)，持续更新文档；核验于 2026-10-21。
-13. <a id="ref-13"></a> OpenTelemetry，[Tracing API: Set Status](https://opentelemetry.io/docs/specs/otel/trace/api/#set-status)，核验于 2026-10-24。
-14. <a id="ref-14"></a> OpenTelemetry，[GenAI agent and framework spans](https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-agent-spans.md)，Development；核验于 2026-10-24。
-15. <a id="ref-15"></a> OpenTelemetry，[Sampling](https://opentelemetry.io/docs/concepts/sampling/)，核验于 2026-10-24。
-16. <a id="ref-16"></a> Google，[Site Reliability Engineering：Service Level Objectives](https://sre.google/sre-book/service-level-objectives/)，2016；核验于 2026-10-21。支撑 SLI / SLO 概念，任务、验证与交付的具体分母为本章设计。
-17. <a id="ref-17"></a> Langfuse，[Error Analysis for LLM Applications](https://langfuse.com/guides/cookbook/error-analysis-llm-applications)，持续更新指南；核验于 2026-10-21。支撑从观察、归类与量化决定修复的流程，本章 Bad Case 为自拟教学案例。
-18. <a id="ref-18"></a> Langfuse，[Choosing what to evaluate](https://langfuse.com/academy/evaluate/choosing-what-to-evaluate) 与 [Evaluation](https://langfuse.com/academy/evaluate)，持续更新文档；核验于 2026-10-21。支撑目标、约束、运行指标的区分及从失败建立评测的方法。
-19. <a id="ref-19"></a> vLLM，[Production Metrics](https://docs.vllm.ai/en/latest/usage/metrics/)，持续更新文档；核验于 2026-10-21。支撑模型服务各阶段指标的区分，实际名称和口径按部署版本核对。
-20. <a id="ref-20"></a> Jeffrey Dean、Luiz André Barroso，[The Tail at Scale](https://research.google/pubs/the-tail-at-scale/)，Communications of the ACM，56，2013，74–80。支撑分布式服务尾延迟问题；Agent 的性能验收为本章场景推导。 访问日期：2026-10-24。
-21. <a id="ref-21"></a> Brendan Gregg，[The USE Method](https://www.brendangregg.com/usemethod.html)，作者方法文档；核验于 2026-10-21。支撑利用率、饱和与错误的资源排查思路；Agent 软件资源清单为本章应用。
-22. <a id="ref-22"></a> Google，[Site Reliability Engineering：Handling Overload](https://sre.google/sre-book/handling-overload/)，2016；核验于 2026-10-21。支撑容量约束与过载治理；Agent 的 Token 预算和租户策略为本章场景推导。
-
-23. <a id="ref-23"></a> OpenTelemetry maintainers，[GenAI agent and framework spans, v1.36.0](https://github.com/open-telemetry/semantic-conventions/blob/v1.36.0/docs/gen-ai/gen-ai-agent-spans.md)，Development 语义约定；核验于 2026-10-24。
-
-24. <a id="ref-24"></a> Shankar et al.，[Who Validates the Validators? Aligning LLM-Assisted Evaluation of LLM Outputs with Human Preferences](https://arxiv.org/abs/2404.12272)，2024；核验于 2026-10-24。
+6. <a id="ref-6"></a> Shankar et al.，[Who Validates the Validators? Aligning LLM-Assisted Evaluation of LLM Outputs with Human Preferences](https://arxiv.org/abs/2404.12272)，2024；核验于 2026-10-24。
+7. <a id="ref-7"></a> NIST，[McNemar Test](https://www.itl.nist.gov/div898/software/dataplot/refman1/auxillar/mcnemar.htm)，Dataplot Reference；核验于 2026-10-24。
+8. <a id="ref-8"></a> Microsoft Experimentation Platform，[Diagnosing Sample Ratio Mismatch in A/B Testing](https://www.microsoft.com/en-us/research/articles/diagnosing-sample-ratio-mismatch-in-a-b-testing/)，2020；核验于 2026-10-24。
+9. <a id="ref-9"></a> OpenAI，[Guardrails and human review](https://developers.openai.com/api/docs/guides/agents/guardrails-approvals)，持续更新文档；核验于 2026-10-21。
+10. <a id="ref-10"></a> OWASP，[Server Side Request Forgery Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html)，持续更新资料；核验于 2026-10-21。支撑 URL、地址与网络出口防护，Agent 内容外发授权为场景扩展。
+11. <a id="ref-11"></a> OWASP，[AI Agent Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html)，持续更新资料；核验于 2026-10-21。支撑独立执行授权、精确动作审批与防重放；审批到 Operation 的状态协议为本章组合设计。
+12. <a id="ref-12"></a> OWASP，[LLM01:2025 Prompt Injection](https://genai.owasp.org/llmrisk/llm01-prompt-injection/)，2025。 访问日期：2026-10-24。
+13. <a id="ref-13"></a> OpenTelemetry，[Traces](https://opentelemetry.io/docs/concepts/signals/traces/)，持续更新文档；核验于 2026-10-21。
+14. <a id="ref-14"></a> OpenTelemetry，[Tracing API: Set Status](https://opentelemetry.io/docs/specs/otel/trace/api/#set-status)，核验于 2026-10-24。
+15. <a id="ref-15"></a> OpenTelemetry，[Agent spans](https://github.com/open-telemetry/semantic-conventions/blob/v1.36.0/docs/gen-ai/gen-ai-agent-spans.md) 与 [Execute tool span](https://github.com/open-telemetry/semantic-conventions/blob/v1.36.0/docs/gen-ai/gen-ai-spans.md#execute-tool-span)，v1.36.0，Development；核验于 2026-10-24。
+16. <a id="ref-16"></a> OpenTelemetry，[Sampling](https://opentelemetry.io/docs/concepts/sampling/)，核验于 2026-10-24。
+17. <a id="ref-17"></a> Google，[Site Reliability Engineering：Service Level Objectives](https://sre.google/sre-book/service-level-objectives/)，2016；核验于 2026-10-21。支撑 SLI / SLO 概念，任务、验证与交付的具体分母为本章设计。
+18. <a id="ref-18"></a> Google，[The Site Reliability Workbook: Alerting on SLOs](https://sre.google/workbook/alerting-on-slos/)，2018；核验于 2026-10-24。
+19. <a id="ref-19"></a> Langfuse，[Error Analysis for LLM Applications](https://langfuse.com/guides/cookbook/error-analysis-llm-applications)，持续更新指南；核验于 2026-10-21。支撑从观察、归类与量化决定修复的流程，本章 Bad Case 为自拟教学案例。
+20. <a id="ref-20"></a> Langfuse，[Choosing what to evaluate](https://langfuse.com/academy/evaluate/choosing-what-to-evaluate) 与 [Evaluation](https://langfuse.com/academy/evaluate)，持续更新文档；核验于 2026-10-21。支撑目标、约束、运行指标的区分及从失败建立评测的方法。
+21. <a id="ref-21"></a> vLLM，[Production Metrics](https://docs.vllm.ai/en/latest/usage/metrics/)，持续更新文档；核验于 2026-10-21。支撑模型服务各阶段指标的区分，实际名称和口径按部署版本核对。
+22. <a id="ref-22"></a> Jeffrey Dean、Luiz André Barroso，[The Tail at Scale](https://research.google/pubs/the-tail-at-scale/)，Communications of the ACM，56，2013，74–80。支撑分布式服务尾延迟问题；Agent 的性能验收为本章场景推导。 访问日期：2026-10-24。
+23. <a id="ref-23"></a> Brendan Gregg，[The USE Method](https://www.brendangregg.com/usemethod.html)，作者方法文档；核验于 2026-10-21。支撑利用率、饱和与错误的资源排查思路；Agent 软件资源清单为本章应用。
+24. <a id="ref-24"></a> Google，[Site Reliability Engineering：Handling Overload](https://sre.google/sre-book/handling-overload/)，2016；核验于 2026-10-21。支撑容量约束与过载治理；Agent 的 Token 预算和租户策略为本章场景推导。

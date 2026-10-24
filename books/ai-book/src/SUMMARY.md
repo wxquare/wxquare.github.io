@@ -29,9 +29,9 @@
 
 - [第12章 LLM API 协议：模型能力如何被系统消费](part3/01-llm-api-protocol.md)
 - [第13章 Agent 的上下文工程：从任务协议到知识与记忆](part3/02-context-engineering.md)
-- [第14章 知识检索与 RAG：从文档到可引用证据](part3/02b-knowledge-retrieval.md)
-- [第15章 Agent Runtime：架构、执行编排与可靠性工程](part3/03-agent-runtime.md)
-- [第16章 Agent 工具系统工程：Skills、Tools、MCP 与 Connectors](part3/04-skills-tools-mcp-connectors.md)
+- [第14章 外部工具系统：Skills、Tools、MCP 与 Connectors](part3/04-skills-tools-mcp-connectors.md)
+- [第15章 外部知识系统：知识检索与 RAG](part3/02b-knowledge-retrieval.md)
+- [第16章 Agent Runtime：架构、执行编排与可靠性工程](part3/03-agent-runtime.md)
 - [第17章 Agent 治理与调优：从质量闭环到分层落地](part3/05-agent-governance-optimization.md)
 
 ---

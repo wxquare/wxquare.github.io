@@ -1,30 +1,32 @@
 # 第 13 章 Agent 的上下文工程：从任务协议到知识与记忆
 
-> 上下文工程管理的是每个决策点的信息供给：让模型获得完成当前任务所需的指令、证据、状态和经验，并控制这些信息的权限、时效、成本与后续影响。
+上下文工程管理的是每个决策点的信息供给：让模型获得完成当前任务所需的指令、证据、状态和经验，并控制这些信息的权限、时效、成本与后续影响。
 
-一个 Agent 能否完成任务，既取决于模型能力，也取决于本轮实际可见的信息。同一句“帮我查一下订单为什么没有发货”，如果只有用户描述，模型只能提出假设；如果能读到订单状态、履约日志、适用版本的 Runbook 和当前任务约束，它才有条件形成可验证的判断。
+一个 Agent 能否完成任务，既取决于模型能力，也取决于本轮实际可见的信息。对同一延迟告警，只有用户描述时模型只能提出假设；读到指标、日志、适用版本的 Runbook 和当前任务约束后，才有条件形成可验证的判断。
 
 Prompt Engineering、知识检索和长期记忆都参与这个过程。Prompt 定义工作协议，知识系统供给外部证据，Memory 保持跨步骤和跨会话的连续性，Context Builder 将它们组织成当前调用的工作集。Anthropic 将上下文工程描述为对模型推理时可见信息的持续管理；本章沿这一思路，把信息获取、装配、压缩、隔离和评估组织为一条工程链路。[[1]](#ref-1)
 
-[![Agent 上下文的组成、来源与模型可见边界](../images/agent-context-contents-and-sources.png)](../images/agent-context-contents-and-sources.png)
+[![Agent 上下文的组成、来源与模型可见边界](../images/agent-context-contents-and-sources.svg)](../images/agent-context-contents-and-sources.svg)
+
+*图 13-1：Agent 上下文的组成、来源与模型可见边界*
 
 上图把来源和模型可见内容分开：用户输入、System / Developer Prompt、Tools、Skills、Memory 与外部知识是主要组成，还需要考虑对话历史、工具结果和执行状态的可见视图。Tools 的定义说明可用能力，执行结果则在调用后成为新的观察；Skills、Memory 和外部知识只加载当前任务需要的部分。
 
 这些是按用途划分的逻辑内容，不是互斥的存储类型或固定的 API 字段。同一份外部文档可以通过工具读取进入上下文；适配器仍需决定消息角色和字段，不能把所有材料都提升成系统指令。
 
-以“排查订单 O123 支付超时”为同一教学场景，九种类型可以分别装入下面的内容。这些样例说明模型本轮看见什么，不代表真实业务记录或已经执行过查询。
+以 `ALR-20260429-017` 告警诊断为贯穿案例，下表同时标注内容性质和使用边界。它们是本轮可见工作集，不代表真实查询记录。
 
-| 类型 | 本轮可见的具体样例 | 来源 |
+| 组成 | ALR 案例内容 | 性质与使用边界 |
 | --- | --- | --- |
-| 用户输入 | “帮我查一下生产环境订单 O123 为什么一直没有支付成功。” | 用户当前消息 |
-| System / Developer Prompt | “你是订单故障诊断助手。仅执行只读查询；结论须关联证据；不得自行退款、重试支付或修改订单。” | 系统与应用配置，由适配器按角色语义装配 |
-| Tools：工具定义 | 工具名 `query_order_logs`；用途为只读查询支付日志；参数为 `order_id`、`environment`、`time_range`。这是能力说明，不是查询结果。 | 工具注册表与 Schema |
-| Skills：按需加载的指导 | “支付排障 Skill：先核对订单与支付状态，再查回调日志，比对发布与异常时间线，最后列出反证和待验证项。” | 选中的 `SKILL.md` 与参考资料 |
-| 对话历史 / 会话摘要 | “用户上一轮已限定：只查生产环境最近 30 分钟；当前分析对象为订单 O123。” | 前序消息或有来源的会话摘要 |
-| Memory：召回的长期记忆 | “该用户偏好诊断报告先给结论，再列证据和下一步检查。”保留此前明确反馈的来源，作用域为故障诊断。 | 经作用域和有效性过滤的偏好记忆 |
-| 外部知识 / 检索证据 | Runbook《支付回调超时处理》v3：“回调超时后，应先查询支付网关交易状态，再判断是否重试。” | 检索或读取的版本化文档片段 |
-| 工具结果 / 环境观察 | 日志查询返回：`order_id=O123`、`event=callback_timeout`、`environment=prod`、`observed_at=2026-10-21T15:40:00+08:00`，并保留查询参数和原始记录引用。 | 本次 `query_order_logs` 的实际返回 |
-| 执行状态的模型可见视图 | `phase=triage`；`completed=[query_order_logs]`；`pending=[query_gateway_status]`；`write_actions_allowed=false`。表示日志已查、支付网关状态仍待核验。 | Runtime、任务存储与已记录的授权范围 |
+| 用户请求 | 调查 order-service 生产延迟升高 | 任务意图，不能当根因事实 |
+| 系统/应用规则 | 仅诊断；关键结论关联证据；不提供重启回滚 | 受信指令，权限由系统实际执行 |
+| Tools 描述 | 指标、日志、Runbook 和建单工具的契约 | 能力说明，不是查询结果或授权 |
+| Skills | 先核对范围，再对齐指标、日志和发布 | 方法指导，不能覆盖当前约束 |
+| 历史与会话摘要 | 已检查窗口与未决假设 | 派生状态，保留来源和纠错关系 |
+| Memory | 报告先给结论、再列证据的用户偏好 | 作用域内偏好；历史案例只作排查线索 |
+| 外部知识 | Runbook v2/v3 的适用条件 | 来源声明，先核对部署与生效版本 |
+| 工具观察 | E12 报告窗口内 P95 由 210ms 到 2.1s | 核验后只支撑该实体与窗口内的事实 |
+| 执行状态投影 | run_0429_017 的已提交取证、等待和预算 | 来自 Runtime；模型不能据此修改账本 |
 
 图中模型可见的状态是执行系统的投影。操作是否提交、测试是否通过、外部动作是否完成，仍须由 Runtime、业务系统或验证器确认，不能因为摘要写了“已完成”就改变事实。
 
@@ -33,33 +35,43 @@ Prompt Engineering、知识检索和长期记忆都参与这个过程。Prompt �
 
 <a id="context-model"></a>
 
-配图可点击查看原图；窄屏阅读时可单独打开并放大。
 
-## 13.1 上下文模型与订单支付案例
+<a id="131-上下文模型与订单支付案例"></a>
+
+## 13.1 上下文模型与告警诊断案例
 
 [![订单支付诊断的上下文生命周期](../images/review-context-engineering-01.svg)](../images/review-context-engineering-01.svg)
 
-
-### 13.1.1 贯穿案例：订单支付超时诊断的上下文生命周期
-
-下面是一条教学轨迹，用来核对模块之间的契约；它没有连接真实生产系统，也没有运行出任务成功率或性能数据。用户请求为“查一下支付超时是不是昨晚发布造成的”，当前授权范围只包含读取与诊断。
-
-**建立任务协议。** Agent 将目标表示为确认影响范围、整理时间线、验证发布相关性并列出尚缺证据；禁止把相关性直接表述为因果，禁止执行回滚或补偿。输出协议要求每个关键主张关联证据 ID，并区分事实、假设和下一步建议。
-
-**选择信息来源。** 当前订单与部署状态读取授权业务接口，错误趋势读取日志和指标，版本语义读取对应部署版本的代码与 Runbook，历史事故只用于生成候选假设。记忆可以提供“该服务过去有回调重试问题”这一排查线索，但不能把旧事故原因当作当前答案。
-
-**构建证据。** 每份观察保留环境、服务、查询参数、时间范围、采集时间、源版本和权限引用。发现错误上升早于发布时，必须保留这条反证，而不是为符合用户猜测只选发布后的日志。部分失败的接口返回标记覆盖缺口，不把缺失数据解释为没有异常。
-
-**装配与压缩。** Context Builder 把任务限制、当前影响范围、关键时间线、相互支持或冲突的证据、未决假设和剩余预算放入工作集。长日志保留查询条件、代表记录与原始产物引用；压缩器不得删除“仅诊断”“因果未确认”和“支付网关指标缺失”。缓存命中也不替代当前授权与证据版本检查。
-
-**恢复与纠错。** 如果新观察证明一个旧时间点使用了错误时区，就撤回依赖该时间点的假设和派生摘要，重新装配时间线。如果任务中断，Runtime 恢复真实查询状态与未完成项；Memory 中的“分析过发布”不等于所有证据已经齐备，也不等于取得了回滚授权。
-
-**验证与反馈。** 交付前检查结论是否被当前可见证据支持、反证是否列出、所有限制是否仍在、是否存在越权建议。完成后可以提出一个带来源的历史案例候选，经过写入门控再进入长期存储；临时订单状态不应被提升成长期事实。后续评估分别检查检索覆盖、证据保真、记忆误导、摘要约束保留和最终诊断质量。
-
-这条轨迹贯穿了整章的责任链：协议确定需要什么，知识系统和记忆提供候选信息，装配器决定当前可见内容，压缩与隔离维持信息边界，验证器检查结论与证据是否一致。真正的运营处置仍由 Runtime、业务权限与持久执行机制承接。
+*图 13-2：订单支付诊断的上下文生命周期*
 
 
-### 13.1.2 模型的每次推理只看到渲染后的输入；API 可以另外保存会话状态，不是持续运行的进程
+<a id="1311-贯穿案例订单支付超时诊断的上下文生命周期"></a>
+
+### 13.1.1 贯穿案例：ALR 告警的上下文生命周期
+
+本书后续各章共享下面的虚构案例档案。一次运行先做只读调查，只有有效批准后才能创建跟进工单；没有重启、回滚或支付写入能力。
+
+| 档案项 | 约定 |
+| --- | --- |
+| 身份 | alert_id=ALR-20260429-017；run_id=run_0429_017；trace_label=trace_20260429_017 |
+| 对象 | order-service；prod；观察窗口为 2026-04-29 10:35–10:50，Asia/Shanghai |
+| 时间线 | 10:35（02:35Z）部署 deploy_8842 完成；10:37（02:37Z）出现异常。先后关系只是候选线索，后续还需日志和受控核验 |
+| 观察 | E12 是 P95 从 210ms 到 2.1s 的指标候选；需核验查询、聚合与时间范围，不直接证明根因 |
+| Runbook 版本线 | v1 是已退役历史；v2 是早期部署说明；v3 是新部署候选说明。二者更新时间不决定当前适用性，须由部署映射和 owner 核验 |
+| 典型质量失败 | 检索到不适用的旧 Runbook，将相似症状误写成数据库根因，验证漏拦 |
+| 动作与产物 | 诊断报告、绑定草稿/资源版本的批准、工单 INC-4821（教学设定）及独立通知状态 |
+| 恢复场景 | 建单远端已生效而本地回执丢失；沿原 Operation 查询并核验，不重新建单 |
+
+运行从明确任务范围开始：目标是整理影响、时间线、假设和缺口，而不是自动修复服务。实时状态从授权 API、日志和指标取得，版本语义来自匹配部署的文档，Memory 提供偏好和历史线索。Context Builder 按本轮子问题组织工作集，保留查询覆盖、冲突与反证。
+
+后续发现错误时间点或版本时，沿证据—主张—摘要—记忆依赖链失效并重建；不能只覆盖原文一句话。交付前核验当前可见证据是否支持每项结论。产物通过验收和外部动作是否已生效由 Runtime 与资源端确认，Memory 不持有这些执行事实。
+
+后文为了说明缺项而展示的其他证据窗口或旧版本，必须视为显式候选，不能悄悄替换这份档案。真实 OTel trace_id 使用合法十六进制标识并关联 trace_label，不能把 trace_label 直接当作 OTel ID。
+
+
+<a id="1312-模型的每次推理只看到渲染后的输入api-可以另外保存会话状态不是持续运行的进程"></a>
+
+### 13.1.2 模型输入与持久任务状态
 
 LLM 每次调用只能看到当前输入窗口。它不会天然记得：
 
@@ -163,7 +175,7 @@ constraints: 不可违反的约束
 
 Lost in the Middle 在特定长上下文任务中观察到相关信息位置影响表现；更长窗口不自动带来更好利用率，仍需本地任务验证。[[2]](#ref-2)
 
-上下文不是均匀被使用的。靠前、靠后、重复出现、措辞强烈的信息，可能影响模型判断。低质量信息即使不相关，也可能造成干扰。
+信息位置和干扰的影响取决于任务与模型。Lost in the Middle 的结论限于其评测设置，不能推广为所有 needle 检索的位置规律；重复、噪声和措辞变化应在本地任务中分别做对照，不能凭强烈措辞推断权重。
 
 典型症状包括：
 
@@ -185,52 +197,9 @@ Lost in the Middle 在特定长上下文任务中观察到相关信息位置影�
 
 ### 13.1.6 上下文类型与治理方式
 
-上下文应该有类型。没有类型的上下文，会在模型工作区里变成一团难以治理的文本。
+章首组成表同时给出了来源和性质。执行时给每份材料补齐作用域、有效期、权限和来源版本，而不是再定义一套类别。用户观察是意图线索；工具输出须核验实体、窗口与覆盖；历史案例和 Memory 不能因重复出现就升级为当前事实。
 
-一个生产级 Agent 至少需要区分以下上下文类型。
-
-| 类型与来源 | 生命周期与有效性检查 | 风险与治理 |
-| --- | --- | --- |
-| 当前输入：用户本轮请求 | 单次调用；任务意图与事实分开 | 用户表达不完整或不准确；意图识别、必要时追问 |
-| 会话状态：多轮对话摘要 | 会话内；原记录与摘要版本 | 旧假设残留；结构化摘要、状态字段 |
-| 项目规范：AGENTS.md、CLAUDE.md、README | 长期；适用范围与授权 | 过长或过期；短入口、版本管理 |
-| 权威文档：runbook、设计文档、API 文档 | 中长期；实体、版本、生效时间 | 版本冲突；metadata、owner、updated_at |
-| 工具结果：指标、日志、数据库、CI | 短期；查询条件、状态与覆盖 | 查询条件错误或部分失败；保留参数、时间、状态 |
-| 检索片段：RAG 返回 chunk | 单次调用；原文位置、来源与版本 | 语义相似但事实不相关；rerank、citation、去重 |
-| 长期记忆：用户偏好、历史任务摘要 | 长期；来源、作用域与有效期 | 过期、越权、误记；写入策略、过期策略 |
-| 历史案例：工单、事故复盘、PR 记录 | 长期；适用条件是否相同 | 误把相似当相同；只能辅助，不能单独定论 |
-| 执行状态：workflow state、task store | 任务内；权威存储与外部对账 | 状态与实际不一致；系统维护、事件溯源 |
-| 示例：few-shot、模板、样例输出 | 长期或任务内；用途及适用边界 | 被模型误当硬规则；明确标注 example |
-
-下面以当前环境状态为例。
-
-当前输入：意图信号，不等于事实。
-
-用户输入最重要，因为它定义任务目标。但用户输入通常不是可靠事实源。
-
-```text
-用户：订单系统又挂了。
-```
-
-这句话表达的是用户观察和焦虑，不代表系统已经全量不可用。模型如果直接回答“订单系统宕机原因是……”就已经越界。
-
-更合理的上下文表达是：
-
-```yaml
-current_input:
-  user_observation: "订单系统又挂了"
-  interpreted_intent: incident_triage
-  confirmed_facts: []
-  required_clarification:
-    - affected_scope
-    - environment
-    - start_time
-```
-
-用户输入提供目标和线索，不能直接升级成系统事实。对于“慢、挂、异常”等模糊词，先记录缺失的实体、环境和时间；这些信息影响下一步取证时再澄清，避免用猜测补齐。
-
-
-模型可见的执行状态只是 Runtime 投影，Memory 不是执行账本，Scratchpad/Todo 不承担恢复事实。上下文只能让模型知道已确认进度与未决项，不能自行推进 Operation 或恢复租约。相关身份、状态与恢复协议参考[Agent Runtime](03-agent-runtime.md#object-model)。
+Runtime 的模型可见状态仅是执行投影，Scratchpad/Todo 不承担恢复。重要进度与未决动作从权威状态读取，记忆纠错见[记忆生命周期](#memory)，执行身份与恢复见[Runtime 对象模型](03-agent-runtime.md#object-model)。
 
 <a id="task-protocol"></a>
 
@@ -238,314 +207,58 @@ current_input:
 
 [![把目标转为可验收任务契约](../images/review-context-engineering-02.svg)](../images/review-context-engineering-02.svg)
 
+*图 13-3：把目标转为可验收任务契约*
 
-### 13.2.1 从任务风险定义职责与契约
+<a id="1321-从任务风险定义职责与契约"></a>
+<a id="1322-把需求变成可执行任务协议"></a>
 
-Prompt 设计不要从“怎么写一句话”开始，而要从任务风险和系统边界开始。
+### 13.2.1 从目标形成任务级契约
 
-可以用五步法。
-
-第一步：定义任务类型和风险等级。
-
-先判断模型要做的任务是什么。
-
-| 任务类型 | 输出形式 | 主要风险 | Prompt 重点 |
-|:---|:---|:---|:---|
-| 问答解释 | 自然语言 + 引用 | 编造事实 | 证据和引用 |
-| 内容生成 | 文稿、摘要、改写 | 风格不符、事实混入 | 读者、风格、事实边界 |
-| 信息抽取 | JSON / 表格 | 字段缺失、误抽取 | schema、示例、空值策略 |
-| 分类判断 | label + reason | 边界模糊 | 判定规则、反例 |
-| 工具选择 | tool call | 误调用、漏调用 | 适用条件、禁用条件 |
-| 代码修改 | patch / plan | 破坏行为 | 文件边界、验证要求 |
-| 运维建议 | action plan | 高风险动作 | 风险分级、审批策略 |
-| Agent 执行 | 多步状态 | 失控执行 | step、stop condition、trace |
-
-任务风险越高，Prompt 越不能依赖开放式自然语言。
-
-低风险问答可以稍微灵活；生产变更、金融建议、隐私数据处理、代码自动修改，都需要更强的输出契约、失败策略和系统校验。
-
-第二步：定义模型职责和非职责。
-
-模型职责应该具体到动作。
-
-模糊写法：
-
-```text
-你是一个专业的 AI 架构师，请帮助用户。
-```
-
-工程化写法：
-
-```text
-你是 AI 架构审查 Agent。
-你的职责是：
-1. 识别方案中的系统边界、数据流、风险点和验证缺口；
-2. 给出按严重程度排序的审查意见；
-3. 对每个问题说明影响、证据和建议修复方向；
-4. 不替用户做未经确认的产品决策；
-5. 不把未经验证的推测写成事实。
-```
-
-还要写非职责：
-
-```text
-你不负责：
-1. 执行生产变更；
-2. 绕过安全审批；
-3. 在证据不足时给出确定结论；
-4. 根据模型常识覆盖项目文档；
-5. 输出无法被后端解析的自由格式。
-```
-
-职责定义的价值，是减少模型把“帮忙”扩展成“越权行动”的空间。
-
-第三步：定义输入和上下文契约。
-
-Prompt 必须告诉模型如何理解输入。
+任务契约（Task Contract）定义整项任务的目标、范围、输出和验收条件；调用级契约定义本轮需要模型完成的局部判断。流程实现由 workflow_ref 引用，不把多步工作流伪装成单次调用的参数列表。
 
 ```yaml
-inputs:
-  user_request:
-    meaning: "用户当前目标或问题"
-    interpretation: "intent_signal"
-  project_rules:
-    meaning: "已确认适用范围的项目规则"
-    interpretation: "validated_application_policy"
-  retrieved_docs:
-    meaning: "检索得到的候选资料"
-    interpretation: "depends_on_source"
-  tool_results:
-    meaning: "外部系统实时结果"
-    interpretation: "verify_entity_version_time_scope_and_status"
-  memory:
-    meaning: "历史偏好或经验"
-    interpretation: "preference_or_hint"
-```
-
-如果不写上下文契约，模型可能把所有输入都当成同等可信。
-
-任务契约要分别说明意图、事实与指令权限。工具结果必须检查参数、时间和完整性，历史案例仅作背景；长期记忆与外部文档不能提升为控制规则。高风险结论缺少可回源依据时，保留未知并停止确定性断言。
-
-上下文装配一节进一步展开输入组织；这里的任务协议负责说明模型如何解释和使用这些信息。
-
-第四步：定义输出契约。
-
-输出契约是 Prompt 的核心。
-
-它要回答：
-
-- 输出是自然语言、JSON、表格还是工具调用；
-- 必填字段有哪些；
-- 字段枚举是什么；
-- 数值范围是什么；
-- 哪些字段之间有语义约束；
-- 信息不足时如何表达；
-- 是否需要 citation；
-- 是否允许输出额外解释。
-
-例如：
-
-```yaml
-output_contract:
-  type: object
-  required:
-    - summary
-    - risk_level
-    - confidence
-    - evidence
-    - next_action
-  constraints:
-    - "risk_level in [low, medium, high, forbidden]"
-    - "confidence between 0 and 1"
-    - "high risk action must require human confirmation"
-    - "final conclusion must cite evidence"
-```
-
-没有输出契约，模型输出就很难进入系统。
-
-第五步：定义失败策略。
-
-好的 Prompt 不只定义成功路径，还定义失败路径。
-
-常见失败策略：
-
-| 失败情况 | 模型应该做什么 |
-|:---|:---|
-| 必要上下文缺失 | 输出 need_more_context，并说明缺什么 |
-| 用户意图模糊 | 提出一个最小澄清问题 |
-| 上下文冲突 | 列出冲突，不暗中选择 |
-| 工具调用失败 | 标记 tool_error，不把错误当事实 |
-| 权限不足 | 拒绝访问相关内容，并说明需要权限 |
-| 输出校验失败 | 只修复格式，不新增事实 |
-| 高风险动作 | 请求人工确认，不直接执行 |
-
-失败策略是 Prompt 工程化的重要分水岭。Demo prompt 只会回答问题；生产 prompt 必须知道什么时候停止。
-
-
-### 13.2.2 把需求变成可执行任务协议
-
-Prompt Engineering 的核心产物不是一句 prompt，而是 Task Contract。
-
-Task Contract 把自然语言需求变成模型可执行、系统可校验、团队可复用的协议。
-
-一个完整协议长什么样。
-
-```yaml
-task_protocol:
-  name: diagnose_production_alert
-  version: v3
+task_contract:
+  id: diagnose_alert_v3
   owner: sre-platform
-
-  purpose:
-    goal: "判断生产告警可能原因，并生成带证据的处理建议"
-    non_goals:
-      - "不直接执行修复动作"
-      - "不替代人工审批"
-      - "不在证据不足时给出确定根因"
-
-  inputs:
-    required:
-      - alert
-      - service
-      - environment
-      - time_window
-    optional:
-      - metrics
-      - logs
-      - runbook
-      - recent_deployments
-      - historical_cases
-
-  context_rules:
-    - "tool_results require entity, version, time, scope and coverage checks; success is not authority"
-    - "historical_cases are reference only"
-    - "user_observation is intent signal, not verified system fact"
-
-  allowed_actions:
-    - "summarize_evidence"
-    - "recommend_read_only_queries"
-    - "create_approval_request"
-
-  forbidden_actions:
-    - "restart_production_service"
-    - "rollback_deployment"
-    - "modify_production_config"
-
-  steps:
-    - "identify alert scope"
-    - "align metrics and logs by time window"
-    - "compare evidence with runbook"
-    - "generate hypotheses"
-    - "bind each hypothesis to evidence"
-    - "rank risk and recommend next action"
-
-  output_contract:
-    schema: AlertDiagnosisResult
-    must_include:
-      - summary
-      - risk_level
-      - confidence
-      - evidence
-      - recommended_actions
-      - need_more_evidence
-
-  failure_policy:
-    - "if required input missing, ask for minimal clarification"
-    - "if evidence insufficient, output need_more_evidence=true"
-    - "if high risk action, require human confirmation"
-
-  acceptance_criteria:
-    - "each conclusion has at least one evidence item"
-    - "high risk actions require human confirmation"
-    - "historical evidence is not the only support"
+  goal: 为 ALR-20260429-017 形成有限定的诊断及跟进草稿
+  scope:
+    service: order-service
+    environment: prod
+    window: 2026-04-29T10:35:00+08:00/2026-04-29T10:50:00+08:00
+  workflow_ref: incident-triage-v3
+  required_inputs: [alert_id, service, environment, window]
+  allowed_actions: [read_evidence, draft_report, request_approval]
+  forbidden_actions: [restart_service, rollback_deployment]
+  output_schema: AlertDiagnosisResult-v4
+  acceptance:
+    - 关键主张关联当前可见且适用的 evidence_id
+    - 事实、假设、冲突和缺口分别表达
+    - 不把相关性当作根因，不把草稿当已执行动作
+  action_policy_ref: incident-policy-v5
 ```
 
-这类协议可以进入代码仓库，和工具 schema、eval case、文档一起版本化。
+这里的允许动作不是访问令牌。工具能否执行、是否建单都要由 Runtime 在当前主体和资源范围内裁决；创建工单的批准绑定具体草稿和版本，不来自模型的一句“用户同意”。契约字段由应用校验，API 只接收目标端点支持的请求字段。
 
-任务协议的粒度。
+任务类型影响验收：抽取重在字段与漏项，问答重在主张和引用，行动重在授权与外部效果。先写清这些断言，再选择 Prompt、工具和格式。风险策略由[治理控制点](05-agent-governance-optimization.md#guardrails-overview)定义，本章说明它如何成为模型可见的任务约束。
 
-任务协议不要过大。
+### 13.2.2 调用级契约：本轮输入与输出
 
-错误示例：
-
-```text
-你是一个智能运维 Agent，请自动处理所有生产问题。
+```yaml
+call_contract:
+  task_contract_ref: diagnose_alert_v3
+  step_ref: verify_latency_hypothesis
+  goal: 判断现有证据是否足以支持数据库根因
+  input_refs: [E12, runbook-v2, log-window-1]
+  interpretation:
+    metrics: 核验后仅支持查询实体、聚合口径和窗口
+    runbook: 来源声明，先核对部署版本
+    memory: 偏好或历史线索，不作本次根因证明
+  output:
+    required: [supported_claims, hypotheses, conflicts, missing_evidence]
+    constraint: 每个关键主张绑定证据，缺口不能补造成事实
 ```
 
-问题：
-
-- 任务边界过大；
-- 风险等级混在一起；
-- 工具范围不清；
-- 成功标准不清；
-- 很难评估；
-- 出错后无法归因。
-
-更好的拆分：
-
-```text
-classify_alert
-retrieve_runbook
-summarize_metrics
-summarize_logs
-generate_hypotheses
-rank_risk
-recommend_next_action
-request_human_approval
-```
-
-每个协议都有明确输入输出。工作流负责把它们串起来。
-
-任务协议和 Workflow 的关系。
-
-Task Contract 定义单次模型调用的协议；Workflow 定义多个协议如何组合。
-
-```text
-Workflow:
-  classify_alert
-    ↓
-  retrieve_runbook + query_metrics + search_logs
-    ↓
-  generate_hypotheses
-    ↓
-  rank_risk
-    ↓
-  recommend_next_action
-    ↓
-  if high risk: request_human_approval
-```
-
-不要让一个 Prompt 内部偷偷承担整个 workflow。否则系统无法观察每一步，也无法单独评估。
-
-协议设计的思考路径。
-
-设计一个任务协议时，可以按下面问题推进：
-
-```text
-1. 这个任务的最终消费者是谁？
-2. 输出会被人阅读，还是被系统执行？
-3. 任务失败的代价是什么？
-4. 哪些输入是必需的？
-5. 哪些输入不可信？
-6. 模型可以做哪些动作？
-7. 哪些动作必须由系统或人工完成？
-8. 成功输出必须包含哪些字段？
-9. 信息不足时应该追问、调用工具还是停止？
-10. 如何用 eval case 验证协议是否稳定？
-```
-
-这组问题能把 Prompt 设计从“语言润色”带到“系统契约”。
-
-澄清顺序：先解除阻塞约束，再补偏好。
-
-未知项按缺失后是否改变对象、授权、验收或不可逆动作排序。目标对象/租户、允许改动范围和成功标准优先于语气、排版；可在已有授权内完成独立只读检查，但不能将探索当作写入授权。
-
-教学请求：“把这个仓库登录问题修好，顺便上线。”先读取已有 Issue、约定和失败日志；仍缺信息时追问失败路径、预期行为和交付范围。部署目标环境、版本与授权必须明确，不能猜测后修改生产配置。答案写回 Task Contract 的 confirmed、open_questions、allowed_actions 与 acceptance，保留来源和版本；后续只追问仍阻塞的缺项。
-
-该过程连接[成熟 Coding Agent 的共通架构与产品实现](../part4/01-coding-agent-systems.md)。
-
-
-协议层的 JSON/Schema/strict 只提供对应接口的结构保证，参考[LLM API 结构化输出](01-llm-api-protocol.md#structured-output)。本章保留业务反例，说明为什么不能把可解析 JSON 当作可执行批准。
+调用返回可以是补证提议，而不是最终答案。模型看见哪些材料、材料有什么局限，由 Context Builder 显式列出；业务验证器检查主张是否真的由这些材料支持。更换模型或压缩历史不能悄悄改变任务契约。
 
 <a id="refund-validation"></a>
 
@@ -572,141 +285,42 @@ Workflow:
 
 任务契约描述目标、范围、证据和完成条件，工具 Schema 描述一次调用的结构。`side_effect`、`data_sensitivity`、`permission`、`timeout_ms` 等若属于工具注册表元数据，不直接塞进供应商原生函数参数 Schema；提供方请求只发送其支持的字段。工具实现、注册和结果信封参考[外围工具契约](04-skills-tools-mcp-connectors.md#tool-contract)。
 
-### 13.2.4 Few-shot、反例与决策边界
+<a id="1324-few-shot反例与决策边界"></a>
 
-Few-shot 研究显示特定模型可利用输入中的示例适应任务，不证明示例越多越好。[[3]](#ref-3) 固定模型与数据，比较无示例、原示例、类别均衡及换序结果，在留出集按类别检查错误。
+### 13.2.4 用少量正反例表达决策边界
 
-Few-shot 的价值不是让模型模仿语气，而是降低边界模糊。
+Few-shot 可帮助特定模型从输入示例适应任务，但示例数、顺序和类别分布都需要留出集验证，不能断言越多越好。[[3]](#ref-3)
 
-适合使用 few-shot 的场景：
-
-- 意图分类；
-- 风险分级；
-- 工具选择；
-- 信息抽取；
-- 输出格式复杂；
-- 业务术语容易混淆；
-- 正负边界难以用规则穷举。
-
-Few-shot 示例要覆盖边界。
-
-风险分级示例：
-
-```text
-示例 1：
-用户请求：查看 order-service 最近 30 分钟 CPU 指标
-风险等级：low
-原因：只读查询，不改变系统状态
-
-示例 2：
-用户请求：创建一个故障跟进工单
-风险等级：medium
-原因：有写入动作，但风险可控，需要审计
-
-示例 3：
-用户请求：帮我重启 production order-service
-风险等级：high
-原因：会影响生产服务，需要人工确认
-
-示例 4：
-用户请求：删除 production 数据库里最近 7 天的订单
-风险等级：forbidden
-原因：破坏性生产数据操作，不应暴露给 Agent 执行
-```
-
-第四个示例很重要。只给正例会让模型以为所有请求都应该被完成。反例告诉模型边界在哪里。
-
-反例可能帮助暴露边界，但收益需与正例、示例顺序和标签分布做对照验证。
-
-很多业务规则的难点不在“什么是对的”，而在“哪些看起来相似但其实不该做”。
-
-例如工具调用：
-
-```text
-正例：
-用户：查一下 order-service production 最近 30 分钟 CPU。
-行为：调用 query_metrics。
-
-反例：
-用户：order-service 的 CPU 指标一般怎么看？
-行为：不调用 query_metrics，给出概念解释。
-
-反例：
-用户：查一下所有租户的订单详情。
-行为：不调用工具，因为权限和范围不明确。
-```
-
-反例能减少模型过度泛化。
-
-Few-shot 要短、准、可维护。
-
-示例太多会带来问题：
-
-- 增加 token 成本；
-- 稀释当前任务；
-- 互相冲突；
-- 难以维护；
-- 模型过拟合示例表面形式。
-
-更好的策略：
-
-```text
-少量高质量边界示例
-  +
-明确判定规则
-  +
-结构化输出 schema
-  +
-后端语义校验
-  +
-eval dataset 回归
-```
-
-示例要和真实分布一致。
-
-如果 eval 和 few-shot 只覆盖干净输入，模型在真实输入中会不稳定。
-
-真实用户请求往往是：
-
-- 不完整；
-- 混合多个意图；
-- 带情绪；
-- 带错别字；
-- 使用内部黑话；
-- 包含错误假设；
-- 缺少关键参数。
-
-Few-shot 应该包含这些情况。
-
-```text
-用户请求：订单又炸了，看看是不是上次那个问题。
-分类：incident_triage
-缺失上下文：service 已知但 time_window、environment 不明确
-下一步：澄清environment与time_window；只在已有授权内完成独立只读检查，不猜production或时间窗
-```
-
-真实输入示例能帮助模型学会“不完整时如何行动”。
-
-### 13.2.5 不足、失败与停止条件
-
-任务协议应把失败定义成可识别状态，使下游能够决定补充信息、继续查询、停止或交接，而不是让模型生成一个外观完整的答案。
-
-| 状态 | 应返回什么 | 后续处理 |
+| 输入 | 应有输出 | 反例边界 |
 | --- | --- | --- |
-| 输入不完整 | 缺失字段及其对任务的影响 | 先补阻塞信息，再补可选偏好 |
-| 证据不足或冲突 | 已知事实、证据缺口与待验证假设 | 回源或缩小结论范围 |
-| 权限不足 | 当前允许范围与被阻止的动作 | 停止相应操作，交给授权流程 |
-| 工具失败或超时 | 实际状态、已知观察和未知结果 | 按 Runtime 的重试与对账契约处理 |
-| 输出校验失败 | 格式、语义或业务约束的具体错误 | 有界修复；仍失败则降级或停止 |
+| 查询已授权 order-service 的指定指标窗口 | 提出对应只读工具调用 | 参数仍需系统校验 |
+| 解释 P95 指标概念 | 概念解释 | 无需为了展示能力读取生产数据 |
+| “又是上次那个问题” | 列出待确认范围和当前已知证据 | 历史相似不能确认为当前根因 |
+| “顺便重启生产服务” | 说明当前无该执行能力并交接 | 不通过别的工具绕过禁止项 |
 
-高风险动作是否可以执行由可信授权记录与业务校验共同决定，不能由模型在回答中声称“已获批准”。拒绝或停止时仍可交付当前可验证的部分结果。
+示例说明判断规则，真实执行仍依赖确定性约束。维护时固定版本，比较无示例、加入反例和换序的效果，覆盖模糊请求、错误假设与混合意图。
 
+<a id="1325-不足失败与停止条件"></a>
+
+### 13.2.5 缺项、失败与停止出口
+
+| 条件 | 返回内容 | 系统后续 |
+| --- | --- | --- |
+| 关键输入缺失 | 缺失实体、环境或窗口及其影响 | 澄清阻塞项，不猜默认生产范围 |
+| 证据不足/冲突 | 有限结论、双方定位、待查问题 | 回源或缩小结论 |
+| 权限/批准不足 | 当前允许范围及被阻止动作 | 进入授权/批准流程，不换路线绕过 |
+| 工具失败/效果未知 | 实际错误与原操作身份 | Runtime 决定重试、查询或人工 |
+| 结构/业务校验失败 | 对应断言及原始输出引用 | 有界修复；不制造证据或授权 |
+
+停止仍可交付当前可验证的部分结果，但不得标为任务完整完成。
 
 <a id="knowledge"></a>
 
 ## 13.3 来源路由与证据包契约
 
 [![来源路由与证据核验](../images/review-context-engineering-03.svg)](../images/review-context-engineering-03.svg)
+
+*图 13-4：来源路由与证据核验*
 
 
 本章的 trust_level 仅用 `unverified / verified_scope / conflicted / expired / revoked` 五个状态：默认未核验，verified_scope 也仅在记录的实体、版本、时间和范围内有效；它不授予指令权限。示例默认 unverified，应用核验后才能晋级。字段不是供应商原生标准。
@@ -715,83 +329,9 @@ Few-shot 应该包含这些情况。
 
 工具结果无论 status 是否 success，都先核对实体、时间、版本、范围、完整性与当前访问权。success 只表示相应调用成功返回，不能直接写成 authoritative。来源版本适用但事实仍有冲突时保存冲突，回查有权责任人的当前事实源。
 
-### 13.3.1 Evidence Packet 的结构
+<a id="1336-evidence-的最小约定与来源血缘"></a>
 
-Evidence Packet 是知识系统交给模型的事实载体。它应该比原始 chunk 更结构化。
-
-```json
-{
-  "id": "E12",
-  "source_version": "metrics-snapshot/ALR-20260429-017",
-  "locator": "metrics://order-service/p95?window=10:35-10:50",
-  "ACL_ref": "policy://incident-reader/current",
-  "claim": "order-service 的 p95 latency 在 10:35 后明显升高",
-  "content": "p95 latency increased from 210ms to 2.1s between 10:35 and 10:50.",
-  "source": {
-    "type": "metrics_tool",
-    "name": "prometheus",
-    "query": "histogram_quantile(0.95, order_service_latency)",
-    "time_range": "2026-04-29T10:00:00+08:00/2026-04-29T11:00:00+08:00"
-  },
-  "trust_level": "unverified",
-  "updated_at": "2026-04-29T11:05:00+08:00",
-  "limitations": "只覆盖 prod 环境"
-}
-```
-
-Evidence Packet 的关键字段是来源、时间、可信度和限制条件。没有这些字段，模型很容易把局部证据说成全局结论。
-
-### 13.3.2 Citation 与 Claim-level Citation
-
-Citation 不应该只是回答末尾的链接列表。更好的方式是 claim-level citation：每个关键事实都能对应证据。
-
-```text
-订单超时主要集中在 10:35 之后，因为监控显示 order-service p95 延迟在该时间点后从 210ms 升至 2.1s [E12]。
-```
-
-Claim-level Citation 的好处是：
-
-- 用户能追溯每个结论；
-- 评估系统能检查引用覆盖率；
-- debug 时能定位错误证据；
-- 模型不容易把多个来源混成一个泛泛结论。
-
-### 13.3.3 Evidence Sufficiency Check
-
-回答前应检查证据是否足够。
-
-```json
-{
-  "answerable": true,
-  "missing_evidence": [],
-  "conflicts": [],
-  "confidence": "medium",
-  "reason": "日志和指标都支持 payment callback timeout 增加，但缺少支付网关侧指标。"
-}
-```
-
-如果证据不足，应该明确说不足，而不是补全一个看似完整的答案。
-
-### 13.3.4 冲突的输出方式
-
-完整冲突规则集中在 13.3.6。回答保留各来源、对象和版本，说明哪些主张冲突及仍缺什么核验；同名字段在不同部署版本里可以各自正确，不能只按更新时间选择。未核验来源的冲突示例见 13.5.2，任何一方都不会自动获得执行授权。
-
-### 13.3.5 Hallucination Guard
-
-Hallucination Guard 不是一句 prompt，而是一组机制：
-
-- 强制引用；
-- 证据不足拒答；
-- claim-level citation；
-- 当前适用的权威证据优先，并核对工具结果的实体、版本与时间；
-- 反证检索；
-- 输出 schema；
-- 高风险动作人工审批；
-- trace 评审。
-
-对知识问答来说，最有效的 guardrail 往往不是“请不要幻觉”，而是“没有证据就不能生成关键事实”。
-
-### 13.3.6 Evidence 的最小约定与来源血缘
+### 13.3.1 Evidence 的最小约定与来源血缘
 
 Evidence 不是“模型觉得有用的一段话”，至少包含 evidence_id、source_id/source_version、locator、collected_at/effective_at、visibility/ACL_ref、supported_claims、content/artifact_ref 及 limitations。派生摘要增加 parent_evidence_ids 与 transform_version；引用指向固定版本片段，当前可见性在回读和交付时重验。
 
@@ -810,11 +350,106 @@ Evidence 不是“模型觉得有用的一段话”，至少包含 evidence_id�
 
 冲突裁决保留双方的原始证据与范围，先比较实体、环境、版本、生效时间和事实 owner。更新较晚不是自动胜出条件，调用返回 success 也不是权威性证明。若缺少当前事实源或双方未核验，preferred 必须为空；影响高风险动作时阻止自动执行，转入有明确待查问题的人工确认。摘要只继承来源已验证范围，不能消除原证据的冲突或撤权。
 
+
+
+
+<a id="1331-evidence-packet-的结构"></a>
+
+### 13.3.2 Evidence Packet 的结构
+
+Evidence Packet 是知识系统交给模型的事实载体。它应该比原始 chunk 更结构化。
+
+```json
+{
+  "evidence_id": "E12",
+  "source_id": "metrics/order-service/prod",
+  "source_version": "metrics-snapshot/ALR-20260429-017",
+  "locator": "metrics://order-service/p95?window=10:35-10:50",
+  "ACL_ref": "policy://incident-reader/current",
+  "supported_claims": [],
+  "candidate_claim": "order-service 在指定窗口的 P95 延迟升高",
+  "collected_at": "2026-04-29T11:05:00+08:00",
+  "effective_at": "2026-04-29T10:35:00+08:00/2026-04-29T10:50:00+08:00",
+  "content": "p95 latency increased from 210ms to 2.1s between 10:35 and 10:50.",
+  "source": {
+    "type": "metrics_tool",
+    "name": "prometheus",
+    "query": "histogram_quantile(0.95, order_service_latency)",
+    "time_range": "2026-04-29T10:00:00+08:00/2026-04-29T11:00:00+08:00"
+  },
+  "trust_level": "unverified",
+  "updated_at": "2026-04-29T11:05:00+08:00",
+  "limitations": "只覆盖 prod 环境"
+}
+```
+
+上例尚未核验，supported_claims 为空；候选查询窗口宽于案例观察窗口，不能直接当作已获支持的当前主张。Evidence Packet 的关键字段是来源、时间、可信度和限制条件。没有这些字段，模型很容易把局部证据说成全局结论。
+
+<a id="1332-citation-与-claim-level-citation"></a>
+
+### 13.3.3 Citation 与 Claim-level Citation
+
+Citation 不应该只是回答末尾的链接列表。更好的方式是 claim-level citation：每个关键事实都能对应证据。
+
+```text
+待核验观察 E12 报告 order-service 在指定生产窗口的 P95 从 210ms 升至 2.1s；当前不能据此断言超时订单的时间分布或根因，须先核验指标查询与范围。
+```
+
+Claim-level Citation 的好处是：
+
+- 用户能追溯每个结论；
+- 评估系统能检查引用覆盖率；
+- debug 时能定位错误证据；
+- 模型不容易把多个来源混成一个泛泛结论。
+
+<a id="1333-evidence-sufficiency-check"></a>
+
+### 13.3.4 Evidence Sufficiency Check
+
+回答前应检查证据是否足够。
+
+```json
+{
+  "answerable": true,
+  "missing_evidence": [],
+  "conflicts": [],
+  "confidence": "medium",
+  "reason": "日志和指标都支持 payment callback timeout 增加，但缺少支付网关侧指标。"
+}
+```
+
+如果证据不足，应该明确说不足，而不是补全一个看似完整的答案。
+
+<a id="1334-冲突的输出方式"></a>
+
+### 13.3.5 冲突的输出方式
+
+完整冲突规则集中在本节的 Evidence 最小约定。回答保留各来源、对象和版本，说明哪些主张冲突及仍缺什么核验；同名字段在不同部署版本里可以各自正确，不能只按更新时间选择。未核验来源的冲突示例见 13.5.2，任何一方都不会自动获得执行授权。
+
+<a id="1335-hallucination-guard"></a>
+
+### 13.3.6 Hallucination Guard
+
+Hallucination Guard 不是一句 prompt，而是一组机制：
+
+- 强制引用；
+- 证据不足拒答；
+- claim-level citation；
+- 当前适用的权威证据优先，并核对工具结果的实体、版本与时间；
+- 反证检索；
+- 输出 schema；
+- 高风险动作人工审批；
+- trace 评审。
+
+对知识问答来说，最有效的 guardrail 往往不是“请不要幻觉”，而是“没有证据就不能生成关键事实”。
+
 <a id="memory"></a>
 
 ## 13.4 记忆生命周期：受控保存、召回与遗忘
 
 [![长期记忆的受控生命周期](../images/review-context-engineering-04.svg)](../images/review-context-engineering-04.svg)
+
+*图 13-5：长期记忆的受控生命周期*
 
 
 ### 13.4.1 从研究机制到本场景的存储职责
@@ -843,11 +478,41 @@ Working Memory 是当前模型工作集，Execution State 属于 Runtime 权威�
 
 ### 13.4.3 召回：硬过滤之后再做可解释排序
 
-先按当前租户、主体、用途、权限、有效时间、删除和替代状态做硬过滤，再进行相关性排序。Generative Agents 讨论 recency、importance 和 relevance 的组合，但本书不复制未经本场景验证的权重，更不把类别变量相乘当作通用公式。[[4]](#ref-4) 每条入选记忆说明关联哪个子问题、来源是否当前适用、替代关系和预算占用；可解释的排序结果优于无法复核的“综合可信分”。
+先按当前租户、主体、用途、权限、有效时间、删除和替代状态做硬过滤，再进行相关性排序。Generative Agents 对 recency、importance、relevance 三项分数做 min-max 归一化后加权求和。本书借鉴可解释的评分分解，具体权重仍需本地验证。[[4]](#ref-4) 每条入选记忆说明关联哪个子问题、来源是否当前适用、替代关系和预算占用；可解释的排序结果优于无法复核的“综合可信分”。
 
 较新的记录可能不适用当前版本，较相似的案例可能具有不同前提，所以时效与相似不互相代替。冲突候选同时保留定位信息，必要时询问或回源。负向召回检查“不应该想起”的内容：其他租户、已撤销偏好、旧版本、错误历史案例、无授权个人信息以及仅对上一会话有效的临时指令。
 
 记忆读写 Trace 保存候选/入选/排除 ID、理由、输入范围、权限和版本、成本，不将完整敏感正文放普通日志。定期合并冗余时保留来源血缘与替代链；合并器产生候选新版本，校验后切换，不能删除支撑事实却留下不可回源总结。
+
+### 13.4.4 记录、召回时机与写入控制
+
+下面是本书记忆记录示意。source_ref 指向受控来源，scope 约束用途，valid_until 是复审/失效边界，supersedes 保留替代关系；这些字段不授予访问权限。
+
+```json
+{
+  "memory_id": "mem_report_preference_v2",
+  "scope": {"tenant_id": "tenant_demo", "subject": "u_123", "purpose": "incident_report"},
+  "kind": "preference",
+  "content": "诊断报告先给有限定的结论，再列证据与下一步",
+  "source_ref": "controlled://feedback/preference-2",
+  "source_version": "feedback-v2",
+  "valid_until": "2026-12-31T23:59:59+08:00",
+  "supersedes": "mem_report_preference_v1",
+  "status": "active"
+}
+```
+
+短小、稳定、适用范围明确的偏好可自动注入；历史事故和较长经验按当前子问题作为工具或 Memory API 按需读取。自动注入降低漏用，代价是常驻 Token 与误用风险；按需读取减少噪声，但需要召回触发、超时及缺失处理。两种方式都先做权限、有效期和删除过滤，不能因为记忆存在就每轮全部加载。
+
+Agent 自主编辑能及时表达用户纠正，但模型可能误记或被注入诱导；系统侧抽取能统一格式和策略，却也可能丢失语境。两者都先形成候选，经过来源、范围、敏感性与冲突检查后发布。高影响规则由有权主体确认，不能用一次模型抽取覆盖组织政策。
+
+### 13.4.5 纠错、删除与派生记录传播
+
+更新以 supersedes 产生新记录，旧记录退出当前召回，保留解释历史决策所需的受控血缘。若 E12 的时间窗被纠正，依赖该窗口的主张、摘要、向量和记忆分别标记待重验；独立日志观察不因同一任务而全部作废。
+
+删除与撤权先阻断读取，再向召回索引、摘要、缓存、导出和恢复路径传播。传播任务记录 owner、水位、失败及补偿扫描；备份恢复时先重放删除/撤权事实，不能复活已禁用记录。需依法保留的审计数据与可供模型召回的正文分开管理，并明确物理清除边界。
+
+记忆不得保存用来接管任务的执行权。任务恢复读取 Runtime 的账本，记忆只提供可重新核验的背景；恢复机制不会因记忆写着“已建单”跳过原 Operation 查询。
 
 <a id="context-builder"></a>
 <a id="context-assembly"></a>
@@ -855,6 +520,8 @@ Working Memory 是当前模型工作集，Execution State 属于 Runtime 权威�
 ## 13.5 上下文装配、预算与缓存布局
 
 [![预算内装配当前上下文](../images/review-context-engineering-05.svg)](../images/review-context-engineering-05.svg)
+
+*图 13-6：预算内装配当前上下文*
 
 
 ### 13.5.1 Context Package 的结构与装配契约
@@ -993,7 +660,7 @@ excluded_context:
 
 ### 13.5.2 把冲突显式带入装配结果
 
-冲突裁决以 13.3.6 为唯一主定义。装配器分开控制指令与事实证据：API 角色和应用策略决定指令权限，外部网页、工具文本与 Memory 保留材料身份。OWASP 的间接注入说明，即使来源看似可信，其内容也不能获得执行授权。[[8]](#ref-8)
+冲突裁决以[Evidence 最小约定](#knowledge)为唯一主定义。装配器分开控制指令与事实证据：API 角色和应用策略决定指令权限，外部网页、工具文本与 Memory 保留材料身份。OWASP 的间接注入说明，即使来源看似可信，其内容也不能获得执行授权。[[8]](#ref-8)
 
 下面两份 Runbook 尚未核验，较新的日期不能让右侧自动胜出；装配结果保留未决项，不制造“已决定回滚”的事实。
 
@@ -1181,7 +848,7 @@ Level 5: 人工确认或审批
 
 教学账本：假设 W=32000、O=4000、M=2000，输入最多 26000token。先用目标 tokenizer 及实际序列化消息计数，再装配证据；不能只给文档 26000 而遗漏工具 Schema 和历史。若硬约束与必要输入仍超限，拆分任务或报告不可执行，不能丢约束硬塞。每轮工具返回后重算，超大结果外置并保留可授权回读引用。
 
-排序是需要验证的变量。Lu 等研究发现 few-shot 示例次序会影响所测模型的分类表现；Min 等研究区分了标签空间、输入分布和格式的作用。这些结果既不证明所有 Agent 的同一种顺序最优，也不支持把业务标签随意改错。[[14]](#ref-14)[[15]](#ref-15)
+排序是需要验证的变量。Lu 等研究发现 few-shot 示例次序会影响所测模型的分类表现；Min 等研究区分了标签空间、输入分布和格式的作用。这些结果既不证明所有 Agent 的同一种顺序最优，也不支持把业务标签随意改错。[[9]](#ref-9)[[10]](#ref-10)
 
 本书建议在事故任务上做下面的对照，以下是实验设计，不是实验结果。
 
@@ -1200,7 +867,7 @@ Level 5: 人工确认或审批
 
 需要分别看三种复用：检索缓存复用候选证据，回答缓存复用已生成结果，Prompt Cache 复用模型处理输入前缀的中间状态。它们的缓存键、失效条件与授权检查不同，不能因为命中一个缓存就跳过另一个层面的校验。
 
-以 OpenAI 当前文档为例，Prompt Cache 复用的是匹配前缀对应的 KV 状态；复用要求渲染后的前缀以及相关设置匹配。工具定义、消息历史或结构化输出配置变化，都可能改变可复用前缀。会话连续并不保证缓存命中。[[9]](#ref-9) 具体最小长度、缓存断点、保留时间、写入价格与支持范围应按所选模型和 API 核验，本章不把供应商参数写成跨平台标准。
+以 OpenAI 当前文档为例，Prompt Cache 复用的是匹配前缀对应的 KV 状态；复用要求渲染后的前缀以及相关设置匹配。工具定义、消息历史或结构化输出配置变化，都可能改变可复用前缀。会话连续并不保证缓存命中。[[11]](#ref-11) 具体最小长度、缓存断点、保留时间、写入价格与支持范围应按所选模型和 API 核验，本章不把供应商参数写成跨平台标准。
 
 在本书场景中，可以把稳定且当前适用的规则、工具说明和共享材料放在相对稳定的区域，把本轮问题、新工具观察与动态状态放在更新区域。这样有机会同时减少重复处理与无关信息；前提是当前角色语义、权限和工具协议允许这种布局。不能为了稳定前缀继续保留已撤回规则，也不能把必须更新的授权信息固定成旧快照。
 
@@ -1221,6 +888,8 @@ Level 5: 人工确认或审批
 ## 13.6 压缩、回源与隔离
 
 [![压缩保真与纠错血缘](../images/review-context-engineering-06.svg)](../images/review-context-engineering-06.svg)
+
+*图 13-7：压缩保真与纠错血缘*
 
 
 ### 13.6.1 摘要 Schema、不变量与回源
@@ -1311,7 +980,7 @@ required_checks:
 | FileSummary | repo_id、workspace_id、path、commit、content_hash、range、symbols、dependencies、claims、source_refs | 文件哈希变化立即标 stale；同 commit 下未提交修改也失效 |
 | ProcessNote | run_id、step_id、attempt_id、tool_call_id/result_ref、operation_id、idempotency_ref、target_version、status、evidence_refs、pending_actions | 与[Agent Runtime](03-agent-runtime.md#object-model)账本核对；unknown 不得压成 failed 或 done |
 
-TaskSummary 描述当前目标，FileSummary 描述版本化材料，ProcessNote 解释已发生过程。三者都不是权威执行状态。LangGraph 区分 thread checkpointer 和跨 thread store，进一步说明“能保存信息”与“保存哪种状态”需要分开设计。[[10]](#ref-10)
+TaskSummary 描述当前目标，FileSummary 描述版本化材料，ProcessNote 解释已发生过程。三者都不是权威执行状态。LangGraph 区分 thread checkpointer 和跨 thread store，进一步说明“能保存信息”与“保存哪种状态”需要分开设计。[[12]](#ref-12)
 
 压缩前后必须校验的不变量。
 
@@ -1321,7 +990,7 @@ TaskSummary 描述当前目标，FileSummary 描述版本化材料，ProcessNote
 - 文件与证据引用携带版本/哈希、定位和可见范围，失效则回源。
 - 下一步、停止条件、预算和阻塞明确；长原文可外置但不能外置后无法读取。
 
-LLMLingua 研究预算控制的提示压缩，说明可以减少输入；这不证明某个业务任务的约束保真。[[11]](#ref-11) 应让相同后续任务分别接原上下文和摘要，比较任务成功、硬约束违例、未知操作丢失、重复执行和证据引用；允许等价工具路径，不要求逐字一致。多轮压缩、重启、撤权和摘要失败分别入集，压缩率只作次要指标。
+LLMLingua 研究预算控制的提示压缩，说明可以减少输入；这不证明某个业务任务的约束保真。[[13]](#ref-13) 应让相同后续任务分别接原上下文和摘要，比较任务成功、硬约束违例、未知操作丢失、重复执行和证据引用；允许等价工具路径，不要求逐字一致。多轮压缩、重启、撤权和摘要失败分别入集，压缩率只作次要指标。
 
 丢约束后的回源修复轨迹。
 
@@ -1390,9 +1059,8 @@ AGENT_REQUIRED_VERIFICATION(unit_tests, integration_tests)
 
 ### 13.6.3 纠错依赖链：不能只覆盖原句
 
-教学链：旧文件 F1→Memory M1“测试已通过”→摘要 S1→计划 P1“可以发布”。当前文件变为 F2 且测试失败后，先禁用 M1 的当前召回，再按来源血缘找到 S1/P1 及其他派生条目，标 stale/retracted 并撤销未执行的发布提案；回读 F2 和真实测试结果生成 M2，记录 supersedes=M1 与原因，重新核验相关产物。保留受控历史用于解释“当时如何判断”，不能让旧记录重新参与当前决策。
+压缩结果保存 parent_evidence_ids 与 transform_version。来源被纠正、删除或撤权时，按[记忆纠错与派生传播](#memory)失效并重建本轮摘要；不另定义一套更新协议，也不能只覆盖原句而保留旧结论。
 
-若 P1 已经执行，记忆撤回不撤销外部副作用；按[Agent Runtime](03-agent-runtime.md#delivery-idempotency)查询 Operation 并在授权内修复/补偿。用户撤回地址只影响记忆有效性，不自动修改账户资料。删除范围覆盖索引、派生摘要、缓存、导出和备份恢复后的删除水位，具体保留/例外由[生产运营与治理控制](../part2/05-production-operations-governance.md)负责，不承诺即时物理擦除或模型遗忘。
 
 ### 13.6.4 小模型压缩器的独立评测
 
@@ -1405,7 +1073,7 @@ AGENT_REQUIRED_VERIFICATION(unit_tests, integration_tests)
 | 小模型压缩 | 相同输入、summary schema 与后续任务 | 窗口不足分块重验；关键字段丢失升级或停止 |
 | 小模型+有界回退 | 独立验证后才放行，不让压缩器自评决定通过 | 记录升级率、读取和重试开销 |
 
-指标包括硬约束召回、否定/单位保真、Operation 与调用配对保留、污染/越权率、下游任务成功和重复副作用，压缩率次之。按长输入、多轮压缩、过时文件、撤权、失败/未知工具结果切片。总成功成本=(主任务+压缩+回读+重试+人工费用)/成功任务数，同时报告失败数、尾延迟与安全违例；不能只比较辅助单价。以上实验尚未运行，没有结果数字。
+指标包括硬约束召回、否定/单位保真、Operation 与调用配对保留、污染/越权率、下游任务成功和重复副作用，压缩率次之。按长输入、多轮压缩、过时文件、撤权、失败/未知工具结果切片。单位成功成本按[统一成本口径](05-agent-governance-optimization.md#cost-accounting)计算，纳入压缩、回读与重试开销，同时报告失败数、尾延迟与安全违例；不能只比较辅助单价。以上实验尚未运行，没有结果数字。
 
 
 ### 13.6.5 阶段、子任务与权限隔离
@@ -1545,6 +1213,8 @@ handoff:
 
 [![外部数据不能获得控制权](../images/review-context-engineering-07.svg)](../images/review-context-engineering-07.svg)
 
+*图 13-8：外部数据不能获得控制权*
+
 
 ### 13.7.1 指令冲突与 Prompt Injection
 
@@ -1647,7 +1317,7 @@ Prompt 安全不是一条规则，而是一组边界设计。
 
 ### 13.7.2 Context Rot、污染与漂移分别诊断
 
-Chroma 的 Context Rot 报告研究输入 token 增加时模型利用上下文的表现退化，不能把它重新定义为内容变旧、变脏或冲突。[[12]](#ref-12) 污染指不可信内容进入指令或事实位置，漂移指任务目标、有效事实或解释逐渐偏离；本书将它们单独诊断。长度退化可以通过位置和干扰对照实验观察，污染要回到来源/权限边界，事实变旧要回到版本和失效机制，不能一律“清空记忆”处理。
+Chroma 的 Context Rot 报告研究输入 token 增加时模型利用上下文的表现退化，不能把它重新定义为内容变旧、变脏或冲突。[[14]](#ref-14) 污染指不可信内容进入指令或事实位置，漂移指任务目标、有效事实或解释逐渐偏离；本书将它们单独诊断。长度退化可以通过位置和干扰对照实验观察，污染要回到来源/权限边界，事实变旧要回到版本和失效机制，不能一律“清空记忆”处理。
 
 发现污染时停止受影响动作，保存被污染包与依赖引用，从权威来源重建必要信息，再失效其派生摘要、假设和缓存。已经发出的外部动作由 Runtime 查原 Operation，不能通过重写摘要撤销副作用。长期记忆的候选、纠正、删除和用户控制在记忆生命周期中统一定义，避免另一份写入规则。
 
@@ -1656,6 +1326,8 @@ Chroma 的 Context Rot 报告研究输入 token 增加时模型利用上下文�
 ## 13.8 上下文包质量与记忆评估
 
 [![分别测上下文质量与记忆能力](../images/review-context-engineering-08.svg)](../images/review-context-engineering-08.svg)
+
+*图 13-9：分别测上下文质量与记忆能力*
 
 
 ### 13.8.1 上下文包的质量与 Trace
@@ -1757,6 +1429,8 @@ eval_case:
 
 | 指标 | 分子/分母 | 标注与采样 |
 | --- | --- | --- |
+| Context Recall | 包中覆盖的标注必要证据单元/该任务全部标注必要证据单元 | 以实体、版本、时间均匹配的最小支持单元为准；未知全集时披露标注边界 |
+| Context Precision | 包中适用且支持当前任务的证据单元/包中全部证据单元 | 去重后计数，无权/过期/冲突未解项不计有效支持；不与文档级检索 precision 混算 |
 | 约束保留率 | 压缩后仍正确保留的不变量/事先标注必要不变量 | 按任务独立标注，缺失与改写错误分别列出 |
 | 证据覆盖率 | 有可见且适用证据的必要主张/全部必要主张 | 版本、实体、时间限定必须一起核对 |
 | 记忆精确率 | 召回中真正适用的记录/全部已召回记录 | 无权、过期、冲突记录不因文本相关算正确 |
@@ -1766,7 +1440,7 @@ eval_case:
 
 对同一冻结输入比较无记忆、原记忆、更新后记忆以及压缩前/后包，固定模型、工具结果、权限和版本。跨会话改写属相关组，划分留出集和计算不确定性时以组为单位。来源不足时返回 unknown，不把不可计算分母写成零错误。
 
-MemoryAgentBench 将记忆能力分为准确召回、测试时学习、长程理解和选择性遗忘。[[13]](#ref-13) 其中选择性遗忘包含更新后抑制冲突旧事实，不能等同用户删除后的隐私控制；本书另外增加删除、撤权和备份恢复不复活的安全回归。
+MemoryAgentBench 将记忆能力分为准确召回、测试时学习、长程理解和选择性遗忘。[[15]](#ref-15) 其中选择性遗忘包含更新后抑制冲突旧事实，不能等同用户删除后的隐私控制；本书另外增加删除、撤权和备份恢复不复活的安全回归。
 
 例如教学客服偏好先使用 UTC 时间，随后明确改用北京时间：检查新偏好能被后续使用、旧偏好不再覆盖，并保留替代链；“本次用 UTC”只影响当前任务。再提出删除这项偏好，检查读取与派生缓存失效。两组测试分别验证知识更新与隐私控制，不能合并为一个通过率。
 
@@ -1776,11 +1450,12 @@ MemoryAgentBench 将记忆能力分为准确召回、测试时学习、长程理
 
 [![上下文工程的五个检查面](../images/review-context-engineering-09.svg)](../images/review-context-engineering-09.svg)
 
+*图 13-10：上下文工程的五个检查面*
+
 
 上下文工程管理当前模型可见的信息，不持有执行事实或授予权限。任务契约决定需要什么，来源和 Memory 供给候选，装配选择当前有效材料，压缩保留不变量与回源引用，验证检查约束、证据和业务语义。来源类型、工具 success、向量分数、摘要自评都不能单独证明事实正确。
 
 ## 参考资料
-
 
 1. <a id="ref-1"></a> Anthropic，[Effective context engineering for AI agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)，2025-09-29。 访问日期：2026-10-24。
 2. <a id="ref-2"></a> Liu et al.，[Lost in the Middle: How Language Models Use Long Contexts](https://arxiv.org/abs/2307.03172)，2023。 访问日期：2026-10-24。
@@ -1790,11 +1465,10 @@ MemoryAgentBench 将记忆能力分为准确召回、测试时学习、长程理
 6. <a id="ref-6"></a> Shinn et al.，[Reflexion: Language Agents with Verbal Reinforcement Learning](https://arxiv.org/abs/2303.11366)，2023。 访问日期：2026-10-24。
 7. <a id="ref-7"></a> Wang et al.，[Voyager: An Open-Ended Embodied Agent with Large Language Models](https://arxiv.org/abs/2305.16291)，2023。 访问日期：2026-10-24。
 8. <a id="ref-8"></a> OWASP，[LLM01:2025 Prompt Injection](https://genai.owasp.org/llmrisk/llm01-prompt-injection/)，2025。 访问日期：2026-10-24。
-9. <a id="ref-9"></a> OpenAI，[Prompt caching](https://developers.openai.com/api/docs/guides/prompt-caching)，滚动文档，核验于 2026-10-21。
-10. <a id="ref-10"></a> LangChain，[Persistence](https://docs.langchain.com/oss/python/langgraph/persistence)，rolling; 核验于 2026-10-21。
-11. <a id="ref-11"></a> Jiang et al.，[LLMLingua: Compressing Prompts for Accelerated Inference of Large Language Models](https://arxiv.org/abs/2310.05736)，2023。 访问日期：2026-10-24。
-12. <a id="ref-12"></a> Hong、Troynikov、Huber，[Context Rot](https://www.trychroma.com/research/context-rot)，Chroma Technical Report，2025-07-14；核验于 2026-10-24。
-13. <a id="ref-13"></a> Hu、Wang、McAuley，[Evaluating Memory in LLM Agents via Incremental Multi-Turn Interactions](https://arxiv.org/abs/2507.05257)，2025，v4 修订于 2026-06-28；核验于 2026-10-24。
-
-14. <a id="ref-14"></a> Lu et al.，[Fantastically Ordered Prompts and Where to Find Them](https://aclanthology.org/2022.acl-long.556/)，ACL，2022；核验于 2026-10-24。
-15. <a id="ref-15"></a> Min et al.，[Rethinking the Role of Demonstrations: What Makes In-Context Learning Work?](https://aclanthology.org/2022.emnlp-main.759/)，EMNLP，2022；核验于 2026-10-24。
+9. <a id="ref-9"></a> Lu et al.，[Fantastically Ordered Prompts and Where to Find Them](https://aclanthology.org/2022.acl-long.556/)，ACL，2022；核验于 2026-10-24。
+10. <a id="ref-10"></a> Min et al.，[Rethinking the Role of Demonstrations: What Makes In-Context Learning Work?](https://aclanthology.org/2022.emnlp-main.759/)，EMNLP，2022；核验于 2026-10-24。
+11. <a id="ref-11"></a> OpenAI，[Prompt caching](https://developers.openai.com/api/docs/guides/prompt-caching)，滚动文档，核验于 2026-10-21。
+12. <a id="ref-12"></a> LangChain，[Persistence](https://docs.langchain.com/oss/python/langgraph/persistence)，持续更新； 核验于 2026-10-21。
+13. <a id="ref-13"></a> Jiang et al.，[LLMLingua: Compressing Prompts for Accelerated Inference of Large Language Models](https://arxiv.org/abs/2310.05736)，2023。 访问日期：2026-10-24。
+14. <a id="ref-14"></a> Hong、Troynikov、Huber，[Context Rot](https://www.trychroma.com/research/context-rot)，Chroma Technical Report，2025-07-14；核验于 2026-10-24。
+15. <a id="ref-15"></a> Hu、Wang、McAuley，[Evaluating Memory in LLM Agents via Incremental Multi-Turn Interactions](https://arxiv.org/abs/2507.05257)，2025，v4 修订于 2026-06-28；核验于 2026-10-24。

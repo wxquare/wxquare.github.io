@@ -199,7 +199,7 @@ onboarding 的官方原则是“每条路径都先建立推理（inference）”
 
 转录写围栏是 OpenClaw 对“并发写同一会话”的回答，其作用边界需要与 session write lock 分开：admitted run 在流式输出前记录持久 `activeWriterRunId` 声明；每次转录追加/重写必须带 `expectedWriterRunId`，同步提交事务校验其仍匹配；被取代的 run 无法提交过期转录[[7]](#ref-7)。
 
-循环层（`packages/agent-core/src/agent-loop.ts`）通用骨架见[第 15 章执行循环](../part3/03-agent-runtime.md#execution-loop)；此处只分析 OpenClaw 的消息检查点：外层 `while(true)` + 内层 `while(hasMoreToolCalls || pendingMessages.length>0)`；每个 turn 发 `turn_start`，先把 pending（steering）消息提交进上下文，调模型流式取 assistant 消息，有 tool call 则 `executeToolCalls`，发 `turn_end`，检查停止条件，在检查点取 steering；内层结束取 follow-up，再复查 steering 以免 `agent_end` 丢失已接受的 steer[[44]](#ref-44)。
+循环层（`packages/agent-core/src/agent-loop.ts`）通用骨架见[第 16 章执行循环](../part3/03-agent-runtime.md#execution-loop)；此处只分析 OpenClaw 的消息检查点：外层 `while(true)` + 内层 `while(hasMoreToolCalls || pendingMessages.length>0)`；每个 turn 发 `turn_start`，先把 pending（steering）消息提交进上下文，调模型流式取 assistant 消息，有 tool call 则 `executeToolCalls`，发 `turn_end`，检查停止条件，在检查点取 steering；内层结束取 follow-up，再复查 steering 以免 `agent_end` 丢失已接受的 steer[[44]](#ref-44)。
 
 几个与失败相关、但属于正常路径设计的点。工具调用批里，steering 出现时未启动的调用被跳过（原因 `steering`）或因 `admission` 致命错误停止[[44]](#ref-44)。工具失败/被拒绝/被取消作为不同结果回送：未启动的调用得到合成配对错误结果以保持转录合法；固定实现对三次连续相同的工具错误（同一签名 + 同一结果哈希）以 `repeated_tool_error` 结束 turn，即使 `tools.loopDetection.enabled=false`[[44]](#ref-44)。回复整形只认整条 final 修剪后为大写 `NO_REPLY` 的静默回复；空 final 不是静默——恢复耗尽时记录失败结果，被准入的用户请求得到一条简短系统通知而不是伪造的回答[[7]](#ref-7)。
 

@@ -473,7 +473,7 @@ Claude plan 模式用于先分析，但不是 OS 只读保证：auto 可用时�
 
 ### 18.6.2 使用产品差异建立同口径实验
 
-循环与恢复见[Runtime](../part3/03-agent-runtime.md)，压缩见[上下文工程](../part3/02-context-engineering.md#compression)，缓存计费见[LLM API](../part3/01-llm-api-protocol.md)。这里比较产品能提供的观察。每次冻结代码、模型、工具、策略、数据与环境，滚动服务无法固定时记录实际时间和可见版本；统计与发布门禁参考第10、17章。
+循环与恢复见[Runtime](../part3/03-agent-runtime.md)，压缩见[上下文工程](../part3/02-context-engineering.md#compression)，缓存计费见[LLM API](../part3/01-llm-api-protocol.md)。这里比较产品能提供的观察。每次冻结代码、模型、工具、策略、数据与环境，滚动服务无法固定时记录实际时间和可见版本；统计与发布门禁参考第 10、17 章。
 
 | 决策对象 | 产品具体信号 | 验收边界 |
 | --- | --- | --- |
