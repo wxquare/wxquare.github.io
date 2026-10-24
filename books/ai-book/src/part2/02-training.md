@@ -1,6 +1,6 @@
 # 第8章 训练平台与数据管线
 
-上一章建立了大模型 Infra 的全局资源模型。本章聚焦训练阶段：如何把海量数据稳定地送到 GPU，如何选择数据并行、张量并行、流水线并行和专家并行，如何让通信与计算重叠，以及如何在节点故障、版本变化和硬件变化后恢复到一个可解释的训练状态。对于后端工程师，训练平台可以理解为一个持续运行很久、拥有复杂状态、对吞吐极其敏感的分布式任务系统。
+大模型 Infra 的全局资源模型已经建立；本章聚焦训练阶段：如何把海量数据稳定地送到 GPU，如何选择数据并行、张量并行、流水线并行和专家并行，如何让通信与计算重叠，以及如何在节点故障、版本变化和硬件变化后恢复到一个可解释的训练状态。对于后端工程师，训练平台可以理解为一个持续运行很久、拥有复杂状态、对吞吐极其敏感的分布式任务系统。
 
 训练 Infra 的目标不是让脚本在一台机器上运行，而是让“有效 token 数/时间”可预测、可扩展、可恢复。一个训练 step 的耗时可以拆成数据读取、host 到 device 拷贝、forward、backward、梯度同步、optimizer update和checkpoint；可重叠阶段不能把区间简单相加当wall time。任何阶段成为瓶颈，继续增加 GPU 都只会增加成本。Megatron-LM 的模型并行研究、DeepSpeed 与 ZeRO 的状态分片，以及 PyTorch FSDP 的工程实现，都说明大模型训练本质上是模型状态、通信拓扑和故障恢复共同决定的系统问题 [[1]](#ref-1)[[2]](#ref-2)[[3]](#ref-3)[[4]](#ref-4)。
 
@@ -127,13 +127,11 @@ tokenizer 处理异常字符时要有统计。未知字符、超长 Unicode 序�
 
 ## 8.3 并行策略与资源账本
 
-中文多GPU教材可用于复习复制参数、分割样本和聚合梯度的基础 [[12]](#ref-12)。
-
 ### 数据并行与梯度同步
 
 数据并行让每个 rank 持有模型副本，处理不同 micro-batch，然后通过 all-reduce 同步梯度。它实现简单、扩展直接，但完整复制参数、梯度和 optimizer state 的内存成本很高。随着模型变大，单纯增加数据并行 rank 会先遇到单卡显存上限，再遇到梯度同步和小 batch 的效率问题。
 
-在各rank微批大小相同且无不齐尾批时，样本global batch=每rank micro-batch×DP度×梯度累积步数；packing下还需单独统计loss token，不能把样本公式直接当token批量。改变任何一个因素都可能改变优化轨迹。平台必须记录真实的 global batch 和每步有效 token，而不是只记录 dataloader batch size。NCCL 的 all-reduce 适合梯度聚合，但通信是否能与 backward 重叠，取决于 bucket 大小、梯度 ready 顺序和拓扑 [[13]](#ref-13)。
+在各rank微批大小相同且无不齐尾批时，样本global batch=每rank micro-batch×DP度×梯度累积步数；packing下还需单独统计loss token，不能把样本公式直接当token批量。改变任何一个因素都可能改变优化轨迹。平台必须记录真实的 global batch 和每步有效 token，而不是只记录 dataloader batch size。NCCL 的 all-reduce 适合梯度聚合，但通信是否能与 backward 重叠，取决于 bucket 大小、梯度 ready 顺序和拓扑 [[12]](#ref-12)。
 
 ### 张量并行与流水线并行
 
@@ -145,11 +143,11 @@ tokenizer 处理异常字符时要有统计。未知字符、超长 Unicode 序�
 
 ZeRO 逐步分片 optimizer state、gradient 和 parameter，减少每个 rank 的冗余；FSDP 在 PyTorch 中以参数分片、all-gather 和 reduce-scatter 实现类似目标 [[2]](#ref-2)[[4]](#ref-4)。分片让模型能在更少的显存中训练，却把参数获取和释放加入了关键路径。正确选择需要测量通信与计算重叠、参数 prefetch、CPU offload 和 activation checkpoint 的组合。
 
-ZeRO-Infinity 进一步利用 CPU 和 NVMe 扩展可用内存 [[14]](#ref-14)。卸载能解决容量问题，但 PCIe、NVMe 和网络带宽可能使 step 时间显著增加。平台不能把“能启动”当作成功，而应比较每百万有效 token 的成本、恢复时间和尾部抖动。对低利用率实验，offload 可能比增加 GPU 更经济；对大规模生产训练，它可能成为不可接受的同步瓶颈。
+ZeRO-Infinity 进一步利用 CPU 和 NVMe 扩展可用内存 [[13]](#ref-13)。卸载能解决容量问题，但 PCIe、NVMe 和网络带宽可能使 step 时间显著增加。平台不能把“能启动”当作成功，而应比较每百万有效 token 的成本、恢复时间和尾部抖动。对低利用率实验，offload 可能比增加 GPU 更经济；对大规模生产训练，它可能成为不可接受的同步瓶颈。
 
 ### MoE 与专家并行
 
-MoE 用路由器把 token 分发到少数专家，激活参数少于总参数。GShard 和 Switch Transformer 展示了稀疏专家模型的扩展方式 [[15]](#ref-15)[[16]](#ref-16)。Infra 需要处理 token dispatch、专家容量、all-to-all 通信、负载不均衡和 token drop。专家数增加并不自动提高效率；如果路由把大部分 token 集中到少数专家，热门 expert 成为瓶颈，其他 GPU 却空闲。
+MoE 用路由器把 token 分发到少数专家，激活参数少于总参数。GShard 和 Switch Transformer 展示了稀疏专家模型的扩展方式 [[14]](#ref-14)[[15]](#ref-15)。Infra 需要处理 token dispatch、专家容量、all-to-all 通信、负载不均衡和 token drop。专家数增加并不自动提高效率；如果路由把大部分 token 集中到少数专家，热门 expert 成为瓶颈，其他 GPU 却空闲。
 
 专家并行的容量因子决定每个 expert 能接收多少 token。在丢弃溢出token的实现中，容量太小可能丢token，容量太大则浪费显存并增加通信。训练平台要记录每个 expert 的 token 数、溢出率、路由熵、all-to-all 时间和 rank 方差。MoE checkpoint 还要保存专家布局和路由相关配置，不能只保存最终权重，否则恢复时的并行映射可能不一致。
 
@@ -171,13 +169,13 @@ ZeRO阶段1、2、3分别进一步分片优化器状态、梯度和参数。[[2]
 | ZeRO-2 | \\(2P+14P/D\\) | 梯度归约到分片 |
 | ZeRO-3 | \\(16P/D\\) | 计算前获取所需参数 |
 
-这是模型状态的理想载荷，不是GPU峰值。前向获取完整层、预取下一层、通信bucket、激活重算、allocator保留和CPU staging都可能同时存活，不能把ZeRO-3式子当申请显存的总上限。offload改变状态位置，activation checkpoint改变激活保存，两者与ZeRO阶段是不同开关；FSDP也要按其策略与预取配置解释峰值。[[14]](#ref-14)[[4]](#ref-4)
+这是模型状态的理想载荷，不是GPU峰值。前向获取完整层、预取下一层、通信bucket、激活重算、allocator保留和CPU staging都可能同时存活，不能把ZeRO-3式子当申请显存的总上限。offload改变状态位置，activation checkpoint改变激活保存，两者与ZeRO阶段是不同开关；FSDP也要按其策略与预取配置解释峰值。[[13]](#ref-13)[[4]](#ref-4)
 
 ### 3D、sequence与context的切分轴
 
-本章3D明确指DP×TP×PP，在独立mesh的教学布局中world size为三者乘积。逻辑坐标(d,p,t)先映射到物理rank：同一d/p下沿t通信，同一p/t下沿d同步样本梯度，同一d/t下沿p传阶段边界；实际顺序由启动器保存，不从rank号猜测。EP若划分已有DP组，不能再独立乘一次。DeepSpeed官方3D说明与Megatron组合研究是这种分工的实例 [[3]](#ref-3)[[17]](#ref-17)，不能据此推断任一版本任意组合都可用。
+本章3D明确指DP×TP×PP，在独立mesh的教学布局中world size为三者乘积。逻辑坐标(d,p,t)先映射到物理rank：同一d/p下沿t通信，同一p/t下沿d同步样本梯度，同一d/t下沿p传阶段边界；实际顺序由启动器保存，不从rank号猜测。EP若划分已有DP组，不能再独立乘一次。DeepSpeed官方3D说明与Megatron组合研究是这种分工的实例 [[3]](#ref-3)[[16]](#ref-16)，不能据此推断任一版本任意组合都可用。
 
-Megatron式sequence parallel沿序列维拆分部分层归一化/dropout激活，配合TP组内all-gather/reduce-scatter降低激活冗余。[[18]](#ref-18) context parallel则把注意力的长序列分给多rank，仍需交换跨片KV或等价信息；Ring Attention展示分块环式交换与计算重叠的研究路线。[[19]](#ref-19) 两者不是“各算自己的局部attention再拼接”；那会漏掉跨片键值并改变softmax分母。位置、因果mask、变长尾片和反向梯度都需要与未分片参考核对。
+Megatron式sequence parallel沿序列维拆分部分层归一化/dropout激活，配合TP组内all-gather/reduce-scatter降低激活冗余。[[17]](#ref-17) context parallel则把注意力的长序列分给多rank，仍需交换跨片KV或等价信息；Ring Attention展示分块环式交换与计算重叠的研究路线。[[18]](#ref-18) 两者不是“各算自己的局部attention再拼接”；那会漏掉跨片键值并改变softmax分母。位置、因果mask、变长尾片和反向梯度都需要与未分片参考核对。
 
 流水线也不能按卡数均分显存。Embedding、输出头、MoE层、视觉模块和权重共享会改变参数与计算；不同stage未反向的micro-batch数决定激活峰值。固定全局batch时，调小micro-batch会改变累积次数和kernel效率；不能只看泡泡比率选择。先逐stage报告前后向、等待与峰值，再比较切层、虚拟stage、重算和调度，避免把最快stage的数据当全局吞吐。
 
@@ -190,7 +188,7 @@ Megatron式sequence parallel沿序列维拆分部分层归一化/dropout激活�
 | Reduce-Scatter | 对应元素归约，再按rank留一个结果片 | 分片梯度；不是简单分发原输入 |
 | All-to-All | 每rank把面向不同目标的块分别交换 | 专家dispatch/布局；记录split大小与逆向还原 |
 
-NCCL定义上述基本数据交换；算法并不与某一原语一一固定绑定。[[13]](#ref-13) 本书假设ring all-reduce、D个rank、每rank完整梯度载荷G字节且均匀分块：reduce-scatter和all-gather阶段每rank各发送约 \\((D-1)G/D\\)，总发送约 \\(2(D-1)G/D\\)；接收量另计。两阶段各有D-1轮，粗略时间模型为 \\(2(D-1)\alpha+2(D-1)G/(D\beta)\\)，其中alpha为每轮启动延迟，beta为所用有效链路带宽。D=1时通信为零；这是假设ring账本，不是所有NCCL算法的预测器。
+NCCL定义上述基本数据交换；算法并不与某一原语一一固定绑定。[[12]](#ref-12) 本书假设ring all-reduce、D个rank、每rank完整梯度载荷G字节且均匀分块：reduce-scatter和all-gather阶段每rank各发送约 \\((D-1)G/D\\)，总发送约 \\(2(D-1)G/D\\)；接收量另计。两阶段各有D-1轮，粗略时间模型为 \\(2(D-1)\alpha+2(D-1)G/(D\beta)\\)，其中alpha为每轮启动延迟，beta为所用有效链路带宽。D=1时通信为零；这是假设ring账本，不是所有NCCL算法的预测器。
 
 TP/FSDP要数层级collective次数，PP要数边界激活与梯度，EP要按实际token去向计算发送矩阵。重叠可能隐藏通信等待，却不会消除字节和buffer；故障、重试与未均匀消息也会改变总量。把理论账本与profile差值解释清楚，才能区分小消息延迟、带宽饱和、重复collective和rank迟到。
 
@@ -199,13 +197,13 @@ TP/FSDP要数层级collective次数，PP要数边界激活与梯度，EP要按�
 
 ### 从 FLOPs 到 IO
 
-Transformer 训练不是只受 FLOPs 限制。中间张量写入 HBM、kernel launch、非连续 layout、padding 和同步都可能成为瓶颈。FlashAttention 用 IO-aware tiling 降低 attention 的 HBM 读写，并保持精确计算 [[20]](#ref-20)；FlashAttention-2 进一步改善并行和 work partitioning [[21]](#ref-21)。采用新 kernel 时，要验证端到端 step、显存峰值、不同长度、不同 batch、不同 GPU 架构和数值误差。
+Transformer 训练不是只受 FLOPs 限制。中间张量写入 HBM、kernel launch、非连续 layout、padding 和同步都可能成为瓶颈。FlashAttention 用 IO-aware tiling 降低 attention 的 HBM 读写，并保持精确计算 [[19]](#ref-19)；FlashAttention-2 进一步改善并行和 work partitioning [[20]](#ref-20)。采用新 kernel 时，要验证端到端 step、显存峰值、不同长度、不同 batch、不同 GPU 架构和数值误差。
 
 优化应遵循基线—假设—变更—测量—回滚链路。先用 profiler 找到热点，再决定融合、重排、编译、量化或缓存。一个 kernel benchmark 提速，不代表真实训练提速；它可能把瓶颈转移到通信或数据处理。性能结果必须与模型版本、输入 shape、CUDA、driver、编译器和环境变量绑定。
 
 ### 集合通信与拓扑
 
-all-reduce 用于同步梯度，all-gather 用于取得分片参数，reduce-scatter 可把聚合结果直接保留为分片。NCCL 会根据 NVLink、PCIe、InfiniBand 和网卡拓扑选择通信路径 [[13]](#ref-13)。训练平台应保存拓扑快照，集群变更后重新测量集合通信。通信日志至少包括 collective 类型、字节数、耗时、rank 方差、是否重试和是否与计算重叠。
+all-reduce 用于同步梯度，all-gather 用于取得分片参数，reduce-scatter 可把聚合结果直接保留为分片。NCCL 会根据 NVLink、PCIe、InfiniBand 和网卡拓扑选择通信路径 [[12]](#ref-12)。训练平台应保存拓扑快照，集群变更后重新测量集合通信。通信日志至少包括 collective 类型、字节数、耗时、rank 方差、是否重试和是否与计算重叠。
 
 当通信时间上升时，要区分带宽不足、延迟主导、消息过小、最慢 rank、网络拥塞和同步顺序错误。单机 microbenchmark 只能说明局部能力，必须用真实 batch 验证是否能解释 step 时间。跨节点 TP 往往比同机 TP 更敏感；若通信不能隐藏在计算之后，减少并行度可能比扩大集群更快。
 
@@ -232,14 +230,12 @@ BF16、FP16、FP8 和更低精度可以降低显存、通信和计算成本，�
 
 多 GPU 节点常常有多个 CPU socket、PCIe root complex 和网卡。数据 worker、Pinned Memory、GPU 和网卡绑定不合理，会让 host 到 device 拷贝经过远端 NUMA，吞吐下降且抖动增加。启动器应根据拓扑生成 CPU affinity、GPU affinity 和 NIC affinity，并在运行时记录映射。不能只依赖容器默认的 CPU 集合，因为调度器可能把进程放在与 GPU 不同的 socket。
 
-故障排查时要把拓扑作为版本化环境的一部分。换一批节点、升级 BIOS、改变网卡固件或调整 MIG，都可能改变通信路径。NCCL 提供了拓扑感知能力，但应用还需要保存 NCCL 环境变量、通信算法和日志摘要 [[13]](#ref-13)。当扩展曲线突然下降时，拓扑快照往往比训练代码更能解释原因。
+故障排查时要把拓扑作为版本化环境的一部分。换一批节点、升级 BIOS、改变网卡固件或调整 MIG，都可能改变通信路径。NCCL 提供了拓扑感知能力，但应用还需要保存 NCCL 环境变量、通信算法和日志摘要 [[12]](#ref-12)。当扩展曲线突然下降时，拓扑快照往往比训练代码更能解释原因。
 
-
-PyTorch2.9文档说明activation重算的RNG保存与设备类型限制 [[22]](#ref-22)；具体训练是否等价还要核对该版本和自定义算子。
 
 ### Activation checkpoint 与内存时间交换
 
-activation checkpoint 通过不保存全部中间激活、在 backward 时重新计算来降低显存。它把空间成本换成计算成本，适合模型大、激活占比高的训练。平台应记录 checkpoint 粒度、重算 FLOPs、显存峰值、step time 和质量。层间切分过粗会导致峰值仍高，切分过细会增加 kernel 和调度开销；不同 sequence length 下最佳粒度也可能不同。
+PyTorch 2.9 文档说明 activation 重算的 RNG 保存与设备类型限制 [[21]](#ref-21)；具体训练是否等价还要核对该版本与自定义算子。activation checkpoint 通过不保存全部中间激活、在 backward 时重新计算来降低显存。它把空间成本换成计算成本，适合模型大、激活占比高的训练。平台应记录 checkpoint 粒度、重算 FLOPs、显存峰值、step time 和质量。层间切分过粗会导致峰值仍高，切分过细会增加 kernel 和调度开销；不同 sequence length 下最佳粒度也可能不同。
 
 activation checkpoint 与流水线并行、FSDP、混合精度和异步通信会互相影响。重新计算时需要相同的随机状态，否则 dropout 或随机算子会改变梯度；参数已经被释放时，需要再次 all-gather。恢复和性能报告必须保存这些运行时开关，不能只保存一个 enable_activation_checkpoint 的布尔值。对于后训练和生成式训练，还要评估重新计算对采样一致性的影响。
 
@@ -257,45 +253,25 @@ GPU busy 只是设备上有 kernel 执行，不代表 kernel 高效。大量小 
 
 ### Online Softmax与IO优化的数学边界
 
-第1章给出缩放注意力，本章补分块计算如何保持归一化。对已处理键块保存行最大值m、指数和l、未归一化加权值和u；新块分数\\(s_j\\)与值\\(v_j\\)到达时，设 \\(m'=\max(m,\max_js_j)\\)，再令 \\(l'=e^{m-m'}l+\sum_j e^{s_j-m'}\\)，\\(u'=e^{m-m'}u+\sum_j e^{s_j-m'}v_j\\)。所有块处理完返回u/l。新最大值变化时，旧l和u都要重缩放，不能只拼接各块已经归一化的概率。[[20]](#ref-20)
+缩放注意力的定义已在前文给出；这里补上分块计算如何保持归一化。对已处理键块保存行最大值m、指数和l、未归一化加权值和u；新块分数\\(s_j\\)与值\\(v_j\\)到达时，设 \\(m'=\max(m,\max_js_j)\\)，再令 \\(l'=e^{m-m'}l+\sum_j e^{s_j-m'}\\)，\\(u'=e^{m-m'}u+\sum_j e^{s_j-m'}v_j\\)。所有块处理完返回u/l。新最大值变化时，旧l和u都要重缩放，不能只拼接各块已经归一化的概率。[[19]](#ref-19)
 
-初始化用“尚无有效键”的分支处理，避免负无穷减负无穷；全mask有效查询行按契约报错或返回约定值，不能产生伪均匀分布。FlashAttention减少HBM中间读写，标准全注意力计算量仍是序列二次阶；数学目标一致不表示浮点逐位相同。FA2进一步改工作划分和并行，收益依形状、硬件与mask支持而变。[[21]](#ref-21) 对照高精度结果、极值、短行/长行、尾块与梯度，才能接受新核。
+初始化用“尚无有效键”的分支处理，避免负无穷减负无穷；全mask有效查询行按契约报错或返回约定值，不能产生伪均匀分布。FlashAttention减少HBM中间读写，标准全注意力计算量仍是序列二次阶；数学目标一致不表示浮点逐位相同。FA2进一步改工作划分和并行，收益依形状、硬件与mask支持而变。[[20]](#ref-20) 对照高精度结果、极值、短行/长行、尾块与梯度，才能接受新核。
 
-### GPU层级、Stream与Shared Memory
-
-CUDA的逻辑Grid包含Block，Block包含Thread；线程以warp参与执行，block驻留于SM但一个SM可容纳多个block，数量受寄存器、共享内存和线程资源约束。普通block之间无默认执行顺序，也不能靠某个block自旋等待全Grid完成；跨块汇总可用分阶段kernel等有明确定序的机制。shared memory共享于块内，需要按真实参与线程保证同步。[[23]](#ref-23)
-
-同stream有操作顺序，跨stream需用event表达依赖，硬件有资源才可能重叠。异步API返回不表示数据已经可用；主机传输要核对pinned memory、拷贝引擎和buffer生命周期，计时前后的同步口径也要说明。[[24]](#ref-24) 同步太广会损害性能，同步缺失则是正确性错误，二者不能混为一个调参问题。
-
-本书用32个bank、4字节float和32线程warp作教学映射：连续访问通常分散到不同bank，32×32 tile按列读取的步长32可能使不同地址落同bank；改32×33可改变映射。这里不把同地址广播当不同地址冲突，也不推广到任意向量宽度与硬件。padding增加共享空间，可能减少驻留block；它解决的是特定性能冲突，不能修复越界、未初始化或race。[[23]](#ref-23)
-
-### Shared Memory故障：先证明正确，再诊断bank冲突
-
-某个 shape 才出错时，先固定输入、dtype、stride、block/tile 和工具链，缩减成可复现的最小尺寸，并与可靠参考逐元素比较。以下是本书诊断顺序；Sanitizer 工具职责依据 NVIDIA 官方手册：memcheck 检查内存访问，racecheck 检查共享内存访问竞争，synccheck 检查同步原语使用。它们只覆盖已执行路径，并不能证明所有尺寸正确。[[25]](#ref-25)
-
-| 现象或证据 | 优先核对 | 修复后的验收 |
-| --- | --- | --- |
-| 非整 tile 或短行出错 | 全局/共享索引、尾线程读写、有效元素数、对齐和越界；先运行 memcheck | 同时测试 tile 前后相邻尺寸、非连续 stride 与空维度 |
-| 结果随运行变化 | 共享位置是否先写后读、是否复用上轮残值；按需运行 racecheck | 消费路径只读本轮已写位置，循环复用前后依赖明确 |
-| 部分尺寸挂起或同步报错 | 分支和提前 return 是否使部分线程跳过块屏障；运行 synccheck | 无效线程可屏蔽访存，但仍按算法要求参与同步 |
-| 结果正确、访问明显变慢 | 区分同地址广播和不同地址落同 bank；检查布局、元素宽度及资源占用 | padding 前后输出等价，同时比较共享空间、驻留度和耗时 |
-
-自动门禁配置非零错误退出码并保存报告，缺少设备时记录未验证；padding 不能修复越界、竞争或错误屏障。
 
 ### 融合、编译与瓶颈的受控实验
 
-融合常减少launch和中间HBM读写，却可能增加寄存器、spill、共享内存和同步，破坏独立库核的tile或Tensor Core路径。回退时先固定形状、dtype、预热、计时同步与数据，再比寄存器、local spill、占用、访存合并和kernel时间；缩小融合范围也应作为候选，而非只继续加融合。Triton语言以blocked program描述计算，CUDA给出较显式的线程与同步控制；此Triton不是第7章的Triton Inference Server。[[26]](#ref-26)
+融合常减少launch和中间HBM读写，却可能增加寄存器、spill、共享内存和同步，破坏独立库核的tile或Tensor Core路径。回退时先固定形状、dtype、预热、计时同步与数据，再比寄存器、local spill、占用、访存合并和kernel时间；缩小融合范围也应作为候选，而非只继续加融合。Triton 语言以 blocked program 描述计算，CUDA 给出较显式的线程与同步控制；此处说的 Triton 是编译器项目，与同名的推理服务框架不是一回事。[[23]](#ref-23)
 
-TVM涉及图与算子程序及运行时，XLA是张量计算编译器，TensorRT面向NVIDIA推理部署，三者不是训练并行框架的同义词。[[27]](#ref-27)[[28]](#ref-28)[[29]](#ref-29) 图级做等价变换、常量折叠、死代码消除、布局协调与融合；算子级安排tiling、循环、线程与存储层级。局部最佳布局可能让相邻算子多出转置，需接受局部牺牲来减少全图搬运。浮点重排按明确误差而非文本相同验收。
+TVM涉及图与算子程序及运行时，XLA是张量计算编译器，TensorRT面向NVIDIA推理部署，三者不是训练并行框架的同义词。[[24]](#ref-24)[[25]](#ref-25)[[26]](#ref-26) 图级做等价变换、常量折叠、死代码消除、布局协调与融合；算子级安排tiling、循环、线程与存储层级。局部最佳布局可能让相邻算子多出转置，需接受局部牺牲来减少全图搬运。浮点重排按明确误差而非文本相同验收。
 
 动态图可捕获局部静态IR并做符号维或shape特化；图断裂、数据依赖分支和新形状可能回退或重编译。静态IR不等于全部尺寸固定，也不等于CUDA Graph的launch捕获。记录编译、预热、缓存命中和长尾形状成本，限制特化缓存，罕见shape走经过验证的通用路径。一次导出成功不能证明训练或Serving端到端更快。
 
-Nsight的Roofline用算术强度与带宽/计算上限帮助解释核的瓶颈。[[30]](#ref-30) 本书粗略模型为性能不超过min(峰值算力,带宽×FLOPs/字节)，但计数器须对应所用精度、访存层和真实指令。SM低且DRAM低也可能是launch、同步、CPU供给、小grid或依赖链；不能据此二分为“计算”或“显存”。先从时间线看空闲还是核内低效，再改batch、分块或融合检验假设，报告kernel和端到端两个层级。
+Nsight的Roofline用算术强度与带宽/计算上限帮助解释核的瓶颈。[[27]](#ref-27) 本书粗略模型为性能不超过min(峰值算力,带宽×FLOPs/字节)，但计数器须对应所用精度、访存层和真实指令。SM低且DRAM低也可能是launch、同步、CPU供给、小grid或依赖链；不能据此二分为“计算”或“显存”。先从时间线看空闲还是核内低效，再改batch、分块或融合检验假设，报告kernel和端到端两个层级。
 
 
 ### 编译工具比较：抽象层次与验收对象
 
-下表比较开发者控制的对象，描述依据维护方文档；验收要求为本书推导。[[23]](#ref-23)[[26]](#ref-26)[[27]](#ref-27)[[28]](#ref-28)[[29]](#ref-29)
+下表比较开发者控制的对象，描述依据维护方文档；验收要求为本书推导。[[22]](#ref-22)[[23]](#ref-23)[[24]](#ref-24)[[25]](#ref-25)[[26]](#ref-26)
 
 | 路线 | 主要控制对象与用途 | 比较时需要验证的代价 |
 | --- | --- | --- |
@@ -305,7 +281,7 @@ Nsight的Roofline用算术强度与带宽/计算上限帮助解释核的瓶颈�
 | XLA | 对张量计算图进行编译、优化与目标代码生成 | 可编译区域、动态控制流/shape、重编译与回退，连同首次编译时间 |
 | TensorRT | 针对 NVIDIA 推理进行网络优化、执行方案选择与 engine 构建 | 算子与精度支持、动态 shape 配置、插件维护、构建时间及部署兼容性 |
 
-以 `matmul → bias → activation` 为教学例，图级先识别数据依赖、消去无效节点，并决定是否融合及如何衔接布局；不能跨越有副作用或不满足语义的边界任意重排。算子级再选择分块、循环顺序、线程绑定和存储位置。TVM 的图与张量程序层、Pass 基础设施支持这种分层变换，具体入口随版本核对。[[27]](#ref-27)这里给出的是优化职责与执行次序，不是一段已经运行的 TVM 程序。
+以 `matmul → bias → activation` 为教学例，图级先识别数据依赖、消去无效节点，并决定是否融合及如何衔接布局；不能跨越有副作用或不满足语义的边界任意重排。算子级再选择分块、循环顺序、线程绑定和存储位置。TVM 的图与张量程序层、Pass 基础设施支持这种分层变换，具体入口随版本核对。[[24]](#ref-24)这里给出的是优化职责与执行次序，不是一段已经运行的 TVM 程序。
 
 ## 8.5 Checkpoint与恢复协议
 
@@ -329,7 +305,7 @@ Nsight的Roofline用算术强度与带宽/计算上限帮助解释核的瓶颈�
 
 常见故障包括 GPU Xid、节点重启、网络分区、NCCL hang、对象存储限流、文件系统不可写、容器驱逐、OOM、NaN 和数据 shard 损坏。单卡故障可能需要替换节点并重建 communicator；存储抖动可以退避重试；NaN 应停止并恢复健康点；rank 卡死需要 watchdog 和全局超时。不同故障必须有不同的 runbook，不能把“自动重启”当作统一方案。
 
-弹性恢复可以等待原节点、替换节点后保持 world size、缩小 world size 继续，或回滚并重新分配。改变 world size 可能改变 global batch、学习率、数据顺序和 optimizer 行为。平台应让恢复策略显式化，并在报告中记录丢失步数、重算 token、恢复耗时和最终质量差异。SRE 的错误预算思想可用于决定何时继续重试、何时停止作业并人工处理 [[31]](#ref-31)。
+弹性恢复可以等待原节点、替换节点后保持 world size、缩小 world size 继续，或回滚并重新分配。改变 world size 可能改变 global batch、学习率、数据顺序和 optimizer 行为。平台应让恢复策略显式化，并在报告中记录丢失步数、重算 token、恢复耗时和最终质量差异。SRE 的错误预算思想可用于决定何时继续重试、何时停止作业并人工处理 [[28]](#ref-28)。
 
 
 ### 训练状态与推理制品分离
@@ -359,7 +335,7 @@ Nsight的Roofline用算术强度与带宽/计算上限帮助解释核的瓶颈�
 
 ### 异步快照时间线与完整性发布
 
-PyTorch DCP2.9明确把staging目标定义为training-safe表示：staging完成后，后续参数更新不应改动被保存的表示；自定义stager若不自动同步，调用者负责选择正确同步点。[[32]](#ref-32) 这里区分设备拷贝完成与持久化完成，不能把Future存在当保存已提交。以下是本书通用协议设计，不是DDP自动具备的API行为：
+PyTorch DCP2.9明确把staging目标定义为training-safe表示：staging完成后，后续参数更新不应改动被保存的表示；自定义stager若不自动同步，调用者负责选择正确同步点。[[29]](#ref-29) 这里区分设备拷贝完成与持久化完成，不能把Future存在当保存已提交。以下是本书通用协议设计，不是DDP自动具备的API行为：
 
 | 时刻 | 训练/保存行为 | 可见事实与恢复选择 |
 |:---|:---|:---|
@@ -384,7 +360,7 @@ PyTorch DCP2.9明确把staging目标定义为training-safe表示：staging完成
 
 配额应同时按 GPU 数、GPU 小时、显存、优先级和项目预算表达。一个团队占用少量高端 GPU 训练很久，可能比另一个团队使用更多低端 GPU 更昂贵。成本系统要记录预约、实际使用、空闲等待、通信等待、恢复重算、评估和 checkpoint。按有效 token 和成功实验归因，才能比较不同团队的真实效率。
 
-多租户环境应隔离数据凭证、checkpoint 路径、日志、缓存和调试权限。训练 worker 只获得访问具体 manifest 和 shard 的短期凭证，不能拥有整个 bucket 的写权限；checkpoint 目录与原始数据隔离；样本抽样和错误日志默认脱敏。OpenTelemetry 与 Prometheus 可以提供统一的运行指标和追踪基础，但敏感数据是否记录仍需平台策略 [[11]](#ref-11)[[33]](#ref-33)[[34]](#ref-34)。
+多租户环境应隔离数据凭证、checkpoint 路径、日志、缓存和调试权限。训练 worker 只获得访问具体 manifest 和 shard 的短期凭证，不能拥有整个 bucket 的写权限；checkpoint 目录与原始数据隔离；样本抽样和错误日志默认脱敏。OpenTelemetry 与 Prometheus 可以提供统一的运行指标和追踪基础，但敏感数据是否记录仍需平台策略 [[11]](#ref-11)[[30]](#ref-30)[[31]](#ref-31)。
 
 ### 成本预算与容量计划
 
@@ -394,20 +370,30 @@ PyTorch DCP2.9明确把staging目标定义为training-safe表示：staging完成
 E(N) = throughput(N) / (N × throughput(1))
 ```
 
-当扩展效率随 GPU 数快速下降时，继续扩大集群可能比优化数据、kernel 或并行策略更贵。平台应把扩展曲线作为门禁，记录有效 token/s、通信比例、数据等待、峰值显存和节点故障恢复。PaLM 和 Megatron-LM 的规模化经验表明，训练规模越大，系统效率和故障管理越是模型质量的一部分 [[1]](#ref-1)[[17]](#ref-17)[[9]](#ref-9)。
+当扩展效率随 GPU 数快速下降时，继续扩大集群可能比优化数据、kernel 或并行策略更贵。平台应把扩展曲线作为门禁，记录有效 token/s、通信比例、数据等待、峰值显存和节点故障恢复。PaLM 和 Megatron-LM 的规模化经验表明，训练规模越大，系统效率和故障管理越是模型质量的一部分 [[1]](#ref-1)[[16]](#ref-16)[[9]](#ref-9)。
 
 
 ### 资源泄漏与作业清理
 
 训练作业失败后，常见残留包括 Kubernetes Pod、NCCL 进程、共享内存、Pinned Memory、对象存储临时目录、租约、GPU reservation 和告警。控制面应有终止流程：先发送取消事件，等待 worker 上报 checkpoint 或停止原因，再清理通信组、释放分配、关闭数据流、删除临时文件并写最终状态。清理流程需要超时和人工兜底，不能无限等待一个失联 worker。
 
-资源回收要幂等。重复执行清理不会删除其他 job 的路径，不会释放错误的 GPU，也不会覆盖成功的最终状态。临时目录命名必须包含不可猜测的 run_id 和版本；清理器根据 manifest 校验归属，而不是使用宽泛的通配符。Prometheus 可以监测 reservation 与实际 Pod 的差异，及时发现资源泄漏 [[33]](#ref-33)。
+资源回收要幂等。重复执行清理不会删除其他 job 的路径，不会释放错误的 GPU，也不会覆盖成功的最终状态。临时目录命名必须包含不可猜测的 run_id 和版本；清理器根据 manifest 校验归属，而不是使用宽泛的通配符。Prometheus 可以监测 reservation 与实际 Pod 的差异，及时发现资源泄漏 [[30]](#ref-30)。
 
 ### 训练与后训练的资源差异
 
 预训练通常以稳定的大 batch 和长时间运行换取高吞吐；监督微调和偏好优化的 batch 更小、序列长度更不稳定，评估和生成式 verifier 可能成为瓶颈。统一的训练平台可以复用控制面、数据 manifest 和 checkpoint，但应允许 workload profile 声明不同的资源需求。后训练不能直接套用预训练的扩展曲线，因为生成、采样、奖励模型和验证器会改变 GPU 与 CPU 的比例。
 
 例如 RLVR 训练可能需要并行生成多个候选，再执行 verifier；如果只给训练 worker 配 GPU，CPU verifier、队列和网络会成为隐性瓶颈。平台应把辅助模型、评估模型、tokenizer、验证器和数据服务纳入 job graph，统一记录版本与成本。否则看到的“训练吞吐”可能只是主模型 forward 速度，真实的每个有效样本成本却不断上升。
+
+可以把这种差异写成一张配比账本。设每个训练样本需要生成 \\(G\\) 个候选，每个候选平均生成 \\(T_o\\) 个 token，验证一次的平均代价折算为 \\(c_v\\) 个等价 token 的计算量。则每产生一个可用于策略更新的有效样本，需要付出的生成与验证代价约为：
+
+\\[
+C_{sample}\\approx G\\times(T_{in}+T_o)\\times c_g + G\\times c_v,
+\\]
+
+其中 \\(T_{in}\\) 是提示长度，\\(c_g\\) 是每 token 生成的相对代价。这个式子的用处不在于精确算出一个数字，而在于暴露两个容易被忽略的比例：**第一，生成代价随候选数 \\(G\\) 线性增长，而策略更新的收益通常低于线性**，所以组大小存在一个收益递减点；**第二，验证代价与生成代价的相对大小决定了该给 CPU 还是 GPU 加资源**。若 \\(c_v\\) 很小（例如只做答案比对），瓶颈仍在生成侧；若验证本身要跑测试、执行代码或调用另一个模型，\\(c_v\\) 可能接近甚至超过 \\(c_g\\)，此时给训练 worker 加卡并不会提高有效样本吞吐。
+
+这也是后训练不能直接套用预训练扩展曲线的原因。预训练里“加卡即加速”的经验来自计算密集、拓扑规整的矩阵运算；后训练的资源曲线取决于候选数、验证方式和数据混合的分布，往往在某个点之后表现为 CPU、队列或外部服务受限。平台应把生成服务、验证服务和数据服务纳入同一个 job graph，分别记录各自的 GPU 时间、CPU 时间、排队时间和失败重试，并按“每个被接受样本的成本”而不是“主模型 forward 吞吐”报告效率。
 
 ### 训练预算的动态控制
 
@@ -428,7 +414,7 @@ E(N) = throughput(N) / (N × throughput(1))
 
 训练指标包括 loss、学习率、梯度范数、有效 token、device token、GPU 利用率、显存、kernel 时间、通信、数据等待、checkpoint、恢复和节点健康。指标要按 rank、节点、数据桶和并行维度聚合，同时保留最大值和方差，避免平均值掩盖一个慢 rank。日志记录错误上下文，trace 连接控制面、数据服务、worker 和 checkpoint 服务。
 
-Dapper 的分布式追踪思想适合把训练控制面和数据面关联起来 [[34]](#ref-34)。训练 trace 不应默认记录完整样本和隐私文本，而应记录 manifest、shard、batch、step、request id、错误类型和 hash。OpenTelemetry 提供跨组件的语义约定，Prometheus 适合时间序列与告警；二者结合后，平台能从“GPU 下降”追到“某类 shard 解压变慢”或“某个 rank 通信抖动”。
+Dapper 的分布式追踪思想适合把训练控制面和数据面关联起来 [[31]](#ref-31)。训练 trace 不应默认记录完整样本和隐私文本，而应记录 manifest、shard、batch、step、request id、错误类型和 hash。OpenTelemetry 提供跨组件的语义约定，Prometheus 适合时间序列与告警；二者结合后，平台能从“GPU 下降”追到“某类 shard 解压变慢”或“某个 rank 通信抖动”。
 
 ### 验收矩阵
 
@@ -441,7 +427,7 @@ Dapper 的分布式追踪思想适合把训练控制面和数据面关联起来 
 
 训练平台至少要演练五类注入：杀死一个 rank、关闭一台节点、阻断集合通信、让对象存储返回超时、损坏一个 checkpoint shard。每次注入要记录检测时间、作业状态、用户可见影响、自动恢复、重算 token、恢复后的 loss 和资源释放。若系统只在单进程退出时能恢复，而一个 rank 卡死会让其他进程永久等待，那么它并不具备生产级弹性。
 
-故障注入不能只发生在非高峰环境。高峰期的队列、配额和发布动作会改变恢复路径。可以先在隔离资源池做小规模演练，再在生产影子作业验证指标与告警，最后安排可控的真实节点维护。本书结合SRE错误预算的决策方法 [[31]](#ref-31) 设计演练与停止条件，不把该书当特定训练平台已经恢复成功的证据。
+故障注入不能只发生在非高峰环境。高峰期的队列、配额和发布动作会改变恢复路径。可以先在隔离资源池做小规模演练，再在生产影子作业验证指标与告警，最后安排可控的真实节点维护。本书结合SRE错误预算的决策方法 [[28]](#ref-28) 设计演练与停止条件，不把该书当特定训练平台已经恢复成功的证据。
 
 ### 数据与模型治理
 
@@ -482,7 +468,7 @@ Dapper 的分布式追踪思想适合把训练控制面和数据面关联起来 
 
 ### NCCL timeout先找未到达的rank
 
-PyTorch分布式文档给出通信组与辅助诊断机制，NCCL也按拓扑、运行时与网络分层提供排障入口。[[35]](#ref-35)[[36]](#ref-36) 本书诊断流程从最早异常开始：关联所有rank的run/step、collective序号、组、shape、dtype与进入/退出时间，而非只读最后超时的节点。某rank先OOM、CUDA错误、进程退出或卡在数据读取，其他rank可能只是等待它而最后报timeout。
+PyTorch分布式文档给出通信组与辅助诊断机制，NCCL也按拓扑、运行时与网络分层提供排障入口。[[32]](#ref-32)[[33]](#ref-33) 本书诊断流程从最早异常开始：关联所有rank的run/step、collective序号、组、shape、dtype与进入/退出时间，而非只读最后超时的节点。某rank先OOM、CUDA错误、进程退出或卡在数据读取，其他rank可能只是等待它而最后报timeout。
 
 若同一collective序号的调用或张量不一致，检查条件分支、尾批、异常处理和组创建；若某rank在进入collective前长期数据等待，检查其shard、解压、NUMA和CPU；若顺序一致但特定链路反复慢，再查GPU/Xid、NIC/RDMA、拓扑与独立通信复现。监测用barrier也有后端与版本限制，不把它插到所有生产step里制造新等待。
 
@@ -533,30 +519,14 @@ PyTorch分布式文档给出通信组与辅助诊断机制，NCCL也按拓扑、
 
 一次训练结果至少需要能回答四个问题：使用了什么数据，执行了什么计算，经历了哪些故障，为什么可以发布。数据由 manifest、授权和统计回答；计算由 job spec、代码 hash、并行拓扑和运行时镜像回答；故障由事件、trace、重试和恢复记录回答；发布由评估报告、质量门禁和审批记录回答。把这些信息分散在聊天记录、机器本地日志和手工表格中，短期看似灵活，长期一定无法复盘。
 
-可审计不等于保存所有原始内容。审计记录可以使用带权限控制的hash（敏感低熵字段不能依赖裸hash匿名化）、版本号、长度、来源、权限和时间，敏感文本单独受控。关键事件使用追加式日志，修正通过新事件表达而不是覆盖旧记录。这样既能支持事故调查和合规审查，又不会把训练数据复制到每个监控系统。Dapper 的 trace 关联思想和 OpenTelemetry 的上下文传播可以帮助连接不同服务，但数据最小化仍然是平台责任 [[11]](#ref-11)[[34]](#ref-34)。
-
-### GPU与规约练习卡组（设计，未实现未实测）
-
-下面只规定配套项目的输入输出与验收；本章没有CUDA编译、Sanitizer运行或目标GPU性能结果。所有卡先与CPU/可靠库的高精度参考比较，再在明确硬件和同步口径下测速，不承诺超过成熟库。
-
-| 卡片 | 输入与输出 | 必测边界与不变量 |
-|:---|:---|:---|
-| GPU层级（Q253） | grid/block/线程形状→全局索引与逻辑映射图 | block不等同SM；尾线程覆盖、索引无重叠、资源驻留假设明确 |
-| Stream对照（Q254） | 计算/拷贝依赖与buffer→结果、event时间线 | 跨流依赖、pinned/普通内存、生命周期；未同步耗时不作性能结果 |
-| Shared正确性（Q255） | shape/stride与tile→参考和实际输出 | 非整数tile、短行、空维度、初始化、越界和同步参与一致 |
-| Bank分析（Q256） | 线程到地址/元素宽度→bank映射及访问计数假设 | 广播与不同地址冲突分开；性能冲突不当结果错误 |
-| Padding对照（Q257） | 32×32/32×33 float布局→同一转置结果与资源分析 | 元素类型/向量访问与尾片；共享空间、驻留度、全局合并访存同步比较 |
-| 全数组Reduce Sum（Q267） | 有限浮点数组→单个和 | 空输入为0、非二次幂、抵消误差；block partial后多级汇总，无默认跨block屏障 |
-| 行Reduce Sum（Q268） | 矩阵、行列、stride→每行和 | 零行不启动、零列输出0、单行长行/非连续；少行长列可分段再归约 |
-
-每卡交付配置、参考结果、断言、失败尺寸、误差阈值与测量状态。归约改变浮点求和顺序，不用单一绝对误差覆盖所有规模；非有限输入按预先约定拒绝或传播。涉及尾线程的同步不能因为越界提前return导致块内死锁。核心CUDA代码与完整构建在独立练习项目实现，卡片完成不等于手写能力或GPU实测完成。
+可审计不等于保存所有原始内容。审计记录可以使用带权限控制的hash（敏感低熵字段不能依赖裸hash匿名化）、版本号、长度、来源、权限和时间，敏感文本单独受控。关键事件使用追加式日志，修正通过新事件表达而不是覆盖旧记录。这样既能支持事故调查和合规审查，又不会把训练数据复制到每个监控系统。Dapper 的 trace 关联思想和 OpenTelemetry 的上下文传播可以帮助连接不同服务，但数据最小化仍然是平台责任 [[11]](#ref-11)[[31]](#ref-31)。
 
 
 ## 8.9 本章小结
 
 训练平台以有效监督、并行状态和完整恢复点为核心：数据manifest固定实际消费含义，rank mesh定义副本与分片，通信账本解释字节与等待，数值检查约束kernel优化，checkpoint在安全快照后才发布。性能和恢复必须同时验证，不能通过忽略数据、校验或失败时间制造吞吐提升。
 
-交给第9章的是通过转换、兼容和质量检查的Model Manifest，不是任意训练目录；交给第10章的是绑定数据与配置的评估记录；资源、trace与成本沿第7章契约关联。本章新增公式、诊断例和练习是教学设计，未经训练集群或GPU实测，不宣称目标规模能力。
+训练平台对外交付的是通过转换、兼容和质量检查的 Model Manifest，而不是任意训练目录；与之配套的还有绑定数据与配置的评估记录，以及沿同一资源账本关联的资源、trace 与成本事实。本章新增公式、诊断例与验收设计均为教学设计，未经训练集群或 GPU 实测，不宣称目标规模能力。
 
 ## 8.10 参考资料
 
@@ -582,52 +552,49 @@ PyTorch分布式文档给出通信组与辅助诊断机制，NCCL也按拓扑、
 
 <a id="ref-11"></a>[11] OpenTelemetry Authors. *Signals*. 在线文档，核验2026-10-17. https://opentelemetry.io/docs/concepts/signals/
 
-<a id="ref-12"></a>[12] 张阿斯顿、李沐等. 《动手学深度学习》：12.5多GPU训练. 中文在线2.0.0，核验2026-10-17. https://zh.d2l.ai/chapter_computational-performance/multiple-gpus.html
 
-<a id="ref-13"></a>[13] NVIDIA. *NCCL: Collective Operations*. 2.32.3文档，核验2026-10-17. https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/usage/collectives.html
+<a id="ref-12"></a>[12] NVIDIA. *NCCL: Collective Operations*. 2.32.3文档，核验2026-10-17. https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/usage/collectives.html
 
-<a id="ref-14"></a>[14] Rajbhandari, S., et al. *ZeRO-Infinity: Breaking the GPU Memory Wall for Extreme Scale Deep Learning*. SC, 2021. https://arxiv.org/abs/2104.07857 访问日期：2026-10-17
+<a id="ref-13"></a>[13] Rajbhandari, S., et al. *ZeRO-Infinity: Breaking the GPU Memory Wall for Extreme Scale Deep Learning*. SC, 2021. https://arxiv.org/abs/2104.07857 访问日期：2026-10-17
 
-<a id="ref-15"></a>[15] Lepikhin, D., et al. *GShard: Scaling Giant Models with Conditional Computation and Automatic Sharding*. 2020. https://arxiv.org/abs/2006.16668 核验日期：2026-10-17
+<a id="ref-14"></a>[14] Lepikhin, D., et al. *GShard: Scaling Giant Models with Conditional Computation and Automatic Sharding*. 2020. https://arxiv.org/abs/2006.16668 核验日期：2026-10-17
 
-<a id="ref-16"></a>[16] Fedus, W., et al. *Switch Transformers: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity*. JMLR, 2022. https://arxiv.org/abs/2101.03961 核验日期：2026-10-17
+<a id="ref-15"></a>[15] Fedus, W., et al. *Switch Transformers: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity*. JMLR, 2022. https://arxiv.org/abs/2101.03961 核验日期：2026-10-17
 
-<a id="ref-17"></a>[17] Narayanan, D., et al. *Efficient Large-Scale Language Model Training on GPU Clusters Using Megatron-LM*. arXiv, 2021. https://arxiv.org/abs/2104.04473 访问日期：2026-10-17
+<a id="ref-16"></a>[16] Narayanan, D., et al. *Efficient Large-Scale Language Model Training on GPU Clusters Using Megatron-LM*. arXiv, 2021. https://arxiv.org/abs/2104.04473 访问日期：2026-10-17
 
-<a id="ref-18"></a>[18] Korthikanti, V., et al.. *Reducing Activation Recomputation in Large Transformer Models*. 2022. https://arxiv.org/abs/2205.05198 核验日期：2026-10-17
+<a id="ref-17"></a>[17] Korthikanti, V., et al.. *Reducing Activation Recomputation in Large Transformer Models*. 2022. https://arxiv.org/abs/2205.05198 核验日期：2026-10-17
 
-<a id="ref-19"></a>[19] Liu, H., Zaharia, M., Abbeel, P.. *Ring Attention with Blockwise Transformers for Near-Infinite Context*. 2023. https://arxiv.org/abs/2310.01889 核验日期：2026-10-17
+<a id="ref-18"></a>[18] Liu, H., Zaharia, M., Abbeel, P.. *Ring Attention with Blockwise Transformers for Near-Infinite Context*. 2023. https://arxiv.org/abs/2310.01889 核验日期：2026-10-17
 
-<a id="ref-20"></a>[20] Dao, T., et al. *FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness*. NeurIPS, 2022. https://arxiv.org/abs/2205.14135 访问日期：2026-10-17
+<a id="ref-19"></a>[19] Dao, T., et al. *FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness*. NeurIPS, 2022. https://arxiv.org/abs/2205.14135 访问日期：2026-10-17
 
-<a id="ref-21"></a>[21] Dao, T. *FlashAttention-2: Faster Attention with Better Parallelism and Work Partitioning*. ICLR, 2024. https://arxiv.org/abs/2307.08691 访问日期：2026-10-17
+<a id="ref-20"></a>[20] Dao, T. *FlashAttention-2: Faster Attention with Better Parallelism and Work Partitioning*. ICLR, 2024. https://arxiv.org/abs/2307.08691 访问日期：2026-10-17
 
-<a id="ref-22"></a>[22] PyTorch. *torch.utils.checkpoint*. 2.9. https://docs.pytorch.org/docs/2.9/checkpoint.html 核验日期：2026-10-17
+<a id="ref-21"></a>[21] PyTorch. *torch.utils.checkpoint*. 2.9. https://docs.pytorch.org/docs/2.9/checkpoint.html 核验日期：2026-10-17
 
-<a id="ref-23"></a>[23] NVIDIA. *CUDA Programming Guide: Writing SIMT Kernels*. 2026-09-10. https://docs.nvidia.com/cuda/cuda-programming-guide/02-basics/writing-cuda-kernels.html 核验日期：2026-10-17
+<a id="ref-22"></a>[22] NVIDIA. *CUDA Programming Guide: Writing SIMT Kernels*. 2026-09-10. https://docs.nvidia.com/cuda/cuda-programming-guide/02-basics/writing-cuda-kernels.html 核验日期：2026-10-17
 
-<a id="ref-24"></a>[24] NVIDIA. *CUDA Programming Guide: Asynchronous Execution*. 2026-09-10. https://docs.nvidia.com/cuda/cuda-programming-guide/02-basics/asynchronous-execution.html 核验日期：2026-10-17
 
-<a id="ref-25"></a>[25] NVIDIA. *Compute Sanitizer User Manual*. [官方文档](https://docs.nvidia.com/compute-sanitizer/ComputeSanitizer/index.html)。核验日期：2026-10-18
 
-<a id="ref-26"></a>[26] Triton Contributors. *Triton Language Introduction*. https://triton-lang.org/main/programming-guide/chapter-1/introduction.html 核验日期：2026-10-18
+<a id="ref-23"></a>[23] Triton Contributors. *Triton Language Introduction*. https://triton-lang.org/main/programming-guide/chapter-1/introduction.html 核验日期：2026-10-18
 
-<a id="ref-27"></a>[27] Apache TVM. *Design and Architecture*. https://tvm.apache.org/docs/arch/index.html 核验日期：2026-10-18
+<a id="ref-24"></a>[24] Apache TVM. *Design and Architecture*. https://tvm.apache.org/docs/arch/index.html 核验日期：2026-10-18
 
-<a id="ref-28"></a>[28] OpenXLA. *XLA*. https://openxla.org/xla 核验日期：2026-10-18
+<a id="ref-25"></a>[25] OpenXLA. *XLA*. https://openxla.org/xla 核验日期：2026-10-18
 
-<a id="ref-29"></a>[29] NVIDIA. *TensorRT Architecture Overview*. https://docs.nvidia.com/deeplearning/tensorrt/latest/architecture/architecture-overview.html 核验日期：2026-10-18
+<a id="ref-26"></a>[26] NVIDIA. *TensorRT Architecture Overview*. https://docs.nvidia.com/deeplearning/tensorrt/latest/architecture/architecture-overview.html 核验日期：2026-10-18
 
-<a id="ref-30"></a>[30] NVIDIA. *Nsight Compute Profiling Guide*. online checked 2026-10-17. https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html 核验日期：2026-10-17
+<a id="ref-27"></a>[27] NVIDIA. *Nsight Compute Profiling Guide*. online checked 2026-10-17. https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html 核验日期：2026-10-17
 
-<a id="ref-31"></a>[31] Beyer, B., et al. *The Site Reliability Workbook: Implementing SLOs*. O’Reilly, 2018. https://sre.google/workbook/implementing-slos/ 核验日期：2026-10-17
+<a id="ref-28"></a>[28] Beyer, B., et al. *The Site Reliability Workbook: Implementing SLOs*. O’Reilly, 2018. https://sre.google/workbook/implementing-slos/ 核验日期：2026-10-17
 
-<a id="ref-32"></a>[32] PyTorch. *Distributed Checkpoint*. 2.9. https://docs.pytorch.org/docs/2.9/distributed.checkpoint.html 核验日期：2026-10-17
+<a id="ref-29"></a>[29] PyTorch. *Distributed Checkpoint*. 2.9. https://docs.pytorch.org/docs/2.9/distributed.checkpoint.html 核验日期：2026-10-17
 
-<a id="ref-33"></a>[33] Prometheus Authors. *Prometheus Documentation*. https://prometheus.io/docs/introduction/overview/ 访问日期：2026-10-17
+<a id="ref-30"></a>[30] Prometheus Authors. *Prometheus Documentation*. https://prometheus.io/docs/introduction/overview/ 访问日期：2026-10-17
 
-<a id="ref-34"></a>[34] Sigelman, B. H., et al. *Dapper, a Large-Scale Distributed Systems Tracing Infrastructure*. Google Research, 2010. https://research.google/pubs/dapper-a-large-scale-distributed-systems-tracing-infrastructure/ 访问日期：2026-10-17
+<a id="ref-31"></a>[31] Sigelman, B. H., et al. *Dapper, a Large-Scale Distributed Systems Tracing Infrastructure*. Google Research, 2010. https://research.google/pubs/dapper-a-large-scale-distributed-systems-tracing-infrastructure/ 访问日期：2026-10-17
 
-<a id="ref-35"></a>[35] PyTorch. *Distributed communication package*. 2.9文档. https://docs.pytorch.org/docs/2.9/distributed.html 核验日期：2026-10-17
+<a id="ref-32"></a>[32] PyTorch. *Distributed communication package*. 2.9文档. https://docs.pytorch.org/docs/2.9/distributed.html 核验日期：2026-10-17
 
-<a id="ref-36"></a>[36] NVIDIA. *NCCL Troubleshooting*. 2.32.3. https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/troubleshooting.html 核验日期：2026-10-17
+<a id="ref-33"></a>[33] NVIDIA. *NCCL Troubleshooting*. 2.32.3. https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/troubleshooting.html 核验日期：2026-10-17

@@ -22,7 +22,7 @@
 
 > 一次线上 Agent 失败，如何变成可定位的根因、可验证的调优，以及下一次发布前的门禁？
 
-本章与相邻章节的分工如下：[生产运营与治理控制](../part2/06-reliability-governance.md)讲 Infra 层的 SLO、错误预算、运营与灾备；[Agent Runtime](03-agent-runtime.md)统一讲持久执行、状态、恢复和副作用；第 15 章讲 Skill、Tool、MCP 与 Sandbox 如何暴露和隔离能力。本章聚焦质量与安全评估、线上证据、发布门禁和失败改进，执行状态与工具契约沿用前述章节的定义。
+本章与相邻章节的分工如下：[生产运营与治理控制](../part2/05-production-operations-governance.md)讲 Infra 层的 SLO、错误预算、运营与灾备；[Agent Runtime](03-agent-runtime.md)统一讲持久执行、状态、恢复和副作用；第 15 章讲 Skill、Tool、MCP 与 Sandbox 如何暴露和隔离能力。本章聚焦质量与安全评估、线上证据、发布门禁和失败改进，执行状态与工具契约沿用前述章节的定义。
 
 ```text
 Production Run

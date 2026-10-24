@@ -4101,7 +4101,7 @@ AGENT_REQUIRED_VERIFICATION(mdbook_build, hexo_build)
 
 教学链：旧文件F1→Memory M1“测试已通过”→摘要S1→计划P1“可以发布”。当前文件变为F2且测试失败后，先禁用M1的当前召回，再按来源血缘找到S1/P1及其他派生条目，标stale/retracted并撤销未执行的发布提案；回读F2和真实测试结果生成M2，记录supersedes=M1与原因，重新核验相关产物。保留受控历史用于解释“当时如何判断”，不能让旧记录重新参与当前决策。
 
-若P1已经执行，记忆撤回不撤销外部副作用；按[Agent Runtime](03-agent-runtime.md#delivery-idempotency)查询Operation并在授权内修复/补偿。用户撤回地址只影响记忆有效性，不自动修改账户资料。删除范围覆盖索引、派生摘要、缓存、导出和备份恢复后的删除水位，具体保留/例外由[第11章](../part2/06-reliability-governance.md)负责，不承诺即时物理擦除或模型遗忘。
+若P1已经执行，记忆撤回不撤销外部副作用；按[Agent Runtime](03-agent-runtime.md#delivery-idempotency)查询Operation并在授权内修复/补偿。用户撤回地址只影响记忆有效性，不自动修改账户资料。删除范围覆盖索引、派生摘要、缓存、导出和备份恢复后的删除水位，具体保留/例外由[第11章](../part2/05-production-operations-governance.md)负责，不承诺即时物理擦除或模型遗忘。
 
 ### 小模型压缩器的独立评测
 

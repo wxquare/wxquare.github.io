@@ -21,7 +21,7 @@
 - [第8章 训练平台与数据管线](part2/02-training.md)
 - [第9章 推理服务与资源调度](part2/03-inference.md)
 - [第10章 评估与反馈闭环](part2/04-data-eval.md)
-- [第11章 生产运营与治理控制](part2/06-reliability-governance.md)
+- [第11章 生产运营与治理控制](part2/05-production-operations-governance.md)
 
 ---
 

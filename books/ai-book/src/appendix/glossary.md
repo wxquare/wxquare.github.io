@@ -50,7 +50,7 @@
 | Sliding Window / Loop Detection / Early Stopping | 保留近期材料 / 按状态与观察检测空转 / 按预算、质量或停止条件结束 | [第13章](../part3/02-context-engineering.md)、[Agent Runtime](../part3/03-agent-runtime.md#execution-loop) |
 | Fingerprint | 为内容、状态或请求构造的识别值；去重范围、碰撞和版本规则需定义，不天然代表同一业务操作 | [Agent Runtime](../part3/03-agent-runtime.md#delivery-idempotency) |
 | Hallucination / Guardrail / Observability | 缺少事实支持的生成 / 模型外可执行约束 / 通过事件与信号复盘系统行为 | [第16章](../part3/05-agent-governance-optimization.md) |
-| MTTR / SLO / SOP | 恢复时间指标（须定义起止）/ 服务目标 / 标准操作流程 | [第11章](../part2/06-reliability-governance.md) |
+| MTTR / SLO / SOP | 恢复时间指标（须定义起止）/ 服务目标 / 标准操作流程 | [第11章](../part2/05-production-operations-governance.md) |
 | Backlink / 知识编译 / Vector Database | 反向引用 / 将材料变成有来源的可用知识 / 向量索引与检索存储；均不代替原始事实源 | [第13章](../part3/02-context-engineering.md#knowledge) |
 | Spec Coding / Vibe Coding | 以规格验收驱动的协作 / 快速对话试探的工作方式；两者都需要版本、测试与授权 | [第17章](../part4/01-coding-agent-systems.md) |
 | 多 Agent / 分级决策 / 混合架构 | 职责可分的多个执行主体 / 按风险选择控制方式 / 确定性流程与开放推理组合 | [第14章](../part3/03-agent-runtime.md#multi-agent)、[第16章](../part3/05-agent-governance-optimization.md) |

@@ -16,7 +16,7 @@
 | 构建知识助手 | [第13章](../part3/02-context-engineering.md#knowledge) | — | 任务协议、知识检索、证据组织和上下文边界 |
 | 理解 Coding 系统 | [第17章](../part4/01-coding-agent-systems.md) | [第18章 Pi](../part4/02-pi-agent-architecture.md) | 共通执行闭环、产品实现差异、开源范围与独立验证 |
 | 观察长期助手 | [第20章 Hermes](../part4/04-hermes-agent-architecture.md) | [第19章 OpenClaw](../part4/03-openclaw-architecture.md) | 身份、会话、记忆、投递与业务副作用分别取证 |
-| 形成质量与发布闭环 | [第10章](../part2/04-data-eval.md) | [第11章](../part2/06-reliability-governance.md)、[第16章](../part3/05-agent-governance-optimization.md) | 固定评估集、Judge 校准、回归、成本及回滚证据 |
+| 形成质量与发布闭环 | [第10章](../part2/04-data-eval.md) | [第11章](../part2/05-production-operations-governance.md)、[第16章](../part3/05-agent-governance-optimization.md) | 固定评估集、Judge 校准、回归、成本及回滚证据 |
 | 阅读研究报告 | [第21章](../part5/01-agent-frontier-research.md) | 沿其参考资料回到对应论文版本、任务和评测协议 | 历史结果、研究提案、公开实现与实测结论的区别 |
 
 ## 章末练习入口
