@@ -20,7 +20,7 @@
 - [第7章 AI Infra 全景](part2/01-ai-infra-overview.md)
 - [第8章 训练平台与数据管线](part2/02-training.md)
 - [第9章 推理服务与资源调度](part2/03-inference.md)
-- [第10章 评估与反馈闭环](part2/04-data-eval.md)
+- [第10章 数据与评估平台：从数据产品到反馈闭环](part2/04-data-eval.md)
 - [第11章 生产运营与治理控制](part2/05-production-operations-governance.md)
 
 ---
@@ -56,3 +56,4 @@
 - [附录A 术语与符号速查](appendix/glossary.md)
 - [附录B 学习路径与延伸阅读](appendix/references.md)
 - [附录C 工具、框架与版本导航](appendix/tools.md)
+- [附录D 评估统计复算](appendix/evaluation-statistics.md)

@@ -23,6 +23,25 @@
 | OpenClaw | Gateway、自有 Runtime、工具和会话历史 | 提交 `62cb03ac7a95f4b9cb435f8efc57f4034ba2649b`；2026-10-18 | [固定源码](https://github.com/openclaw/openclaw/tree/62cb03ac7a95f4b9cb435f8efc57f4034ba2649b)；[OpenClaw 系统](../part4/03-openclaw-architecture.md) | 活动历史与旧 JSONL 区分；profile 不自动提供隔离 |
 | Hermes | 入口、Memory、Skill、delegate 与限定投递记录 | 提交 `18c525b669b6ea4ba62e6967d228af21d89aa9d3`；2026-10-18 | [固定源码](https://github.com/NousResearch/hermes-agent/tree/18c525b669b6ea4ba62e6967d228af21d89aa9d3)；[Hermes Agent 系统](../part4/04-hermes-agent-architecture.md) | 特定 Gateway 投递 ledger 不证明任意业务 Outbox/Checkpoint/补偿；教学扩展单列 |
 
+## AI Infra 组件状态表
+
+本表服务第 7 章的分层地图。状态只表示 2026-10-25 打开官方页面时可观察到的事实，不承诺未来维护；许可证以仓库 LICENSE 为准，正式引入时必须锁定 release 或 commit 并再次核对依赖许可证。
+
+| 组件 | 角色 | 版本/提交口径 | 许可证 | 维护状态 | 硬件/模型限制 | 原始来源 | 证据类型 |
+|:---|:---|:---|:---|:---|:---|:---|:---|
+| PyTorch FSDP | 训练参数、梯度和优化器状态分片 | 2.9 文档 | BSD-3-Clause | 官方文档可访问 | 后端、拓扑和预取策略需实测 | [FSDP 论文](https://arxiv.org/abs/2304.11277) | 论文+官方文档 |
+| DeepSpeed | ZeRO、pipeline 与训练运行时 | 滚动仓库；引入时锁 commit | Apache-2.0 | 仓库可访问 | offload、并行组合和硬件收益需实测 | [DeepSpeed](https://github.com/microsoft/DeepSpeed) | 官方仓库 |
+| Megatron-LM | 大模型张量/流水线/数据并行 | 滚动仓库；引入时锁 commit | 仓库 LICENSE | 仓库可访问 | 模型结构、拓扑和 checkpoint 格式需核验 | [Megatron-LM](https://github.com/NVIDIA/Megatron-LM) | 论文+官方仓库 |
+| NCCL | GPU collective 通信 | 2.32.3 文档 | BSD-3-Clause | 官方文档可访问 | CUDA、GPU、网络与拓扑组合需核验 | [Collectives](https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/usage/collectives.html) | 官方版本化文档 |
+| vLLM | 推理执行、continuous batching 与 KV 管理 | 滚动仓库；引入时锁 release | Apache-2.0 | 仓库可访问 | 模型、量化、GPU 与 shape 支持按 release 核对 | [vLLM](https://github.com/vllm-project/vllm) | 论文+官方仓库 |
+| TGI | 推理服务实现参考 | 核验日 README/仓库元数据 | Apache-2.0 | README 表述为维护模式；不等同归档 | 后续功能、模型与硬件支持按固定 revision 核对 | [TGI](https://github.com/huggingface/text-generation-inference) | 官方仓库 |
+| Triton Inference Server | 模型仓库与实例生命周期 | 滚动官方文档 | BSD-3-Clause | 官方文档可访问 | 后端能力和模型支持分别核验 | [Model Management](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/model_management.html) | 官方文档 |
+| FlashAttention | IO-aware attention kernel | 论文与仓库版本分别锁定 | BSD-3-Clause | 论文/仓库可访问 | GPU 代际、dtype、head dim 和 mask 支持按 release 核对 | [FlashAttention](https://github.com/Dao-AILab/flash-attention) | 论文+官方仓库 |
+| DeepEP | MoE dispatch/combine 通信库 | 2026-10-25 仓库所见；锁 commit 后使用 | 仓库 LICENSE | 仓库可访问 | 硬件、NVSHMEM/网络和 API 边界按固定 commit 核对 | [DeepEP](https://github.com/deepseek-ai/DeepEP) | 官方仓库 |
+| FlashMLA | MLA decode/prefill kernel | 2026-10-25 仓库所见；锁 commit 后使用 | 仓库 LICENSE | 仓库可访问 | 支持矩阵版本敏感，不在正文承诺永久硬件范围 | [FlashMLA](https://github.com/deepseek-ai/FlashMLA) | 官方仓库 |
+| 3FS | 训练读取、checkpoint 与缓存存储 | 2026-10-25 仓库所见；锁 commit 后使用 | 仓库 LICENSE | 仓库可访问 | 部署拓扑、一致性和容量需独立验证 | [3FS](https://github.com/deepseek-ai/3FS) | 论文/README+官方仓库 |
+| smallpond | 3FS 上的数据处理框架 | 2026-10-25 仓库所见；锁 commit 后使用 | 仓库 LICENSE | 仓库可访问 | 依赖 3FS 的部署与数据算子覆盖需核验 | [smallpond](https://github.com/deepseek-ai/smallpond) | 官方仓库 |
+
 ## 其他候选入口
 
 以下承接原工具清单，**仅保留检索入口，没有在本批核验版本和功能支持**。各行版本、核验日期和兼容状态统一为未知；不得把分类当作配置建议、许可证结论或性能推荐。

@@ -69,7 +69,7 @@ AI 工程实践里最容易踩的坑，不只是模型输出不稳定，也包�
 | 第7章 | [AI Infra 全景](part2/01-ai-infra-overview.md) | 建立从算法结果到可运行平台的资源、生命周期和验收边界。 |
 | 第8章 | [训练平台与数据管线](part2/02-training.md) | 说明数据供给、并行训练、通信、恢复和训练制品如何形成闭环。 |
 | 第9章 | [推理服务与资源调度](part2/03-inference.md) | 解释在线推理的请求调度、KV 管理、模型并行、容量和发布。 |
-| 第10章 | [评估与反馈闭环](part2/04-data-eval.md) | 建立数据版本、评估、线上反馈和质量门禁的证据链。 |
+| 第10章 | [数据与评估平台：从数据产品到反馈闭环](part2/04-data-eval.md) | 建立数据版本、评估、线上反馈和质量门禁的证据链。 |
 | 第11章 | [生产运营与治理控制](part2/05-production-operations-governance.md) | 连接 SLO、观测、成本、安全、供应链、发布和灾备。 |
 
 ### 第三部分：Agent 系统工程
@@ -106,7 +106,7 @@ AI 工程实践里最容易踩的坑，不只是模型输出不稳定，也包�
 
 ### 附录
 
-附录只保留 [A：术语与符号速查](appendix/glossary.md)、[B：学习路径与延伸阅读](appendix/references.md)、[C：工具、框架与版本导航](appendix/tools.md)。章末练习由附录 B 提供短链接，论点来源以各章末参考资料为准。
+附录包括 [A：术语与符号速查](appendix/glossary.md)、[B：学习路径与延伸阅读](appendix/references.md)、[C：工具、框架与版本导航](appendix/tools.md)和 [D：评估统计复算](appendix/evaluation-statistics.md)。章末练习由附录 B 提供短链接，论点来源以各章末参考资料为准；第 10 章完整统计代码集中在附录 D。
 
 ## 贯穿案例与练习的阅读方式
 

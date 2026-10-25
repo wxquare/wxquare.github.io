@@ -18,7 +18,7 @@
 | Tool Calling / Skill / MCP | 分别是结构化行动请求、可复用方法上下文、能力连接协议；实际执行、权限和审计由 Runtime 承担 | [Agent 工具系统工程](../part3/04-skills-tools-mcp-connectors.md) |
 | MCP / A2A | 本书 MCP 主体按 2025-11-25，连接工具、资源和提示；A2A 按 v0.3.0，描述独立 Agent 的任务/消息/产物协作。自建 mailbox 不自动兼容 A2A | [Agent 工具系统工程](../part3/04-skills-tools-mcp-connectors.md) |
 | Triton 语言 / Triton Inference Server | 前者用于编写 GPU 计算程序；后者负责模型服务与模型管理，二者不是同一层的软件 | [训练平台与数据管线](../part2/02-training.md)、[推理服务与资源调度](../part2/03-inference.md) |
-| Model Manifest / Eval Case | 前者绑定模型、模板、格式与执行兼容条件；后者绑定输入、预期、不变量和版本化评估配置 | [AI Infra 全景](../part2/01-ai-infra-overview.md)、[评估与反馈闭环](../part2/04-data-eval.md) |
+| Model Manifest / Eval Case | 前者绑定模型、模板、格式与执行兼容条件；后者绑定输入、预期、不变量和版本化评估配置 | [AI Infra 全景](../part2/01-ai-infra-overview.md)、[数据与评估平台](../part2/04-data-eval.md) |
 
 ## 模型计算符号
 
