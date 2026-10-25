@@ -43,10 +43,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-509a0440.js";
+            window.path_to_searchindex_js = "../searchindex-4e1be50c.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-77deff2b.js"></script>
+        <script src="../toc-c6967e45.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -263,7 +263,7 @@
 <p>在各rank微批大小相同且无不齐尾批时，样本global batch=每rank micro-batch×DP度×梯度累积步数；packing下还需单独统计loss token，不能把样本公式直接当token批量。改变任何一个因素都可能改变优化轨迹。平台必须记录真实的 global batch 和每步有效 token，而不是只记录 dataloader batch size。NCCL 的 all-reduce 适合梯度聚合，但通信是否能与 backward 重叠，取决于 bucket 大小、梯度 ready 顺序和拓扑 <a href="#ref-12">[12]</a>。</p>
 <h3 id="张量并行与流水线并行"><a class="header" href="#张量并行与流水线并行">张量并行与流水线并行</a></h3>
 <p>张量并行把单个线性层或 attention 的矩阵切到多个 GPU，单层计算需要 collective 通信。它适合高速互联的同机 GPU，tensor parallel degree 通常受 NVLink、PCIe 和显存约束。Megatron-LM 通过对 Transformer 层做模型并行，使单卡无法容纳的模型能够训练 <a href="#ref-1">[1]</a>。但 TP 越大，每个 token 的通信次数和同步敏感性也越高。</p>
-<p>流水线并行把不同层放到不同 stage，输入 micro-batch 依次通过 stage。它减少单卡参数占用，却产生 pipeline bubble、调度复杂度和 stage 不均衡。非交错1F1B主要改变激活驻留和调度；不能仅凭名称保证比其他同类流水线调度具有更少bubble。最长stage仍可能限制全局吞吐。层划分应考虑参数、激活、通信和 kernel 时间，而不是简单平均层数。若某些层因 MoE 或视觉模块更重，静态平均会造成严重 straggler。</p>
+<p>流水线并行把不同层放到不同 stage，输入 micro-batch 依次通过 stage。它减少单卡参数占用，却产生 pipeline bubble、调度复杂度和 stage 不均衡。在各 stage 均衡、忽略通信、每个 micro-batch 的前后向耗时一致的教学模型中，令 stage 数为 \(p\)、micro-batch 数为 \(m\)，填充与排空造成的 bubble 比例为 \((p-1)/(m+p-1)\)；例如 \(p=4,m=16\) 时为 \(3/19\)。GPipe 与非交错 1F1B 的 bubble 可以同阶，主要差异之一是激活驻留时间；交错调度在特定虚拟 stage 模型下可把 bubble 再缩小约 \(1/v\)，不能写成任意实现的保证。最长 stage 仍限制全局吞吐，层划分要同时考虑参数、激活、通信和 kernel 时间。</p>
 <h3 id="zero-与-fsdp"><a class="header" href="#zero-与-fsdp">ZeRO 与 FSDP</a></h3>
 <p>ZeRO 逐步分片 optimizer state、gradient 和 parameter，减少每个 rank 的冗余；FSDP 在 PyTorch 中以参数分片、all-gather 和 reduce-scatter 实现类似目标 <a href="#ref-2">[2]</a><a href="#ref-4">[4]</a>。分片让模型能在更少的显存中训练，却把参数获取和释放加入了关键路径。正确选择需要测量通信与计算重叠、参数 prefetch、CPU offload 和 activation checkpoint 的组合。</p>
 <p>ZeRO-Infinity 进一步利用 CPU 和 NVMe 扩展可用内存 <a href="#ref-13">[13]</a>。卸载能解决容量问题，但 PCIe、NVMe 和网络带宽可能使 step 时间显著增加。平台不能把“能启动”当作成功，而应比较每百万有效 token 的成本、恢复时间和尾部抖动。对低利用率实验，offload 可能比增加 GPU 更经济；对大规模生产训练，它可能成为不可接受的同步瓶颈。</p>
@@ -338,7 +338,7 @@
 <p>分布式低精度训练中，硬件、归约顺序、kernel、通信算法和随机数都会影响最后几位。平台需要区分严格位级复现、统计复现和语义复现。严格复现可能限制并行和性能；统计复现关注 loss 与主要评估指标在容差内；语义复现关注模型能力和安全指标不发生不可接受变化。job spec 应明确目标等级，而不是笼统写“可复现”。</p>
 <p>复现报告包含相同的代码、数据、tokenizer、seed、并行度、dtype、硬件和运行时。如果硬件不同，应说明差异并进行多次重复实验，报告均值和方差。不要把一次结果的微小差异当作故障，也不要用随机性解释明显的 loss 跳变。数据顺序、checkpoint 恢复和编译缓存都应在排查清单中。</p>
 <h3 id="online-softmax与io优化的数学边界"><a class="header" href="#online-softmax与io优化的数学边界">Online Softmax与IO优化的数学边界</a></h3>
-<p>缩放注意力的定义已在前文给出；这里补上分块计算如何保持归一化。对已处理键块保存行最大值m、指数和l、未归一化加权值和u；新块分数\(s_j\)与值\(v_j\)到达时，设 \(m’=\max(m,\max_js_j)\)，再令 \(l’=e^{m-m’}l+\sum_j e^{s_j-m’}\)，\(u’=e^{m-m’}u+\sum_j e^{s_j-m’}v_j\)。所有块处理完返回u/l。新最大值变化时，旧l和u都要重缩放，不能只拼接各块已经归一化的概率。<a href="#ref-19">[19]</a></p>
+<p>缩放注意力的定义已在前文给出；分块计算需要在每次接收新块时保持全局归一化。对已处理键块保存行最大值m、指数和l、未归一化加权值和u；新块分数\(s_j\)与值\(v_j\)到达时，设 \(m’=\max(m,\max_js_j)\)，再令 \(l’=e^{m-m’}l+\sum_j e^{s_j-m’}\)，\(u’=e^{m-m’}u+\sum_j e^{s_j-m’}v_j\)。所有块处理完返回u/l。新最大值变化时，旧l和u都要重缩放，不能只拼接各块已经归一化的概率。<a href="#ref-19">[19]</a></p>
 <p>初始化用“尚无有效键”的分支处理，避免负无穷减负无穷；全mask有效查询行按契约报错或返回约定值，不能产生伪均匀分布。FlashAttention减少HBM中间读写，标准全注意力计算量仍是序列二次阶；数学目标一致不表示浮点逐位相同。FA2进一步改工作划分和并行，收益依形状、硬件与mask支持而变。<a href="#ref-20">[20]</a> 对照高精度结果、极值、短行/长行、尾块与梯度，才能接受新核。</p>
 <h3 id="融合编译与瓶颈的受控实验"><a class="header" href="#融合编译与瓶颈的受控实验">融合、编译与瓶颈的受控实验</a></h3>
 <p>融合常减少launch和中间HBM读写，却可能增加寄存器、spill、共享内存和同步，破坏独立库核的tile或Tensor Core路径。回退时先固定形状、dtype、预热、计时同步与数据，再比寄存器、local spill、占用、访存合并和kernel时间；缩小融合范围也应作为候选，而非只继续加融合。Triton 语言以 blocked program 描述计算，CUDA 给出较显式的线程与同步控制；此处说的 Triton 是编译器项目，与同名的推理服务框架不是一回事。<a href="#ref-23">[23]</a></p>
@@ -370,6 +370,7 @@
 <p>完成标记应包含 world size、TP、PP、DP、EP、dtype、模型 schema、数据 manifest hash、tokenizer hash 和 global step。恢复后要执行小 batch forward、loss sanity check、参数统计和数据可读性检查。校验和只能证明字节完整，不能证明参数、优化器和数据游标的语义对应。</p>
 <h3 id="保存频率与丢失工作量"><a class="header" href="#保存频率与丢失工作量">保存频率与丢失工作量</a></h3>
 <p>保存越频繁，故障后丢失的训练工作越少，但 I/O 和同步开销越高。可以根据故障率、恢复时间、checkpoint 成本和 GPU 单价估计总成本。大规模训练还要区分可恢复 checkpoint、评估 checkpoint 和发布 checkpoint：可恢复点追求快速重启，评估点需要质量报告，发布点需要转换、签名和兼容性检查。不要用发布制品替代高频恢复点。</p>
+<p>Young 的一阶近似把阻塞保存开销与故障后的期望丢失工作放在同一量纲：若一次一致快照造成的阻塞时间为 \(C\)，平均无故障时间为 \(MTBF\)，推荐间隔近似 \(\tau^*\approx\sqrt{2C\cdot MTBF}\)。教学输入 \(C=60\) 秒、\(MTBF=86400\) 秒得到约 3219.94 秒。这里的 \(C\) 不是后台异步写盘的总持续时间，而是训练关键路径实际停止的时间；恢复耗时、非指数故障、并发失败或快照完成延迟明显时，应使用 Daly 等修正并重新估计，不能把一阶式当生产最优值。</p>
 <p>异步 checkpoint 可以让训练继续计算，但需要处理内存快照、写入期间的状态一致性和 GPU/CPU 拷贝。若 checkpoint 线程读取正在变化的 optimizer state，得到的可能是跨 step 混合状态。安全做法是使用冻结的 state snapshot、copy-on-write 或在逻辑 step 边界建立一致快照。异步并不意味着可以取消一致性约束。</p>
 <h3 id="故障分类与恢复策略"><a class="header" href="#故障分类与恢复策略">故障分类与恢复策略</a></h3>
 <p>常见故障包括 GPU Xid、节点重启、网络分区、NCCL hang、对象存储限流、文件系统不可写、容器驱逐、OOM、NaN 和数据 shard 损坏。单卡故障可能需要替换节点并重建 communicator；存储抖动可以退避重试；NaN 应停止并恢复健康点；rank 卡死需要 watchdog 和全局超时。不同故障必须有不同的 runbook，不能把“自动重启”当作统一方案。</p>
@@ -411,21 +412,21 @@
 <p>配额应同时按 GPU 数、GPU 小时、显存、优先级和项目预算表达。一个团队占用少量高端 GPU 训练很久，可能比另一个团队使用更多低端 GPU 更昂贵。成本系统要记录预约、实际使用、空闲等待、通信等待、恢复重算、评估和 checkpoint。按有效 token 和成功实验归因，才能比较不同团队的真实效率。</p>
 <p>多租户环境应隔离数据凭证、checkpoint 路径、日志、缓存和调试权限。训练 worker 只获得访问具体 manifest 和 shard 的短期凭证，不能拥有整个 bucket 的写权限；checkpoint 目录与原始数据隔离；样本抽样和错误日志默认脱敏。OpenTelemetry 与 Prometheus 可以提供统一的运行指标和追踪基础，但敏感数据是否记录仍需平台策略 <a href="#ref-11">[11]</a><a href="#ref-30">[30]</a><a href="#ref-31">[31]</a>。</p>
 <h3 id="成本预算与容量计划"><a class="header" href="#成本预算与容量计划">成本预算与容量计划</a></h3>
-<p>训练计划应在启动前估算 token、step、GPU 小时、checkpoint 次数、评估次数和重试余量。理想扩展效率公式为：</p>
-<pre><code class="language-text">E(N) = throughput(N) / (N × throughput(1))
+<p>训练计划应在启动前估算 token、step、GPU 小时、checkpoint 次数、评估次数和重试余量。单卡往往无法运行目标模型，因此扩展效率以最小可运行规模 \(N_0\) 为基线：</p>
+<pre><code class="language-text">E(N) = [throughput(N) / N] / [throughput(N₀) / N₀]
 </code></pre>
-<p>当扩展效率随 GPU 数快速下降时，继续扩大集群可能比优化数据、kernel 或并行策略更贵。平台应把扩展曲线作为门禁，记录有效 token/s、通信比例、数据等待、峰值显存和节点故障恢复。PaLM 和 Megatron-LM 的规模化经验表明，训练规模越大，系统效率和故障管理越是模型质量的一部分 <a href="#ref-1">[1]</a><a href="#ref-16">[16]</a><a href="#ref-9">[9]</a>。</p>
+<p>例如 \(N_0=8\) 时吞吐为 100，\(N=16\) 时吞吐为 180，则 \(E(16)=(180/16)/(100/8)=0.9\)。只有模型、global batch、序列长度、精度、数据配方和硬件可比时，这个比值才表示扩展损失；改变工作负载后应并列报告，不能直接归因于通信。当扩展效率快速下降时，继续扩大集群可能比优化数据、kernel 或并行策略更贵。平台把扩展曲线作为门禁，记录有效 token/s、通信比例、数据等待、峰值显存和节点故障恢复。<a href="#ref-1">[1]</a><a href="#ref-16">[16]</a><a href="#ref-9">[9]</a></p>
 <h3 id="资源泄漏与作业清理"><a class="header" href="#资源泄漏与作业清理">资源泄漏与作业清理</a></h3>
 <p>训练作业失败后，常见残留包括 Kubernetes Pod、NCCL 进程、共享内存、Pinned Memory、对象存储临时目录、租约、GPU reservation 和告警。控制面应有终止流程：先发送取消事件，等待 worker 上报 checkpoint 或停止原因，再清理通信组、释放分配、关闭数据流、删除临时文件并写最终状态。清理流程需要超时和人工兜底，不能无限等待一个失联 worker。</p>
 <p>资源回收要幂等。重复执行清理不会删除其他 job 的路径，不会释放错误的 GPU，也不会覆盖成功的最终状态。临时目录命名必须包含不可猜测的 run_id 和版本；清理器根据 manifest 校验归属，而不是使用宽泛的通配符。Prometheus 可以监测 reservation 与实际 Pod 的差异，及时发现资源泄漏 <a href="#ref-30">[30]</a>。</p>
 <h3 id="训练与后训练的资源差异"><a class="header" href="#训练与后训练的资源差异">训练与后训练的资源差异</a></h3>
 <p>预训练通常以稳定的大 batch 和长时间运行换取高吞吐；监督微调和偏好优化的 batch 更小、序列长度更不稳定，评估和生成式 verifier 可能成为瓶颈。统一的训练平台可以复用控制面、数据 manifest 和 checkpoint，但应允许 workload profile 声明不同的资源需求。后训练不能直接套用预训练的扩展曲线，因为生成、采样、奖励模型和验证器会改变 GPU 与 CPU 的比例。</p>
 <p>例如 RLVR 训练可能需要并行生成多个候选，再执行 verifier；如果只给训练 worker 配 GPU，CPU verifier、队列和网络会成为隐性瓶颈。平台应把辅助模型、评估模型、tokenizer、验证器和数据服务纳入 job graph，统一记录版本与成本。否则看到的“训练吞吐”可能只是主模型 forward 速度，真实的每个有效样本成本却不断上升。</p>
-<p>可以把这种差异写成一张配比账本。设每个训练样本需要生成 \(G\) 个候选，每个候选平均生成 \(T_o\) 个 token，验证一次的平均代价折算为 \(c_v\) 个等价 token 的计算量。则每产生一个可用于策略更新的有效样本，需要付出的生成与验证代价约为：</p>
+<p>可以把这种差异写成一张 prompt group 账本。设每组生成 \(G\) 个候选，提示长 \(T_{in}\)，每个候选平均生成 \(T_o\) 个 token；prefill 和 decode 的单位代价分别为 \(c_p,c_d\)，单候选验证代价为 \(c_v\)，同步与编排代价为 \(C_{sync}\)。令 \(s\in[1,G]\) 表示实际发生的等效 prefill 次数：理想共享为 1，完全不共享为 \(G\)。则：</p>
 <p>\[
-C_{sample}\approx G\times(T_{in}+T_o)\times c_g + G\times c_v,
+C_{group}=s\times T_{in}\times c_p+G\times T_o\times c_d+G\times c_v+C_{sync}.
 \]</p>
-<p>其中 \(T_{in}\) 是提示长度，\(c_g\) 是每 token 生成的相对代价。这个式子的用处不在于精确算出一个数字，而在于暴露两个容易被忽略的比例：<strong>第一，生成代价随候选数 \(G\) 线性增长，而策略更新的收益通常低于线性</strong>，所以组大小存在一个收益递减点；<strong>第二，验证代价与生成代价的相对大小决定了该给 CPU 还是 GPU 加资源</strong>。若 \(c_v\) 很小（例如只做答案比对），瓶颈仍在生成侧；若验证本身要跑测试、执行代码或调用另一个模型，\(c_v\) 可能接近甚至超过 \(c_g\)，此时给训练 worker 加卡并不会提高有效样本吞吐。</p>
+<p>若只有比例 \(q\in(0,1]\) 的 group 最终可用于更新，则每个有效 group 的生成与验证成本为 \(C_{effective}=C_{group}/q\)；\(q=0\) 时该指标不适用并趋于发散。所有 \(c\) 必须使用同一成本单位。教学输入 \(G=4,T_{in}=100,T_o=50,c_p=1,c_d=2,c_v=10,C_{sync}=0,q=0.5\) 时，共享 prefill 得 1080，不共享得 1680。该式不含 optimizer update 的全部训练成本，也不假设候选数增加会线性提高学习收益；后者必须由实验或来源支持。</p>
 <p>这也是后训练不能直接套用预训练扩展曲线的原因。预训练里“加卡即加速”的经验来自计算密集、拓扑规整的矩阵运算；后训练的资源曲线取决于候选数、验证方式和数据混合的分布，往往在某个点之后表现为 CPU、队列或外部服务受限。平台应把生成服务、验证服务和数据服务纳入同一个 job graph，分别记录各自的 GPU 时间、CPU 时间、排队时间和失败重试，并按“每个被接受样本的成本”而不是“主模型 forward 吞吐”报告效率。</p>
 <h3 id="训练预算的动态控制"><a class="header" href="#训练预算的动态控制">训练预算的动态控制</a></h3>
 <p>作业预算不能只在提交时检查。训练过程中失败重试、恢复重算、评估、checkpoint 和数据重处理都会增加成本。控制面应实时累计 GPU 小时、有效 token、对象存储请求、网络流量和失败次数，并在接近预算时提醒或暂停。用户可以选择“质量优先”“时间优先”或“成本上限”策略，平台据此调整评估频率、checkpoint 频率和资源池，而不是无条件继续运行。</p>
@@ -488,10 +489,10 @@ C_{sample}\approx G\times(T_{in}+T_o)\times c_g + G\times c_v,
 <h3 id="训练结果的可审计性"><a class="header" href="#训练结果的可审计性">训练结果的可审计性</a></h3>
 <p>一次训练结果至少需要能回答四个问题：使用了什么数据，执行了什么计算，经历了哪些故障，为什么可以发布。数据由 manifest、授权和统计回答；计算由 job spec、代码 hash、并行拓扑和运行时镜像回答；故障由事件、trace、重试和恢复记录回答；发布由评估报告、质量门禁和审批记录回答。把这些信息分散在聊天记录、机器本地日志和手工表格中，短期看似灵活，长期一定无法复盘。</p>
 <p>可审计不等于保存所有原始内容。审计记录可以使用带权限控制的hash（敏感低熵字段不能依赖裸hash匿名化）、版本号、长度、来源、权限和时间，敏感文本单独受控。关键事件使用追加式日志，修正通过新事件表达而不是覆盖旧记录。这样既能支持事故调查和合规审查，又不会把训练数据复制到每个监控系统。Dapper 的 trace 关联思想和 OpenTelemetry 的上下文传播可以帮助连接不同服务，但数据最小化仍然是平台责任 <a href="#ref-11">[11]</a><a href="#ref-31">[31]</a>。</p>
-<h2 id="89-本章小结"><a class="header" href="#89-本章小结">8.9 本章小结</a></h2>
+<h2 id="89-训练设计决策总图"><a class="header" href="#89-训练设计决策总图">8.9 训练设计决策总图</a></h2>
 <p>训练平台以有效监督、并行状态和完整恢复点为核心：数据manifest固定实际消费含义，rank mesh定义副本与分片，通信账本解释字节与等待，数值检查约束kernel优化，checkpoint在安全快照后才发布。性能和恢复必须同时验证，不能通过忽略数据、校验或失败时间制造吞吐提升。</p>
-<p>训练平台对外交付的是通过转换、兼容和质量检查的 Model Manifest，而不是任意训练目录；与之配套的还有绑定数据与配置的评估记录，以及沿同一资源账本关联的资源、trace 与成本事实。本章新增公式、诊断例与验收设计均为教学设计，未经训练集群或 GPU 实测，不宣称目标规模能力。</p>
-<h2 id="810-参考资料"><a class="header" href="#810-参考资料">8.10 参考资料</a></h2>
+<p>训练平台对外交付的是通过转换、兼容和质量检查的 Model Manifest，而不是任意训练目录；与之配套的还有绑定数据与配置的评估记录，以及沿同一资源账本关联的资源、trace 与成本事实。本章公式、诊断例与验收设计均为教学设计，未经训练集群或 GPU 实测，不宣称目标规模能力。</p>
+<h2 id="810-核心来源与延伸阅读"><a class="header" href="#810-核心来源与延伸阅读">8.10 核心来源与延伸阅读</a></h2>
 <p><a id="ref-1"></a>[1] Shoeybi, M., et al. <em>Megatron-LM: Training Multi-Billion Parameter Language Models Using Model Parallelism</em>. arXiv, 2019. https://arxiv.org/abs/1909.08053 访问日期：2026-10-17</p>
 <p><a id="ref-2"></a>[2] Rajbhandari, S., et al. <em>ZeRO: Memory Optimizations Toward Training Trillion Parameter Models</em>. SC, 2020. https://arxiv.org/abs/1910.02054 访问日期：2026-10-17</p>
 <p><a id="ref-3"></a>[3] DeepSpeed Team. <em>Training a Trillion Parameters with Pipeline Parallelism</em>. 2020. https://www.deepspeed.ai/2020/09/08/pipeline-parallelism.html 核验日期：2026-10-17</p>
