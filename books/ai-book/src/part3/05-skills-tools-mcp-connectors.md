@@ -1,6 +1,6 @@
 <a id="第-16-章-agent-工具系统工程skillstoolsmcp-与-connectors"></a>
 
-# 第 15 章 外部工具系统：Skills、Tools、MCP 与 Connectors
+# 第 17 章 外部工具系统：Skills、Tools、MCP 与 Connectors
 
 对 ALR-20260429-017，怎样把指标、日志与工单 API 构建成 Runtime 可以安全、稳定使用的能力？本章从能力提供方依次实现契约与注册、调用适配、Skill、MCP、Connector，以及凭据与沙箱边界。模型提出调用，Runtime 决定何时执行并消费结果；本章负责工具背后的实现与可核验保证。
 

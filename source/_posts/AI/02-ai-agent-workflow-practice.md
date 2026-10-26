@@ -200,7 +200,7 @@ Agent 越强，权限边界越重要。自动接受所有操作并不等于自�
 | 用户偏好、长期事实和历史决策 | 经过审核的知识库 |
 | 单次任务的临时信息 | 当前会话，不要永久保存 |
 
-这也是 Harness Engineering 的核心：不要只优化 Prompt，而要把上下文、约束、工具、验证和可观测性一起设计。相关内容可以参考[书稿第 16 章执行循环与控制边界](/ai-book/part3/03-agent-runtime.html#execution-loop)。
+这也是 Harness Engineering 的核心：不要只优化 Prompt，而要把上下文、约束、工具、验证和可观测性一起设计。相关内容可以参考[书稿第 16 章执行循环与控制边界](/ai-book/part3/04-agent-runtime.html#execution-loop)。
 
 ## 如何选择模型
 
@@ -681,5 +681,5 @@ Agent 的能力会继续变化，但这套工作流不会因为某个模型发�
 ### 本站相关文章
 
 8. <a id="ref-8"></a> {% post_link AI/01-vibe-coding-vs-spec-coding 从 Vibe Coding 到 Spec Coding %}
-9. <a id="ref-9"></a> [书稿第 16 章 Agent Runtime：架构、执行编排与可靠性工程](/ai-book/part3/03-agent-runtime.html)
-10. <a id="ref-10"></a> [书稿第 16 章执行循环与控制边界](/ai-book/part3/03-agent-runtime.html#execution-loop)
+9. <a id="ref-9"></a> [书稿第 16 章 Agent Runtime：架构、执行编排与可靠性工程](/ai-book/part3/04-agent-runtime.html)
+10. <a id="ref-10"></a> [书稿第 16 章执行循环与控制边界](/ai-book/part3/04-agent-runtime.html#execution-loop)
