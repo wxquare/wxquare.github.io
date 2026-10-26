@@ -49,19 +49,19 @@ experiment 表示一个假设，run 表示一次具体执行，evaluation run �
 ```yaml
 case:
   schema_version: eval-case/v1
-  case_id: refund-readonly-017
+  case_id: alr-diagnosis-readonly-017
   case_version: 3
   input_ref: controlled://eval-2026-10-17/sample-017
   content_hash: "sha256:<sample-content>"
-  dataset_snapshot: eval-refund/holdout-v4
+  dataset_snapshot: eval-incident/holdout-v4
   split: test
   group_id: conversation-017
-  authorization_snapshot: policy-v8/tenant-a/readonly
+  authorization_snapshot: incident-policy-v5/prod/readonly
   environment_snapshot: sandbox-fixture-v6
   expected_constraints:
-    - "回答必须引用授权政策，未知事实要标明"
-    - "禁止创建退款或调用写工具"
-  rubric_version: refund-rubric/v5
+    - "报告必须引用可回读证据，候选线索不得升级为根因"
+    - "禁止重启、回滚或绕过审批创建工单"
+  rubric_version: incident-rubric/v5
   evaluator_artifact: factuality-judge/v2
   slices: [zh, long-context, no-write]
   budget: {max_attempts: 2, max_tokens: 6000, deadline_seconds: 90}
@@ -71,7 +71,7 @@ execution:
   eval_run_id: evaluation-run-example
   candidate_manifest: model-manifest-v9
   baseline_manifest: model-manifest-v8
-  protocol_version: refund-protocol/v3
+  protocol_version: incident-protocol/v3
   runtime_manifest: engine-hardware-fixture-v2
   seed: 42
   attempt: 1

@@ -8,7 +8,7 @@ Tool Calling 表达调用提议，Tool 定义一次能力契约，Skill 封装�
 
 本章不展开的主题包括：模型请求与终止信号参考[LLM API 协议](01-llm-api-protocol.md)；模型可见信息与记忆参考[上下文工程](02-context-engineering.md)；检索实现参考[知识检索与 RAG](03-knowledge-retrieval.md)；任务调度、审批等待与恢复参考[Runtime](04-agent-runtime.md)；评估与发布参考[治理与调优](06-agent-governance-optimization.md)。各处保留足够的局部说明，详细机制只在主讲位置定义。
 
-本章的构建顺序是契约与注册、调用适配、Skill 包、MCP Server、业务 Connector、授权隔离与版本组合，最后交付告警诊断能力体系。案例为同一次虚构运行：`ALR-20260429-017`、`run_0429_017`、`trace_20260429_017`，服务为 order-service。Runtime 章从执行方展示如何使用本章产物；治理章检查旧 Runbook 造成的错误诊断，而不是另起一套案例。
+本章的构建顺序是契约与注册、调用适配、Skill 包、MCP Server、业务 Connector、授权隔离与版本组合，最后交付告警诊断能力体系。案例为同一次虚构运行：`alert_id=ALR-20260429-017`、`run_id=run_0429_017`、`trace_label=trace_20260429_017`，服务为 `prod` 环境的 `order-service`。Runtime 章从执行方展示如何使用本章产物；治理章检查旧 Runbook 造成的错误诊断，而不是另起一套案例。
 
 版本与范围：
 
@@ -264,7 +264,7 @@ MCP 2026-07-28 版 Tools 规范对工具结果有两点约定。[[3]](#ref-3) �
 |:---|:---|
 | 理解问题 | `get_alert_details`、`search_runbooks`、`list_recent_deployments` |
 | 收集证据 | `prometheus_query_range`、`loki_search`、`kubernetes_get_pods` |
-| 建议行动 | `create_incident_ticket`、`send_slack_message` |
+| 建议行动 | `create_incident_ticket`（仅在审批绑定草稿与资源版本后暴露） |
 
 这样可减少无关能力和误选机会，但改变工具前缀也可能降低缓存命中；缓存与能力最小化要按实际计量取舍，不能保证同时改善。完整注册表由能力系统维护，Runtime 绑定其可信快照，模型只看到本轮允许使用的工具。
 
@@ -1338,7 +1338,6 @@ order-service 的 P95 延迟从 210ms 升到 2.1s，帮我分析可能原因。
 | `search_runbooks` | 搜索历史案例 | 只读×内部数据 | 自动执行；检索内部 Runbook |
 | `loki_search` | 搜索日志摘要 | 只读×敏感数据 | 日志可能含敏感信息，返回前须脱敏，访问范围由策略授权 |
 | `create_incident_ticket` | 创建事故单 | 可补偿写入×内部数据 | 需要用户确认或策略授权 |
-| `send_slack_message` | 发送团队通知 | 外发副作用 × 团队内部数据，按目标和内容审批 | 消息发出后无法撤回，发送前需确认目标频道与内容 |
 | `restart_service` | 重启服务 | 高影响修复动作 | 不进入本 Skill 的可用工具集；Agent 只给建议，由人工审批后执行 |
 
 这组工具有意把读取、写入和高风险修复动作分开：Agent 可以自动收集证据，但不能自动重启服务或回滚。生产数据库写入、权限变更这类当前任务策略禁止的能力根本不暴露给该 Agent。
@@ -1373,7 +1372,6 @@ capability_profile:
     loki_search: logs-mcp-v4
     search_runbooks: knowledge-connector-v3
     create_incident_ticket: ticket-connector-v5
-    send_slack_message: notification-connector-v2
   credentials: resolve_from_run_binding
   sandbox:
     filesystem: isolated-run-directory
@@ -1390,7 +1388,7 @@ capability_profile:
 | 沙箱/出口策略 | 跨目录/凭据/域名访问反例被阻止 | 将本 Run 范围作为执行上下文传入 |
 | ToolResult 与审计接口 | partial/unknown/游标和版本字段不丢失 | 验证证据，选择继续、等待或停止 |
 
-日志查询首次超时返回可读错误，在 Runtime 预算内建立新 Attempt；建单步骤接收绑定草稿 hash 的审批；结果查询用 `alert-ALR-20260429-017-incident` 查到 `INC-4821` 后返回已确认效果。Connector 不拥有全局恢复状态，完整时序参考[Runtime 故障案例](04-agent-runtime.md#failure-scenarios)。通知接口若不能保证幂等或结果查询，契约明确披露通知步骤的重复风险。
+日志查询首次超时返回可读错误，在 Runtime 预算内建立新 Attempt；建单步骤接收同时绑定报告草稿 hash 与资源版本的审批；结果查询用 `alert-ALR-20260429-017-incident` 查到 `INC-4821` 后返回已确认效果。Connector 不拥有全局恢复状态，完整时序参考[Runtime 故障案例](04-agent-runtime.md#failure-scenarios)。通知由 Agent 工具集之外的交付系统负责，并以独立状态记录；渠道若不能保证幂等或结果查询，交付契约须披露重复风险。
 
 <a id="1685-一次指标观察与策略证据"></a>
 
@@ -1399,7 +1397,8 @@ capability_profile:
 ```json
 {
   "run_id": "run_0429_017",
-  "trace_id": "trace_20260429_017",
+  "trace_label": "trace_20260429_017",
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
   "agent_version": "incident-agent-v42",
   "tool_name": "prometheus_query_range",
   "tool_version": "metrics-v4",
@@ -1407,7 +1406,8 @@ capability_profile:
   "attempt_state": "Succeeded",
   "result": {
     "status": "success",
-    "summary": "02:37Z起P95从210ms升至2.1s；本查询不包含部署信息，不能判因果",
+    "summary": "E12候选观察：02:37Z起P95从210ms升至2.1s；尚待交叉核验，本查询不包含部署信息，不能判因果",
+    "verification_state": "unverified",
     "coverage": {"complete": true, "missing": []},
     "effect": {"disposition": "none", "operation_id": null},
     "truncated": false,
@@ -1422,7 +1422,7 @@ capability_profile:
 
 合格报告需核对部署记录（本例 02:35Z 完成）、指标（02:37Z 开始异常）和 payment-client 日志，只能将时间接近写成待验证假设；资源指标正常不能直接排除全部数据库问题。每条证据带调用、版本和时间范围，缺证据就披露缺口。
 
-教学设定中的 v42 运行在证据读取步骤使用过期 Runbook v2，错误推断连接池耗尽，验证器漏拦；人工批准了建单并不证明这份诊断正确。错误草稿与上述质量标准形成对照，`failure-0099`怎样转成`eval-incident-0099`和 v43 门禁，参考[治理失败闭环](06-agent-governance-optimization.md#failure-improvement-loop)。
+教学设定中的 v42 运行未完成 deployment mapping 与 owner 核验便采用了 Runbook v2，错误推断连接池耗尽，验证器漏拦；人工批准了建单并不证明这份诊断正确。错误草稿与上述质量标准形成对照，`failure-0099`怎样转成`eval-incident-0099`和 v43 门禁，参考[治理失败闭环](06-agent-governance-optimization.md#failure-improvement-loop)。
 
 <a id="checklist"></a>
 ## 本章小结

@@ -35,7 +35,7 @@
 
 [题库的书稿覆盖与定位说明](https://github.com/wxquare/leetcode-primer/blob/master/system-design-interview/question-bank/ai-agent-engineering.md#书稿覆盖与定位)定义覆盖口径；每个题目下方给出对应章节和具体小节，以及无法由本书回答的部分。逐题映射只在题库维护，本附录提供学习路径，不复制题目与答案。
 
-做题时先读主定位，跨层问题再读补充章节。例如工具成功但响应丢失，应先读[Agent Runtime 的 Operation 与 Attempt](../part3/04-agent-runtime.md#delivery-idempotency)，再读工具运行时的重试分类；不能只看 MCP 协议。手写题则必须自行完成实现和验证，章末练习卡仅定义验收要求。
+做题时先读主定位，跨层问题再读补充章节。例如 ALR 案例中远端已经创建 `INC-4821`、但本地回执丢失，应先读[Agent Runtime 的 Operation 与 Attempt](../part3/04-agent-runtime.md#delivery-idempotency)，再读工具运行时的重试分类；恢复必须沿原 Operation 查询核验，不能重新建单，也不能只看 MCP 协议。手写题则必须自行完成实现和验证，章末练习卡仅定义验收要求。
 
 ## 如何继续找资料
 

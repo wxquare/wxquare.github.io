@@ -14,7 +14,7 @@
 flowchart LR
     A["第一部分：大模型算法<br/>原理 / 训练 / 推理 / 能力"] --> B["第二部分：大模型 Infra<br/>训练 / 推理 / 数据 / 治理"]
     B --> C["第三部分：Agent 工程<br/>Prompt / Context / Runtime"]
-    C --> D["第四部分：Agent 应用与实战<br/>Coding / 企业知识 / Hermes"]
+    C --> D["第四部分：Agent 应用与实战<br/>ALR 主线 / 产品专题"]
     D --> E["第五部分：前沿与研究<br/>Research Agent / 多模态 / 具身"]
 ```
 
@@ -23,6 +23,16 @@ flowchart LR
 AI 工程实践里最容易踩的坑，不只是模型输出不稳定，也包括训练、推理、数据、评估和应用之间缺少清晰边界。我们把不清楚的意图、不完整的上下文、没有边界的工具和没有验证回路的流程交给模型，结果往往是第一版看起来很聪明，后续版本不断补洞并引入新问题。
 
 本书的主线是把从模型能力到应用交付的过程，逐步收敛成可复用、可审查、可验证、可治理的工程系统。
+
+## 全书默认案例：ALR 告警诊断
+
+除非章节需要讲解告警场景无法承载的领域机制，本书默认复用同一次虚构的 ALR 告警诊断运行：`alert_id=ALR-20260429-017`、`run_id=run_0429_017`、`trace_label=trace_20260429_017`，OpenTelemetry `trace_id` 示例为 `4bf92f3577b34da6a3ce929d0e0e4736`。对象是 `prod` 环境的 `order-service`，观察窗口为 2026-04-29 10:35–10:50（Asia/Shanghai），即 02:35Z–02:50Z。
+
+10:35 完成的 `deploy_8842` 与 10:37 出现的异常只有时间先后关系；E12 记录的 P95 从 210ms 升到 2.1s 也只是待核验的指标候选，二者都不能直接写成根因。Runbook v1 已退役，v2 是早期部署说明，v3 是新部署的候选说明；当前适用版本由部署映射和 owner 核验，不按更新时间选择。典型质量失败是检索到不适用的旧 Runbook，把相似症状误写成数据库根因，且验证没有拦住。
+
+这次运行的产物包括诊断报告、绑定报告草稿与资源版本的审批、跟进工单 `INC-4821`，以及独立记录的通知状态。若远端已经建单但本地回执丢失，恢复流程沿原 Operation 查询核验，不重新建单。Agent 只能做只读调查，并在有效审批后创建跟进工单；它没有重启、回滚或支付写入能力。
+
+Coding Agent、企业知识助手、真实开源项目分析、训练故障、具身系统和研究 Agent 等案例只在确有教学必要时保留。它们首次出现时会说明偏离 ALR 的原因、适用范围，以及输入、证据、动作、状态和验收如何与 ALR 对照；这些局部案例不构成另一套全书标准。
 
 读完之后，你应该能够回答六类问题：
 
@@ -111,12 +121,14 @@ AI 工程实践里最容易踩的坑，不只是模型输出不稳定，也包�
 
 ## 贯穿案例与练习的阅读方式
 
-全书包含五部分、23 个公开章节；第一部分新增从零训练的工程路径与配套实验，第四部分以成熟 Coding Agent 内部实现为案例，第五部分承接前沿研究。两个教学案例分别检验不同责任边界：
+全书包含五部分、23 个公开章节。ALR 告警诊断是默认贯穿案例；其他案例只在领域对象无法由 ALR 替代或必须核验真实产品机制时局部使用：
 
-| 案例 | 先建立机制 | 再看应用 | 重点核对 |
+| 案例类型 | 先建立机制 | 使用范围 | 重点核对 |
 | --- | --- | --- | --- |
-| Coding Agent | [上下文工程](part3/02-context-engineering.md)、[外围工具系统](part3/05-skills-tools-mcp-connectors.md) | [成熟 Coding Agent 的实现与 Harness](part4/01-coding-agent-systems.md) | 代码版本、工作区、工具权限、候选完成与独立Verifier |
-| Hermes 长期助手 | [Runtime 状态](part3/04-agent-runtime.md#object-model)、[记忆生命周期](part3/02-context-engineering.md#memory)、[Runtime 编排](part3/04-agent-runtime.md#workflow) | [Hermes 贯穿简报](part4/04-hermes-agent-architecture.md) | Session、Memory、缓存与特定投递 ledger 分别取证；通用业务 Outbox、Checkpoint、幂等和补偿是另行标明的教学扩展 |
+| ALR 默认主线 | [上下文工程](part3/02-context-engineering.md)、[知识检索](part3/03-knowledge-retrieval.md)、[Runtime](part3/04-agent-runtime.md)、[工具系统](part3/05-skills-tools-mcp-connectors.md)与[治理](part3/06-agent-governance-optimization.md) | 能承载任务协议、证据、工具、状态、恢复和评估的章节 | 身份、窗口、候选证据、Runbook 版本、审批、`INC-4821` 与能力边界一致 |
+| Coding Agent 特殊案例 | 通用 Context、Tool、Runtime 与 Verifier 机制 | [成熟 Coding Agent 的实现与 Harness](part4/01-coding-agent-systems.md) | 仅用于代码制品、patch 和测试；与 ALR 的输入、证据、动作、状态和验收显式对照 |
+| Pi、OpenClaw、Hermes 产品专题 | [Runtime 状态](part3/04-agent-runtime.md#object-model)、[记忆生命周期](part3/02-context-engineering.md#memory)与[治理控制](part3/06-agent-governance-optimization.md) | 第 20–22 章的固定版本源码/文档核验 | 区分产品事实、本书推导和教学扩展；涉及告警时回到 ALR 标准 |
+| 研究与算法特殊案例 | 模型、Infra 和证据机制 | 对应算法、训练、具身或研究章节 | 说明 ALR 不适用原因与局部范围，不扩展成平行主线 |
 
 章节包含原理推导、文档核验、教学轨迹与实验设计，验收层次分别标明。模型基础、后训练、模型适配、训练平台与推理服务的练习卡可从[附录B](appendix/references.md)进入；卡片完成不代表已经提供完整可运行代码、GPU测量或生产验证。选型先查[附录C](appendix/tools.md)的版本和未知项，再回到章末原始来源。
 

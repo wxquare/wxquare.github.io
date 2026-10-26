@@ -21,7 +21,7 @@ Agent Runtime 负责把用户目标转成受控的执行过程：建立任务契
 
 Runtime 的设计从任务承诺开始。用户交付一个目标，系统需要说明是否受理、当前做到哪里、正在等待什么、哪些动作需要批准、结果依据什么成立。一次模型请求成功，只能说明获得了输出；任务是否允许继续、动作是否已生效、结果能否交付，需要应用维护的事实和规则来回答。
 
-本章贯穿同一次告警诊断教学运行：`ALR-20260429-017` 报告 `order-service` P95 从 210ms 升至 2.1s，Runtime 建立 `run_0429_017`，在 `trace_20260429_017` 中关联取证、审批、建单与通知。指标、日志和 Runbook 用于只读调查，`create_incident_ticket` 需要批准；不提供重启与回滚工具。建单回执丢失时接管者查到原工单 `INC-4821`，通知仍可能重复。这些数值和结果均是虚构教学设定，诊断质量由治理章节另行验收。短问答可以直接完成，长任务可以跨请求等待；两者共享责任模型，实现强度由实际承诺决定。
+本章贯穿同一次告警诊断教学运行：`ALR-20260429-017` 的 E12 候选观察显示 `prod` 环境 `order-service` 的 P95 从 210ms 升至 2.1s，Runtime 建立 `run_0429_017`，用 `trace_label=trace_20260429_017` 关联取证、审批、建单与通知。指标、日志和 Runbook 用于只读调查，观察窗口为 02:35Z–02:50Z；`create_incident_ticket` 需要绑定报告草稿和资源版本的有效批准，不提供重启与回滚工具。建单回执丢失时接管者沿原 Operation 查到 `INC-4821`，通知状态独立记录。这些数值和结果均是虚构教学设定，不能把 E12 或部署时间邻近直接当成根因。短问答可以直接完成，长任务可以跨请求等待；两者共享责任模型，实现强度由实际承诺决定。
 
 
 <a id="1511-从模型输出到任务承诺"></a>
@@ -422,7 +422,7 @@ Web、企业 IM、IDE、工单、告警、Webhook、定时任务和委派都可�
   "payload": {"alert_id": "ALR-20260429-017", "service": "order-service", "started_at": "2026-04-29T02:37:00Z"},
   "request_key": "ALR-20260429-017",
   "correlation_id": "trace_20260429_017",
-  "environment": "production"
+  "environment": "prod"
 }
 ```
 
@@ -436,7 +436,7 @@ Runtime 识别为只读诊断任务，补齐受信实体与查询时间窗，再
   "user_goal": "调查 order-service 延迟升高，输出带证据的假设和事故工单草稿",
   "entities": {"alert_id": "ALR-20260429-017", "service": "order-service"},
   "allowed_actions": ["get_alert_details", "list_recent_deployments", "prometheus_query_range", "kubernetes_get_pods", "loki_search", "search_runbooks"],
-  "requires_approval": ["create_incident_ticket", "send_slack_message"],
+  "requires_approval": ["create_incident_ticket"],
   "blocked_actions": ["restart_service", "rollback_deployment"],
   "success_criteria": ["核对时间窗和来源版本", "假设与事实分开", "批准后建单需核验INC编号", "任务结果与通知状态分别记录"]
 }
@@ -727,7 +727,7 @@ Policy 检查的是主体、契约、具体参数、环境与当前状态，而�
     "data_sensitivity": "internal"
   },
   "context": {
-    "environment": "production",
+    "environment": "prod",
     "evidence_count": 2
   }
 }

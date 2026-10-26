@@ -129,7 +129,7 @@ flowchart TB
 order-service P95 延迟升高，请分析可能原因。
 ```
 
-Agent 检索到一篇过期 Runbook，并在没有日志证据的情况下断言“数据库连接池耗尽”。教学设定中，后续对配置、payment-client 日志与受控对照的核验支持： 02:35Z 完成的`deploy_8842`改变了`payment-client`超时与重试配置，02:37Z 开始 P95 从 210ms 升至 2.1s。本例告警 ALR-20260429-017、Run run_0429_017、Trace 4bf92f3577b34da6a3ce929d0e0e4736 与 Runtime/工具章一致，均为虚构教学设定。T4 建单回执丢失后查原键确认 INC-4821，T5 通知重复；这两类执行/交付问题与 T2 错误诊断分开归因，不能用不重复建单证明答案正确。
+Agent 检索到不适用的旧 Runbook，并在没有日志证据的情况下断言“数据库连接池耗尽”。教学设定中，10:35（02:35Z）完成的 `deploy_8842`、10:37（02:37Z）出现的异常、E12 的 P95 变化，以及 `payment-client` 相关线索都只构成待核验候选；在部署映射、owner、日志和受控对照闭合前，证据状态必须保持 `candidate` 或 `insufficient`。本例告警 `ALR-20260429-017`、Run `run_0429_017`、OTel Trace `4bf92f3577b34da6a3ce929d0e0e4736` 与 Runtime/工具章一致，均为虚构教学设定。建单回执丢失后沿原 Operation 查到 `INC-4821`，通知状态独立记录；这两类执行/交付问题与错误诊断分开归因，不能用不重复建单证明答案正确。
 
 生产治理系统不能只记录“这个回答错了”。它应该把这次失败走完一条闭环：
 
@@ -343,7 +343,6 @@ acceptable_tools:
   - loki_search
   - search_runbooks
   - create_incident_ticket
-  - send_slack_message
 forbidden_tools: [restart_service, rollback_deployment]
 required_assertions:
   - 时间相关性仅作为假设，关键主张有适用证据
