@@ -43,7 +43,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-3d7c861f.js";
+            window.path_to_searchindex_js = "../searchindex-bd9915b0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-18357883.js"></script>
@@ -345,7 +345,7 @@
 <h3 id="2134-agent-loop-与转录写围栏"><a class="header" href="#2134-agent-loop-与转录写围栏">21.3.4 Agent Loop 与转录写围栏</a></h3>
 <p><code>agent</code> RPC 校验参数、解析会话、持久化会话元数据后<strong>立即返回</strong> <code>{runId, acceptedAt}</code>；真正的执行在 <code>runEmbeddedAgent</code> → <code>runAgentLoop</code> 里流式推进，事件经 <code>agent</code> 流（<code>tool</code>/<code>assistant</code>/<code>lifecycle</code>）桥接出来；<code>agent.wait</code> 等终态，返回 <code>{status: ok|error|timeout, …}</code><a href="#ref-7">[7]</a>。</p>
 <p>转录写围栏是 OpenClaw 对“并发写同一会话”的回答，其作用边界需要与 session write lock 分开：admitted run 在流式输出前记录持久 <code>activeWriterRunId</code> 声明；每次转录追加/重写必须带 <code>expectedWriterRunId</code>，同步提交事务校验其仍匹配；被取代的 run 无法提交过期转录<a href="#ref-7">[7]</a>。</p>
-<p>循环层（<code>packages/agent-core/src/agent-loop.ts</code>）通用骨架见<a href="../part3/04-agent-runtime.html#execution-loop">第17章执行循环</a>；此处只分析 OpenClaw 的消息检查点：外层 <code>while(true)</code> + 内层 <code>while(hasMoreToolCalls || pendingMessages.length&gt;0)</code>；每个 turn 发 <code>turn_start</code>，先把 pending（steering）消息提交进上下文，调模型流式取 assistant 消息，有 tool call 则 <code>executeToolCalls</code>，发 <code>turn_end</code>，检查停止条件，在检查点取 steering；内层结束取 follow-up，再复查 steering 以免 <code>agent_end</code> 丢失已接受的 steer<a href="#ref-44">[44]</a>。</p>
+<p>循环层（<code>packages/agent-core/src/agent-loop.ts</code>）通用骨架见<a href="../part3/04-agent-runtime.html#execution-loop">第16章执行循环</a>；此处只分析 OpenClaw 的消息检查点：外层 <code>while(true)</code> + 内层 <code>while(hasMoreToolCalls || pendingMessages.length&gt;0)</code>；每个 turn 发 <code>turn_start</code>，先把 pending（steering）消息提交进上下文，调模型流式取 assistant 消息，有 tool call 则 <code>executeToolCalls</code>，发 <code>turn_end</code>，检查停止条件，在检查点取 steering；内层结束取 follow-up，再复查 steering 以免 <code>agent_end</code> 丢失已接受的 steer<a href="#ref-44">[44]</a>。</p>
 <p>几个与失败相关、但属于正常路径设计的点。工具调用批里，steering 出现时未启动的调用被跳过（原因 <code>steering</code>）或因 <code>admission</code> 致命错误停止<a href="#ref-44">[44]</a>。工具失败/被拒绝/被取消作为不同结果回送：未启动的调用得到合成配对错误结果以保持转录合法；固定实现对三次连续相同的工具错误（同一签名 + 同一结果哈希）以 <code>repeated_tool_error</code> 结束 turn，即使 <code>tools.loopDetection.enabled=false</code><a href="#ref-44">[44]</a>。回复整形只认整条 final 修剪后为大写 <code>NO_REPLY</code> 的静默回复；空 final 不是静默——恢复耗尽时记录失败结果，被准入的用户请求得到一条简短系统通知而不是伪造的回答<a href="#ref-7">[7]</a>。</p>
 <h4 id="写围栏为什么不能替代外部动作防重"><a class="header" href="#写围栏为什么不能替代外部动作防重">写围栏为什么不能替代外部动作防重</a></h4>
 <p>session write lock 负责正常生命周期内的互斥；持久 writer 声明让提交事务核对当前写者，二者解决不同阶段的问题。当旧 run 被替换，它即使晚到也不能按旧声明提交转录。固定提交的 agent-loop 文档明确要求 append/rewrite 携带 expectedWriterRunId，并说明同步提交事务检查 activeWriterRunId。这里被保护的是转录提交，不是所有外部资源。<a href="#ref-7">[7]</a></p>
