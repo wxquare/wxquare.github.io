@@ -681,5 +681,5 @@ Agent 的能力会继续变化，但这套工作流不会因为某个模型发�
 ### 本站相关文章
 
 8. <a id="ref-8"></a> {% post_link AI/01-vibe-coding-vs-spec-coding 从 Vibe Coding 到 Spec Coding %}
-9. <a id="ref-9"></a> [书稿第 16 章 Agent Runtime：架构、执行编排与可靠性工程](/ai-book/part3/04-agent-runtime.html)
+9. <a id="ref-9"></a> [书稿第 17 章 Agent Runtime：架构、执行编排与可靠性工程](/ai-book/part3/04-agent-runtime.html)
 10. <a id="ref-10"></a> [书稿第 16 章执行循环与控制边界](/ai-book/part3/04-agent-runtime.html#execution-loop)

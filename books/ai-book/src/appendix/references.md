@@ -13,7 +13,7 @@
 | 建立资源账本 | [AI Infra 全景](../part2/01-ai-infra-overview.md) | [训练平台与数据管线](../part2/02-training.md)、[推理服务与资源调度](../part2/03-inference.md) | 并行切分轴、通信、瞬时峰值、工作负载与版本 |
 | 设计可恢复运行时 | [Agent Runtime](../part3/04-agent-runtime.md#delivery-idempotency) | [LLM API 协议](../part3/01-llm-api-protocol.md)、[Agent Runtime恢复机制](../part3/04-agent-runtime.md#recovery) | 提交、投递、幂等、unknown、owner、断线与迟到结果 |
 | 组织任务与上下文 | [Agent 的上下文工程](../part3/02-context-engineering.md) | [任务协议](../part3/02-context-engineering.md#task-protocol)、[装配与预算](../part3/02-context-engineering.md#context-builder)、[长期记忆](../part3/02-context-engineering.md#memory) | 指令权威、摘要保真、来源失效与事实状态 |
-| 选择工具与协议 | [Agent 工具系统工程](../part3/05-skills-tools-mcp-connectors.md) | [Agent Runtime Runtime 组成](../part3/04-agent-runtime.md#runtime-components)及[附录C](tools.md) | Schema、执行权、MCP 传输迁移、A2A 版本与未知能力 |
+| 选择工具与协议 | [第 16 章外部工具系统](../part3/05-skills-tools-mcp-connectors.md) | [第 17 章 Runtime 组成](../part3/04-agent-runtime.md#runtime-components)及[附录C](tools.md) | Schema、执行权、MCP 传输迁移、A2A 版本与未知能力 |
 | 构建知识助手 | [Agent 的上下文工程](../part3/02-context-engineering.md#knowledge) | — | 任务协议、知识检索、证据组织和上下文边界 |
 | 理解 Coding 系统 | [Coding Agent 系统](../part4/01-coding-agent-systems.md) | [Pi Agent 系统 Pi](../part4/02-pi-agent-architecture.md) | 共通执行闭环、产品实现差异、开源范围与独立验证 |
 | 观察长期助手 | [Hermes Agent 系统 Hermes](../part4/04-hermes-agent-architecture.md) | [OpenClaw 系统 OpenClaw](../part4/03-openclaw-architecture.md) | 身份、会话、记忆、投递与业务副作用分别取证 |

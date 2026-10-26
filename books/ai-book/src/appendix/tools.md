@@ -12,7 +12,7 @@
 | Claude Agent SDK | 嵌入 Coding 循环、工具与上下文能力 | Agent Runtime核验；滚动文档，2026-10-18 | [官方概览](https://code.claude.com/docs/en/agent-sdk/overview) | 进程、工作区、凭据与权限边界 |
 | LangChain / LangGraph | 高层 Agent 抽象 / 显式状态图和 checkpoint 组合 | Agent Runtime核验；滚动文档，2026-10-17–18 | [LangChain](https://docs.langchain.com/oss/python/langchain/overview)、[Persistence](https://docs.langchain.com/oss/python/langgraph/persistence) | 内存 saver 不证明重启恢复；业务幂等由应用承担 |
 | AutoGen Core / Microsoft Agent Framework | 异步消息执行 / Agent 与 Workflow 抽象 | Agent Runtime核验；stable/滚动文档，2026-10-18 | [Core](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/index.html)、[Framework](https://learn.microsoft.com/en-us/agent-framework/overview/) | 分布式存储、owner、取消和重复副作用 |
-| MCP | Host/Client/Server 能力连接协议 | [Agent 工具系统工程](../part3/05-skills-tools-mcp-connectors.md)；2025-11-25，核验2026-10-18 | [版本化规范](https://modelcontextprotocol.io/specification/2025-11-25) | 版本/能力协商、认证与传输；发现不等于授权 |
+| MCP | Host/Client/Server 能力连接协议 | 固定版本、核验日期与迁移差异统一见[第 16 章版本边界](../part3/05-skills-tools-mcp-connectors.md#mcp-version-boundaries) | 该节及章末列出的版本化规范 | 不混用不同版本的发现、授权和传输语义；发现不等于授权 |
 | A2A | 独立 Agent 的任务、消息与产物协议 | Agent Runtime；v0.3.0，非“最新版”承诺 | [版本化规范](https://a2a-protocol.org/v0.3.0/specification/) | 本书未实现或测试兼容；自建消息不是兼容证明 |
 | vLLM | 推理执行、调度和 KV 管理参考 | [推理服务与资源调度](../part2/03-inference.md)核验；V1 缓存设计/滚动文档，2026-10-17 | [APC](https://docs.vllm.ai/en/latest/features/automatic_prefix_caching/)、[设计](https://docs.vllm.ai/en/latest/design/prefix_caching/) | 具体模型、量化、GPU 与 shape 的支持及收益 |
 | Triton 语言 | GPU 计算程序与算子层 | [训练平台与数据管线](../part2/02-training.md)核验；main 文档，2026-10-17 | [语言介绍](https://triton-lang.org/main/programming-guide/chapter-1/introduction.html) | 生成 kernel 的正确性与性能未实测 |

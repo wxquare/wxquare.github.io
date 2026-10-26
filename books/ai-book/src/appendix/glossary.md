@@ -15,10 +15,10 @@
 | KV Cache | 前向计算中各层的键和值；用于复用历史计算，仍占用设备或分层存储资源 | [推理服务与资源调度](../part2/03-inference.md) |
 | Prefix / Prompt Cache | 复用兼容的前缀计算；自托管实现与商业 API 的命中、计费、保留语义分别核验 | [推理服务与资源调度](../part2/03-inference.md)、[Hermes Agent 系统](../part4/04-hermes-agent-architecture.md) |
 | 精确响应缓存 / 语义响应缓存 | 前者匹配请求及其依赖版本，后者先召回相似候选再验证答案等价；两者都需授权、新鲜度和失效控制 | [推理服务与资源调度](../part2/03-inference.md) |
-| Tool Calling / Skill / MCP | 分别是结构化行动请求、可复用方法上下文、能力连接协议；实际执行、权限和审计由 Runtime 承担 | [Agent 工具系统工程](../part3/05-skills-tools-mcp-connectors.md) |
-| MCP / A2A | 本书 MCP 主体按 2025-11-25，连接工具、资源和提示；A2A 按 v0.3.0，描述独立 Agent 的任务/消息/产物协作。自建 mailbox 不自动兼容 A2A | [Agent 工具系统工程](../part3/05-skills-tools-mcp-connectors.md) |
+| Tool Calling / Skill / MCP | 分别是结构化行动请求、可复用方法上下文、能力连接协议；实际执行、权限和审计由 Runtime 承担 | [外部工具系统](../part3/05-skills-tools-mcp-connectors.md) |
+| MCP / A2A | MCP 连接工具、资源和提示，具体协议版本以工具章的版本边界为准；A2A 按 v0.3.0 描述独立 Agent 的任务/消息/产物协作。自建 mailbox 不自动兼容 A2A | [第 16 章外部工具系统](../part3/05-skills-tools-mcp-connectors.md#mcp-version-boundaries) |
 | Triton 语言 / Triton Inference Server | 前者用于编写 GPU 计算程序；后者负责模型服务与模型管理，二者不是同一层的软件 | [训练平台与数据管线](../part2/02-training.md)、[推理服务与资源调度](../part2/03-inference.md) |
-| Model Manifest / Eval Case | 前者绑定模型、模板、格式与执行兼容条件；后者绑定输入、预期、不变量和版本化评估配置 | [AI Infra 全景](../part2/01-ai-infra-overview.md)、[数据与评估平台](../part2/04-data-eval.md) |
+| Model Manifest / Eval Case | 前者绑定模型、模板、格式与执行兼容条件；后者绑定输入、预期、不变量和版本化评估配置 | [AI Infra 全景](../part2/01-ai-infra-overview.md)、[第 11 章评估与反馈闭环](../part2/04-data-eval.md) |
 
 ## 模型计算符号
 

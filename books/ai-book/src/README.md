@@ -92,8 +92,8 @@ Coding Agent、企业知识助手、真实开源项目分析、训练故障、�
 | 第13章 | [LLM API 协议：模型能力如何被系统消费](part3/01-llm-api-protocol.md) | 把模型接口当成系统契约来设计，而不是只看一次调用是否成功。 |
 | 第14章 | [Agent 的上下文工程：从任务协议到知识与记忆](part3/02-context-engineering.md) | 定义任务契约、证据与记忆的使用规则，以及本轮上下文的装配、压缩和评估。 |
 | 第15章 | [外部知识系统：知识检索与 RAG](part3/03-knowledge-retrieval.md) | 摄取、表示、索引、混合召回、多跳检索、证据与评估。 |
-| 第16章 | [Agent Runtime：架构、执行编排与可靠性工程](part3/04-agent-runtime.md) | 聚合模型、工具与知识，逐轮构建上下文，推进任务并处理等待、审批、恢复与交付。 |
-| 第17章 | [外部工具系统：Skills、Tools、MCP 与 Connectors](part3/05-skills-tools-mcp-connectors.md) | 从能力提供方构建工具契约与注册、Skills、MCP、Connectors、授权和沙箱。 |
+| 第16章 | [外部工具系统：Skills、Tools、MCP 与 Connectors](part3/05-skills-tools-mcp-connectors.md) | 从能力提供方构建工具契约与注册、Skills、MCP、Connectors、授权和沙箱。 |
+| 第17章 | [Agent Runtime：架构、执行编排与可靠性工程](part3/04-agent-runtime.md) | 消费模型、知识与工具契约，逐轮推进任务，并处理等待、审批、恢复与交付。 |
 | 第18章 | [Agent 治理与调优：从质量闭环到分层落地](part3/06-agent-governance-optimization.md) | 把评估、护栏、观测与发布连成闭环，分层调优 Runtime、Skill、MCP、上下文与成本。 |
 
 ### 第四部分：Agent 应用与实战

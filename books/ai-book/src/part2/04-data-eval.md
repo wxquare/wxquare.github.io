@@ -259,11 +259,13 @@ NIST手册说明比例区间以及小样本/少失败时的二项精确方法 [[
 
 零翻转时估计差为零，但区间仍有正半宽；稀疏数据不会因重采样全为零而产生虚假确定性。可复算夹具取 n=100、alpha=2exp(−2)，半宽恰为0.2；若五例退化、两例改善，估计−0.03，区间为[-0.23,0.17]。这个置信水平约72.9%，仅为手算测试；正常报告另用事先约定水平。生产若采用更有效率的配对 score/exact 区间，应核对方法假设与实现，不能将两个独立比例的普通区间直接套给配对数据。相关样本、数据后选择和重复查看都需要另外处理。
 
+<a id="paired-binary-interval"></a>
+
 ### 配对二元结果的可复算保守区间
 
 Hoeffding 在 alpha=.05、n=320 时半宽约 15.18 个百分点，压到 2 个百分点需要至少 18445 个独立单位；这是界宽要求，不是非劣效检验功效规划。它适合作为分布无关的保守参照，不宜让读者误以为几百例通常足以用该界放行 2% 容差。
 
-对于独立同分布的配对二元结果，差值为“改善对概率−退化对概率”。下面分别对两个不一致单元格的边际二项率求精确界，再用 Bonferroni 合成：四个单侧界各分配 alpha/4，总覆盖至少 1−alpha。二者同属一个配对表，不要求它们互相独立。二项求根依据 NIST，组合为本书应用推导；Bonferroni 一般不等式不要求事件独立。[[21]](#ref-21)[[23]](#ref-23)
+对于独立同分布的配对二元结果，n10 表示基线成功而候选失败，n01 表示基线失败而候选成功，差值 Δ=(n01−n10)/n。下面对两个不一致单元格的边际二项率求精确界，再用 Bonferroni 合成：四个单侧界各分配 alpha/4，整个**双侧**区间覆盖至少 1−alpha。用该下界检查 Δ≥−ε 是保守的非劣效验收，不能把这里的 alpha 叫作单侧显著性水平。二者同属一个配对表，不要求它们互相独立。二项求根依据 NIST，组合为本书应用推导；Bonferroni 不要求事件独立。[[21]](#ref-21)[[23]](#ref-23) 第 18 章默认消费此实现的报告；Hoeffding 只作保守参照，不把两个独立比例区间套给配对数据。
 
 ```python
 from math import exp, fsum, lgamma, log, log1p
@@ -306,20 +308,20 @@ def paired_binary_interval(pairs, alpha=0.05):
     # Four one-sided cell bounds, each with error budget alpha/4.
     gain_lo, gain_hi = _cell_bounds(gain, n, alpha / 4)
     loss_lo, loss_hi = _cell_bounds(loss, n, alpha / 4)
-    return {"method": "paired-binomial-bonferroni", "alpha": alpha,
+    return {"method": "paired-binomial-bonferroni", "alpha": alpha, "sides": "two-sided",
             "unit": "independent_case", "n": n, "gain": gain, "loss": loss,
             "delta": (gain - loss) / n,
             "low": max(-1.0, gain_lo - loss_hi),
             "high": min(1.0, gain_hi - loss_lo)}
 
 def zero_event_bound(n, alpha=0.05):
-    if not isinstance(n, int) or n <= 0 or not 0 < alpha < 1:
+    if type(n) is not int or n <= 0 or not 0 < alpha < 1:
         raise ValueError("positive independent sample count and valid alpha required")
-    return {"method": "zero-event-binomial-upper", "alpha": alpha,
+    return {"method": "zero-event-binomial-upper", "alpha": alpha, "sides": "one-sided",
             "n": n, "upper": 1 - alpha ** (1 / n)}
 ```
 
-这是可独立运行的教学参考，不是最窄的配对 score/exact 区间；生产可选择核验过的 Tango/Newcombe 等配对方法，并记录方法版本。零翻转仍有非零宽度，不使用全零 percentile bootstrap 制造确定性。NIST 的 n=20、4 次事件、90% 区间约为 [0.071354, 0.401029]，可作为单元格求根的交叉校验。固定时点、代表性采样及独立单位的假设不能省略；聚类和反复查看需要另行设计。
+这是可独立运行的教学参考，不是最窄的配对 score/exact 区间；生产可选择核验过的 Tango/Newcombe 等配对方法，并记录方法版本。零翻转仍有非零宽度，不使用全零 percentile bootstrap 制造确定性。NIST 的 n=20、4 次事件、90% 区间页面给出近似 [0.071354, 0.401029]；按其二项方程求根并以独立高精度计算交叉核验，得 [0.071353884309, 0.401028117332]，不要求实现逐字匹配页面的末位近似。固定时点、代表性采样及独立单位的假设不能省略；聚类和反复查看需要另行设计。
 
 例如 320 对零翻转、alpha=.05 时，本方法界约为 ±1.36 个百分点；它仍可能因样本、切片或其他门禁不足不能发布。五例退化、两例改善须按实际不一致数计算，不能只看净差。McNemar 检查相应差异假设，不显著不等于已证明非劣效。
 

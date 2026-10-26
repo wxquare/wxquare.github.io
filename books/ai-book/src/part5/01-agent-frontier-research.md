@@ -134,7 +134,7 @@ Verifier 逐论点检查原文是否直接支持、数值分母/单位/版本是
 
 上述研究分别提供机制与限定实验，不能合并成“整个领域已经解决/完全未解决”的绝对断言。具体安全依据见浏览器注入研究，记忆与反馈依据见 23.3–23.6 各原文；本表是本书提出的工程检查框架。
 
-事件驱动、Webhooks 和消息队列可以减少无效轮询，但需要持久订阅、去重、背压与失联恢复；轮询也可能是缺少事件接口时的合理选择。不能仅凭换成事件总线就宣称成本更低。可靠执行参见[Agent Runtime](../part3/04-agent-runtime.md#delivery-idempotency)，工具与网络边界见[Agent 工具系统工程](../part3/05-skills-tools-mcp-connectors.md)。
+事件驱动、Webhooks 和消息队列可以减少无效轮询，但需要持久订阅、去重、背压与失联恢复；轮询也可能是缺少事件接口时的合理选择。不能仅凭换成事件总线就宣称成本更低。可靠执行参见[Agent Runtime](../part3/04-agent-runtime.md#delivery-idempotency)，工具与网络边界见[外部工具系统](../part3/05-skills-tools-mcp-connectors.md)。
 
 ## 23.8 理想智能体与现实差距
 
