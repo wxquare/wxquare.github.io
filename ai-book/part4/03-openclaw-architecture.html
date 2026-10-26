@@ -43,7 +43,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-4a4171d8.js";
+            window.path_to_searchindex_js = "../searchindex-1a25ff4e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-6e3e5c7c.js"></script>
@@ -583,8 +583,26 @@
 </table>
 </div>
 <p>这个案例的验收对象是当前身份下读取、回复与拒绝越权的具体路径。每一步都在把 OpenClaw 的默认从“受信运营者的全权限个人助手”收窄到“只读工作群助手”：信任边界决定谁在系统内，暴露面决定谁能到达它，群白名单决定谁能触发它，工具策略与 exec 审批决定它能做什么，沙箱决定放行后的进程能碰什么，审计把这一切变成可复查的检查。</p>
-<h2 id="216-调优控制上下文成本与质量"><a class="header" href="#216-调优控制上下文成本与质量">21.6 调优：控制上下文、成本与质量</a></h2>
-<p>OpenClaw 提供了完整的旋钮、默认值和观测手段，但<strong>没有官方基准、没有本章的实测</strong>。这一部分只写“旋钮与机制、作用对象、观测手段”，不写“调到多少好”；数字都是固定提交里的默认值。</p>
+<h2 id="216-调优手册组件诊断队列案例与可控发布"><a class="header" href="#216-调优手册组件诊断队列案例与可控发布">21.6 调优手册：组件诊断、队列案例与可控发布</a></h2>
+<p>本章所列固定资料提供旋钮、默认值和观测手段，但不足以给出适用于读者负载的统一最优值，也没有本章实测。下面先按组件定位，再用 ALR 的消息突发案例说明怎样设计改动、验收和回滚；默认值属于来源事实，案例与实验属于本书设计。</p>
+<p>先区分三段时间：输入被接受到开始执行、开始执行到报告验收、报告验收到交付确认。用户看到“慢”，可能是其中任意一段；缩小模型上下文不能修复渠道发送失败，提高全局并发也不改变同会话串行。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>组件</th><th>先取什么证据</th><th>优化动作</th><th>反向检查</th></tr>
+</thead>
+<tbody>
+<tr><td>指令 / bootstrap</td><td><code>/context</code> 中实际注入文件与体积</td><td>保留范围和安全规则，重复背景改按需读取</td><td>被截去的是否恰是任务限制</td></tr>
+<tr><td>Skill</td><td>候选技能、加载与步骤产物</td><td>缩小触发范围，先核实环境/窗口再查数据</td><td>纯查值任务是否被强行变成完整调查</td></tr>
+<tr><td>模型 / fallback</td><td>各尝试的模型、错误与上下文长度</td><td>固定证据比较模型或单个 fallback 决策</td><td>表面成功是否来自改变任务或漏验证</td></tr>
+<tr><td>Tool / 知识</td><td>实际可用工具、参数、覆盖与来源版本</td><td>裁剪无关能力，先聚合后回源，核验文档适用性</td><td>必要能力是否消失、旧知识是否冒充当前事实</td></tr>
+<tr><td>Memory / Context</td><td>修剪、压缩与后续查询范围</td><td>保留状态、来源和未决项，避免重复灌入大结果</td><td>追问是否改查当前时间、丢掉候选身份</td></tr>
+<tr><td>队列 / 编排</td><td>session mailbox、lane 等待、下游限额</td><td>按输入语义选队列模式，减少重复取证</td><td>是否丢失已接受输入或混合不同主体权限</td></tr>
+<tr><td>交付</td><td>原目标、发送尝试与回执</td><td>单独收敛发送责任，保留未知结果</td><td>是否为重发回复而重跑整个调查</td></tr>
+</tbody>
+</table>
+</div>
+<p>这张表是部署方的诊断顺序，不表示 OpenClaw 原生提供所有应用指标。知识库若由插件或外部工具接入，来源治理与 ACL 由相应服务负责；内置记忆、渠道身份和任意企业知识权限不能混为一谈。</p>
 <h3 id="2161-度量与观测"><a class="header" href="#2161-度量与观测">21.6.1 度量与观测</a></h3>
 <p>用量与成本的观测入口是 <code>/status</code>（模型、上下文使用、最后响应 token、成本）、<code>/usage off|tokens|full|cost|reset</code>、<code>openclaw status --usage</code>（provider 配额窗口）；成本由 <code>models.providers.&lt;provider&gt;.models[].cost</code>（USD/百万 token，input/output/cacheRead/cacheWrite）估算，是估算不是账单<a href="#ref-20">[20]</a>。上下文的观测用 <code>/context list</code>、<code>/context detail</code> 看每个注入文件/工具/技能/系统提示的体量<a href="#ref-20">[20]</a>。</p>
 <p>缓存可观测靠 <code>diagnostics.cacheTrace.enabled</code>（默认 false，落盘 <code>logs/cache-trace.jsonl</code>），观测项含 <code>input/cacheRead/cacheWrite</code> 与稳定前缀/易变后缀/工具指纹<a href="#ref-21">[21]</a>。系统级观测还有 Prometheus 指标 <code>openclaw_session_recovery_total</code>、<code>openclaw_session_recovery_age_seconds</code>，以及 <code>OPENCLAW_GATEWAY_STARTUP_TRACE=1</code> 记录每个启动 span<a href="#ref-24">[24]</a>。注意 cache trace 默认含提示与消息原文，属敏感数据<a href="#ref-21">[21]</a>。嵌入式 runtime 在启动期做了“就绪才处理”的预热：<code>prewarmConfigDrivenReplyRuntime</code>、预加载 WS message handler、<code>sidecars.model-runtime</code> 发布模型快照，使首个连接与首轮复用已准备运行时<a href="#ref-40">[40]</a>。</p>
@@ -593,18 +611,76 @@
 <h3 id="2163-上下文预算"><a class="header" href="#2163-上下文预算">21.6.3 上下文预算</a></h3>
 <p>除 <code>/usage</code> 外，上下文拆解用 <code>/context list</code>、<code>/context detail</code> 看每个注入文件/工具/技能/系统提示的体量；<code>openclaw doctor</code> 对“bootstrap 文件超过上下文预算”给出“推荐改进”<a href="#ref-20">[20]</a>。系统级日志与诊断还有 <code>openclaw logs --follow</code>、<code>openclaw status [--all|--deep|--usage]</code>、<code>openclaw health [--verbose|--json]</code>、<code>openclaw gateway stability</code>、<code>openclaw gateway diagnostics export</code>（脱敏 zip）；<code>diagnostics.enabled</code> 默认开<a href="#ref-24">[24]</a>。</p>
 <p>固定开销的旋钮集中在注入量上：<code>agents.defaults.bootstrapMaxChars</code>（20000）、<code>bootstrapTotalMaxChars</code>（60000）、<code>skills.limits.maxSkillsPromptChars</code>、<code>agents.defaults.imageMaxDimensionPx</code>（默认 1200）<a href="#ref-20">[20]</a>。官方给的降 token 清单是：用 <code>/compact</code>；裁剪大工具输出；降低图片尺寸；保持技能描述简短（技能列表注入提示）；探索性冗长工作用更小模型<a href="#ref-20">[20]</a>。</p>
-<p>工具结果大小上限由有效上下文窗口推导另一个降工具声明占用的旋钮是 <code>tools.codeMode</code>：启用时普通工具移到“guest catalog bridge”之后，模型通常只见 <code>exec</code> 与 <code>wait</code>；<code>executor</code> 默认 <code>node</code>（<code>node:vm</code>，官方注明是“受信主机执行，不是安全隔离”），<code>quickjs</code> 是加固沙箱；MCP 工具目录按服务器名、工具名排序以稳定提示前缀<a href="#ref-14">[14]</a>。</p>
+<p>另一个降工具声明占用的旋钮是 <code>tools.codeMode</code>：启用时普通工具移到“guest catalog bridge”之后，模型通常只见 <code>exec</code> 与 <code>wait</code>；<code>executor</code> 默认 <code>node</code>（<code>node:vm</code>，官方注明是“受信主机执行，不是安全隔离”），<code>quickjs</code> 是加固沙箱；MCP 工具目录按服务器名、工具名排序以稳定提示前缀<a href="#ref-14">[14]</a>。</p>
 <p>工具结果大小上限由有效上下文窗口推导：&lt;100K token 为 16000 字符，≥100K 为 32000，≥200K 为 64000；运行时 context-share 守卫把单个工具结果限制在窗口的 30%<a href="#ref-20">[20]</a>。会话修剪（<code>agents.defaults.contextPruning</code>）默认 <code>mode:"cache-ttl"</code>、TTL 5 分钟（Anthropic 家族下插件播种 1h），客户端修剪仅在 TTL 过期且占用 ≥约 30% 时开始；最近三个 assistant turn 与首条用户消息之前永不修剪<a href="#ref-10">[10]</a><a href="#ref-23">[23]</a>。</p>
 <h3 id="2164-模型与-fallback-调优"><a class="header" href="#2164-模型与-fallback-调优">21.6.4 模型与 fallback 调优</a></h3>
 <p>fallback 的调优要点（21.4.3 的机制）是：显式用户模型选择严格不回退；agent primary 默认严格、需自带 <code>fallbacks</code>；fallback 只对本 turn 生效；上下文溢出恢复耗尽后，已知上下文足够的候选优先<a href="#ref-11">[11]</a>。认证 profile 按会话粘住以保持缓存温热，只在 <code>/new</code>/<code>/reset</code> 或冷却/禁用时轮换<a href="#ref-11">[11]</a>。超时旋钮：<code>agents.defaults.timeoutSeconds</code>（172800s）、<code>models.providers.&lt;id&gt;.timeoutSeconds</code>（慢速本地/自托管 provider 应先调它再调 agent 超时，且保持 agent 超时不低于它）<a href="#ref-7">[7]</a>。</p>
 <h3 id="2165-缓存"><a class="header" href="#2165-缓存">21.6.5 缓存</a></h3>
-<p><code>cacheRetention</code> 取 <code>none|short|long</code>持久会话中的普通 agent-turn 定时作业可以在缓存窗口内“保温”：例如一小时缓存配 <code>openclaw automations edit &lt;job-id&gt; --every 55m</code>；隔离作业每次新会话不保温；官方提醒“每个 turn 都花 token，比较总用量而不是假设命中”<a href="#ref-21">[21]</a>。</p>
 <p><code>cacheRetention</code> 取 <code>none|short|long</code>；<strong>换模型必然开启新缓存谱系</strong>，改 thinking/推理级别也可能失效——官方建议“创建会话时选定模型与 thinking 级别并保持稳定”<a href="#ref-21">[21]</a>。持久会话中的普通 agent-turn 定时作业可在缓存窗口内“保温”（例：一小时缓存配 <code>automations edit &lt;job-id&gt; --every 55m</code>）；隔离作业每次新会话不保温；官方提醒“每个 turn 都花 token，比较总用量而不是假设命中”<a href="#ref-21">[21]</a>。</p>
 <h3 id="2166-压缩与存储旋钮"><a class="header" href="#2166-压缩与存储旋钮">21.6.6 压缩与存储旋钮</a></h3>
 <p>压缩调优键：<code>agents.defaults.compaction.model</code> 可用本地小模型专做摘要；<code>keepRecentTokens</code> 默认 20000；<code>maxActiveTranscriptBytes</code>（opt-in 字节守卫）；<code>memoryFlush.model</code>；<code>notifyUser</code><a href="#ref-10">[10]</a>。会话存储维护影响磁盘占用：<code>session.maintenance.{mode:"enforce"|"warn", pruneAfter:"30d", archiveDashboardAfter:"7d", maxEntries:5000}</code>，<code>openclaw sessions cleanup --enforce</code> 手动执行<a href="#ref-8">[8]</a>。</p>
 <h3 id="2167-不应为省-token-放弃的东西"><a class="header" href="#2167-不应为省-token-放弃的东西">21.6.7 不应为省 Token 放弃的东西</a></h3>
 <p>有几类开销不能省（本书建议）。工具策略的逐层求值：省掉任何一层的 deny 都意味着越权路径变宽，调优只能改“哪些工具可选”，不能改“deny 是否生效”。exec 审批：共享宿主或可触达敏感资源时，降低打断应先收窄能力；对无宿主敏感挂载、凭据和网络能力的隔离执行器，可依据已批准的威胁模型选择不同询问策略。重启恢复：关闭恢复或调低预算的代价是“已接受的输入可能永远丢失”，这不是 token 问题，是正确性问题。缓存保温可以关（那省费用），但逐动作的权限边界和恢复语义不能为省 token 而放宽。</p>
-<h3 id="2168-版本敏感事实与重新评估入口"><a class="header" href="#2168-版本敏感事实与重新评估入口">21.6.8 版本敏感事实与重新评估入口</a></h3>
+<h3 id="2168-案例连续追问为何让-alr-越排越慢"><a class="header" href="#2168-案例连续追问为何让-alr-越排越慢">21.6.8 案例：连续追问为何让 ALR 越排越慢</a></h3>
+<p>假设同一个获准请求者通过 Gateway 提交 ALR 调查，在运行中又发送“补查部署”和“最后给出证据列表”。准备两套独立入口夹具：一套是满足 collect 兼容条件的 Gateway <code>chat.send</code>，另一套是使用 durable ingress 的渠道。固定服务、时间窗、工具响应、身份和发送目标；这不是三条可以随意合并的任意渠道消息。</p>
+<p><strong>基线 Bad Case</strong>：项目背景和历史日志过大；Skill 每次从头搜索；队列逐条推进追问，模型重新读取相同指标；同会话后续消息等待加长；最终答复的发送回执丢失，运营者又重跑调查。这里先后有重复取证、排队和交付未知，不能统称“模型太慢”。</p>
+<p>先记录以下时间点及其来源。产品日志没有提供某项时，由应用接入层补充；不可用的字段标缺失，不从总 duration 猜测：</p>
+<pre><code class="language-text">input_accepted → turn_started → first_useful_evidence
+               → report_verified → send_attempted → delivery_confirmed/unknown
+</code></pre>
+<p>每次记录原输入身份、会话、Run 与接收目标，避免把同会话的多条输入统计成同一项“被完成的请求”。先用时间线判断等待占比，再分别实验。</p>
+<p><strong>组件改动一：让规则和 Skill 复用已核实状态。</strong> 将“收到问题后完整排查”改成：</p>
+<pre><code class="language-text">先读取当前 ALR 的范围、已核验证据、候选和未决项。
+追问只补当前缺口；复用前检查来源时效与当前权限。
+仍使用 prod/order-service 和 2026-04-29 10:35–10:50 +08:00。
+E12 保持未核验，直到取得口径与范围核验依据。
+输出变化过的结论和证据，不把旧推测升级为事实。
+</code></pre>
+<p>工具结果改成“聚合、覆盖、代表样本与受控回源引用”；日志全文不反复回填。知识检索仍排除已退役 v1，v2/v3 的适用性由部署映射决定。这些是规则、Skill 和工具适配的教学改造，不是调小 <code>bootstrapMaxChars</code> 就自动获得的能力。</p>
+<p><strong>组件改动二：按入口验证队列模式。</strong> 在兼容的 <code>chat.send</code> 夹具中，可以只改变队列为 collect，观察兼容追问是否形成一次 follow-up；但 durable ingress 下 collect 会按 followup 处理，不能承诺 Telegram/Discord 的独立输入被合成一轮。不同权限、路由或执行设置的消息不能借合并继承更大权限。<a href="#ref-4">[4]</a></p>
+<p>可用于上述 Gateway 对照的配置片段如下；只应用于隔离实验，保持 cap、drop、并发等其他值与基线相同：</p>
+<pre><code class="language-json">{
+  "messages": {
+    "queue": {
+      "mode": "collect"
+    }
+  }
+}
+</code></pre>
+<p>还要清除或明确保留测试会话的 <code>/queue</code> override，因为会话设置可能覆盖全局；记录最终有效值。<a href="#ref-4">[4]</a> 若入口本就不能 collect，保留独立 follow-up，改进共享证据读取，而不是不断加大合并窗口。</p>
+<p><strong>组件改动三：单独处理发送责任。</strong> 报告已保存且业务调查已验收时，回执丢失进入发送核验；不重新运行模型和只读工具，更不能重做已经批准完成的建单。资源端无可靠查询能力时保留 unknown，由运营者决定是否接受可能重复的重发，不能用更短超时声称“发送失败所以未送达”。恢复和出站语义见 21.4。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>实验</th><th>唯一改变</th><th>看什么</th><th>不通过条件</th></tr>
+</thead>
+<tbody>
+<tr><td>Q1</td><td>Skill 增量取证步骤</td><td>重复查询、覆盖、任务费用</td><td>复用了已过期或无权证据</td></tr>
+<tr><td>Q2</td><td>工具结果预览与回源</td><td>输入体积、额外读取、结论支持</td><td>截断后未补证据却宣布根因</td></tr>
+<tr><td>Q3</td><td>同一入口的队列模式</td><td>输入采纳、turn 数、等待、身份</td><td>缺少输入，或不兼容请求被混合</td></tr>
+<tr><td>Q4</td><td>固定证据下的模型配置</td><td>模型时长、质量与费用</td><td>提速来自缺少验证或不同权限</td></tr>
+<tr><td>Q5</td><td>仅调整跨会话并发</td><td>吞吐、lane 等待、下游限流</td><td>下游饱和、unknown 增多或不公平</td></tr>
+<tr><td>Q6</td><td>仅改交付核验流程</td><td>发送尝试、已确认/未知、重复调查</td><td>为补发而重做业务动作</td></tr>
+</tbody>
+</table>
+</div>
+<p>Q5 用多个独立会话测试；给一个会话提高 <code>maxConcurrent</code> 不会解除串行。队列容量不等于下游吞吐，缩小 cap 或丢掉旧输入也不能计为加速。缓存保温另做按到达间隔分层的实验，把每个保温 turn 计入费用。</p>
+<p>组合后的期望轨迹是：一次完整只读调查形成证据状态→追问按入口语义推进并补缺口→逐项验证报告→独立收敛投递。没有足够证据就交付有限定报告；E12、部署先后和旧 Runbook 不能因更短链路而变成已确认根因。</p>
+<h3 id="2169-统一评测发布与回滚"><a class="header" href="#2169-统一评测发布与回滚">21.6.9 统一评测、发布与回滚</a></h3>
+<p>回归集至少包含：单请求、同人连续追问、不同主体、不同权限、durable ingress、工具超时/截断、无答案、进程重启、发送回执未知和撤权。固定插件、规则/Skill、工具契约、模型、有效队列设置、数据快照、入口与策略版本。原输入、执行、报告、发送四层分别验收，分母不随合并轮数变化。</p>
+<p>每次保存全部任务的四态结果、等待和未完成年龄、重复取证、各模型尝试及费用。<code>/context</code> 是装配观察，<code>/usage</code> 是用量入口，配置价格得到的是估算，不是账单；cache trace 默认可能含原文，采样、访问和保留期须收窄。<a href="#ref-20">[20]</a><a href="#ref-21">[21]</a> 把初始化、压缩、fallback、保温、失败重跑和恢复开销计入原任务，不仅报告成功样本的模型时长。</p>
+<p>统一统计与门禁见<a href="../part3/06-agent-governance-optimization.html#tuning-release-runbook">发布手册</a>。本章发布对象是部署方维护的 Gateway/插件版本、配置、Workspace 材料和模型路由组合；last-known-good 与热重载不是整套业务实验的自动回滚平台。配置应用路径应按产品契约检查，不能假设所有字段热生效。<a href="#ref-26">[26]</a><a href="#ref-34">[34]</a></p>
+<p>实际操作按以下顺序进行：</p>
+<ol>
+<li>在隔离状态目录和测试渠道回放，用独立用户与权限反例验收；不复制生产凭据，不把同一真实写入发给两版。</li>
+<li>保存旧组合、有效会话 override、插件 hash、待处理输入和未决发送清单；确认旧程序能读当前状态格式，再开始限定 Agent/渠道灰度。</li>
+<li>出现输入丢失、身份混用、越权、旧执行者提交或重复业务动作，停止相关候选派发；其他等待/成本线与成熟反馈窗口在发布前声明。</li>
+<li>新任务切回已验证组合；在途 turn 保持单一所有者，按兼容性排空或取消并核验。不能用恢复旧配置强行清空 mailbox 或删除发送记录。</li>
+<li>兼容检查通过后按配置/插件生命周期恢复，核对实际版本并跑新任务 Smoke；恢复过的输入、已建工单和出站未知各自对账。</li>
+</ol>
+<p>不要整目录恢复旧备份来“清队列”：它可能抹掉候选期间已接受的输入、已发送标记和撤权状态。若存储格式不兼容，先暂停并做有证据的迁移/恢复决策；回滚配置不代表可以安全降级数据库。关闭实验前，记录哪些任务用了候选、哪些仍未交付及其负责人。</p>
+<p><a id="2168-版本敏感事实与重新评估入口"></a></p>
+<h3 id="21610-版本敏感事实与重新评估入口"><a class="header" href="#21610-版本敏感事实与重新评估入口">21.6.10 版本敏感事实与重新评估入口</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -624,7 +700,7 @@
 <h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
 <p>OpenClaw 把个人 AI 助手做成了一个长期运行的 Gateway：一个进程拥有全部消息面，用 WebSocket 承担控制面，用 SQLite 承担会话与恢复的权威状态，用内置 runtime 执行 agent run，用工具策略、exec 审批和沙箱三层收窄行动边界。它的工程重心有两个：一是“长期在线”带来的可靠性（渠道重连阶梯、模型故障转移、Recovery is always on 的重启恢复、持久出站队列），二是“能替人行动”带来的安全（保守默认、暴露面阶梯、<code>security audit</code> 与 <code>doctor</code> 的可执行检查）。</p>
 <p>两者之间的张力也写进了默认值：exec 默认放行不询问、工具策略默认 full、agent-to-agent 消息默认开启——这些是“个人受信运营者”模型的默认，搬到共享或暴露场景就必须显式收紧。文档反复把这条说清楚：OpenClaw 不是敌对多租户边界，信任边界要靠部署方式去划。</p>
-<p>调优方面，OpenClaw 的旋钮（并发、上下文注入预算、fallback 链、缓存保留、压缩与修剪、会话维护）和观测手段（<code>/usage</code>、<code>/context detail</code>、cache trace、Prometheus）都很完整，但没有官方基准。本章因此只写机制与默认值，把“调到多少好”留给使用者用自己的工作负载去测。</p>
+<p>调优先分清排队、执行和交付，再决定改上下文、Skill、工具、模型还是容量。ALR 连续追问案例要求按入口验证队列语义、按原任务记录完整费用，并将报告与发送责任分开。灰度和回退保留当前权限、已接受输入、在途所有者和未决发送，不以清队列或重做业务换取表面提速。</p>
 <h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
 <p>官方文档页与源码都固定到提交 <code>ff7597025dd22b087b250a4df94caded50e798aa</code>（版本 2026.10.6），核验日期 2026-10-23。文档内部不一致处以正文点名处为准。</p>
 <ol>

@@ -43,7 +43,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-4a4171d8.js";
+            window.path_to_searchindex_js = "../searchindex-1a25ff4e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-6e3e5c7c.js"></script>
@@ -249,7 +249,7 @@
 </div>
 <h3 id="2214-状态与存储"><a class="header" href="#2214-状态与存储">22.1.4 状态与存储</a></h3>
 <p>状态目录默认 <code>~/.hermes</code>（<code>HERMES_HOME</code> 覆盖）。关键布局：<code>config.yaml</code>（行为配置）、<code>.env</code>（只放密钥）、<code>auth.json</code>（OAuth 凭据）、<code>SOUL.md</code>、<code>memories/</code>（MEMORY.md、USER.md）、<code>skills/</code>、<code>cron/</code>、<code>sessions/</code>、<code>logs/</code><a href="#ref-5">[5]</a>。命名 profile 目录是 <code>&lt;root&gt;/profiles/&lt;name&gt;/</code>，各带独立 <code>state.db</code>、配置、日志<a href="#ref-5">[5]</a>。一个例外是 Kanban 数据库：默认看板 DB 在共享根 <code>&lt;root&gt;/kanban.db</code>，是跨 profile 共享状态，与“profile 是岛”的默认隔离不同<a href="#ref-11">[11]</a>。</p>
-<p>会话的权威状态在 SQLite <code>state.db</code>（WAL）。表包括 <code>sessions</code>、<code>messages</code>、<code>session_model_usage</code>、三个 FTS 表（<code>messages_fts</code>/<code>_trigram</code>/<code>_cjk</code>）、<code>state_meta</code>、<code>gateway_routing</code>、<code>compression_locks</code>、<code>async_delegations</code>、<code>delivery_obligations</code>、<code>runtime_epoch</code>、<code>session_admissions</code>、<code>worker_executions</code>、<code>worker_receipts</code>、<code>schema_version</code> 等<a href="#ref-7">[7]</a>。<code>SCHEMA_VERSION = 32</code>（文档写 31；源码常量见 22.6.8，不推定安装版本）<a href="#ref-7">[7]</a>。Gateway 是 canonical session 的唯一写者：CLI、TUI、Desktop、API server、ACP、cron、Kanban worker 都是“向 session authority 提交输入”的客户端<a href="#ref-7">[7]</a>。</p>
+<p>会话的权威状态在 SQLite <code>state.db</code>（WAL）。表包括 <code>sessions</code>、<code>messages</code>、<code>session_model_usage</code>、三个 FTS 表（<code>messages_fts</code>/<code>_trigram</code>/<code>_cjk</code>）、<code>state_meta</code>、<code>gateway_routing</code>、<code>compression_locks</code>、<code>async_delegations</code>、<code>delivery_obligations</code>、<code>runtime_epoch</code>、<code>session_admissions</code>、<code>worker_executions</code>、<code>worker_receipts</code>、<code>schema_version</code> 等<a href="#ref-7">[7]</a>。<code>SCHEMA_VERSION = 32</code>（文档写 31；源码常量见 22.6.9，不推定安装版本）<a href="#ref-7">[7]</a>。Gateway 是 canonical session 的唯一写者：CLI、TUI、Desktop、API server、ACP、cron、Kanban worker 都是“向 session authority 提交输入”的客户端<a href="#ref-7">[7]</a>。</p>
 <p>除会话库外，还有一套运行时账本表支撑恢复：<code>session_admissions</code>（durable 输入 FIFO，<code>intent ∈ {queue, steer, redirect}</code>、<code>status ∈ {queued, started, unknown, terminal}</code>）、<code>worker_executions</code>（cron/child/compute/kanban）、<code>worker_receipts</code>、<code>runtime_epoch</code>（epoch + instance_id 单行）、<code>session_turn_leases</code>（跨进程回合租约）<a href="#ref-7">[7]</a>。</p>
 <h3 id="2215-进程与部署形态"><a class="header" href="#2215-进程与部署形态">22.1.5 进程与部署形态</a></h3>
 <p>可核对的进程形态有七种：CLI/<code>hermes chat</code>/TUI 客户端；gateway 守护进程（常驻服务或按需拉起）；进程外 managed worker（bypass/safe 会话、custom-provider、kanban/cron 等）；TUI（Node/Ink 前端 + Python 后端）；<code>hermes serve</code> 无头后端（端口默认 9119）；ACP stdio 服务；cron（gateway 内置 ticker 线程，或外部 <code>hermes cron tick</code>）<a href="#ref-23">[23]</a>。console scripts 有三个：<code>hermes</code>、<code>hermes-agent</code>（legacy 单查询 runner）、<code>hermes-acp</code><a href="#ref-6">[6]</a>。</p>
@@ -482,7 +482,7 @@
 <p>Gateway 授权顺序是：平台 allow-all → 平台 allowlist → DM pairing → 全局 allow-all → 默认拒绝；未配置任何 allowlist 且未设 allow-all 时<strong>所有用户被拒绝</strong><a href="#ref-29">[29]</a>。DM pairing 是身份优先于模型的落实：陌生用户收到 8 字符码，owner 用 <code>hermes pairing approve &lt;platform&gt; &lt;code&gt;</code>；码 1 小时过期、每用户 10 分钟 1 次请求、每平台最多 3 个待处理、5 次失败锁 1 小时<a href="#ref-29">[29]</a>。Docker 下执行配对命令须带 <code>-u hermes</code>，否则 root 创建的文件 gateway 读不到、批准被静默忽略<a href="#ref-29">[29]</a>。</p>
 <p>SECURITY.md 对外部面有一条硬规则：每个网络暴露适配器必须设 allowlist（未设置时不得派发工作、解决审批、回传输出）；session ID 只是路由句柄不是授权；授权集合内所有调用者同等可信，需要能力隔离则运行多个实例<a href="#ref-30">[30]</a>。生产 gateway 官方给了一个 10 条清单：显式 allowlist、容器后端、限资源、<code>.env</code> 权限、启用 DM pairing、审计 command_allowlist、设 terminal.cwd、不以 root 运行、监控日志、定期 <code>hermes update</code><a href="#ref-29">[29]</a>。</p>
 <h3 id="2255-记忆与技能的使用"><a class="header" href="#2255-记忆与技能的使用">22.5.5 记忆与技能的使用</a></h3>
-<p>记忆分 <code>MEMORY.md</code>（2200 字符）与 <code>USER.md</code>（1375 字符），按字符而非 token 计；超限不自动压缩，返回错误并附 <code>current_entries</code>，建议用单次 <code>operations</code> 批处理（同时删除/缩短旧条目并添加新条目，限额只对最终结果检查）<a href="#ref-12">[12]</a>。官方对记忆与技能写入门默认关闭（<code>memory.write_approval</code>/<code>skills.write_approval</code> 默认 False）——这是把“模型直接写长期状态”变成可选的能力<a href="#ref-12">[12]</a>。</p>
+<p>记忆分 <code>MEMORY.md</code>（2200 字符）与 <code>USER.md</code>（1375 字符），按字符而非 token 计；超限不自动压缩，返回错误并附 <code>current_entries</code>，建议用单次 <code>operations</code> 批处理（同时删除/缩短旧条目并添加新条目，限额只对最终结果检查）<a href="#ref-12">[12]</a>。<code>memory.write_approval</code> 与 <code>skills.write_approval</code> 默认 false，表示<strong>审批门关闭、允许直接写入</strong>，不是“默认禁止学习”。设为 true 后，交互 CLI 前台 memory 写入要求确认，其他入口及后台 memory 写入暂存；skill 写入则不论来源均暂存待审。审批开关与完全禁用 memory 是不同设置。<a href="#ref-12">[12]</a></p>
 <p>技能方面，官方开发指南的判据是“几乎总是 skill”：能用指令 + shell + 现有工具表达的做 skill，需要端到端集成 API key/认证、必须每次精确执行的逻辑才做 Tool<a href="#ref-31">[31]</a>。SKILL.md 的 <code>description</code> 必须 ≤60 字符、一句话、句号结尾（长描述稀释模型注意力）；正文引用 Hermes 原生工具名（search_files/read_file/patch 等）而非 grep/cat/sed<a href="#ref-31">[31]</a>。技能索引（名称 + 描述）每次会话注入，所以“保持描述简短”是真实的 token 压力，不只是风格建议。</p>
 <h4 id="长期状态污染从一次输入到未来行为"><a class="header" href="#长期状态污染从一次输入到未来行为">长期状态污染：从一次输入到未来行为</a></h4>
 <p>Hermes 的学习闭环把有用经验写进 memory 和 skills，使后续任务能复用方法；同一条路径也会把输入污染放大。群聊、文档或工具输出中的错误内容，若经后台反思转成记忆或技能，就可能在原输入已离开上下文后继续影响未来会话。写入扫描、文件锁和格式合法各自只解决部分问题：锁防并发覆盖，扫描发现已知危险模式，二者都不能证明经验真实或适用于所有用户。<a href="#ref-7">[7]</a><a href="#ref-30">[30]</a></p>
@@ -529,7 +529,7 @@
 </div>
 <p>凭据与环境的几个操作细节值得记下（官方说明）。MCP stdio 子进程只继承 PATH/HOME/USER/LANG/LC_ALL/TERM/SHELL/TMPDIR 与 XDG_*，其余（API key、token、secret）被剥离；<code>docker_forward_env</code> 加入的变量会注入容器，容器内代码可读取并外泄，Hermes 基础设施密钥不应加入<a href="#ref-29">[29]</a>。context 文件（AGENTS.md、SOUL.md 等）在进入 system prompt 前被扫描（忽略指令、隐藏 HTML 注释、读取 secrets、curl 外泄、不可见 Unicode），命中则 <code>[BLOCKED: … Content not loaded.]</code>；用户自写的 SOUL.md 命中只警告，profile distribution 带来的命中仍阻断<a href="#ref-29">[29]</a>。SSRF 防护拒绝 RFC1918、回环、链路本地、云元数据主机名/IP，DNS 失败 fail-closed，重定向逐跳重验<a href="#ref-29">[29]</a>。</p>
 <p>生产 gateway 官方清单是：显式 allowlist、容器后端、限资源、<code>.env</code> 权限、启用 DM pairing、审计 command_allowlist、设 terminal.cwd、不以 root 运行、监控 <code>~/.hermes/logs/</code>、定期 <code>hermes update</code>；<code>chmod 600 ~/.hermes/.env</code>，不同服务用不同 key，<code>.env</code> 不入版本库<a href="#ref-29">[29]</a>。官方还给了最大隔离姿态：gateway 与执行分机，<code>terminal.backend: ssh</code>，主机细节写 <code>.env</code>（<code>TERMINAL_SSH_HOST/USER/KEY</code>），不随 profile 导出共享<a href="#ref-29">[29]</a>。</p>
-<p>技能与记忆的写入门默认关闭（<code>memory.write_approval</code>/<code>skills.write_approval</code> 默认 False），这是把“模型直接改长期状态”变成可选能力；技能侧另有 Skills Guard 信任分级与安装策略、curator 的归档（默认 7 天一次、14 天 stale、30 天 archive、只归档不删除、pinned 豁免）与 <code>skill_ledger</code> 审计回滚<a href="#ref-12">[12]</a>。官方对 skill 分发的层级是：bundled <code>skills/</code>（人人需要）→ <code>optional-skills/</code>（官方、默认不激活）→ Skills Hub（社区，安装前审查）<a href="#ref-31">[31]</a>。</p>
+<p>受限群助手应主动启用记忆/技能写入审批，而不是把默认 false 误认为禁止写入。技能侧另有 Skills Guard 信任分级与安装策略、curator 的归档（默认 7 天一次、14 天 stale、30 天 archive、只归档不删除、pinned 豁免）与 <code>skill_ledger</code> 审计回滚<a href="#ref-12">[12]</a>。官方对 skill 分发的层级是：bundled <code>skills/</code>（人人需要）→ <code>optional-skills/</code>（官方、默认不激活）→ Skills Hub（社区，安装前审查）<a href="#ref-31">[31]</a>。</p>
 <p>几条操作层面的官方提醒值得补全。TLS：通过 truststore 使用平台信任库，<code>ssl_verify: false</code> 不安全，官方明说“不要把它当作缺失企业根证书的永久修复”<a href="#ref-29">[29]</a>。gateway event hooks 目录 <code>&lt;profile home&gt;/hooks/&lt;name&gt;/</code> 以放置即启用、进程内以 gateway 权限导入，不受 <code>plugins.enabled</code> 与 <code>HERMES_SAFE_MODE</code> 约束——应像审阅 config.yaml 一样审阅 handler.py<a href="#ref-29">[29]</a>。供应链公告扫描由 <code>hermes doctor</code> 展示，<code>hermes doctor --ack &lt;advisory-id&gt;</code> 持久化到 <code>config.security.acked_advisories</code>；<code>security.allow_lazy_installs</code> 可置 false 关闭按需安装<a href="#ref-29">[29]</a>。</p>
 <p>无 provider 配置时的首启保护与 <code>hermes doctor</code> 也值得写进日常工作流：<code>hermes doctor</code> 对配置/依赖做诊断，退出码 0 表示没有未解决问题、1 表示至少还有一个（含 <code>--fix</code> 修不好的），因此可作健康门禁/CI 步骤；网关仍在运行时不要运行 <code>hermes doctor --fix</code><a href="#ref-33">[33]</a>。</p>
 <h3 id="2258-案例给一个-telegram-群挂一个受限助手"><a class="header" href="#2258-案例给一个-telegram-群挂一个受限助手">22.5.8 案例：给一个 Telegram 群挂一个受限助手</a></h3>
@@ -550,9 +550,26 @@
 </table>
 </div>
 <p>案例从把默认从“个人受信运营者的全权限助手”收窄到“受限群助手”：OS 隔离是第一层，身份 allowlist 决定谁能触发，deny 规则决定哪些命令不能跑，写保护决定能碰哪些文件，记忆/技能的自动写入保持受控，审批开关不得沿用默认关闭，审计把这一切变成可复查的状态。</p>
-<h2 id="226-调优控制上下文成本与质量"><a class="header" href="#226-调优控制上下文成本与质量">22.6 调优：控制上下文、成本与质量</a></h2>
-<p>Hermes 有完整的旋钮与默认值，但<strong>官方没有给出基准、本章没有实测</strong>。这一部分只写“旋钮与机制、作用对象、观测手段”，不写“调到多少好”；数字都是固定提交里的默认值。官方对性能的数字声明（如提示缓存“~75% 节省”、MoA HermesBench 分数）范围不明，只作为厂商说法引用。</p>
+<h2 id="226-调优手册组件评估学习案例与发布回滚"><a class="header" href="#226-调优手册组件评估学习案例与发布回滚">22.6 调优手册：组件评估、学习案例与发布回滚</a></h2>
+<p>Hermes 的上下文、模型、工具与学习机制有明确配置，但没有本章工作负载的实测基准。下面先用组件表和观测入口定位，再以受限助手学习案例给出具体改法，最后统一评测与发布。产品默认值不是推荐值；官方缓存节省比例和特定 Bench 得分也不能替代读者的总任务测量。</p>
 <p>受限案例中，DM pairing 只回答谁能开始私聊，群授权仍需单独配置并与数据范围匹配。容器只有在不挂载敏感宿主路径、不过度暴露凭据/网络、设置资源限制时才形成预期边界；容器内选择较少交互审批可以是运营者的显式取舍，不能泛化为共享宿主上也可关闭控制。以上是本书案例前提，不是产品默认安全保证。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>组件</th><th>先评估什么</th><th>最小优化动作</th><th>必须保留的反例</th></tr>
+</thead>
+<tbody>
+<tr><td>指令 / 项目上下文</td><td>实际注入规则与冲突</td><td>稳定规则只留边界，易过期事实移到证据状态</td><td>规则已加载但输入试图扩大权限</td></tr>
+<tr><td>Skill</td><td>触发、步骤、适用版本与长期复用</td><td>收窄描述，步骤带产物，候选先审后发布</td><td>相似症状但不同原因/部署</td></tr>
+<tr><td>LLM / fallback</td><td>同包推理、失败类型与预算</td><td>单独调模型、强度或回退链</td><td>已知缺证据、限流、显式模型选择</td></tr>
+<tr><td>Tool / MCP</td><td>发现、参数、结果覆盖与真实动作</td><td>按平台收窄工具，结构化错误和回源引用</td><td>不可见必要工具、空结果与超时</td></tr>
+<tr><td>知识 / Memory</td><td>来源、核验、适用范围和召回</td><td>瞬时观察不晋升规则，纠错沿派生关系传播</td><td>过期、撤权、跨用户污染</td></tr>
+<tr><td>压缩 / 缓存</td><td>摘要保真、冻结快照与全部费用</td><td>保留约束和未知，分负载比较缓存策略</td><td>压缩后追问、写后旧会话未刷新</td></tr>
+<tr><td>编排 / 后台学习</td><td>admission、worker、后台调用与投递</td><td>分开验收输入推进、学习写入和回复交付</td><td>重启、未知效果、后台晚到写入</td></tr>
+</tbody>
+</table>
+</div>
+<p>外部知识/记忆 provider 另有自己的权限和召回契约；不能把内建文件的审批开关说成所有插件的统一安全门。组件诊断方法复用<a href="../part3/06-agent-governance-optimization.html#component-tuning">通用手册</a>，本章重点是跨会话学习的收益和污染代价。</p>
 <h3 id="2261-度量与观测"><a class="header" href="#2261-度量与观测">22.6.1 度量与观测</a></h3>
 <p>用量与成本的观测在会话行里：<code>sessions</code> 表有 <code>input/output/cache_read/cache_write/reasoning_tokens</code>、<code>estimated_cost_usd</code>、<code>actual_cost_usd</code>、<code>cost_status</code> 等列<a href="#ref-7">[7]</a>。模型选择与 <code>/model</code>、<code>/usage</code>、<code>/logs</code>、<code>/dump</code>、<code>/insights</code>、<code>/prompt-size</code> 等命令提供入口（文档未给 <code>/cost</code> 命令）<a href="#ref-31">[31]</a>。上下文拆解靠 <code>/context</code>（分 token 列出上下文与工具定义）。缓存可观测靠 usage 的 <code>cache_read_tokens/cache_write_tokens</code>，客户端构造缓存标记不证明服务端命中<a href="#ref-7">[7]</a>。</p>
 <h3 id="2262-上下文压缩与预算"><a class="header" href="#2262-上下文压缩与预算">22.6.2 上下文压缩与预算</a></h3>
@@ -563,44 +580,83 @@
 <p>模型/provider 选择经 <code>resolve_runtime_provider</code> 梯子；fallback 用 <code>fallback_providers</code>（列表，每项需 provider+model），沿链前进，显式用户选择严格不回退；主 provider 冷却 60 秒 → 4 小时<a href="#ref-16">[16]</a>。<code>fallback.min_switch_reset_seconds</code>（默认 0=关闭）让重置时间很短的限流主 provider 不切 fallback、由重试退避等过窗口<a href="#ref-16">[16]</a>。子 Agent 的 fallback 用 <code>delegation.fallback_providers</code>（未固定的子 Agent 继承父链）<a href="#ref-14">[14]</a>。</p>
 <h3 id="2265-工具集裁剪与委派成本"><a class="header" href="#2265-工具集裁剪与委派成本">22.6.5 工具集裁剪与委派成本</a></h3>
 <p>官方对“裁剪工具集节省多少 token”没有给数字，只给机制：<code>hermes tools</code> 启停平台 toolset、<code>tool_search</code> 按需加载工具描述、<code>code_mode</code> 让模型经单一入口调用工具<a href="#ref-31">[31]</a>。AGENTS.md 的不变量是“每个模型工具每次 API 调用都会发送”，所以新增核心工具门槛高——这也是 22.5.5 里“能用 skill 就别用 tool”的 token 依据<a href="#ref-1">[1]</a>。委派成本方面，<code>delegation.max_concurrent_children</code> 默认 10、<code>max_iterations</code> 250、<code>max_summary_chars</code> 24000；子 Agent 用更便宜的模型可经 profile 路由配置<a href="#ref-14">[14]</a>。MoA 的 reference 并发上限 8，缓存键 <code>preset+SHA256(advisory view)+labels</code><a href="#ref-14">[14]</a>。</p>
-<p>压缩触发点有一个容易误算的细节：<code>compression.threshold</code> 默认 0.50，但窗口 &lt;512K 的模型被只升不降地抬到 ≥0.75——所以 200K 窗口的实际触发点约 150,000，不是文档示例的 100,000<a href="#ref-13">[13]</a>。注入预算的精确数字：MEMORY 2200 / USER 1375 字符；项目 context 文件上限 20000 字符 floor、0.06×窗口×4 字符、500,000 ceiling（头 70%/尾 20%）；技能索引无硬上限，但每个技能约 97 字符加 name/description/location 长度<a href="#ref-12">[12]</a>。</p>
-<p>工具集裁剪的机制是 <code>hermes tools</code> 按平台启停、<code>tool_search</code> 按需加载工具描述、<code>code_mode</code> 让模型经单一入口调用工具；官方没有给“裁剪节省多少 token”的数字<a href="#ref-31">[31]</a>。委派成本旋钮：<code>delegation.max_concurrent_children</code> 默认 10、<code>max_iterations</code> 250、<code>max_summary_chars</code> 24000（子摘要受父上下文剩余余量动态预算双重约束，裁掉的文本溢出到磁盘并给 head+tail 窗口）<a href="#ref-14">[14]</a>。MoA 的 reference 并发上限 8、advisory view 预算 4000 字符、缓存键 <code>preset+SHA256(advisory view)+labels</code>、<code>fanout</code> 三档<a href="#ref-14">[14]</a>。</p>
-<p>可观测性方面，除会话行 usage/cost 列外，<code>/usage</code>、<code>/context</code>、<code>/prompt-size</code>、<code>/dump</code>、<code>/insights</code>、<code>/logs</code> 提供入口；日志分 <code>agent.log</code>（默认 5 MB×3 备份）、<code>errors.log</code>、<code>gateway.log</code>；仓内没有 langfuse/otel 插件（官方 Langfuse 是外部目录插件），也没有 <code>/cost</code> 命令<a href="#ref-31">[31]</a>。官方对性能的数字声明（提示缓存“~75% 节省”、MoA HermesBench 分数）范围不明，只作为厂商说法引用，不作基准<a href="#ref-4">[4]</a>。</p>
+<p>子摘要还受父上下文剩余余量约束；超出部分落盘并提供 head/tail，不能把预览当成子任务全部证据。MoA 的多路输出也不等于独立外部观察。调优时同时检查合并遗漏、重复读取和完整成本，而非只统计主模型输出。<a href="#ref-14">[14]</a></p>
 <h3 id="2266-不应为省-token-放弃的东西"><a class="header" href="#2266-不应为省-token-放弃的东西">22.6.6 不应为省 Token 放弃的东西</a></h3>
 <p>有几类开销不能省（本书建议）。命令审批：降低打断要靠容器后端、deny 规则和 allowlist，不能靠把 <code>approvals.mode</code> 改成 <code>off</code>——hardline 之外的地板是安全语义，不是性能。投递账本：<code>gateway.delivery_ledger: false</code> 关掉的代价是崩溃遗留回复从“补发”退化成“重新执行”，可能重复副作用。工具前持久化（persist-before-execute）：关掉它省一次写，但破坏“resume must see the executed block”的耐久性不变量。缓存保温可以关，逐动作的权限边界和恢复语义不能为省 token 而放宽。</p>
-<h3 id="2267-从故障轨迹判断长期运行是否成立"><a class="header" href="#2267-从故障轨迹判断长期运行是否成立">22.6.7 从故障轨迹判断长期运行是否成立</a></h3>
-<h4 id="一条输入跨越两种持久责任"><a class="header" href="#一条输入跨越两种持久责任">一条输入跨越两种持久责任</a></h4>
-<p>下面是本书基于 ALR 案例构造的验收轨迹，不是 Hermes 的实测记录。一个获准群成员要求分析 <code>ALR-20260429-017</code> 并回复带证据的诊断结论，Gateway 将输入保存到 authority 管理的 admission，再认领 worker。模型读取授权指标，形成带证据的结果，回复随后进入 delivery obligation。前一条责任负责“输入有没有推进”，后一条责任负责“结果有没有投递”；中间还可能有独立的工具效果和会话提交。</p>
-<p>在 admission 仍 queued 时终止进程，恢复可以依据持久责任安排执行；在 started 后终止，旧 owner 的工作可能已产生副作用，因此恢复为 unknown 不意味着按 queued 重试；在结果已保存、投递标记 pending 时终止，恢复的是发送责任；在 attempting 时终止，接收端可能已收到，补发必须保留重复提示。这四个位置用相同的“重试任务”按钮处理，会把已经完成的工作重复执行。</p>
-<p>验收记录应包含事件顺序、会话 ID、输入 ID、worker 身份、效果标记、发送状态和日志引用。把进程杀死再启动，只是故障注入动作；是否满足保证取决于这些事实的核对。若运行环境没有权限进行故障注入，可以做源码路径审查并清楚标明未运行，但不能把审查结论称为实测恢复率。</p>
-<h4 id="标记与年龄阈值怎样配合"><a class="header" href="#标记与年龄阈值怎样配合">标记与年龄阈值怎样配合</a></h4>
-<p>恢复标记用于识别“这个状态来自什么中断与接续”，年龄阈值用于决定“何时值得扫描、何时停止自动尝试”。一个较老条目可能仍有真实远端效果，一个较新条目也可能已失去 owner。二者解决不同问题，所以“有标记”与 <code>max(3600,2×timeout)</code> 等策略可以同时存在；错误在于把年龄本身当作原动作未发生的证明。</p>
-<p>例如一条自动化工作记录超过检查年龄，系统可以将它交给恢复扫描；扫描看到旧 epoch、已开始标记和缺失回执，再按实现结算 unknown/interrupted。这不是等待一小时就安全重放的协议。相反，即使任务只开始了数秒，只要确认原 owner 失效且外部状态未知，也不能跳过核验。具体阈值与清理条件只在固定版本范围内解释。</p>
-<p>同理，投递义务超过时限进入 abandoned，表示自动处理责任已经停止，不代表消息“必然没到”或“已经送达”。告警应让运营者看到原目标、最后一次尝试和可用回执，再决定是否联系用户或人工重发。过期清理会进一步减少可追查证据，保留期应与业务可接受的发现延迟匹配，不能只按数据库行数优化。</p>
-<h4 id="kanban-的持久性与单主机边界"><a class="header" href="#kanban-的持久性与单主机边界">Kanban 的持久性与单主机边界</a></h4>
-<p>Kanban 把待办与执行状态持久保存，使工作不必依赖某个对话页面一直打开；熔断和停止条件有助于限制反复失败。但单机数据库、文件锁与本机 worker 组合不自动形成多主机一致的调度系统。复制同一个工作目录到两台机器并同时启动，可能让租约、凭据、文件与后台任务产生新的共享状态问题。</p>
-<p>本书的部署建议是先确定唯一调度权威，其他入口通过受控接口提交；确需多机时，先验证产品是否提供跨主机的所有权和存储契约。不能因为 SQLite 支持 WAL 就推导网络文件系统上的任意并发安全，也不能把 turn lease 当作全系统每种后台作业的通用分布式锁。具体数据库运行要求仍遵循 SQLite 与目标平台的官方说明。</p>
-<p>Kanban 熔断还应区分故障类别。依赖服务暂不可用可以有界重试，权限撤销应停止，原动作未知应查询，学习内容被投毒应隔离。所有失败都统一增加重试次数，只会放大副作用与成本。恢复面板要同时展示被阻断原因、原动作引用、责任人和期限，使“自动化暂停”成为可接续的工作状态。</p>
-<h4 id="moa学习与成本不能只看单轮结果"><a class="header" href="#moa学习与成本不能只看单轮结果">MoA、学习与成本不能只看单轮结果</a></h4>
-<p>多模型或多路径聚合可能在某些任务上改善答案，但也增加调用、上下文复制和中间结果信任边界。比较 MoA 时，应把候选模型、提示、聚合器、工具权限和总预算作为一组固定实验配置。某个子路径读取的内容，不应因聚合而扩散到无权用户；聚合结果中引用的证据也要保留原来源，不能把多个模型意见当作独立外部事实。</p>
-<p>学习循环的价值同样要跨时间衡量。某条技能让当前任务更快，不代表它对未来版本正确；反复复用可能让错误逐渐成为默认。评估应同时包含未学习基线、审阅后版本、后续留出任务和污染反例，检查成功率、误触发、权限违例与纠错成本。这样才能区分方法改进和对训练过任务的记忆。</p>
-<p>后台反思消耗也属于任务总成本。前台模型费用下降，但新增多轮复盘和技能验证，单位成功任务成本可能上升。对无权或无价值候选，尽早拒绝持久化可以同时降低污染与成本；对有价值但高风险技能，额外审阅是明确的安全投入。这里不提供没有负载与测量条件的统一节省比例。</p>
-<h4 id="配置变更怎样影响在途会话"><a class="header" href="#配置变更怎样影响在途会话">配置变更怎样影响在途会话</a></h4>
-<p>修改 memory、system prompt 或 toolset 会改变下一轮可见输入；为保持缓存而延后应用某些变更，可能让活动会话继续使用旧材料。安全撤权和事实纠错不能因为缓存代价而延后。部署方需要区分优化性配置变更与必须立即生效的授权变更，后者要停止受影响派发、失效派生内容，必要时重建会话。</p>
-<p>恢复或升级时，不要把整份旧配置复制为永久授权。原审批可能过期，工具实现可能变化，后台任务的账户也可能被收回。保存配置快照用于解释历史，当前继续执行仍需重验。若目标版本没有足够细的动态撤权机制，可以采用停止服务、收紧网络/OS 权限和人工核验的运维措施，并把可用性代价写清楚。</p>
-<h4 id="一份可以接手的未决清单"><a class="header" href="#一份可以接手的未决清单">一份可以接手的未决清单</a></h4>
-<p>长期运行的最低要求是责任可以被发现和接续。未决项至少记录原输入、当前会话、已开始的 worker、外部效果状态、投递状态、最后证据、当前权限、负责人和期限。它应该能回答“下一步查哪个原对象”，而不是只留下“Agent 报错”。对账得出新事实后，保存依据与处置，不直接修改历史声称原本就成功。</p>
-<p>人工核验也不能无限期悬空。先按影响收窄新动作，明确查询入口和升级链；无法确定时向用户报告事实边界。若选择放弃重投，要说明原回复可能丢失；若选择重复发送，要说明可能重复；若选择重新执行，先排除旧副作用或取得明确的新业务授权。用这些具体选择结束一个未决项，才完成长期运行的恢复责任。</p>
-<h4 id="受限学习助手的审阅和回滚实例"><a class="header" href="#受限学习助手的审阅和回滚实例">受限学习助手的审阅和回滚实例</a></h4>
-<p>假设群成员在一次排障后建议“把这次方法保存下来”。这句话只授权讨论候选方法，不能自动授权把整段群聊、个人信息或凭据写入共享技能。助手先给出候选：适用服务和版本、输入条件、只读取证步骤、完成证据、禁止动作，以及它来自哪次经过核验的任务。审阅者可以检查候选是否把相关性误写成因果、是否漏掉当前事件才成立的条件，再决定是否发布。</p>
-<p>例如本次发现连接等待增加，候选可以写成“先查询连接池等待与请求量，再检查对应时间窗的慢查询”，但不能写成“延迟高就扩大连接池”。后一句把一种处置泛化成默认行动，既缺容量前提，也改变了只读边界。即使扫描器没有发现危险模式，也应因证据和适用范围不足而拒绝发布。技能审阅因此同时检查事实、方法与权限，不只检查文件格式。</p>
-<p>发布后给能力包一个不可变版本，并把本次通过的用例和必要反例关联起来。后续发现该方法对另一数据库版本无效时，先停止新任务选择受影响版本，通知当前使用者，再决定修订或回滚。正在运行的任务可能已经加载旧规则，不能只修改磁盘文件便认为已全部切换；对高风险影响需要停止受影响派发并重新装配上下文。已经发生的外部效果沿原身份另行核验。</p>
-<p>这里的回滚操作只改变下一次选择的方法，不倒退业务世界。若旧技能已经创建工单，恢复上一版不能删除工单；若旧技能把无权资料发进群，删除技能也不能收回所有副本。应将数据事件、业务副作用和能力修复分别处理，并记录负责人。这样的例子把学习闭环从“写得进去”延伸到“错了以后如何纠正”，才符合长期运行助手的维护需求。</p>
-<h4 id="用户可控的记忆不应只有一个删除按钮"><a class="header" href="#用户可控的记忆不应只有一个删除按钮">用户可控的记忆不应只有一个删除按钮</a></h4>
-<p>用户可以要求查看或删除自己的记忆，但实现需要先确定“自己的”包括哪些来源与派生物。个人偏好、群共享事实和运营策略拥有不同权威；一个成员不应删除其他成员的独立记忆，也不能用更新个人偏好的请求覆盖全群安全规则。若产品只提供较粗的命名空间，应向运营者说明限制，并通过独立 profile 或存储边界满足隔离目标。</p>
-<p>删除后还要处理派生摘要、已生成技能、缓存与活动上下文。保留审计记录时只保存必要的标识和处理事实，不为追溯而继续保存已要求删除的敏感正文。权威记录可以保留“某记忆已撤回”的墓碑，使后续导入旧备份时不把它复活；若目标产品没有这项能力，外部维护流程必须接住，而不能把本书建议写成产品已有保证。</p>
-<p>最后，用户界面应区分自动学到的候选、已经审阅的共享方法和运营者强制策略。三者都可能以文字出现，但拥有不同修改与执行权限。模型可以建议修改候选，不能自行晋升权限或决定删除审计事实。将这三个入口分清，既有利于用户理解，也能让后续安全评审定位真实的写入门。</p>
-<h3 id="2268-版本敏感事实与验收边界"><a class="header" href="#2268-版本敏感事实与验收边界">22.6.8 版本敏感事实与验收边界</a></h3>
+<h3 id="2267-案例错误经验怎样污染下一次诊断"><a class="header" href="#2267-案例错误经验怎样污染下一次诊断">22.6.7 案例：错误经验怎样污染下一次诊断</a></h3>
+<p>沿用受限群助手和 ALR。以下是教学 Bad Case：未核验的 E12 与旧 Runbook 同时进入上下文，助手推测“数据库连接池耗尽”；后台复盘把这句话保存成“订单延迟优先扩连接池”；下一次相似告警尚未取证，助手就照用。它不是一次回答措辞问题，而是证据、学习写入、触发与后续执行之间的级联错误。</p>
+<p>先冻结一个学习前的隔离 profile 状态，以及同一输入和工具观察。每个实验臂从这个状态独立初始化；不能先让基线学过，再把被改过的状态当候选起点。profile 凭据不进入实验材料，同一 Hermes home 不启动多个竞争写者。内建记忆在会话开始以冻结快照注入，写磁盘成功不等于旧会话系统提示已刷新。<a href="#ref-12">[12]</a></p>
+<p><strong>第一项改动：把即时断言改成待核验状态。</strong> 指令要求“瞬时指标和未确认根因留在任务记录，不写成跨会话事实”；Skill 在保存经验前输出原观察、适用范围、来源与反例。不能仅加一句“记住要准确”，也不能把一次告警整段存进共享 memory。</p>
+<pre><code class="language-text">拒绝的学习候选：
+订单服务延迟高时，通常是连接池耗尽，先扩大连接池。
+
+可审阅的方法候选：
+对象：获准的订单服务只读延迟调查。
+前置：先确认环境、绝对窗口、部署映射和指标口径。
+步骤：检查当前证据是否支持连接等待增加；有依据再查相关日志。
+停止：工具无权、覆盖不足或版本未确认时列缺口，不宣布根因。
+禁止：从历史相似症状推出本次原因；重启、回滚或修改连接池。
+产物：事实、候选假设、反证、缺口与来源引用。
+</code></pre>
+<p>该候选没有声明 ALR 已证实连接问题；方法可以要求查询，但不能预填查询结果。description 写适用任务而非结论，正例为“只读延迟调查”，反例为“普通容量规划”“没有当前证据的自动修复请求”。压缩时同样保留 E12 未核验、v1 退役和 v2/v3 待匹配，不让摘要替代核验。</p>
+<p><strong>第二项改动：启用可审阅写入，而不是关闭通知。</strong> 对受限学习实验，可以在目标 profile 的配置合并以下片段：</p>
+<pre><code class="language-yaml">memory:
+  write_approval: true
+skills:
+  write_approval: true
+</code></pre>
+<p>两个 true 分别打开审批门；不是启用原本关闭的写入功能。先核对有效配置，再通过前台/后台夹具检查：memory 在交互 CLI 前台询问，其他入口暂存；skills 无论来源均暂存。使用 <code>/memory pending</code>、<code>/skills pending</code> 看候选，技能用 <code>/skills diff &lt;id&gt;</code> 核对完整差异，只批准经过核验的具体条目，不用 <code>approve all</code> 跳过审阅。<a href="#ref-12">[12]</a></p>
+<p>这不自动约束插件、terminal 或直接文件写入；共享 memory 与用户偏好也不能仅靠同一文件里的文字隔离。不能满足数据边界时，应拆 profile、OS 身份或接入受控存储。关闭 <code>display.memory_notifications</code> 只隐藏提示，不停止复盘或写入。<a href="#ref-12">[12]</a></p>
+<p><strong>第三项改动：给方法建立发布依据。</strong> 部署方另记来源、候选 hash、审阅人、适用服务/版本、反例与撤回条件；这些是外部发布记录，不是假称 Hermes 自动给每条 memory 建完整版本账本。先测原始无学习基线，再测审阅后的技能版本，最后在未参与学习的事故与无答案反例上验收。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>实验</th><th>唯一改动</th><th>观察什么</th><th>失败判定</th></tr>
+</thead>
+<tbody>
+<tr><td>H1</td><td>指令中的证据晋升条件</td><td>memory/skill 候选的事实与推测</td><td>E12 被写成已证实根因</td></tr>
+<tr><td>H2</td><td>Skill 适用条件及方法</td><td>正例触发、近似反例、步骤产物</td><td>新版本/无证据任务仍照搬旧处置</td></tr>
+<tr><td>H3</td><td>只开启一类写入审批</td><td>前台、后台、pending、批准后实际内容</td><td>未批准就持久化，或批准目标发生漂移</td></tr>
+<tr><td>H4</td><td>压缩状态保留</td><td>续跑及新会话的范围与证据状态</td><td>原窗口丢失、旧推测复活</td></tr>
+<tr><td>H5</td><td>固定证据后只改模型</td><td>推理正确、拒答/完成分布与成本</td><td>更强模型仍把历史当当前事实</td></tr>
+<tr><td>H6</td><td>只改后台复盘路由或预算</td><td>经验质量、前台+后台全部费用</td><td>前台省费而学习污染或总费用上升</td></tr>
+</tbody>
+</table>
+</div>
+<p>H3 中 memory 和 skills 分开实验，再组合，避免无法知道哪条路径绕门。H6 不与主模型更换同时进行；先保持复盘输入和质量标准，再比较路线。即使同模型缓存温热，也应记录真实费用，不能先验宣布复盘“很便宜”。</p>
+<p>组合后的期望轨迹是：ALR 形成有限定报告→提出方法候选而非根因记忆→待审差异→正例与反例回归→批准具体版本→新会话核对加载→后续独立任务再取证。收益是复用方法，不能是记住答案、跳过当前取证或放开生产写入。</p>
+<h3 id="2268-统一评测发布与回滚"><a class="header" href="#2268-统一评测发布与回滚">22.6.8 统一评测、发布与回滚</a></h3>
+<p>评测按<strong>学习前、候选生成、批准后、新会话复用</strong>四个时点留证。冻结主/辅助模型、规则、Skill、profile 状态、工具契约、数据快照、审批设置与评估器。除正常诊断，还要覆盖无答案、过期版本、不同用户、来源撤权、memory 满额、批准前目标变化和后台晚到写入。分组、四态分母、统计与 Gate 沿用<a href="../part3/06-agent-governance-optimization.html#tuning-release-runbook">统一发布手册</a>。</p>
+<p>成本不能只读前台会话汇总后另加一次可能已包含的后台费用。应按调用或账本身份去重，核对前台、压缩、委派、复盘和恢复的归属；后台复盘用量可在 <code>session_model_usage</code> 的 <code>task='background_review'</code> 与相关日志核对。估算、实际费用与缺价分开披露。<a href="#ref-7">[7]</a><a href="#ref-12">[12]</a> 候选只有学习任务更快、留出任务更差时不通过。</p>
+<p>学习能力还要经过长期运行故障验收，不能只测一次成功保存：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>注入位置</th><th>要核对的责任</th><th>不得怎样处理</th></tr>
+</thead>
+<tbody>
+<tr><td>admission 尚 queued 时退出</td><td>输入仍有推进记录与 owner</td><td>只看无回复就删除任务</td></tr>
+<tr><td>started 后丢失 worker</td><td>原效果与恢复的 unknown</td><td>把 unknown 当未执行而重做</td></tr>
+<tr><td>报告保存、发送 pending 时退出</td><td>恢复投递而非重做诊断</td><td>重新建单或重跑全流程</td></tr>
+<tr><td>发送 attempting 时退出</td><td>目标回执、重复提示和人工决策</td><td>认为租约到期就证明未发送</td></tr>
+<tr><td>候选暂存后来源变化</td><td>审批目标和当前事实</td><td>批准过期 diff</td></tr>
+<tr><td>错误经验已被加载</td><td>持久内容与活动上下文分别失效</td><td>仅改磁盘文件就宣布全部修复</td></tr>
+</tbody>
+</table>
+</div>
+<p>具体恢复窗口、标记与投递重试仍以 22.4 的固定实现为准；年龄阈值不证明远端未发生。Kanban、后台 worker 和本机存储也不能通过复制 home 自动变成多机调度服务。</p>
+<p>发布对象是运营者管理的运行时/插件、profile 配置、规则、Skill、工具范围和审阅记录组合。先在隔离 profile 跑回归，之后限定用户/任务灰度；学习候选与正式技能分开，不边观察候选边自动修改生产技能。旧会话可能保留旧快照，故发布验收必须新建会话核对实际内容，必要时受控重建受影响会话。<a href="#ref-12">[12]</a></p>
+<p>发现错误经验晋升、跨用户污染、越权或已撤回内容复活时，立即停止相应新派发与学习写入。回滚操作按对象分流：</p>
+<ol>
+<li><strong>技能</strong>：保存候选和失败依据，利用适用的 <code>skill_ledger</code> 入口或已验证的部署版本恢复，并核对目标文件；账本回滚仍需遵守安全检查。<a href="#ref-34">[34]</a></li>
+<li><strong>记忆</strong>：定位精确错误条目及其派生摘要、技能和缓存，受控修订或删除；没有完整原生 ledger 的部分由外部记录与受控备份接住，不整库倒灌。</li>
+<li><strong>活动与后台工作</strong>：按 owner 停止或排空，防止旧复盘在修订后再次写回；核对新会话快照和现有会话，纠错与撤权不能为了保缓存而延后。</li>
+<li><strong>持久执行状态</strong>：保留原 admission、Operation、worker 和 delivery obligation。运行时降级前核对 schema 兼容，不用旧数据库覆盖候选期间新产生的任务。</li>
+<li><strong>用户影响</strong>：已建工单、已发消息与泄漏数据分别核验和处理；恢复技能不撤销外部世界。未决项记录查询入口、责任人与期限，确认影响收敛后再关闭失败。</li>
+</ol>
+<p>用户删除记忆时，同样处理派生物与活动上下文；审计只留必要标识和处理事实，不为了追溯继续保留被要求删除的正文。旧备份导入还需应用当前删除与撤权记录，不能让一次配置回退复活已撤回内容。</p>
+<p><a id="2268-版本敏感事实与验收边界"></a></p>
+<h3 id="2269-版本敏感事实与验收边界"><a class="header" href="#2269-版本敏感事实与验收边界">22.6.9 版本敏感事实与验收边界</a></h3>
 <p>下面逐项绑定 <code>907e3224c432</code>；相关固定文件核验于 2026-10-24，未运行服务。目录条目数、模块行数只帮助定位，不作为能力或性能基准。</p>
 <div class="table-wrapper">
 <table>
@@ -612,7 +668,7 @@
 <tr><td>durable admission 恢复</td><td>旧 epoch 的 started 工作转 unknown，不自动重放</td><td>源码事实，输入恢复函数<a href="#ref-34">[34]</a>；unknown 等于远端未执行</td></tr>
 <tr><td>自动 orphan turn 恢复</td><td>max_age=max(3600, 2×timeout)；超龄标记清除而不执行</td><td>源码事实，Gateway 孤儿回合恢复路径<a href="#ref-24">[24]</a>；只凭新时间戳就有恢复资格</td></tr>
 <tr><td>投递重试边界</td><td>MAX_ATTEMPTS=3，STALE_AFTER_SECONDS=24h；清理保留7天/最多500行</td><td>源码事实，投递账本常量与启动清扫函数<a href="#ref-26">[26]</a>；每个最终回复必达或所有丢失永久可查</td></tr>
-<tr><td>内存与技能写门</td><td>两者 write_approval 默认 false；memory 在交互前台询问、其他入口暂存；skill 写一律暂存</td><td>官方文档事实，固定 Memory 文档的两个 write_approval 章节<a href="#ref-12">[12]</a>；开门后其他插件或 terminal 自动受同一门控制</td></tr>
+<tr><td>内存与技能写门</td><td>两者 write_approval 默认 false=直接写；设 true 后，memory 交互前台询问/其他入口暂存，skill 一律暂存</td><td>官方文档事实，固定 Memory 文档的两个 write_approval 章节<a href="#ref-12">[12]</a>；不能推导其他插件或 terminal 自动受同一门控制</td></tr>
 <tr><td>技能回滚</td><td>skill_ledger 记录修改与单次回滚，rollback_entry 的安全捕获失败会阻断</td><td>源码事实，技能账本回滚入口<a href="#ref-34">[34]</a>；内建文件 memory 有同样完整账本，或回滚技能撤销既有动作</td></tr>
 </tbody>
 </table>
@@ -621,7 +677,7 @@
 <h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
 <p>Hermes 把“长期运行、自我改进”的个人 Agent 做成了一套有明确权威关系的系统：Gateway 是 canonical session 的唯一写者，AIAgent 负责一次回合的模型与工具循环，记忆、技能与后台复盘在两者之间形成学习闭环。它的工程重心有两个：一是“长期在线”带来的可靠性（跨进程回合租约、persist-before-execute、重启恢复的标记机制、投递账本的带重复提示的有界恢复、Kanban 的 claim 与熔断），二是“能替人行动”带来的安全（八层安全模型、审批 fail-closed、hardline 地板、文件写保护、OS 级隔离）。</p>
 <p>这两者之间有一条清晰的主线：Hermes 反复强调“唯一的安全边界是操作系统”，进程内的审批、脱敏、allowlist 都是启发式。所以使用者真正要做的，是把默认从“个人受信运营者”收窄到具体场景——用容器后端做隔离，用 allowlist 和 DM pairing 做身份，用 deny 规则和写保护做边界，用 <code>hermes doctor</code> 和日志做审计。</p>
-<p>调优方面，Hermes 的旋钮（压缩阈值与注入预算、提示缓存布局、fallback 链、工具集裁剪、委派并发）和观测手段（会话行的 usage 与 cost 列、<code>/context</code>、<code>/usage</code>）都很完整，但官方没有给基准，本章因此只讲机制与默认值，把“调到多少好”留给使用者用自己的工作负载去测。</p>
+<p>调优不只比较压缩阈值和单轮费用，还要验证经验能否安全进入下一次会话。先从组件证据定位，把规则、技能、写入审批、上下文与模型分别实验，再用留出任务和故障轨迹验收；前台与后台成本统一记账。发布和回退分别处理技能、记忆、活动工作与业务效果，不能把恢复一个文件当成用户影响已经结束。</p>
 <h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
 <p>官方文档页与源码都固定到提交 <code>907e3224c432647567cc4dd7aebcdf258971896a</code>，核验日期 2026-10-23。文档与源码同提交内冲突处分别说明适用范围，不推定已安装二进制行为。</p>
 <ol>
