@@ -1,0 +1,728 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第5章 从零训练一个 LLM：一条可复现的工程路径 - AI Engineering：大模型与智能体系统工程</title>
+
+
+        <!-- Custom HTML head -->
+        <!-- Use MathJax web fonts rather than incomplete local STIX installations. -->
+        <script type="text/x-mathjax-config">
+        MathJax.Hub.Config({
+            "HTML-CSS": { availableFonts: [], preferredFont: "TeX", webFont: "TeX" }
+        });
+        </script>
+
+        <meta name="description" content="面向软件工程师与架构师的 AI Engineering 指南，涵盖大模型原理、训练与推理基础设施、Agent 系统、应用实战、评估、可靠性与治理">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-2459343d.css">
+        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-3d7c861f.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-18357883.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">AI Engineering：大模型与智能体系统工程</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第5章-从零训练一个-llm一条可复现的工程路径"><a class="header" href="#第5章-从零训练一个-llm一条可复现的工程路径">第5章 从零训练一个 LLM：一条可复现的工程路径</a></h1>
+<p>前四章分别解释了 Transformer 的一次前向计算、预训练如何形成基础能力、后训练如何塑造行为，以及推理期怎样用额外计算改善候选结果。本章把这些原理收束成一次可以立项、执行、恢复和验收的训练工程：先证明为什么需要从随机初始化开始，再把参数、数据、计算和显存放进同一份预算，最后用训练记录和分层评估说明模型究竟学到了什么。</p>
+<p>本章讨论两个尺度。第一个是仓库中可以在普通开发环境运行的字符级 GPT 实验，用来观察 next-token prediction、因果注意力、反向传播、评估和生成的完整闭环。第二个是 1,147,766,784 参数、230 亿 token 的教学计划，用来练习真实项目中的预算和门禁。后者只是一组经过复算的设计值，本书没有执行这次大规模训练，也没有测得相应的吞吐、时长或能力结果。</p>
+<p>文中的数字分为三类：引用公开论文或项目记录的事实；由明确公式得到的教学算例；需要在目标环境实测后才能决定的工程参数。三者不能互相替代。公开项目可以说明训练配方和数量级，却不能证明本书的计划会得到相同结果。</p>
+<p><a id="objectives-and-scope"></a></p>
+<h2 id="51-从零训练的目标与边界"><a class="header" href="#51-从零训练的目标与边界">5.1 从零训练的目标与边界</a></h2>
+<p>从零训练意味着模型参数从随机初始化开始，通过预训练语料学习 token 的条件分布。它交付的是基础模型及其训练证据，而不是天然会对话、能访问实时事实或拥有工具权限的助手。第 2 章 2.8 已经区分预训练、继续预训练和后训练；第 3 章进一步解释 SFT 与偏好优化。本章只负责从训练立项到基础模型验收的工程闭环。</p>
+<h3 id="先证明从零是必要变量"><a class="header" href="#先证明从零是必要变量">先证明“从零”是必要变量</a></h3>
+<p>从零训练通常有四类合理目标：</p>
+<ul>
+<li>教学或研究需要完整观察数据、模型、优化器和评估之间的因果关系；</li>
+<li>目标语言、领域或符号体系与现有模型的 Tokenizer 和预训练分布差距很大；</li>
+<li>模型结构、参数规模或部署形态有明确约束，现有权重无法满足；</li>
+<li>数据来源、训练过程和中间制品需要由团队完整掌握，以支持审计或复现实验。</li>
+</ul>
+<p>立项之前应建立一个成本更低的基线。知识需要实时更新时，先比较检索；模型已经懂任务但输出协议不稳定时，先比较 SFT 或约束解码；只需降低延迟时，先比较更小的现有模型、量化和推理优化。若这些基线已经满足验收条件，从零训练便没有可解释的增量目标。</p>
+<p>一份合格的立项说明至少回答：现有模型在哪些冻结测试集上失败；失败来自知识、Tokenizer、结构还是行为；从零训练准备改变哪个变量；成功门槛是什么；预算耗尽但没有达到门槛时怎样停止。没有这些条件，训练结束后只能看到一个新的 checkpoint，却无法说明这笔计算换来了什么。</p>
+<h3 id="公开项目提供的是配方参照"><a class="header" href="#公开项目提供的是配方参照">公开项目提供的是配方参照</a></h3>
+<p>nanoGPT 展示了一个紧凑的 GPT 训练实现，其 README 也明确标注项目已较旧；它适合阅读基本训练循环，不应被当作当前硬件性能承诺。<a href="#ref-1">[1]</a> TinyLlama 公开了 1.1B 小型语言模型的训练路线，可用于观察小模型怎样采用成熟的 Llama 类结构与大规模语料。<a href="#ref-2">[2]</a> nanochat 把 Tokenizer、预训练、后训练、评估和对话入口组织在同一项目中，适合参考制品边界和阶段连接；项目仍会变化，引用其配方时必须固定提交版本。<a href="#ref-3">[3]</a></p>
+<p>这些项目没有替本章完成复现。硬件、数据、框架版本、算子、训练 token 和评估脚本只要有一项不同，时长和质量就不能直接横向比较。本章保留它们的工程组织方式，删除没有固定版本支撑的价格和速度承诺。</p>
+<h3 id="从前向结构到训练工程"><a class="header" href="#从前向结构到训练工程">从前向结构到训练工程</a></h3>
+<p>Transformer 用注意力和逐位置前馈网络处理序列，原始论文奠定了这条可并行训练的结构路线。<a href="#ref-4">[4]</a> 但“模型定义正确”只是训练成功的一个前提。完整工程还需要把以下证据连接起来：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>决策</th><th>必须留下的证据</th><th>失败时首先回查</th></tr>
+</thead>
+<tbody>
+<tr><td>数据</td><td>来源、许可、去重簇、切分、Tokenizer 和分片哈希</td><td>泄漏、污染、配比和边界</td></tr>
+<tr><td>模型</td><td>完整配置、参数计数、初始化和代码版本</td><td>形状、权重共享和数值范围</td></tr>
+<tr><td>优化</td><td>有效 token、全局批、学习率、优化器和精度</td><td>loss 归一化、梯度与调度</td></tr>
+<tr><td>系统</td><td>峰值显存、吞吐、通信和故障记录</td><td>激活、临时缓冲和数据等待</td></tr>
+<tr><td>评估</td><td>固定数据、提示、指标、样本数和 checkpoint</td><td>污染、随机波动和口径变化</td></tr>
+</tbody>
+</table>
+</div>
+<p>这张表也是本章的责任边界：第 1、2 章提供结构和预训练理论，第 5 章把它们变成一次可验收执行；分布式训练框架的内部实现留给后续 Infra 章节。</p>
+<p><a id="budget"></a></p>
+<h2 id="52-参数token-与算力预算"><a class="header" href="#52-参数token-与算力预算">5.2 参数、Token 与算力预算</a></h2>
+<p>训练预算应先固定参数量 \(P\)、训练 token 数 \(N_{\mathrm{tok}}\)、上下文长度 \(T\)、全局批大小和可用设备，再决定训练日程。Chinchilla 的工作说明，在给定训练计算下，模型规模与训练数据需要联合配置；它并没有规定所有项目都必须永久采用一个固定的“每参数 token 数”。<a href="#ref-5">[5]</a> 将预期推理成本纳入目标后，较小模型训练更多 token 可能更经济。<a href="#ref-6">[6]</a> 当唯一数据不足时，重复使用也存在收益递减，必须在自己的数据与规模上测量。<a href="#ref-7">[7]</a></p>
+<h3 id="参数计数先写假设再报总数"><a class="header" href="#参数计数先写假设再报总数">参数计数：先写假设，再报总数</a></h3>
+<p>教学计划采用一个现代 Decoder-only 配置：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>配置项</th><th style="text-align: right">取值</th></tr>
+</thead>
+<tbody>
+<tr><td>残差宽度 \(D\)</td><td style="text-align: right">2,048</td></tr>
+<tr><td>层数 \(L\)</td><td style="text-align: right">24</td></tr>
+<tr><td>Query 头数 \(H_q\)</td><td style="text-align: right">16</td></tr>
+<tr><td>KV 头数 \(H_{kv}\)</td><td style="text-align: right">4</td></tr>
+<tr><td>每头维度 \(d_h\)</td><td style="text-align: right">128</td></tr>
+<tr><td>SwiGLU 中间宽度 \(D_{ff}\)</td><td style="text-align: right">5,632</td></tr>
+<tr><td>词表 \(V\)</td><td style="text-align: right">32,000</td></tr>
+<tr><td>输入输出 Embedding</td><td style="text-align: right">共享</td></tr>
+</tbody>
+</table>
+</div>
+<p>忽略线性层 bias，使用两组 RMSNorm 参数。GQA 注意力的 Q、K、V 和输出投影参数合计为</p>
+<p>\[
+P_{\mathrm{attn}}
+=D d_h\left(2H_q+2H_{kv}\right).
+\]</p>
+<p>式中第一个 \(H_q\) 来自 Q，两个 \(H_{kv}\) 来自 K/V，第二个 \(H_q\) 来自输出投影。SwiGLU 使用 gate、up、down 三个矩阵，参数为 \(3DD_{ff}\)。逐项结果是：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>部分</th><th style="text-align: right">参数量</th></tr>
+</thead>
+<tbody>
+<tr><td>每层注意力</td><td style="text-align: right">10,485,760</td></tr>
+<tr><td>每层 SwiGLU FFN</td><td style="text-align: right">34,603,008</td></tr>
+<tr><td>每层两组 RMSNorm</td><td style="text-align: right">4,096</td></tr>
+<tr><td>24 层合计</td><td style="text-align: right">1,082,228,736</td></tr>
+<tr><td>共享 Embedding</td><td style="text-align: right">65,536,000</td></tr>
+<tr><td>最终 RMSNorm</td><td style="text-align: right">2,048</td></tr>
+<tr><td><strong>总计</strong></td><td style="text-align: right"><strong>1,147,766,784</strong></td></tr>
+</tbody>
+</table>
+</div>
+<p>若输出投影不与输入 Embedding 共享，还需增加 65,536,000 个参数，总计 1,213,302,784。这个差异必须写进配置，不能只用“约 1.15B”掩盖权重共享假设。</p>
+<h3 id="flop-口径与训练时长"><a class="header" href="#flop-口径与训练时长">FLOP 口径与训练时长</a></h3>
+<p>本章把一次浮点乘法和一次浮点加法各计为 1 FLOP，因此矩阵乘法的一个 multiply-add 计 2 FLOPs。对 Dense Transformer，\(6PN_{\mathrm{tok}}\) 是常用的模型参数相关训练 FLOPs 粗估：前向约 \(2P\)，反向约为前向的两倍。它没有精确覆盖注意力分数计算、激活重计算、Embedding 查表、归一化、优化器和通信。</p>
+<p>为显式表示长序列注意力的影响，本书使用教学近似：</p>
+<p>\[
+F_{\mathrm{tok}}
+\approx 6P+\kappa LTD,\qquad \kappa\in[6,12].
+\]</p>
+<p>\(\kappa=12\) 近似完整计算 QK 与 AV 的前向和反向；\(\kappa=6\) 表示实现利用因果三角结构跳过约一半分数计算。不同内核的实际执行量可能偏离这个区间。激活检查点带来的重计算属于硬件实际执行 FLOPs；若性能报告的“模型 FLOPs”仍采用理论前向—反向口径，就不能把重计算悄悄加入 MFU 分子。</p>
+<p>教学计划固定 \(N_{\mathrm{tok}}=23{,}000{,}000{,}000\)，它不是精确的 \(20P\)：后者为 22,955,335,680。230 亿 token 相当于每参数约 20.039 个 token。复算得到：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>计数口径</th><th style="text-align: right">总训练 FLOPs</th></tr>
+</thead>
+<tbody>
+<tr><td>仅 \(6PN_{\mathrm{tok}}\)</td><td style="text-align: right">\(1.5839\times10^{20}\)</td></tr>
+<tr><td>加注意力项，\(\kappa=6\)</td><td style="text-align: right">\(1.8617\times10^{20}\)</td></tr>
+<tr><td>加注意力项，\(\kappa=12\)</td><td style="text-align: right">\(2.1396\times10^{20}\)</td></tr>
+</tbody>
+</table>
+</div>
+<p>为演示时长换算，假设 8 个加速器、每个设备的计算峰值取 \(3.12\times10^{14}\) FLOP/s。这个峰值只是算术输入，执行前必须替换为目标硬件和目标精度下的规格。设模型 FLOPs 利用率为 \(u\)，则</p>
+<p>\[
+t=\frac{C_{\mathrm{train}}}{8F_{\mathrm{peak}}u}.
+\]</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>FLOP 口径</th><th style="text-align: right">\(u=0.3\)</th><th style="text-align: right">\(u=0.4\)</th><th style="text-align: right">\(u=0.5\)</th></tr>
+</thead>
+<tbody>
+<tr><td>仅 \(6PN_{\mathrm{tok}}\)</td><td style="text-align: right">58.8 h</td><td style="text-align: right">44.1 h</td><td style="text-align: right">35.3 h</td></tr>
+<tr><td>\(\kappa=6\)</td><td style="text-align: right">69.1 h</td><td style="text-align: right">51.8 h</td><td style="text-align: right">41.4 h</td></tr>
+<tr><td>\(\kappa=12\)</td><td style="text-align: right">79.4 h</td><td style="text-align: right">59.5 h</td><td style="text-align: right">47.6 h</td></tr>
+</tbody>
+</table>
+</div>
+<p>这些时间由假设推导，不是训练记录。Llama 3 报告过不同大规模配置下约 38%–43% 的 BF16 MFU，并说明了多维并行与大量中断处理。<a href="#ref-8">[8]</a> Megatron-LM 也报告过大规模 GPU 集群上的并行训练效率。<a href="#ref-9">[9]</a> 它们只证明相关范围曾在不同工作负载上出现，不能用来预设本计划的利用率。</p>
+<p>MFU 衡量理论模型 FLOPs 与设备峰值的比值；硬件 FLOPs 利用率还会计入重计算等实际操作。两者分子不同。若两份报告没有采用同一 FLOP 模型、精度和峰值定义，百分比不能直接比较。</p>
+<h3 id="step显存和-kv-cache"><a class="header" href="#step显存和-kv-cache">Step、显存和 KV Cache</a></h3>
+<p>设序列长度 4,096，每卡微批 8 条序列，8 个数据并行 rank，梯度累积 4 次，则名义全局批为</p>
+<p>\[
+B_{\mathrm{tok}}
+=4096\times8\times8\times4
+=1{,}048{,}576\ \text{token}.
+\]</p>
+<p>精确处理 230 亿 token 需要</p>
+<p>\[
+\left\lceil
+\frac{23{,}000{,}000{,}000}{1{,}048{,}576}
+\right\rceil
+=21{,}935\ \text{step}.
+\]</p>
+<p>最后一步只有 534,016 个有效 token。若仍运行一个完整批次，总量会变成 23,000,514,560，多出 514,560 个 token。训练代码必须选择“最后一批裁短”或“接受超额 token”，并在 manifest 中记录，不能同时声称精确 230 亿 token 和 21,935 个满批。</p>
+<p>显存也必须说明精度布局。在“bf16 参数 2 字节、bf16 梯度 2 字节、fp32 主参数 4 字节、fp32 Adam 一阶和二阶状态各 4 字节”的假设下，模型状态为 \(16P\) 字节，即 18.364 GB（17.103 GiB）。这不是所有优化器和框架的固定值：有的实现不保留 fp32 主参数，有的梯度使用 fp32，还有的状态被量化。</p>
+<p>ZeRO 将优化器状态、梯度和参数逐级切分；在上述 16 字节布局和数据并行度 \(N_d\) 下，三个阶段的每卡模型状态可分别近似为 \(4P+12P/N_d\)、\(2P+14P/N_d\) 和 \(16P/N_d\)。<a href="#ref-10">[10]</a> 8 路完全切分的理论模型状态约为每卡 2.296 GB。这个数字不含激活、临时 all-gather、通信 bucket、CUDA context、内核 workspace、碎片和数据 batch，不能据此断言配置一定放得下。</p>
+<p>PyTorch FSDP 也以参数、梯度和优化器状态切分来降低每个 worker 的常驻模型状态，并把通信重叠与初始化作为扩展问题。<a href="#ref-11">[11]</a> 采用它仍需实测完整训练 step 的峰值，不能用理论分片值替代运行证据。</p>
+<p>GQA 对推理缓存的影响可以独立计算。批量为 1、上下文 4,096、24 层、4 个 KV 头、头维 128、bf16 时：</p>
+<p>\[
+M_{\mathrm{KV}}
+=2\times24\times4096\times4\times128\times2
+=201{,}326{,}592\ \text{bytes}
+=192\ \text{MiB}.
+\]</p>
+<p>同条件下 16 个 KV 头的 MHA 为 768 MiB。这里计算的是单序列 KV Cache，不是训练激活。参数预算、训练显存和推理缓存必须分账。</p>
+<p><a id="data-and-config"></a></p>
+<h2 id="53-数据与模型配置"><a class="header" href="#53-数据与模型配置">5.3 数据与模型配置</a></h2>
+<p>第 2 章 2.3–2.6 已经解释清洗、去重、Tokenizer、样本边界和污染。本节把这些原则落成两个不可变制品：数据 manifest 与模型 config。训练任务只接收经过验收的制品哈希，不在启动时临时改变过滤规则或模型结构。</p>
+<h3 id="从来源到-token-分片"><a class="header" href="#从来源到-token-分片">从来源到 token 分片</a></h3>
+<p>数据管线建议按以下顺序执行：</p>
+<ol>
+<li>定义目标分布，列出语言、领域、代码、文档类型和时间范围；</li>
+<li>保存来源、许可、快照和退出机制，过滤明显无效或敏感内容；</li>
+<li>在全量文档上做精确与近似去重，形成去重簇；</li>
+<li>按去重簇划分训练、验证和冻结测试集；</li>
+<li>仅用训练侧规则确定 Tokenizer 与采样配比，检查各切片 token/字符或 token/字节比例；</li>
+<li>编码并写入有校验和的分片，显式记录文档边界和是否允许跨文档注意力；</li>
+<li>在训练前对评估集做污染比对，并冻结评估版本。</li>
+</ol>
+<p>FineWeb 展示了大规模网页数据过滤和数据消融的公开路线，可用于理解每项处理如何影响数据质量；它的规模和许可检查不能由“公开可下载”四个字代替。<a href="#ref-12">[12]</a> Pythia 公开了训练数据顺序及大量中间 checkpoint，说明数据顺序本身也是可复现实验的一部分。<a href="#ref-13">[13]</a></p>
+<p>manifest 至少包含：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>类别</th><th>字段</th></tr>
+</thead>
+<tbody>
+<tr><td>来源</td><td>数据集名称、原始位置、许可、快照、采样权重</td></tr>
+<tr><td>处理</td><td>过滤规则版本、去重算法、去重簇与切分方法</td></tr>
+<tr><td>Tokenizer</td><td>模型文件哈希、词表大小、特殊 token 和归一化规则</td></tr>
+<tr><td>Packing</td><td>序列长度、文档分隔符、跨文档可见性、loss mask</td></tr>
+<tr><td>统计</td><td>每个切片的文档数、字节数、token 数和重复轮数</td></tr>
+<tr><td>污染</td><td>基准版本、精确/近似匹配方法和处理结果</td></tr>
+<tr><td>顺序</td><td>分片列表、采样器状态定义和恢复位置</td></tr>
+</tbody>
+</table>
+</div>
+<p>表内每个字段都要写入实值。训练入口遇到未知哈希、空 token 分片或未完成的污染记录时应拒绝启动。恢复依赖“下一个将读取的分片与偏移”，仅保存一个全局 step 无法在可变长度或动态采样下还原数据位置。</p>
+<p>数据验收不能只看总 token 数。对每个主要切片，应随机抽取编码前文本、token 序列和解码结果，检查 Unicode 归一化、控制字符、代码缩进、数字、URL 与特殊 token。再统计文档长度、token/字节比、重复次数、语言置信度和被过滤原因。总体分布正常但某个低占比切片损坏时，总平均很难暴露问题；切片报告必须保留样本量和分位数。</p>
+<p>文档边界需要同时约束注意力和损失。如果允许多个文档 packing 到同一序列，要明确后一文档能否读取前一文档；若禁止跨文档读取，就生成 block-diagonal 可见性，而不只是插入 EOS。无论是否跨读，EOS 是否参与 next-token loss、序列尾部怎样补齐、被截断文档是否保留，都要写入 manifest。训练和验证必须复用同一套边界语义，否则 loss 差异可能来自样本构造而非泛化。</p>
+<p>Tokenizer 的验收至少覆盖三组指标：压缩效率看各语言和格式的 token/字节比；可逆性检查正常文本的编码解码；鲁棒性检查未知字节、异常 Unicode 与超长连续字符串。词表越大，序列可能更短，但 Embedding 参数和输出计算也会增加。应把词表大小与模型总参数、目标语言切分和推理成本一起比较，而不是只追求更低 token 数。</p>
+<h3 id="配置来自预算约束"><a class="header" href="#配置来自预算约束">配置来自预算约束</a></h3>
+<p>模型 config 要完整表达第 1 章的前向计算：词表、上下文长度、宽度、层数、Q/KV 头、每头维度、FFN 类型与宽度、位置机制、归一化、dropout、bias、Embedding 是否共享、初始化和精度。LLaMA 采用 Pre-Norm、RMSNorm、RoPE 与门控激活，提供了现代 Decoder-only 配置的一种成熟参照。<a href="#ref-14">[14]</a> 这不表示同一组合在所有规模和语言上都最优。</p>
+<p>教学计划选择 GQA、RoPE、RMSNorm 和 SwiGLU，是为了演练现代结构的参数与缓存账本。选定后仍需先在小模型上检查：</p>
+<ul>
+<li>参数计数脚本与框架实际参数总数一致；</li>
+<li>Q 头数可以被 KV 头数整除，旋转维度与每头维度一致；</li>
+<li>Causal Mask、Padding Mask 和文档边界符合第 1 章 1.3 的可见性定义；</li>
+<li>权重共享在模型对象和 checkpoint 中都成立；</li>
+<li>初始化后 logits、激活和梯度没有异常尺度；</li>
+<li>同一随机种子和环境下，短序列前向结果满足约定容差。</li>
+</ul>
+<p>改变上下文长度不仅改变位置范围，也改变注意力 FLOPs 和训练激活。改变词表既改变序列长度，又改变 Embedding 与输出层参数。配置评审应重新计算整张预算表，不能只改一个配置字段。</p>
+<p>配置还要带有可执行的不变量。例如 \(D=H_qd_h\)、\(H_q\bmod H_{kv}=0\)、最大位置不小于训练序列长度、共享 Embedding 时两个模块引用同一参数。加载 checkpoint 时先比对 config 和 Tokenizer 哈希，再分配大张量；这样可以在占用大量显存前拒绝不兼容制品。每次结构变更都重新运行参数计数、短前向、反向和保存加载往返，避免“文件能读”掩盖语义变化。</p>
+<h3 id="两个模型尺度不能混写"><a class="header" href="#两个模型尺度不能混写">两个模型尺度不能混写</a></h3>
+<p>本章的 1.15B 计划使用 GQA、RoPE、RMSNorm、SwiGLU 和共享 Embedding。仓库实验则是一个字符级小型 GPT：它使用普通 MHA、学习式绝对位置 Embedding、LayerNorm、GELU FFN，并且输入 Embedding 与语言模型输出层没有共享。两者的目标也不同：前者用于预算演练，后者用于验证最小训练闭环。</p>
+<p>把实验跑通不能证明 1.15B 配置正确；把 1.15B 的参数表写对，也不能证明实验代码实现了 GQA 或分布式训练。后续所有观察都必须注明来自哪个尺度。</p>
+<p><a id="training-loop"></a></p>
+<h2 id="54-训练循环与超参数"><a class="header" href="#54-训练循环与超参数">5.4 训练循环与超参数</a></h2>
+<p>训练循环的核心不是调用反向传播接口，而是定义“哪些 token 贡献了怎样的梯度”。第 2 章 2.2 给出了 next-token cross entropy，第 3 章 3.2–3.3 进一步讨论监督位置。预训练通常让所有合法目标位置参与损失；padding、跨文档禁读位置和无效样本必须按训练契约处理。</p>
+<h3 id="有效-token-归一化"><a class="header" href="#有效-token-归一化">有效 token 归一化</a></h3>
+<p>设第 \(r\) 个数据并行 rank 在一个梯度累积窗口内的有效 token 集合为 \(\mathcal{T}_r\)，局部未归一化负对数似然和为</p>
+<p>\[
+S_r=\sum_{t\in\mathcal{T}<em>r}-\log p</em>\theta(y_t\mid y_{&lt;t}),
+\qquad
+N=\sum_{r=1}^{W}|\mathcal{T}_r|.
+\]</p>
+<p>目标损失是 \(L=(\sum_r S_r)/N\)。PyTorch 风格 DDP 在反向传播中对 \(W\) 个 rank 的梯度取平均。若每个 rank 直接反传 \(S_r/N\)，最终梯度会额外缩小 \(W\) 倍。因此在“DDP 平均梯度”的语义下，每个 rank 应反传</p>
+<p>\[
+\widetilde L_r=\frac{W}{N}S_r,
+\]</p>
+<p>DDP 平均后得到</p>
+<p>\[
+\frac1W\sum_{r=1}^{W}\nabla\widetilde L_r
+=\nabla\frac{\sum_rS_r}{N}.
+\]</p>
+<p>这要求在任何一次 backward 之前知道整个累积窗口的全局有效 token 数 \(N\)：先准备窗口内的 microbatch，统计本地 mask，再对计数做一次全局求和。若框架对梯度求和而非求平均，缩放因子就不能乘 \(W\)；实现必须按框架语义写测试。</p>
+<p>下面是语义示意，并非仓库实验当前 API：</p>
+<pre><code class="language-python">microbatches = prefetch_accumulation_window()
+local_tokens = sum(batch.loss_mask.sum() for batch in microbatches)
+global_tokens = all_reduce_sum(local_tokens)
+
+optimizer.zero_grad(set_to_none=True)
+for index, batch in enumerate(microbatches):
+    with ddp_no_sync(enabled=index + 1 &lt; len(microbatches)):
+        logits = model(batch.input_ids)
+        local_loss_sum = cross_entropy_sum(
+            logits.float(), batch.labels, batch.loss_mask
+        )
+        ddp_scaled_loss = local_loss_sum * world_size / global_tokens
+        ddp_scaled_loss.backward()
+
+clip_grad_norm_(model.parameters(), max_norm)
+optimizer.step()
+</code></pre>
+<p>对每个 microbatch 先按自己的有效 token 数求平均，再把这些平均值相加，会让短批与长批获得相同权重；各 rank 有效 token 不等时，先求本地均值再由 DDP 平均也会产生同类偏差。日志中的全局 loss 应另外对 \(S_r\) 与 token 计数做求和，再相除，不能把 rank 的平均 loss 再简单平均。</p>
+<h3 id="全局批优化器与日程"><a class="header" href="#全局批优化器与日程">全局批、优化器与日程</a></h3>
+<p>全局批用有效 token 表达，才能跨序列长度比较。批越大，单位更新的梯度噪声通常越小，但固定 token 预算下的更新次数也会减少。梯度噪声尺度提供了一种测量“有用批大小”的方法，其结论依赖任务和训练阶段。<a href="#ref-15">[15]</a></p>
+<p>可以用两 rank 的手算暴露错误归一化。假设 rank 1 有 3 个有效 token，局部 loss 和为 6；rank 2 有 1 个有效 token，loss 和为 4。正确全局均值是 \((6+4)/(3+1)=2.5\)。若先算局部均值再由 DDP 平均，结果是 \((6/3+4/1)/2=3\)，短 rank 被放大。按前述公式，每个 rank 分别反传 \(2S_r/4\)，DDP 再平均，才恢复全局 token 均值。这个测试不需要大模型，应成为分布式训练入口的单元契约。</p>
+<p>一次“step”也要固定语义：本章把它定义为完成一个全局梯度累积窗口并调用一次 optimizer step。日志同时记录累计有效 token，学习率日程优先按 token 推进。若最后一批裁短，按固定 step 调度和按 token 调度会产生轻微差异；230 亿计划应明确采用哪一种，恢复时也必须沿用。</p>
+<p>优化器采用 AdamW 时，权重衰减与 Adam 的自适应梯度更新解耦；这与把 L2 项直接加入 Adam 梯度不是同一更新。<a href="#ref-16">[16]</a> 需要保存并评审的参数包括峰值学习率、\(\beta_1\)、\(\beta_2\)、\(\epsilon\)、权重衰减作用范围、梯度裁剪、warmup、稳定段、衰减段和最小学习率。Norm 与 bias 是否衰减也要明确。</p>
+<p>当总 token 预算可能变化时，Warmup-Stable-Decay 可以让稳定段 checkpoint 分叉进入不同长度的衰减阶段。MiniCPM 报告了 WSD 与小模型训练策略。<a href="#ref-17">[17]</a> 关于固定时长之外的 scaling 研究也说明，稳定训练后再冷却有助于复用一次主体训练做不同预算比较。<a href="#ref-18">[18]</a> 这些结果来自特定模型和数据，本计划必须通过代理模型扫描学习率与衰减长度，不能直接照抄公开数值。</p>
+<h3 id="小规模预演与数值精度"><a class="header" href="#小规模预演与数值精度">小规模预演与数值精度</a></h3>
+<p>大模型训练中的某些不稳定现象可以在小模型、高学习率实验中提前出现，例如注意力 logit 和输出 logit 异常增长。<a href="#ref-19">[19]</a> 因此主训练前应构造同架构族的代理模型，逐步增加学习率，记录 loss、梯度范数、激活、logit、更新范数和溢出次数。代理实验用于发现危险区间，不保证大模型的最佳值能按比例直接迁移。</p>
+<p>μTransfer 研究表明，在满足 μP 参数化条件时，可以从较小模型迁移一部分最优超参数。<a href="#ref-20">[20]</a> 这需要改变初始化和参数化规则；普通参数化的小模型搜索结果不能贴上 μP 标签后直接迁移。</p>
+<p>bf16 与 fp32 具有相同的指数位宽范围，相关研究在多类训练任务中观察到它可以保持 fp32 的结果。<a href="#ref-21">[21]</a> 具体项目仍需检查归一化、softmax、loss 累加和优化器状态的精度。可执行的门禁是：先得到一个小规模 fp32 参考曲线，再比较 bf16 的 loss、梯度和输出分布；出现 NaN/Inf、异常 logit 或持续偏离时停止扩大规模。</p>
+<p>梯度裁剪阈值没有跨项目通用常数。应先记录未裁剪梯度范数分布，再确定阈值并监控裁剪比例。若大多数 step 都被裁剪，问题通常不只是“阈值太小”，还可能来自学习率、异常数据或错误归一化。</p>
+<p><a id="recovery"></a></p>
+<h2 id="55-并行稳定性与恢复"><a class="header" href="#55-并行稳定性与恢复">5.5 并行、稳定性与恢复</a></h2>
+<p>并行策略解决两个不同问题：模型和激活能否放入设备，以及在满足显存约束后能否达到合理吞吐。选型顺序应从实测峰值显存开始，而不是仅根据参数量断言某种并行“必需”或“不需要”。</p>
+<h3 id="用峰值显存决定并行阶梯"><a class="header" href="#用峰值显存决定并行阶梯">用峰值显存决定并行阶梯</a></h3>
+<p>先在缩小的层数、序列和 batch 上测量参数、梯度、优化器、激活和临时缓冲，再逐项外推并用目标配置短跑校验。激活与 batch、层数、宽度、序列长度、注意力实现和重计算有关；临时 all-gather 与通信 bucket 又与 FSDP 配置有关。任何只列 \(16P\) 的预算都不完整。</p>
+<p>可以按以下顺序增加复杂度：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>实测结果</th><th>候选方案</th><th>新增验证</th></tr>
+</thead>
+<tbody>
+<tr><td>单卡可容纳模型状态与激活</td><td>单卡训练，再扩展数据并行</td><td>多卡 loss 与单卡参考是否一致</td></tr>
+<tr><td>单卡放不下模型状态，单层与激活可容纳</td><td>ZeRO 或 FSDP 切分状态</td><td>all-gather 峰值、通信占比、保存和恢复</td></tr>
+<tr><td>单层或目标激活仍放不下</td><td>张量并行、序列/上下文并行</td><td>切分维度、数值误差和集合通信</td></tr>
+<tr><td>多节点规模需要提高流水利用率</td><td>流水线并行与多维组合</td><td>stage 均衡、气泡、重计算和故障域</td></tr>
+</tbody>
+</table>
+</div>
+<p>FSDP 的公开经验说明，完全切分可以支持超过单卡容量的模型，同时把通信和计算重叠作为性能问题。<a href="#ref-11">[11]</a> Megatron-LM 展示了张量、流水线和数据并行的组合。<a href="#ref-9">[9]</a> 这些技术带来新的状态和通信边界；1.15B 计划是否需要其中任何一种，必须由目标设备上的峰值测量决定。即使理论模型状态只有每卡约 2.296 GB，4,096 上下文的激活和临时 gather 仍可能主导峰值。</p>
+<p>吞吐记录至少包括全局有效 token/s、每卡 token/s、step 时间分解、数据等待、集合通信、激活重计算和峰值显存。MFU 使用第 5.2 节声明的模型 FLOP 口径；若开启重计算，另报硬件实际执行量或明确其未进入 MFU 分子。这样才能区分“模型计算更快”“设备做了更多重计算”和“数据加载不再等待”三种变化。</p>
+<p>容量短跑要覆盖稳态之前的峰值：首次优化器更新会创建 Adam 状态，首次保存会产生序列化缓冲，评估可能使用不同 batch，通信库也可能延迟分配 workspace。只测一次前向或第一个 microbatch 会系统性低估峰值。建议依次执行若干训练 step、一次评估和一次 checkpoint，并采集分配峰值、保留峰值与进程常驻内存。随后改变序列长度和 microbatch，验证外推模型是否与实测一致。</p>
+<h3 id="检查点是一份恢复契约"><a class="header" href="#检查点是一份恢复契约">检查点是一份恢复契约</a></h3>
+<p>可用于精确续训的 checkpoint 至少保存：</p>
+<ul>
+<li>模型参数和完整模型 config；</li>
+<li>优化器状态、学习率日程状态与当前更新位置；</li>
+<li>CPU、加速器和各 rank 的随机数状态；</li>
+<li>数据加载器、采样器、分片、文档偏移和梯度累积窗口边界；</li>
+<li>动态 loss scaling 或其他数值状态；</li>
+<li>数据 manifest、Tokenizer、代码和评估版本的哈希；</li>
+<li>世界大小、并行拓扑与分片元数据。</li>
+</ul>
+<p>保存过程应先写临时制品，校验所有 rank 的分片和元数据后再原子发布完成标记。只看到某个文件存在不能证明 checkpoint 完整。分布式恢复还要验证世界大小变化是否受支持；若不支持，就在元数据不匹配时明确失败。</p>
+<p>恢复测试应在正式训练前完成：运行到第 \(k\) 步保存，分成“不间断继续 \(m\) 步”和“重启后继续 \(m\) 步”两条路径，比较数据位置、学习率、loss、梯度统计和参数差异。PyTorch 官方复现说明指出，跨版本、平台或 CPU/GPU 并不保证逐位相同。<a href="#ref-22">[22]</a> 因而验收标准应是同一受控环境中的确定性检查，以及其他环境中预先声明的数值容差，不能把逐位一致扩展成跨平台承诺。</p>
+<h3 id="用可重放证据诊断故障"><a class="header" href="#用可重放证据诊断故障">用可重放证据诊断故障</a></h3>
+<p>训练故障至少分为四类：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>现象</th><th>优先证据</th><th>可能动作</th></tr>
+</thead>
+<tbody>
+<tr><td>单个或少量 loss spike</td><td>触发批次、token 分布、梯度与 logit</td><td>隔离数据，复现后决定修数据或调优化</td></tr>
+<tr><td>NaN/Inf</td><td>首个异常算子、精度、Norm、softmax 和 loss</td><td>回退，用 fp32 或算子级检查缩小范围</td></tr>
+<tr><td>曲线缓慢偏离</td><td>数据配比、学习率、恢复位置和代码版本</td><td>与健康 checkpoint 做控制变量比较</td></tr>
+<tr><td>吞吐突然下降</td><td>数据等待、通信、设备频率和 straggler</td><td>定位节点或阶段，避免盲目扩大 batch</td></tr>
+</tbody>
+</table>
+</div>
+<p>Llama 3 的大规模训练报告记录了计划内和意外中断，说明恢复能力是训练系统的一等需求。<a href="#ref-8">[8]</a> OLMo 2 则公开了模型、数据、训练配方、日志和大量中间制品，为分析训练轨迹提供了参照。<a href="#ref-23">[23]</a> 本书的 1.15B 计划没有产生同类运行证据；这里给出的是应当建立的记录结构。</p>
+<p><a id="evaluation"></a></p>
+<h2 id="56-评估与后训练衔接"><a class="header" href="#56-评估与后训练衔接">5.6 评估与后训练衔接</a></h2>
+<p>评估要依次回答三个问题：训练过程是否健康，基础模型是否学到目标分布，模型能否进入后训练。最终 checkpoint 的一个总分无法回答这三件事。</p>
+<h3 id="lossperplexity-与-bpb"><a class="header" href="#lossperplexity-与-bpb">Loss、Perplexity 与 BPB</a></h3>
+<p>对固定 Tokenizer 和同一评估集，token 平均负对数似然为 \(L_{\mathrm{tok}}\)，困惑度为</p>
+<p>\[
+\mathrm{PPL}=\exp(L_{\mathrm{tok}}).
+\]</p>
+<p>Perplexity 只在相同 token 化和 loss mask 下具有直接可比性。两个 Tokenizer 对同一文本产生不同 token 数时，应把总负对数似然归一到相同的原始字节：</p>
+<p>\[
+\mathrm{BPB}
+=\frac{\sum_t-\ln p_\theta(y_t\mid y_{&lt;t})}
+{\ln 2\cdot N_{\mathrm{byte}}}.
+\]</p>
+<p>若平均每 token NLL 为 2.3 nat，每个 token 平均对应 4.0 字节，则教学算例的 BPB 为</p>
+<p>\[
+\frac{2.3}{4\ln2}\approx0.8295.
+\]</p>
+<p>这只是公式演示，不是实验结果。BPB 仍要求使用相同原始字节、相同边界和无污染的验证集；它不会自动消除数据配比和上下文处理差异。</p>
+<p>训练健康度应按 token 间隔记录训练/验证 loss、梯度范数、学习率、吞吐、峰值显存和异常计数。能力评估再按语言、领域、代码、数学、文档类型和长度切片。小模型若在某基准上接近随机水平，应先报告随机基线、样本数和重复区间，不能把噪声解释成能力提升。</p>
+<p>Pythia 的密集 checkpoint 适合研究能力何时出现和数据顺序怎样影响轨迹。<a href="#ref-13">[13]</a> OLMo 2 的开放训练制品可用于比较日志与配方组织。<a href="#ref-23">[23]</a> 由于它们与本计划的数据、Tokenizer 和模型配置不同，适合比较方法和趋势，不适合直接比较绝对 loss。</p>
+<h3 id="评估冻结与污染边界"><a class="header" href="#评估冻结与污染边界">评估冻结与污染边界</a></h3>
+<p>开发集用于日常选择超参数，冻结测试集只用于阶段和发布判断。只要某个测试结果被拿去调整数据配比、学习率或清洗规则，它就已经参与开发，必须另建冻结集。训练前对语料与基准做精确和近似匹配；评估时记录数据快照、提示、few-shot 示例、解码参数和判分脚本。</p>
+<p>基础模型首先评估语言建模和潜在能力。指令遵循、拒答、工具协议和偏好属于第 3 章的后训练目标。预训练结束后可以选择 SFT，但要重新建立聊天模板、监督位置和行为回归；不能用 SFT 后的格式改善反向证明基础模型训练正确。</p>
+<p>进入后训练的门槛可以设为：训练曲线稳定，关键数据切片没有异常退化；恢复测试通过；冻结基础评估高于约定基线；污染检查完成；模型、Tokenizer、数据和代码制品可追溯。未满足这些条件时，继续添加 SFT 数据只会让根因更难定位。</p>
+<h3 id="从指标回到失败样本"><a class="header" href="#从指标回到失败样本">从指标回到失败样本</a></h3>
+<p>每个汇总指标都应能下钻到样本。语言建模评估保存文档 ID、切片、有效字节、token 数和总 NLL；任务评估保存输入、期望、输出、判分器版本和失败类型。这样，当平均 loss 下降但代码切片变差时，可以判断是少数长文档权重变化、Tokenizer 差异、数据污染还是能力退化。</p>
+<p>评估报告还应给出比较的不确定性。对有限任务集可用 bootstrap 或重复采样估计区间；对随机窗口 loss，应固定窗口集合后再比较 checkpoint，并把随机窗口估计作为独立的训练监控。多个 checkpoint 反复在同一开发集上选择也会过拟合评估，因此最终门禁需要未参与选择的冻结集合。</p>
+<p>能力与成本要成对报告。同一质量改善如果需要更长上下文、更高精度或更多生成 token，会改变部署价值。基础模型阶段至少记录模型大小、评估 token/s、峰值显存和每项任务的有效 token；进入后训练时再增加模板、输出长度和行为指标。第 4 章的 test-time scaling 只能在这条基线之上比较，否则训练收益与推理预算会混在一起。</p>
+<p><a id="lab"></a></p>
+<h2 id="57-最小可运行实验字符级-gpt"><a class="header" href="#57-最小可运行实验字符级-gpt">5.7 最小可运行实验：字符级 GPT</a></h2>
+<p><a href="https://github.com/wxquare/wxquare.github.io/tree/hexo/books/ai-book/labs/llm-from-scratch">书稿仓库中的 <code>books/ai-book/labs/llm-from-scratch/</code></a> 是本章的最小实验。它从随机初始化训练 Decoder-only GPT，输入是 UTF-8 文本，Tokenizer 以字符为 token。实验用于观察训练闭环，不以生成通用语言模型为目标。</p>
+<h3 id="运行命令"><a class="header" href="#运行命令">运行命令</a></h3>
+<p>在实验目录中创建 Python 3.10+ 环境并安装 PyTorch 与 pytest：</p>
+<pre><code class="language-bash">cd books/ai-book/labs/llm-from-scratch
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+</code></pre>
+<p>用仓库附带的小段 Shakespeare 文本运行 smoke 配置：</p>
+<pre><code class="language-bash">python train.py \
+  --input data/tiny-shakespeare.txt \
+  --preset smoke \
+  --max-steps 100 \
+  --out-dir out/smoke
+
+python evaluate.py \
+  --checkpoint out/smoke/checkpoint.pt \
+  --input data/tiny-shakespeare.txt
+
+python generate.py \
+  --checkpoint out/smoke/checkpoint.pt \
+  --prompt "ROMEO" \
+  --max-new-tokens 80 \
+  --temperature 0.8 \
+  --top-k 10
+
+python -m pytest -v
+</code></pre>
+<p>训练输出目录必须位于实验目录的 <code>out/</code> 下，代码会拒绝其他路径。设备默认按 CUDA、Apple MPS、CPU 的顺序选择，也可以用 <code>--device</code> 明确指定。确定性算法以 <code>warn_only=True</code> 启用；不同 PyTorch 版本与后端仍可能出现不支持的确定性算子，因此固定 seed 不等于跨环境逐字复现。</p>
+<p>本章没有运行这些命令，不报告 loss、速度或生成样例。读者应保存实际终端输出、环境版本和 checkpoint 哈希，再讨论观察结果。</p>
+<h3 id="源码与概念映射"><a class="header" href="#源码与概念映射">源码与概念映射</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>文件</th><th>已实现的概念</th><th>重要边界</th></tr>
+</thead>
+<tbody>
+<tr><td><code>config.py</code></td><td>smoke/default 模型与训练配置</td><td>没有分布式或混合精度配置</td></tr>
+<tr><td><code>data.py</code></td><td>字符词表、编码/解码、随机固定窗口与右移目标</td><td>未知字符报错；没有 BPE、分片、packing manifest</td></tr>
+<tr><td><code>model.py</code></td><td>MHA、因果 mask、Pre-LayerNorm、GELU FFN、next-token loss</td><td>学习式位置；没有 GQA、RoPE、RMSNorm、SwiGLU 或权重共享</td></tr>
+<tr><td><code>train.py</code></td><td>AdamW、反向传播、梯度裁剪、固定 seed、保存 checkpoint</td><td>单进程；没有学习率日程、梯度累积和精确续训</td></tr>
+<tr><td><code>evaluate.py</code></td><td>随机窗口 loss 与 perplexity</td><td>只采样 4 个 batch，每批 8 条；没有全量验证和 BPB</td></tr>
+<tr><td><code>generate.py</code></td><td>温度与 Top-k 自回归采样</td><td>温度必须大于零；没有 Top-p、KV Cache 或约束解码</td></tr>
+<tr><td><code>tests/</code></td><td>Tokenizer、目标右移、因果性、反向传播、loss 趋势、加载与 CLI 行为</td><td>测试存在不表示本章已执行</td></tr>
+</tbody>
+</table>
+</div>
+<p>字符词表通过整份输入文本拟合，然后才按 token 序列前 90%/后 10% 连续切分训练与验证。这意味着词表已经看见验证段出现过哪些字符，虽然模型参数没有用验证窗口训练。更严格的数据实验应先按文档或去重簇切分，再仅用训练集拟合 Tokenizer。</p>
+<p>训练集和验证集都用随机窗口估计 loss；它们共享同一个随机生成器，评估采样会推进后续训练采样状态。当前训练只在开始和结束估计 loss，<code>eval_interval</code> 配置尚未用于循环中的定期评估。因此本实验适合验证“能否学习重复局部模式”，不提供完整、固定窗口的验证曲线。</p>
+<p>checkpoint 仅保存模型权重、模型配置和字符词表，足以重新加载进行评估和生成；它没有保存 AdamW 状态、随机数状态、数据位置和当前 step，所以不能从中精确继续训练。测试名称中的“恢复”验证的是模型与 Tokenizer 可以加载，不是中断训练的严格恢复。</p>
+<h3 id="应观察什么"><a class="header" href="#应观察什么">应观察什么</a></h3>
+<p>执行实验时优先检查可证伪的性质：</p>
+<ul>
+<li><code>targets[:, :-1]</code> 是否等于 <code>inputs[:, 1:]</code>；</li>
+<li>改变未来 token 时，较早位置的 logits 是否保持不变；</li>
+<li>少量重复语料上，训练后 loss 是否低于初始化 loss；</li>
+<li>checkpoint 重新加载后，参数和词表是否一致；</li>
+<li>温度与 Top-k 改变时，生成分布是否变化；</li>
+<li>提示包含词表外字符时，是否明确失败。</li>
+</ul>
+<p>这些观察只证明对应代码路径。若要向 1.15B 计划演进，需要依次增加子词 Tokenizer、按去重簇切分、分片 manifest、固定评估窗口、BPB、混合精度、梯度累积、分布式归一化、完整 checkpoint、恢复测试和分层能力评估。SFT 与偏好优化也尚未实现，应作为第 3 章对应的独立扩展。</p>
+<p><a id="training-plan"></a></p>
+<h2 id="58-教学训练计划与阶段验收"><a class="header" href="#58-教学训练计划与阶段验收">5.8 教学训练计划与阶段验收</a></h2>
+<p>下面把 1.15B / 230 亿 token 算例整理成一份可评审计划。所有结果均为公式推导或待测目标，没有大规模运行记录。</p>
+<h3 id="固定预算"><a class="header" href="#固定预算">固定预算</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>项目</th><th>教学计划</th></tr>
+</thead>
+<tbody>
+<tr><td>模型</td><td>1,147,766,784 参数；24 层、宽度 2,048、GQA、SwiGLU</td></tr>
+<tr><td>数据</td><td>精确目标 23,000,000,000 个有效 token</td></tr>
+<tr><td>上下文</td><td>4,096</td></tr>
+<tr><td>名义全局批</td><td>1,048,576 token</td></tr>
+<tr><td>更新步数</td><td>21,935；最后一步 534,016 个有效 token</td></tr>
+<tr><td>模型 FLOPs</td><td>\(1.5839\times10^{20}\)，另报注意力口径</td></tr>
+<tr><td>Adam 状态假设</td><td>16 字节/参数，共 18.364 GB；激活和临时缓冲另算</td></tr>
+<tr><td>日程</td><td>代理模型校准后的 warmup、stable、decay</td></tr>
+<tr><td>硬件</td><td>待目标环境峰值显存和短跑测量后确定</td></tr>
+<tr><td>最终产物</td><td>Base model、Tokenizer、config、manifest、日志、评估和恢复证据</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="主训练前的递进试跑"><a class="header" href="#主训练前的递进试跑">主训练前的递进试跑</a></h3>
+<p>不能从字符实验直接跳到 230 亿 token 主训练。更稳妥的路径由五次递进试跑组成。第一步是单 batch 过拟合：关闭 dropout，用很小数据反复更新，确认目标右移、loss 和梯度方向。第二步是单设备短跑：恢复真实数据与精度，观察几百个 step 的数值范围、数据等待和显存峰值。第三步是多设备等价性：固定完全相同的有效 token，在单进程参考与 DDP/FSDP 路径上比较一个更新后的参数差异，专门验证第 5.4 节的 loss 缩放。第四步是恢复演练：在累积窗口边界与非边界位置分别中断，确认系统只从已提交的完整 step 恢复，不重读或漏读数据。第五步才是接近目标序列与 batch 的容量短跑，并包含评估和 checkpoint。</p>
+<p>每次试跑只改变一个主要变量，并保存“输入制品—运行配置—输出指标”的对应关系。若同时更换数据、模型宽度、精度和并行策略，即使结果变好也无法归因。试跑通过还不等于主训练一定稳定，但它能把形状、归一化、内存和恢复错误挡在昂贵阶段之前。</p>
+<p>主训练的 token 账本以实际参与 loss 的有效目标为准，而不是已读取字节、已分词 token 或包含 padding 的张量元素。每个 step 记录本地与全局有效 token、累计 token、被丢弃样本和最后一批处理方式。这样才能证明最终数字确实是 230 亿，并让学习率、评估间隔和 checkpoint 间隔在恢复后保持同一进度。</p>
+<h3 id="阶段门禁"><a class="header" href="#阶段门禁">阶段门禁</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>阶段</th><th>必须产出</th><th>通过条件</th><th>失败后回到</th></tr>
+</thead>
+<tbody>
+<tr><td>立项</td><td>现有模型基线与失败切片</td><td>从零训练的增量目标可测量</td><td>改用检索、适配或现有模型</td></tr>
+<tr><td>数据</td><td>来源表、去重簇、切分、Tokenizer、manifest</td><td>许可与污染记录完整；往返和边界抽样正确</td><td>过滤、去重或切分</td></tr>
+<tr><td>配置</td><td>参数脚本、实际参数统计、短前向</td><td>参数与形状一致；mask 和共享权重测试通过</td><td>模型 config</td></tr>
+<tr><td>代理训练</td><td>学习率/精度扫描与健康曲线</td><td>无系统性数值异常；候选区间明确</td><td>初始化、优化器或精度</td></tr>
+<tr><td>容量短跑</td><td>峰值显存、step 分解、通信和吞吐</td><td>目标序列与 batch 可运行；口径明确</td><td>batch、重计算或并行</td></tr>
+<tr><td>恢复演练</td><td>中断与不中断两条轨迹</td><td>数据位置一致，数值在约定容差内</td><td>checkpoint 与采样器</td></tr>
+<tr><td>主训练</td><td>不可变日志与中间 checkpoint</td><td>告警可定位，预算和数据量按计划推进</td><td>最近健康 checkpoint</td></tr>
+<tr><td>基础评估</td><td>切片 loss、PPL/BPB、能力和污染报告</td><td>达到冻结门槛，无关键切片异常</td><td>数据、配置或训练阶段</td></tr>
+<tr><td>后训练交接</td><td>Base 制品与第 3 章回归计划</td><td>模板、监督和行为目标重新评审</td><td>后训练数据与目标</td></tr>
+</tbody>
+</table>
+</div>
+<p>主训练开始前还应设置停止条件：出现无法恢复的制品损坏；连续多个评估点显著偏离代理预测且原因不明；数据许可或污染结论改变；预算消耗超过上限；目标能力不再具有业务价值。停止训练不是失败隐藏，而是预算控制的一部分。</p>
+<h3 id="从实验扩展的练习"><a class="header" href="#从实验扩展的练习">从实验扩展的练习</a></h3>
+<p>可以按风险递增完成四组练习：</p>
+<ol>
+<li>在字符实验中固定一组验证窗口，比较“随机窗口均值”和“固定窗口均值”的波动；</li>
+<li>为实验 checkpoint 增加优化器、step、随机数和采样位置，做中断/不中断恢复对照；</li>
+<li>构造不同有效长度的两个 rank，验证局部均值平均与全局 token 均值的梯度差异；</li>
+<li>用两个 Tokenizer 编码同一冻结文本，分别报告 token loss 和 BPB，说明为什么前者不可直接横比。</li>
+</ol>
+<p>练习只有在保存代码版本、输入、命令和断言输出后才算执行。设计存在、测试文件存在或算术正确，都不能替代运行证据。</p>
+<p><a id="chapter-summary"></a></p>
+<h2 id="59-本章小结"><a class="header" href="#59-本章小结">5.9 本章小结</a></h2>
+<p>从零训练把模型结构、数据治理、优化和分布式系统连接成一条证据链。先用基线证明需要从随机初始化开始，再固定参数、token、FLOP 和显存口径；数据 manifest 与模型 config 决定训练输入，按全局有效 token 归一化的损失决定梯度含义，峰值实测决定并行方式，完整 checkpoint 和恢复演练决定中断后能否继续。</p>
+<p>1.15B / 230 亿 token 计划说明了口径为何重要：230 亿并不等于精确 \(20P\)；1,048,576 token 的全局批需要 21,935 步且最后一批不是满批；16 字节/参数只描述一种 Adam 精度布局；理论分片后的模型状态也没有覆盖激活和临时缓冲。把这些条件写清，预算才可审计。</p>
+<p>字符级 GPT 实验提供了可以运行的最小闭环，同时明确暴露了边界：它没有子词 Tokenizer、分布式训练、BPB、完整续训 checkpoint 或 SFT。读者应先用它验证目标右移、因果性、loss 下降和制品加载，再逐项增加复杂度。训练完成后的基础模型若要成为可用助手，还需进入第 3 章的后训练流程；生成阶段的采样与搜索则由第 4 章负责。</p>
+<p><a id="references"></a></p>
+<h2 id="510-参考资料"><a class="header" href="#510-参考资料">5.10 参考资料</a></h2>
+<p>本章正文实际使用以下 23 条来源。本轮修订于 2026-10-25 重新访问了列明的论文摘要页、Llama 3 正文、ZeRO 指定章节、PyTorch 复现文档，以及 nanoGPT 与 nanochat README；后两个项目未固定提交号。Attention 与 AdamW 沿用第 1、2 章记录的 2026-10-16 核验。摘要页核验只能支持元数据和摘要附近的主张，不能冒充全文复现；涉及实现与版本敏感行为时，仍须固定提交版本并保存运行证据。</p>
+<ol>
+<li><a id="ref-1"></a> Karpathy, A.，<a href="https://github.com/karpathy/nanoGPT">nanoGPT</a>，GitHub repository and README；本地草稿记录其 README 已标注项目过时，未固定提交号；核验日期：2026-10-25。</li>
+<li><a id="ref-2"></a> Zhang, P., et al.，<a href="https://arxiv.org/abs/2401.02385">TinyLlama: An Open-Source Small Language Model</a>，2024；本地草稿记录仅核对摘要页；核验日期：2026-10-25。</li>
+<li><a id="ref-3"></a> Karpathy, A.，<a href="https://github.com/karpathy/nanochat">nanochat</a>，GitHub repository and README；本地草稿记录仅核对 README，未固定提交号；核验日期：2026-10-25。</li>
+<li><a id="ref-4"></a> Vaswani, A., et al.，<a href="https://arxiv.org/abs/1706.03762">Attention Is All You Need</a>，2017；沿用第 1 章既有来源记录；核验日期：2026-10-16。</li>
+<li><a id="ref-5"></a> Hoffmann, J., et al.，<a href="https://arxiv.org/abs/2203.15556">Training Compute-Optimal Large Language Models</a>，2022；本地草稿记录仅核对摘要页；核验日期：2026-10-25。</li>
+<li><a id="ref-6"></a> Sardana, N., et al.，<a href="https://arxiv.org/abs/2401.00448">Beyond Chinchilla-Optimal: Accounting for Inference in Language Model Scaling Laws</a>，ICML 2024；本地草稿记录仅核对摘要页；核验日期：2026-10-25。</li>
+<li><a id="ref-7"></a> Muennighoff, N., et al.，<a href="https://arxiv.org/abs/2305.16264">Scaling Data-Constrained Language Models</a>，2023；本地草稿记录仅核对摘要页；核验日期：2026-10-25。</li>
+<li><a id="ref-8"></a> Grattafiori, A., et al. / Llama Team，<a href="https://arxiv.org/abs/2407.21783">The Llama 3 Herd of Models</a>，2024；本地草稿记录阅读了覆盖预训练、并行与可靠性的正文范围；核验日期：2026-10-25。</li>
+<li><a id="ref-9"></a> Narayanan, D., et al.，<a href="https://arxiv.org/abs/2104.04473">Efficient Large-Scale Language Model Training on GPU Clusters Using Megatron-LM</a>，SC 2021；本地草稿记录仅核对摘要页；核验日期：2026-10-25。</li>
+<li><a id="ref-10"></a> Rajbhandari, S., et al.，<a href="https://arxiv.org/abs/1910.02054">ZeRO: Memory Optimizations Toward Training Trillion Parameter Models</a>，SC 2020；本地草稿记录核对 HTML 版第 3.1、5.1–5.4 节；核验日期：2026-10-25。</li>
+<li><a id="ref-11"></a> Zhao, Y., et al.，<a href="https://arxiv.org/abs/2304.11277">PyTorch FSDP: Experiences on Scaling Fully Sharded Data Parallel</a>，2023；本地草稿记录仅核对摘要页；核验日期：2026-10-25。</li>
+<li><a id="ref-12"></a> Penedo, G., et al.，<a href="https://arxiv.org/abs/2406.17557">The FineWeb Datasets: Decanting the Web for the Finest Text Data at Scale</a>，2024；本地草稿记录仅核对摘要页；核验日期：2026-10-25。</li>
+<li><a id="ref-13"></a> Biderman, S., et al.，<a href="https://arxiv.org/abs/2304.01373">Pythia: A Suite for Analyzing Large Language Models Across Training and Scaling</a>，2023；本地草稿记录仅核对摘要页；核验日期：2026-10-25。</li>
+<li><a id="ref-14"></a> Touvron, H., et al.，<a href="https://arxiv.org/abs/2302.13971">LLaMA: Open and Efficient Foundation Language Models</a>，2023；沿用第 1、2 章既有来源记录；核验日期：2026-10-25。</li>
+<li><a id="ref-15"></a> McCandlish, S., et al.，<a href="https://arxiv.org/abs/1812.06162">An Empirical Model of Large-Batch Training</a>，2018；本地草稿记录仅核对摘要页；核验日期：2026-10-25。</li>
+<li><a id="ref-16"></a> Loshchilov, I., &amp; Hutter, F.，<a href="https://arxiv.org/abs/1711.05101">Decoupled Weight Decay Regularization</a>，ICLR 2019；沿用第 2 章既有来源记录；核验日期：2026-10-16。</li>
+<li><a id="ref-17"></a> Hu, S., et al.，<a href="https://arxiv.org/abs/2404.06395">MiniCPM: Unveiling the Potential of Small Language Models with Scalable Training Strategies</a>，2024；本地草稿记录仅核对摘要页；核验日期：2026-10-25。</li>
+<li><a id="ref-18"></a> Hägele, A., et al.，<a href="https://arxiv.org/abs/2405.18392">Scaling Laws and Compute-Optimal Training Beyond Fixed Training Durations</a>，NeurIPS 2024；本地草稿记录仅核对摘要页；核验日期：2026-10-25。</li>
+<li><a id="ref-19"></a> Wortsman, M., et al.，<a href="https://arxiv.org/abs/2309.14322">Small-scale Proxies for Large-scale Transformer Training Instabilities</a>，2023；本地草稿记录仅核对摘要页；核验日期：2026-10-25。</li>
+<li><a id="ref-20"></a> Yang, G., et al.，<a href="https://arxiv.org/abs/2203.03466">Tensor Programs V: Tuning Large Neural Networks via Zero-Shot Hyperparameter Transfer</a>，2022；本地草稿记录仅核对摘要页；核验日期：2026-10-25。</li>
+<li><a id="ref-21"></a> Kalamkar, D., et al.，<a href="https://arxiv.org/abs/1905.12322">A Study of BFLOAT16 for Deep Learning Training</a>，2019；本地草稿记录仅核对摘要页；核验日期：2026-10-25。</li>
+<li><a id="ref-22"></a> PyTorch Contributors，<a href="https://docs.pytorch.org/docs/stable/notes/randomness.html">Reproducibility</a>，PyTorch official documentation；沿用第 4 章既有来源记录；核验日期：2026-10-25。</li>
+<li><a id="ref-23"></a> Team OLMo, et al.，<a href="https://arxiv.org/abs/2501.00656">2 OLMo 2 Furious</a>，2025；本地草稿记录仅核对摘要页；核验日期：2026-10-25。</li>
+</ol>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part1/04-reasoning-generation-algorithms.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part1/06-finetuning-compression-multimodal.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part1/04-reasoning-generation-algorithms.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part1/06-finetuning-compression-multimodal.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-c2a407aa.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-1ddef08b.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

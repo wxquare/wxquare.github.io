@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第1章 从 Transformer 到 Agent：模型结构如何影响系统能力 - AI Engineering：大模型与智能体系统工程</title>
+        <title>第1章 模型结构：一次前向计算的能力边界 - AI Engineering：大模型与智能体系统工程</title>
 
 
         <!-- Custom HTML head -->
@@ -43,10 +43,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-4e1be50c.js";
+            window.path_to_searchindex_js = "../searchindex-3d7c861f.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-c6967e45.js"></script>
+        <script src="../toc-18357883.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -187,7 +187,7 @@
                     <main>
                         <h1 id="第1章-模型结构一次前向计算的能力边界"><a class="header" href="#第1章-模型结构一次前向计算的能力边界">第1章 模型结构：一次前向计算的能力边界</a></h1>
 <p>语言模型可以解释退款政策、生成补丁，也可以输出一段结构化参数。这些能力都从一次前向计算开始：字符串被编码成 token，经过若干层的注意力与逐位置前馈网络，最后投影成下一个 token 的分布。本章先拆开这次前向计算，再回答两个相连的问题：模型的候选能力从哪里来，结构在哪些环节设定了边界？</p>
-<p>以下退款和代码场景均为教学假设，不代表某个企业系统的实际实现，也不把某个模型家族的配置当作行业通用配置。本章用同一套张量符号解释 Transformer、头共享与缓存，再沿预训练、后训练、推理期计算说明能力的形成；后续章节分别展开训练与推理的细节。</p>
+<p>以下退款和代码场景均为教学假设，不代表某个企业系统的实际实现，也不把某个模型家族的配置当作行业通用配置。本章用同一套张量符号解释 Transformer、头共享与缓存；第 2 章讨论预训练，第 3 章讨论后训练，第 4 章讨论推理期扩展，第 5 章再把这些概念连成一条可复现的训练路径。</p>
 <h2 id="11-从序列预测到可扩展模型"><a class="header" href="#11-从序列预测到可扩展模型">1.1 从序列预测到可扩展模型</a></h2>
 <p>语言模型估计序列出现的概率。对 token 序列 \(x_1,\ldots,x_N\)，自回归分解为：</p>
 <p>\[
@@ -200,9 +200,9 @@ p(x_1,\ldots,x_N)=\prod_{t=1}^{N}p(x_t\mid x_{&lt;t}).
 <p>对工程师而言，这个转折带来一个可检验的问题：一次失败来自模型没学会任务，还是输入并未按预期进入计算？若文本被截断、因果边界错位或缓存复用了其他请求的状态，更大的模型也无法修复输入契约。我们先把“字符串进、字符串出”拆成可以逐轴检查的前向路径，再讨论它如何形成能力。</p>
 <h2 id="12-一次前向计算的完整路径"><a class="header" href="#12-一次前向计算的完整路径">1.2 一次前向计算的完整路径</a></h2>
 <h3 id="统一符号与两种长度"><a class="header" href="#统一符号与两种长度">统一符号与两种长度</a></h3>
-<p>全章以批量优先的语义形状表达张量；实际框架可能转置、融合或分片。\(B\) 是批量大小，\(T\) 是当前查询长度，\(S\) 是键值长度，\(D\) 是残差流宽度，\(H_q\) 与 \(H_{kv}\) 分别是查询头和键值头数，\(d_h\) 是每头 Q/K 维度，\(d_v\) 是每头 V 维度。\(L\) 为层数，\(V_{\mathrm{ocab}}\) 表示输出词表投影行数，避免与 Value 张量 \(V\) 混用。普通教学示例设 \(d_h=d_v\)、\(D=H_qd_h\)，这些等式不是所有模型的定义。</p>
+<p>全章以批量优先的语义形状表达张量；实际框架可能转置、融合或分片。\(B\) 是批量大小，\(T\) 是当前查询长度，\(S\) 是键值长度，\(D\) 是残差流宽度，\(H_q\) 与 \(H_{kv}\) 分别是查询头和键值头数，\(d_h\) 是每头 Q/K 维度，\(d_v\) 是每头 V 维度。\(L\) 为层数，\(V_{\mathrm{vocab}}\) 表示输出词表投影行数，避免与 Value 张量 \(V\) 混用。普通教学示例设 \(d_h=d_v\)、\(D=H_qd_h\)，这些等式不是所有模型的定义。</p>
 <p>训练的自注意力通常有 \(T=S\)。增量生成时，单个新查询可以有 \(T=1\)，而 \(S\) 包含历史缓存与当前 token。只写一个“序列长度”会掩盖这种差别。跨注意力的查询和键值来自不同序列，二者长度也可以不同。中文教材《动手学深度学习》用批量、时间步、隐藏维三轴解释 Transformer，适合作为本节形状阅读的补充。<a href="#ref-4">[4]</a></p>
-<p>Tokenizer 把输入文本编码为整数 ID，得到 \([B,T]\)。Embedding 是可学习表 \(E\in\mathbb{R}^{V_{\mathrm{ocab}}\times D}\)，按 ID 查表得到 \(X\in\mathbb{R}^{B\times T\times D}\)。这里没有按汉字直接索引的保证：一个汉字、一个英文词、一个空格与代码片段可能对应不同数量的 token。文字看起来相同，也应先确认实际 token ID、特殊符号和聊天模板是否一致。</p>
+<p>Tokenizer 把输入文本编码为整数 ID，得到 \([B,T]\)。Embedding 是可学习表 \(E\in\mathbb{R}^{V_{\mathrm{vocab}}\times D}\)，按 ID 查表得到 \(X\in\mathbb{R}^{B\times T\times D}\)。这里没有按汉字直接索引的保证：一个汉字、一个英文词、一个空格与代码片段可能对应不同数量的 token。文字看起来相同，也应先确认实际 token ID、特殊符号和聊天模板是否一致。</p>
 <p>Embedding 后需要让计算知道位置，但位置机制不总是一个加法。原始正弦位置编码可与输入表示相加；RoPE 则在注意力中的 Q/K 上施加旋转。所以下图把位置规则标在 Block 内，不把所有模型都画成“Embedding 加一个位置向量”。位置如何影响点积，在1.4节继续解释。</p>
 <pre class="mermaid">
 flowchart TD
@@ -223,10 +223,10 @@ flowchart TD
 
 <p>图中的 \(S\) 在无缓存自注意力中等于 \(T\)；使用缓存时，K/V 节点含“历史状态加当前投影”。残差连接在图中简写为输出阶段，实际 Pre-Norm Block 的两条残差路径见1.4节公式。最终 Norm 是常见现代布局，原始 Transformer 的归一化位置不同。图是形状契约，不是某个框架的逐算子执行图。</p>
 <h3 id="隐藏状态logits-与标签"><a class="header" href="#隐藏状态logits-与标签">隐藏状态、logits 与标签</a></h3>
-<p>每个 Block 保持残差流的 \([B,T,D]\) 形状。经过全部层后，输出投影 \(W_U\in\mathbb{R}^{D\times V_{\mathrm{ocab}}}\) 将隐藏向量映成每个词表项的分数。logits 还不是概率；沿词表轴应用 softmax，才得到当前位置预测下一个 token 的条件分布。输出表是否与 Embedding 共享权重，取决于具体结构，不能仅因维度兼容就默认共享。</p>
+<p>每个 Block 保持残差流的 \([B,T,D]\) 形状。经过全部层后，输出投影 \(W_U\in\mathbb{R}^{D\times V_{\mathrm{vocab}}}\) 将隐藏向量映成每个词表项的分数。logits 还不是概率；沿词表轴应用 softmax，才得到当前位置预测下一个 token 的条件分布。输出表是否与 Embedding 共享权重，取决于具体结构，不能仅因维度兼容就默认共享。</p>
 <p>把教学序列写成“开始、我、想、退款、结束”。训练时输入可为前四个位置，标签为后四个位置：用“开始”预测“我”，用“开始、我”预测“想”，依次类推。输入位置的隐藏状态可以含当前位置的 token，因为它预测的是下一个 token。标签若没有右移，模型可能学到复制输入；若被右移两次，又会训练错误目标。检查 loss 降低之前，要先打印一小条输入和监督位置。</p>
 <p>生成时先处理提示前缀，即 prefill，得到最后一个有效输入位置的 logits；选出的 token 追加进序列，再进行下一步 decode。Padding 批次不能无条件取数组最后一格：右侧补齐时，那里可能是无效位置，调用方需要按实际实现找到最后有效位置。停止符、最大生成长度和后处理，也会影响用户最终看见的字符串。</p>
-<p>由形状还可得到资源上的教学推导：若训练保留全部 \([B,T,V_{\mathrm{ocab}}]\) logits，词表维会带来明显中间量；实现可以用融合损失等方法改变实际内存分配，因此“写出了这个形状”不代表一定完整物化它。相同原则贯穿本书：先写语义张量和依赖，再讨论框架如何节省存储，不把数学对象与实际分配强行等同。</p>
+<p>由形状还可得到资源上的教学推导：若训练保留全部 \([B,T,V_{\mathrm{vocab}}]\) logits，词表维会带来明显中间量；实现可以用融合损失等方法改变实际内存分配，因此“写出了这个形状”不代表一定完整物化它。相同原则贯穿本书：先写语义张量和依赖，再讨论框架如何节省存储，不把数学对象与实际分配强行等同。</p>
 <h2 id="13-attention-与-qkv-的计算"><a class="header" href="#13-attention-与-qkv-的计算">1.3 Attention 与 Q/K/V 的计算</a></h2>
 <h3 id="匹配空间与内容空间"><a class="header" href="#匹配空间与内容空间">匹配空间与内容空间</a></h3>
 <p>对单层输入 \(X\)，标准多头自注意力通过不同的可学习投影得到 Query、Key 和 Value。暂设 \(H_q=H_{kv}=H\)，且各头维度相同：</p>
@@ -348,14 +348,30 @@ Y=U+\operatorname{FFN}(\operatorname{Norm}(U)).
 <p>因此总参数、每 token 激活参数、常驻权重和通信量要分开计。只激活少数专家，仍可能需要存放全部专家权重或安排跨设备访问；路由不均会使部分设备忙、部分设备闲。Dense 布局没有同样的专家路由成本，MoE 则提供另一种容量与计算折中。两者都不能仅凭模型名称或激活参数数字判断单机是否装得下。</p>
 <p>FlashAttention 优化的是另一层：通过分块和减少 GPU 高带宽内存与片上存储之间的数据搬运，实现精确注意力计算。它不是 GQA 的同义词，也不是以减少注意力头获得同样收益；普通稠密注意力的二次算术项并未因此自动消失。<a href="#ref-21">[21]</a> 这也解释了为什么结构设计、算子实现、服务调度要分别记录：某层的节省不能重复算进另一层账本。</p>
 <h3 id="参数量与显存要按同一口径比较"><a class="header" href="#参数量与显存要按同一口径比较">参数量与显存要按同一口径比较</a></h3>
-<p>讨论结构取舍时，至少区分三组数：总参数量、每 token 激活参数量、常驻权重显存。Embedding 表按 (V_{\mathrm{ocab}}\times D) 计；每层的注意力投影约 (D(H_q+2H_{kv})d_h)（按本章约定 (d_h=d_v)），FFN 约 (2DD_{ff})，归一化参数每层约 (D)（RMSNorm）或 (2D)（LN）。稀疏专家结构的总参数包含全部专家，但每 token 只激活其中一部分。把这三组数混为一个“模型大小”，会在显存估算与成本核算上产生系统性偏差。以上是本书据本节公式所作的推导，用于说明结构如何决定资源口径，不代表任一实现的精确计数。</p>
+<p>讨论结构取舍时，至少区分总参数量、每 token 激活参数量和常驻权重显存。下面按一个 Decoder-only Pre-Norm Block 记账，假设 \(d_h=d_v\)、线性层不含 bias，且 FFN 是普通的两投影结构；Embedding、最终 Norm 和词表输出层位于单层 Block 之外。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>单层组成</th><th>权重形状或数量</th><th style="text-align: right">参数量</th></tr>
+</thead>
+<tbody>
+<tr><td>Query 投影 \(W_Q\)</td><td>\(D\times H_qd_h\)</td><td style="text-align: right">\(DH_qd_h\)</td></tr>
+<tr><td>Key、Value 投影 \(W_K,W_V\)</td><td>各 \(D\times H_{kv}d_h\)</td><td style="text-align: right">\(2DH_{kv}d_h\)</td></tr>
+<tr><td>输出投影 \(W_O\)</td><td>\(H_qd_h\times D\)</td><td style="text-align: right">\(DH_qd_h\)</td></tr>
+<tr><td>注意力合计</td><td>上述四个矩阵</td><td style="text-align: right">\(2Dd_h(H_q+H_{kv})\)</td></tr>
+<tr><td>普通两投影 FFN</td><td>\(D\times D_{ff}\) 与 \(D_{ff}\times D\)</td><td style="text-align: right">\(2DD_{ff}\)</td></tr>
+<tr><td>两个 RMSNorm</td><td>每个含一个长度为 \(D\) 的缩放向量</td><td style="text-align: right">\(2D\)</td></tr>
+</tbody>
+</table>
+</div>
+<p>若线性层带 bias，需要逐项加上输出维度；若使用带 bias 的 LayerNorm，两个 Norm 共计 \(4D\)；若使用 SwiGLU 等三投影门控 FFN，FFN 主项变为 \(3DD_{ff}\)。以 \(D=2048,H_q=16,H_{kv}=4,d_h=128\) 为例，注意力四个投影共 \(10{,}485{,}760\) 个参数，其中 \(W_O\) 占 \(4{,}194{,}304\)，不能从账本中省略。Embedding 表按 \(V_{\mathrm{vocab}}\times D\) 计，输出表是否与它共享权重需要查看具体配置。稀疏专家结构还要分别记录全部专家参数和每 token 激活参数；把这些口径合成一个“模型大小”，会系统性扭曲显存与成本估算。复算时还应记录权重共享、bias、FFN、Norm 和参数口径，并保留复算过程；只给最终总数，无法定位两个实现为何不同。这份记录也是后续显存预算与检查点审查的输入。</p>
 <h3 id="有版本依据的-qwen-侧栏"><a class="header" href="#有版本依据的-qwen-侧栏">有版本依据的 Qwen 侧栏</a></h3>
 <p>仅以 Qwen2 技术报告 v4 的 7B Dense 配置为例：残差宽度3584、28层、28个查询头、4个KV头、每头128维，采用 GQA、RoPE、RMSNorm 等设计。<a href="#ref-22">[22]</a> 官方 Qwen2-7B 配置页面显示文件修订9b039ab，对应头数、层数和宽度一致；其 Embedding 表行数为152064，而报告列出的有效词表为151646，不能混同。<a href="#ref-23">[23]</a></p>
 <p>这组配置每个 KV 头服务7个查询头。若只做形状阅读，读者可将 \(D,H_q,H_{kv},d_h\) 代入前述张量约定；若要估算缓存，还须另给 \(B,S,s\) 等工作负载。这里没有据此给出设备吞吐、真实窗口质量或最新版 Qwen 的保证。产品家族的代际更新可能同时改变注意力、词表与模板，所以模型制品应绑定具体配置和版本，再交给评估与发布流程。</p>
 <h2 id="16-从结构到能力边界"><a class="header" href="#16-从结构到能力边界">1.6 从结构到能力边界</a></h2>
-<p>理解结构后，仍不能仅从参数规模预测任务表现。预训练通过数据和目标塑造表示与生成分布；同一结构换用不同语料、训练预算或目标，会得到不同能力边界。GPT-3 的上下文少样本设置在请求中给示例，无需梯度更新，所以“本次请求会做新格式”不等于模型权重已经永久学习该知识。<a href="#ref-13">[13]</a> 预训练将讨论数据、Tokenizer、目标与规模的共同约束。</p>
-<p>后训练进一步改变默认行为。InstructGPT 用示范进行监督微调，再利用输出排序与人类反馈做强化学习；其结果也仍包含错误，不能把更受偏好的回答当作事实保证。<a href="#ref-24">[24]</a> DPO 从偏好优化目标的重参数化得到更直接的训练方式，在其研究条件下简化了训练链路；这不意味着所有后训练都等同于 DPO，也不意味着无需检查数据分布与行为回归。<a href="#ref-25">[25]</a> 后训练负责这些目标、数据与优化闭环。</p>
-<p>推理期计算改变的是一次请求怎样产生和检查候选。CoT 的研究表明，给出中间步骤的示例可以改善若干算术、常识与符号推理任务。<a href="#ref-26">[26]</a> 但一段流畅解释仍可能建立在错误前提上。本书据此采用的工程判断是：增加计算前，先问结果能否由测试、数值条件、引用证据或业务规则验证；若不可验证，多生成一些候选也可能只是积累更有说服力的错误。推理期扩展讨论如何分配预算与停止。</p>
+<p>理解结构后，仍不能仅从参数规模预测任务表现。预训练通过数据和目标塑造表示与生成分布；同一结构换用不同语料、训练预算或目标，会得到不同能力边界。GPT-3 的上下文少样本设置在请求中给示例，无需梯度更新，所以“本次请求会做新格式”不等于模型权重已经永久学习该知识。<a href="#ref-13">[13]</a> 第 2 章讨论数据、Tokenizer、目标与规模的共同约束。</p>
+<p>后训练进一步改变默认行为。InstructGPT 用示范进行监督微调，再利用输出排序与人类反馈做强化学习；其结果也仍包含错误，不能把更受偏好的回答当作事实保证。<a href="#ref-24">[24]</a> DPO 从偏好优化目标的重参数化得到更直接的训练方式，在其研究条件下简化了训练链路；这不意味着所有后训练都等同于 DPO，也不意味着无需检查数据分布与行为回归。<a href="#ref-25">[25]</a> 第 3 章展开后训练的目标、数据与优化闭环。</p>
+<p>推理期计算改变的是一次请求怎样产生和检查候选。CoT 的研究表明，给出中间步骤的示例可以改善若干算术、常识与符号推理任务。<a href="#ref-26">[26]</a> 但一段流畅解释仍可能建立在错误前提上。本书据此采用的工程判断是：增加计算前，先问结果能否由测试、数值条件、引用证据或业务规则验证；若不可验证，多生成一些候选也可能只是积累更有说服力的错误。第 4 章讨论推理预算、候选搜索与停止条件。</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -370,25 +386,20 @@ Y=U+\operatorname{FFN}(\operatorname{Norm}(U)).
 </div>
 <p>表格不是一条必须全部自建的流水线，阶段划分的作用是避免把每种失败都送回训练：知识过期先查来源，格式截断先查输出契约，确定需要改变模型行为时再研究训练。</p>
 <h2 id="17-训练与推理的计算差异"><a class="header" href="#17-训练与推理的计算差异">1.7 训练与推理的计算差异</a></h2>
-<p>同一个结构在训练和生成时走两条不同的计算路径。把两者混为一谈，会导致对显存、延迟和缓存归属的错误判断。</p>
-<p><strong>训练：所有位置并行。</strong> 训练时目标序列已知，(T=S)，一次前向可以同时计算所有位置的条件分布，再与右移一位的标签比较。因果掩码阻止位置 (i) 读取 (j&gt;i) 的键，所以并行不等于泄漏答案。反向传播需要保存各层中间激活，显存开销远大于推理；批大小、序列长度与层数共同决定激活量级，梯度与优化器状态又按参数量叠加。</p>
-<p><strong>生成：逐步串行。</strong> 生成时未来 token 尚不存在。第一步处理提示前缀，即 prefill，得到最后一个有效输入位置的 logits，选出下一个 token；之后每步只处理一个新查询（(T=1)），但要读取全部历史键值（(S) 随步数增长）。因此“训练并行”与“生成串行”可以同时成立，二者并不矛盾。</p>
-<p><strong>KV 缓存换取了什么。</strong> 没有缓存时，每一步都要对全部前缀重新计算 K/V，代价随已生成长度增长。缓存把算过的 K/V 按层保存，新查询只需投影自己并与缓存计算注意力，单步计算量从“整段前缀的前向”降为“一次查询的投影加注意力”。代价是显存：按1.5节的式子，缓存载荷随批大小、层数、历史长度和 KV 头数线性增长。缓存保存的是前向计算所需状态，不是任务完成的证明；它也不能跨请求复用，除非两条请求的前缀与位置规则完全一致。</p>
+<p>同一个结构在训练和生成时对应不同的资源账本。1.1–1.5 节已经定义训练并行、prefill、decode 与 KV 缓存的计算路径；这里把它们放到同一张表中比较，避免把训练显存、单步延迟和缓存载荷混成一个数字。</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>阶段</th><th>查询长度 (T)</th><th>键值长度 (S)</th><th>主要资源压力</th></tr>
+<tr><th>阶段</th><th>查询长度 \(T\)</th><th>键值长度 \(S\)</th><th>主要资源压力</th></tr>
 </thead>
 <tbody>
-<tr><td>训练</td><td>(T=S)（全序列）</td><td>全序列</td><td>激活、梯度与优化器状态</td></tr>
+<tr><td>训练</td><td>\(T=S\)（全序列）</td><td>全序列</td><td>激活、梯度与优化器状态</td></tr>
 <tr><td>Prefill</td><td>提示长度</td><td>提示长度</td><td>一次性大矩阵计算</td></tr>
 <tr><td>Decode</td><td>1</td><td>历史长度</td><td>KV 缓存读写与显存</td></tr>
 </tbody>
 </table>
 </div>
-<p><strong>批处理与位置偏移。</strong> 把不同长度的请求放进同一个 batch 需要 padding，解码时要按实际实现找到每个样本的最后一个有效位置，而不是取数组最后一格。缓存后的查询位置要加前缀偏移：前缀长为 (P) 时，当前块第 (i) 个查询的绝对位置是 (P+i)，可见的键界限由它决定，不能直接用局部下标生成三角掩码。这两处错误都会让单条请求看起来正常，却在批量或缓存场景下产生错乱。</p>
-<p><strong>批量大小改变了什么。</strong> 增大 batch 可以提高设备利用率，但显存随 batch 线性增长，且不同长度的请求需要 padding，padding 位置不参与有效计算却仍占用显存与算力。连续批处理在服务层缓解这个问题：请求完成即释放槽位、新请求立即补入，而不是等整批结束。这属于服务调度，推理服务与资源调度展开；算法侧要记录的是，同一模型在不同 batch 与序列长度下的延迟和显存不能互相套用。</p>
-<p><strong>对阅读模型配置的意义。</strong> 训练与推理的资源账本不同：训练看参数、激活、梯度与优化器状态，推理看参数、KV 缓存与激活；同一模型在两种场景下的显存与吞吐不能互相套用。缓存分页、批调度与并行策略属于服务实现，推理服务与资源调度系统展开；本节只说明算法侧的状态与代价从哪里来。</p>
+<p>训练侧还要为反向传播保存中间激活，并维护梯度与优化器状态；第 5 章给出完整训练账本，第 9 章展开训练平台实现。推理侧的批处理会引入 padding 与长度差异，连续批处理、缓存分页和服务并行由第 10 章展开。第 8 章先给出两类基础设施的总体边界。本章只要求读者从配置中识别 \(T\)、\(S\)、层数、精度和 KV 头数，并在相同口径下比较资源。</p>
 <h2 id="18-用责任层定位一次失败"><a class="header" href="#18-用责任层定位一次失败">1.8 用责任层定位一次失败</a></h2>
 <p>以下分层是本书教学诊断法。先冻结实际输入和版本，再按“数据是否到达—计算是否符合约定—输出是否符合契约—结果是否有证据”的顺序定位。把所有错误标成幻觉，会把完全不同的修复路径混在一起。</p>
 <div class="table-wrapper">
@@ -410,11 +421,13 @@ Y=U+\operatorname{FFN}(\operatorname{Norm}(U)).
 <p>若条款没进入上下文，优先修召回、过滤或装配；若条款清楚在场而判断错误，可构造包含否定条件的模型回归用例。修复后分别复测这些条件，而不是仅凭新模型在一条演示上答对就关闭事故。稳定的回归单元应绑定输入、版本、证据和断言，后续评估与反馈闭环再定义 Eval Case。</p>
 <p>结构层也有自己的排查方法。若因果训练 loss 异常低，先看标签右移与未来可见性；若改 batch 排列就改变单样本结果，先看 mask 广播、归一化轴和状态隔离；若长前缀 decode 错乱，先看 \(T\) 与 \(S\)、位置偏移和缓存归属。推理质量问题与实现正确性问题可能叠加，只有逐个控制变量，才知道更换架构解决了什么。</p>
 <p>这些诊断不要求应用团队先重写一个 Transformer。使用托管模型时，无法看到内部张量，也仍可记录最终输入、请求版本、停止原因与评估切片；自建推理时，则可以增加前缀一致性与算子对照。可见性决定能直接验证到哪一层，不能取得的证据应标为未知，不能用对模型内部的猜想填满事故报告。</p>
-<h3 id="练习卡-q262手写缩放点积与多头注意力"><a class="header" href="#练习卡-q262手写缩放点积与多头注意力">练习卡 Q262：手写缩放点积与多头注意力</a></h3>
+<p><a id="q262"></a></p>
+<h3 id="练习-11手写缩放点积与多头注意力"><a class="header" href="#练习-11手写缩放点积与多头注意力">练习 1.1：手写缩放点积与多头注意力</a></h3>
 <p><strong>状态：练习设计完成；独立实现未提供，未实测。</strong> 采用教学输入 \(B=2,T=S=4,D=8,H_q=H_{kv}=2,d_h=d_v=4\)，关闭 dropout，以 float64 慢速参考为对照。依次实现投影、拆头、缩放点积、因果与 padding mask、softmax、聚合、拼接和输出投影；在独立实验仓库实现，不把代码放进书稿临时目录作为运行依赖。</p>
 <p><strong>验收断言：</strong> 每个中间张量满足本章形状；有效查询的允许权重和为一，禁止位置权重为零；改变未来位置的 V 不改变较早查询输出；不同样本的 padding 长度不互相干扰；全屏蔽有效行显式报错。教学误差阈值可设为最大绝对误差小于 \(10^{-8}\)，仅适用于该双精度参考条件，不能用它要求所有低精度设备。</p>
 <p><strong>失败回收：</strong> softmax 轴错、mask后置、未先转置就拼头、全屏蔽行产生伪分布，都应有能稳定触发的非对称输入。只让全零输入通过或最终形状正确，不算完成计算验证；运行结果、环境和断言输出需要单独保存，不能由本卡的存在推断已运行。</p>
-<h3 id="练习卡-q261gqa-与增量缓存的一致性"><a class="header" href="#练习卡-q261gqa-与增量缓存的一致性">练习卡 Q261：GQA 与增量缓存的一致性</a></h3>
+<p><a id="q261"></a></p>
+<h3 id="练习-12gqa-与增量缓存的一致性"><a class="header" href="#练习-12gqa-与增量缓存的一致性">练习 1.2：GQA 与增量缓存的一致性</a></h3>
 <p><strong>状态：练习设计完成；独立实现未提供，未实测。</strong> 设 \(B=2,T=S=4,D=8,H_q=4,H_{kv}=2,d_h=d_v=2\)。先按分组索引计算，再用显式展开KV的慢速版本作为正确性参考。两者在同一参数、输入、mask和位置规则下比较；显式展开仅用于对照，不声称它实现了缓存节省。</p>
 <p><strong>验收断言：</strong> 输出保留4个查询头，KV缓存只按2个KV头计；拒绝查询头数不能被KV头数整除的输入；全前缀计算与逐token缓存计算在有效位置接近；前缀绝对位置偏移正确；两条请求不能复用彼此缓存。固定教学条件下沿用 \(10^{-8}\) 参考阈值；同时打印缓存元素数，确认没有因先复制KV而把节省吃回去。</p>
 <p><strong>迁移问题：</strong> 再加入非零前缀长度、分块decode、不同有效长度及位置旋转，观察哪些错误只有在 \(T\ne S\) 时出现。MLA不属于本练习的等价替换：它要定义不同的缓存状态与对照路径。没有完成这些实现和运行记录前，两张卡均只标设计，不能上调为手写能力或硬件实测。</p>
@@ -426,7 +439,7 @@ Y=U+\operatorname{FFN}(\operatorname{Norm}(U)).
 <li><a id="ref-1"></a> Bengio et al.，<a href="https://www.jmlr.org/papers/v3/bengio03a.html">A Neural Probabilistic Language Model</a>，2003 / JMLR 3。核验日期：2026-10-16。</li>
 <li><a id="ref-2"></a> Bahdanau, Cho, Bengio，<a href="https://arxiv.org/abs/1409.0473v7">Neural Machine Translation by Jointly Learning to Align and Translate</a>，2015 ICLR / arXiv v7。核验日期：2026-10-16。</li>
 <li><a id="ref-3"></a> Vaswani et al.，<a href="https://arxiv.org/html/1706.03762v7">Attention Is All You Need</a>，2017 / arXiv v7。核验日期：2026-10-16。</li>
-<li><a id="ref-4"></a> 张阿斯顿、Zachary C. Lipton、李沐、Alexander J. Smola，<a href="https://zh.d2l.ai/chapter_attention-mechanisms/transformer.html">动手学深度学习：10.7 Transformer</a>，中文在线版 2.0.0 / 2026-10-16。核验日期：2026-10-16。</li>
+<li><a id="ref-4"></a> 张阿斯顿、Zachary C. Lipton、李沐、Alexander J. Smola，<a href="https://zh.d2l.ai/chapter_attention-mechanisms/transformer.html">动手学深度学习：10.7 Transformer</a>，中文在线版 2.0.0。核验日期：2026-10-16。</li>
 <li><a id="ref-5"></a> Ba, Kiros, Hinton，<a href="https://arxiv.org/abs/1607.06450v1">Layer Normalization</a>，2016 / arXiv v1。核验日期：2026-10-16。</li>
 <li><a id="ref-6"></a> Zhang, Sennrich，<a href="https://arxiv.org/abs/1910.07467v1">Root Mean Square Layer Normalization</a>，2019 NeurIPS / arXiv v1。核验日期：2026-10-16。</li>
 <li><a id="ref-7"></a> Xiong et al.，<a href="https://arxiv.org/abs/2002.04745v2">On Layer Normalization in the Transformer Architecture</a>，2020 ICML / arXiv v2。核验日期：2026-10-16。</li>
@@ -445,7 +458,7 @@ Y=U+\operatorname{FFN}(\operatorname{Norm}(U)).
 <li><a id="ref-20"></a> Fedus, Zoph, Shazeer，<a href="https://www.jmlr.org/papers/v23/21-0998.html">Switch Transformers: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity</a>，2022 JMLR 23(120)。核验日期：2026-10-16。</li>
 <li><a id="ref-21"></a> Dao et al.，<a href="https://arxiv.org/abs/2205.14135v2">FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness</a>，2022 / arXiv v2。核验日期：2026-10-16。</li>
 <li><a id="ref-22"></a> Yang et al. / Qwen team，<a href="https://arxiv.org/html/2407.10671v4">Qwen2 Technical Report</a>，2024 / arXiv v4。核验日期：2026-10-16。</li>
-<li><a id="ref-23"></a> Qwen，<a href="https://huggingface.co/Qwen/Qwen2-7B/blob/main/config.json">Qwen2-7B config.json</a>，file revision 9b039ab / checked 2026-10-16。核验日期：2026-10-16。</li>
+<li><a id="ref-23"></a> Qwen，<a href="https://huggingface.co/Qwen/Qwen2-7B/blob/main/config.json">Qwen2-7B config.json</a>，file revision 9b039ab。核验日期：2026-10-16。</li>
 <li><a id="ref-24"></a> Ouyang et al.，<a href="https://arxiv.org/abs/2203.02155v1">Training language models to follow instructions with human feedback</a>，2022 / arXiv v1。核验日期：2026-10-16。</li>
 <li><a id="ref-25"></a> Rafailov et al.，<a href="https://arxiv.org/abs/2305.18290v3">Direct Preference Optimization: Your Language Model is Secretly a Reward Model</a>，2023 / arXiv v3 2024。核验日期：2026-10-16。</li>
 <li><a id="ref-26"></a> Wei et al.，<a href="https://arxiv.org/abs/2201.11903v6">Chain-of-Thought Prompting Elicits Reasoning in Large Language Models</a>，2022 / arXiv v6 2023。核验日期：2026-10-16。</li>

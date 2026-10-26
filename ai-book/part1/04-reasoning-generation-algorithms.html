@@ -43,10 +43,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-4e1be50c.js";
+            window.path_to_searchindex_js = "../searchindex-3d7c861f.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-c6967e45.js"></script>
+        <script src="../toc-18357883.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -188,7 +188,7 @@
                         <h1 id="第4章-推理期扩展"><a class="header" href="#第4章-推理期扩展">第4章 推理期扩展</a></h1>
 <p>后训练可以把模型塑造成更守指令的协作组件，却不能保证它在复杂问题中一次生成就走对路径。大模型的“推理”不是一个单独的神经网络模块，而是模型、提示、搜索、验证器和推理预算共同形成的过程。自回归模型每次只预测下一个 token，但复杂任务需要先拆解问题、保留中间状态、比较候选路径、检查结果，再决定是否继续。于是，推理算法要回答两个问题：如何从概率分布中生成更好的轨迹，如何用额外计算换取更高的任务成功率。</p>
 <p>本章的判断是：推理期扩展以时间、token 和验证成本交换复杂任务成功率；它提升的是候选答案质量，而不是替代事实来源、权限控制或 Serving 可靠性。后训练改变默认行为，推理期扩展决定当前任务如何使用计算，两者必须在任务可验证性和预算约束下协同选择。</p>
-<p>本章把“推理能力”和“推理服务”分开。采样、解码、CoT、Self-Consistency、Tree of Thoughts、验证器、RLVR、test-time scaling 和 speculative decoding 属于算法层；GPU 显存、KV cache 分页、continuous batching 和分布式 serving 属于后续 Infra 章节。本章会说明两者的接口，但不把系统吞吐优化冒充模型推理能力。</p>
+<p>本章把“推理能力”和“推理服务”分开。采样、解码、CoT、Self-Consistency、Tree of Thoughts、推理期验证、test-time scaling 和 speculative decoding 属于算法层；RLVR 和验证器训练见<a href="03-post-training-alignment.html#rlvr">第 3 章 3.6 节</a>，GPU 显存、KV cache 分页、continuous batching 和分布式 serving 见<a href="../part2/03-inference.html">第 10 章“推理服务与资源调度”</a>。本章说明这些能力的接口，但不把训练方法或系统吞吐优化冒充推理期算法。</p>
 <h2 id="41-历史发展从一次生成到搜索式推理"><a class="header" href="#41-历史发展从一次生成到搜索式推理">4.1 历史发展：从一次生成到搜索式推理</a></h2>
 <h3 id="自回归生成的基本范式"><a class="header" href="#自回归生成的基本范式">自回归生成的基本范式</a></h3>
 <p>\(x\) 作为输入时，语言模型定义一个条件分布：</p>
@@ -210,12 +210,12 @@ p_i=\frac{\exp(z_i/\tau)}{\sum_j\exp(z_j/\tau)}.
 \]</p>
 <p>当 \(0&lt;\tau&lt;1\) 时，概率分布更尖锐，输出稳定但可能重复；当 \(\tau&gt;1\) 时，低概率 token 获得更多机会，输出更有多样性但错误率可能上升。温度不是“创造力旋钮”这么简单，它改变的是整个生成分布，可能影响事实、格式、代码和安全边界。</p>
 <p>采样实现还要处理数值稳定性，通常先减去最大 logit 再做 softmax；低温下要避免概率下溢，高温下要避免尾部噪声占据过多质量。中文、代码和结构化输出的 token 分布不同，不能用一套参数覆盖所有任务。</p>
-<p>温度对分布的影响可以量化。设两个候选的 logit 差为 (\Delta z)，温度 (\tau) 下它们的概率比为 (\exp(\Delta z/\tau))。温度实际上是在<strong>放大或压缩 logit 差</strong>：(\tau&lt;1) 让差距放大，最高概率项迅速主导；(\tau&gt;1) 让差距压缩，尾部候选进入采样范围。这解释了为什么温度改变的不只是“多样性”，还包括决策边界——原本概率接近的候选在低温下被拉开，原本差距很大的候选在高温下变得同样可能。</p>
-<p>从信息论看，温度同时改变分布的熵：(\tau\to0) 时熵趋于零（退化为贪心），(\tau\to\infty) 时趋于均匀分布。工程上可以用熵或 top-1 概率监控一次生成是否过于确定或过于发散，这比单看温度参数更接近实际效果。以上是本书据本节公式所作的推导。</p>
+<p>温度对分布的影响可以量化。设两个候选的 logit 差为 \(\Delta z\)，温度 \(\tau\) 下它们的概率比为 \(\exp(\Delta z/\tau)\)。温度实际上是在<strong>放大或压缩 logit 差</strong>：\(\tau&lt;1\) 让差距放大，最高概率项迅速主导；\(\tau&gt;1\) 让差距压缩，尾部候选进入采样范围。这解释了为什么温度改变的不只是“多样性”，还包括决策边界——原本概率接近的候选在低温下被拉开，原本差距很大的候选在高温下变得同样可能。</p>
+<p>从信息论看，温度同时改变分布的熵：\(\tau\to0\) 时熵趋于零（退化为贪心），\(\tau\to\infty\) 时趋于均匀分布。工程上可以用熵或 top-1 概率监控一次生成是否过于确定或过于发散，这比单看温度参数更接近实际效果。以上是本书据本节公式所作的推导。</p>
 <h3 id="greedytop-k-与-top-p"><a class="header" href="#greedytop-k-与-top-p">Greedy、Top-k 与 Top-p</a></h3>
 <p>Greedy 每步选择最高概率token；固定数值实现与并列裁决时选择规则确定，适合部分代码补全和固定格式，但容易陷入重复或早期错误。Top-k 只保留概率最高的 k 个 token，在截尾后重新归一化的有限候选中采样，Fan等在故事生成中采用过这种方案<a href="#ref-12">[12]</a>；k 太小接近贪心，k 太大又会引入低质量尾部。Top-p，也称 nucleus sampling，保留累计概率达到 p 的最小 token 集合，候选数量随分布形状动态变化 <a href="#ref-13">[13]</a>。</p>
 <p>Top-p 适合语言模型概率分布变化较大的自然语言生成，但不是质量保证。一个错误前提可能拥有很高概率，top-p 只会在错误附近增加多样性。代码、SQL、JSON 和函数调用最好结合语法约束、schema 或验证器；单纯调低 temperature 不能把不可靠输出变成可靠输出。</p>
-<p>top-k 与 top-p 的差别在于候选集合由什么决定。top-k 的集合大小固定：遇到平坦分布时会保留大量低概率 token，遇到尖锐分布时又可能把仍合理的第二、第三候选切掉。top-p 的集合大小随分布自适应：分布越尖锐，需要的 token 越少；分布越平坦，纳入的 token 越多。可以用一个教学例子说明：若分布为 ((0.5,0.3,0.15,0.05))，(p=0.9) 会保留前三项；若分布为 ((0.9,0.05,0.03,0.02))，(p=0.9) 只保留第一项。前者接近贪心，后者保留了一点探索空间。这也是同一组 top-p 参数在不同任务上效果不同的原因：它依赖分布形状，而分布形状随任务、语言和上下文变化。</p>
+<p>top-k 与 top-p 的差别在于候选集合由什么决定。top-k 的集合大小固定：遇到平坦分布时会保留大量低概率 token，遇到尖锐分布时又可能把仍合理的第二、第三候选切掉。top-p 的集合大小随分布自适应：分布越尖锐，需要的 token 越少；分布越平坦，纳入的 token 越多。可以用一个教学例子说明：若分布为 \((0.5,0.3,0.15,0.05)\)，\(p=0.9\) 会保留前三项；若分布为 \((0.9,0.05,0.03,0.02)\)，\(p=0.9\) 只保留第一项。后者接近贪心，前者保留了一定探索空间。这也是同一组 top-p 参数在不同任务上效果不同的原因：它依赖分布形状，而分布形状随任务、语言和上下文变化。</p>
 <h3 id="随机种子低温与版本化请求记录"><a class="header" href="#随机种子低温与版本化请求记录">随机种子、低温与版本化请求记录</a></h3>
 <p>公式要求 \(\tau&gt;0\)；服务把temperature设零时，通常需按接口定义切换greedy等路径，不能直接除以零。即使采用greedy，也可能因并列logits、低精度舍入、算子实现、批次形状或模型版本变化而改变输出。PyTorch复现说明明确指出，不保证跨发布版、提交和平台完全复现，CPU/GPU在相同seed下也可能不同。<a href="#ref-14">[14]</a> 这不能反过来证明某托管API有或没有seed支持；实际参数必须按其版本文档核验。</p>
 <p>因此低温用于改变分布集中程度，seed用于控制一部分随机源，二者都不是事实正确率或跨环境逐字复现的保证。比较方案应固定输入及制品，并重复采样报告分布；需要严格回放时，保存已生成输出和环境证据，比事后只给一个seed更有解释力。</p>
@@ -258,7 +258,7 @@ p_i=\frac{\exp(z_i/\tau)}{\sum_j\exp(z_j/\tau)}.
 <h3 id="beam-search-与长度偏差"><a class="header" href="#beam-search-与长度偏差">Beam Search 与长度偏差</a></h3>
 <p>Beam search 每一步保留概率最高的 \(K_{beam}\) 条前缀，扩展后再裁剪。它比 greedy 能探索更多路径，但自回归概率倾向偏爱短序列：每增加一个 token 就乘以一个小于 1 的概率。实际系统常使用长度归一化或长度惩罚，但惩罚过强会生成冗长答案。</p>
 <p>Beam search 在机器翻译等条件生成任务中有历史价值，但在开放式聊天中不一定优于采样。模型的概率高低未必等于人类偏好，beam 可能产生安全、流畅但空泛的候选。解码算法必须与训练目标匹配，不能假设最大 likelihood 就是最佳任务答案。</p>
-<p>长度偏差可以量化。序列 (y) 的对数概率是各步对数概率之和，(\log p(y)=\sum_t\log p(y_t\mid y_{&lt;t}))。每一步都乘一个小于 1 的概率，所以长序列的对数概率通常更低，beam 会系统性地偏爱短序列。常见修正是长度归一化 (\frac{1}{|y|^{\alpha}}\log p(y))，(\alpha) 控制惩罚强度：(\alpha=0) 回到原始对数概率，(\alpha=1) 按长度平均。(\alpha) 过大时，beam 会倾向生成冗长、重复但每一步概率都不低的文本。因此长度惩罚必须与任务可接受的长度范围一起调，评估中要分别报告长度分布，而不是只看最终分数。</p>
+<p>长度偏差可以量化。序列 \(y\) 的对数概率是各步对数概率之和，\(\log p(y)=\sum_t\log p(y_t\mid y_{&lt;t})\)。每一步都乘一个小于 1 的概率，所以长序列的对数概率通常更低，beam 会系统性地偏爱短序列。常见修正是长度归一化 \(\frac{1}{|y|^{\alpha}}\log p(y)\)，\(\alpha\) 控制惩罚强度：\(\alpha=0\) 回到原始对数概率，\(\alpha=1\) 按长度平均。\(\alpha\) 过大时，beam 会倾向生成冗长、重复但每一步概率都不低的文本。因此长度惩罚必须与任务可接受的长度范围一起调，评估中要分别报告长度分布，而不是只看最终分数。</p>
 <h3 id="constrained-decoding"><a class="header" href="#constrained-decoding">Constrained Decoding</a></h3>
 <p>结构化生成可以通过有限状态机、上下文无关文法、JSON schema 或词表屏蔽限制候选 token。每一步只允许仍然可能形成合法输出的 token，能显著提高 JSON 和函数参数的解析成功率。它解决的是语法正确性，不解决字段值正确性；一个结构合法的 SQL 仍然可能查错表，一个字段类型正确的 API 调用仍然可能越权。</p>
 <p>约束解码要处理 tokenizer 边界、Unicode、转义、空白、停止条件和流式输出。schema 版本变化后，旧约束不能继续复用。生产系统应在模型输出之后再次解析和校验，不能把解码器视为唯一防线。</p>
@@ -267,7 +267,7 @@ p_i=\frac{\exp(z_i/\tau)}{\sum_j\exp(z_j/\tau)}.
 <p>投机解码用一个较小的 draft model 先生成连续候选，再由 target model 一次验证多个 token。若 target 接受候选，就减少逐 token 的大模型调用；若在某个位置拒绝，就从 target 的校正分布继续生成。Leviathan 等人的方法给出了在保持目标分布的条件下加速自回归解码的框架 <a href="#ref-16">[16]</a>；speculative sampling 进一步讨论了随机采样下的接受与修正 <a href="#ref-17">[17]</a>。</p>
 <p>关键条件是 draft 与 target 足够相似，且验证多个 token 的并行计算成本低于逐 token 生成。接受率低时，draft 只增加开销；draft 太大时，节省的成本又会消失。速度收益还受 batch、上下文长度、GPU kernel 和传输影响，因此要用真实请求分布测量，而不是只看理论接受率。</p>
 <p>Speculative decoding 改善的是生成速度，不自动改善答案质量。严格的接受—修正算法可以保持 target 分布，但如果 target 本身错误，最终仍然错误。工程上需要同时监控接受率、tokens/s、TTFT、TPOT、显存和输出一致性。</p>
-<p>正确性条件可以用接受概率写清。设 draft 分布在位置 (t) 给出概率 (q(x))，target 给出 (p(x))。采样一个 draft token (x\sim q)，以概率 (\min(1,p(x)/q(x))) 接受；被拒绝时，从残差分布 (\operatorname{norm}(\max(0,p-q))) 重新采样。这样最终采样分布恰好等于 target 分布 (p)——加速不改变目标分布，这是它区别于“用小模型近似大模型”的关键。期望接受率越高，节省越多；(p) 与 (q) 接近时接受率高，差异大时接受率低、draft 的计算成为纯开销。所以选择 draft 模型要看它在目标任务分布上的接受率，而不是它在通用基准上的质量。</p>
+<p>正确性条件可以用接受概率写清。设 draft 分布在位置 \(t\) 给出概率 \(q(x)\)，target 给出 \(p(x)\)。采样一个 draft token \(x\sim q\)，以概率 \(\min(1,p(x)/q(x))\) 接受；被拒绝时，从残差分布 \(\operatorname{norm}(\max(0,p-q))\) 重新采样。这样最终采样分布恰好等于 target 分布 \(p\)——加速不改变目标分布，这是它区别于“用小模型近似大模型”的关键。期望接受率越高，节省越多；\(p\) 与 \(q\) 接近时接受率高，差异大时接受率低、draft 的计算成为纯开销。所以选择 draft 模型要看它在目标任务分布上的接受率，而不是它在通用基准上的质量。</p>
 <h3 id="blockwise-与并行预测"><a class="header" href="#blockwise-与并行预测">Blockwise 与并行预测</a></h3>
 <p>Blockwise parallel decoding 让模型尝试一次预测一个 token block，再用后续计算验证，目标是减少串行深度 <a href="#ref-18">[18]</a>。这类方法与 speculative decoding 有相似目标，但候选产生方式、模型结构和验证过程不同。它们的共同限制是：自回归依赖仍然存在，真正可并行的部分取决于候选正确率和验证成本。</p>
 <h2 id="44-chain-of-thought-与分解式推理"><a class="header" href="#44-chain-of-thought-与分解式推理">4.4 Chain-of-Thought 与分解式推理</a></h2>
@@ -305,35 +305,36 @@ p_i=\frac{\exp(z_i/\tau)}{\sum_j\exp(z_j/\tau)}.
 <h3 id="多轨迹采样"><a class="header" href="#多轨迹采样">多轨迹采样</a></h3>
 <p>Self-Consistency 对同一问题采样多条 CoT，再聚合最终答案 <a href="#ref-4">[4]</a>。如果不同轨迹独立地走向同一个结果，结果可信度通常提高；如果轨迹高度相关，多数投票只是重复同一个错误。采样温度、轨迹数量、答案规范化和投票规则都会影响效果。</p>
 <p>聚合不能总是使用字符串多数票。数学答案需要解析等价表达式，代码需要执行测试，开放问答需要 judge 或证据检索。可以把每条轨迹映射为 <code>(answer, evidence, cost)</code>，先过滤验证失败的轨迹，再按答案聚合。这样“多数”建立在可接受候选集合上，而不是所有文本一视同仁。</p>
-<p>多数投票的收益可以粗略估算。设单条轨迹正确的概率为 (p)，(n) 条轨迹中多数正确要求超过一半正确。当 (p&gt;0.5) 且轨迹相互独立时，多数投票的正确率随 (n) 上升；但独立性是关键前提——如果所有轨迹共享同一个错误前缀，它们的错误高度相关，投票只是在重复同一个错误。实践中轨迹来自同一模型、同一段上下文，相关性通常很高，因此收益会低于独立假设下的估计。可以用答案分布的熵判断投票是否有意义：(n) 条轨迹给出几乎相同的答案时，继续采样收益有限；答案分散且各分支都有证据时，应先补证据或澄清，而不是无上限增加样本。</p>
+<p>多数投票的收益可以粗略估算。设单条轨迹正确的概率为 \(p\)，\(n\) 条轨迹中多数正确要求超过一半正确。当 \(p&gt;0.5\) 且轨迹相互独立时，多数投票的正确率随 \(n\) 上升；但独立性是关键前提——如果所有轨迹共享同一个错误前缀，它们的错误高度相关，投票只是在重复同一个错误。实践中轨迹来自同一模型、同一段上下文，相关性通常很高，因此收益会低于独立假设下的估计。可以用答案分布的熵判断投票是否有意义：\(n\) 条轨迹给出几乎相同的答案时，继续采样收益有限；答案分散且各分支都有证据时，应先补证据或澄清，而不是无上限增加样本。</p>
 <h3 id="tree-of-thoughts"><a class="header" href="#tree-of-thoughts">Tree of Thoughts</a></h3>
 <p>Tree of Thoughts 把推理看成搜索：在每个状态生成若干思路，使用评估器筛选 promising 分支，继续扩展或回溯 <a href="#ref-5">[5]</a>。它适合需要规划、组合搜索或中间状态可评价的任务，例如数值游戏、路线安排和多步证明。搜索策略可以是 breadth-first、depth-first、best-first 或 beam-like pruning。</p>
 <p>树搜索的难点是状态表示和启发式评估。状态太粗，无法区分不同前提；状态太长，评估成本高；启发式不准，搜索会把预算花在错误分支；分支太多，组合爆炸。实际系统通常需要限制深度、宽度、每步 token、总 verifier 次数和超时，并保存可回放轨迹。</p>
 <h3 id="graph-of-thoughts-与共享中间结果"><a class="header" href="#graph-of-thoughts-与共享中间结果">Graph of Thoughts 与共享中间结果</a></h3>
 <p>某些推理任务不是树，而是多个思路可以合并、比较和循环。Graph of Thoughts 允许把生成的思路作为图节点，执行聚合、变换和反馈 <a href="#ref-6">[6]</a>。例如多个候选计划可以先各自提出，再让模型抽取共同约束，形成一个更稳的综合计划。</p>
 <p>图结构的收益是复用中间结论，代价是状态一致性和循环检测。若一个错误结论被多个分支共享，错误影响面会扩大；若节点没有版本和来源，无法知道综合答案依赖哪条路径。工程上应给每个节点记录输入、生成模型、验证结果和依赖关系，把推理图当作可审计的 DAG 或状态机。</p>
-<h2 id="46-验证器奖励与推理可靠性"><a class="header" href="#46-验证器奖励与推理可靠性">4.6 验证器、奖励与推理可靠性</a></h2>
+<p><a id="verifier"></a></p>
+<h2 id="46-验证器筛选与推理可靠性"><a class="header" href="#46-验证器筛选与推理可靠性">4.6 验证器、筛选与推理可靠性</a></h2>
 <h3 id="结果验证器"><a class="header" href="#结果验证器">结果验证器</a></h3>
-<p>结果验证器只判断最终结果是否满足条件。代码题可以运行隐藏测试，数学题可以检查数值或符号答案，SQL 可以在只读数据库比较结果，规划任务可以检查环境状态。Cobbe 等人的研究展示了训练 verifier 来区分数学答案的路线 <a href="#ref-8">[8]</a>。</p>
+<p>结果验证器只判断最终结果是否满足条件。代码题可以运行隐藏测试，数学题可以检查数值或符号答案，SQL 可以在只读数据库比较结果，规划任务可以检查环境状态。Cobbe 等人的研究训练 verifier 来区分数学答案 <a href="#ref-8">[8]</a>；本节把训练完成并冻结版本的 verifier 当作推理期组件，用于候选过滤、排序和停止判断。验证器的训练、奖励构造与防投机要求见<a href="03-post-training-alignment.html#rlvr">第 3 章 3.6 节</a>。</p>
 <p>结果验证的优点是信号清晰、成本可控；缺点是不能解释中间过程，也可能存在测试盲区。一个能通过不完整单元测试的代码不一定正确，一个答案数值正确的推导不一定逻辑有效。验证器的覆盖率、误报率和版本必须纳入模型评估。</p>
 <h3 id="过程验证器"><a class="header" href="#过程验证器">过程验证器</a></h3>
-<p>过程奖励模型在每个推理步骤上给分，帮助模型学习哪些中间状态更可靠。Let’s Verify Step by Step 说明逐步验证可以改善数学推理监督 <a href="#ref-9">[9]</a>。过程监督能缓解最终结果的信用分配问题，但标注和建模成本更高，还可能奖励形式正确但语义无效的“看起来像推理”。</p>
-<p>结果奖励与过程奖励可以结合：过程分用于引导搜索，最终验证用于发布门禁；如果两者冲突，以可验证结果和任务约束为准。任何 reward 都是代理，必须通过独立测试防止模型学习评估器漏洞。</p>
-<p>验证器本身也会失败，常见形态有四种。<strong>覆盖不足</strong>：测试集没有覆盖边界条件，错误的候选通过了验证。<strong>解析漏洞</strong>：验证器只比较最终数值，不检查约束，模型可以产出满足格式但违反语义的结果。<strong>可被反向利用</strong>：当奖励来自固定验证器时，模型会学习绕过它而不是解决问题，这也是过程奖励容易奖励“看起来像推理”的原因。<strong>版本漂移</strong>：验证器、测试集或业务规则更新后，旧结论不再成立。因此验证器必须与模型一样纳入版本管理和回归，记录误报率、漏报率和覆盖范围，并定期用人工样本抽查。把验证器当作“自动化的真理”是评估中最常见的错误。</p>
+<p>过程验证器对中间步骤给分。Let’s Verify Step by Step 比较了结果监督与过程监督，并用逐步反馈训练过程奖励模型 <a href="#ref-9">[9]</a>。进入推理阶段后，这类已训练的过程验证器可以为搜索状态打分、决定优先扩展或剪枝；它的分数只表示验证器偏好，不能当作步骤正确性的证明。</p>
+<p>推理时可以组合两种信号：过程分用于引导搜索，结果检查用于筛选最终候选；如果两者冲突，以任务定义的可验证结果和约束为准。发布或执行有副作用的动作仍需独立门禁，不能由 verifier 分数直接授权。</p>
+<p>验证器本身也会失败，常见形态有四种。<strong>覆盖不足</strong>：测试集没有覆盖边界条件，错误的候选通过了验证。<strong>解析漏洞</strong>：验证器只比较最终数值，不检查约束，候选可以满足格式却违反语义。<strong>搜索利用漏洞</strong>：当搜索反复以同一验证器分数挑选候选时，最终可能选中钻过测试盲区的答案。<strong>版本漂移</strong>：验证器、测试集或业务规则更新后，旧结论不再成立。因此推理记录必须绑定 verifier 版本，保存误报率、漏报率和覆盖范围，并定期用人工样本抽查。</p>
 <h3 id="幻觉检测与一致性"><a class="header" href="#幻觉检测与一致性">幻觉检测与一致性</a></h3>
 <p>SelfCheckGPT 利用多个采样结果之间的一致性，检测事实陈述可能存在的幻觉 <a href="#ref-22">[22]</a>。如果相同问题的独立样本对一个事实说法差异很大，说明模型内部不确定；但一致性不代表真实，一个模型可以稳定重复错误。幻觉研究还区分事实错误、无依据生成、上下文冲突和指令偏离 <a href="#ref-23">[23]</a>。</p>
 <p>更可靠的做法是让模型引用检索证据、调用事实工具或通过程序检查，并把“不确定”作为合法输出。采样一致性可以作为风险信号，不能单独作为事实验证器。高风险领域要把证据来源、时间、权限和版本纳入判定。</p>
 <h3 id="搜索复杂度与剪枝策略"><a class="header" href="#搜索复杂度与剪枝策略">搜索复杂度与剪枝策略</a></h3>
 <p>如果每个状态扩展 \(b\) 个候选，搜索深度为 \(d\)，最坏情况下节点数为 \(O(b^d)\)。这也是为什么“让模型多想一些”很快会变成成本问题。剪枝的目标是在不丢失高质量路径的前提下减少节点，包括保留 top-k 状态、设置上限、去除重复状态、优先扩展高价值节点，以及在验证失败时尽早停止。</p>
 <p>剪枝器可以使用模型分数、规则分数、检索证据、程序测试和历史成功率。单一模型分数容易把流畅错误排在前面；单一规则又可能误杀创造性路径。组合评分要注意尺度校准，避免某个分数因为数值范围更大而完全支配决策。对高风险任务，宁可保留少量候选等待人工，也不能用不可解释的启发式直接丢弃所有替代路径。</p>
-<p>剪枝的收益可以量化。设未剪枝时每层扩展 (b) 个候选、深度 (d)，节点数按 (O(b^d)) 增长；把每层保留数降到 (b’&lt;b)，节点数降为 (O(b’^d))。因此在深度较大时，减少每层宽度比减少深度更有效。但剪枝会引入漏掉正确路径的风险：如果正确路径在中途得分不高，过早裁剪就再也找不回来。工程上可以按“先宽后窄”分配——早期保留较多候选保证覆盖，后期用验证器收敛；并记录每次剪枝丢弃了哪些分支，以便失败时判断是搜索不足还是候选本身错误。</p>
+<p>剪枝的收益可以量化。设未剪枝时每层扩展 \(b\) 个候选、深度 \(d\)，节点数按 \(O(b^d)\) 增长；把每层保留数从 \(b\) 降到 \(b_{\mathrm{keep}}&lt;b\)，节点量的比例约为 \((b_{\mathrm{keep}}/b)^d\)；把深度减少 1，则比例约为 \(1/b\)。哪种调整节省更多，取决于 \(b\)、\(d\) 和允许减少的幅度，不能只凭指数形式断言宽度总比深度有效。剪枝仍会引入漏掉正确路径的风险：如果正确路径在中途得分不高，过早裁剪就再也找不回来。工程上可以按“先宽后窄”分配——早期保留较多候选保证覆盖，后期用验证器收敛；并记录每次剪枝丢弃了哪些分支，以便失败时判断是搜索不足还是候选本身错误。</p>
 <p>状态去重也是重要优化。不同文字可能表达同一个数学答案、代码状态或计划状态；如果只按字符串去重，搜索会重复探索。可以对结构化状态做规范化，对代码运行结果做状态摘要，对答案做数学等价化。但语义去重本身可能误合并不同前提，必须保留原始轨迹和依赖信息，以便验证失败时回溯。</p>
 <h3 id="生成质量与搜索多样性"><a class="header" href="#生成质量与搜索多样性">生成质量与搜索多样性</a></h3>
 <p>搜索不是候选越相似越好。若所有分支都来自同一个高概率前缀，投票和搜索只是在放大同一偏差；若候选完全随机，验证成本会很高。可以在早期使用较高温度或 diverse sampling 获取不同计划，再在后期降低温度并使用 verifier 收敛。多样性应在“不同有效策略”之间，而不是错误格式和无意义改写之间。</p>
 <p>对代码任务，可以让候选使用不同算法或边界处理，再通过测试筛选；对数学任务，可以要求不同证明路径或不同变量消元顺序；对规划任务，可以改变资源约束和执行顺序。多样性设计必须与任务结构结合，不能简单把 temperature 调高后宣称探索更充分。</p>
 <h3 id="训练时推理与推理时搜索的关系"><a class="header" href="#训练时推理与推理时搜索的关系">训练时推理与推理时搜索的关系</a></h3>
 <p>CoT 数据、过程奖励和搜索轨迹会改变模型的先验，但不意味着上线时必须暴露同样长的思考。训练可以让模型学会提出更有价值的候选，推理时再根据难度选择短答、单轨迹、少量采样或完整搜索。相反，如果训练没有学会可验证的中间结构，仅靠 runtime 反复采样可能得到更多相似错误。</p>
-<p>因此评估应比较四种配置：基础模型单次生成、后训练模型单次生成、后训练模型加采样、后训练模型加验证或搜索。这样才能知道收益来自训练、额外计算还是验收机制。DeepSeek-R1 等工作说明强化学习可以把一部分搜索能力压进模型，但生产系统仍需要按预算和风险动态决定是否启动外部搜索 <a href="#ref-10">[10]</a>。</p>
+<p>因此评估应比较四种配置：基础模型单次生成、后训练模型单次生成、后训练模型加采样、后训练模型加验证或搜索。这样才能知道收益来自训练、额外计算还是验收机制。DeepSeek-R1 展示了强化学习形成推理行为的路线，但生产系统仍需要按预算和风险动态决定是否启动外部搜索 <a href="#ref-10">[10]</a>。训练侧的可验证奖励和 GRPO 见<a href="03-post-training-alignment.html#rlvr">第 3 章 3.6 节</a>。</p>
 <h2 id="47-test-time-scaling推理预算如何分配"><a class="header" href="#47-test-time-scaling推理预算如何分配">4.7 Test-time Scaling：推理预算如何分配</a></h2>
 <h3 id="预算的组成"><a class="header" href="#预算的组成">预算的组成</a></h3>
 <p>推理预算不只是生成 token 数，还包括候选数量、搜索深度、验证次数、工具调用次数、上下文长度和 wall-clock 时间。可以把一次任务的预算写为：</p>
@@ -343,14 +344,14 @@ C_{budget}=C_{tokens}+\lambda_1C_{samples}+\lambda_2C_{verify}+\lambda_3C_{tools
 <p>不同任务的最优分配不同。简单问答增加候选没有收益；数学题可能需要多条轨迹和 verifier；代码题可能更适合少量候选加真实测试；长任务需要把预算留给中间观察与重试。Snell 等人提出的 compute-optimal test-time scaling 视角，正是要寻找模型规模、样本数和验证计算之间的平衡 <a href="#ref-11">[11]</a>。</p>
 <h3 id="何时增加模型何时增加推理"><a class="header" href="#何时增加模型何时增加推理">何时增加模型，何时增加推理</a></h3>
 <p>如果错误来自知识缺失，增加推理预算通常没有帮助；如果错误来自搜索路径、算术步骤或偶然采样，增加预算可能有效；如果验证器不可靠，增加候选只会增加验证成本；如果任务本身没有可判定目标，长 CoT 可能只是生成更多解释。</p>
-<p>边际收益递减是预算分配的核心事实。设成功率为 (S(C))，(C) 是总预算。多数任务上 (S) 随 (C) 上升但增速下降，直到某个拐点后几乎不再增长。因此决策不是“用不用更多预算”，而是“在当前预算下，下一个单位的计算投到哪里回报最高”：是加候选、加验证、加检索，还是换更大的模型。用成功率—成本曲线找拐点，比设定一个固定的“最大推理预算”更接近工程需要。</p>
+<p>边际收益递减是预算分配的核心事实。设成功率为 \(S(C)\)，\(C\) 是总预算。多数任务上 \(S\) 随 \(C\) 上升但增速下降，直到某个拐点后几乎不再增长。因此决策不是“用不用更多预算”，而是“在当前预算下，下一个单位的计算投到哪里回报最高”：是加候选、加验证、加检索，还是换更大的模型。用成功率—成本曲线找拐点，比设定一个固定的“最大推理预算”更接近工程需要。</p>
 <p>可用一个小实验估计收益曲线：固定模型和提示，逐渐增加 reasoning token、候选数和 verifier 次数，记录成功率、单位成功成本、p95 延迟和失败类型。当收益曲线很快饱和时，继续扩大预算不划算；当成功率持续增长但延迟超限时，可以做路由，让简单请求走短路径、困难请求走长路径。</p>
 <p>预算实验还要做按难度分层。平均值可能掩盖一个重要事实：简单问题不需要额外计算，困难问题却只有在某个预算阈值之后才突然成功。可以按问题长度、步骤数、工具数量、历史失败率和验证难度建立桶，分别拟合成功率曲线。这样路由器才能为不同请求选择预算，而不是把所有请求都提升到最高档。</p>
 <p>预算也不是越多越公平。长时间搜索会占用共享计算资源，导致其他请求排队；无限重试可能放大一个错误状态；过多候选会增加用户等待和隐私暴露。因此多租户系统需要设置每租户 token、验证、工具和时间配额，并在资源紧张时优先保证低风险、短任务和已经接近完成的请求。</p>
 <p>这说明 test-time scaling 既是算法问题，也是资源调度问题。算法必须显式暴露预算和停止接口，系统才能根据优先级、风险和容量做出可解释的分配。</p>
-<h3 id="reasoning-rl-与蒸馏"><a class="header" href="#reasoning-rl-与蒸馏">Reasoning RL 与蒸馏</a></h3>
-<p>Reasoning RL 使用可验证任务奖励，让策略探索更有效的推理轨迹。DeepSeekMath 将 GRPO 与数学验证结合 <a href="#ref-24">[24]</a>，DeepSeek-R1 展示了从冷启动示范到强化学习和蒸馏的组合路线 <a href="#ref-10">[10]</a>。PPO 等策略优化方法提供了更通用的 RL 基础 <a href="#ref-25">[25]</a>。</p>
-<p>强化学习并不自动产生可靠推理。奖励漏洞会让模型学会投机，奖励稀疏会让训练不稳定，长轨迹会提高 credit assignment 难度。蒸馏可以把大模型的推理轨迹压缩到小模型，但如果轨迹包含错误或过度冗长，小模型也会继承这些问题。必须保留独立 verifier、基础能力回归和成本评估。</p>
+<h3 id="训练所得能力与推理预算的接口"><a class="header" href="#训练所得能力与推理预算的接口">训练所得能力与推理预算的接口</a></h3>
+<p>Reasoning RL、GRPO、PPO 和蒸馏属于训练方法：DeepSeekMath 将 GRPO 与数学验证结合 <a href="#ref-24">[24]</a>，DeepSeek-R1 展示了冷启动、强化学习与蒸馏的组合路线 <a href="#ref-10">[10]</a>，PPO 提供更通用的策略优化基础 <a href="#ref-25">[25]</a>。这些目标和训练风险由第 3 章负责，本章只讨论训练后模型在一次请求中怎样使用采样、搜索和验证预算。</p>
+<p>训练后的模型可能用较少候选产生更有效的轨迹，也可能继续生成稳定但错误的路径。因此部署评估要把模型版本与推理策略拆开比较：固定推理预算比较不同训练版本，再固定模型比较单次生成、多候选、验证和搜索。只有这样才能判断收益来自权重变化还是额外推理计算。</p>
 <h3 id="分解层次规划与组合泛化"><a class="header" href="#分解层次规划与组合泛化">分解、层次规划与组合泛化</a></h3>
 <p>复杂任务通常不是“多生成几个 token”就能解决，而是需要把目标拆成相互依赖的子目标。组合性研究指出，模型可能分别会做两个简单操作，却无法稳定地把它们组合到一个新任务中 <a href="#ref-20">[20]</a>。因此推理算法要显式表示任务结构：先识别对象和约束，再决定步骤顺序，最后把子结果合成为答案。</p>
 <p>层次生成把规划和表面实现分开。高层规划先产生章节、步骤、动作或子问题，低层生成再把每个计划展开为自然语言、代码或工具参数。Hierarchical Neural Story Generation 说明，长文本生成可以先规划更高层的内容，再逐步生成细节 <a href="#ref-12">[12]</a>。在代码修复任务中，高层计划可以是“定位调用链—修改接口—补测试—运行回归”，低层模型负责每一步的具体 patch。</p>
@@ -378,11 +379,11 @@ C_{budget}=C_{tokens}+\lambda_1C_{samples}+\lambda_2C_{verify}+\lambda_3C_{tools
 <p>中文、英文、代码和数字混合输入会产生不同的 token 化和概率形状，采样参数不能直接照搬英文自然语言。中文长文可能需要保留段落、标题和引用边界；代码推理需要维护缩进、括号、类型和测试状态；SQL 需要区分表名、字段名和用户输入；数学表达式需要保留符号结构。中文教材对概率建模与优化的基础解释有助于理解这些差异 <a href="#ref-26">[26]</a>。</p>
 <p>评估时应按语言和格式切片，而不是把所有任务合成一个平均准确率。一个模型可能英文数学推理较强、中文题目较弱；可能自然语言解释很好、代码执行较差；可能单轮输出正确、多轮状态错误。推理算法的收益只有在目标语言和目标格式上重复验证，才具有工程意义。</p>
 <h2 id="49-本章小结"><a class="header" href="#49-本章小结">4.9 本章小结</a></h2>
-<p>生成算法从 greedy 和 sampling 发展到 CoT、Self-Consistency、显式搜索、验证器和 test-time scaling，核心变化是从“选择一个最可能的下一个 token”转向“在预算内寻找并验证一条可接受的任务轨迹”。投机解码、长上下文压缩和预算路由可以改善执行效率或成本，但它们与推理质量相关而不等价。</p>
+<p>生成算法从 greedy 和 sampling 发展到 CoT、Self-Consistency、显式搜索、验证器和 test-time scaling，核心变化是从“选择一个最可能的下一个 token”转向“在预算内寻找并验证一条可接受的任务轨迹”。投机解码和预算路由可以改善执行效率或成本，但它们与推理质量相关而不等价。</p>
 <p>面对一个具体任务，先判断错误来自知识、搜索、验证还是格式，再选择对应方法。能程序化验证的任务优先使用执行器和 verifier；需要多路径探索的任务使用采样和搜索；需要实时事实的任务使用工具和检索；需要低延迟的任务使用路由、草稿模型和预算控制。这样，推理能力才会从论文中的 benchmark 变成可观察、可控制、可回滚的工程组件。</p>
 <h2 id="410-参考资料"><a class="header" href="#410-参考资料">4.10 参考资料</a></h2>
 <ol>
-<li><a id="ref-1"></a> Brown, T. B., et al，<a href="https://arxiv.org/abs/2005.14165">Language Models are Few-Shot Learners</a>，2005。核验日期：2026-10-16。</li>
+<li><a id="ref-1"></a> Brown, T. B., et al，<a href="https://arxiv.org/abs/2005.14165">Language Models are Few-Shot Learners</a>，2020。核验日期：2026-10-16。</li>
 <li><a id="ref-2"></a> Wei, J., et al，<a href="https://arxiv.org/abs/2201.11903">Chain-of-Thought Prompting Elicits Reasoning in Large Language Models</a>，2022。核验日期：2026-10-16。</li>
 <li><a id="ref-3"></a> Kojima, T., et al，<a href="https://arxiv.org/abs/2205.11916">Large Language Models are Zero-Shot Reasoners</a>，2022。核验日期：2026-10-16。</li>
 <li><a id="ref-4"></a> Wang, X., et al，<a href="https://arxiv.org/abs/2203.11171">Self-Consistency Improves Chain of Thought Reasoning in Language Models</a>，2023。核验日期：2026-10-16。</li>
@@ -390,7 +391,7 @@ C_{budget}=C_{tokens}+\lambda_1C_{samples}+\lambda_2C_{verify}+\lambda_3C_{tools
 <li><a id="ref-6"></a> Besta, M., et al，<a href="https://arxiv.org/abs/2308.09687">Graph of Thoughts: Solving Elaborate Problems with Large Language Models</a>，2024。核验日期：2026-10-16。</li>
 <li><a id="ref-7"></a> Yao, S., et al，<a href="https://arxiv.org/abs/2210.03629">ReAct: Synergizing Reasoning and Acting in Language Models</a>，2023。核验日期：2026-10-16。</li>
 <li><a id="ref-8"></a> Cobbe, K., et al，<a href="https://arxiv.org/abs/2110.14168">Training Verifiers to Solve Math Word Problems</a>，2021。核验日期：2026-10-16。</li>
-<li><a id="ref-9"></a> Lightman, H., et al，<a href="https://arxiv.org/abs/2305.20050">Let’s Verify Step by Step</a>，2005。核验日期：2026-10-16。</li>
+<li><a id="ref-9"></a> Lightman, H., et al，<a href="https://arxiv.org/abs/2305.20050">Let’s Verify Step by Step</a>，2023。核验日期：2026-10-16。</li>
 <li><a id="ref-10"></a> Guo, D., et al，<a href="https://arxiv.org/html/2501.12948v1">DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning</a>，2025 / v1。核验日期：2026-10-16。</li>
 <li><a id="ref-11"></a> Snell, C., et al，<a href="https://arxiv.org/abs/2408.03314">Scaling LLM Test-Time Compute Optimally can be More Effective than Scaling Model Parameters</a>，2024。核验日期：2026-10-16。</li>
 <li><a id="ref-12"></a> Fan, A., et al，<a href="https://arxiv.org/abs/1805.04833">Hierarchical Neural Story Generation</a>，2018。核验日期：2026-10-16。</li>
@@ -418,7 +419,7 @@ C_{budget}=C_{tokens}+\lambda_1C_{samples}+\lambda_2C_{verify}+\lambda_3C_{tools
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../part1/05-finetuning-compression-multimodal.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../part1/05-train-llm-from-scratch.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -432,7 +433,7 @@ C_{budget}=C_{tokens}+\lambda_1C_{samples}+\lambda_2C_{verify}+\lambda_3C_{tools
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../part1/05-finetuning-compression-multimodal.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../part1/05-train-llm-from-scratch.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>
