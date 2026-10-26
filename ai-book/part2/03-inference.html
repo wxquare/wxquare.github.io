@@ -43,7 +43,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-bd9915b0.js";
+            window.path_to_searchindex_js = "../searchindex-1d90d03d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-18357883.js"></script>
@@ -186,6 +186,7 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="第10章-推理服务与资源调度"><a class="header" href="#第10章-推理服务与资源调度">第10章 推理服务与资源调度</a></h1>
+<p>本章的推理请求、KV cache 与 GPU 调度是 Infra 领域特殊案例，因为它们描述承载 ALR 等上层任务的服务机制，而不是业务诊断本身；适用范围仅限本章。请求/制品、运行观测、调度动作、流式状态和 SLO 验收，分别对照 ALR 的任务输入与资源版本、Evidence、受控动作、Run 状态和诊断交付。</p>
 <p>训练完成并不意味着模型已经可以被用户使用。训练输出是一个需要转换、装载、调度和观测的制品；在线推理则是一个同时面对突发流量、长尾上下文、流式连接、动态 batch、显存限制和版本发布的分布式服务。本章聚焦从一次 <code>forward</code> 到生产级 serving 的完整链路，重点解释 prefill 与 decode 的资源差异、KV cache 的内存管理、连续批处理、模型并行、长上下文、公平调度、量化、投机解码以及服务 SLO。</p>
 <p>推理 Infra 的核心指标不应只有 tokens/s。交互请求关心首 token 延迟 TTFT、每个输出 token 的延迟 TPOT 和端到端尾延迟；离线任务关心 goodput 和单位成本；多步任务还要关心跨多次调用之后的最终成功率与总等待时间。一个系统可能平均吞吐很高，却让短请求被长上下文阻塞；也可能单请求很快，却在并发增加时因为 KV cache 失控而 OOM。Orca、PagedAttention、Sarathi-Serve 和 DistServe 等工作说明，LLM serving 的关键突破来自把模型执行拆成可调度的资源和状态，而不是简单把模型放进 HTTP 服务 <a href="#ref-1">[1]</a><a href="#ref-2">[2]</a><a href="#ref-3">[3]</a><a href="#ref-4">[4]</a>。</p>
 <p>训练制品不能直接交付，是因为用户面对的是请求生命周期而不是 checkpoint。推理平台必须回答五个问题：制品是否完整，容量是否够，状态是否可回收，调度是否公平，质量与成本是否仍在门限内。</p>

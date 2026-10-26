@@ -43,7 +43,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-bd9915b0.js";
+            window.path_to_searchindex_js = "../searchindex-1d90d03d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-18357883.js"></script>
@@ -189,6 +189,7 @@
 <blockquote>
 <p>Hermes Agent 的核心不是“多一个聊天入口”，而是把一个会积累记忆、沉淀技能、跨入口工作、可扩展工具、并生成训练轨迹的个人 Agent，做成一个长期运行的运行时：Gateway 拥有会话的权威状态，AIAgent 负责一次回合的模型与工具循环，记忆、技能和会话搜索在两者之间形成一条学习闭环。也正因为它是长期在线、能替人行动的系统，安全边界比功能更重要。</p>
 </blockquote>
+<p>本章把 Hermes 作为产品核验型特殊案例保留，因为长期会话、Skills、Gateway、Cron 和学习闭环需要绑定真实项目源码说明；适用范围仅限第 22 章。Hermes 的入口消息、记忆/Skill/工具证据、工具效果、admission/会话/投递状态和交付验收，分别对照 ALR 的告警输入、Evidence、受控动作、Run/Operation/通知状态和诊断报告验收。涉及告警、Runbook、建单与回执恢复的教学轨迹继续沿用 ALR；未由源码证明的可靠恢复能力明确标为本书教学扩展。</p>
 <p><strong>资料核验日期：2026-10-23。</strong> 本章分析 NousResearch/hermes-agent 仓库的固定提交 <code>907e3224c432647567cc4dd7aebcdf258971896a</code>（提交时间 2026-10-23 01:48 UTC）。源码与文档都固定到这一提交。本章的行为结论来自阅读源码与文档，没有运行验证、没有故障注入。</p>
 <div class="table-wrapper">
 <table>
@@ -569,7 +570,7 @@
 <p>有几类开销不能省（本书建议）。命令审批：降低打断要靠容器后端、deny 规则和 allowlist，不能靠把 <code>approvals.mode</code> 改成 <code>off</code>——hardline 之外的地板是安全语义，不是性能。投递账本：<code>gateway.delivery_ledger: false</code> 关掉的代价是崩溃遗留回复从“补发”退化成“重新执行”，可能重复副作用。工具前持久化（persist-before-execute）：关掉它省一次写，但破坏“resume must see the executed block”的耐久性不变量。缓存保温可以关，逐动作的权限边界和恢复语义不能为省 token 而放宽。</p>
 <h3 id="2267-从故障轨迹判断长期运行是否成立"><a class="header" href="#2267-从故障轨迹判断长期运行是否成立">22.6.7 从故障轨迹判断长期运行是否成立</a></h3>
 <h4 id="一条输入跨越两种持久责任"><a class="header" href="#一条输入跨越两种持久责任">一条输入跨越两种持久责任</a></h4>
-<p>下面是本书构造的验收轨迹，不是 Hermes 的实测记录。一个获准群成员要求分析告警并回复结论，Gateway 将输入保存到 authority 管理的 admission，再认领 worker。模型读取授权指标，形成带证据的结果，回复随后进入 delivery obligation。前一条责任负责“输入有没有推进”，后一条责任负责“结果有没有投递”；中间还可能有独立的工具效果和会话提交。</p>
+<p>下面是本书基于 ALR 案例构造的验收轨迹，不是 Hermes 的实测记录。一个获准群成员要求分析 <code>ALR-20260429-017</code> 并回复带证据的诊断结论，Gateway 将输入保存到 authority 管理的 admission，再认领 worker。模型读取授权指标，形成带证据的结果，回复随后进入 delivery obligation。前一条责任负责“输入有没有推进”，后一条责任负责“结果有没有投递”；中间还可能有独立的工具效果和会话提交。</p>
 <p>在 admission 仍 queued 时终止进程，恢复可以依据持久责任安排执行；在 started 后终止，旧 owner 的工作可能已产生副作用，因此恢复为 unknown 不意味着按 queued 重试；在结果已保存、投递标记 pending 时终止，恢复的是发送责任；在 attempting 时终止，接收端可能已收到，补发必须保留重复提示。这四个位置用相同的“重试任务”按钮处理，会把已经完成的工作重复执行。</p>
 <p>验收记录应包含事件顺序、会话 ID、输入 ID、worker 身份、效果标记、发送状态和日志引用。把进程杀死再启动，只是故障注入动作；是否满足保证取决于这些事实的核对。若运行环境没有权限进行故障注入，可以做源码路径审查并清楚标明未运行，但不能把审查结论称为实测恢复率。</p>
 <h4 id="标记与年龄阈值怎样配合"><a class="header" href="#标记与年龄阈值怎样配合">标记与年龄阈值怎样配合</a></h4>

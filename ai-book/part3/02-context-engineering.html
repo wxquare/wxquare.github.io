@@ -43,7 +43,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-bd9915b0.js";
+            window.path_to_searchindex_js = "../searchindex-1d90d03d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-18357883.js"></script>
@@ -215,11 +215,11 @@
 <p>图中模型可见的状态是执行系统的投影。操作是否提交、测试是否通过、外部动作是否完成，仍须由 Runtime、业务系统或验证器确认，不能因为摘要写了“已完成”就改变事实。</p>
 <p>本章的 Schema、流程、示例数据与实验均为教学设计；示例中的延迟、分数、Token 预算和有效期不构成通用默认值。滚动资料核验于 2026-10-21。API 的请求字段见<a href="01-llm-api-protocol.html">LLM API 协议</a>，工具与 Skills 的执行机制见<a href="05-skills-tools-mcp-connectors.html">Agent 工具系统工程</a>，持久执行与副作用恢复见<a href="04-agent-runtime.html#delivery-idempotency">Agent Runtime</a>。</p>
 <p><a id="context-model"></a></p>
-<p><a id="131-上下文模型与订单支付案例"></a></p>
+<p><a id="context-model-alr"></a></p>
 <h2 id="141-上下文模型与告警诊断案例"><a class="header" href="#141-上下文模型与告警诊断案例">14.1 上下文模型与告警诊断案例</a></h2>
-<p><a href="../images/review-context-engineering-01.svg"><img src="../images/review-context-engineering-01.svg" alt="订单支付诊断的上下文生命周期"></a></p>
-<p><em>图 13-2：订单支付诊断的上下文生命周期</em></p>
-<p><a id="1311-贯穿案例订单支付超时诊断的上下文生命周期"></a></p>
+<p><a href="../images/review-context-engineering-01.svg"><img src="../images/review-context-engineering-01.svg" alt="ALR 告警诊断的上下文生命周期"></a></p>
+<p><em>图 14-1：ALR 告警诊断的上下文生命周期</em></p>
+<p><a id="alr-context-lifecycle"></a></p>
 <h3 id="1411-贯穿案例alr-告警的上下文生命周期"><a class="header" href="#1411-贯穿案例alr-告警的上下文生命周期">14.1.1 贯穿案例：ALR 告警的上下文生命周期</a></h3>
 <p>本书后续各章共享下面的虚构案例档案。一次运行先做只读调查，只有有效批准后才能创建跟进工单；没有重启、回滚或支付写入能力。</p>
 <div class="table-wrapper">
@@ -228,7 +228,7 @@
 <tr><th>档案项</th><th>约定</th></tr>
 </thead>
 <tbody>
-<tr><td>身份</td><td>alert_id=ALR-20260429-017；run_id=run_0429_017；trace_label=trace_20260429_017</td></tr>
+<tr><td>身份</td><td>alert_id=ALR-20260429-017；run_id=run_0429_017；trace_label=trace_20260429_017；OpenTelemetry trace_id=4bf92f3577b34da6a3ce929d0e0e4736</td></tr>
 <tr><td>对象</td><td>order-service；prod；观察窗口为 2026-04-29 10:35–10:50，Asia/Shanghai</td></tr>
 <tr><td>时间线</td><td>10:35（02:35Z）部署 deploy_8842 完成；10:37（02:37Z）出现异常。先后关系只是候选线索，后续还需日志和受控核验</td></tr>
 <tr><td>观察</td><td>E12 是 P95 从 210ms 到 2.1s 的指标候选；需核验查询、聚合与时间范围，不直接证明根因</td></tr>
@@ -700,32 +700,32 @@ good:
 <pre><code class="language-yaml">excluded_context:
   - source: "customer_ticket_raw_payload"
     reason: "contains customer PII and not required for current task"
-  - source: "runbook_order_cpu_v1"
-    reason: "superseded by runbook_order_cpu_v3"
+  - source: "runbook_order_latency_v1"
+    reason: "retired; kept only for audit history"
 </code></pre>
 <p>这能帮助审计和调试，也能避免“模型为什么不知道”的误解。</p>
 <h3 id="1452-把冲突显式带入装配结果"><a class="header" href="#1452-把冲突显式带入装配结果">14.5.2 把冲突显式带入装配结果</a></h3>
 <p>冲突裁决以<a href="#knowledge">Evidence 最小约定</a>为唯一主定义。装配器分开控制指令与事实证据：API 角色和应用策略决定指令权限，外部网页、工具文本与 Memory 保留材料身份。OWASP 的间接注入说明，即使来源看似可信，其内容也不能获得执行授权。<a href="#ref-8">[8]</a></p>
-<p>下面两份 Runbook 尚未核验，较新的日期不能让右侧自动胜出；装配结果保留未决项，不制造“已决定回滚”的事实。</p>
+<p>下面两份 Runbook 尚未核验，较新的日期不能让右侧自动胜出；v2 是早期部署说明，v3 是新部署候选说明，装配结果保留未决项，不制造“已决定回滚”的事实。</p>
 <pre><code class="language-json">{
   "conflict_detected": true,
   "conflicts": [
     {
-      "topic": "rollback order",
+      "topic": "current diagnostic procedure",
       "left": {
-        "source": "runbook_order_cpu_v2",
-        "claim": "rollback first",
+        "source": "runbook_order_latency_v2",
+        "claim": "early-deployment diagnostic notes",
         "updated_at": "2026-02-10",
         "trust_level": "unverified"
       },
       "right": {
-        "source": "runbook_order_cpu_v3",
-        "claim": "check slow SQL before rollback",
+        "source": "runbook_order_latency_v3",
+        "claim": "new-deployment candidate diagnostic notes",
         "updated_at": "2026-04-01",
         "trust_level": "unverified"
       },
       "preferred": null,
-      "reason": "both sources are unverified; verify ownership, applicability and current authority before choosing",
+      "reason": "both sources are unverified; verify deployment mapping, ownership, applicability and current authority before choosing",
       "need_human_confirm": true
     }
   ]
@@ -918,11 +918,12 @@ required_checks:
 <p>面向 Agent 的摘要应该区分事实、决策、假设和待办。</p>
 <pre><code class="language-json">{
   "goal": "诊断 ALR-20260429-017 的订单服务延迟升高",
-  "confirmed_facts": [
+  "candidate_observations": [
     {
       "fact": "P95 在教学观察窗口内从 210ms 升至 2.1s",
       "source": "metrics.query",
-      "time_range": "09:45-10:15"
+      "time_range": "2026-04-29T02:35:00Z/2026-04-29T02:50:00Z",
+      "verification_state": "unverified"
     }
   ],
   "decisions": [
@@ -1134,17 +1135,18 @@ Context Package
 </ul>
 <p>交接物应该结构化、可读、可验证。</p>
 <pre><code class="language-yaml">handoff:
-  task_id: "ALR-20260429-017"
+  task_id: "run_0429_017"
+  alert_id: "ALR-20260429-017"
   goal: "核查订单服务 P95 从 210ms 升至 2.1s 的原因"
   evidence_refs:
-    - "metrics/order-service/p95@2026-04-29T10:00:00Z"
+    - "metrics/order-service/p95@2026-04-29T02:35:00Z-02:50:00Z"
   verified_facts:
     - "观察窗口内延迟升高；根因尚未确认"
   hypotheses:
     - "数据库连接等待增加，需要授权日志验证"
   allowed_next_step: "只读查询连接池与慢查询指标"
   prohibited_actions:
-    - "未审批回滚或修改生产配置"
+    - "回滚、重启或修改生产配置（本任务不具备这些能力）"
   unresolved:
     - "尚无证据确认 CPU 或数据库为根因"
   acceptance: "提交可回读证据、支持关系和剩余未知项"
@@ -1267,27 +1269,31 @@ Tool ACL Enforcement
   user_input: "订单服务 P95 从 210ms 升到 2.1s，按当前资料只读排查"
   available_context:
     documents:
-      - id: "runbook_order_cpu_v1"
+      - id: "runbook_order_latency_v1"
         trust_level: "expired"
-        content: "rollback first"
-      - id: "runbook_order_cpu_v3"
-        trust_level: "verified_scope"
-        content: "check slow SQL before rollback"
+        content: "旧版本把相似症状指向数据库；已退役"
+      - id: "runbook_order_latency_v2"
+        trust_level: "candidate_early_deployment"
+        content: "早期部署说明；适用性待映射核验"
+      - id: "runbook_order_latency_v3"
+        trust_level: "candidate_new_deployment"
+        content: "新部署候选说明；适用性待 owner 核验"
     tool_results:
       - id: "metrics_cpu"
         status: "success"
         content: "P95 increased from 210ms to 2.1s in the declared window"
   expected_context_behavior:
     include:
-      - "runbook_order_cpu_v3"
+      - "runbook_order_latency_v2"
+      - "runbook_order_latency_v3"
       - "metrics_cpu"
     exclude:
-      - "runbook_order_cpu_v1"
+      - "runbook_order_latency_v1"
     detect_conflicts: true
   expected_answer_behavior:
     - "do not recommend immediate rollback"
-    - "cite the verified-scope runbook with source version and current ACL"
-    - "ask for slow SQL metrics if missing"
+    - "keep v2 and v3 as candidates until deployment mapping and owner are verified"
+    - "do not turn E12 or deployment timing into a confirmed root cause"
 </code></pre>
 <p>这个 eval 不只是检查回答文本，还检查上下文选择。</p>
 <p>从失败到改进。</p>

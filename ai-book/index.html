@@ -43,7 +43,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-bd9915b0.js";
+            window.path_to_searchindex_js = "searchindex-1d90d03d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-18357883.js"></script>
@@ -195,13 +195,18 @@
 flowchart LR
     A["第一部分：大模型算法&lt;br/&gt;原理 / 训练 / 推理 / 能力"] --&gt; B["第二部分：大模型 Infra&lt;br/&gt;训练 / 推理 / 数据 / 治理"]
     B --&gt; C["第三部分：Agent 工程&lt;br/&gt;Prompt / Context / Runtime"]
-    C --&gt; D["第四部分：Agent 应用与实战&lt;br/&gt;Coding / 企业知识 / Hermes"]
+    C --&gt; D["第四部分：Agent 应用与实战&lt;br/&gt;ALR 主线 / 产品专题"]
     D --&gt; E["第五部分：前沿与研究&lt;br/&gt;Research Agent / 多模态 / 具身"]
 </pre>
 
 <h2 id="本书解决什么问题"><a class="header" href="#本书解决什么问题">本书解决什么问题</a></h2>
 <p>AI 工程实践里最容易踩的坑，不只是模型输出不稳定，也包括训练、推理、数据、评估和应用之间缺少清晰边界。我们把不清楚的意图、不完整的上下文、没有边界的工具和没有验证回路的流程交给模型，结果往往是第一版看起来很聪明，后续版本不断补洞并引入新问题。</p>
 <p>本书的主线是把从模型能力到应用交付的过程，逐步收敛成可复用、可审查、可验证、可治理的工程系统。</p>
+<h2 id="全书默认案例alr-告警诊断"><a class="header" href="#全书默认案例alr-告警诊断">全书默认案例：ALR 告警诊断</a></h2>
+<p>除非章节需要讲解告警场景无法承载的领域机制，本书默认复用同一次虚构的 ALR 告警诊断运行：<code>alert_id=ALR-20260429-017</code>、<code>run_id=run_0429_017</code>、<code>trace_label=trace_20260429_017</code>，OpenTelemetry <code>trace_id</code> 示例为 <code>4bf92f3577b34da6a3ce929d0e0e4736</code>。对象是 <code>prod</code> 环境的 <code>order-service</code>，观察窗口为 2026-04-29 10:35–10:50（Asia/Shanghai），即 02:35Z–02:50Z。</p>
+<p>10:35 完成的 <code>deploy_8842</code> 与 10:37 出现的异常只有时间先后关系；E12 记录的 P95 从 210ms 升到 2.1s 也只是待核验的指标候选，二者都不能直接写成根因。Runbook v1 已退役，v2 是早期部署说明，v3 是新部署的候选说明；当前适用版本由部署映射和 owner 核验，不按更新时间选择。典型质量失败是检索到不适用的旧 Runbook，把相似症状误写成数据库根因，且验证没有拦住。</p>
+<p>这次运行的产物包括诊断报告、绑定报告草稿与资源版本的审批、跟进工单 <code>INC-4821</code>，以及独立记录的通知状态。若远端已经建单但本地回执丢失，恢复流程沿原 Operation 查询核验，不重新建单。Agent 只能做只读调查，并在有效审批后创建跟进工单；它没有重启、回滚或支付写入能力。</p>
+<p>Coding Agent、企业知识助手、真实开源项目分析、训练故障、具身系统和研究 Agent 等案例只在确有教学必要时保留。它们首次出现时会说明偏离 ALR 的原因、适用范围，以及输入、证据、动作、状态和验收如何与 ALR 对照；这些局部案例不构成另一套全书标准。</p>
 <p>读完之后，你应该能够回答六类问题：</p>
 <ul>
 <li><strong>模型边界</strong>：LLM 擅长什么、不擅长什么，这些边界如何影响系统设计？</li>
@@ -302,15 +307,17 @@ flowchart LR
 <h3 id="附录"><a class="header" href="#附录">附录</a></h3>
 <p>附录只保留 <a href="appendix/glossary.html">A：术语与符号速查</a>、<a href="appendix/references.html">B：学习路径与延伸阅读</a>、<a href="appendix/tools.html">C：工具、框架与版本导航</a>。章末练习由附录 B 提供短链接，论点来源以各章末参考资料为准。</p>
 <h2 id="贯穿案例与练习的阅读方式"><a class="header" href="#贯穿案例与练习的阅读方式">贯穿案例与练习的阅读方式</a></h2>
-<p>全书包含五部分、23 个公开章节；第一部分新增从零训练的工程路径与配套实验，第四部分以成熟 Coding Agent 内部实现为案例，第五部分承接前沿研究。两个教学案例分别检验不同责任边界：</p>
+<p>全书包含五部分、23 个公开章节。ALR 告警诊断是默认贯穿案例；其他案例只在领域对象无法由 ALR 替代或必须核验真实产品机制时局部使用：</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>案例</th><th>先建立机制</th><th>再看应用</th><th>重点核对</th></tr>
+<tr><th>案例类型</th><th>先建立机制</th><th>使用范围</th><th>重点核对</th></tr>
 </thead>
 <tbody>
-<tr><td>Coding Agent</td><td><a href="part3/02-context-engineering.html">上下文工程</a>、<a href="part3/05-skills-tools-mcp-connectors.html">外围工具系统</a></td><td><a href="part4/01-coding-agent-systems.html">成熟 Coding Agent 的实现与 Harness</a></td><td>代码版本、工作区、工具权限、候选完成与独立Verifier</td></tr>
-<tr><td>Hermes 长期助手</td><td><a href="part3/04-agent-runtime.html#object-model">Runtime 状态</a>、<a href="part3/02-context-engineering.html#memory">记忆生命周期</a>、<a href="part3/04-agent-runtime.html#workflow">Runtime 编排</a></td><td><a href="part4/04-hermes-agent-architecture.html">Hermes 贯穿简报</a></td><td>Session、Memory、缓存与特定投递 ledger 分别取证；通用业务 Outbox、Checkpoint、幂等和补偿是另行标明的教学扩展</td></tr>
+<tr><td>ALR 默认主线</td><td><a href="part3/02-context-engineering.html">上下文工程</a>、<a href="part3/03-knowledge-retrieval.html">知识检索</a>、<a href="part3/04-agent-runtime.html">Runtime</a>、<a href="part3/05-skills-tools-mcp-connectors.html">工具系统</a>与<a href="part3/06-agent-governance-optimization.html">治理</a></td><td>能承载任务协议、证据、工具、状态、恢复和评估的章节</td><td>身份、窗口、候选证据、Runbook 版本、审批、<code>INC-4821</code> 与能力边界一致</td></tr>
+<tr><td>Coding Agent 特殊案例</td><td>通用 Context、Tool、Runtime 与 Verifier 机制</td><td><a href="part4/01-coding-agent-systems.html">成熟 Coding Agent 的实现与 Harness</a></td><td>仅用于代码制品、patch 和测试；与 ALR 的输入、证据、动作、状态和验收显式对照</td></tr>
+<tr><td>Pi、OpenClaw、Hermes 产品专题</td><td><a href="part3/04-agent-runtime.html#object-model">Runtime 状态</a>、<a href="part3/02-context-engineering.html#memory">记忆生命周期</a>与<a href="part3/06-agent-governance-optimization.html">治理控制</a></td><td>第 20–22 章的固定版本源码/文档核验</td><td>区分产品事实、本书推导和教学扩展；涉及告警时回到 ALR 标准</td></tr>
+<tr><td>研究与算法特殊案例</td><td>模型、Infra 和证据机制</td><td>对应算法、训练、具身或研究章节</td><td>说明 ALR 不适用原因与局部范围，不扩展成平行主线</td></tr>
 </tbody>
 </table>
 </div>

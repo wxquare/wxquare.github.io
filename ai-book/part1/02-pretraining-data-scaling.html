@@ -43,7 +43,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-bd9915b0.js";
+            window.path_to_searchindex_js = "../searchindex-1d90d03d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-18357883.js"></script>
@@ -274,6 +274,7 @@ D_{KL}(p\Vert q)=\sum_i p_i\log\frac{p_i}{q_i}
 <p>这会影响三类成本：同一段内容需要多少 token，决定训练和推理计算；一个概念被切成多少片，影响模型学习稳定性；特殊格式被如何分割，影响代码、JSON、URL 和工具调用格式的可靠性。比较模型成本时不能只比较“每百万 token 价格”，还要看目标语言和业务文本的 token 化膨胀率。</p>
 <p>词表不是越大越好。更大的词表可能减少序列长度，却会增加 embedding、softmax 和通信成本；更小的词表参数压力较低，但长序列会增加注意力和位置编码负担。最终选择应基于目标语料的 token/字符比、词表覆盖率、训练速度、显存占用和下游格式稳定性。中文基础模型尤其要在中文字符、英文单词、代码标识符、数字和混合文本上做分层统计，而不是只报告一个平均压缩率。</p>
 <h3 id="中文代码与模板先固定测量对象"><a class="header" href="#中文代码与模板先固定测量对象">中文、代码与模板：先固定测量对象</a></h3>
+<p>以下退款问句和代码只用于展示 Tokenizer 对中文、字母、数字、标点与缩进的处理，属于预训练机制的局部特殊输入；它们的原始文本、切分证据和 token 断言分别对应 ALR 的任务输入、Evidence 与验收，但不形成另一项跨章业务案例。</p>
 <p>BPE用高频子词组合缓解稀有词问题，SentencePiece提供从原始句子训练子词模型的方法；它们是算法与工具路线，具体词表仍由训练数据和配置确定。<a href="#ref-18">[18]</a><a href="#ref-19">[19]</a> 本书教学输入可以固定为“订单A-123可以退款吗？”与代码 <code>if (order_id == "A-123") return refund(100);</code>，另加路径、连续空格、换行和emoji。它们用于暴露中文、字母、数字、标点和缩进的切分差别，不预先声称会产生多少token。</p>
 <p>测量时记录Tokenizer制品修订、词表与merge文件哈希、normalization、特殊token策略及chat template；分别输出token ID、可见片段、长度和decode后文本。先验证round-trip是否符合该Tokenizer的规范，再比较各语言和代码样本的长度分布。不能把一种Tokenizer的整数ID送给另一模型，也不能假设相同字符串在不同词表下成本相同。上述输入只是待执行测量规约，本章没有编造实测ID或跨模型压缩率。</p>
 <p>把教学对话装成“user问退款、assistant给答复”时，角色标记、换行与EOS也是输入契约。模板改变后，正文文字可能不变，模型读到的协议却已变化。预训练可对全部合法位置预测，SFT则可能只监督assistant位置；阶段差异由目标与mask决定，不能仅按数据文件后缀判断。模板与Tokenizer需要和模型权重一起版本化；第 3 章展开后训练样本的监督位置与对齐方式。</p>

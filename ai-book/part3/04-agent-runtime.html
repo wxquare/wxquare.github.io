@@ -43,7 +43,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-bd9915b0.js";
+            window.path_to_searchindex_js = "../searchindex-1d90d03d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-18357883.js"></script>
@@ -196,7 +196,7 @@
 <p><em>图 16-1：Runtime 职责概览：目标、候选判断、受控执行、事实记录与验收交付</em></p>
 <p><em>从目标到交付的责任边界；模型提议、执行裁决与业务事实分别确认。本书参考设计，点击图片查看 SVG。</em></p>
 <p>Runtime 的设计从任务承诺开始。用户交付一个目标，系统需要说明是否受理、当前做到哪里、正在等待什么、哪些动作需要批准、结果依据什么成立。一次模型请求成功，只能说明获得了输出；任务是否允许继续、动作是否已生效、结果能否交付，需要应用维护的事实和规则来回答。</p>
-<p>本章贯穿同一次告警诊断教学运行：<code>ALR-20260429-017</code> 报告 <code>order-service</code> P95 从 210ms 升至 2.1s，Runtime 建立 <code>run_0429_017</code>，在 <code>trace_20260429_017</code> 中关联取证、审批、建单与通知。指标、日志和 Runbook 用于只读调查，<code>create_incident_ticket</code> 需要批准；不提供重启与回滚工具。建单回执丢失时接管者查到原工单 <code>INC-4821</code>，通知仍可能重复。这些数值和结果均是虚构教学设定，诊断质量由治理章节另行验收。短问答可以直接完成，长任务可以跨请求等待；两者共享责任模型，实现强度由实际承诺决定。</p>
+<p>本章贯穿同一次告警诊断教学运行：<code>ALR-20260429-017</code> 的 E12 候选观察显示 <code>prod</code> 环境 <code>order-service</code> 的 P95 从 210ms 升至 2.1s，Runtime 建立 <code>run_0429_017</code>，用 <code>trace_label=trace_20260429_017</code> 关联取证、审批、建单与通知。指标、日志和 Runbook 用于只读调查，观察窗口为 02:35Z–02:50Z；<code>create_incident_ticket</code> 需要绑定报告草稿和资源版本的有效批准，不提供重启与回滚工具。建单回执丢失时接管者沿原 Operation 查到 <code>INC-4821</code>，通知状态独立记录。这些数值和结果均是虚构教学设定，不能把 E12 或部署时间邻近直接当成根因。短问答可以直接完成，长任务可以跨请求等待；两者共享责任模型，实现强度由实际承诺决定。</p>
 <p><a id="1511-从模型输出到任务承诺"></a></p>
 <h3 id="1711-从模型输出到任务承诺"><a class="header" href="#1711-从模型输出到任务承诺">17.1.1 从模型输出到任务承诺</a></h3>
 <p>模型具备选择工具、综合证据和修订计划的能力，为动态任务提供了基础。MRKL 与 Toolformer 分别研究模块组合与模型学习调用工具的机制。<a href="#ref-1">[1]</a><a href="#ref-2">[2]</a> 本书据此区分能力描述与执行授权：即使模型能提出某个调用，Runtime 仍要把它限制在可信系统允许的范围内；后一句是本书的工程边界，不是这两篇论文给出的安全保证。</p>
@@ -520,7 +520,7 @@ erDiagram
   "payload": {"alert_id": "ALR-20260429-017", "service": "order-service", "started_at": "2026-04-29T02:37:00Z"},
   "request_key": "ALR-20260429-017",
   "correlation_id": "trace_20260429_017",
-  "environment": "production"
+  "environment": "prod"
 }
 </code></pre>
 <p>Runtime 识别为只读诊断任务，补齐受信实体与查询时间窗，再建立契约。模型可以提出查哪些证据，不能扩大到重启或回滚。</p>
@@ -531,7 +531,7 @@ erDiagram
   "user_goal": "调查 order-service 延迟升高，输出带证据的假设和事故工单草稿",
   "entities": {"alert_id": "ALR-20260429-017", "service": "order-service"},
   "allowed_actions": ["get_alert_details", "list_recent_deployments", "prometheus_query_range", "kubernetes_get_pods", "loki_search", "search_runbooks"],
-  "requires_approval": ["create_incident_ticket", "send_slack_message"],
+  "requires_approval": ["create_incident_ticket"],
   "blocked_actions": ["restart_service", "rollback_deployment"],
   "success_criteria": ["核对时间窗和来源版本", "假设与事实分开", "批准后建单需核验INC编号", "任务结果与通知状态分别记录"]
 }
@@ -737,7 +737,7 @@ erDiagram
     "data_sensitivity": "internal"
   },
   "context": {
-    "environment": "production",
+    "environment": "prod",
     "evidence_count": 2
   }
 }

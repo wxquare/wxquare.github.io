@@ -43,7 +43,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-bd9915b0.js";
+            window.path_to_searchindex_js = "../searchindex-1d90d03d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-18357883.js"></script>
@@ -190,7 +190,7 @@
 <p>对 ALR-20260429-017，怎样把指标、日志与工单 API 构建成 Runtime 可以安全、稳定使用的能力？本章从能力提供方依次实现契约与注册、调用适配、Skill、MCP、Connector，以及凭据与沙箱边界。模型提出调用，Runtime 决定何时执行并消费结果；本章负责工具背后的实现与可核验保证。</p>
 <p>Tool Calling 表达调用提议，Tool 定义一次能力契约，Skill 封装可复用方法，MCP 提供标准接入协议，Connector 适配具体业务系统。构建这些能力之后，Runtime 仍须绑定当前任务、权限与预算；能力已注册不等于任意任务可执行。</p>
 <p>本章不展开的主题包括：模型请求与终止信号参考<a href="01-llm-api-protocol.html">LLM API 协议</a>；模型可见信息与记忆参考<a href="02-context-engineering.html">上下文工程</a>；检索实现参考<a href="03-knowledge-retrieval.html">知识检索与 RAG</a>；任务调度、审批等待与恢复参考<a href="04-agent-runtime.html">Runtime</a>；评估与发布参考<a href="06-agent-governance-optimization.html">治理与调优</a>。各处保留足够的局部说明，详细机制只在主讲位置定义。</p>
-<p>本章的构建顺序是契约与注册、调用适配、Skill 包、MCP Server、业务 Connector、授权隔离与版本组合，最后交付告警诊断能力体系。案例为同一次虚构运行：<code>ALR-20260429-017</code>、<code>run_0429_017</code>、<code>trace_20260429_017</code>，服务为 order-service。Runtime 章从执行方展示如何使用本章产物；治理章检查旧 Runbook 造成的错误诊断，而不是另起一套案例。</p>
+<p>本章的构建顺序是契约与注册、调用适配、Skill 包、MCP Server、业务 Connector、授权隔离与版本组合，最后交付告警诊断能力体系。案例为同一次虚构运行：<code>alert_id=ALR-20260429-017</code>、<code>run_id=run_0429_017</code>、<code>trace_label=trace_20260429_017</code>，服务为 <code>prod</code> 环境的 <code>order-service</code>。Runtime 章从执行方展示如何使用本章产物；治理章检查旧 Runbook 造成的错误诊断，而不是另起一套案例。</p>
 <p>版本与范围：</p>
 <ul>
 <li>本章 MCP 以 2026-07-28 规范为主线，2025-11-25 及更早版本仅作兼容对照。</li>
@@ -404,7 +404,7 @@
 <tbody>
 <tr><td style="text-align: left">理解问题</td><td style="text-align: left"><code>get_alert_details</code>、<code>search_runbooks</code>、<code>list_recent_deployments</code></td></tr>
 <tr><td style="text-align: left">收集证据</td><td style="text-align: left"><code>prometheus_query_range</code>、<code>loki_search</code>、<code>kubernetes_get_pods</code></td></tr>
-<tr><td style="text-align: left">建议行动</td><td style="text-align: left"><code>create_incident_ticket</code>、<code>send_slack_message</code></td></tr>
+<tr><td style="text-align: left">建议行动</td><td style="text-align: left"><code>create_incident_ticket</code>（仅在审批绑定草稿与资源版本后暴露）</td></tr>
 </tbody>
 </table>
 </div>
@@ -1350,7 +1350,6 @@ MCP 测试：
 <tr><td style="text-align: left"><code>search_runbooks</code></td><td style="text-align: left">搜索历史案例</td><td style="text-align: left">只读×内部数据</td><td style="text-align: left">自动执行；检索内部 Runbook</td></tr>
 <tr><td style="text-align: left"><code>loki_search</code></td><td style="text-align: left">搜索日志摘要</td><td style="text-align: left">只读×敏感数据</td><td style="text-align: left">日志可能含敏感信息，返回前须脱敏，访问范围由策略授权</td></tr>
 <tr><td style="text-align: left"><code>create_incident_ticket</code></td><td style="text-align: left">创建事故单</td><td style="text-align: left">可补偿写入×内部数据</td><td style="text-align: left">需要用户确认或策略授权</td></tr>
-<tr><td style="text-align: left"><code>send_slack_message</code></td><td style="text-align: left">发送团队通知</td><td style="text-align: left">外发副作用 × 团队内部数据，按目标和内容审批</td><td style="text-align: left">消息发出后无法撤回，发送前需确认目标频道与内容</td></tr>
 <tr><td style="text-align: left"><code>restart_service</code></td><td style="text-align: left">重启服务</td><td style="text-align: left">高影响修复动作</td><td style="text-align: left">不进入本 Skill 的可用工具集；Agent 只给建议，由人工审批后执行</td></tr>
 </tbody>
 </table>
@@ -1379,7 +1378,6 @@ MCP 测试：
     loki_search: logs-mcp-v4
     search_runbooks: knowledge-connector-v3
     create_incident_ticket: ticket-connector-v5
-    send_slack_message: notification-connector-v2
   credentials: resolve_from_run_binding
   sandbox:
     filesystem: isolated-run-directory
@@ -1401,12 +1399,13 @@ MCP 测试：
 </tbody>
 </table>
 </div>
-<p>日志查询首次超时返回可读错误，在 Runtime 预算内建立新 Attempt；建单步骤接收绑定草稿 hash 的审批；结果查询用 <code>alert-ALR-20260429-017-incident</code> 查到 <code>INC-4821</code> 后返回已确认效果。Connector 不拥有全局恢复状态，完整时序参考<a href="04-agent-runtime.html#failure-scenarios">Runtime 故障案例</a>。通知接口若不能保证幂等或结果查询，契约明确披露通知步骤的重复风险。</p>
+<p>日志查询首次超时返回可读错误，在 Runtime 预算内建立新 Attempt；建单步骤接收同时绑定报告草稿 hash 与资源版本的审批；结果查询用 <code>alert-ALR-20260429-017-incident</code> 查到 <code>INC-4821</code> 后返回已确认效果。Connector 不拥有全局恢复状态，完整时序参考<a href="04-agent-runtime.html#failure-scenarios">Runtime 故障案例</a>。通知由 Agent 工具集之外的交付系统负责，并以独立状态记录；渠道若不能保证幂等或结果查询，交付契约须披露重复风险。</p>
 <p><a id="1685-一次指标观察与策略证据"></a></p>
 <h3 id="1585-一次指标观察与策略证据"><a class="header" href="#1585-一次指标观察与策略证据">15.8.5 一次指标观察与策略证据</a></h3>
 <pre><code class="language-json">{
   "run_id": "run_0429_017",
-  "trace_id": "trace_20260429_017",
+  "trace_label": "trace_20260429_017",
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
   "agent_version": "incident-agent-v42",
   "tool_name": "prometheus_query_range",
   "tool_version": "metrics-v4",
@@ -1414,7 +1413,8 @@ MCP 测试：
   "attempt_state": "Succeeded",
   "result": {
     "status": "success",
-    "summary": "02:37Z起P95从210ms升至2.1s；本查询不包含部署信息，不能判因果",
+    "summary": "E12候选观察：02:37Z起P95从210ms升至2.1s；尚待交叉核验，本查询不包含部署信息，不能判因果",
+    "verification_state": "unverified",
     "coverage": {"complete": true, "missing": []},
     "effect": {"disposition": "none", "operation_id": null},
     "truncated": false,
@@ -1425,7 +1425,7 @@ MCP 测试：
 <p><a id="1686-合格报告标准与教学设定中的偏差"></a></p>
 <h3 id="1586-合格报告标准与教学设定中的偏差"><a class="header" href="#1586-合格报告标准与教学设定中的偏差">15.8.6 合格报告标准与教学设定中的偏差</a></h3>
 <p>合格报告需核对部署记录（本例 02:35Z 完成）、指标（02:37Z 开始异常）和 payment-client 日志，只能将时间接近写成待验证假设；资源指标正常不能直接排除全部数据库问题。每条证据带调用、版本和时间范围，缺证据就披露缺口。</p>
-<p>教学设定中的 v42 运行在证据读取步骤使用过期 Runbook v2，错误推断连接池耗尽，验证器漏拦；人工批准了建单并不证明这份诊断正确。错误草稿与上述质量标准形成对照，<code>failure-0099</code>怎样转成<code>eval-incident-0099</code>和 v43 门禁，参考<a href="06-agent-governance-optimization.html#failure-improvement-loop">治理失败闭环</a>。</p>
+<p>教学设定中的 v42 运行未完成 deployment mapping 与 owner 核验便采用了 Runbook v2，错误推断连接池耗尽，验证器漏拦；人工批准了建单并不证明这份诊断正确。错误草稿与上述质量标准形成对照，<code>failure-0099</code>怎样转成<code>eval-incident-0099</code>和 v43 门禁，参考<a href="06-agent-governance-optimization.html#failure-improvement-loop">治理失败闭环</a>。</p>
 <p><a id="checklist"></a></p>
 <h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
 <p><a href="../images/review-skills-tools-mcp-connectors-09.svg"><img src="../images/review-skills-tools-mcp-connectors-09.svg" alt="Agent 工具系统工程的构建验收"></a></p>

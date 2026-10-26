@@ -43,7 +43,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-bd9915b0.js";
+            window.path_to_searchindex_js = "../searchindex-1d90d03d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-18357883.js"></script>
@@ -196,7 +196,7 @@
 <p><em>图 15-1：检索负责找证据，生成负责使用证据</em></p>
 <p>RAG 将参数化生成与外部非参数知识结合，但不能单独保证事实正确、来源适用或行动获授权。Lewis 等人的原工作研究检索与生成的组合，本文所述权限水位、证据契约和恢复责任属于本书在应用场景中的推导。<a href="#ref-1">[1]</a></p>
 <p>从词项匹配到稠密检索，变化的是候选生成机制，不是把检索彻底替换为模型记忆。BM25 保留词项频率和长度线索；DPR 用双编码器学习问题与段落的匹配；late interaction 保留更细的 token 交互；Agentic 方法再按证据缺口安排下一次检索。<a href="#ref-2">[2]</a><a href="#ref-3">[3]</a><a href="#ref-4">[4]</a> 这些方法可以组合，不能仅按发表先后当作升级阶梯。</p>
-<p>本章用同一次虚构告警作检验：order-service 在 02:37Z 出现延迟升高，查询 Runbook 时 v2 排在 v3 前面，旧规则诱发“连接池耗尽”的错误假设。真实诊断还需要部署与日志，不由文档相似度决定。服务、时间、版本和权限均是查询约束；仅仅找出含“延迟”二字的片段不能完成任务。</p>
+<p>本章用同一次虚构告警作检验：<code>order-service</code> 在 02:37Z 出现延迟异常，E12 给出 P95 从 210ms 升至 2.1s 的待核验候选观察；查询 Runbook 时 v2 排在 v3 前面，旧规则诱发“连接池耗尽”的错误假设。v2 是早期部署说明，v3 是新部署候选说明，二者都必须通过部署映射和 owner 核验，不能按更新时间选用。真实诊断还需要部署与日志，不由文档相似度决定。</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -645,7 +645,7 @@ Rerank：统一排序
   revision: 3
   required_claims:
     - id: symptom_window
-      state: supported
+      state: candidate
       evidence_refs: [metric-p95-v1]
     - id: deployment_change
       state: insufficient
@@ -831,8 +831,8 @@ Rerank：统一排序
 <h3 id="1683-贯穿案例与摄取定位"><a class="header" href="#1683-贯穿案例与摄取定位">16.8.3 贯穿案例与摄取定位</a></h3>
 <p><a id="1484-用同一-runbook-失败定位误差"></a></p>
 <p><strong>用同一 Runbook 失败定位误差</strong></p>
-<p>冻结<code>run_0429_017</code>的问题、授权、源快照与生成配置，比较四个教学实验：第一，原查询精确检索已知 v3 文档，若未收录先修摄取；第二，固定向量用 Flat 与 ANN 比较，分离近邻误差；第三，固定候选关闭/打开重排，查看 v3 是否被降序；第四，直接给生成器人工充分证据，观察错误连接池结论是否仍出现。所有结果需实测，本章不填造通过率。</p>
-<p>若 v3 已在候选但被 v2 挤出，检查版本过滤和排序；若 v3 已进入上下文但被摘要裁掉适用条件，检查装配；若人工充分证据仍产生不支持结论，检查生成与验证。只增加 top-k 可能引入更多旧规则，不一定修复任何一个阶段。灰度修复后将<code>failure-0099</code>绑定<code>eval-incident-0099</code>，发布门禁参考<a href="06-agent-governance-optimization.html#release-control">治理与调优</a>，不在本章复制发布协议。</p>
+<p>冻结<code>run_0429_017</code>的问题、授权、源快照与生成配置，比较四个教学实验：第一，原查询精确检索 v2 与 v3 候选文档，若未收录先修摄取；第二，固定向量用 Flat 与 ANN 比较，分离近邻误差；第三，固定候选关闭/打开重排，查看版本与适用条件是否被保留；第四，直接给生成器人工充分且已核验的证据，观察错误连接池结论是否仍出现。所有结果需实测，本章不填造通过率。</p>
+<p>若 v3 已在候选但被 v2 挤出，检查版本过滤和排序，但不能据此宣布 v3 已适用；若候选进入上下文却被摘要裁掉部署映射或 owner 条件，检查装配；若人工充分证据仍产生不支持结论，检查生成与验证。只增加 top-k 可能引入更多旧规则，不一定修复任何一个阶段。灰度修复后将<code>failure-0099</code>绑定<code>eval-incident-0099</code>，发布门禁参考<a href="06-agent-governance-optimization.html#release-control">治理与调优</a>，不在本章复制发布协议。</p>
 <p><a id="1487-摄取失败的最小定位实验"></a></p>
 <p><strong>摄取失败的最小定位实验</strong></p>
 <p>当相同问题偶尔找不到同一份 Runbook，先固定源文档版本、解析器和索引 manifest，再沿证据身份检查。原文存在而块不存在，定位摄取/解析；块存在但 embedding 缺失，定位任务失败或模型空间变更；向量存在而过滤后不见，检查元数据和 ACL；候选中存在而最终引用缺失，再检查重排、读取与生成。每一步保存具体 ID 和查询，不用同一条“检索失败”标签概括。</p>
