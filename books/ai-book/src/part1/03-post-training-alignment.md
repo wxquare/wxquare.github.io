@@ -60,15 +60,17 @@ SFT本身就是后训练的一部分，不应把“做完SFT再开始后训练�
 
 ### SFT 的数据结构与损失
 
-监督微调通常使用 \\((x,y)\\) 样本，其中 \\(x\\) 是系统、用户和上下文，\\(y\\) 是目标助手回答。对多轮对话，训练一般只对 assistant token 计算损失，避免模型把用户问题也当作需要模仿的输出。目标为：
+监督微调通常使用 \\((x,y)\\) 样本，其中 \\(x\\) 是系统、用户和上下文，\\(y\\) 是目标助手回答。对多轮对话，训练一般只对 assistant token 计算损失，避免模型把用户问题也当作需要模仿的输出。对单个样本按有效目标 token 取平均时，目标为：
 
 \\[
-\mathcal{L}\_{SFT}(\theta)=-\sum\_{t\in\mathcal{A}}\log \pi\_\theta(y\_t\mid x,y\_{<t}),
+\mathcal{L}\_{\text{SFT}}^{\text{example}}(\theta)
+=-\frac{1}{|\mathcal{A}|}\sum_{t\in\mathcal{A}}
+\log \pi\_\theta(y\_t\mid x,y\_{<t}),
 \\]
 
 其中 \\(\mathcal{A}\\) 表示被监督的 assistant token 位置。mask 设计很重要：如果系统消息、工具结果、用户内容和助手答案边界处理错误，模型会学到错误的角色关系，表现为复读用户输入、泄露隐藏提示或把工具返回内容当成自己的指令。
 
-式中的归一化与 mask 约定需要显式声明。按有效目标 token 数归一化与按序列长度归一化不是同一个目标：前者让长短样本的梯度量级更接近，后者会让长样本主导更新。此外，监督位置要覆盖 EOS——它是“该在哪里停下”的监督信号，漏掉会让模型学会无限续写；padding 位置不仅要排除出损失，还要按实现约定处理注意力可见性。这两处常被当作实现细节，实际直接决定模型学到什么。
+批量训练还必须说明样本如何加权。若先汇总批内所有有效目标 token，再除以有效 token 总数，每个 token 权重相同，目标为 \\(\mathcal{L}\_{\text{SFT}}^{\text{token}}=-\sum\_b\sum\_{t\in\mathcal A\_b}\log\pi\_\theta(y\_{b,t}\mid x\_b,y\_{b,<t})/\sum\_b|\mathcal A\_b|\\)，较长回答因包含更多目标 token 而贡献更多总权重；若先对每个样本按 \\(|\mathcal A\_b|\\) 取平均，再对批内样本取平均，则每个样本权重相同。两者不是同一个目标，不能只写“mean reduction”而省略分母。监督位置还要覆盖 EOS——它是“该在哪里停下”的监督信号，漏掉会让模型学会无限续写；padding 位置不仅要排除出损失，还要按实现约定处理注意力可见性。这些约定直接决定模型学到什么。
 
 SFT 数据不必是“知识百科”。它主要塑造输入到输出的映射，包括任务分解、回答结构、拒答模板、工具调用格式、引用方式和不确定性表达。Self-Instruct 通过模型生成和筛选指令数据，展示了如何在人工种子有限时扩展任务覆盖 [[4]](#ref-4)；LIMA 则指出，少量但一致、高质量的示范也能带来显著的对齐效果 [[5]](#ref-5)。这两项工作共同提醒我们：数量和质量不是简单替代关系，数据覆盖与示范一致性必须一起看。
 
@@ -83,6 +85,8 @@ SFT 数据不必是“知识百科”。它主要塑造输入到输出的映射�
 ### SFT 的局限与退化模式
 
 SFT 是模仿学习，不直接知道哪个答案在真实环境中产生了更好的结果。它会把示范中的错误、偏见、冗长和过度自信稳定地复制出来。如果所有答案都使用相同模板，模型可能在任何问题上输出模板；如果数据过度集中于某领域，通用能力可能退化；如果负面案例很少，模型不会知道何时应澄清或拒绝。
+
+SFT 描述的是训练目标，不决定必须更新全部模型参数。需要在全量微调、LoRA、QLoRA 等参数更新方式之间选择时，见[第 6 章“模型适配与能力扩展”](06-finetuning-compression-multimodal.md)；本章只规定监督信号和行为目标。
 
 常见诊断包括：训练 loss 持续下降但真实任务不涨，说明可能过拟合表达风格；训练后格式更稳定但事实准确率下降，说明示范把表达优先级放得过高；安全拒答增加但正常请求成功率下降，说明边界样本比例或标签策略不合理。解决方案可能是回放通用数据、重新配比、增加难例、改用偏好数据，或者干脆在推理层加入 schema 和验证器，而不是继续增加 SFT 步数。
 
@@ -102,7 +106,7 @@ SFT 是模仿学习，不直接知道哪个答案在真实环境中产生了更�
 偏好学习的经典工作展示了如何从人类比较中学习奖励函数 [[7]](#ref-7)。对语言模型而言，Reward Model 接收 prompt 和 response，输出一个标量 \\(r\_\phi(x,y)\\)。它的训练可写成 Bradley-Terry 风格的损失：
 
 \\[
-\mathcal{L}\_{RM}=-\log\sigma(r\_\phi(x,y^+)-r\_\phi(x,y^-)).
+\mathcal{L}\_{\text{RM}}=-\log\sigma(r\_\phi(x,y^+)-r\_\phi(x,y^-)).
 \\]
 
 这个分数是标注偏好的代理，不是真实质量本身。标注者之间可能不一致，短回答与长回答的偏好可能混杂，安全和帮助性可能冲突，同一领域的专家标准也可能不同。安全评估实践还表明，偏好标准必须把“回答有用”和“回答安全”拆成可讨论的维度，而不能把所有差异压成一个没有解释的总分 [[8]](#ref-8)。数据中必须记录标注指南、样本来源、分歧率、比较难度和拒标比例，不能只保存最终的 chosen/rejected 字符串。
@@ -179,12 +183,14 @@ RLHF 需要候选生成、标注平台、偏好数据库、Reward Model 训练�
 DPO 观察到，在特定的 KL 正则化奖励模型设定下，最优 policy 与 reward 存在解析关系，可以直接用偏好对训练 policy，而不显式拟合 Reward Model 和运行完整 PPO [[12]](#ref-12)。常见目标形式为：
 
 \\[
-\mathcal{L}\_{DPO}=-\log\sigma\left(\beta\left[\log\frac{\pi\_\theta(y^+\mid x)}{\pi\_{ref}(y^+\mid x)}-\log\frac{\pi\_\theta(y^-\mid x)}{\pi\_{ref}(y^-\mid x)}\right]\right).
+\mathcal{L}\_{\text{DPO}}=-\log\sigma\left(\beta\left[\log\frac{\pi\_\theta(y^+\mid x)}{\pi\_{\text{ref}}(y^+\mid x)}-\log\frac{\pi\_\theta(y^-\mid x)}{\pi\_{\text{ref}}(y^-\mid x)}\right]\right).
 \\]
 
 直觉是：提高 chosen 相对于 reference 的相对概率，同时降低 rejected 的相对概率。DPO 的优点是使用熟悉的监督训练基础设施，批处理简单，训练曲线更易观察，适合拥有静态偏好数据的团队。它并没有消除对齐问题，只是把 reward model 和在线策略优化的复杂度部分转移到了偏好数据质量和超参数上。
 
-这个目标可以从更一般的设定推出来。在 KL 正则化的奖励最大化问题中，最优策略与奖励之间存在解析关系：\(\pi^*(y\mid x)\propto\pi_{ref}(y\mid x)\exp(r(x,y)/\beta)\)。把它反解，就能用策略与参考模型的概率比表示奖励，于是偏好似然可以只写成两个策略的比值，不再需要显式训练奖励模型。这也是 DPO 名字的由来：语言模型本身隐式地是一个奖励模型。理解这条推导有一个实际好处——它说明 DPO 的隐含假设（参考模型是“中性”的锚点）一旦不成立，目标就不再等价于原来的偏好优化，这也是它与 PPO 路线在数据要求上不同的根源。
+这个目标可以从更一般的设定推出来。在 KL 正则化的奖励最大化问题中，最优策略与奖励之间存在解析关系：\\(\pi^*(y\mid x)\propto\pi_{ref}(y\mid x)\exp(r(x,y)/\beta)\\)。把它反解，就能用策略与参考模型的概率比表示奖励，于是偏好似然可以只写成两个策略的比值，不再需要显式训练奖励模型。这也是 DPO 名字的由来：语言模型本身隐式地参数化了奖励。
+
+DPO 的这条等价推导依赖偏好概率可由 Bradley–Terry（或论文讨论的 Plackett–Luce）模型表示，并以 KL 正则化的奖励最大化为原始优化问题 [[12]](#ref-12)。参考模型用于定义正则化锚点，不需要是价值意义上的“中性模型”。实践中的另一类风险来自数据覆盖：若偏好对由与目标策略差异很大的行为策略生成，有限的离线样本可能无法覆盖新策略会访问的回答区域，此时隐式奖励在分布外区域缺少可靠证据。这个覆盖问题影响离线优化的可信度，但不是把“参考模型中性”补成理论前提。
 
 ### IPO、KTO 与 ORPO
 
@@ -211,12 +217,13 @@ DPO中的序列log概率是所选response token条件log概率的和。chosen/re
 
 较长回答包含更多负log概率项，直接求和、逐token平均和其他长度归一化定义不是同一目标。不能在实现中随意将sum改mean，再继续声称精确复现原始DPO。beta是偏好目标与参考约束设定的一部分，也不等于生成温度。偏好更高是相对变化，不能据此保证chosen绝对概率每次都上升，更不能证明外部任务已成功。
 
+<a id="rlvr"></a>
 ## 3.6 RLVR、GRPO 与可验证奖励
 
 
 ### 可验证奖励为什么改变了训练对象
 
-偏好奖励适合“哪个回答更好”，但复杂数学、代码和规划任务往往有更客观的验收。RLVR 使用程序、测试、证明检查器或环境状态提供奖励 [[18]](#ref-18)。DeepSeekMath 展示了 GRPO 等相对策略优化方法与数学验证奖励的结合 [[19]](#ref-19)；GSM 类任务和代码执行环境则提供了可自动判定的答案或通过率。
+偏好奖励适合“哪个回答更好”，但复杂数学、代码和规划任务往往有更客观的验收。Tülu 3 将使用确定性验证函数进行强化学习的阶段称为 Reinforcement Learning with Verifiable Rewards（RLVR），并把它用于数学和可精确检查的指令遵循任务 [[18]](#ref-18)。DeepSeek-R1 使用基于规则的准确性与格式奖励训练数学、代码和逻辑推理能力，是同类的可验证奖励实践，但其报告没有把 RLVR 作为方法名称 [[19]](#ref-19)。DeepSeekMath 则展示了 GRPO 与数学验证奖励的结合 [[20]](#ref-20)。
 
 结果奖励可以写成：
 
@@ -228,21 +235,21 @@ R(x,y)=\mathbf{1}[V(x,y)=1]-\lambda\,\text{cost}(y),
 
 ### 结果奖励、过程奖励与验证器
 
-只在最终答案上给奖励，信用分配会很困难：一条长推理可能在最后一步出错，模型不知道前面哪些步骤有价值。过程奖励模型尝试对中间步骤逐步评价；Let’s Verify Step by Step 说明过程级验证可以帮助数学推理训练 [[20]](#ref-20)。但过程奖励也可能把某种表面推理风格当作正确，或者让模型过度拆步骤。
+只在最终答案上给奖励，信用分配会很困难：一条长推理可能在最后一步出错，模型不知道前面哪些步骤有价值。过程奖励模型尝试对中间步骤逐步评价；Let’s Verify Step by Step 说明过程级验证可以帮助数学推理训练 [[21]](#ref-21)。但过程奖励也可能把某种表面推理风格当作正确，或者让模型过度拆步骤。
 
-验证器必须视为生产代码审查。它可能覆盖不足、存在解析漏洞、只检查最终数字而不检查约束，或被模型反向利用。Training Verifiers 的研究说明，验证器本身需要训练、校准和对抗评估 [[21]](#ref-21)。工程上要记录 false positive、false negative、测试覆盖和版本变化，不能因为自动化就把 verifier 当作事实真理。
+本章关注验证器怎样形成训练信号：验证器可能需要训练、校准和对抗评估，也可能是无需学习的确定性程序。Training Verifiers 的研究展示了训练结果验证器的路线 [[22]](#ref-22)。工程上要记录 false positive、false negative、测试覆盖和版本变化，防止策略针对覆盖漏洞优化。训练完成后，如何在一次请求中用冻结版本的验证器筛选候选、引导搜索和决定停止，见[第 4 章 4.6 节](04-reasoning-generation-algorithms.md#verifier)。
 
 ### GRPO、组内奖励与冷启动
 
-DeepSeekMath的GRPO为同一问题采样一组回答，用组内奖励构造相对优势，减少独立critic的需求。以结果监督为例，\\(\hat A_i=(R_i-\overline R)/(\operatorname{std}(R)+\varepsilon)\\)，该回答token沿用相对优势，再结合策略比和正则化目标更新。这里的epsilon是数值稳定约定，具体实现须记录；如果整组全对或全错，中心化后的奖励没有区分信号，不能指望仅靠分母修复探索。[[19]](#ref-19)
+DeepSeekMath的GRPO为同一问题采样一组回答，用组内奖励构造相对优势，减少独立critic的需求。以结果监督为例，\\(\hat A_i=(R_i-\overline R)/(\operatorname{std}(R)+\varepsilon)\\)，该回答token沿用相对优势，再结合策略比和正则化目标更新。这里的epsilon是数值稳定约定，具体实现须记录；如果整组全对或全错，中心化后的奖励没有区分信号，不能指望仅靠分母修复探索。[[20]](#ref-20)
 
 组大小、奖励难度和题目分布共同决定有效信号。若底座几乎无法生成正确格式或任何成功候选，增加组采样也可能徒增计算；若问题太简单全组成功，同样缺乏相对区分。先测可解析率、非零奖励组比例与多样性，再决定补SFT、调整难度或增加探索，这是本书的选型建议，非一种保证收敛的规则。
 
-R1报告v1区分直接从底座进行RL的R1-Zero与加入冷启动数据的R1；后者用少量整理过的长推理样本改善初始格式与可读性，不能把前者的实验写成“任何任务都不需要SFT”。[[18]](#ref-18) 工具参数和状态协议严格时，先用示范建立合法行为基线常更易诊断；是否冷启动应由底座与任务证据决定，不是PPO和GRPO各自永久绑定的属性。
+R1 报告区分直接从底座进行 RL 的 R1-Zero 与加入冷启动数据的 R1；后者用整理过的推理样本改善初始格式与可读性，不能把前者的实验写成“任何任务都不需要 SFT” [[19]](#ref-19)。工具参数和状态协议严格时，先用示范建立合法行为基线常更易诊断；是否冷启动应由底座与任务证据决定，不是 PPO 和 GRPO 各自永久绑定的属性。
 
 ### 工具调用：可验证奖励的一类任务
 
-工具调用训练要让模型学会选择工具、填充参数、处理返回值、在失败后重试。Toolformer 研究让模型学习在适当位置调用工具 [[22]](#ref-22)，ReAct 把推理与行动交替组织成轨迹，使模型能根据观察更新下一步 [[23]](#ref-23)。这些工作解决的是“模型如何与环境交互”，不涉及“模型是否拥有权限”。
+工具调用训练要让模型学会选择工具、填充参数、处理返回值、在失败后重试。Toolformer 研究让模型学习在适当位置调用工具 [[23]](#ref-23)，ReAct 把推理与行动交替组织成轨迹，使模型能根据观察更新下一步 [[24]](#ref-24)。这些工作解决的是“模型如何与环境交互”，不涉及“模型是否拥有权限”。
 
 训练数据应覆盖成功、失败、超时、被拒绝、部分结果和需要确认的分支；工具 schema、参数类型、错误码必须与线上接口一致，否则模型学到的是不可执行的假协议。有副作用的动作仍需运行时的权限与审批，训练中较高的调用准确率不构成执行授权。
 
@@ -252,21 +259,21 @@ R1报告v1区分直接从底座进行RL的R1-Zero与加入冷启动数据的R1�
 
 ### Constitutional AI 的思路
 
-人类不可能穷举所有危险请求，也难以对每个回答写出统一标准。Constitutional AI 用一组明确原则指导模型批评和改写自己的回答，再利用这些比较构造 AI feedback [[24]](#ref-24)。原则可以描述无害、诚实、尊重隐私、避免越权、在安全范围内提供帮助等要求。
+人类不可能穷举所有危险请求，也难以对每个回答写出统一标准。Constitutional AI 用一组明确原则指导模型批评和改写自己的回答，再利用这些比较构造 AI feedback [[25]](#ref-25)。原则可以描述无害、诚实、尊重隐私、避免越权、在安全范围内提供帮助等要求。
 
 它的核心流程是：模型生成初始回答；根据原则指出风险；生成修订回答；比较初始与修订版本；用这些偏好训练模型。这样做把“安全标准”从隐含的标注习惯变成可审阅的文本规则，便于版本管理和回归测试。
 
 ### RLAIF 的优势与盲点
 
-RLAIF 用 AI judge 代替或补充人工标注，可以降低成本、提高一致性并覆盖更多样本 [[25]](#ref-25)。但 judge 与被训练模型可能共享相同错误，形成同质化反馈；judge 可能偏好更长、更礼貌或更像自身的答案；对复杂事实和隐晦攻击，judge 也可能失效。人类反馈的稀缺性没有消失，只是从逐条标注转移到原则设计、抽样审计和困难案例审核。
+RLAIF 用 AI judge 代替或补充人工标注，可以降低成本、提高一致性并覆盖更多样本 [[26]](#ref-26)。但 judge 与被训练模型可能共享相同错误，形成同质化反馈；judge 可能偏好更长、更礼貌或更像自身的答案；对复杂事实和隐晦攻击，judge 也可能失效。人类反馈的稀缺性没有消失，只是从逐条标注转移到原则设计、抽样审计和困难案例审核。
 
-安全对齐至少要区分三种行为：允许且有帮助、拒绝且解释边界、拒绝后仍提供安全替代方案。只有“拒绝率”一个指标会奖励过度拒答。HHH 数据集把 helpful、harmless、honest 作为不同评价维度，适合用来说明三者并不总是同向 [[26]](#ref-26)。例如用户请求安全分析恶意代码时，完全拒绝可能损害帮助性；直接给出可执行攻击脚本又可能越过安全边界。
+安全对齐至少要区分三种行为：允许且有帮助、拒绝且解释边界、拒绝后仍提供安全替代方案。只有“拒绝率”一个指标会奖励过度拒答。HHH 数据集把 helpful、harmless、honest 作为不同评价维度，适合用来说明三者并不总是同向 [[27]](#ref-27)。例如用户请求安全分析恶意代码时，完全拒绝可能损害帮助性；直接给出可执行攻击脚本又可能越过安全边界。
 
 安全数据的分层比总体的“安全率”更能说明问题。至少区分四类：明确违规（必须拒绝并解释）、边界请求（需要澄清或提供受限帮助）、正常但敏感的请求（应当正常完成）、攻击性输入（越狱、注入、隐私抽取）。四类的正确行为不同，把它们混成一个“安全/不安全”标签，会同时奖励过度拒答和放任违规。评估也要分开报告：违规放行率、正常请求误拒率、边界请求的澄清率、攻击阻断率，四者不能互相抵消。
 
 ### 权重对齐不等于系统安全
 
-模型可以学会说“我不能帮助你”，但它仍可能通过工具调用、编码变换或多轮诱导泄露危险信息。生产安全必须由模型之外的控制层承担，包括输入分类、输出审查、参数白名单、速率限制、审计日志与回滚。Llama 2 的安全评估展示了红队、自动测试和人工分析的组合方式 [[27]](#ref-27)，但任何公开安全报告都不能替代目标系统自己的威胁模型。
+模型可以学会说“我不能帮助你”，但它仍可能通过工具调用、编码变换或多轮诱导泄露危险信息。生产安全必须由模型之外的控制层承担，包括输入分类、输出审查、参数白名单、速率限制、审计日志与回滚。Llama 2 的安全评估展示了红队、自动测试和人工分析的组合方式 [[28]](#ref-28)，但任何公开安全报告都不能替代目标系统自己的威胁模型。
 
 安全训练数据还会带来分布迁移。线上用户可能使用不同语言、隐喻、拼写错误或多轮上下文；攻击者会针对拒答模板做变形。因而安全回归应包含越狱、提示注入、隐私抽取、工具越权和多轮状态攻击，并记录攻击成功率、误伤率与响应延迟。
 
@@ -279,11 +286,11 @@ RLAIF 用 AI judge 代替或补充人工标注，可以降低成本、提高一�
 
 后训练评估至少分为四层。第一层是格式与协议：角色边界、JSON 合法性、工具参数、停止条件；第二层是任务质量：正确性、完整性、代码执行、数学验证、事实引用；第三层是偏好与交互：帮助性、简洁性、诚实、澄清和多轮一致性；第四层是风险：拒答边界、越狱、隐私、工具越权和分布外输入。
 
-每层都要有正例、难例和负例。只测试“正常问题回答得好不好”，无法发现模型在错误前提、冲突指令、超长上下文和工具失败时的行为。Llama 2 和 HHH 数据集提供了把帮助性、无害性和诚实分开评价的实践参考 [[27]](#ref-27)[[26]](#ref-26)。
+每层都要有正例、难例和负例。只测试“正常问题回答得好不好”，无法发现模型在错误前提、冲突指令、超长上下文和工具失败时的行为。Llama 2 和 HHH 数据集提供了把帮助性、无害性和诚实分开评价的实践参考 [[28]](#ref-28)[[27]](#ref-27)。
 
 ### LLM-as-a-Judge 的使用边界
 
-LLM judge 可以快速比较开放式回答，MT-Bench 和 Chatbot Arena 研究系统讨论了 judge 与人类偏好的关系以及位置、长度和模型自偏差 [[28]](#ref-28)。它适合做大规模筛选和回归趋势，不适合单独作为高风险事实或权限决策。使用 judge 时要固定 prompt、随机化答案顺序、做人工抽样、测试不同语言和长度，并报告与人工标注的相关性。
+LLM judge 可以快速比较开放式回答，MT-Bench 和 Chatbot Arena 研究系统讨论了 judge 与人类偏好的关系以及位置、长度和模型自偏差 [[29]](#ref-29)。它适合做大规模筛选和回归趋势，不适合单独作为高风险事实或权限决策。使用 judge 时要固定 prompt、随机化答案顺序、做人工抽样、测试不同语言和长度，并报告与人工标注的相关性。
 
 能程序化验证的任务应优先程序化：代码执行、JSON schema、SQL 结果、数学答案、工具状态和引用链接。开放式质量再使用 judge 辅助。这样可以减少“模型评价模型”的循环偏差，也让失败样本能够回放。
 
@@ -296,7 +303,7 @@ LLM judge 可以快速比较开放式回答，MT-Bench 和 Chatbot Arena 研究�
 
 ### 根据问题选择方法
 
-可以用以下映射做初筛：如果模型不知道任务格式，先做 SFT；如果模型会做任务但多个答案质量差异明显，加入偏好数据；如果只有好坏标签而没有成对回答，考虑 KTO；如果有可靠程序验收，优先 RLVR 或直接把验证器接入推理；如果问题来自动态事实，使用 RAG 或工具；如果问题是权限和副作用，使用运行时控制；如果问题是复杂任务成功率和延迟权衡，测量 test-time scaling。
+可以用以下映射做初筛：如果模型不知道任务格式，先做 SFT；如果模型会做任务但多个答案质量差异明显，加入偏好数据；如果只有好坏标签而没有成对回答，考虑 KTO；如果有可靠程序验收，可以用 RLVR 形成训练信号，也可以按[第 4 章 4.6 节](04-reasoning-generation-algorithms.md#verifier)在推理时直接筛选候选；如果问题来自动态事实，使用 RAG 或工具；如果问题是权限和副作用，使用运行时控制；如果问题是复杂任务成功率和延迟权衡，测量 test-time scaling。
 
 这张映射表的价值在于防止“训练万能化”。后训练适合改变稳定、可重复的模型行为，不适合保存经常变化的事实和状态。它可以提高工具参数生成，但不能授予数据库权限；可以让模型更愿意说明不确定性，但不能保证每个事实正确；可以学会推理轨迹，但不能替代测试和人工验收。
 
@@ -335,11 +342,13 @@ LLM judge 可以快速比较开放式回答，MT-Bench 和 Chatbot Arena 研究�
 
 ### 从固定底座到受控发布
 
-将同一底座的 SFT、SFT 加 DPO、SFT 加在线 RL 作为可比较路线，固定留出任务和总预算，分别计入数据标注、候选生成、训练、评估与失败重跑。中文和混合协议需要自己的切片，InternLM2 等报告提供了分层观察的参考，不能用英文总分替代本地任务。[[29]](#ref-29) 每次只改变主要因素并保留旧版本，才能解释差异。
+将同一底座的 SFT、SFT 加 DPO、SFT 加在线 RL 作为可比较路线，固定留出任务和总预算，分别计入数据标注、候选生成、训练、评估与失败重跑。中文和混合协议需要自己的切片，InternLM2 等报告提供了分层观察的参考，不能用英文总分替代本地任务。[[30]](#ref-30) 每次只改变主要因素并保留旧版本，才能解释差异。
 
 发布记录绑定底座、Tokenizer、模板、数据、reference、reward/verifier 与推理参数；离线回归通过后再进入灰度。正常成功率、误拒率、格式通过率与成本须同时满足门槛，严重异常触发停止与回退。该流程是本书工程建议，没有实际线上灰度结果。
 
-### 练习卡 Q263：SFT标签与工具轨迹对齐
+<a id="q263"></a>
+
+### 练习 3.1：SFT 标签与工具轨迹对齐
 
 **状态：设计完成；独立实现未提供，未实测。** 输入包含普通问答、多轮工具成功、权限拒绝、提交超时未知四类教学对话，固定Tokenizer/模板与最大长度。输出input_ids、角色区间、labels、Attention/loss mask及有效目标数；按3.2的占位token案例打印每个logits位置预测的目标，区分库内部shift和外部shift两种接口。
 
@@ -351,7 +360,7 @@ LLM judge 可以快速比较开放式回答，MT-Bench 和 Chatbot Arena 研究�
 
 后训练从SFT的示范学习，到偏好优化，再到基于环境与验证的反馈，改变的是生成行为。样本边界决定哪些token被学习，优势和奖励决定哪些动作被鼓励，独立回归决定这些变化能否用于目标任务。Reward不是成功证明，critic不是事实库，reference也不是权限系统。
 
-预训练的交叉熵与KL定义在本章分别进入监督和正则化目标；模型结构的结构与能力边界在本章的训练目标里继续生效。下一章转向生成、搜索和验证，研究一次请求怎样在明确预算内得到更可靠的候选，而不把继续训练当作所有问题的答案。
+第 2 章介绍的交叉熵与 KL 在本章分别进入监督目标和正则化目标，第 1 章说明的模型结构边界仍然约束后训练能学到的行为。第 4 章转向生成、搜索和推理期验证，研究一次请求怎样在明确预算内得到更可靠的候选；第 6 章再讨论如何选择全量微调、参数高效微调及其他模型适配方式。
 
 ## 3.10 参考资料
 
@@ -367,20 +376,21 @@ LLM judge 可以快速比较开放式回答，MT-Bench 和 Chatbot Arena 研究�
 10. <a id="ref-10"></a> Schulman et al.，[High-Dimensional Continuous Control Using Generalized Advantage Estimation](https://arxiv.org/html/1506.02438v6)，2015 preprint / v6。核验日期：2026-10-16。
 11. <a id="ref-11"></a> Farama Foundation，[Gymnasium: Handling Time Limits](https://gymnasium.farama.org/tutorials/gymnasium_basics/handling_time_limits/)，checked 2026-10-16。核验日期：2026-10-16。
 12. <a id="ref-12"></a> Rafailov, R., et al，[Direct Preference Optimization: Your Language Model is Secretly a Reward Model](https://arxiv.org/abs/2305.18290)，2023。核验日期：2026-10-16。
-13. <a id="ref-13"></a> Azar, M. G., et al，[A General Theoretical Paradigm to Understand Learning from Human Preferences](https://arxiv.org/abs/2310.12036)，2036。核验日期：2026-10-16。
+13. <a id="ref-13"></a> Azar, M. G., et al，[A General Theoretical Paradigm to Understand Learning from Human Preferences](https://arxiv.org/abs/2310.12036)，2023。核验日期：2026-10-16。
 14. <a id="ref-14"></a> Ethayarajh, K., et al，[KTO: Model Alignment as Prospect Theoretic Optimization](https://arxiv.org/abs/2402.01306)，2024。核验日期：2026-10-16。
 15. <a id="ref-15"></a> Hong, J., et al，[ORPO: Monolithic Preference Optimization without Reference Model](https://arxiv.org/abs/2403.07691)，2024。核验日期：2026-10-16。
 16. <a id="ref-16"></a> Cui, G., et al，[UltraFeedback: Boosting Language Models with Scaled AI Feedback](https://arxiv.org/abs/2310.01377)，2024 / v2。核验日期：2026-10-16。
 17. <a id="ref-17"></a> Tunstall, L., et al，[Zephyr: Direct Distillation of LM Alignment](https://arxiv.org/abs/2310.16944)，2023。核验日期：2026-10-16。
-18. <a id="ref-18"></a> Guo, D., et al，[DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning](https://arxiv.org/html/2501.12948v1)，2025 / v1。核验日期：2026-10-16。
-19. <a id="ref-19"></a> Shao, Z., et al，[DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models](https://arxiv.org/abs/2402.03300)，2024。核验日期：2026-10-16。
-20. <a id="ref-20"></a> Lightman, H., et al，[Let’s Verify Step by Step](https://arxiv.org/abs/2305.20050)，2005。核验日期：2026-10-16。
-21. <a id="ref-21"></a> Cobbe, K., et al，[Training Verifiers to Solve Math Word Problems](https://arxiv.org/abs/2110.14168)，2021。核验日期：2026-10-16。
-22. <a id="ref-22"></a> Schick, T., et al，[Toolformer: Language Models Can Teach Themselves to Use Tools](https://arxiv.org/abs/2302.04761)，2023。核验日期：2026-10-16。
-23. <a id="ref-23"></a> Yao, S., et al，[ReAct: Synergizing Reasoning and Acting in Language Models](https://arxiv.org/abs/2210.03629)，2023。核验日期：2026-10-16。
-24. <a id="ref-24"></a> Bai, Y., et al，[Constitutional AI: Harmlessness from AI Feedback](https://arxiv.org/abs/2212.08073)，2022。核验日期：2026-10-16。
-25. <a id="ref-25"></a> Lee, H., et al，[RLAIF vs. RLHF: Scaling Reinforcement Learning from Human Feedback with AI Feedback](https://arxiv.org/abs/2309.00267)，2024 / v3。核验日期：2026-10-16。
-26. <a id="ref-26"></a> Askell, A., et al，[A General Language Assistant as a Laboratory for Alignment](https://arxiv.org/abs/2112.00861)，2021。核验日期：2026-10-16。
-27. <a id="ref-27"></a> Touvron, H., et al，[Llama 2: Open Foundation and Fine-Tuned Chat Models](https://arxiv.org/abs/2307.09288)，2023。核验日期：2026-10-16。
-28. <a id="ref-28"></a> Zheng, L., et al，[Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena](https://arxiv.org/abs/2306.05685)，2023。核验日期：2026-10-16。
-29. <a id="ref-29"></a> InternLM Team，[InternLM2 Technical Report](https://arxiv.org/abs/2403.17297)，2024。核验日期：2026-10-16。
+18. <a id="ref-18"></a> Lambert, N., et al，[Tülu 3: Pushing Frontiers in Open Language Model Post-Training](https://arxiv.org/abs/2411.15124)，2024（v5 修订于 2025）。核验日期：2026-10-25。
+19. <a id="ref-19"></a> Guo, D., et al，[DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning](https://arxiv.org/html/2501.12948v1)，2025 / v1。核验日期：2026-10-16。
+20. <a id="ref-20"></a> Shao, Z., et al，[DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models](https://arxiv.org/abs/2402.03300)，2024。核验日期：2026-10-16。
+21. <a id="ref-21"></a> Lightman, H., et al，[Let’s Verify Step by Step](https://arxiv.org/abs/2305.20050)，2023。核验日期：2026-10-16。
+22. <a id="ref-22"></a> Cobbe, K., et al，[Training Verifiers to Solve Math Word Problems](https://arxiv.org/abs/2110.14168)，2021。核验日期：2026-10-16。
+23. <a id="ref-23"></a> Schick, T., et al，[Toolformer: Language Models Can Teach Themselves to Use Tools](https://arxiv.org/abs/2302.04761)，2023。核验日期：2026-10-16。
+24. <a id="ref-24"></a> Yao, S., et al，[ReAct: Synergizing Reasoning and Acting in Language Models](https://arxiv.org/abs/2210.03629)，2023。核验日期：2026-10-16。
+25. <a id="ref-25"></a> Bai, Y., et al，[Constitutional AI: Harmlessness from AI Feedback](https://arxiv.org/abs/2212.08073)，2022。核验日期：2026-10-16。
+26. <a id="ref-26"></a> Lee, H., et al，[RLAIF vs. RLHF: Scaling Reinforcement Learning from Human Feedback with AI Feedback](https://arxiv.org/abs/2309.00267)，2024 / v3。核验日期：2026-10-16。
+27. <a id="ref-27"></a> Askell, A., et al，[A General Language Assistant as a Laboratory for Alignment](https://arxiv.org/abs/2112.00861)，2021。核验日期：2026-10-16。
+28. <a id="ref-28"></a> Touvron, H., et al，[Llama 2: Open Foundation and Fine-Tuned Chat Models](https://arxiv.org/abs/2307.09288)，2023。核验日期：2026-10-16。
+29. <a id="ref-29"></a> Zheng, L., et al，[Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena](https://arxiv.org/abs/2306.05685)，2023。核验日期：2026-10-16。
+30. <a id="ref-30"></a> InternLM Team，[InternLM2 Technical Report](https://arxiv.org/abs/2403.17297)，2024。核验日期：2026-10-16。

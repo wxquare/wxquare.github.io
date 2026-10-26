@@ -1,4 +1,4 @@
-# 第10章 数据与评估平台：从数据产品到反馈闭环
+# 第11章 评估与反馈闭环
 
 模型上线之后，最难的问题往往不是“还能不能调用”，而是“这次变化是否真的变好”。数据版本变化、提示模板变化、检索结果变化、模型量化变化、用户分布变化和工具失败，都会让质量指标发生变化。没有数据与评估 Infra，团队只能凭少量示例和主观感受发布模型，问题通常会在生产流量和长期反馈中才暴露。
 
@@ -14,7 +14,7 @@
 | 线上反馈能否回流 | 采样、脱敏、去偏、失败分类 | 任务编排与状态恢复 |
 | 是否允许发布 | evidence bundle、质量门禁、回滚条件 | 组织级风险接受和审计签署 |
 
-## 10.1 对象模型与版本化评估记录
+## 11.1 对象模型与版本化评估记录
 
 ### 从数据文件到数据产品
 
@@ -49,27 +49,29 @@ experiment 表示一个假设，run 表示一次具体执行，evaluation run �
 ```yaml
 case:
   schema_version: eval-case/v1
-  case_id: invoice-extraction-017
+  case_id: refund-readonly-017
   case_version: 3
   input_ref: controlled://eval-2026-10-17/sample-017
   content_hash: "sha256:<sample-content>"
-  dataset_snapshot: eval-invoice/holdout-v4
+  dataset_snapshot: eval-refund/holdout-v4
   split: test
-  group_id: document-family-017
-  environment_snapshot: extraction-fixture-v6
+  group_id: conversation-017
+  authorization_snapshot: policy-v8/tenant-a/readonly
+  environment_snapshot: sandbox-fixture-v6
   expected_constraints:
-    - "输出符合 invoice-schema/v3"
-    - "invoice_id、currency 与 total 必须有输入证据；缺失字段返回 null"
-  rubric_version: invoice-extraction-rubric/v5
-  evaluator_artifact: structured-extraction-evaluator/v2
-  slices: [zh, long-document, missing-field]
+    - "回答必须引用授权政策，未知事实要标明"
+    - "禁止创建退款或调用写工具"
+  rubric_version: refund-rubric/v5
+  evaluator_artifact: factuality-judge/v2
+  slices: [zh, long-context, no-write]
   budget: {max_attempts: 2, max_tokens: 6000, deadline_seconds: 90}
+  side_effect_mode: recorded-read-only
   owner: eval-owner
 execution:
   eval_run_id: evaluation-run-example
   candidate_manifest: model-manifest-v9
   baseline_manifest: model-manifest-v8
-  protocol_version: structured-extraction-protocol/v3
+  protocol_version: refund-protocol/v3
   runtime_manifest: engine-hardware-fixture-v2
   seed: 42
   attempt: 1
@@ -77,19 +79,19 @@ result:
   state: completed
   output_ref: controlled://evaluation-run-example/output-017
   output_hash: "sha256:<output-content>"
-  observations: {schema_valid: true, field_accuracy: 0.75, evidence_coverage: 1.0}
+  observations: {schema_valid: true, writes_attempted: 0, evidence_coverage: 1.0}
   task_outcome: failed
-  task_reason: currency_mismatch
-  model_scores: {field_accuracy: 0.75, evidence_grounding: 1.0}
+  task_reason: required_policy_condition_missing
+  model_scores: {fluency: 4, factuality: 2}
   evaluator_state: valid
   tokens: {input: 3200, output: 240}
   evidence_ref: controlled://evaluation-run-example/trace-017
   gate: blocked
 ```
 
-记录中 `completed` 只说明评估执行结束，任务仍可 `failed`；schema 合法与证据覆盖完整也不能抵消币种字段错误。`expected_constraints` 是任务验收规格；若实验要求裁判预测人工合格标签，待预测标签必须放在评分侧，不能渲染进裁判输入。`input_ref` 与 `output_ref` 受控且有保留期，hash 和结果摘要用于追踪而非扩散原文；环境、模型和评估器快照共同决定结果可复核范围。这个案例只测模型结构化抽取，不要求读者先理解工具、业务 Run 或 MCP。
+记录中completed只说明评估执行结束，任务仍可failed；语言流畅4分不能覆盖“缺必要条件”或非法写操作。expected_constraints可以作为任务验收规格，但若某个实验是让裁判预测人工合格标签，待预测标签必须放在评分侧，不能渲染进裁判输入。input_ref与output_ref受控且有保留期，哈希和结果摘要用于追踪而非扩散原文。工具返回、权限和环境快照决定结果可复核范围；删除内容后保留受限审计记录，标记该样本不能原样重跑。
 
-## 10.2 数据版本、血缘与划分边界
+## 11.2 数据版本、血缘与划分边界
 
 ### 不可变 snapshot
 
@@ -139,7 +141,7 @@ schema 校验要分为阻断级、警告级和观察级。输入字段缺失、�
 
 切分单位优先是会话、文档、实体或来源群组，而不是单行：同一对话改写后分到两边，可能仍泄漏。先构建近重复群组再整体分配；跨时间任务使用截止点，并检查未来信息、答案字段和检索索引是否流入输入。生成样本也必须标注生成器版本与父样本，不能把同一模板的轻微扰动当大量独立样本。模型生成候选可降低收集成本，人工仍需核实期望、授权、无答案和拒绝边界。基准公开不保证未被预训练看到，私有数据也不自动排除重复或标注传播。
 
-## 10.3 数据处理、标注与质量门禁
+## 11.3 数据处理、标注与质量门禁
 
 ### 分区、并行和重试
 
@@ -195,7 +197,7 @@ schema 校验要分为阻断级、警告级和观察级。输入字段缺失、�
 
 可观测性也要保护数据。metric label 不放原文、用户 id 或自由文本；trace event 使用 sample hash 与敏感等级；错误日志按规则脱敏。权限不同的用户看到不同粒度，质量 owner 可以看聚合和受控样本，平台 operator 可以看资源和错误但不一定看内容。观测系统本身不能成为数据泄漏路径。
 
-## 10.4 评估集、指标与统计不确定性
+## 11.4 评估集、指标与统计不确定性
 
 ### 固定回归集
 
@@ -263,7 +265,59 @@ Hoeffding 在 alpha=.05、n=320 时半宽约 15.18 个百分点，压到 2 个�
 
 对于独立同分布的配对二元结果，差值为“改善对概率−退化对概率”。下面分别对两个不一致单元格的边际二项率求精确界，再用 Bonferroni 合成：四个单侧界各分配 alpha/4，总覆盖至少 1−alpha。二者同属一个配对表，不要求它们互相独立。二项求根依据 NIST，组合为本书应用推导；Bonferroni 一般不等式不要求事件独立。[[21]](#ref-21)[[23]](#ref-23)
 
-完整实现移至[附录 D：评估统计复算](../appendix/evaluation-statistics.md)。正文只保留方法选择与可复算结果，避免把教学代码误当成平台依赖。
+```python
+from math import exp, fsum, lgamma, log, log1p
+
+def _binom_cdf(k, n, p):
+    if k < 0:
+        return 0.0
+    if k >= n or p == 0:
+        return 1.0
+    if p == 1:
+        return 0.0
+    terms = (exp(lgamma(n + 1) - lgamma(i + 1) - lgamma(n - i + 1)
+                 + i * log(p) + (n - i) * log1p(-p)) for i in range(k + 1))
+    return min(1.0, fsum(terms))
+
+def _cdf_root(k, n, target):
+    lo, hi = 0.0, 1.0
+    for _ in range(70):
+        mid = (lo + hi) / 2
+        if _binom_cdf(k, n, mid) > target:
+            lo = mid
+        else:
+            hi = mid
+    return (lo + hi) / 2
+
+def _cell_bounds(k, n, tail):
+    low = 0.0 if k == 0 else _cdf_root(k - 1, n, 1 - tail)
+    high = 1.0 if k == n else _cdf_root(k, n, tail)
+    return low, high
+
+def paired_binary_interval(pairs, alpha=0.05):
+    # pairs: (baseline_success, candidate_success), one independent case per pair.
+    if not 0 < alpha < 1 or not pairs:
+        raise ValueError("nonempty independent pairs and valid alpha required")
+    if any(a not in (0, 1) or b not in (0, 1) for a, b in pairs):
+        raise ValueError("binary outcomes required")
+    n = len(pairs)
+    gain = sum(a == 0 and b == 1 for a, b in pairs)
+    loss = sum(a == 1 and b == 0 for a, b in pairs)
+    # Four one-sided cell bounds, each with error budget alpha/4.
+    gain_lo, gain_hi = _cell_bounds(gain, n, alpha / 4)
+    loss_lo, loss_hi = _cell_bounds(loss, n, alpha / 4)
+    return {"method": "paired-binomial-bonferroni", "alpha": alpha,
+            "unit": "independent_case", "n": n, "gain": gain, "loss": loss,
+            "delta": (gain - loss) / n,
+            "low": max(-1.0, gain_lo - loss_hi),
+            "high": min(1.0, gain_hi - loss_lo)}
+
+def zero_event_bound(n, alpha=0.05):
+    if not isinstance(n, int) or n <= 0 or not 0 < alpha < 1:
+        raise ValueError("positive independent sample count and valid alpha required")
+    return {"method": "zero-event-binomial-upper", "alpha": alpha,
+            "n": n, "upper": 1 - alpha ** (1 / n)}
+```
 
 这是可独立运行的教学参考，不是最窄的配对 score/exact 区间；生产可选择核验过的 Tango/Newcombe 等配对方法，并记录方法版本。零翻转仍有非零宽度，不使用全零 percentile bootstrap 制造确定性。NIST 的 n=20、4 次事件、90% 区间约为 [0.071354, 0.401029]，可作为单元格求根的交叉校验。固定时点、代表性采样及独立单位的假设不能省略；聚类和反复查看需要另行设计。
 
@@ -299,7 +353,7 @@ n\\approx\\frac{2p(1-p)}{\\delta^{2}}\\left(z_{1-\\alpha/2}+z_{1-\\beta}\\right)
 
 序贯与多切片可能同时存在，错误预算要覆盖两层选择。可先按明确层级守门，仅总体达到事前条件后检验指定切片，或选用能覆盖完整假设族与查看过程的方案；不能各自声称控制 0.05 后忽略组合选择。对同一 case 的多次模型运行，以 case/会话为独立单位保留组内相关性。配对差区间、精确检验和 bootstrap 各有假设，特别是翻转极少时，示意重采样代码不能当作已校准门禁。
 
-## 10.5 LLM-as-Judge与人工校准
+## 11.5 LLM-as-Judge与人工校准
 
 ### 裁判模型的用途
 
@@ -319,7 +373,6 @@ LLM-as-judge 可以在开放式生成任务中提供较便宜的质量评分、p
 
 ### 评估器的依赖治理
 
-评估器本身可能依赖 tokenizer、模型、检索器、规则库、外部 API 和人工指南。每个 evaluator artifact 有版本、输入 schema、输出 schema、随机性、资源需求、适用任务和已知偏差。升级评估器要用历史样本重跑，报告分数变化来自模型还是 evaluator。评估器不可用或输出异常时，任务进入 `evaluator_failed`，不自动给负分或正分。
 
 裁判模型的版本也要纳入模型注册。若 judge 变强或 prompt 改变，历史分数可能不可比；可以保留旧 judge 做桥接，或在报告中说明迁移。高风险门禁使用人工复核和独立规则，避免候选模型和 judge 共享相同偏差。评估平台的可信度取决于对评估器自身的治理。
 
@@ -331,19 +384,21 @@ LLM-as-judge 可以在开放式生成任务中提供较便宜的质量评分、p
 \\kappa=\\frac{p_o-p_e}{1-p_e}.
 \\]
 
-分母 \\(1-p_e\\) 扣除的是按两位标注者各自边际分布计算的机会一致。高表面一致率既可能对应中等 Kappa，也可能对应零或未定义；必须以完整列联表为事实源，不能只给“正类比例”一个数。
+分母 \\(1-p_e\\) 扣除的是“碰巧一致”，所以 Kappa 回答的是“排除随机之后还剩多少一致”。这个修正很关键：一个只有 5% 样本为正类的任务，两人都判“非正类”就能得到 95% 的表面一致率，但 Kappa 会接近 0——因为这种一致几乎全是随机基线带来的。
 
 | \\(p_o\\) | 正类比例 | \\(p_e\\) | \\(\\kappa\\) | 解读 |
 |:---|:---|:---|:---|:---|
-| 0.95 | 两人各 5% 正类 | 0.905 | 约 0.4737 | 表面很高，扣除机会一致后只属中等 |
-| 0.95 | 一人恒负，另一人 5% 正类 | 0.95 | 0 | 所有表面一致都由边际基线解释 |
-| 1.00 | 两人恒负 | 1.00 | 未定义 | 分母为零，不能报告为 1 |
+| 0.95 | 0.05 | 0.905 | 0.47 | 表面很高，扣除基线后只算中等 |
+| 0.90 | 0.50 | 0.50 | 0.80 | 类别均衡时，一致性强得多 |
+| 0.99 | 0.01 | 0.98 | 0.50 | 极端不平衡，需改用其他度量 |
 
-报告还要并列正类一致率、负类一致率与各单元格分母，让读者看见分歧集中在哪一类。AC1 或 PABAK 只有在解释它们怎样改变机会一致假设后才能作为补充，不能为得到更漂亮的数替换主指标。多标注者、多类别或有序标签时使用相应推广；样本量小时报告区间而不是只给点估计。
+多标注者、多类别或有序标签时要用相应的推广（如 Fleiss' Kappa 或加权 Kappa），有序标签还应让“差一级”与“差三级”的惩罚不同。样本量小的时候，Kappa 的区间很宽，报告应给出置信区间而不是一个点估计。
 
 Kappa 低本身不是标注者的问题，往往是任务定义的问题。遇到低一致性，正确的动作是回到指南澄清边界、补充示例、把模糊类别拆分或改为多阶段判断，而不是要求标注者“再认真一点”。若某个类别的争议集中出现，通常说明该类别在业务上也没有清晰定义——这时应当先修定义，再修标签，最后才谈裁判模型。
 
 
+
+评估器本身可能依赖 tokenizer、模型、检索器、规则库、外部 API 和人工指南。每个 evaluator artifact 有版本、输入 schema、输出 schema、随机性、资源需求、适用任务和已知偏差。升级评估器要用历史样本重跑，报告分数变化是模型变化还是 evaluator 变化。评估器不可用或输出异常时，任务进入 evaluator_failed，不应自动给负分或正分。
 
 ### 校准不是让裁判看见目标标签
 
@@ -351,7 +406,7 @@ Kappa 低本身不是标注者的问题，往往是任务定义的问题。遇�
 
 准确率为(TP+TN)/有效数，召回为TP/(TP+FN)，精确率为TP/(TP+FP)，还应观察正常样本正确保留比例TN/(TN+FP)。分母为零记未定义，并检查稀有风险是否根本没覆盖。全判解决也可能在极不平衡数据上准确率很高，但严重漏放召回为零；高风险自动门禁必须按误判代价设置阈值和人工复核，不能采用通用准确率 cutoff。换序盲评、控制答案长度、检查自偏好和多次评分不稳在dev进行，test只评估冻结版本；版本或任务分布变化后重新校准并建立桥接报告 [[25]](#ref-25)。
 
-## 10.6 模型评估与线上反馈闭环
+## 11.6 RAG、工具调用与线上反馈闭环
 
 ### RAG 的组件指标
 
@@ -361,7 +416,9 @@ RAG 任务至少拆成检索、重排、上下文组装、生成和引用。Raga
 
 ### 工具调用与工作流
 
-本章只定义模型评估可以复用的样本、分母、校准和报告接口。多步工具任务还要分别判定终态、过程与安全，使用隔离 fixture 或受控回放，不能把模型 JSON 合法当作业务成功；完整方法见 [Agent Evals](../part3/05-agent-governance-optimization.md#eval-contract)。外部副作用的幂等、未知结果和人工接管由 [Agent Runtime](../part3/03-agent-runtime.md#failure-side-effects)维护，本章不复制其状态机。
+工具评估关心 schema 合法、参数正确、权限正确、执行成功、结果被正确使用、失败后恢复和副作用幂等。单次模型输出 JSON 合法并不等于任务成功；工具可能超时、返回脏数据、重复执行或需要人工审批。评估平台记录 workflow trace，把模型调用、工具调用、状态迁移和最终目标连接起来。
+
+多步任务可以使用最终成功、步骤成功、重试次数、人工接管、总 token、总时延和副作用错误作为指标。测试要包含工具不可用、权限不足、部分成功、重复消息、上下文压缩和模型回退。线上回放不能直接执行真实副作用，应使用 sandbox、mock 或 dry-run，并明确哪些结果可迁移到生产。
 
 ### 反馈采样与主动学习
 
@@ -411,7 +468,7 @@ RAG 任务至少拆成检索、重排、上下文组装、生成和引用。Raga
 
 线上指标受流量、用户、时间和下游系统影响，离线指标受 snapshot、协议和采样影响。报告分别标记 measurement layer，避免把两个数字放进同一个总分。模型发布时可以要求离线硬约束和线上 canary 约束都满足，任何一层失败都触发暂停或人工判断。
 
-## 10.7 评估作业的调度与结果可信度
+## 11.7 评估作业的调度与结果可信度
 
 评估平台自己也是一个批处理系统，但它的交付物不是吞吐，而是**可信的结果**。因此本节只讨论四件事：作业怎么被调度、失败怎么被分类、结果分几级可信、以及它和业务执行之间的边界在哪里。至于评估 job 的缓存实现、存储分层、容量规划与灾备，属于常规批处理工程，不在本书展开。
 
@@ -459,7 +516,7 @@ temperature 大于零时生成具有随机性，服务端可能使用不同 kern
 
 同理，数据 snapshot 的提交标记是应用层协议，不自动获得数据库跨系统 ACID；别名更新要有原子条件，所有分区可见且校验通过后才提交，失败重试不覆盖已接受快照。
 
-## 10.8 质量门禁、发布与验收
+## 11.8 质量门禁、发布与验收
 
 ### 门禁规则
 
@@ -531,13 +588,13 @@ Prompt 变更看似不改模型，却可能改变 token 长度、prefix cache、
 
 确定性不变量优先由单元/性质测试验证，协议和工具错误用契约测试，存储/队列/沙箱用集成测试；开放文本按任务标准和多次评测，不按逐字快照拒绝合理措辞变化。高风险链路补端到端与故障注入，Mock用于控制故障并不替代真实环境验收。规则文件、Skill与prompt也作为版本化配置进入同一套对照。发布决策引用完整report hash和责任人，评估执行completed、HTTP成功、judge高分与业务完成始终是不同事实。
 
-## 10.9 数据与评估闭环总图
+## 11.9 本章小结
 
 评估的规范源是版本化Eval Case、执行记录与不可变报告。数据快照回答使用什么，协议与判定器回答怎样测量，统计与校准回答证据多强，门禁回答谁允许在哪个范围发布。来源提供机制，教学案例提供推演，真实运行需要另行保存环境、样本与结果，三者不能互相替代。
 
 业务执行侧消费这些契约，把它转成可恢复的实际动作；面向轨迹与行为的多步评测沿用这里的样本、分母、校准与报告定义，不另建一套事实源。
 
-## 10.10 核心来源与延伸阅读
+## 11.10 参考资料
 
 1. <a id="ref-1"></a> Zaharia, M., et al. [Resilient Distributed Datasets: A Fault-Tolerant Abstraction for In-Memory Cluster Computing](https://www.usenix.org/conference/nsdi12/technical-sessions/presentation/zaharia). NSDI, 2012. 访问日期：2026-10-17
 2. <a id="ref-2"></a> Dean, J., & Ghemawat, S. [MapReduce: Simplified Data Processing on Large Clusters](https://research.google/pubs/mapreduce-simplified-data-processing-on-large-clusters/). OSDI, 2004. 访问日期：2026-10-17

@@ -2,7 +2,7 @@
 
 模型结构说明了 Transformer 为什么能成为大模型的计算底座，也说明了模型要表现出可迁移的语言、知识和模式能力，结构只是必要条件之一。但“模型变大”本身并不能解释这些能力从何而来：一个随机初始化的 Transformer，为什么经过数万亿 token 的训练后，会表现出语言理解、代码生成、数学表达和一定程度的推理能力？
 
-本章的判断是：基础能力不是参数规模单独带来的属性，而是训练目标、数据分布、Tokenizer、模型规模、算力预算和评估证据共同塑造的结果。预训练让模型学习广泛而稳定的模式，却不直接提供时效事实、可靠引用或可控行为；这些缺口将自然引向后训练的后训练与行为塑形。
+本章的判断是：基础能力不是参数规模单独带来的属性，而是训练目标、数据分布、Tokenizer、模型规模、算力预算和评估证据共同塑造的结果。预训练让模型学习广泛而稳定的模式，却不直接提供时效事实、可靠引用或可控行为；第 3 章将继续讨论后训练如何塑造默认行为。
 
 本章面向有后端和传统机器学习经验、准备进入大模型开发的读者。重点放在能帮助工程决策的知识上：哪些问题由预训练解决，哪些问题其实应该交给后训练或推理系统；数据质量为什么会改变能力上限；Scaling Law 如何变成成本估算；以及怎样判断一个模型是真的学会了能力，还是只是在测试集上复现了训练数据。
 
@@ -22,9 +22,9 @@ P(x_1,\ldots,x_T)=\prod_{t=1}^{T}P(x_t\mid x_{<t}).
 
 ### Seq2Seq、Attention 与 Transformer
 
-Seq2Seq 模型把输入序列编码成隐状态，再由解码器逐步生成输出，推动了机器翻译和端到端序列任务的发展 [[3]](#ref-3)。但单一固定长度的编码向量难以承载长输入，编码器和解码器之间需要一种动态选择信息的机制。模型结构介绍的软对齐缓解了固定向量瓶颈；随后 Transformer 直接以 Self-Attention 为核心，取消了循环结构，并行处理同一序列中的多个位置 [[4]](#ref-4)。
+Seq2Seq 模型把输入序列编码成隐状态，再由解码器逐步生成输出，推动了机器翻译和端到端序列任务的发展 [[3]](#ref-3)。但单一固定长度的编码向量难以承载长输入，编码器和解码器之间需要一种动态选择信息的机制。第 1 章 1.1 节介绍的软对齐缓解了固定向量瓶颈；随后 Transformer 直接以 Self-Attention 为核心，取消了循环结构，并行处理同一序列中的多个位置 [[4]](#ref-4)。
 
-Transformer 的改变不是简单地“换了一个网络层”。循环模型的时间依赖限制了训练吞吐；自注意力允许每个位置直接与其他位置建立关系，使长距离依赖路径从多步递归缩短为一步矩阵运算。代价是注意力矩阵的时间和显存复杂度近似为 \\(O(T^2D)\\)，序列长度增加会迅速放大成本。因此，预训练从一开始就同时是一个算法问题和一个系统问题：模型想看更长上下文，训练和推理系统都必须承担更大的激活、通信和内存压力。
+Transformer 的改变不是简单地“换了一个网络层”。循环模型的时间依赖限制了训练吞吐；自注意力允许每个位置直接与其他位置建立关系，使长距离依赖路径从多步递归缩短为一步矩阵运算。对标准多头自注意力，点积与加权聚合的计算量为 \\(O(BHT^2d_h)\\)；当 \\(Hd_h=D\\) 时可写成 \\(O(BT^2D)\\)。普通实现若物化每个头的分数或概率矩阵，其存储量是 \\(O(BHT^2)\\)，不能把这两个口径写成同一个复杂度。第 1 章 1.5 节介绍的 FlashAttention 通过分块减少高带宽内存读写，并避免在高带宽内存中保存完整分数矩阵，但精确注意力的二次算术项仍然存在。因此，长上下文训练同时受计算、激活和系统实现约束。
 
 ### 预训练成为主范式
 
@@ -44,7 +44,7 @@ GPT-3 进一步展示了大规模自回归模型的上下文学习能力：在�
 \mathcal{L}(\theta)=-\frac{1}{T}\sum_{t=1}^{T}\log p_\theta(x_t\mid x_{<t}).
 \\]
 
-在实现上，模型输出每个位置对词表的 logits，经过 softmax 得到概率，再用交叉熵与真实 token 做比较。优化器只看到“正确 token 的概率是否提高”，并不知道我们以后想让模型会写代码、做数学题或调用工具。后续能力是一个涌现式结果：如果某种结构能够降低大量语料上的平均损失，梯度就会推动模型学习这种结构。
+在实现上，模型输出每个位置对词表的 logits，经过 softmax 得到概率，再用交叉熵与真实 token 做比较。优化器只看到“正确 token 的概率是否提高”，并不知道我们以后想让模型会写代码、做数学题或调用工具。代码模式、数学关系和工具格式等能力由这一训练目标间接诱导；某些能力是否表现为突然出现，还会受到评测指标、阈值和采样方式影响，因此本章不把“涌现”当作无需解释的因果机制。
 
 从机器学习角度看，这相当于用一个参数化分布逼近训练语料分布。模型会同时学习语法约束、词义关系、篇章结构、代码格式、常见事实、问答模式和文档布局。一个代码仓库里的函数调用模式能降低代码 token 的预测损失；一条数学推导中的符号依赖能降低公式 token 的损失；多轮对话中的角色标记能降低特定格式的损失。模型不需要被显式告知“这是一条规则”，只要规则在数据分布中足够稳定，就可能被压缩到参数中。
 
@@ -151,7 +151,7 @@ BPE用高频子词组合缓解稀有词问题，SentencePiece提供从原始句�
 
 测量时记录Tokenizer制品修订、词表与merge文件哈希、normalization、特殊token策略及chat template；分别输出token ID、可见片段、长度和decode后文本。先验证round-trip是否符合该Tokenizer的规范，再比较各语言和代码样本的长度分布。不能把一种Tokenizer的整数ID送给另一模型，也不能假设相同字符串在不同词表下成本相同。上述输入只是待执行测量规约，本章没有编造实测ID或跨模型压缩率。
 
-把教学对话装成“user问退款、assistant给答复”时，角色标记、换行与EOS也是输入契约。模板改变后，正文文字可能不变，模型读到的协议却已变化。预训练可对全部合法位置预测，SFT则可能只监督assistant位置；阶段差异由目标与mask决定，不能仅按数据文件后缀判断。模板与Tokenizer需要和模型权重一起版本化，后训练样本对齐由后训练展开。
+把教学对话装成“user问退款、assistant给答复”时，角色标记、换行与EOS也是输入契约。模板改变后，正文文字可能不变，模型读到的协议却已变化。预训练可对全部合法位置预测，SFT则可能只监督assistant位置；阶段差异由目标与mask决定，不能仅按数据文件后缀判断。模板与Tokenizer需要和模型权重一起版本化；第 3 章展开后训练样本的监督位置与对齐方式。
 
 ### 文档边界、Packing 与样本泄露
 
@@ -173,13 +173,13 @@ Packing 还可能带来评估污染：如果一个训练 block 把不同文档�
 
 Scaling Law 的核心观察是，在一定规模范围内，验证损失会随模型参数量、训练 token 数和计算量以相对平滑的幂律下降 [[20]](#ref-20)。它不是物理定律，也不能保证任何新架构都服从同一曲线，但它提供了一个重要工程工具：在真正投入大规模训练之前，可以用小模型和短训练估算不同预算下的趋势。
 
-为避免与模型结构的隐藏宽度 \\(D\\) 冲突，本节用 \\(P\\) 表示参数量，\\(N_{tok}\\) 表示训练token数，\\(C_{train}\\) 表示训练计算。一个用于说明参数/数据折中的形式是：
+为避免与模型结构的隐藏宽度 \\(D\\) 冲突，本节用 \\(P\\) 表示参数量，\\(N_{tok}\\) 表示训练 token 数，\\(C_{train}\\) 表示训练计算。Kaplan 等分别拟合了模型规模、数据规模和计算规模与损失的幂律关系，并讨论固定计算预算下的配置；其具体表达和拟合区间不能与后续工作互换。[[20]](#ref-20) Hoffmann 等在 Chinchilla 研究中采用参数量与 token 数的联合形式，可概括为：
 
 \\[
-\widehat L(P,N_{tok})=L_\infty+aP^{-\alpha}+bN_{tok}^{-\beta}.
+\widehat{\mathcal{L}}(P,N_{tok})=\mathcal{L}_\infty+aP^{-\alpha}+bN_{tok}^{-\beta}.
 \\]
 
-这类拟合描述给定架构族与数据配方中的经验趋势，不把计算量再当独立变量任意叠加。对普通Dense训练，可在特定计数口径下用 \\(C_{train}\approx6PN_{tok}\\) 作为粗估，长序列Attention、不同算子和稀疏激活会使实际账本偏离。参数与token在固定计算下相互约束，计算最优也不等于推理成本最优。[[20]](#ref-20)[[21]](#ref-21)
+这个联合式属于 Chinchilla 的参数化口径，用于描述给定架构族与数据配方中的经验趋势。[[21]](#ref-21) 对普通 Dense 训练，可在特定计数口径下用 \\(C_{train}\approx6PN_{tok}\\) 作粗估；长序列 Attention、重计算、不同算子和稀疏激活都会使实际账本偏离。参数与 token 在固定计算下相互约束，不能把 Kaplan 与 Chinchilla 的拟合系数、指数或最优比例混用。
 
 实际拟合需要固定Tokenizer、数据分布、优化器和架构族，并报告测量范围与误差。一个实验若同时改变数据质量、参数和训练步数，就不能只归因于参数scaling。不要把经验系数和最优比例照搬到中文业务语料，更不能把验证损失下降直接换算成业务正确率。
 
@@ -187,17 +187,17 @@ Scaling Law 的核心观察是，在一定规模范围内，验证损失会随�
 
 早期行业实践倾向于优先扩大参数量，但 Chinchilla 研究指出，在固定训练计算下，很多大模型实际上训练 token 不足；适当减少参数并增加训练数据，可以得到更低的验证损失 [[21]](#ref-21)。这不是“模型越小越好”，而是说明容量和训练充分度必须成比例设计。
 
-对项目规划可以采用如下顺序：先确定目标推理成本和延迟，得到可接受的激活参数量；再依据目标能力和可获得高质量数据估计训练 token；最后反推训练计算、集群时长和 checkpoint 存储。若数据质量不足，继续堆 token 可能只是重复噪声；若模型容量不足，增加同分布数据的收益会变小；若训练没有收敛，盲目做后训练会把基础缺陷包装成行为问题。
+计算最优只回答给定训练计算下怎样降低训练损失，不自动优化模型上线后的总成本。若同一模型要服务大量请求，参数量会长期影响权重显存、带宽、延迟和每 token 推理成本；工程上可能接受更长的训练，用较小模型处理未来的大量推理需求。反过来，推理量很小或训练窗口受限时，训练成本可能占主导。这里给出决策变量，不声称存在跨模型、跨硬件通用的比例；第 5 章 5.2 节将用明确假设计算参数、token、训练计算和推理需求之间的账本。
 
-需要区分三种“规模”：总参数、激活参数和训练 token。MoE 模型可以拥有更大的总容量而只激活部分参数，但路由和通信有额外代价；密集模型每个 token 都使用全部参数，算力结构简单但激活成本高。后续 Infra 章节会讨论这些选择如何影响并行和部署，本章只保留一个判断原则：训练规模必须和目标能力、数据质量、推理预算一起设计。
+对项目规划可以采用如下顺序：先估计目标推理量、延迟和可接受的激活参数量；再依据目标能力和可获得的高质量数据估计训练 token；最后反推训练计算、集群时长和 checkpoint 存储。若数据质量不足，继续堆 token 可能只是重复噪声；若模型容量不足，增加同分布数据的收益会变小；若训练没有收敛，盲目做后训练会把基础缺陷包装成行为问题。
+
+需要区分三种“规模”：总参数、激活参数和训练 token。MoE 模型可以拥有更大的总容量而只激活部分参数，但路由和通信有额外代价；密集模型每个 token 都使用全部参数，算力结构简单但激活成本高。第 8 章给出 Infra 总览，第 9 章展开训练平台，第 10 章展开推理系统；本章保留的判断原则是，训练规模必须和目标能力、数据质量、推理预算一起设计。
 
 ### Loss 与能力不是一条直线
 
 验证 loss 是重要指标，但它不是所有能力的充分统计量。它对高频 token 和常见格式非常敏感；一个模型可以通过更好地预测模板文本降低 loss，却未必提高少数复杂任务的准确率。反过来，针对数学、代码或工具格式的定向数据可能提高业务能力，却让总体 loss 变化很小。
 
 因此训练曲线应与分层能力曲线一起看：通用 loss、按语言 loss、按领域 loss、长上下文 loss、代码执行成功率、数学答案准确率、结构化输出通过率和安全回归。每一项都要固定评估版本，记录置信区间和样本数量。不能从一次 benchmark 的涨跌推断模型整体进步，尤其当测试集较小、污染未知或评测提示未公开时。
-
-### 规模预算如何落到优化过程
 
 ### Batch、学习率与训练预算
 
@@ -215,7 +215,7 @@ Adam 类优化器用一阶和二阶动量调整每个参数的更新尺度，适
 
 成熟训练项目不会等到最终模型才评估。每隔固定 token 或 step 保存 checkpoint，并对固定小集合执行快速评估：通用语言、中文、多语言、代码、数学、长上下文、格式遵循和安全。遇到 loss spike 时，先区分数据异常、数值不稳定、节点故障、恢复错误和学习率问题；遇到某领域退化时，再检查数据配比、过滤和遗忘，而不是立即扩大模型。
 
-故障归因需要可重放。至少要保存 tokenizer 版本、数据 manifest、采样权重、随机种子、优化器状态、学习率状态、代码版本、配置和评估版本。Checkpoint 只保存模型权重而没有 optimizer state，通常无法严格恢复训练；只保存最后一个 checkpoint，则无法比较退化发生的时间点。训练可观测性属于 Infra 的实现内容，但“哪些状态必须留下”是算法和工程共同决定的。
+故障归因需要可重放。至少要保存 tokenizer 版本、数据 manifest、采样权重、随机种子、优化器状态、学习率状态、代码版本、配置和评估版本。Checkpoint 只保存模型权重而没有 optimizer state，通常无法严格恢复训练；只保存最后一个 checkpoint，则无法比较退化发生的时间点。第 5 章定义恢复训练所需的状态契约，第 9 章展开训练平台如何保存和恢复这些状态。
 
 ## 2.6 数据污染、记忆与隐私
 
@@ -277,31 +277,13 @@ HELM 提倡从准确性、校准、鲁棒性、公平性、偏见、毒性和效
 
 预训练使用大规模、相对广泛的数据，让模型形成语言和领域先验；mid-training 或 continued pretraining 仍然常用 next-token prediction，但把数据分布定向到代码、数学、中文、长上下文或行业语料；post-training 则使用指令、偏好、轨迹和环境反馈，让模型学习“如何按要求行动”。三者的边界不是由文件名决定，而是由目标、数据和损失共同决定。
 
-当问题是“模型完全不知道某领域术语和文档模式”，继续预训练可能有效；当问题是“知道内容但不会按格式回答”，SFT 或结构化解码更合适；当问题是“多个答案都合理但偏好不同”，偏好优化更合适；当问题是“实时事实变化”，检索比重新训练更合适；当问题是“复杂任务一次生成不稳定”，推理时搜索、验证器或推理强化可能更合适。
+本章只保留与预训练直接相关的判断：当模型缺少稳定领域语料中的术语、文档结构或分布模式时，continued pretraining 可以成为候选；验证时必须同时保留通用锚点、目标领域和分布外切片，以观察能力增益与遗忘。指令与偏好问题由第 3 章处理，推理时搜索与验证由第 4 章处理，参数高效适配由第 6 章处理，时效事实则应在系统侧提供可审计证据。
 
-| 缺口 | 优先候选阶段或系统动作 | 数据与验证 |
-| --- | --- | --- |
-| 稳定领域语料与术语缺失 | 继续预训练 / mid-training | 授权领域文档、通用锚点和遗忘评估 |
-| 知识已有但指令、格式或工具轨迹不稳 | SFT，必要时约束解码 | 演示及assistant监督位置，独立任务集 |
-| 多种候选间存在明确偏好 | 偏好优化 | 成对比较与偏好偏差回归 |
-| 任务可验证但复杂 | 推理预算或验证型后训练 | 外部判定、成本与停止条件 |
-| 时效事实与外部状态变化 | 检索或规则 | 来源版本、覆盖范围与证据时效 |
-
-这些是本书的初筛建议，不是由某篇模型报告证明的通用处方。以教学8B企业问答方案为例，先按去重簇冻结授权文档的训练/验证/测试划分，再在相同有效token预算下比较通用与领域配比。记录held-out NLL、领域成功率、通用回归、污染与成本；测试集不能拿去调配比。领域词汇改善但问答格式不稳时，再引入示范，而不是把更多原始文档当作指令数据。这里没有实际训练结果。
-
-### 选择训练还是其他适配手段
-
-可以用三个问题做初筛：
-
-1. 缺的是知识、能力，还是默认行为？
-2. 目标是否需要实时更新和可审计的来源？
-3. 训练成本是否低于长期推理和人工修复成本？
-
-如果答案涉及动态事实或频繁变化的外部状态，优先在系统层解决；如果是稳定的领域语言、格式或推理模式，再考虑训练。训练改变的是参数中的分布，系统手段改变的是一次调用的输入与证据。把两者混为一谈，会得到一个既昂贵又难以回滚的模型。
+以教学 8B 企业问答方案为例，先按去重簇冻结授权文档的训练、验证和测试划分，再在相同有效 token 预算下比较通用与领域配比。记录 held-out NLL、领域成功率、通用回归、污染与成本；测试集不能拿去调配比。领域词汇改善但问答格式不稳时，应转到第 3 章的后训练问题，而不是继续把原始文档当作指令数据。这里没有实际训练结果。
 
 ### 从输入到证据的评审顺序
 
-先查来源与划分，再查目标和有效监督位置，接着查参数、token 与计算预算，最后比较分层评估及成本。单位时间吞吐、有效token比例与单位计算的能力收益是不同指标。算法与Infra应共享数据manifest、更新步定义和评估版本，避免把硬件更忙直接写成学习更有效。恢复训练所需状态和平台实现由训练平台与数据管线展开，本章保留数据与目标的输入契约。
+先查来源与划分，再查目标和有效监督位置，接着查参数、token 与计算预算，最后比较分层评估及成本。单位时间吞吐、有效 token 比例与单位计算的能力收益是不同指标。算法与 Infra 应共享数据 manifest、更新步定义和评估版本，避免把硬件更忙直接写成学习更有效。第 5 章把这些输入契约组成训练流程，第 9 章负责训练平台与数据管线的实现。
 
 ## 2.9 本章小结：能力形成不等于行为可用
 
@@ -318,8 +300,8 @@ HELM 提倡从准确性、校准、鲁棒性、公平性、偏见、毒性和效
 5. <a id="ref-5"></a> Radford, A., et al，[Improving Language Understanding by Generative Pre-Training](https://cdn.openai.com/research-covers/language-unsupervised/language_understanding_paper.pdf)，2018。核验日期：2026-10-16。
 6. <a id="ref-6"></a> Devlin, J., Chang, M.-W., Lee, K., & Toutanova, K，[BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding](https://arxiv.org/abs/1810.04805)，2019。核验日期：2026-10-16。
 7. <a id="ref-7"></a> Raffel, C., et al，[Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer](https://www.jmlr.org/papers/v21/20-074.html)，2020。核验日期：2026-10-16。
-8. <a id="ref-8"></a> Brown, T. B., et al，[Language Models are Few-Shot Learners](https://arxiv.org/abs/2005.14165)，2005。核验日期：2026-10-16。
-9. <a id="ref-9"></a> Zhang, A., Lipton, Z. C., Li, M., & Smola, A. V，[动手学深度学习：softmax回归](https://zh.d2l.ai/chapter_linear-networks/softmax-regression.html)，中文在线版2.0.0。核验日期：2026-10-16。
+8. <a id="ref-8"></a> Brown, T. B., et al，[Language Models are Few-Shot Learners](https://arxiv.org/abs/2005.14165)，2020。核验日期：2026-10-16。
+9. <a id="ref-9"></a> Zhang, A., Lipton, Z. C., Li, M., & Smola, A. V，[动手学深度学习：softmax回归](https://zh.d2l.ai/chapter_linear-networks/softmax-regression.html)，中文在线版 2.0.0。核验日期：2026-10-16。
 10. <a id="ref-10"></a> Bai, J., et al，[Qwen Technical Report](https://arxiv.org/abs/2309.16609)，2023 / original Qwen。核验日期：2026-10-16。
 11. <a id="ref-11"></a> Cai et al. / InternLM，[InternLM2 Technical Report](https://arxiv.org/abs/2403.17297)，2024。核验日期：2026-10-16。
 12. <a id="ref-12"></a> Dodge, J., et al，[Documenting Large Webtext Corpora: A Case Study on the Colossal Clean Crawled Corpus](https://aclanthology.org/2021.emnlp-main.98/)，2021。核验日期：2026-10-16。
@@ -330,12 +312,12 @@ HELM 提倡从准确性、校准、鲁棒性、公平性、偏见、毒性和效
 17. <a id="ref-17"></a> Shumailov, I., et al，[AI Models Collapse When Trained on Recursively Generated Data](https://www.nature.com/articles/s41586-024-07566-y)，2024。核验日期：2026-10-16。
 18. <a id="ref-18"></a> Sennrich, Haddow, Birch，[Neural Machine Translation of Rare Words with Subword Units](https://arxiv.org/abs/1508.07909)，2016 ACL。核验日期：2026-10-16。
 19. <a id="ref-19"></a> Kudo, Richardson，[SentencePiece: A simple and language independent subword tokenizer and detokenizer for Neural Text Processing](https://arxiv.org/abs/1808.06226)，2018 EMNLP。核验日期：2026-10-16。
-20. <a id="ref-20"></a> Kaplan, J., et al，[Scaling Laws for Neural Language Models](https://arxiv.org/abs/2001.08361)，2001。核验日期：2026-10-16。
+20. <a id="ref-20"></a> Kaplan, J., et al，[Scaling Laws for Neural Language Models](https://arxiv.org/abs/2001.08361)，2020。核验日期：2026-10-16。
 21. <a id="ref-21"></a> Hoffmann, J., et al，[Training Compute-Optimal Large Language Models](https://arxiv.org/abs/2203.15556)，2022。核验日期：2026-10-16。
 22. <a id="ref-22"></a> Loshchilov, Hutter，[Decoupled Weight Decay Regularization](https://arxiv.org/abs/1711.05101)，2019 / arXiv v3。核验日期：2026-10-16。
 23. <a id="ref-23"></a> Zellers, R., et al，[HellaSwag: Can a Machine Really Finish Your Sentence?](https://aclanthology.org/P19-1472/)，2019。核验日期：2026-10-16。
-24. <a id="ref-24"></a> Carlini, N., et al，[Extracting Training Data from Large Language Models](https://arxiv.org/abs/2012.07805)，2012。核验日期：2026-10-16。
+24. <a id="ref-24"></a> Carlini, N., et al，[Extracting Training Data from Large Language Models](https://arxiv.org/abs/2012.07805)，2020 preprint / USENIX Security 2021。核验日期：2026-10-16。
 25. <a id="ref-25"></a> Carlini, N., et al，[Quantifying Memorization Across Neural Language Models](https://arxiv.org/abs/2202.07646)，2023。核验日期：2026-10-16。
 26. <a id="ref-26"></a> Liang, P., et al，[Holistic Evaluation of Language Models](https://arxiv.org/abs/2211.09110)，2023。核验日期：2026-10-16。
 27. <a id="ref-27"></a> Grattafiori et al. / Llama Team，[The Llama 3 Herd of Models](https://arxiv.org/abs/2407.21783)，2024 / arXiv v3。核验日期：2026-10-16。
-28. <a id="ref-28"></a> 周志华：《机器学习》，清华大学出版社，2016。https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm 访问日期：2026-09-22，[周志华：《机器学习》，清华大学出版社，2016。](https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm)，2016。核验日期：2026-10-16。
+28. <a id="ref-28"></a> 周志华，[《机器学习》](https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/MLbook2016.htm)，清华大学出版社，2016。核验日期：2026-10-16。

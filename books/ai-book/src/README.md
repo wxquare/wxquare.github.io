@@ -53,12 +53,13 @@ AI 工程实践里最容易踩的坑，不只是模型输出不稳定，也包�
 
 | 章 | 章节 | 一句话概述 |
 | --- | --- | --- |
-| 第1章 | [从 Transformer 到 Agent：模型结构如何影响系统能力](part1/01-llm-foundations-transformer.md) | 从 token、Embedding 和 Transformer 出发，建立理解大模型算法与能力边界的基础。 |
+| 第1章 | [模型结构：一次前向计算的能力边界](part1/01-llm-foundations-transformer.md) | 从 token、Embedding 和 Transformer 出发，建立理解大模型算法与能力边界的基础。 |
 | 第2章 | [预训练：能力的来源](part1/02-pretraining-data-scaling.md) | 解释预训练数据、目标函数、规模定律和模型能力形成之间的关系。 |
 | 第3章 | [后训练：行为的塑形](part1/03-post-training-alignment.md) | 介绍 SFT、RLHF、DPO、RLAIF 和安全对齐如何改变模型行为。 |
 | 第4章 | [推理期扩展](part1/04-reasoning-generation-algorithms.md) | 讨论采样、推理预算、验证和生成算法如何影响模型输出。 |
-| 第5章 | [模型适配与能力扩展](part1/05-finetuning-compression-multimodal.md) | 介绍参数高效微调、模型压缩和多模态模型算法。 |
-| 第6章 | [具身智能与 Physical AI](part1/06-world-models-embodied-ai.md) | 介绍世界模型与具身智能的关系，理解“会说”如何走向“会做”。 |
+| 第5章 | [从零训练一个 LLM：一条可复现的工程路径](part1/05-train-llm-from-scratch.md) | 把参数、数据、训练、恢复和评估连接成可复算、可验收的训练路径，并配套最小字符级 GPT 实验。 |
+| 第6章 | [模型适配与能力扩展](part1/06-finetuning-compression-multimodal.md) | 介绍参数高效微调、模型压缩和多模态模型算法。 |
+| 第7章 | [具身智能与 Physical AI](part1/07-world-models-embodied-ai.md) | 介绍世界模型与具身智能的关系，理解“会说”如何走向“会做”。 |
 
 ### 第二部分：大模型基础设施
 
@@ -66,11 +67,11 @@ AI 工程实践里最容易踩的坑，不只是模型输出不稳定，也包�
 
 | 章 | 章节 | 一句话概述 |
 | --- | --- | --- |
-| 第7章 | [AI Infra 全景](part2/01-ai-infra-overview.md) | 建立从算法结果到可运行平台的资源、生命周期和验收边界。 |
-| 第8章 | [训练平台与数据管线](part2/02-training.md) | 说明数据供给、并行训练、通信、恢复和训练制品如何形成闭环。 |
-| 第9章 | [推理服务与资源调度](part2/03-inference.md) | 解释在线推理的请求调度、KV 管理、模型并行、容量和发布。 |
-| 第10章 | [数据与评估平台：从数据产品到反馈闭环](part2/04-data-eval.md) | 建立数据版本、评估、线上反馈和质量门禁的证据链。 |
-| 第11章 | [生产运营与治理控制](part2/05-production-operations-governance.md) | 连接 SLO、观测、成本、安全、供应链、发布和灾备。 |
+| 第8章 | [AI Infra 全景](part2/01-ai-infra-overview.md) | 建立从算法结果到可运行平台的资源、生命周期和验收边界。 |
+| 第9章 | [训练平台与数据管线](part2/02-training.md) | 说明数据供给、并行训练、通信、恢复和训练制品如何形成闭环。 |
+| 第10章 | [推理服务与资源调度](part2/03-inference.md) | 解释在线推理的请求调度、KV 管理、模型并行、容量和发布。 |
+| 第11章 | [评估与反馈闭环](part2/04-data-eval.md) | 建立数据版本、评估、线上反馈和质量门禁的证据链。 |
+| 第12章 | [生产运营与治理控制](part2/05-production-operations-governance.md) | 连接 SLO、观测、成本、安全、供应链、发布和灾备。 |
 
 ### 第三部分：Agent 系统工程
 
@@ -78,12 +79,12 @@ AI 工程实践里最容易踩的坑，不只是模型输出不稳定，也包�
 
 | 章 | 章节 | 一句话概述 |
 | --- | --- | --- |
-| 第12章 | [LLM API 协议：模型能力如何被系统消费](part3/01-llm-api-protocol.md) | 把模型接口当成系统契约来设计，而不是只看一次调用是否成功。 |
-| 第13章 | [Agent 的上下文工程：从任务协议到知识与记忆](part3/02-context-engineering.md) | 定义任务契约、证据与记忆的使用规则，以及本轮上下文的装配、压缩和评估。 |
-| 第14章 | [外部工具系统：Skills、Tools、MCP 与 Connectors](part3/04-skills-tools-mcp-connectors.md) | 从能力提供方构建工具契约与注册、Skills、MCP、Connectors、授权和沙箱。 |
-| 第 15 章 | [外部知识系统：知识检索与 RAG](part3/02b-knowledge-retrieval.md) | 摄取、表示、索引、混合召回、多跳检索、证据与评估。 |
-| 第16章 | [Agent Runtime：架构、执行编排与可靠性工程](part3/03-agent-runtime.md) | 聚合模型、工具与知识，逐轮构建上下文，推进任务并处理等待、审批、恢复与交付。 |
-| 第17章 | [Agent 治理与调优：从质量闭环到分层落地](part3/05-agent-governance-optimization.md) | 把评估、护栏、观测与发布连成闭环，分层调优 Runtime、Skill、MCP、上下文与成本。 |
+| 第13章 | [LLM API 协议：模型能力如何被系统消费](part3/01-llm-api-protocol.md) | 把模型接口当成系统契约来设计，而不是只看一次调用是否成功。 |
+| 第14章 | [Agent 的上下文工程：从任务协议到知识与记忆](part3/02-context-engineering.md) | 定义任务契约、证据与记忆的使用规则，以及本轮上下文的装配、压缩和评估。 |
+| 第15章 | [外部知识系统：知识检索与 RAG](part3/03-knowledge-retrieval.md) | 摄取、表示、索引、混合召回、多跳检索、证据与评估。 |
+| 第16章 | [Agent Runtime：架构、执行编排与可靠性工程](part3/04-agent-runtime.md) | 聚合模型、工具与知识，逐轮构建上下文，推进任务并处理等待、审批、恢复与交付。 |
+| 第17章 | [外部工具系统：Skills、Tools、MCP 与 Connectors](part3/05-skills-tools-mcp-connectors.md) | 从能力提供方构建工具契约与注册、Skills、MCP、Connectors、授权和沙箱。 |
+| 第18章 | [Agent 治理与调优：从质量闭环到分层落地](part3/06-agent-governance-optimization.md) | 把评估、护栏、观测与发布连成闭环，分层调优 Runtime、Skill、MCP、上下文与成本。 |
 
 ### 第四部分：Agent 应用与实战
 
@@ -91,10 +92,10 @@ AI 工程实践里最容易踩的坑，不只是模型输出不稳定，也包�
 
 | 章 | 章节 | 一句话概述 |
 | --- | --- | --- |
-| 第18章 | [成熟 Coding Agent 内部实现：Codex CLI、Claude Code 与 OpenCode](part4/01-coding-agent-systems.md) | 先建立共通执行闭环，再从公开源码和官方文档比较三种产品的实现边界。 |
-| 第19章 | [Pi Agent 架构解析：终端原生 Coding Agent Runtime、扩展系统与上下文工程](part4/02-pi-agent-architecture.md) | 分析一个终端原生 Coding Agent 如何组织运行时、扩展和上下文。 |
-| 第20章 | [OpenClaw 架构解析：个人 AI 助手的 Gateway、Runtime 与工具生态](part4/03-openclaw-architecture.md) | 讲述个人 AI 助手如何通过 Gateway、Runtime 和工具生态协同工作。 |
-| 第21章 | [Hermes Agent 架构解析：长期运行、自我进化与多入口 Agent Runtime](part4/04-hermes-agent-architecture.md) | 通过记忆、Skill、多入口和版本化源码理解长期运行；教学扩展与已核验能力分别说明。 |
+| 第19章 | [成熟 Coding Agent 内部实现：Codex CLI、Claude Code 与 OpenCode](part4/01-coding-agent-systems.md) | 先建立共通执行闭环，再从公开源码和官方文档比较三种产品的实现边界。 |
+| 第20章 | [Pi Agent 架构解析：终端原生 Coding Agent Runtime、扩展系统与上下文工程](part4/02-pi-agent-architecture.md) | 分析一个终端原生 Coding Agent 如何组织运行时、扩展和上下文。 |
+| 第21章 | [OpenClaw 架构解析：个人 AI 助手的 Gateway、Runtime 与工具生态](part4/03-openclaw-architecture.md) | 讲述个人 AI 助手如何通过 Gateway、Runtime 和工具生态协同工作。 |
+| 第22章 | [Hermes Agent 架构解析：长期运行、自我进化与多入口 Agent Runtime](part4/04-hermes-agent-architecture.md) | 通过记忆、Skill、多入口和版本化源码理解长期运行；教学扩展与已核验能力分别说明。 |
 
 ### 第五部分：前沿研究与工程展望
 
@@ -102,20 +103,20 @@ AI 工程实践里最容易踩的坑，不只是模型输出不稳定，也包�
 
 | 章 | 章节 | 一句话概述 |
 | --- | --- | --- |
-| 第22章 | [AI 智能体研究现状、工程瓶颈与未来理想能力架构报告](part5/01-agent-frontier-research.md) | 从研究和工程两条线梳理智能体的现状、瓶颈与未来方向。 |
+| 第23章 | [AI 智能体研究现状、工程瓶颈与未来理想能力架构报告](part5/01-agent-frontier-research.md) | 从研究和工程两条线梳理智能体的现状、瓶颈与未来方向。 |
 
 ### 附录
 
-附录包括 [A：术语与符号速查](appendix/glossary.md)、[B：学习路径与延伸阅读](appendix/references.md)、[C：工具、框架与版本导航](appendix/tools.md)和 [D：评估统计复算](appendix/evaluation-statistics.md)。章末练习由附录 B 提供短链接，论点来源以各章末参考资料为准；第 10 章完整统计代码集中在附录 D。
+附录只保留 [A：术语与符号速查](appendix/glossary.md)、[B：学习路径与延伸阅读](appendix/references.md)、[C：工具、框架与版本导航](appendix/tools.md)。章末练习由附录 B 提供短链接，论点来源以各章末参考资料为准。
 
 ## 贯穿案例与练习的阅读方式
 
-全书包含五部分、21 个公开章节；第四部分以成熟 Coding Agent 内部实现为案例，第五部分承接前沿研究。两个教学案例分别检验不同责任边界：
+全书包含五部分、23 个公开章节；第一部分新增从零训练的工程路径与配套实验，第四部分以成熟 Coding Agent 内部实现为案例，第五部分承接前沿研究。两个教学案例分别检验不同责任边界：
 
 | 案例 | 先建立机制 | 再看应用 | 重点核对 |
 | --- | --- | --- | --- |
-| Coding Agent | [上下文工程](part3/02-context-engineering.md)、[外围工具系统](part3/04-skills-tools-mcp-connectors.md) | [成熟 Coding Agent 的实现与 Harness](part4/01-coding-agent-systems.md) | 代码版本、工作区、工具权限、候选完成与独立Verifier |
-| Hermes 长期助手 | [Runtime 状态](part3/03-agent-runtime.md#object-model)、[记忆生命周期](part3/02-context-engineering.md#memory)、[Runtime 编排](part3/03-agent-runtime.md#workflow) | [Hermes 贯穿简报](part4/04-hermes-agent-architecture.md) | Session、Memory、缓存与特定投递 ledger 分别取证；通用业务 Outbox、Checkpoint、幂等和补偿是另行标明的教学扩展 |
+| Coding Agent | [上下文工程](part3/02-context-engineering.md)、[外围工具系统](part3/05-skills-tools-mcp-connectors.md) | [成熟 Coding Agent 的实现与 Harness](part4/01-coding-agent-systems.md) | 代码版本、工作区、工具权限、候选完成与独立Verifier |
+| Hermes 长期助手 | [Runtime 状态](part3/04-agent-runtime.md#object-model)、[记忆生命周期](part3/02-context-engineering.md#memory)、[Runtime 编排](part3/04-agent-runtime.md#workflow) | [Hermes 贯穿简报](part4/04-hermes-agent-architecture.md) | Session、Memory、缓存与特定投递 ledger 分别取证；通用业务 Outbox、Checkpoint、幂等和补偿是另行标明的教学扩展 |
 
 章节包含原理推导、文档核验、教学轨迹与实验设计，验收层次分别标明。模型基础、后训练、模型适配、训练平台与推理服务的练习卡可从[附录B](appendix/references.md)进入；卡片完成不代表已经提供完整可运行代码、GPU测量或生产验证。选型先查[附录C](appendix/tools.md)的版本和未知项，再回到章末原始来源。
 

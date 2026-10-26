@@ -69,6 +69,12 @@ chapters.each do |chapter|
   unless headings.length == 1 && headings.first.match?(/第\s*#{number}\s*章/)
     errors << "Chapter #{number}: expected one H1 identifying chapter #{number} (#{relative_path})."
   end
+  if headings.length == 1
+    heading_match = headings.first.match(/\A第\s*#{number}\s*章\s+(.+)\z/)
+    if heading_match && heading_match[1] != chapter[:title]
+      errors << "Chapter #{number}: H1 title #{heading_match[1].inspect} does not match SUMMARY title #{chapter[:title].inspect} (#{relative_path})."
+    end
+  end
   explicit = content.scan(/<a\b[^>]*\bid=["']([^"']+)["']/).flatten
   explicit.group_by(&:itself).transform_values(&:length).each do |id, count|
     errors << "#{relative_path}: duplicate explicit anchor #{id}." if count > 1
@@ -76,6 +82,28 @@ chapters.each do |chapter|
   numbered = content.scan(/^\#{2,3}\s+(\d+(?:\.\d+)+)\s+/).flatten
   numbered.group_by(&:itself).each do |numbered_id, instances|
     errors << "#{relative_path}: duplicate numbered heading #{numbered_id}." if instances.length > 1
+  end
+  numbered.each do |numbered_id|
+    owner = numbered_id.split(".", 2).first.to_i
+    errors << "#{relative_path}: numbered heading #{numbered_id} belongs to chapter #{owner}, expected chapter #{number}." unless owner == number
+  end
+  visible_content = content.gsub(/<[^>]+>/, "")
+  visible_content.scan(/\bQ26[123]\b/).uniq.each do |question_id|
+    errors << "#{relative_path}: reader-visible private exercise id #{question_id}."
+  end
+end
+
+PART1_MIGRATION = {
+  "part1/05-train-llm-from-scratch.md" => 5,
+  "part1/06-finetuning-compression-multimodal.md" => 6,
+  "part1/07-world-models-embodied-ai.md" => 7
+}.freeze
+if (paths & PART1_MIGRATION.keys).any?
+  PART1_MIGRATION.each do |path, expected_number|
+    chapter = chapters_by_path[path]
+    unless chapter && chapter[:number] == expected_number
+      errors << "SUMMARY: expected chapter #{expected_number} at #{path}."
+    end
   end
 end
 contents.each do |relative_path, content|
@@ -99,6 +127,18 @@ contents.each do |relative_path, content|
     if chapter && label_number && label_number.to_i != chapter[:number]
       errors << "#{relative_path}: chapter-link label mismatch for #{resolved}: #{label.inspect}."
     end
+  end
+end
+
+book_toml = root.join("book.toml")
+if book_toml.file?
+  redirects = book_toml.read
+  {
+    '"part1/05-finetuning-compression-multimodal.html"' => '"06-finetuning-compression-multimodal.html"',
+    '"part1/06-world-models-embodied-ai.html"' => '"07-world-models-embodied-ai.html"'
+  }.each do |source, destination|
+    expected = "#{source} = #{destination}"
+    errors << "book.toml: missing migration redirect #{expected}." unless redirects.include?(expected)
   end
 end
 

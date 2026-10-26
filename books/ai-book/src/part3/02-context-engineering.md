@@ -1,4 +1,4 @@
-# 第 13 章 Agent 的上下文工程：从任务协议到知识与记忆
+# 第 14 章 Agent 的上下文工程：从任务协议到知识与记忆
 
 上下文工程管理的是每个决策点的信息供给：让模型获得完成当前任务所需的指令、证据、状态和经验，并控制这些信息的权限、时效、成本与后续影响。
 
@@ -30,7 +30,7 @@ Prompt Engineering、知识检索和长期记忆都参与这个过程。Prompt �
 
 图中模型可见的状态是执行系统的投影。操作是否提交、测试是否通过、外部动作是否完成，仍须由 Runtime、业务系统或验证器确认，不能因为摘要写了“已完成”就改变事实。
 
-本章的 Schema、流程、示例数据与实验均为教学设计；示例中的延迟、分数、Token 预算和有效期不构成通用默认值。滚动资料核验于 2026-10-21。API 的请求字段见[LLM API 协议](01-llm-api-protocol.md)，工具与 Skills 的执行机制见[Agent 工具系统工程](04-skills-tools-mcp-connectors.md)，持久执行与副作用恢复见[Agent Runtime](03-agent-runtime.md#delivery-idempotency)。
+本章的 Schema、流程、示例数据与实验均为教学设计；示例中的延迟、分数、Token 预算和有效期不构成通用默认值。滚动资料核验于 2026-10-21。API 的请求字段见[LLM API 协议](01-llm-api-protocol.md)，工具与 Skills 的执行机制见[Agent 工具系统工程](05-skills-tools-mcp-connectors.md)，持久执行与副作用恢复见[Agent Runtime](04-agent-runtime.md#delivery-idempotency)。
 
 
 <a id="context-model"></a>
@@ -38,7 +38,7 @@ Prompt Engineering、知识检索和长期记忆都参与这个过程。Prompt �
 
 <a id="131-上下文模型与订单支付案例"></a>
 
-## 13.1 上下文模型与告警诊断案例
+## 14.1 上下文模型与告警诊断案例
 
 [![订单支付诊断的上下文生命周期](../images/review-context-engineering-01.svg)](../images/review-context-engineering-01.svg)
 
@@ -47,7 +47,7 @@ Prompt Engineering、知识检索和长期记忆都参与这个过程。Prompt �
 
 <a id="1311-贯穿案例订单支付超时诊断的上下文生命周期"></a>
 
-### 13.1.1 贯穿案例：ALR 告警的上下文生命周期
+### 14.1.1 贯穿案例：ALR 告警的上下文生命周期
 
 本书后续各章共享下面的虚构案例档案。一次运行先做只读调查，只有有效批准后才能创建跟进工单；没有重启、回滚或支付写入能力。
 
@@ -71,7 +71,7 @@ Prompt Engineering、知识检索和长期记忆都参与这个过程。Prompt �
 
 <a id="1312-模型的每次推理只看到渲染后的输入api-可以另外保存会话状态不是持续运行的进程"></a>
 
-### 13.1.2 模型输入与持久任务状态
+### 14.1.2 模型输入与持久任务状态
 
 LLM 每次调用只能看到当前输入窗口。它不会天然记得：
 
@@ -115,7 +115,7 @@ task_state:
 
 这不是为了让 prompt 好看，而是为了降低模型把任务状态读错的概率。
 
-### 13.1.3 上下文窗口不是数据库，也不是长期记忆
+### 14.1.3 上下文窗口不是数据库，也不是长期记忆
 
 上下文窗口可以很大，但它仍然不是数据库。
 
@@ -136,7 +136,7 @@ task_state:
 - 少了会让模型无法正确完成任务；
 - 多了会增加成本、延迟、误用和污染风险。
 
-### 13.1.4 LLM 不会自动区分事实、指令、假设和例子
+### 14.1.4 LLM 不会自动区分事实、指令、假设和例子
 
 在自然语言中，人类能靠语境判断一句话的性质。模型可以模仿这种判断，但不可靠。
 
@@ -171,7 +171,7 @@ instructions: 任务指令
 constraints: 不可违反的约束
 ```
 
-### 13.1.5 LLM 对上下文顺序、重复和噪声敏感
+### 14.1.5 LLM 对上下文顺序、重复和噪声敏感
 
 Lost in the Middle 在特定长上下文任务中观察到相关信息位置影响表现；更长窗口不自动带来更好利用率，仍需本地任务验证。[[2]](#ref-2)
 
@@ -195,15 +195,15 @@ Lost in the Middle 在特定长上下文任务中观察到相关信息位置影�
 
 例如对一个生产变更建议任务，最终上下文包里不应该先放十页背景材料，再在最后一句说“不能执行变更”。高优先级约束应该位于明确的 `constraints` 区域，并且用可执行规则表达。
 
-### 13.1.6 上下文类型与治理方式
+### 14.1.6 上下文类型与治理方式
 
 章首组成表同时给出了来源和性质。执行时给每份材料补齐作用域、有效期、权限和来源版本，而不是再定义一套类别。用户观察是意图线索；工具输出须核验实体、窗口与覆盖；历史案例和 Memory 不能因重复出现就升级为当前事实。
 
-Runtime 的模型可见状态仅是执行投影，Scratchpad/Todo 不承担恢复。重要进度与未决动作从权威状态读取，记忆纠错见[记忆生命周期](#memory)，执行身份与恢复见[Runtime 对象模型](03-agent-runtime.md#object-model)。
+Runtime 的模型可见状态仅是执行投影，Scratchpad/Todo 不承担恢复。重要进度与未决动作从权威状态读取，记忆纠错见[记忆生命周期](#memory)，执行身份与恢复见[Runtime 对象模型](04-agent-runtime.md#object-model)。
 
 <a id="task-protocol"></a>
 
-## 13.2 任务契约与业务验收
+## 14.2 任务契约与业务验收
 
 [![把目标转为可验收任务契约](../images/review-context-engineering-02.svg)](../images/review-context-engineering-02.svg)
 
@@ -212,7 +212,7 @@ Runtime 的模型可见状态仅是执行投影，Scratchpad/Todo 不承担恢�
 <a id="1321-从任务风险定义职责与契约"></a>
 <a id="1322-把需求变成可执行任务协议"></a>
 
-### 13.2.1 从目标形成任务级契约
+### 14.2.1 从目标形成任务级契约
 
 任务契约（Task Contract）定义整项任务的目标、范围、输出和验收条件；调用级契约定义本轮需要模型完成的局部判断。流程实现由 workflow_ref 引用，不把多步工作流伪装成单次调用的参数列表。
 
@@ -239,9 +239,9 @@ task_contract:
 
 这里的允许动作不是访问令牌。工具能否执行、是否建单都要由 Runtime 在当前主体和资源范围内裁决；创建工单的批准绑定具体草稿和版本，不来自模型的一句“用户同意”。契约字段由应用校验，API 只接收目标端点支持的请求字段。
 
-任务类型影响验收：抽取重在字段与漏项，问答重在主张和引用，行动重在授权与外部效果。先写清这些断言，再选择 Prompt、工具和格式。风险策略由[治理控制点](05-agent-governance-optimization.md#guardrails-overview)定义，本章说明它如何成为模型可见的任务约束。
+任务类型影响验收：抽取重在字段与漏项，问答重在主张和引用，行动重在授权与外部效果。先写清这些断言，再选择 Prompt、工具和格式。风险策略由[治理控制点](06-agent-governance-optimization.md#guardrails-overview)定义，本章说明它如何成为模型可见的任务约束。
 
-### 13.2.2 调用级契约：本轮输入与输出
+### 14.2.2 调用级契约：本轮输入与输出
 
 ```yaml
 call_contract:
@@ -262,7 +262,7 @@ call_contract:
 
 <a id="refund-validation"></a>
 
-### 13.2.3 结构合法、业务无效：协议保证与退款反例
+### 14.2.3 结构合法、业务无效：协议保证与退款反例
 
 教学 Schema 要求 order_id 为字符串、amount_cents 为正整数、currency 为枚举 CNY、approval_ref 为字符串并禁止额外字段。输出如下：
 
@@ -270,7 +270,7 @@ call_contract:
 {"order_id":"O-2048","amount_cents":15000,"currency":"CNY","approval_ref":"approval-demo"}
 ```
 
-沿用第 12 章 O-2048：历史推测 150 元，当前账务核查为 130 元；假设所附审批另属其他对象。结构校验通过，业务层仍因超额及对象不符拒绝。模型将金额改为 13000 分也不会修复审批，改写 approval_ref 更不产生授权。
+沿用第13章 O-2048：历史推测 150 元，当前账务核查为 130 元；假设所附审批另属其他对象。结构校验通过，业务层仍因超额及对象不符拒绝。模型将金额改为 13000 分也不会修复审批，改写 approval_ref 更不产生授权。
 
 | 层 | 检查 | 失败处理 |
 | --- | --- | --- |
@@ -278,16 +278,16 @@ call_contract:
 | 语义 | 字段关系、单位、证据引用 | 补证据或停止，不制造来源 |
 | 业务 | 当前身份、归属、余额、状态、审批对象/参数/期限 | 阻止执行；需要新授权则进入审批 |
 
-通过校验仍需[工具契约](04-skills-tools-mcp-connectors.md)与[Agent Runtime](03-agent-runtime.md#delivery-idempotency)落实执行前重验、原子业务检查和幂等。余额快照不替代提交时检查。知识助手同样核对可见文档和版本。
+通过校验仍需[工具契约](05-skills-tools-mcp-connectors.md)与[Agent Runtime](04-agent-runtime.md#delivery-idempotency)落实执行前重验、原子业务检查和幂等。余额快照不替代提交时检查。知识助手同样核对可见文档和版本。
 
 
 工具 Schema 与任务契约的边界：
 
-任务契约描述目标、范围、证据和完成条件，工具 Schema 描述一次调用的结构。`side_effect`、`data_sensitivity`、`permission`、`timeout_ms` 等若属于工具注册表元数据，不直接塞进供应商原生函数参数 Schema；提供方请求只发送其支持的字段。工具实现、注册和结果信封参考[外围工具契约](04-skills-tools-mcp-connectors.md#tool-contract)。
+任务契约描述目标、范围、证据和完成条件，工具 Schema 描述一次调用的结构。`side_effect`、`data_sensitivity`、`permission`、`timeout_ms` 等若属于工具注册表元数据，不直接塞进供应商原生函数参数 Schema；提供方请求只发送其支持的字段。工具实现、注册和结果信封参考[外围工具契约](05-skills-tools-mcp-connectors.md#tool-contract)。
 
 <a id="1324-few-shot反例与决策边界"></a>
 
-### 13.2.4 用少量正反例表达决策边界
+### 14.2.4 用少量正反例表达决策边界
 
 Few-shot 可帮助特定模型从输入示例适应任务，但示例数、顺序和类别分布都需要留出集验证，不能断言越多越好。[[3]](#ref-3)
 
@@ -302,7 +302,7 @@ Few-shot 可帮助特定模型从输入示例适应任务，但示例数、顺�
 
 <a id="1325-不足失败与停止条件"></a>
 
-### 13.2.5 缺项、失败与停止出口
+### 14.2.5 缺项、失败与停止出口
 
 | 条件 | 返回内容 | 系统后续 |
 | --- | --- | --- |
@@ -316,7 +316,7 @@ Few-shot 可帮助特定模型从输入示例适应任务，但示例数、顺�
 
 <a id="knowledge"></a>
 
-## 13.3 来源路由与证据包契约
+## 14.3 来源路由与证据包契约
 
 [![来源路由与证据核验](../images/review-context-engineering-03.svg)](../images/review-context-engineering-03.svg)
 
@@ -325,13 +325,13 @@ Few-shot 可帮助特定模型从输入示例适应任务，但示例数、顺�
 
 本章的 trust_level 仅用 `unverified / verified_scope / conflicted / expired / revoked` 五个状态：默认未核验，verified_scope 也仅在记录的实体、版本、时间和范围内有效；它不授予指令权限。示例默认 unverified，应用核验后才能晋级。字段不是供应商原生标准。
 
-来源路由先判断需要哪种事实：当前订单、支付和部署状态查授权业务 API；已知文档完整条款按版本回读；大量历史资料通过检索寻找候选；Memory 仅提供待验证背景。路由说明为什么选该源，不能按“工具高于文档”给所有内容固定排可信度。检索建设参考[知识检索与 RAG](02b-knowledge-retrieval.md#rag-boundaries)。
+来源路由先判断需要哪种事实：当前订单、支付和部署状态查授权业务 API；已知文档完整条款按版本回读；大量历史资料通过检索寻找候选；Memory 仅提供待验证背景。路由说明为什么选该源，不能按“工具高于文档”给所有内容固定排可信度。检索建设参考[知识检索与 RAG](03-knowledge-retrieval.md#rag-boundaries)。
 
 工具结果无论 status 是否 success，都先核对实体、时间、版本、范围、完整性与当前访问权。success 只表示相应调用成功返回，不能直接写成 authoritative。来源版本适用但事实仍有冲突时保存冲突，回查有权责任人的当前事实源。
 
 <a id="1336-evidence-的最小约定与来源血缘"></a>
 
-### 13.3.1 Evidence 的最小约定与来源血缘
+### 14.3.1 Evidence 的最小约定与来源血缘
 
 Evidence 不是“模型觉得有用的一段话”，至少包含 evidence_id、source_id/source_version、locator、collected_at/effective_at、visibility/ACL_ref、supported_claims、content/artifact_ref 及 limitations。派生摘要增加 parent_evidence_ids 与 transform_version；引用指向固定版本片段，当前可见性在回读和交付时重验。
 
@@ -355,7 +355,7 @@ Evidence 不是“模型觉得有用的一段话”，至少包含 evidence_id�
 
 <a id="1331-evidence-packet-的结构"></a>
 
-### 13.3.2 Evidence Packet 的结构
+### 14.3.2 Evidence Packet 的结构
 
 Evidence Packet 是知识系统交给模型的事实载体。它应该比原始 chunk 更结构化。
 
@@ -387,7 +387,7 @@ Evidence Packet 是知识系统交给模型的事实载体。它应该比原始 
 
 <a id="1332-citation-与-claim-level-citation"></a>
 
-### 13.3.3 Citation 与 Claim-level Citation
+### 14.3.3 Citation 与 Claim-level Citation
 
 Citation 不应该只是回答末尾的链接列表。更好的方式是 claim-level citation：每个关键事实都能对应证据。
 
@@ -404,7 +404,7 @@ Claim-level Citation 的好处是：
 
 <a id="1333-evidence-sufficiency-check"></a>
 
-### 13.3.4 Evidence Sufficiency Check
+### 14.3.4 Evidence Sufficiency Check
 
 回答前应检查证据是否足够。
 
@@ -422,13 +422,13 @@ Claim-level Citation 的好处是：
 
 <a id="1334-冲突的输出方式"></a>
 
-### 13.3.5 冲突的输出方式
+### 14.3.5 冲突的输出方式
 
-完整冲突规则集中在本节的 Evidence 最小约定。回答保留各来源、对象和版本，说明哪些主张冲突及仍缺什么核验；同名字段在不同部署版本里可以各自正确，不能只按更新时间选择。未核验来源的冲突示例见 13.5.2，任何一方都不会自动获得执行授权。
+完整冲突规则集中在本节的 Evidence 最小约定。回答保留各来源、对象和版本，说明哪些主张冲突及仍缺什么核验；同名字段在不同部署版本里可以各自正确，不能只按更新时间选择。未核验来源的冲突示例见 14.5.2，任何一方都不会自动获得执行授权。
 
 <a id="1335-hallucination-guard"></a>
 
-### 13.3.6 Hallucination Guard
+### 14.3.6 Hallucination Guard
 
 Hallucination Guard 不是一句 prompt，而是一组机制：
 
@@ -445,14 +445,14 @@ Hallucination Guard 不是一句 prompt，而是一组机制：
 
 <a id="memory"></a>
 
-## 13.4 记忆生命周期：受控保存、召回与遗忘
+## 14.4 记忆生命周期：受控保存、召回与遗忘
 
 [![长期记忆的受控生命周期](../images/review-context-engineering-04.svg)](../images/review-context-engineering-04.svg)
 
 *图 13-5：长期记忆的受控生命周期*
 
 
-### 13.4.1 从研究机制到本场景的存储职责
+### 14.4.1 从研究机制到本场景的存储职责
 
 Generative Agents 用自然语言经验、反思与检索组织行为；MemGPT 讨论分层管理有限上下文；Reflexion 和 Voyager 分别展示任务反馈与技能经验复用。[[4]](#ref-4)[[5]](#ref-5)[[6]](#ref-6)[[7]](#ref-7) 这些研究的目标和环境不同，不能统称为同一个标准 Memory 架构。本章只借鉴可解释检索、候选写入和经验复用，不继承其效果为生产保证。
 
@@ -466,7 +466,7 @@ Generative Agents 用自然语言经验、反思与检索组织行为；MemGPT �
 
 Working Memory 是当前模型工作集，Execution State 属于 Runtime 权威状态，二者不进入上表的长期记忆类别。Scratchpad 可记录候选假设和待查事项，但不得自动晋升。任务中断后先恢复真实执行状态，再构造可见投影，而不是依赖“记得做过”继续写操作。
 
-### 13.4.2 写入门控、污染与用户控制
+### 14.4.2 写入门控、污染与用户控制
 
 写入从候选开始，记录租户、主体、项目、用途、原始事件、证据版本、创建与失效时间、敏感度和替代关系。确定性门控先检查访问权、字段完整、秘密/隐私和当前任务是否允许形成长期记录；语义检查再判断是否稳定、有用、重复或与已有事实冲突。低可信推断保留候选，不因重复出现而成为已验证事实。
 
@@ -476,7 +476,7 @@ Working Memory 是当前模型工作集，Execution State 属于 Runtime 权威�
 
 隐私删除与知识更新是不同控制。删除先阻止读取与召回，再沿摘要、向量、缓存和导出传播；备份和必须保留的审计按声明的保留策略处理，不能承诺立刻物理清除所有副本。用户可查看、纠正和撤销其可控制的记忆，跨租户记录不因语义相似而进入候选集。
 
-### 13.4.3 召回：硬过滤之后再做可解释排序
+### 14.4.3 召回：硬过滤之后再做可解释排序
 
 先按当前租户、主体、用途、权限、有效时间、删除和替代状态做硬过滤，再进行相关性排序。Generative Agents 对 recency、importance、relevance 三项分数做 min-max 归一化后加权求和。本书借鉴可解释的评分分解，具体权重仍需本地验证。[[4]](#ref-4) 每条入选记忆说明关联哪个子问题、来源是否当前适用、替代关系和预算占用；可解释的排序结果优于无法复核的“综合可信分”。
 
@@ -484,7 +484,7 @@ Working Memory 是当前模型工作集，Execution State 属于 Runtime 权威�
 
 记忆读写 Trace 保存候选/入选/排除 ID、理由、输入范围、权限和版本、成本，不将完整敏感正文放普通日志。定期合并冗余时保留来源血缘与替代链；合并器产生候选新版本，校验后切换，不能删除支撑事实却留下不可回源总结。
 
-### 13.4.4 记录、召回时机与写入控制
+### 14.4.4 记录、召回时机与写入控制
 
 下面是本书记忆记录示意。source_ref 指向受控来源，scope 约束用途，valid_until 是复审/失效边界，supersedes 保留替代关系；这些字段不授予访问权限。
 
@@ -506,7 +506,7 @@ Working Memory 是当前模型工作集，Execution State 属于 Runtime 权威�
 
 Agent 自主编辑能及时表达用户纠正，但模型可能误记或被注入诱导；系统侧抽取能统一格式和策略，却也可能丢失语境。两者都先形成候选，经过来源、范围、敏感性与冲突检查后发布。高影响规则由有权主体确认，不能用一次模型抽取覆盖组织政策。
 
-### 13.4.5 纠错、删除与派生记录传播
+### 14.4.5 纠错、删除与派生记录传播
 
 更新以 supersedes 产生新记录，旧记录退出当前召回，保留解释历史决策所需的受控血缘。若 E12 的时间窗被纠正，依赖该窗口的主张、摘要、向量和记忆分别标记待重验；独立日志观察不因同一任务而全部作废。
 
@@ -517,14 +517,14 @@ Agent 自主编辑能及时表达用户纠正，但模型可能误记或被注�
 <a id="context-builder"></a>
 <a id="context-assembly"></a>
 
-## 13.5 上下文装配、预算与缓存布局
+## 14.5 上下文装配、预算与缓存布局
 
 [![预算内装配当前上下文](../images/review-context-engineering-05.svg)](../images/review-context-engineering-05.svg)
 
 *图 13-6：预算内装配当前上下文*
 
 
-### 13.5.1 Context Package 的结构与装配契约
+### 14.5.1 Context Package 的结构与装配契约
 
 上下文不是简单拼接文本。生产系统更应该构建 Context Package，也就是一份结构化、带来源、带优先级、带边界的模型工作区。
 
@@ -658,7 +658,7 @@ excluded_context:
 
 这能帮助审计和调试，也能避免“模型为什么不知道”的误解。
 
-### 13.5.2 把冲突显式带入装配结果
+### 14.5.2 把冲突显式带入装配结果
 
 冲突裁决以[Evidence 最小约定](#knowledge)为唯一主定义。装配器分开控制指令与事实证据：API 角色和应用策略决定指令权限，外部网页、工具文本与 Memory 保留材料身份。OWASP 的间接注入说明，即使来源看似可信，其内容也不能获得执行授权。[[8]](#ref-8)
 
@@ -692,7 +692,7 @@ excluded_context:
 
 对当前任务，下一步是向文档 owner 核对生产版本，并查询事故窗口内的指标。若慢 SQL 观察正常，只能说当前证据不支持该假设，不能由此否定 Runbook 对其他环境的说明。用户本轮明确偏好可以替换旧偏好，但不能改变资源端权限或业务状态。压缩时保留这项未决冲突及证据引用，避免下一轮把缺项当成已解决。
 
-### 13.5.3 预算、信息密度与分层加载
+### 14.5.3 预算、信息密度与分层加载
 
 上下文窗口是资源，不是仓库。上下文越多，不一定越好。
 
@@ -863,7 +863,7 @@ Level 5: 人工确认或审批
 
 成本也需要控制。把当前问题放在前面可能改变稳定前缀的缓存，而把资料截短又改变了信息集合；前者是排序实验，后者已经是筛选实验，不能混为一个变量。保留前后输入包、来源清单和实际 usage，才能解释质量变化来自注意位置、材料缺失还是预算差异。结果不稳定时保留更容易审计的布局，不能宣称一种排版解决所有长上下文问题。
 
-### 13.5.4 缓存与动态上下文的布局
+### 14.5.4 缓存与动态上下文的布局
 
 需要分别看三种复用：检索缓存复用候选证据，回答缓存复用已生成结果，Prompt Cache 复用模型处理输入前缀的中间状态。它们的缓存键、失效条件与授权检查不同，不能因为命中一个缓存就跳过另一个层面的校验。
 
@@ -885,14 +885,14 @@ Level 5: 人工确认或审批
 
 <a id="compression"></a>
 
-## 13.6 压缩、回源与隔离
+## 14.6 压缩、回源与隔离
 
 [![压缩保真与纠错血缘](../images/review-context-engineering-06.svg)](../images/review-context-engineering-06.svg)
 
 *图 13-7：压缩保真与纠错血缘*
 
 
-### 13.6.1 摘要 Schema、不变量与回源
+### 14.6.1 摘要 Schema、不变量与回源
 
 长任务接近上下文预算时需要选择压缩、回源或阶段隔离。但压缩不是把文本变短，而是把任务状态、证据和决策保留下来。
 
@@ -978,7 +978,7 @@ required_checks:
 | --- | --- | --- |
 | TaskSummary | task_id、summary_version、goal、hard_constraints、acceptance、confirmed_facts、hypotheses、open_questions、completed_refs、next_action、source_refs | 目标/里程碑/约束变化时重建；并发更新检查旧版本 |
 | FileSummary | repo_id、workspace_id、path、commit、content_hash、range、symbols、dependencies、claims、source_refs | 文件哈希变化立即标 stale；同 commit 下未提交修改也失效 |
-| ProcessNote | run_id、step_id、attempt_id、tool_call_id/result_ref、operation_id、idempotency_ref、target_version、status、evidence_refs、pending_actions | 与[Agent Runtime](03-agent-runtime.md#object-model)账本核对；unknown 不得压成 failed 或 done |
+| ProcessNote | run_id、step_id、attempt_id、tool_call_id/result_ref、operation_id、idempotency_ref、target_version、status、evidence_refs、pending_actions | 与[Agent Runtime](04-agent-runtime.md#object-model)账本核对；unknown 不得压成 failed 或 done |
 
 TaskSummary 描述当前目标，FileSummary 描述版本化材料，ProcessNote 解释已发生过程。三者都不是权威执行状态。LangGraph 区分 thread checkpointer 和跨 thread store，进一步说明“能保存信息”与“保存哪种状态”需要分开设计。[[12]](#ref-12)
 
@@ -996,7 +996,7 @@ LLMLingua 研究预算控制的提示压缩，说明可以减少输入；这不�
 
 教学原记录 U7：“只修改 src/auth，不部署”。摘要 S3 遗漏“不部署”，模型据此生成部署提案 P4。独立约束清单与执行前策略发现不符，先阻止部署，再定位 S3 及其依赖产物；回读 U7 和当前项目规则，重建 S4 并标 S3 失效；重新核对 diff 范围和验收，撤销依赖 P4 的计划候选。修复不通过就保持阻塞，不让 S3 自证。
 
-若部署已经发出，修摘要不会撤销外部事实：按[Operation](03-agent-runtime.md#delivery-idempotency)查询状态，按授权采取修复/补偿并记录影响。当前文件即使 commit 未变但 hash 变化，旧 FileSummary 同样不能继续用于生成补丁。
+若部署已经发出，修摘要不会撤销外部事实：按[Operation](04-agent-runtime.md#delivery-idempotency)查询状态，按授权采取修复/补偿并记录影响。当前文件即使 commit 未变但 hash 变化，旧 FileSummary 同样不能继续用于生成补丁。
 
 一个非常实用的规则是：
 
@@ -1006,11 +1006,11 @@ LLMLingua 研究预算控制的提示压缩，说明可以减少输入；这不�
 
 如果原始信息是 unverified，摘要后仍然必须是 unverified；摘要不能把尚未核验的 Runbook 当成决策依据。
 
-### 13.6.2 窗口、事件与执行视图
+### 14.6.2 窗口、事件与执行视图
 
 Todo 是执行视图。
 
-Todo 包含 item_id、依赖、owner、状态版本、验收引用和下一步。模型可提议 pending/in_progress/blocked/done，但 done 由实际产物和验收驱动。外部动作结果 unknown 时保留待核对，不能为了勾选而重新执行；Todo 不替代持久调度、Operation 和幂等账本。详见[Agent Runtime](03-agent-runtime.md#multi-agent)。
+Todo 包含 item_id、依赖、owner、状态版本、验收引用和下一步。模型可提议 pending/in_progress/blocked/done，但 done 由实际产物和验收驱动。外部动作结果 unknown 时保留待核对，不能为了勾选而重新执行；Todo 不替代持久调度、Operation 和幂等账本。详见[Agent Runtime](04-agent-runtime.md#multi-agent)。
 
 滑动窗口。
 
@@ -1057,12 +1057,12 @@ AGENT_REQUIRED_VERIFICATION(unit_tests, integration_tests)
 它的好处是减少自然语言摘要的歧义。
 
 
-### 13.6.3 纠错依赖链：不能只覆盖原句
+### 14.6.3 纠错依赖链：不能只覆盖原句
 
 压缩结果保存 parent_evidence_ids 与 transform_version。来源被纠正、删除或撤权时，按[记忆纠错与派生传播](#memory)失效并重建本轮摘要；不另定义一套更新协议，也不能只覆盖原句而保留旧结论。
 
 
-### 13.6.4 小模型压缩器的独立评测
+### 14.6.4 小模型压缩器的独立评测
 
 压缩机制与保真评估见[摘要不变量与回源](#compression)。小模型可能降低辅助调用成本，但长文摘要并不天然简单；先检查实际输入/输出上限、工具协议、否定、数值、跨轮约束与来源血缘。
 
@@ -1073,10 +1073,10 @@ AGENT_REQUIRED_VERIFICATION(unit_tests, integration_tests)
 | 小模型压缩 | 相同输入、summary schema 与后续任务 | 窗口不足分块重验；关键字段丢失升级或停止 |
 | 小模型+有界回退 | 独立验证后才放行，不让压缩器自评决定通过 | 记录升级率、读取和重试开销 |
 
-指标包括硬约束召回、否定/单位保真、Operation 与调用配对保留、污染/越权率、下游任务成功和重复副作用，压缩率次之。按长输入、多轮压缩、过时文件、撤权、失败/未知工具结果切片。单位成功成本按[统一成本口径](05-agent-governance-optimization.md#cost-accounting)计算，纳入压缩、回读与重试开销，同时报告失败数、尾延迟与安全违例；不能只比较辅助单价。以上实验尚未运行，没有结果数字。
+指标包括硬约束召回、否定/单位保真、Operation 与调用配对保留、污染/越权率、下游任务成功和重复副作用，压缩率次之。按长输入、多轮压缩、过时文件、撤权、失败/未知工具结果切片。单位成功成本按[统一成本口径](06-agent-governance-optimization.md#cost-accounting)计算，纳入压缩、回读与重试开销，同时报告失败数、尾延迟与安全违例；不能只比较辅助单价。以上实验尚未运行，没有结果数字。
 
 
-### 13.6.5 阶段、子任务与权限隔离
+### 14.6.5 阶段、子任务与权限隔离
 
 并不是所有上下文都应该共处一个会话。复杂任务需要上下文防火墙。
 
@@ -1209,14 +1209,14 @@ handoff:
 
 <a id="context-safety"></a>
 
-## 13.7 可信边界、注入与上下文污染
+## 14.7 可信边界、注入与上下文污染
 
 [![外部数据不能获得控制权](../images/review-context-engineering-07.svg)](../images/review-context-engineering-07.svg)
 
 *图 13-8：外部数据不能获得控制权*
 
 
-### 13.7.1 指令冲突与 Prompt Injection
+### 14.7.1 指令冲突与 Prompt Injection
 
 Prompt 安全不是只写一句“不要被攻击”。它要处理指令层级、外部内容和工具权限之间的关系。
 
@@ -1315,7 +1315,7 @@ Prompt 安全的正确位置是“让模型理解安全规则”；真正的强�
 Prompt 安全不是一条规则，而是一组边界设计。
 
 
-### 13.7.2 Context Rot、污染与漂移分别诊断
+### 14.7.2 Context Rot、污染与漂移分别诊断
 
 Chroma 的 Context Rot 报告研究输入 token 增加时模型利用上下文的表现退化，不能把它重新定义为内容变旧、变脏或冲突。[[14]](#ref-14) 污染指不可信内容进入指令或事实位置，漂移指任务目标、有效事实或解释逐渐偏离；本书将它们单独诊断。长度退化可以通过位置和干扰对照实验观察，污染要回到来源/权限边界，事实变旧要回到版本和失效机制，不能一律“清空记忆”处理。
 
@@ -1323,14 +1323,14 @@ Chroma 的 Context Rot 报告研究输入 token 增加时模型利用上下文�
 
 <a id="context-evaluation"></a>
 
-## 13.8 上下文包质量与记忆评估
+## 14.8 上下文包质量与记忆评估
 
 [![分别测上下文质量与记忆能力](../images/review-context-engineering-08.svg)](../images/review-context-engineering-08.svg)
 
 *图 13-9：分别测上下文质量与记忆能力*
 
 
-### 13.8.1 上下文包的质量与 Trace
+### 14.8.1 上下文包的质量与 Trace
 
 如果上下文系统无法评估，就无法持续改进。
 
@@ -1353,7 +1353,7 @@ Context eval 不只是评估最终答案好不好，还要评估“模型是否�
 | 证据装配效率（本书口径） | 已核验且与任务相关的 evidence 单位数 / 注入 token；同时报告粒度与 tokenizer |
 | Context Drift（本书口径） | 违反固定任务约束的决策点数 / 已审阅决策点数；未审阅点单列 |
 
-Context Recall/Precision 在本章是工作集覆盖口径，不直接等同于 RAGAS 的同名实现；完整分母与标注以 13.8.2 为准。指标按用例/会话聚合，不用重复 chunk 虚增有效证据。
+Context Recall/Precision 在本章是工作集覆盖口径，不直接等同于 RAGAS 的同名实现；完整分母与标注以 14.8.2 为准。指标按用例/会话聚合，不用重复 chunk 虚增有效证据。
 
 Eval Case 的结构。
 
@@ -1408,7 +1408,7 @@ eval_case:
 评估的目标不是给模型打分，而是找到上下文供应链的薄弱环节。
 
 
-### 13.8.2 指标与可比实验
+### 14.8.2 指标与可比实验
 
 摘要也需要评估。
 
@@ -1444,7 +1444,7 @@ MemoryAgentBench 将记忆能力分为准确召回、测试时学习、长程理
 
 例如教学客服偏好先使用 UTC 时间，随后明确改用北京时间：检查新偏好能被后续使用、旧偏好不再覆盖，并保留替代链；“本次用 UTC”只影响当前任务。再提出删除这项偏好，检查读取与派生缓存失效。两组测试分别验证知识更新与隐私控制，不能合并为一个通过率。
 
-上下文包版本随 Trace 记录用于归因；Prompt/Skill/Policy 组合怎样发布、灰度、回滚，参考[治理发布控制](05-agent-governance-optimization.md#release-control)。检索、重排、ANN 和证据替换实验参考[RAG 评估](02b-knowledge-retrieval.md#rag-evaluation)，本章只检查进入模型的包是否保持约束与证据。
+上下文包版本随 Trace 记录用于归因；Prompt/Skill/Policy 组合怎样发布、灰度、回滚，参考[治理发布控制](06-agent-governance-optimization.md#release-control)。检索、重排、ANN 和证据替换实验参考[RAG 评估](03-knowledge-retrieval.md#rag-evaluation)，本章只检查进入模型的包是否保持约束与证据。
 
 ## 本章小结
 

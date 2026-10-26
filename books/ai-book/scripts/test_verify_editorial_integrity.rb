@@ -41,6 +41,17 @@ class VerifyEditorialIntegrityTest < Minitest::Test
     end
   end
 
+  def test_reports_an_h1_title_that_does_not_match_summary
+    with_fixture do |root|
+      write(root, "src/part1/01.md", "# 第1章 另一个标题\n\n## 1. 起点\n")
+
+      _stdout, stderr, status = run_verifier(root)
+
+      refute status.success?
+      assert_includes stderr, 'H1 title "另一个标题" does not match SUMMARY title "标题1"'
+    end
+  end
+
   def test_reports_chapter_link_label_mismatch_for_a_published_chapter
     with_fixture do |root|
       write(root, "src/part1/01.md", <<~MARKDOWN)
@@ -323,6 +334,39 @@ class VerifyEditorialIntegrityTest < Minitest::Test
       _stdout, stderr, status = run_verifier(root)
       refute status.success?
       assert_includes stderr, "duplicate numbered heading 1.1.1"
+    end
+  end
+
+  def test_rejects_a_numbered_heading_owned_by_another_chapter
+    with_fixture do |root|
+      File.open(File.join(root, "src/part1/01.md"), "a") { |f| f.puts "\n## 2.1 Wrong owner\n" }
+      _stdout, stderr, status = run_verifier(root)
+      refute status.success?
+      assert_includes stderr, "numbered heading 2.1 belongs to chapter 2, expected chapter 1"
+    end
+  end
+
+  def test_rejects_reader_visible_private_exercise_ids_but_allows_legacy_anchors
+    with_fixture do |root|
+      File.open(File.join(root, "src/part1/01.md"), "a") do |f|
+        f.puts "\n<a id=\"q261\"></a>\n\n练习卡 Q261\n"
+      end
+      _stdout, stderr, status = run_verifier(root)
+      refute status.success?
+      assert_includes stderr, "reader-visible private exercise id Q261"
+      refute_includes stderr, "reader-visible private exercise id q261"
+    end
+  end
+
+  def test_requires_part1_migration_redirects_when_book_toml_exists
+    with_fixture do |root|
+      write(root, "book.toml", <<~TOML)
+        [output.html.redirect]
+        "part1/05-finetuning-compression-multimodal.html" = "06-finetuning-compression-multimodal.html"
+      TOML
+      _stdout, stderr, status = run_verifier(root)
+      refute status.success?
+      assert_includes stderr, "part1/06-world-models-embodied-ai.html"
     end
   end
 

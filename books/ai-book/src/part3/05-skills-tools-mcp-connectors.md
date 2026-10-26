@@ -1,12 +1,12 @@
 <a id="第-16-章-agent-工具系统工程skillstoolsmcp-与-connectors"></a>
 
-# 第 14 章 外部工具系统：Skills、Tools、MCP 与 Connectors
+# 第 15 章 外部工具系统：Skills、Tools、MCP 与 Connectors
 
 对 ALR-20260429-017，怎样把指标、日志与工单 API 构建成 Runtime 可以安全、稳定使用的能力？本章从能力提供方依次实现契约与注册、调用适配、Skill、MCP、Connector，以及凭据与沙箱边界。模型提出调用，Runtime 决定何时执行并消费结果；本章负责工具背后的实现与可核验保证。
 
 Tool Calling 表达调用提议，Tool 定义一次能力契约，Skill 封装可复用方法，MCP 提供标准接入协议，Connector 适配具体业务系统。构建这些能力之后，Runtime 仍须绑定当前任务、权限与预算；能力已注册不等于任意任务可执行。
 
-本章不展开的主题包括：模型请求与终止信号参考[LLM API 协议](01-llm-api-protocol.md)；模型可见信息与记忆参考[上下文工程](02-context-engineering.md)；检索实现参考[知识检索与 RAG](02b-knowledge-retrieval.md)；任务调度、审批等待与恢复参考[Runtime](03-agent-runtime.md)；评估与发布参考[治理与调优](05-agent-governance-optimization.md)。各处保留足够的局部说明，详细机制只在主讲位置定义。
+本章不展开的主题包括：模型请求与终止信号参考[LLM API 协议](01-llm-api-protocol.md)；模型可见信息与记忆参考[上下文工程](02-context-engineering.md)；检索实现参考[知识检索与 RAG](03-knowledge-retrieval.md)；任务调度、审批等待与恢复参考[Runtime](04-agent-runtime.md)；评估与发布参考[治理与调优](06-agent-governance-optimization.md)。各处保留足够的局部说明，详细机制只在主讲位置定义。
 
 本章的构建顺序是契约与注册、调用适配、Skill 包、MCP Server、业务 Connector、授权隔离与版本组合，最后交付告警诊断能力体系。案例为同一次虚构运行：`ALR-20260429-017`、`run_0429_017`、`trace_20260429_017`，服务为 order-service。Runtime 章从执行方展示如何使用本章产物；治理章检查旧 Runbook 造成的错误诊断，而不是另起一套案例。
 
@@ -23,7 +23,7 @@ Tool Calling 表达调用提议，Tool 定义一次能力契约，Skill 封装�
 
 <a id="161-tool-calling-决策从函数调用到受控行动"></a>
 
-## 14.1 Tool Calling 决策：从函数调用到受控行动
+## 15.1 Tool Calling 决策：从函数调用到受控行动
 
 [![外围能力从提案到受控调用](../images/review-skills-tools-mcp-connectors-01.svg)](../images/review-skills-tools-mcp-connectors-01.svg)
 
@@ -34,16 +34,16 @@ Tool Calling 表达调用提议，Tool 定义一次能力契约，Skill 封装�
 
 <a id="1611-从调用协议到受控行动"></a>
 
-### 14.1.1 从调用协议到受控行动
+### 15.1.1 从调用协议到受控行动
 
-[第 12 章](01-llm-api-protocol.md#streaming-output)负责模型怎样提出调用、应用怎样关联并回填真实结果；本章接着说明能力怎样被发现、登记、授权和执行。以 `ALR-20260429-017` 为例，模型可以提议查询订单服务指标，Runtime 必须将名称解析到可信注册对象、校验参数和当前主体、限制执行环境，再把带来源的观察送回上下文。模型输出不构成授权或外部完成事实。[[2]](#ref-2)
+[第13章](01-llm-api-protocol.md#streaming-output)负责模型怎样提出调用、应用怎样关联并回填真实结果；本章接着说明能力怎样被发现、登记、授权和执行。以 `ALR-20260429-017` 为例，模型可以提议查询订单服务指标，Runtime 必须将名称解析到可信注册对象、校验参数和当前主体、限制执行环境，再把带来源的观察送回上下文。模型输出不构成授权或外部完成事实。[[2]](#ref-2)
 
-工程闭环为“提案→契约与策略→执行→记录→观察”。每次派发保存 Tool 契约版本、身份/资源作用域、超时预算和 Attempt；写入另外关联稳定 Operation。协议回填的调用 ID 与外部幂等身份分别维护，未知结果沿原 Operation 核验。完整执行状态与对账见[Runtime 外部副作用](03-agent-runtime.md#failure-side-effects)，本章提供工具声明和适配接口。
+工程闭环为“提案→契约与策略→执行→记录→观察”。每次派发保存 Tool 契约版本、身份/资源作用域、超时预算和 Attempt；写入另外关联稳定 Operation。协议回填的调用 ID 与外部幂等身份分别维护，未知结果沿原 Operation 核验。完整执行状态与对账见[Runtime 外部副作用](04-agent-runtime.md#failure-side-effects)，本章提供工具声明和适配接口。
 
 <a id="capability-concepts"></a>
 <a id="1612-概念边界总表"></a>
 
-### 14.1.2 概念边界总表
+### 15.1.2 概念边界总表
 
 下表是本章统一的概念口径，后续各节不再重复定义。
 
@@ -53,7 +53,7 @@ Tool Calling 表达调用提议，Tool 定义一次能力契约，Skill 封装�
 | Tool Calling | 围绕调用提案的运行时事务：校验、裁决、执行、记录、回填 | Agent 如何安全地感知和行动 | Tool Runtime | [Tool Runtime](#tool-runtime) |
 | Tool | 一个可被提出的具体动作，如 typed function、API 操作或 MCP 工具 | Agent 能做什么 | Runtime 校验参数、权限和副作用后执行 | [工具契约](#tool-contract) |
 | Skill（能力包） | `SKILL.md` 及配套资源组成的操作手册 | Agent 何时、按什么方法做事 | Runtime 选择并注入上下文，模型据此规划；Skill 不能自行授予权限 | [Skills](#skills) |
-| Workflow | DAG、状态机或代码流程 | 哪些步骤必须确定性推进 | 编排器控制状态和条件 | [Agent Runtime Workflow](03-agent-runtime.md#workflow) |
+| Workflow | DAG、状态机或代码流程 | 哪些步骤必须确定性推进 | 编排器控制状态和条件 | [Agent Runtime Workflow](04-agent-runtime.md#workflow) |
 | Memory | 用户偏好、项目事实、历史摘要等长期信息 | 哪些事实值得跨任务保留 | 记忆系统管理时效、来源和隐私 | [Agent 的上下文工程 记忆](02-context-engineering.md#memory) |
 | Plugin（扩展包） | 把 Skill、MCP 配置、Connector 定义、脚本和依赖打包的分发单元 | 一组能力如何安装、启用和版本化 | 客户端或扩展系统管理安装、启用和供应链 | [能力组合的交付与兼容](#capability-usage-governance) |
 | MCP | Host 与 Server 之间的标准协议 | 外部工具、资源和提示模板如何被标准化发现和调用 | MCP Server 提供能力，Host 负责接入与控制 | [MCP](#mcp) |
@@ -82,7 +82,7 @@ Plugin（扩展包）
 <a id="tool-access-selection"></a>
 <a id="1613-接入方式选择apiclimcp-与-browser-use"></a>
 
-### 14.1.3 接入方式选择：API、CLI、MCP 与 Browser Use
+### 15.1.3 接入方式选择：API、CLI、MCP 与 Browser Use
 
 Agent 需要连接外部系统时，应当先看任务类型、执行环境和治理要求，再决定是否引入 MCP。从上到下，工具系统可以分为四层：Skill 规定流程、判断标准和验证方式；工具接口（Function Calling、MCP 工具、Shell 工具或内置 Connector）规定 Agent 能提出什么动作；执行通道（API、CLI、浏览器自动化或本地运行时）负责真正执行；最下面是外部系统。API、CLI 和 Browser Use 属于执行通道，MCP 属于工具接口，因此 MCP 与 CLI 并非简单的替代关系。
 
@@ -103,7 +103,7 @@ Agent 需要连接外部系统时，应当先看任务类型、执行环境和�
 <a id="tool-contract"></a>
 <a id="162-工具契约schema返回结果与能力暴露"></a>
 
-## 14.2 工具契约：Schema、返回结果与能力暴露
+## 15.2 工具契约：Schema、返回结果与能力暴露
 
 [![工具注册表与提供方 Schema 分开](../images/review-skills-tools-mcp-connectors-02.svg)](../images/review-skills-tools-mcp-connectors-02.svg)
 
@@ -114,7 +114,7 @@ Agent 需要连接外部系统时，应当先看任务类型、执行环境和�
 
 <a id="1621-工具-schema模型与系统之间的契约"></a>
 
-### 14.2.1 工具 Schema：模型与系统之间的契约
+### 15.2.1 工具 Schema：模型与系统之间的契约
 
 工具 Schema 是模型的操作说明书，直接决定模型能否选对工具、生成正确参数、读懂工具结果。好的工具定义应满足四个目标：
 
@@ -129,7 +129,7 @@ Agent 需要连接外部系统时，应当先看任务类型、执行环境和�
 
 <a id="1622-反例过度宽泛的工具"></a>
 
-### 14.2.2 反例：过度宽泛的工具
+### 15.2.2 反例：过度宽泛的工具
 
 下面这个工具看起来很灵活，实际上把太多决策丢给了模型：
 
@@ -152,7 +152,7 @@ Agent 需要连接外部系统时，应当先看任务类型、执行环境和�
 
 <a id="1623-正例边界清晰的工具"></a>
 
-### 14.2.3 正例：边界清晰的工具
+### 15.2.3 正例：边界清晰的工具
 
 更好的做法是把意图、输入格式、适用范围和默认策略都写进 Schema：
 
@@ -192,13 +192,13 @@ Agent 需要连接外部系统时，应当先看任务类型、执行环境和�
 
 <a id="1624-schema-设计原则名称参数幂等边界与错误"></a>
 
-### 14.2.4 Schema 设计原则：名称、参数、幂等、边界与错误
+### 15.2.4 Schema 设计原则：名称、参数、幂等、边界与错误
 
 **名称使用“动作 + 对象”。** 优先使用 `search_logs`、`get_order_by_id`、`create_incident_ticket`，少用 `handle_request`、`execute`、`process` 这类泛化名称。
 
 **参数尽量结构化。** 有固定取值就用 `enum`；时间有格式要求，就写明是 RFC3339、Unix 时间戳还是相对时间。不要让模型去猜隐式约定。
 
-写操作须明确防重与结果核验契约，幂等键不由模型提供。 创建工单、发送消息、执行部署、修改配置这类工具，重试时可能产生重复副作用。幂等键（`idempotency_key`）由可信 Runtime 基于本次调用对应的 Operation 生成，模型只提供标题、优先级等业务参数；模型生成的字符串在重新规划后就会变化，起不到去重作用。Operation 与幂等的完整语义见[Runtime 外部动作幂等](03-agent-runtime.md#failure-side-effects)。`dry_run` 只能预览变更，不能防止重复副作用。下游支持幂等时核验键的范围、保留时间和失败缓存；不支持时限制重试并披露重复风险。通知渠道不能仅凭本地去重记录承诺一次送达。
+写操作须明确防重与结果核验契约，幂等键不由模型提供。 创建工单、发送消息、执行部署、修改配置这类工具，重试时可能产生重复副作用。幂等键（`idempotency_key`）由可信 Runtime 基于本次调用对应的 Operation 生成，模型只提供标题、优先级等业务参数；模型生成的字符串在重新规划后就会变化，起不到去重作用。Operation 与幂等的完整语义见[Runtime 外部动作幂等](04-agent-runtime.md#failure-side-effects)。`dry_run` 只能预览变更，不能防止重复副作用。下游支持幂等时核验键的范围、保留时间和失败缓存；不支持时限制重试并披露重复风险。通知渠道不能仅凭本地去重记录承诺一次送达。
 
 **描述要写清何时不用。** 例如“不要用于查询用户 PII”“不要用于生产环境写操作”“只有当用户明确要求发送通知时才调用”。
 
@@ -209,7 +209,7 @@ Agent 需要连接外部系统时，应当先看任务类型、执行环境和�
 <a id="tool-result-envelope"></a>
 <a id="1625-toolresult-envelope模型上下文与系统元数据分离"></a>
 
-### 14.2.5 ToolResult Envelope：模型上下文与系统元数据分离
+### 15.2.5 ToolResult Envelope：模型上下文与系统元数据分离
 
 建议所有工具返回统一的 Envelope：
 
@@ -256,7 +256,7 @@ MCP 2026-07-28 版 Tools 规范对工具结果有两点约定。[[3]](#ref-3) �
 <a id="dynamic-exposure"></a>
 <a id="1626-动态工具暴露按任务阶段权限和环境裁剪"></a>
 
-### 14.2.6 动态工具暴露：按任务、阶段、权限和环境裁剪
+### 15.2.6 动态工具暴露：按任务、阶段、权限和环境裁剪
 
 工具定义占用上下文，也会增加误选概率，因此不要一次性交出全部工具，而应按任务、阶段、用户权限和运行环境动态暴露。以诊断 order-service 延迟升高为例（示例）：
 
@@ -268,25 +268,25 @@ MCP 2026-07-28 版 Tools 规范对工具结果有两点约定。[[3]](#ref-3) �
 
 这样可减少无关能力和误选机会，但改变工具前缀也可能降低缓存命中；缓存与能力最小化要按实际计量取舍，不能保证同时改善。完整注册表由能力系统维护，Runtime 绑定其可信快照，模型只看到本轮允许使用的工具。
 
-Token 成本取决于本轮暴露了多少信息，而不是装了多少 MCP Server、扩展包或 Skill。常见做法分两层：常驻上下文的只有名称、简短描述、风险等级等元数据（metadata），供模型和 Router 判断相关性；完整 Tool Schema、`SKILL.md` 正文和参考文档在能力被选中后才加载。Skill 的渐进式加载细节见 [渐进式加载](#progressive-loading)，Runtime 侧的能力目录与过滤见[Agent Runtime 能力发现与加载](03-agent-runtime.md#capability-discovery-loading)。治理的重点是当前任务只暴露必要的能力。
+Token 成本取决于本轮暴露了多少信息，而不是装了多少 MCP Server、扩展包或 Skill。常见做法分两层：常驻上下文的只有名称、简短描述、风险等级等元数据（metadata），供模型和 Router 判断相关性；完整 Tool Schema、`SKILL.md` 正文和参考文档在能力被选中后才加载。Skill 的渐进式加载细节见 [渐进式加载](#progressive-loading)，Runtime 侧的能力目录与过滤见[Agent Runtime 能力发现与加载](04-agent-runtime.md#capability-discovery-loading)。治理的重点是当前任务只暴露必要的能力。
 
 
 <a id="tool-risk-levels"></a>
 
 <a id="1627-用副作用与数据敏感度共同描述风险"></a>
 
-### 14.2.7 用副作用与数据敏感度共同描述风险
+### 15.2.7 用副作用与数据敏感度共同描述风险
 
 风险是本书策略输入，不能把敏感读取改名为“可逆写入”。先分别标注动作副作用与数据敏感度，再按环境、主体和目标组合裁决。
 
-能力注册表分别记录 side_effect、data_sensitivity、resource_scope 和外部交互范围；它们是策略输入，不是模型自报的风险标签。风险组合与人工控制的主策略见[治理护栏](05-agent-governance-optimization.md#guardrails-overview)。
+能力注册表分别记录 side_effect、data_sensitivity、resource_scope 和外部交互范围；它们是策略输入，不是模型自报的风险标签。风险组合与人工控制的主策略见[治理护栏](06-agent-governance-optimization.md#guardrails-overview)。
 
-本例日志读取是“只读×敏感”，建单是“可补偿写入×内部”，Slack 是“外发×内部”；restart_service 不在能力集中。MCP annotations 只是提示，不可信来源的 readOnlyHint/idempotentHint 不能代替实际验证。[[3]](#ref-3) 决策如何进入审批等待与恢复参考[Runtime 动作裁决](03-agent-runtime.md#policy-engine)。
+本例日志读取是“只读×敏感”，建单是“可补偿写入×内部”，Slack 是“外发×内部”；restart_service 不在能力集中。MCP annotations 只是提示，不可信来源的 readOnlyHint/idempotentHint 不能代替实际验证。[[3]](#ref-3) 决策如何进入审批等待与恢复参考[Runtime 动作裁决](04-agent-runtime.md#policy-engine)。
 
 <a id="tool-runtime"></a>
 <a id="163-调用适配接口把外围能力接入-runtime"></a>
 
-## 14.3 调用适配接口：把外围能力接入 Runtime
+## 15.3 调用适配接口：把外围能力接入 Runtime
 
 [![Attempt 结果映射到 Operation 事实](../images/review-skills-tools-mcp-connectors-03.svg)](../images/review-skills-tools-mcp-connectors-03.svg)
 
@@ -299,7 +299,7 @@ Token 成本取决于本轮暴露了多少信息，而不是装了多少 MCP Ser
 
 <a id="1631-组件与调用链路"></a>
 
-### 14.3.1 组件与调用链路
+### 15.3.1 组件与调用链路
 
 ```mermaid
 flowchart LR
@@ -322,7 +322,7 @@ flowchart LR
 |:---|:---|:---|
 | Tool Registry | 管理工具元数据、版本、风险等级 | 支持按任务动态暴露工具 |
 | Schema Validator | 校验参数与类型 | 严格模式、默认值、范围约束 |
-| Policy Engine | 裁决是否允许调用 | 输出 `allow / deny / ask / escalate`，见[Agent Runtime Policy Engine](03-agent-runtime.md#policy-engine) |
+| Policy Engine | 裁决是否允许调用 | 输出 `allow / deny / ask / escalate`，见[Agent Runtime Policy Engine](04-agent-runtime.md#policy-engine) |
 | Executor | 执行工具 | 超时、重试、熔断、并发限制、执行隔离 |
 | Adapter | 对接外部系统 | API、CLI、MCP、数据库、消息队列 |
 | Result Normalizer | 统一返回格式 | 成功与失败 Envelope、错误码 |
@@ -334,18 +334,18 @@ MVP 阶段这些组件可以在同一进程内，但职责边界必须清晰，�
 <a id="tool-call-state-machine"></a>
 <a id="1632-单次调用尝试与-operation-的映射"></a>
 
-### 14.3.2 单次调用尝试与 Operation 的映射
+### 15.3.2 单次调用尝试与 Operation 的映射
 
 调用适配接口接收 Runtime 提供的 run_id、call_id、operation_id（写操作）、稳定幂等键、参数哈希、批准引用、资源版本和截止时间。返回字段必须区分未派发、已确认生效、已确认未生效、部分生效和未知，并提供当前可用的查询入口与外部对象引用。
 
-适配器不维护第二套审批/恢复状态机。未派发校验失败可返回 not_dispatched；写请求发出后回执丢失返回 unknown；取消只确认本地停止时，不能回报 not_applied。收到成功回执仍要关联原逻辑动作。Runtime 决定对账、重试、补偿或人工处理，详见[Operation 恢复](03-agent-runtime.md#failure-side-effects)。
+适配器不维护第二套审批/恢复状态机。未派发校验失败可返回 not_dispatched；写请求发出后回执丢失返回 unknown；取消只确认本地停止时，不能回报 not_applied。收到成功回执仍要关联原逻辑动作。Runtime 决定对账、重试、补偿或人工处理，详见[Operation 恢复](04-agent-runtime.md#failure-side-effects)。
 
 同一 Operation 的传输重试可产生新 Attempt 和请求 ID，业务意图及幂等键保持稳定。只有请求参数相同不够证明同一意图；键范围、有效期及资源端去重保证由 Connector 如实声明。
 
 
 <a id="1633-失败模式误选工具参数错误重复副作用与注入攻击"></a>
 
-### 14.3.3 失败模式：误选工具、参数错误、重复副作用与注入攻击
+### 15.3.3 失败模式：误选工具、参数错误、重复副作用与注入攻击
 
 | 失败模式 | 根因 | 修复策略 |
 |:---|:---|:---|
@@ -359,13 +359,13 @@ MVP 阶段这些组件可以在同一进程内，但职责边界必须清晰，�
 | 注入攻击 | 外部数据被当成指令 | 标记不可信来源，与指令隔离 |
 | 成本失控 | 缺少预算与停止条件 | 调用次数、Token 预算、截止时间 |
 
-网页、文档、日志和工单都可能夹带指令，工具输出一律按不可信数据处理。按风险等级的防护要求见 [工具风险分级](#tool-risk-levels)，护栏的总体框架见[Agent 治理与调优 Guardrails 总览](05-agent-governance-optimization.md#guardrails-overview)。
+网页、文档、日志和工单都可能夹带指令，工具输出一律按不可信数据处理。按风险等级的防护要求见 [工具风险分级](#tool-risk-levels)，护栏的总体框架见[Agent 治理与调优 Guardrails 总览](06-agent-governance-optimization.md#guardrails-overview)。
 
 这些失败模式应在设计评审和 Eval 中覆盖。
 
 <a id="1634-重试策略写进工具元数据"></a>
 
-### 14.3.4 重试策略：写进工具元数据
+### 15.3.4 重试策略：写进工具元数据
 
 是否重试、重试几次、是否退避，由 Runtime 依据工具元数据中声明的策略统一控制：
 
@@ -380,13 +380,13 @@ class RetryPolicy:
     backoff_seconds: list[int]
 ```
 
-非幂等的写入类工具，只有在下游支持幂等键或已确认未执行时才可重试；`RATE_LIMITED` 可退避重试，`PERMISSION_DENIED` 和参数类错误不应自动重试。模型可以据错误摘要调整计划（如缩小查询范围），但不决定是否重试。错误类型与重试准入的完整分类见[Agent Runtime 重试分类](03-agent-runtime.md#retry-classification)。
+非幂等的写入类工具，只有在下游支持幂等键或已确认未执行时才可重试；`RATE_LIMITED` 可退避重试，`PERMISSION_DENIED` 和参数类错误不应自动重试。模型可以据错误摘要调整计划（如缩小查询范围），但不决定是否重试。错误类型与重试准入的完整分类见[Agent Runtime 重试分类](04-agent-runtime.md#retry-classification)。
 
 <a id="1635-工具专属指标"></a>
 
-### 14.3.5 工具专属指标
+### 15.3.5 工具专属指标
 
-通用 Trace、成功率与 SLO 见[Agent 治理与调优 Trace 与可观测性](05-agent-governance-optimization.md#trace-observability)，这里只列工具专属指标：
+通用 Trace、成功率与 SLO 见[Agent 治理与调优 Trace 与可观测性](06-agent-governance-optimization.md#trace-observability)，这里只列工具专属指标：
 
 | 指标 | 含义 | 异常时的排查方向 |
 |:---|:---|:---|
@@ -402,9 +402,9 @@ class RetryPolicy:
 <a id="orchestration-exposure"></a>
 <a id="1636-编排模式对工具暴露的影响"></a>
 
-### 14.3.6 编排模式对工具暴露的影响
+### 15.3.6 编排模式对工具暴露的影响
 
-编排模式的定义与选型见[Agent Runtime ReAct 与 Plan-and-Execute](03-agent-runtime.md#react-plan-execute)和[Agent Runtime 编排模式选择](03-agent-runtime.md#pattern-selection)。从工具系统看，模式的差别在于每一步暴露哪些工具、开放哪些权限：
+编排模式的定义与选型见[Agent Runtime ReAct 与 Plan-and-Execute](04-agent-runtime.md#react-plan-execute)和[Agent Runtime 编排模式选择](04-agent-runtime.md#pattern-selection)。从工具系统看，模式的差别在于每一步暴露哪些工具、开放哪些权限：
 
 | 模式 | 工具暴露方式 | 权限裁剪要点 |
 |:---|:---|:---|
@@ -416,13 +416,13 @@ class RetryPolicy:
 
 工作流即工具（Workflow-as-Tool）把已验证的高频多步流程封装成高层工具，例如 `diagnose_latency_incident(alert_id)` 在内部依次查询告警、最近发布、指标、日志与相似案例，再生成诊断报告。它降低了规划负担和可见工具数，代价是灵活性下降，不适合探索性任务。高层工具的风险等级应按内部风险最高的步骤登记，内部调用仍需经过 Runtime 的校验、策略和审计。
 
-高风险工具需要人参与决策：触发条件按 [工具风险分级](#tool-risk-levels)确定，审批与人工接管的协议见[Agent Runtime 审批与人工接管](03-agent-runtime.md#human-control)。
+高风险工具需要人参与决策：触发条件按 [工具风险分级](#tool-risk-levels)确定，审批与人工接管的协议见[Agent Runtime 审批与人工接管](04-agent-runtime.md#human-control)。
 
 
 <a id="skills"></a>
 <a id="164-agent-skills从工具调用到能力复用"></a>
 
-## 14.4 Agent Skills：从工具调用到能力复用
+## 15.4 Agent Skills：从工具调用到能力复用
 
 工具让 Agent 能够行动，Skill 则把完成一类任务的方法组织成可复用的能力包。Anthropic 提出的 Agent Skills 把指令、脚本和资源放进一个目录，并按任务需要加载。[[4]](#ref-4)
 
@@ -430,7 +430,7 @@ class RetryPolicy:
 
 <a id="1641-为什么有了-tool-calling-还需要-skill"></a>
 
-### 14.4.1 为什么有了 Tool Calling 还需要 Skill
+### 15.4.1 为什么有了 Tool Calling 还需要 Skill
 
 查询天气通常只需一次工具调用，而“排查线上延迟升高”需要协调多个动作：确认服务和时间窗口，查询指标与日志，对比部署变更，检索历史案例，最后形成带证据的诊断。能调用这些工具，不等于能把它们组织成可靠的工作方法。
 
@@ -442,7 +442,7 @@ class RetryPolicy:
 
 <a id="1642-skill-的组成入口指令与可复用资源"></a>
 
-### 14.4.2 Skill 的组成：入口、指令与可复用资源
+### 15.4.2 Skill 的组成：入口、指令与可复用资源
 
 Agent Skills 格式以 `SKILL.md` 为入口，文件由 YAML 前置元数据（Front Matter）和 Markdown 正文组成；脚本、参考资料和资产都是可选资源。[[5]](#ref-5)
 
@@ -470,7 +470,7 @@ Skill 与 Tool、Workflow、Memory、Plugin 的边界见 [概念边界总表](#c
 
 <a id="1643-可执行的-skillmd-示例"></a>
 
-### 14.4.3 可执行的 `SKILL.md` 示例
+### 15.4.3 可执行的 `SKILL.md` 示例
 
 下面是 `incident-diagnosis/SKILL.md` 的示例。`name`、`description` 写在前置元数据中，流程和边界写在正文中；工具名和资源路径需要按实际部署补齐。
 
@@ -511,7 +511,7 @@ description: 分析线上告警、接口延迟升高、错误率异常，输出�
 
 <a id="1644-从真实案例提炼-skill"></a>
 
-### 14.4.4 从真实案例提炼 Skill
+### 15.4.4 从真实案例提炼 Skill
 
 先收集具体请求，再抽取可复用步骤，比先写一份“大而全”的专家指南更容易划清边界。
 
@@ -528,7 +528,7 @@ description: 分析线上告警、接口延迟升高、错误率异常，输出�
 
 <a id="1645-skill-注册表版本与运行条件"></a>
 
-### 14.4.5 Skill 注册表：版本与运行条件
+### 15.4.5 Skill 注册表：版本与运行条件
 
 小型本地技能库可以先用目录、Git 和变更记录管理。多人共享、多环境部署时，再引入注册表，记录谁负责、哪一版经过验证、支持哪些运行条件。
 
@@ -564,7 +564,7 @@ changelog: "补充日志查询失败时的降级路径"
 <a id="progressive-loading"></a>
 <a id="1646-渐进式加载先发现再展开最后按需取用"></a>
 
-### 14.4.6 渐进式加载：先发现，再展开，最后按需取用
+### 15.4.6 渐进式加载：先发现，再展开，最后按需取用
 
 Agent Skills 的格式规范将发现元数据、激活指令和按需资源分开；文档中的 token/行数建议不是所有客户端共同的硬上限。实际装配由宿主实现，不能从目录里存在 SKILL.md 推导正文已经进入模型上下文。[[4]](#ref-4)[[5]](#ref-5)
 
@@ -587,7 +587,7 @@ Agent Skills 的格式规范将发现元数据、激活指令和按需资源分�
 
 <a id="1647-自由度门控与-tool-policy"></a>
 
-### 14.4.7 自由度、门控与 Tool Policy
+### 15.4.7 自由度、门控与 Tool Policy
 
 Skill 的约束强度应与任务的变化空间和出错代价相匹配。文本原则、模板和脚本分别对应不同程度的自由度：
 
@@ -599,12 +599,12 @@ Skill 的约束强度应与任务的变化空间和出错代价相匹配。文�
 
 门控应写成可观察的条件，例如：“未确认服务、环境和时间窗口前，不进入日志查询；证据不足时，不把假设标记为根因。”复杂流程可以用流程图或检查表表达分支与回路，减少提前结束任务的机会。
 
-需要强调的是，**Skill 中的门控只是行为指令，Tool Policy 才是运行时的强制边界**。`HARD-GATE` 之类的标签没有通用的强制执行语义。生产写操作的授权、审批和审计必须由 Runtime 或确定性编排器实现（见 [Agent Runtime Policy 引擎](03-agent-runtime.md#policy-engine)）。例如，Skill 可以要求“创建事故单前确认内容”，Runtime 仍要检查用户是否授权、参数是否合规、操作是否幂等。注册表中的副作用与数据敏感度和 Skill 自述的工具限制，都要由系统解释并落实，不会自动生效。
+需要强调的是，**Skill 中的门控只是行为指令，Tool Policy 才是运行时的强制边界**。`HARD-GATE` 之类的标签没有通用的强制执行语义。生产写操作的授权、审批和审计必须由 Runtime 或确定性编排器实现（见 [Agent Runtime Policy 引擎](04-agent-runtime.md#policy-engine)）。例如，Skill 可以要求“创建事故单前确认内容”，Runtime 仍要检查用户是否授权、参数是否合规、操作是否幂等。注册表中的副作用与数据敏感度和 Skill 自述的工具限制，都要由系统解释并落实，不会自动生效。
 
 <a id="skill-lifecycle"></a>
 <a id="1648-skill-生命周期发布迭代与退役"></a>
 
-### 14.4.8 Skill 生命周期：发布、迭代与退役
+### 15.4.8 Skill 生命周期：发布、迭代与退役
 
 本节为本书的工程治理模型，Agent Skills 格式本身不规定完整发布流程。版本单元覆盖正文、脚本、参考资料和资产，关联不可变摘要、责任人和验证证据；工具契约与模型变化也要重新验证。
 
@@ -621,11 +621,11 @@ Skill 的约束强度应与任务的变化空间和出错代价相匹配。文�
 | 回滚 | 确认旧版仍兼容当前工具/策略 | 不重放未知动作，保留在途事实 |
 | 退役 | 停止新任务选择，迁移引用方 | 自动化与依赖已迁移，历史按策略留存 |
 
-版本号只表达团队约定，不能保证兼容。只改文字也可能改变模型行为；Schema 未变而默认查询范围扩大，同样属于需要复核的变更。运行中任务固定已选版本，必须切换时先由 Runtime 清点在途动作；回滚能力不撤销已建工单或已发消息，未知结果按[Operation 契约](03-agent-runtime.md#failure-side-effects)查询与核验。发布门禁统一见[治理发布控制](05-agent-governance-optimization.md#release-control)。
+版本号只表达团队约定，不能保证兼容。只改文字也可能改变模型行为；Schema 未变而默认查询范围扩大，同样属于需要复核的变更。运行中任务固定已选版本，必须切换时先由 Runtime 清点在途动作；回滚能力不撤销已建工单或已发消息，未知结果按[Operation 契约](04-agent-runtime.md#failure-side-effects)查询与核验。发布门禁统一见[治理发布控制](06-agent-governance-optimization.md#release-control)。
 
 <a id="1649-常见失败模式与回退"></a>
 
-### 14.4.9 常见失败模式与回退
+### 15.4.9 常见失败模式与回退
 
 | 失败模式 | 表现 | 修复方向 |
 |:---|:---|:---|
@@ -642,7 +642,7 @@ Skill 缺失、资源不可读或工具不可用时，应报告缺项，并判�
 
 <a id="16410-skill-与-mcp-的关系"></a>
 
-### 14.4.10 Skill 与 MCP 的关系
+### 15.4.10 Skill 与 MCP 的关系
 
 MCP 定义外部工具、资源和提示模板如何接入，Skill 组织完成任务的方法，二者可以配合，但 Skill 格式并不依赖 MCP（概念边界见 [工具与接入概念边界](#capability-concepts)，协议细节见 [MCP](#mcp)）。常见组合有：Skill 引导 Agent 按取证路径调用 MCP Server 提供的日志、指标和部署工具；Skill 引导调用已有的 CLI 或 API；MCP Prompts 提供标准报告等模板，由 Host 按自身机制纳入任务上下文；Plugin 作为扩展包，把 Skill、工具和依赖一起分发。无论哪种组合，工具负责行动，Skill 负责方法，扩展包负责分发，权限、执行与观测始终由 Runtime 负责。
 
@@ -650,7 +650,7 @@ MCP 定义外部工具、资源和提示模板如何接入，Skill 组织完成�
 <a id="mcp"></a>
 <a id="165-mcptool-calling-的标准化接入协议"></a>
 
-## 14.5 MCP：外部能力的标准协议与版本边界
+## 15.5 MCP：外部能力的标准协议与版本边界
 
 MCP 统一外部能力的发现、描述、调用与内容交付，业务实现仍由 Server 与 Connector 完成。Host 负责用户、模型、上下文和调用策略，Client 在 Host 内适配协议，Server 暴露有边界的工具和数据。接入选择见[API、CLI、MCP 与 Browser](#tool-access-selection)。[[11]](#ref-11)
 
@@ -661,7 +661,7 @@ MCP 统一外部能力的发现、描述、调用与内容交付，业务实现�
 <a id="1653-能力模型server-侧与-client-侧能力"></a>
 <a id="按场景选择能力类型"></a>
 
-### 14.5.1 角色、能力与实现责任
+### 15.5.1 角色、能力与实现责任
 
 | 对象 | 交付物 | 本例中的责任 |
 | --- | --- | --- |
@@ -680,7 +680,7 @@ Tools 描述可调用动作，Resources 描述由应用选择读取的内容，P
 <a id="1654-能力协商与渐进兼容"></a>
 <a id="协议版本与传输迁移对照表"></a>
 
-### 14.5.2 逐请求版本、能力发现与旧版兼容
+### 15.5.2 逐请求版本、能力发现与旧版兼容
 
 当前主线为 2026-07-28。每个请求在 params._meta 中携带协议版本和 Client 能力，Client 信息按规范建议携带；HTTP 还携带相同的 MCP-Protocol-Version。Server 必须实现 server/discover，Client 可先发现，也可直接请求并处理 UnsupportedProtocolVersionError。它不是用 initialize 建立永久资格。[[12]](#ref-12)
 
@@ -717,7 +717,7 @@ Tools 描述可调用动作，Resources 描述由应用选择读取的内容，P
 <a id="从编写-server-到模型调用的全链路"></a>
 <a id="1655-协议流initializelistcallread-与-notifications"></a>
 
-### 14.5.3 发现、调用、补输入与结果映射
+### 15.5.3 发现、调用、补输入与结果映射
 
 [![MCP 从能力构建到模型反馈的完整链路](../images/mcp-authoring-discovery-llm-loop.svg)](../images/mcp-authoring-discovery-llm-loop.svg)
 
@@ -756,7 +756,7 @@ tools/list 等可缓存结果带 ttlMs、cacheScope；TTL 是新鲜度提示，�
 <a id="远程-mcpremote-mcp"></a>
 <a id="三种形态对比"></a>
 
-### 14.5.4 传输与部署：连接恢复不等于业务恢复
+### 15.5.4 传输与部署：连接恢复不等于业务恢复
 
 | 传输/部署 | 获得的能力 | 必须另外落实 |
 | --- | --- | --- |
@@ -773,7 +773,7 @@ tools/list 等可缓存结果带 ttlMs、cacheScope；TTL 是新鲜度提示，�
 <a id="本地-server-的安全"></a>
 <a id="输出防注入"></a>
 
-### 14.5.5 第一跳授权与工具提示的信任边界
+### 15.5.5 第一跳授权与工具提示的信任边界
 
 HTTP 第一跳授权按 OAuth 2.1 draft-ietf-oauth-v2-1-13 及规范引用执行：资源元数据使用 RFC 9728，resource/audience 绑定使用 RFC 8707，授权码流程落实 PKCE 与适用的安全条件。Client ID Metadata Documents 是推荐发现机制，DCR 已弃用，仅作旧授权服务器兼容。Token 通过 Authorization 头传递，不放查询串。[[23]](#ref-23)
 
@@ -793,7 +793,7 @@ annotations 全是提示，以下默认值来自 2026-07-28 schema，不构成�
 <a id="1657-开源-mcp-能力的来源"></a>
 <a id="1658-示例github-与日志平台的-mcp-接入"></a>
 
-### 14.5.6 能力来源、发布与迁移验收
+### 15.5.6 能力来源、发布与迁移验收
 
 官方 Registry 是查找入口，不是安全认证。接入时记录实现来源、维护状态、固定版本、工具列表与 Schema 哈希。已归档参考包不作为当前启动命令；GitHub 和 Brave 的官方维护实现与旧参考实现应区分。[[25]](#ref-25)[[26]](#ref-26) Linear 等 SaaS 的认证方式以端点文档为准，不能用某个旧 DCR 示例概括所有远端授权。[[27]](#ref-27)
 
@@ -807,7 +807,7 @@ annotations 全是提示，以下默认值来自 2026-07-28 schema，不构成�
 <a id="16510-生产级-mcp-server-的结构"></a>
 <a id="166-connector-开发从业务-api-到可治理的-agent-集成"></a>
 
-## 14.6 Connector 开发：从业务 API 到可治理的 Agent 集成
+## 15.6 Connector 开发：从业务 API 到可治理的 Agent 集成
 
 MCP Server 的生产实现分为协议层、工具层、授权/配额层和 Connector 层：协议层处理逐请求版本、结果类型、发现与消息；工具层绑定 handler、校验输入输出并归一观察；授权层落实当前主体与资源限制；Connector 访问已有 API Gateway 和业务系统。接入标准协议不应绕过企业网关审计或直接获得数据库超级权限。
 
@@ -818,11 +818,11 @@ MCP Server 的生产实现分为协议层、工具层、授权/配额层和 Conn
 
 [MCP 接入](#mcp)讲如何向 Host 暴露能力；把业务系统真正接进来，还需要一层集成实现，即 Connector。MCP 是可选的暴露协议，Connector 是集成实现。
 
-本节以企业工单系统为案例，按开发顺序展开。Connector 在任务中的绑定、撤销与结果未知恢复属于 Runtime 职责，见[Agent Runtime Connector 运行时](03-agent-runtime.md#connector-runtime)。
+本节以企业工单系统为案例，按开发顺序展开。Connector 在任务中的绑定、撤销与结果未知恢复属于 Runtime 职责，见[Agent Runtime Connector 运行时](04-agent-runtime.md#connector-runtime)。
 
 <a id="1661-connector-与-mcp开发视角的关系"></a>
 
-### 14.6.1 Connector 与 MCP：开发视角的关系
+### 15.6.1 Connector 与 MCP：开发视角的关系
 
 概念边界见 [概念边界总表](#capability-concepts)。Connector 负责认证适配、请求转换和结果归一化，并配合连接服务管理授权；有些平台称之为 App、Integration 或数据源适配器。工单系统提供几十个 REST 接口，不意味着要向模型暴露几十个函数：开发的第一步是挑出任务需要的业务能力，定义稳定的输入、输出和失败语义，再把下游 API 接到后面。
 
@@ -832,7 +832,7 @@ Connector 可以不经过 MCP 直接由 Tool Runtime 调用，一个 MCP Server 
 
 <a id="1662-业务能力与部署边界"></a>
 
-### 14.6.2 业务能力与部署边界
+### 15.6.2 业务能力与部署边界
 
 企业工单 Connector 的最小版本只做三件事：在获准项目中搜索工单、读取一条可见工单、创建一条经过批准的跟踪单。批量修改、删除、任意查询和任意 HTTP 请求暂不实现，以免一次性暴露底层系统的全部权限。
 
@@ -848,7 +848,7 @@ Connector 可以不经过 MCP 直接由 Tool Runtime 调用，一个 MCP Server 
 
 <a id="1663-配置与工具-schema"></a>
 
-### 14.6.3 配置与工具 Schema
+### 15.6.3 配置与工具 Schema
 
 下面是自定义的示例配置，不是 MCP 标准 Manifest。它只声明能力和运行要求，凭据、用户连接记录和业务审批都不放在包里。
 
@@ -901,7 +901,7 @@ output_policy:
 
 <a id="1664-认证连接外部账号与两跳授权"></a>
 
-### 14.6.4 认证：连接外部账号与两跳授权
+### 15.6.4 认证：连接外部账号与两跳授权
 
 Connector 可以复用平台的凭据服务，不必自己保存 Token，但仍要明确谁发起授权、谁处理回调、凭据属于谁、哪些动作触发增量授权。下面以委托用户的 OAuth 授权码流程为例；服务账号、API Key 等方式需另行设计隔离、轮换和撤销。
 
@@ -931,7 +931,7 @@ Connector 可以复用平台的凭据服务，不必自己保存 Token，但仍�
 
 <a id="1665-适配器身份传输与业务映射分离"></a>
 
-### 14.6.5 适配器：身份、传输与业务映射分离
+### 15.6.5 适配器：身份、传输与业务映射分离
 
 建议拆成四个模块：连接服务负责身份绑定和凭据，传输客户端负责受控网络请求，业务适配器负责字段映射和错误转换，Tool 或 MCP 层负责能力暴露。这样更换 Host 或传输协议时不必重写工单逻辑。下面的伪代码展示搜索路径的职责和调用顺序。
 
@@ -992,17 +992,17 @@ class TicketsConnector:
 
 <a id="1666-写操作审批幂等与结果未知"></a>
 
-### 14.6.6 写操作：审批、幂等与结果未知
+### 15.6.6 写操作：审批、幂等与结果未知
 
 `tickets.create` 的适配步骤是：核验当前绑定与批准引用 → 接收原 Operation 及稳定幂等键 → 校验并映射业务参数 → 有界发送一次请求 → 保存或返回外部引用与效果证据。断连时保留未知结果，交由 Runtime 决定后续。
 
-Connector 只实现能力边界：校验业务参数和当前 Connection 绑定，接收 Runtime 提供的 Operation、稳定幂等键与批准引用，适配下游请求，再返回 ToolResult。意图持久化、外部回执确认、接管与恢复主讲在[Runtime 派发协议](03-agent-runtime.md#runtime-dispatch-protocol)和[未知结果](03-agent-runtime.md#failure-side-effects)。
+Connector 只实现能力边界：校验业务参数和当前 Connection 绑定，接收 Runtime 提供的 Operation、稳定幂等键与批准引用，适配下游请求，再返回 ToolResult。意图持久化、外部回执确认、接管与恢复主讲在[Runtime 派发协议](04-agent-runtime.md#runtime-dispatch-protocol)和[未知结果](04-agent-runtime.md#failure-side-effects)。
 
 适配器必须声明下游是否支持同键同参去重、结果查询、保留窗口和资源版本。只有业务关联标记而没有唯一性保证时，“先搜索再创建”仍有竞态，不能承诺生效一次。异步接受返回远端作业 ID；超时、断线返回 OUTCOME_UNKNOWN 与 operation_id，不擅自换键重发。补偿能力声明前提与副作用，授权与执行仍交由 Runtime。
 
 <a id="1667-分页限流缓存与增量事件"></a>
 
-### 14.6.7 分页、限流、缓存与增量事件
+### 15.6.7 分页、限流、缓存与增量事件
 
 **分页。** 游标要绑定连接、调用主体（或等价的授权边界）、资源范围、查询指纹和有效期，不能拿其他租户或旧授权下的游标续读。提供方返回下一页 URL 时，传输层要验证目标、防止凭据跨域泄漏，不能让模型拼接 URL。
 
@@ -1025,7 +1025,7 @@ GitHub Webhook 文档要求用安全保存的 Secret 校验投递，并以投递
 
 <a id="1668-统一错误分类"></a>
 
-### 14.6.8 统一错误分类
+### 15.6.8 统一错误分类
 
 Connector 要把提供方错误转换为统一分类。下表统一本书 Connector 应用错误码；协议层原始信号在模型接口章定义，重试与收敛责任在 Runtime 定义，三者通过记录原始提供方码关联。它是应用层分类，不是对 HTTP 状态码的机械映射，真实语义取决于提供方响应和请求阶段。
 
@@ -1044,7 +1044,7 @@ Connector 要把提供方错误转换为统一分类。下表统一本书 Connec
 
 <a id="1669-契约测试沙箱联调与故障验收"></a>
 
-### 14.6.9 契约测试、沙箱联调与故障验收
+### 15.6.9 契约测试、沙箱联调与故障验收
 
 验收分三步：验证固定输入输出，用测试组织联调，验证 Runtime 完整调用链。Mock 只能验证自己的假设，无法证明提供方权限、OAuth 回调和写入幂等符合假设。
 
@@ -1063,7 +1063,7 @@ Connector 要把提供方错误转换为统一分类。下表统一本书 Connec
 
 <a id="16610-发布升级撤销与维护"></a>
 
-### 14.6.10 发布、升级、撤销与维护
+### 15.6.10 发布、升级、撤销与维护
 
 提供方修改字段、组织权限调整、OAuth 配置变化以及 Host 对 Schema 的限制，都可能影响已有任务。发布前应版本化记录 API 范围、能力 Schema、认证方式、风险动作和输出映射，明确维护责任人。
 
@@ -1077,7 +1077,7 @@ Connector 要把提供方错误转换为统一分类。下表统一本书 Connec
 <a id="sandbox"></a>
 <a id="167-授权沙箱与能力交付"></a>
 
-## 14.7 授权、沙箱与能力交付
+## 15.7 授权、沙箱与能力交付
 
 [![授权与沙箱是独立防线](../images/review-skills-tools-mcp-connectors-07.svg)](../images/review-skills-tools-mcp-connectors-07.svg)
 
@@ -1088,7 +1088,7 @@ Connector 要把提供方错误转换为统一分类。下表统一本书 Connec
 
 <a id="1671-沙箱的职责限制文件网络进程和凭据"></a>
 
-### 14.7.1 沙箱的职责：限制文件、网络、进程和凭据
+### 15.7.1 沙箱的职责：限制文件、网络、进程和凭据
 
 只读 API 的安全边界主要来自 API 权限和工具 Schema。一旦 Agent 能运行 Shell、读写文件、启动浏览器或连接 MCP Server，关键就变成“外部进程能接触什么”，沙箱随之成为 Tool Runtime 的基础设施。
 
@@ -1111,7 +1111,7 @@ Connector 要把提供方错误转换为统一分类。下表统一本书 Connec
 
 <a id="1672-易混淆的概念prompt审批docker-与-api-rbac"></a>
 
-### 14.7.2 易混淆的概念：Prompt、审批、Docker 与 API RBAC
+### 15.7.2 易混淆的概念：Prompt、审批、Docker 与 API RBAC
 
 Claude Code 文档把沙箱（运行边界）与权限规则（工具授权）分开说明，适用平台需单独确认。[[31]](#ref-31)[[32]](#ref-32)
 
@@ -1164,7 +1164,7 @@ sandbox_policy:
 
 <a id="1673-按工具类型划分沙箱"></a>
 
-### 14.7.3 按工具类型划分沙箱
+### 15.7.3 按工具类型划分沙箱
 
 | 工具类型 | 主要风险 | 推荐沙箱策略 |
 |:---|:---|:---|
@@ -1181,7 +1181,7 @@ sandbox_policy:
 <a id="browser-actions"></a>
 <a id="1674-浏览器自动化的边界"></a>
 
-### 14.7.4 浏览器自动化的边界
+### 15.7.4 浏览器自动化的边界
 
 针对跨站泄露、下载文件和访问内部系统等风险，环境层面应使用独立的浏览器 profile、域名 allowlist、隔离的下载目录和 Cookie 分区。
 
@@ -1199,9 +1199,9 @@ sandbox_policy:
 <a id="egress-control"></a>
 <a id="1675-网络出口控制"></a>
 
-### 14.7.5 网络出口控制
+### 15.7.5 网络出口控制
 
-Agent 的网络请求可能被诱导访问内网或云元数据服务，即服务端请求伪造（SSRF）。OWASP 指南建议同时处理输入校验、重定向和网络层限制[[35]](#ref-35)，MCP 安全指南也提醒授权发现和服务端请求存在 SSRF 风险[[24]](#ref-24)。本节讲 SSRF 与出口控制，数据外发治理见[Agent 治理与调优 出站安全](05-agent-governance-optimization.md#outbound-security)。
+Agent 的网络请求可能被诱导访问内网或云元数据服务，即服务端请求伪造（SSRF）。OWASP 指南建议同时处理输入校验、重定向和网络层限制[[35]](#ref-35)，MCP 安全指南也提醒授权发现和服务端请求存在 SSRF 风险[[24]](#ref-24)。本节讲 SSRF 与出口控制，数据外发治理见[Agent 治理与调优 出站安全](06-agent-governance-optimization.md#outbound-security)。
 
 | 阶段 | 控制措施 | 必测的失败场景 |
 | --- | --- | --- |
@@ -1215,7 +1215,7 @@ Agent 的网络请求可能被诱导访问内网或云元数据服务，即服�
 
 <a id="1676-执行环境的四个层级路径进程容器与远程执行器"></a>
 
-### 14.7.6 执行环境的四个层级：路径、进程、容器与远程执行器
+### 15.7.6 执行环境的四个层级：路径、进程、容器与远程执行器
 
 从轻到重有四种执行环境：
 
@@ -1232,7 +1232,7 @@ Agent 的网络请求可能被诱导访问内网或云元数据服务，即服�
 
 <a id="1677-沙箱与审批"></a>
 
-### 14.7.7 沙箱与审批
+### 15.7.7 沙箱与审批
 
 风险等级以 [风险分级](#tool-risk-levels) 为准，各等级对应的沙箱边界如下：
 
@@ -1243,13 +1243,13 @@ Agent 的网络请求可能被诱导访问内网或云元数据服务，即服�
 | 外发或难逆副作用 × 对应数据敏感度 | 隔离容器、最小凭据、开启审计 |
 | 策略禁止的副作用/敏感度组合 | 不向通用 Agent 暴露，走专用流程 |
 
-审批并非越多越安全：低风险动作反复审批造成疲劳，高风险动作只靠沙箱又把业务责任交给了技术边界。因此低风险靠沙箱自动化，高风险用“沙箱 + 人工确认”，关键业务交给专用流程。审批协议见[Agent Runtime 人工控制](03-agent-runtime.md#human-control)。
+审批并非越多越安全：低风险动作反复审批造成疲劳，高风险动作只靠沙箱又把业务责任交给了技术边界。因此低风险靠沙箱自动化，高风险用“沙箱 + 人工确认”，关键业务交给专用流程。审批协议见[Agent Runtime 人工控制](04-agent-runtime.md#human-control)。
 
 本书建议按任务约束预先定义可自主执行的边界，例如：本地工具前置配置系统级沙箱，云端 Agent 在一次性工作区执行并以 patch 或 PR 交付。
 
 <a id="1678-沙箱回归测试文件网络凭据与-mcp-server"></a>
 
-### 14.7.8 沙箱回归测试：文件、网络、凭据与 MCP Server
+### 15.7.8 沙箱回归测试：文件、网络、凭据与 MCP Server
 
 生产级 Agent 应验证沙箱到底拦住了什么，至少包含以下回归测试：
 
@@ -1280,9 +1280,9 @@ MCP 测试：
 <a id="capability-usage-governance"></a>
 <a id="1679-能力组合的交付与兼容"></a>
 
-### 14.7.9 能力组合的交付与兼容
+### 15.7.9 能力组合的交付与兼容
 
-能力提供方交付固定版本的 Skill、Tool 契约、Server 与依赖环境；Runtime 按本轮身份加载和使用。完整发布组合及门禁归[治理发布控制](05-agent-governance-optimization.md#release-control)，本节保留能力侧验收边界。
+能力提供方交付固定版本的 Skill、Tool 契约、Server 与依赖环境；Runtime 按本轮身份加载和使用。完整发布组合及门禁归[治理发布控制](06-agent-governance-optimization.md#release-control)，本节保留能力侧验收边界。
 
 | 交付物/阶段 | 必须检查 | 失败出口 |
 | --- | --- | --- |
@@ -1293,14 +1293,14 @@ MCP 测试：
 | 动作派发 | 当前授权、审批、执行环境和预算 | 拒绝越权，不以发现成功代替允许调用 |
 | 升级与回滚 | 候选制品、灰度范围、在途 Operation | 未知写入先对账；旧版不能撤销既有副作用 |
 
-能力 profile 记录不可变版本、实际协商的 MCP 协议、策略修订和回归集；Connection 在运行时绑定，凭据不写进组合。远程服务无法钉版本时保留观察快照并验证行为契约。任务轨迹需能解释“当时可见什么、加载了什么、实际调用什么、谁授权、外部产生什么事实”，仅返回 200 或模型自称遵守 Skill 不构成验收。工具选择与能力调优实验见[治理与调优](05-agent-governance-optimization.md#skill-tuning)。
+能力 profile 记录不可变版本、实际协商的 MCP 协议、策略修订和回归集；Connection 在运行时绑定，凭据不写进组合。远程服务无法钉版本时保留观察快照并验证行为契约。任务轨迹需能解释“当时可见什么、加载了什么、实际调用什么、谁授权、外部产生什么事实”，仅返回 200 或模型自称遵守 Skill 不构成验收。工具选择与能力调优实验见[治理与调优](06-agent-governance-optimization.md#skill-tuning)。
 
-生产停止路径应阻止新派发、保存未知动作并分配核验责任；回滚配置不改变原 Operation 身份。沙箱文件/网络/凭据边界仍按本节前述测试，审批风险分层和发布停止规则统一由第 17 章解释。
+生产停止路径应阻止新派发、保存未知动作并分配核验责任；回滚配置不改变原 Operation 身份。沙箱文件/网络/凭据边界仍按本节前述测试，审批风险分层和发布停止规则统一由第18章解释。
 
 <a id="alert-diagnosis-case"></a>
 <a id="168-案例告警诊断-agent-的工具架构"></a>
 
-## 14.8 案例：告警诊断 Agent 的工具架构
+## 15.8 案例：告警诊断 Agent 的工具架构
 
 [![告警案例的能力提供方产物](../images/review-skills-tools-mcp-connectors-08.svg)](../images/review-skills-tools-mcp-connectors-08.svg)
 
@@ -1313,7 +1313,7 @@ MCP 测试：
 
 <a id="1681-场景输入与任务目标"></a>
 
-### 14.8.1 场景输入与任务目标
+### 15.8.1 场景输入与任务目标
 
 用户输入如下：
 
@@ -1325,7 +1325,7 @@ order-service 的 P95 延迟从 210ms 升到 2.1s，帮我分析可能原因。
 
 <a id="1682-工具集合设计"></a>
 
-### 14.8.2 工具集合设计
+### 15.8.2 工具集合设计
 
 下表列出本案例 Skill 需要的工具。动作性质与数据敏感度采用[双轴风险表](#tool-risk-levels)；以下策略是本例配置，不是所有工具的通用风险标签。
 
@@ -1345,11 +1345,11 @@ order-service 的 P95 延迟从 210ms 升到 2.1s，帮我分析可能原因。
 
 <a id="1683-对应-skill引用而非另起格式"></a>
 
-### 14.8.3 对应 Skill：引用而非另起格式
+### 15.8.3 对应 Skill：引用而非另起格式
 
 工具集合只说明 Agent 能做什么，不能保证它按正确顺序做。本案例对应的 Skill 采用 [示例](#skill-md-example)中的 `incident-diagnosis/SKILL.md`：前置元数据（Front Matter）中的 `description` 负责发现，正文写输入与前置条件、执行步骤、行为边界和完成标准。
 
-Skill 只描述方法，不承担授权。工具白名单、禁用工具（如本例的 `restart_service`）以及各工具的风险等级由工具注册表与 Policy 配置，见 [Skill 生命周期](#skill-lifecycle)与[Agent Runtime Policy 裁决](03-agent-runtime.md#policy-engine)。三者的分工是：
+Skill 只描述方法，不承担授权。工具白名单、禁用工具（如本例的 `restart_service`）以及各工具的风险等级由工具注册表与 Policy 配置，见 [Skill 生命周期](#skill-lifecycle)与[Agent Runtime Policy 裁决](04-agent-runtime.md#policy-engine)。三者的分工是：
 
 - Tool Runtime 提供能力边界；
 - Skill 提供任务方法；
@@ -1357,7 +1357,7 @@ Skill 只描述方法，不承担授权。工具白名单、禁用工具（如�
 
 <a id="1684-交付可供-runtime-使用的能力配置"></a>
 
-### 14.8.4 交付可供 Runtime 使用的能力配置
+### 15.8.4 交付可供 Runtime 使用的能力配置
 
 以下配置为本书教学设计，不是 MCP 原生顶层字段。它固定能力包与绑定入口，凭据不进入配置正文。
 
@@ -1390,11 +1390,11 @@ capability_profile:
 | 沙箱/出口策略 | 跨目录/凭据/域名访问反例被阻止 | 将本 Run 范围作为执行上下文传入 |
 | ToolResult 与审计接口 | partial/unknown/游标和版本字段不丢失 | 验证证据，选择继续、等待或停止 |
 
-日志查询首次超时返回可读错误，在 Runtime 预算内建立新 Attempt；建单步骤接收绑定草稿 hash 的审批；结果查询用 `alert-ALR-20260429-017-incident` 查到 `INC-4821` 后返回已确认效果。Connector 不拥有全局恢复状态，完整时序参考[Runtime 故障案例](03-agent-runtime.md#failure-scenarios)。通知接口若不能保证幂等或结果查询，契约明确披露通知步骤的重复风险。
+日志查询首次超时返回可读错误，在 Runtime 预算内建立新 Attempt；建单步骤接收绑定草稿 hash 的审批；结果查询用 `alert-ALR-20260429-017-incident` 查到 `INC-4821` 后返回已确认效果。Connector 不拥有全局恢复状态，完整时序参考[Runtime 故障案例](04-agent-runtime.md#failure-scenarios)。通知接口若不能保证幂等或结果查询，契约明确披露通知步骤的重复风险。
 
 <a id="1685-一次指标观察与策略证据"></a>
 
-### 14.8.5 一次指标观察与策略证据
+### 15.8.5 一次指标观察与策略证据
 
 ```json
 {
@@ -1418,11 +1418,11 @@ capability_profile:
 
 <a id="1686-合格报告标准与教学设定中的偏差"></a>
 
-### 14.8.6 合格报告标准与教学设定中的偏差
+### 15.8.6 合格报告标准与教学设定中的偏差
 
 合格报告需核对部署记录（本例 02:35Z 完成）、指标（02:37Z 开始异常）和 payment-client 日志，只能将时间接近写成待验证假设；资源指标正常不能直接排除全部数据库问题。每条证据带调用、版本和时间范围，缺证据就披露缺口。
 
-教学设定中的 v42 运行在证据读取步骤使用过期 Runbook v2，错误推断连接池耗尽，验证器漏拦；人工批准了建单并不证明这份诊断正确。错误草稿与上述质量标准形成对照，`failure-0099`怎样转成`eval-incident-0099`和 v43 门禁，参考[治理失败闭环](05-agent-governance-optimization.md#failure-improvement-loop)。
+教学设定中的 v42 运行在证据读取步骤使用过期 Runbook v2，错误推断连接池耗尽，验证器漏拦；人工批准了建单并不证明这份诊断正确。错误草稿与上述质量标准形成对照，`failure-0099`怎样转成`eval-incident-0099`和 v43 门禁，参考[治理失败闭环](06-agent-governance-optimization.md#failure-improvement-loop)。
 
 <a id="checklist"></a>
 ## 本章小结

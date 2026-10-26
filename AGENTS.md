@@ -113,7 +113,8 @@ http://localhost:4000
 
 - 新增可运行实验必须放在 `/Users/xianguiwang/Projects/<project>/`，一个实验对应一个独立 Git 仓库，GitHub 仓库默认设为 Private。
 - `source/library/` 和博客文章不得包含实验源码；文章只保存实验介绍和仓库链接。
-- `labs/llm-from-scratch/` 已迁移到 `/Users/xianguiwang/Projects/llm-from-scratch/`；`books/ai-book/labs/` 不再保留可运行实验。
+- 默认情况下，可运行实验不进入书稿仓库。经用户明确批准作为书稿配套材料的实验可作为窄例外放在 `books/ai-book/labs/<lab-name>/`，并必须由对应章节链接、在 README 中声明实现边界，且不得被生成到 `books/ai-book/book/`。
+- `books/ai-book/labs/llm-from-scratch/` 是已批准的书稿配套实验，用于第 5 章的最小字符级 GPT 训练闭环；它不改变其他实验继续使用独立仓库的默认规则。
 - `books/ai-book/video-scripts/` 与 `books/ai-book/video-assets/` 已迁移到通用视频制作仓库 `/Users/xianguiwang/Projects/video-production/`；`books/ai-book/` 不再维护视频制作资料。
 
 ### 4.4 博客文章规范（唯一来源）

@@ -1,12 +1,13 @@
-# 第5章 模型适配与能力扩展
+# 第6章 模型适配与能力扩展
 
-大模型落地时，团队很少从随机初始化开始训练一个新模型，更常见的问题是：已有基础模型如何适配业务，如何在质量下降可控的前提下降低显存和延迟，如何把文本模型扩展到图像、文档、视频或界面。微调、压缩和多模态看似是三组技术，实际上共享一个工程问题：在有限数据、算力和风险预算下，改变模型的有效能力分布。
+大模型落地时，团队通常从一个可复用的预训练 checkpoint 出发：让它适配业务，在质量下降可控的前提下降低显存和延迟，或把文本能力扩展到图像、文档、视频和界面。微调、压缩和多模态看似是三组技术，实际上共享一个工程问题：在有限数据、算力和风险预算下，改变已有模型的有效能力分布。
 
-本章把“适配”与“部署”区分开。LoRA、QLoRA、量化、蒸馏和视觉语言对齐属于算法层；adapter 动态加载、GPU 调度、模型服务和灰度回滚属于后续 Infra 层。算法层必须给 Infra 提供清晰的权重、精度、输入输出和质量契约，但不把一个 adapter 能否上线误解成单纯的训练成功。
+本章从两条边界开始。第 3 章《后训练：行为的塑形》负责解释 SFT、偏好优化和强化式优化的目标与监督信号；新增第 5 章《从零训练一个 LLM：一条可复现的工程路径》负责从随机初始化到基础模型 checkpoint 的训练闭环。本章假定基础模型已经存在，重点讨论选择哪些参数参与更新、怎样压缩模型，以及怎样增加新的输入模态。训练目标与参数更新范围是两个独立决策：选择 SFT 不等于必须全参数更新，选择 LoRA 也不改变 SFT 的 token 级学习目标。
 
-本章的执行顺序是先选型、再训练、再压缩、再扩展模态。具体说，先判断问题应由 Prompt、检索、工具还是微调解决；再决定监督信号是示范、偏好还是环境反馈；接着评估 PEFT、QLoRA、量化、蒸馏对质量和成本的影响；最后把多模态能力作为通向具身智能与 Physical AI物理闭环和空间感知的桥，而不是与文本适配并列的孤立主题。
+本章也把“模型改造”与“服务部署”区分开。LoRA、QLoRA、量化、蒸馏和视觉语言对齐属于算法层；adapter 动态加载、GPU 调度、模型服务和灰度回滚属于后续 Infra 层。算法层要向 Infra 交付清晰的权重、精度、输入输出和质量契约。全章依次完成问题诊断、参数高效适配、压缩、多模态扩展和联合验收；多模态部分同时为下一章的空间感知与物理闭环建立输入基础。
 
-## 5.1 先诊断问题再选适配方式
+<a id="51-先诊断问题再选适配方式"></a>
+## 6.1 先诊断问题再选适配方式
 
 ### Prompt、RAG、工具与微调的分工
 
@@ -34,19 +35,14 @@
 
 基线还要包含失败样本分类：知识缺失、任务理解错误、格式不稳、风格不一致、参数错误、越界和无法判断。只有主要失败来自可学习的行为模式时，才进入微调；如果主要失败来自证据和系统状态，应先修检索、工具或流程。
 
-## 5.2 适配数据、训练量与泛化
+<a id="52-适配数据训练量与泛化"></a>
+## 6.2 适配数据、训练量与泛化
 
 ### SFT、偏好优化与环境反馈
 
-监督微调用输入到标准输出的样本学习行为，适合格式、分类、摘要和示范式回答；偏好优化用同一输入下的 chosen/rejected 学习排序，适合多个答案都可行但质量有差异的任务；强化式优化用状态、动作和奖励处理多步环境反馈。三者的选择取决于监督信号，而不是模型规模。
+监督微调用输入到标准输出的样本学习行为，适合格式、分类、摘要和示范式回答；偏好优化用同一输入下的 chosen/rejected 学习排序，适合多个答案都可行但质量有差异的任务；强化式优化用状态、动作和奖励处理多步环境反馈。三者的目标、公式和成立条件由第 3 章主讲，本章只回答在目标确定后如何选择参数更新范围。全参数 SFT、LoRA SFT 和 QLoRA SFT 可以使用同一种 assistant-token 损失，差别在于参与梯度更新的参数集合以及训练时基础权重的表示方式。
 
-SFT 的目标可以写为：
-
-\\[
-\mathcal{L}\_{SFT}=-\sum\_{t\in\mathcal{A}}\log p\_\theta(y\_t\mid x,y\_{<t}),
-\\]
-
-其中只对 assistant 输出位置 \\(\mathcal{A}\\) 计算损失；中文教材中的softmax与交叉熵定义可用于复习这个目标。[[2]](#ref-2) 角色边界、工具结果、系统消息和用户输入的 mask 一旦错误，模型可能学习复读用户、泄露隐藏指令或把工具返回内容当成新指令。偏好优化的目标不是复制某个答案，而是让更优答案相对概率提高；环境反馈则要求奖励与真实任务完成有可靠关联。
+无论选择哪种更新范围，角色边界、工具结果、系统消息和用户输入的 mask 都必须与第 3 章定义的目标一致。mask 错误会让模型学习复读用户、泄露隐藏指令或把工具返回内容当成新指令；softmax 与交叉熵的基础定义可参考中文教材 [[2]](#ref-2)。偏好优化与环境反馈同样可以结合 PEFT，但不能因为只训练少量参数，就省略参考策略、奖励有效性或独立评估等后训练约束。
 
 ### 数据集的分层和切分
 
@@ -84,7 +80,8 @@ LoRA 的有效容量还受到基础模型限制。没有图像输入接口的模
 
 候选评审同时列目标质量、中文/代码与通用能力、训练资源、制品大小、目标负载尾延迟及单位成功成本。先用质量和延迟硬门槛淘汰，再在可行候选中选成本；大模型LoRA稍好但超时，不能只凭平均分上线。任务变难后可重新评估路由，不把一次选型写成模型规模的普遍规律。
 
-## 5.3 PEFT、LoRA 与 QLoRA
+<a id="53-peftlora-与-qlora"></a>
+## 6.3 PEFT、LoRA 与 QLoRA
 
 ### Adapter、Prefix 与 Prompt Tuning
 
@@ -134,7 +131,8 @@ Prompt tuning学习输入侧向量，Prefix tuning在层级注意力中引入连
 
 QLoRA的NF4是针对近似正态权重设计的非均匀编码，不是INT4等距整数；double quantization压缩量化常数，paged optimizer缓解部分显存峰值。[[12]](#ref-12) 冻结低比特底座，反向仍经过相关计算来更新高精度adapter，不等于所有梯度、激活和优化器都以四位存储。它也不等于在训练中更新全部量化权重的QAT。若先合并再量化与训练路径不同，要把导出版本作为新候选回归。
 
-## 5.4 量化表示、粒度与误差
+<a id="54-量化表示粒度与误差"></a>
+## 6.4 量化表示、粒度与误差
 
 ### 数值编码不是执行能力
 
@@ -173,11 +171,12 @@ NVIDIA 介绍的 NVFP4 采用 E2M1 数值、每 16 个值共享一个 E4M3 块 s
 
 作为本书一维行分组的教学账本，设矩阵为 `M×K`、K 可被 16 整除：量化码占 `M×K/2` 字节，逻辑块 scale 形状为 `M×(K/16)`、占 `M×K/16` 字节，另加 4 字节张量 scale；未计对齐时约为 `4.5 + 32/(M×K)` bit/值。这个推导不是导出文件的实际大小。两个四位码装进一个字节后，仍须约定高低位次序、转置、尾块和 scale 的物理排布；目标 kernel 的对齐或重排会增加开销。
 
-## 5.5 校准与训练后量化
+<a id="55-校准与训练后量化"></a>
+## 6.5 校准与训练后量化
 
 ### 四种范围选择优化不同的代理
 
-Wu等比较Max、Percentile和Entropy校准；其结果说明不同网络适合的范围方法不同。[[16]](#ref-16) 本书将一般非对称极值法称minmax，对称情形就是最大绝对值法。下表是方法区别，阈值搜索和误差记录必须与5.4的编码约定绑定：
+Wu等比较Max、Percentile和Entropy校准；其结果说明不同网络适合的范围方法不同。[[16]](#ref-16) 本书将一般非对称极值法称minmax，对称情形就是最大绝对值法。下表是方法区别，阈值搜索和误差记录必须与 6.4 节的编码约定绑定：
 
 | 方法 | 范围选择 | 优点 | 风险与需记录项 |
 |:---|:---|:---|:---|
@@ -220,7 +219,8 @@ GPTQ优化局部权重误差并补偿，AWQ利用激活统计选择等价缩放�
 
 边界至少包括全零、非零常数、正负不对称、单个强离群点、长度不足G和不整除G的尾组；空输入、NaN/Inf要明确失败。以手工小数组核对每个码，再确认组间广播不串行。拓展实现MSE阈值搜索与直方图KL，检查零概率与归一化。练习只规定输入输出和验收，尚无配套代码、模型量化或GPU实测；不要用一次数组误差下降声称模型成功。
 
-## 5.6 蒸馏与小模型路线
+<a id="56-蒸馏与小模型路线"></a>
+## 6.6 蒸馏与小模型路线
 
 ### Teacher—Student 目标
 
@@ -242,7 +242,8 @@ DistilBERT 通过蒸馏和结构简化降低 encoder 模型成本 [[24]](#ref-24
 
 如果目标是低延迟分类，logit 蒸馏可能足够；如果目标是聊天和代码，轨迹蒸馏更重要；如果目标是 reasoning，必须考虑过程、结果和预算；如果目标是多模态，student 还要学习跨模态对齐。蒸馏不是简单把大模型“缩小”，而是选择哪些能力值得保留、哪些推理成本可以削减。
 
-## 5.7 多模态输入与能力扩展
+<a id="57-多模态输入与能力扩展"></a>
+## 6.7 多模态输入与能力扩展
 
 ### 图文对齐的起点
 
@@ -302,7 +303,8 @@ InternVL 等工作探索更高分辨率和更大视觉基础模型，说明视�
 
 片段评估分别检查角色身份、服装与场景、动作连续、音画同步、闪烁、文字可读性和叙事衔接，结合相邻镜头比较及人工抽检，失败镜头单独修复。不要仅由生成模型自评或用单帧美观代替整片验收。完整生成工具、版权范围、可恢复编排和发布授权留给专门项目；本章没有实现全自动创作平台，也不承诺人物一致性保证。
 
-## 5.8 联合实验与验收记录
+<a id="58-联合实验与验收记录"></a>
+## 6.8 联合实验与验收记录
 
 ### 质量—成本—风险三维矩阵
 
@@ -338,77 +340,47 @@ InternVL 等工作探索更高分辨率和更大视觉基础模型，说明视�
 
 上面的制品记录解决“这个版本由什么组成”，模型卡还要解决“它承诺什么、不承诺什么”。一个分类 adapter 只保证某套标签和输入格式，不应被路由到开放式问答；一个文档视觉模型只保证规定页型和分辨率，不应被默认用于医学影像；一个 INT4 模型只在指定 kernel 和上下文范围内通过评估，不应因为文件可以加载就宣称所有硬件都兼容。多模态制品还要说明图片、视频、OCR 的处理方式，是否保留原图、是否缓存视觉特征，以及输入模态、预处理和语言生成各层的约束分别是什么。把边界写进模型卡并随权重一起版本化，可以减少误用；跨版本比较时还要同时看任务成功率、格式错误、量化退化、视觉幻觉与尾延迟，只回滚权重而保留新模板会留下更隐蔽的协议错误。
 
-## 5.9 本章小结
+<a id="59-本章小结"></a>
+## 6.9 本章小结
 
 微调改变稳定的行为模式，检索与工具提供动态事实与外部能力；PEFT 通过少量参数实现任务隔离，LoRA/QLoRA 在训练成本和表达能力之间折中；量化和蒸馏降低推理成本，但必须结合真实数据、硬件 kernel 和服务路径评估；多模态模型通过视觉编码器、连接器和指令数据把图像、文档和视频接入语言模型，但视觉感知、语言推理和证据可靠性不能混为一谈。
 
 面向企业落地，最重要的不是选择一个“最先进”的方法，而是让适配目标、数据监督、压缩格式、输入模态、评估指标和版本回退形成一条可追溯的验收证据链。只有这样，算法优化才会转化为可维护、可观测、可控制的模型能力。
 
 
-## 5.10 参考资料
+<a id="510-参考资料"></a>
+## 6.10 参考资料
 
-<a id="ref-1"></a>[1] Bai, J., et al. *Qwen Technical Report*. arXiv, 2023. https://arxiv.org/abs/2309.16609 访问日期：2026-10-16
-
-<a id="ref-2"></a>[2] Zhang, A., et al. 《动手学深度学习》：softmax回归. 中文在线版2.0.0. https://zh.d2l.ai/chapter_linear-networks/softmax-regression.html 访问日期：2026-10-16
-
-<a id="ref-3"></a>[3] Zhou, C., et al. *LIMA: Less Is More for Alignment*. NeurIPS, 2023. https://arxiv.org/abs/2305.11206 访问日期：2026-10-16
-
-<a id="ref-4"></a>[4] Zhang, Q., et al. *AdaLoRA: Adaptive Budget Allocation for Parameter-Efficient Fine-Tuning*. ICLR, 2023. https://arxiv.org/abs/2303.10512 访问日期：2026-10-16
-
-<a id="ref-5"></a>[5] Houlsby, N., et al. *Parameter-Efficient Transfer Learning for NLP*. ICML, 2019. https://arxiv.org/abs/1902.00751 访问日期：2026-10-16
-
-<a id="ref-6"></a>[6] Li, X. L., & Liang, P. *Prefix-Tuning: Optimizing Continuous Prompts for Generation*. ACL, 2021. https://arxiv.org/abs/2101.00190 访问日期：2026-10-16
-
-<a id="ref-7"></a>[7] Lester, B., Al-Rfou, R., & Constant, N. *The Power of Scale for Parameter-Efficient Prompt Tuning*. EMNLP, 2021. https://arxiv.org/abs/2104.08691 访问日期：2026-10-16
-
-<a id="ref-8"></a>[8] Hu, E. J., et al. *LoRA: Low-Rank Adaptation of Large Language Models*. ICLR, 2022. https://arxiv.org/abs/2106.09685 访问日期：2026-10-16
-
-<a id="ref-9"></a>[9] Zaken, E. B., Ravfogel, S., & Goldberg, Y. *BitFit: Simple Parameter-efficient Fine-tuning for Transformer-based Masked Language-models*. ACL, 2022. https://arxiv.org/abs/2106.10199 访问日期：2026-10-16
-
-<a id="ref-10"></a>[10] Liu, H., et al. *Few-Shot Parameter-Efficient Fine-Tuning is Better and Cheaper than In-Context Learning*. NeurIPS, 2022. https://arxiv.org/abs/2205.05638 访问日期：2026-10-16
-
-<a id="ref-11"></a>[11] Liu, S.-Y., et al. *DoRA: Weight-Decomposed Low-Rank Adaptation*. ICML, 2024. https://arxiv.org/abs/2402.09353 访问日期：2026-10-16
-
-<a id="ref-12"></a>[12] Dettmers, T., et al. *QLoRA: Efficient Finetuning of Quantized LLMs*. NeurIPS, 2023. https://arxiv.org/abs/2305.14314 访问日期：2026-10-16
-
-<a id="ref-13"></a>[13] Nagel, M., et al. *A White Paper on Neural Network Quantization*. arXiv, 2021. https://arxiv.org/abs/2106.08295 访问日期：2026-10-16
-
-<a id="ref-14"></a>[14] NVIDIA. *Introducing NVFP4 for Efficient and Accurate Low-Precision Inference*. NVIDIA Technical Blog, 2025. [原文](https://developer.nvidia.com/blog/introducing-nvfp4-for-efficient-and-accurate-low-precision-inference/)。核验日期：2026-10-18
-
-<a id="ref-15"></a>[15] NVIDIA. *NVFP4*. Transformer Engine 2.20.2 documentation. [官方文档](https://docs.nvidia.com/deeplearning/transformer-engine/features/low_precision_training/nvfp4/nvfp4.html)。核验日期：2026-10-18
-
-<a id="ref-16"></a>[16] Wu, H., Judd, P., Zhang, X., Isaev, M., & Micikevicius, P. *Integer Quantization for Deep Learning Inference: Principles and Empirical Evaluation*. arXiv, 2020. https://arxiv.org/abs/2004.09602 访问日期：2026-10-16
-
-<a id="ref-17"></a>[17] Frantar, E., et al. *GPTQ: Accurate Post-Training Quantization for Generative Pre-trained Transformers*. arXiv, 2022. https://arxiv.org/abs/2210.17323 访问日期：2026-10-16
-
-<a id="ref-18"></a>[18] Lin, J., et al. *AWQ: Activation-aware Weight Quantization for LLM Compression and Acceleration*. MLSys, 2024. https://arxiv.org/abs/2306.00978 访问日期：2026-10-16
-
-<a id="ref-19"></a>[19] Xiao, G., et al. *SmoothQuant: Accurate and Efficient Post-Training Quantization for Large Language Models*. ICML, 2023. https://arxiv.org/abs/2211.10438 访问日期：2026-10-16
-
-<a id="ref-20"></a>[20] Dettmers, T., et al. *LLM.int8(): 8-bit Matrix Multiplication for Transformers at Scale*. NeurIPS, 2022. https://arxiv.org/abs/2208.07339 访问日期：2026-10-16
-
-<a id="ref-21"></a>[21] Yao, Z., et al. *ZeroQuant: Efficient and Affordable Post-Training Quantization for Large-Scale Transformers*. NeurIPS, 2022. https://arxiv.org/abs/2206.01861 访问日期：2026-10-16
-
-<a id="ref-22"></a>[22] Dettmers, T., et al. *SpQR: A Sparse-Quantized Representation for Near-Lossless LLM Weight Compression*. ICLR, 2024. https://arxiv.org/abs/2306.03078 访问日期：2026-10-16
-
-<a id="ref-23"></a>[23] Hinton, G., Vinyals, O., & Dean, J. *Distilling the Knowledge in a Neural Network*. NeurIPS Deep Learning Workshop, 2015. https://arxiv.org/abs/1503.02531 访问日期：2026-10-16
-
-<a id="ref-24"></a>[24] Sanh, V., Debut, L., Chaumond, J., & Wolf, T. *DistilBERT, a Distilled Version of BERT*. arXiv, 2019. https://arxiv.org/abs/1910.01108 访问日期：2026-10-16
-
-<a id="ref-25"></a>[25] Sun, Z., et al. *MobileBERT: a Compact Task-Agnostic BERT for Resource-Limited Devices*. ACL, 2020. https://arxiv.org/abs/2004.02984 访问日期：2026-10-16
-
-<a id="ref-26"></a>[26] Radford, A., et al. *Learning Transferable Visual Models From Natural Language Supervision*. ICML, 2021. https://arxiv.org/abs/2103.00020 访问日期：2026-10-16
-
-<a id="ref-27"></a>[27] Kim, W., Son, B., & Kim, I. *ViLT: Vision-and-Language Transformer Without Convolution or Region Supervision*. ICML, 2021. https://arxiv.org/abs/2102.03334 访问日期：2026-10-16
-
-<a id="ref-28"></a>[28] Alayrac, J.-B., et al. *Flamingo: a Visual Language Model for Few-Shot Learning*. NeurIPS, 2022. https://arxiv.org/abs/2204.14198 访问日期：2026-10-16
-
-<a id="ref-29"></a>[29] Li, J., et al. *BLIP-2: Bootstrapping Language-Image Pre-training with Frozen Image Encoders and Large Language Models*. ICML, 2023. https://arxiv.org/abs/2301.12597 访问日期：2026-10-16
-
-<a id="ref-30"></a>[30] Liu, H., Li, C., Wu, Q., & Lee, Y. J. *Visual Instruction Tuning*. NeurIPS, 2023. https://arxiv.org/abs/2304.08485 访问日期：2026-10-16
-
-<a id="ref-31"></a>[31] Bai, J., et al. *Qwen-VL: A Versatile Vision-Language Model for Understanding, Localization, Text Reading, and Beyond*. arXiv, 2023. https://arxiv.org/abs/2308.12966 访问日期：2026-10-16
-
-<a id="ref-32"></a>[32] Chen, Z., et al. *InternVL: Scaling up Vision Foundation Models and Aligning for Generic Visual-Linguistic Tasks*. arXiv, 2023. https://arxiv.org/abs/2312.14238 访问日期：2026-10-16
-
-<a id="ref-33"></a>[33] Touvron, H., et al. *Llama 2: Open Foundation and Fine-Tuned Chat Models*. arXiv, 2023. https://arxiv.org/abs/2307.09288 访问日期：2026-10-16
+1. <a id="ref-1"></a> Bai, J., et al. [*Qwen Technical Report*](https://arxiv.org/abs/2309.16609). arXiv, 2023. 访问日期：2026-10-16
+2. <a id="ref-2"></a> Zhang, A., et al. [《动手学深度学习》：softmax 回归](https://zh.d2l.ai/chapter_linear-networks/softmax-regression.html). 中文在线版 2.0.0. 访问日期：2026-10-16
+3. <a id="ref-3"></a> Zhou, C., et al. [*LIMA: Less Is More for Alignment*](https://arxiv.org/abs/2305.11206). NeurIPS, 2023. 访问日期：2026-10-16
+4. <a id="ref-4"></a> Zhang, Q., et al. [*AdaLoRA: Adaptive Budget Allocation for Parameter-Efficient Fine-Tuning*](https://arxiv.org/abs/2303.10512). ICLR, 2023. 访问日期：2026-10-16
+5. <a id="ref-5"></a> Houlsby, N., et al. [*Parameter-Efficient Transfer Learning for NLP*](https://arxiv.org/abs/1902.00751). ICML, 2019. 访问日期：2026-10-16
+6. <a id="ref-6"></a> Li, X. L., & Liang, P. [*Prefix-Tuning: Optimizing Continuous Prompts for Generation*](https://arxiv.org/abs/2101.00190). ACL, 2021. 访问日期：2026-10-16
+7. <a id="ref-7"></a> Lester, B., Al-Rfou, R., & Constant, N. [*The Power of Scale for Parameter-Efficient Prompt Tuning*](https://arxiv.org/abs/2104.08691). EMNLP, 2021. 访问日期：2026-10-16
+8. <a id="ref-8"></a> Hu, E. J., et al. [*LoRA: Low-Rank Adaptation of Large Language Models*](https://arxiv.org/abs/2106.09685). ICLR, 2022. 访问日期：2026-10-16
+9. <a id="ref-9"></a> Zaken, E. B., Ravfogel, S., & Goldberg, Y. [*BitFit: Simple Parameter-efficient Fine-tuning for Transformer-based Masked Language-models*](https://arxiv.org/abs/2106.10199). ACL, 2022. 访问日期：2026-10-16
+10. <a id="ref-10"></a> Liu, H., et al. [*Few-Shot Parameter-Efficient Fine-Tuning is Better and Cheaper than In-Context Learning*](https://arxiv.org/abs/2205.05638). NeurIPS, 2022. 访问日期：2026-10-16
+11. <a id="ref-11"></a> Liu, S.-Y., et al. [*DoRA: Weight-Decomposed Low-Rank Adaptation*](https://arxiv.org/abs/2402.09353). ICML, 2024. 访问日期：2026-10-16
+12. <a id="ref-12"></a> Dettmers, T., et al. [*QLoRA: Efficient Finetuning of Quantized LLMs*](https://arxiv.org/abs/2305.14314). NeurIPS, 2023. 访问日期：2026-10-16
+13. <a id="ref-13"></a> Nagel, M., et al. [*A White Paper on Neural Network Quantization*](https://arxiv.org/abs/2106.08295). arXiv, 2021. 访问日期：2026-10-16
+14. <a id="ref-14"></a> NVIDIA. [*Introducing NVFP4 for Efficient and Accurate Low-Precision Inference*](https://developer.nvidia.com/blog/introducing-nvfp4-for-efficient-and-accurate-low-precision-inference/). NVIDIA Technical Blog, 2025. 核验日期：2026-10-18
+15. <a id="ref-15"></a> NVIDIA. [*NVFP4*](https://docs.nvidia.com/deeplearning/transformer-engine/features/low_precision_training/nvfp4/nvfp4.html). Transformer Engine 2.20.2 documentation. 核验日期：2026-10-18
+16. <a id="ref-16"></a> Wu, H., Judd, P., Zhang, X., Isaev, M., & Micikevicius, P. [*Integer Quantization for Deep Learning Inference: Principles and Empirical Evaluation*](https://arxiv.org/abs/2004.09602). arXiv, 2020. 访问日期：2026-10-16
+17. <a id="ref-17"></a> Frantar, E., et al. [*GPTQ: Accurate Post-Training Quantization for Generative Pre-trained Transformers*](https://arxiv.org/abs/2210.17323). arXiv, 2022. 访问日期：2026-10-16
+18. <a id="ref-18"></a> Lin, J., et al. [*AWQ: Activation-aware Weight Quantization for LLM Compression and Acceleration*](https://arxiv.org/abs/2306.00978). MLSys, 2024. 访问日期：2026-10-16
+19. <a id="ref-19"></a> Xiao, G., et al. [*SmoothQuant: Accurate and Efficient Post-Training Quantization for Large Language Models*](https://arxiv.org/abs/2211.10438). ICML, 2023. 访问日期：2026-10-16
+20. <a id="ref-20"></a> Dettmers, T., et al. [*LLM.int8(): 8-bit Matrix Multiplication for Transformers at Scale*](https://arxiv.org/abs/2208.07339). NeurIPS, 2022. 访问日期：2026-10-16
+21. <a id="ref-21"></a> Yao, Z., et al. [*ZeroQuant: Efficient and Affordable Post-Training Quantization for Large-Scale Transformers*](https://arxiv.org/abs/2206.01861). NeurIPS, 2022. 访问日期：2026-10-16
+22. <a id="ref-22"></a> Dettmers, T., et al. [*SpQR: A Sparse-Quantized Representation for Near-Lossless LLM Weight Compression*](https://arxiv.org/abs/2306.03078). ICLR, 2024. 访问日期：2026-10-16
+23. <a id="ref-23"></a> Hinton, G., Vinyals, O., & Dean, J. [*Distilling the Knowledge in a Neural Network*](https://arxiv.org/abs/1503.02531). NeurIPS Deep Learning Workshop, 2015. 访问日期：2026-10-16
+24. <a id="ref-24"></a> Sanh, V., Debut, L., Chaumond, J., & Wolf, T. [*DistilBERT, a Distilled Version of BERT*](https://arxiv.org/abs/1910.01108). arXiv, 2019. 访问日期：2026-10-16
+25. <a id="ref-25"></a> Sun, Z., et al. [*MobileBERT: a Compact Task-Agnostic BERT for Resource-Limited Devices*](https://arxiv.org/abs/2004.02984). ACL, 2020. 访问日期：2026-10-16
+26. <a id="ref-26"></a> Radford, A., et al. [*Learning Transferable Visual Models From Natural Language Supervision*](https://arxiv.org/abs/2103.00020). ICML, 2021. 访问日期：2026-10-16
+27. <a id="ref-27"></a> Kim, W., Son, B., & Kim, I. [*ViLT: Vision-and-Language Transformer Without Convolution or Region Supervision*](https://arxiv.org/abs/2102.03334). ICML, 2021. 访问日期：2026-10-16
+28. <a id="ref-28"></a> Alayrac, J.-B., et al. [*Flamingo: a Visual Language Model for Few-Shot Learning*](https://arxiv.org/abs/2204.14198). NeurIPS, 2022. 访问日期：2026-10-16
+29. <a id="ref-29"></a> Li, J., et al. [*BLIP-2: Bootstrapping Language-Image Pre-training with Frozen Image Encoders and Large Language Models*](https://arxiv.org/abs/2301.12597). ICML, 2023. 访问日期：2026-10-16
+30. <a id="ref-30"></a> Liu, H., Li, C., Wu, Q., & Lee, Y. J. [*Visual Instruction Tuning*](https://arxiv.org/abs/2304.08485). NeurIPS, 2023. 访问日期：2026-10-16
+31. <a id="ref-31"></a> Bai, J., et al. [*Qwen-VL: A Versatile Vision-Language Model for Understanding, Localization, Text Reading, and Beyond*](https://arxiv.org/abs/2308.12966). arXiv, 2023. 访问日期：2026-10-16
+32. <a id="ref-32"></a> Chen, Z., et al. [*InternVL: Scaling up Vision Foundation Models and Aligning for Generic Visual-Linguistic Tasks*](https://arxiv.org/abs/2312.14238). arXiv, 2023. 访问日期：2026-10-16
+33. <a id="ref-33"></a> Touvron, H., et al. [*Llama 2: Open Foundation and Fine-Tuned Chat Models*](https://arxiv.org/abs/2307.09288). arXiv, 2023. 访问日期：2026-10-16
