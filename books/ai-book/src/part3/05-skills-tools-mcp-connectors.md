@@ -707,6 +707,8 @@ Skill 可以引导 MCP、CLI 或 API；MCP Prompts 提供由 Host 选择的模�
 
 MCP 统一外部能力的发现、描述、调用与内容交付，业务实现仍由 Server 与 Connector 完成。Host 负责用户、模型、上下文和调用策略，Client 在 Host 内适配协议，Server 暴露有边界的工具和数据。接入选择见[API、CLI、MCP 与 Browser](#tool-access-selection)。[[11]](#ref-11)
 
+多个团队共用 MCP 服务时，协议兼容之外还要回答：谁在调用、可以使用什么工具、这次可以访问哪些资源。本节先说明协议与版本，再给出共享服务的权限隔离设计。**工具可见范围、数据访问范围和部署隔离是三个独立维度**；下面的多租户架构与伪代码是本书的通用工程设计，不是 MCP 原生权限模型。
+
 <a id="mcp-capabilities"></a>
 
 <a id="1651-mcp-的定位解决什么不解决什么"></a>
@@ -876,22 +878,126 @@ annotations 全是提示，以下默认值来自 2026-07-28 ToolAnnotations 定�
 
 工具描述、Resource 和 Prompt 的文本保留外部来源身份。Host 的内容过滤、可信目录和执行边界共同约束注入；本地 Server 的启动同样需要制品审查、沙箱、受限凭据与路径约束。[[24]](#ref-24)
 
+<a id="mcp-server-production"></a>
+<a id="1659-mcp-与-api-gateway-的关系"></a>
+<a id="16510-生产级-mcp-server-的结构"></a>
+<a id="mcp-tenant-isolation"></a>
+
+### 16.5.6 共享 MCP 服务的权限隔离：身份、工具与资源
+
+[![共享 MCP 服务的权限隔离架构](../images/mcp-tenant-authorization.svg)](../images/mcp-tenant-authorization.svg)
+
+*图 16-8：共享 MCP 服务的权限隔离架构（本书通用设计）*
+
+多个团队可以共用服务部署和工具定义，权限边界由每次请求的可信身份与当前授权建立。图中 `tools/list` 和 `tools/call` 是两类独立请求，每次都先认证；两条路径读取同一策略来源，分别控制工具可见范围和本次资源访问。拒绝发生在业务内容读取或写入之前，Connector 只执行授权范围内的访问。
+
+**隔离层次与部署选择。**
+
+“每个 Workspace 一个 MCP Server”需要先说明 Server 指什么。Workspace 是宿主的配置与协作空间，不天然等于团队或租户；租户是本系统定义的数据授权边界，二者的归属关系必须由服务端验证。
+
+| 层次 | 保存或管理什么 | 隔离意义 |
+| --- | --- | --- |
+| 服务部署 / HTTP 端点 | 进程、网络入口、依赖与运行配置 | 共用端点可以服务多个租户，但要逐请求认证与授权 |
+| 进程内 Server 对象 | SDK 工具定义、handler 与协议配置 | 按工具集合创建多个对象只是实现方式，不形成数据安全边界 |
+| Client 关联 / 传输连接 | Host 的协议适配与传输通道 | 独立连接不授予独立身份，也不证明数据已隔离 |
+| 请求授权上下文 | 调用主体、租户、委托范围与当前策略 | 决定本次工具和资源权限，不能从共享对象的可变字段读取 |
+| 独立进程 / 容器 / 存储 | 执行环境、故障域和数据载体 | 可加强隔离，仍需同步约束凭据、网络、存储与业务授权 |
+
+对可信的固定工具集，可先采用共享部署，在请求级实施租户授权。只有工具定义与处理器配置完全一致、且不捕获租户身份、凭据或业务状态时，才适合按规范化工具集合复用 Server 对象；缓存需要容量与淘汰上限。工具定义相同，不代表可以共享结果缓存。运行不受信代码、连接独立内网或要求专属凭据与故障域时，再采用独立执行环境。
+
+MCP Server 的生产实现分为协议层、工具层、授权/配额层和 Connector 层。协议层处理版本与消息；工具层绑定 handler 并校验契约；授权层决定主体和资源范围；Connector 将范围落实到实际数据源。API Gateway 继续承担既有 API 的权限、限流与审计；接入 MCP 不应绕过网关或直接获得数据库超级权限。
+
+<a id="mcp-two-stage-authorization"></a>
+
+**两阶段授权：发现时过滤，执行时重验。**
+
+以虚构的团队 A、B 为例：A 的 Agent 可以使用日志工具，但只能读取获授权的服务。`logs:read` 表示工具能力，不能单独证明其有权查询 B 的服务。服务端应同时判断主体、工具动作、目标资源与当前条件；默认拒绝，并在每次请求上验证权限。后两项是 OWASP 的通用授权原则。[[37]](#ref-37)
+
+入口验证令牌后构造只读的 `Principal`，包含主体、租户及委托范围。JWT 校验签名、issuer、audience 和有效期；不透明令牌通过受信服务查询状态。团队归属取自已验证声明或服务端映射，不能相信模型参数、普通团队请求头或未经核验的 Workspace ID。代表用户执行时，有效权限还要受用户当前权限与本次委托约束，不能只使用 Agent 服务账号的权限。HTTP 第一跳机制沿用上节授权契约。[[23]](#ref-23)
+
+**发现时过滤**用于减少无效选择和工具元数据暴露。本书设计的可见集合为：
+
+```text
+可见工具 = 已启用工具 ∩ 服务端当前授权工具 ∩ Workspace/Agent 配置选择
+```
+
+配置选择只能缩小范围。`tools/list` 返回该集合，Host 再按任务加载其中的工具；没有授权工具时返回空集合或按接入策略拒绝，不能把空列表解释成“全部开放”。2026-07-28 允许工具列表随本次请求的授权变化，不能依赖同一连接上先前请求留下的隐式状态。[[3]](#ref-3)
+
+**执行时重验**负责这一次具体访问。调用者可能绕过发现直接构造 `tools/call`，工具列表也可能在撤权后仍留在缓存中；所以执行入口必须读取当前策略，再检查工具资格、配置边界与目标资源。下面是应用层伪代码，错误编码需映射到实际 SDK 和传输契约，不是新增 MCP 方法：
+
+```text
+handle_tool_call(request):
+    principal = authenticate(request.credentials)       # 失败即拒绝
+    policy = load_current_policy(principal)             # 不可验证即拒绝
+    tool = registry.require(request.tool_name)
+    require_explicit_policy(tool)                       # 新工具默认不开放
+    require_tool_access(principal, policy, tool)
+    profile = resolve_verified_profile(principal, request.profile)
+    require_profile_access(profile, tool)
+    input = tool.validate_input(request.arguments)
+    target = tool.resolve_target(input)                 # 解析可信资源身份/归属
+    grant = authorize_resource(principal, policy, tool.action, target)
+    require_allowed(grant)
+    result = tool.execute(input, grant)                 # 查询强制使用授权范围
+    return validate_and_filter_output(result, grant)
+```
+
+统一包装适合执行身份、工具权限与审计检查；具体资源规则由工具或适配器声明。配置归属必须经过验证，不能任意选择他人的 profile。`resolve_target` 如需查元数据，只能通过受控内部查询解析归属，不能先向调用者返回对象内容再判断权限。策略或归属服务不可用时停止受保护调用。授权结果应成为查询层强制消费的约束，避免 handler 校验后又用原始参数扩大范围。Resources 的列举与读取、Prompts 中受保护内容的获取也应沿用相同边界，不能只保护 `tools/call`。
+
+| 工具类型 | 查询与返回必须落实的资源边界 |
+| --- | --- |
+| 按 ID 读取 / 批量读取 | 用获授权租户与对象 ID 联合查询；逐项约束关联对象，不能因 ID 难猜而省略授权 |
+| 日志 / 指标 | 服务端解析获授权项目、服务、环境；使用受限查询构造器，不能靠给任意查询字符串拼接过滤条件 |
+| 知识检索 | 在召回阶段应用知识库与文档 ACL，摘要、引用和结果缓存沿用该范围 |
+| 发消息 / 写工单 | 校验目标空间、对象、发送身份和动作权限；写入时约束资源版本或原子校验，避免检查后归属改变 |
+| 通用脚本 / 组合工具 | 内部每个子调用继承受限上下文，不能换用更高权限身份绕过边界 |
+
+第二跳优先使用用户委托或租户受限凭据，由受信 Connector 选择，不能由模型指定任意凭据引用。若下游只能提供宽权限服务账号，适配器就承担完整的资源约束；无法可靠限定范围的工具先不开放。跨团队共享需显式授权关系。凭据取得、两跳授权与撤销细节见 [Connector 开发](#connector-development)。
+
+因此，A 无日志权限时不展示日志工具，直接调用也被拒绝；A 有日志权限时可以看到工具，但查询 B 的未共享服务仍在读取业务内容前被拒绝。发现过滤改善选择，执行授权守住资源边界，两者使用同一策略来源。
+
+<a id="mcp-isolation-acceptance"></a>
+
+### 16.5.7 状态、缓存与渐进落地验收
+
+权限上下文还必须贯穿复用与恢复路径。OWASP 的多租户安全指南将租户上下文、数据访问和缓存隔离列为共同控制面；下面将这些原则落实到 MCP 集成。[[38]](#ref-38)
+
+- **状态与恢复**：2026-07-28 的业务句柄、`requestState` 和异步任务引用应绑定主体、租户与授权用途，续交、轮询和重试时重验。旧版协议会话另行绑定主体与租户；句柄或会话 ID 都不能当作认证凭据。MCP 安全指南明确要求验证入站请求并防止状态句柄被冒用。[[24]](#ref-24)
+- **缓存与并发**：共享 Server 对象不保存“当前团队”或请求凭据。工具列表按授权上下文分区；结果、游标及幂等记录按租户和必要的主体/资源权限分区，避免仅按工具名与参数命中他人数据。读取受保护缓存前仍需授权；策略修订变化触发失效，TTL 不替代撤权检查。
+- **凭据与审计**：Runtime 无法读取其他租户的凭据，凭据不进入模型上下文。记录主体、租户、工具、目标引用、策略版本和裁决，避免记录明文令牌或未经脱敏的业务数据；对外拒绝信息不泄露其他租户对象是否存在。
+
+渐进改造可以保留共享端点与现有工具实现，先打通少量代表性工具的完整授权链，再逐步开放：
+
+| 阶段 | 改造内容 | 边界与代价 |
+| --- | --- | --- |
+| 最小闭环 | 可区分主体的凭据、可信租户映射、统一执行包装、资源规则与受限查询 | 私有受控接入可先用可撤销的独立 API Key 与摘要映射；这属于自定义认证，不能声称已实现 MCP HTTP OAuth 互操作 |
+| 统一身份 | 对接身份服务和短期委托令牌，落实过期、撤销与权限变化传播 | 减少长期凭据；仅缩短有效期不能实现即时撤权，需定义检查与缓存失效机制 |
+| 策略与隔离扩展 | 角色决定基础动作，属性/关系限定资源；按需引入策略引擎、租户配额和独立执行环境 | 复杂规则集中管理，但增加策略服务依赖与运维成本；物理拆分仍需逐请求授权 |
+
+最小闭环的验收应覆盖正常访问与绕过路径，而不只检查 Agent 是否“听话”：
+
+| 验收场景 | 预期证据 |
+| --- | --- |
+| A 访问获授权资源 / B 的未共享资源 | 前者成功；后者不读取业务内容、不产生副作用，并有脱敏拒绝记录 |
+| 伪造团队、Workspace、资源 ID 或删改工具选择列表 | 身份与授权不变，不能扩大服务端许可范围 |
+| 绕过 Host 直接调用未展示工具 | MCP 服务端仍拒绝；通用工具与子调用也不能旁路 |
+| 展示工具后撤权，再调用、重试或恢复任务 | 按当前策略拒绝新访问；旧列表、会话与句柄不保留权限 |
+| A、B 并发复用对象、结果缓存与分页游标 | 无身份串用、跨租户命中或越权续读 |
+| 新工具未声明策略、归属无法确认或策略服务异常 | 默认拒绝，不能退回共享高权限凭据执行 |
+
+这里的撤权阻止后续受保护访问，不能收回已交付数据，也不撤销已生效写入；在途操作按 Runtime 的恢复与效果核验契约处理。权限隔离的验收对象是整条调用链，而不是 Server 对象数量。
+
 <a id="1657-开源-mcp-能力的来源"></a>
 <a id="1658-示例github-与日志平台的-mcp-接入"></a>
 <a id="1556-能力来源发布与迁移验收"></a>
 <a id="18510-github-与-log-mcp-示例apicli-与-mcp-的三条路径"></a>
+<a id="1656-能力来源发布与迁移验收"></a>
 
-### 16.5.6 能力来源、发布与迁移验收
+### 16.5.8 能力来源、发布与迁移验收
 
 官方 Registry 是查找入口，不是安全认证。接入时记录实现来源、维护状态、固定版本、工具列表与 Schema 哈希。已归档参考包不作为当前启动命令；GitHub 和 Brave 的官方维护实现与旧参考实现应区分。[[25]](#ref-25)[[26]](#ref-26) Linear 等 SaaS 的认证方式以端点文档为准，不能用某个旧 DCR 示例概括所有远端授权。[[27]](#ref-27)
 
-发布前至少验证版本不相交、逐请求元数据缺失、Schema 漂移、授权撤销、分页与缓存、补输入拒绝、响应流中断和写操作未知结果。升级 MCP 不自动升级下游保证。
-
-<a id="mcp-server-production"></a>
-<a id="1659-mcp-与-api-gateway-的关系"></a>
-<a id="16510-生产级-mcp-server-的结构"></a>
-
-MCP Server 的生产实现分为协议层、工具层、授权/配额层和 Connector 层：协议层处理逐请求版本、结果类型、发现与消息；工具层绑定 handler、校验输入输出并归一观察；授权层落实当前主体与资源限制；Connector 访问已有 API Gateway 和业务系统。MCP 统一面向 Host 的能力契约，API Gateway 继续承担企业 API 的资源权限、限流与审计，二者不能互相替代；接入 MCP 不应绕过网关或直接获得数据库超级权限。
+发布前至少验证版本不相交、逐请求元数据缺失、Schema 漂移、补输入拒绝、响应流中断和写操作未知结果；授权撤销、分页缓存与跨租户访问按上节矩阵验收。升级 MCP 不自动升级下游保证。
 
 <a id="connector-development"></a>
 <a id="166-connector-开发从业务-api-到可治理的-agent-集成"></a>
@@ -901,7 +1007,7 @@ MCP Server 的生产实现分为协议层、工具层、授权/配额层和 Conn
 
 [![Connector 把业务 API 变为能力](../images/review-skills-tools-mcp-connectors-06.svg)](../images/review-skills-tools-mcp-connectors-06.svg)
 
-*图 16-8：Connector 把业务 API 变为能力*
+*图 16-9：Connector 把业务 API 变为能力*
 
 
 [MCP 接入](#mcp)讲如何向 Host 暴露能力；把业务系统真正接进来，还需要一层集成实现，即 Connector。MCP 是可选的暴露协议，Connector 是集成实现。
@@ -1205,7 +1311,7 @@ ALR 契约测试固定只读调查、有效批准建单和撤销连接三组输�
 
 [![授权与沙箱是独立防线](../images/review-skills-tools-mcp-connectors-07.svg)](../images/review-skills-tools-mcp-connectors-07.svg)
 
-*图 16-9：授权与沙箱是独立防线*
+*图 16-10：授权与沙箱是独立防线*
 
 
 工具契约和 Policy 决定“能不能调用”，但真正产生副作用的是底层进程、浏览器和网络请求。本节说明如何用沙箱（Sandbox）限定它们的接触范围，并讨论沙箱与审批的分工和回归测试。
@@ -1443,7 +1549,7 @@ MCP 测试：
 
 [![告警案例的能力提供方产物](../images/review-skills-tools-mcp-connectors-08.svg)](../images/review-skills-tools-mcp-connectors-08.svg)
 
-*图 16-10：告警案例的能力提供方产物*
+*图 16-11：告警案例的能力提供方产物*
 
 
 下面将契约、Skill、MCP、Connector 和沙箱组装成同一次 ALR 调查的能力配置，检验交付物能否被 Runtime 消费。
@@ -1574,7 +1680,7 @@ capability_profile:
 
 [![外部工具系统的构建验收](../images/review-skills-tools-mcp-connectors-09.svg)](../images/review-skills-tools-mcp-connectors-09.svg)
 
-*图 16-11：外部工具系统的构建验收*
+*图 16-12：外部工具系统的构建验收*
 
 
 | 构建面 | 必须交付的证据 |
@@ -1626,3 +1732,5 @@ capability_profile:
 34. <a id="ref-34"></a> Microsoft Playwright，[Auto-waiting](https://playwright.dev/docs/actionability)，持续更新；核验于 2026-10-18。
 35. <a id="ref-35"></a> OWASP，[Server Side Request Forgery Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html)，持续更新；核验于 2026-10-18。
 36. <a id="ref-36"></a> A. Meyer zu Selhausen、D. Fett，[RFC 9207: OAuth 2.0 Authorization Server Issuer Identification](https://www.rfc-editor.org/rfc/rfc9207.html)，IETF，2022；核验于 2026-10-26，授权响应 `iss` 的比较与元数据支持规则见 §2.4。
+37. <a id="ref-37"></a> OWASP，[Authorization Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html)，持续更新；核验于 2026-10-27；支持默认拒绝、逐请求检查与对象级授权原则。
+38. <a id="ref-38"></a> OWASP，[Multi-Tenant Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Multi_Tenant_Security_Cheat_Sheet.html)，持续更新；核验于 2026-10-27；支持租户上下文、数据访问与缓存隔离原则；具体 MCP 适配方案为本书设计。
