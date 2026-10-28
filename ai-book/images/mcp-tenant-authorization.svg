@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="1280" viewBox="0 0 1280 1280" role="img" aria-labelledby="title desc">
+<title id="title">共享 MCP 服务的权限隔离架构</title>
+<desc id="desc">团队 A 和 B 使用各自凭据访问共享 MCP 服务。每次请求先验证身份并生成请求级 Principal。发现路径按当前策略过滤工具，执行路径按相同策略重验工具及目标资源权限。Connector 强制应用授权范围并使用受限凭据，只能访问获授权资源，越权目标被阻断。共享 Server 对象不保存租户身份或凭据。</desc>
+<style>text { font-family: "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif; }</style>
+<defs>
+<marker id="arrow-blue" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L10 4 L0 8 Z" fill="#2563eb"/></marker>
+<marker id="arrow-purple" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L10 4 L0 8 Z" fill="#7c3aed"/></marker>
+<marker id="arrow-green" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L10 4 L0 8 Z" fill="#059669"/></marker>
+<marker id="arrow-red" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L10 4 L0 8 Z" fill="#dc2626"/></marker>
+</defs>
+<rect x="0" y="0" width="1280" height="1280" rx="0" fill="#ffffff" stroke="#ffffff" stroke-width="1.6"/>
+<text x="60" y="55" font-size="32" fill="#111827" font-weight="600" text-anchor="start">共享服务，逐请求建立权限边界</text>
+<text x="60" y="88" font-size="21" fill="#6b7280" font-weight="400" text-anchor="start">工具定义可以复用；调用身份、授权范围与下游凭据按请求约束。</text>
+<rect x="80" y="120" width="400" height="96" rx="12" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1.6"/>
+<text x="280" y="157" font-size="23" fill="#111827" font-weight="600" text-anchor="middle">团队 A · Host / Agent</text>
+<text x="280" y="191" font-size="19" fill="#475569" font-weight="400" text-anchor="middle">A 的凭据与已验证配置</text>
+<rect x="800" y="120" width="400" height="96" rx="12" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1.6"/>
+<text x="1000" y="157" font-size="23" fill="#111827" font-weight="600" text-anchor="middle">团队 B · Host / Agent</text>
+<text x="1000" y="191" font-size="19" fill="#475569" font-weight="400" text-anchor="middle">B 的凭据与已验证配置</text>
+<rect x="40" y="265" width="1200" height="670" rx="18" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.6" stroke-dasharray="7 5"/>
+<text x="72" y="299" font-size="23" fill="#111827" font-weight="600" text-anchor="start">共享 MCP 服务</text>
+<path d="M280 216 V238 H500 V340" fill="none" stroke="#2563eb" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+<path d="M1000 216 V238 H780 V340" fill="none" stroke="#2563eb" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+<rect x="310.0" y="218" width="160" height="29" rx="4" fill="#ffffff" stroke="#ffffff" stroke-width="1.6"/>
+<text x="390" y="239" font-size="18" fill="#475569" font-weight="400" text-anchor="middle">逐请求携带凭据</text>
+<rect x="810.0" y="218" width="160" height="29" rx="4" fill="#ffffff" stroke="#ffffff" stroke-width="1.6"/>
+<text x="890" y="239" font-size="18" fill="#475569" font-weight="400" text-anchor="middle">逐请求携带凭据</text>
+<rect x="400" y="340" width="480" height="110" rx="12" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.6"/>
+<text x="640" y="373" font-size="23" fill="#111827" font-weight="600" text-anchor="middle">入口认证 → 请求级 Principal</text>
+<text x="640" y="405" font-size="20" fill="#475569" font-weight="400" text-anchor="middle">主体 / 租户 / 委托范围</text>
+<text x="640" y="433" font-size="17" fill="#dc2626" font-weight="400" text-anchor="middle">认证失败即拒绝；不信任自报团队</text>
+<path d="M640 450 V490 H290 V540" fill="none" stroke="#2563eb" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+<path d="M640 490 H980 V540" fill="none" stroke="#2563eb" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+<rect x="385.0" y="470" width="120" height="29" rx="4" fill="#ffffff" stroke="#ffffff" stroke-width="1.6"/>
+<text x="445" y="491" font-size="18" fill="#475569" font-weight="400" text-anchor="middle">tools/list</text>
+<rect x="775.0" y="470" width="120" height="29" rx="4" fill="#ffffff" stroke="#ffffff" stroke-width="1.6"/>
+<text x="835" y="491" font-size="18" fill="#475569" font-weight="400" text-anchor="middle">tools/call</text>
+<rect x="80" y="540" width="420" height="140" rx="12" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1.6"/>
+<text x="290" y="577" font-size="24" fill="#111827" font-weight="600" text-anchor="middle">发现时过滤</text>
+<text x="290" y="611" font-size="20" fill="#475569" font-weight="400" text-anchor="middle">已启用 ∩ 当前授权 ∩ 配置选择</text>
+<text x="290" y="648" font-size="18" fill="#2563eb" font-weight="400" text-anchor="middle">无授权 → 空工具集</text>
+<rect x="540" y="545" width="180" height="130" rx="12" fill="#faf5ff" stroke="#d8b4fe" stroke-width="1.6"/>
+<text x="630" y="578" font-size="21" fill="#6d28d9" font-weight="600" text-anchor="middle">当前权限策略</text>
+<text x="630" y="609" font-size="17" fill="#6b7280" font-weight="400" text-anchor="middle">工具动作 / scope</text>
+<text x="630" y="638" font-size="16" fill="#6b7280" font-weight="400" text-anchor="middle">资源归属 / 共享关系</text>
+<path d="M540 610 H500" fill="none" stroke="#7c3aed" stroke-width="2.3" stroke-linejoin="round" stroke-dasharray="5 4" marker-end="url(#arrow-purple)"/>
+<path d="M720 610 H760" fill="none" stroke="#7c3aed" stroke-width="2.3" stroke-linejoin="round" stroke-dasharray="5 4" marker-end="url(#arrow-purple)"/>
+<rect x="760" y="540" width="440" height="140" rx="12" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1.6"/>
+<text x="980" y="577" font-size="24" fill="#111827" font-weight="600" text-anchor="middle">执行时重验</text>
+<text x="980" y="611" font-size="20" fill="#475569" font-weight="400" text-anchor="middle">当前工具权限 + 本次目标资源权限</text>
+<text x="980" y="648" font-size="18" fill="#dc2626" font-weight="400" text-anchor="middle">越权 / 无法验证 → 拒绝并审计</text>
+<path d="M290 680 V780" fill="none" stroke="#2563eb" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+<rect x="190.0" y="715" width="200" height="29" rx="4" fill="#ffffff" stroke="#ffffff" stroke-width="1.6"/>
+<text x="290" y="736" font-size="18" fill="#475569" font-weight="400" text-anchor="middle">返回获授权工具定义</text>
+<path d="M980 680 V780" fill="none" stroke="#2563eb" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+<rect x="875.0" y="715" width="210" height="29" rx="4" fill="#ffffff" stroke="#ffffff" stroke-width="1.6"/>
+<text x="980" y="736" font-size="18" fill="#475569" font-weight="400" text-anchor="middle">附带授权范围 grant</text>
+<rect x="80" y="780" width="420" height="100" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.6"/>
+<text x="290" y="817" font-size="23" fill="#111827" font-weight="600" text-anchor="middle">发现结果：获授权工具列表</text>
+<text x="290" y="852" font-size="18" fill="#475569" font-weight="400" text-anchor="middle">Host 加载到模型；实际调用仍需重新授权</text>
+<rect x="760" y="780" width="440" height="100" rx="12" fill="#f0fdf4" stroke="#86efac" stroke-width="1.6"/>
+<text x="980" y="817" font-size="23" fill="#111827" font-weight="600" text-anchor="middle">Connector / 数据访问层</text>
+<text x="980" y="852" font-size="19" fill="#475569" font-weight="400" text-anchor="middle">强制查询范围 + 选择受限下游凭据</text>
+<text x="80" y="914" font-size="18" fill="#64748b" font-weight="400" text-anchor="start">共享 Server 对象仅保存工具定义，不保存“当前团队”或请求凭据。</text>
+<path d="M850 880 V1040" fill="none" stroke="#059669" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#arrow-green)"/>
+<rect x="800.0" y="961" width="100" height="29" rx="4" fill="#ffffff" stroke="#ffffff" stroke-width="1.6"/>
+<text x="850" y="982" font-size="18" fill="#059669" font-weight="400" text-anchor="middle">授权通过</text>
+<path d="M1110 880 V1012" fill="none" stroke="#dc2626" stroke-width="2.3" stroke-linejoin="round"/>
+<rect x="1025.0" y="961" width="170" height="29" rx="4" fill="#ffffff" stroke="#ffffff" stroke-width="1.6"/>
+<text x="1110" y="982" font-size="18" fill="#dc2626" font-weight="400" text-anchor="middle">越权目标：不查询</text>
+<path d="M1101 1003 L1119 1021 M1119 1003 L1101 1021" fill="none" stroke="#dc2626" stroke-width="3.5"/>
+<rect x="760" y="1040" width="180" height="100" rx="12" fill="#f0fdf4" stroke="#86efac" stroke-width="1.6"/>
+<text x="850" y="1080" font-size="22" fill="#065f46" font-weight="600" text-anchor="middle">获授权资源</text>
+<text x="850" y="1114" font-size="18" fill="#475569" font-weight="400" text-anchor="middle">例如 A 的服务</text>
+<rect x="1020" y="1040" width="180" height="100" rx="12" fill="#fef2f2" stroke="#fecaca" stroke-width="1.6"/>
+<text x="1110" y="1080" font-size="22" fill="#991b1b" font-weight="600" text-anchor="middle">未授权资源</text>
+<text x="1110" y="1114" font-size="18" fill="#475569" font-weight="400" text-anchor="middle">例如 B 的服务</text>
+<text x="80" y="1010" font-size="22" fill="#111827" font-weight="600" text-anchor="start">以 A 的请求为例</text>
+<text x="80" y="1052" font-size="21" fill="#475569" font-weight="400" text-anchor="start">能看到日志工具 ≠ 能查询任意团队的日志。</text>
+<text x="80" y="1091" font-size="20" fill="#475569" font-weight="400" text-anchor="start">直调工具、修改参数、使用旧列表都不能扩权。</text>
+<text x="80" y="1130" font-size="20" fill="#475569" font-weight="400" text-anchor="start">跨团队共享必须有明确的资源授权关系。</text>
+<line x1="60" y1="1181" x2="1220" y2="1181" stroke="#e2e8f0"/>
+<path d="M80 1220 H125" fill="none" stroke="#2563eb" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+<text x="140" y="1227" font-size="18" fill="#475569" font-weight="400" text-anchor="start">请求 / 契约流</text>
+<path d="M390 1220 H435" fill="none" stroke="#7c3aed" stroke-width="2.3" stroke-linejoin="round" stroke-dasharray="5 4" marker-end="url(#arrow-purple)"/>
+<text x="450" y="1227" font-size="18" fill="#475569" font-weight="400" text-anchor="start">同一策略来源</text>
+<path d="M700 1220 H745" fill="none" stroke="#059669" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#arrow-green)"/>
+<text x="760" y="1227" font-size="18" fill="#475569" font-weight="400" text-anchor="start">获准访问</text>
+<path d="M990 1220 H1035" fill="none" stroke="#dc2626" stroke-width="2.3" stroke-linejoin="round"/>
+<text x="1050" y="1227" font-size="18" fill="#475569" font-weight="400" text-anchor="start">阻断访问</text>
+</svg>
