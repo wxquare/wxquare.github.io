@@ -4,6 +4,8 @@
 
 **资料核验日期：2026-10-22。** 本章围绕三个产品展开：OpenAI 的 Codex CLI、Anthropic 的 Claude Code，以及开源项目 OpenCode（只讨论 2.x 版本线）。前四部分——组成、启动、执行、异常——讲这类系统怎样实现；后两部分——实践、调优——讲怎样用好它。每个讲实现的部分都以一张三产品对照表开头；实践与调优可以单独阅读，遇到机制名词时回到前文对应小节。
 
+组织强制策略与默认配置的 Codex 官方说明于 2026-10-29 补核，范围仅限下文标注的新增来源；其他产品事实与固定源码保留各自核验日期。
+
 本章是领域特殊案例：仓库、patch、测试和 verifier 是代码任务独有制品，ALR 的只读告警诊断不能替代真实代码修改。它只用于第 19 章比较 Coding Agent；其中任务输入、代码证据、编辑/命令动作、会话状态和测试验收，分别对照 ALR 的告警输入、指标/日志/Runbook、只读工具与审批后建单、Run 状态和诊断报告验收。两类案例不得复用彼此的标识或授权边界。
 
 三个产品的公开程度不同，本章的结论因此带有不同的证据等级。
@@ -122,19 +124,23 @@ OpenCode 把模型接入做成可替换的部分：Provider 与模型目录来�
 
 扩展层方面，三个产品的名字相近，但在循环中的位置不同。Claude Code 官方的划分最清楚：Skill 提供可复用的知识与工作流，MCP 接入外部服务，Hook 在生命周期事件上执行确定性动作，Subagent 把有边界的工作交给独立上下文，Plugin 只是打包与分发形式[[45]](#ref-45)。Codex 的 Skill 采用渐进披露：启动时只带每个技能的名称与描述，选用时才读完整的 `SKILL.md`；描述列表最多占模型上下文窗口的 2%（窗口未知时为 8,000 字符）[[11]](#ref-11)。OpenCode 的 Commands 里，`!` 嵌入的 Shell 块在工具权限流程之外运行，文档要求只使用可信来源；2.x 的插件 API 与 1.x 不兼容，1.x 插件不能在 2.x 运行[[65]](#ref-65)。这些扩展的内部注册、调度与持久化方式，凡是没有公开源码或官方实现说明的，本章不作断言。
 
+<a id="coding-agent-permissions"></a>
+
 ### 19.1.7 权限、沙箱与审批：三层各管什么
 
-权限相关的机制可以分成三层：决策层决定一个动作是否放行，隔离层限制放行后的进程能碰到什么，管理层决定谁能把规则收紧。
+本节以[17.5 跨层安全控制](../part3/04-agent-runtime.md#runtime-security)为参照比较产品。权限相关的机制可以分成三层：决策层决定一个动作是否放行，隔离层限制放行后的进程能碰到什么，管理层决定哪些上限不能由用户或项目放宽；业务资源的最终鉴权仍由对应服务实施。
 
 | 层次 | Codex CLI | Claude Code | OpenCode 2.x |
 | --- | --- | --- | --- |
 | 决策：动作是否放行 | 审批策略 `on-request`、`never`、`granular`（审批策略值 `untrusted` 已退役，项目 `trust_level="untrusted"` 仍有效）；auto-review 可以代替用户审核已经需要审批的动作，但它是“换审核人”，不是授权[[8]](#ref-8)[[9]](#ref-9) | 六种权限模式；规则按 deny → ask → allow 求值，首个匹配生效；PreToolUse Hook 的决定不能绕过规则[[34]](#ref-34)[[35]](#ref-35) | 有序规则，三元组为 action、resource、effect，最后一个匹配者生效；多资源操作中任一资源命中 deny 即 deny[[63]](#ref-63)[[75]](#ref-75) |
 | 隔离：放行后能碰什么 | 沙箱模式 `read-only`、`workspace-write`、`danger-full-access`；`workspace-write` 下 `.git`、`.agents`、`.codex`、`.aws` 递归只读[[7]](#ref-7) | 沙箱默认关闭，支持 macOS、Linux、WSL2；只覆盖 Shell 命令及其子进程，文件工具、MCP、Hook 在沙箱之外；官方称它降低风险，但不是完整的隔离边界[[36]](#ref-36) | 在本章核查的权限、Shell 插件和进程执行路径中未见 OS 沙箱装配；不能据此断言所有部署都没有外层隔离[[63]](#ref-63) |
-| 管理：谁能收紧 | 配置层级与受管配置[[3]](#ref-3) | managed 设置优先级最高，managed 中的 deny 不能被覆盖[[41]](#ref-41)[[35]](#ref-35) | Policies：二元、不弹窗、只能收紧；来源越宽优先级越高[[64]](#ref-64) |
+| 管理：谁能收紧 | Managed requirements 是管理员强制约束，managed defaults 是启动值；普通配置中的默认值不能当作组织上限[[85]](#ref-85) | managed 设置优先级最高，managed 中的 deny 不能被覆盖[[41]](#ref-41)[[35]](#ref-35) | Policies：二元、不弹窗、只能收紧；来源越宽优先级越高[[64]](#ref-64) |
 
 审批与隔离是两件事。Codex 官方的表述是：沙箱定义技术边界，审批策略决定在越过边界之前何时停下来询问[[7]](#ref-7)。同意运行某个命令不会让命令变安全；沙箱放行某个路径，也不意味着命令符合业务意图（系统推导）。代码层面也能看到这种分工：Codex 的路由、审批阶段和沙箱选择与重试编排分处不同文件，沙箱机制本身在独立的 crate 里[[21]](#ref-21)。
 
 OpenCode 的默认配置需要特别注意：每个 Agent 的默认策略是 `* * allow`，只有读取 `.env` 一类文件会询问，项目目录外的读写默认也不询问[[63]](#ref-63)。所以“`ask` 会暂停动作”在默认配置下只覆盖很少的动作，想让它生效，要自己添加规则。
+
+组织治理还要区分“配置优先级”和“不可放宽的约束”。Codex 官方要求保护 requirements 文件及其父目录，避免运行 Codex 的用户修改；普通 `config.toml` 或 managed defaults 仅提供启动值。官方也建议清点 CLI、IDE、桌面、云端及远程主机等执行面，变更后同时测试允许与阻断路径。[[85]](#ref-85) 这不能被概括成所有配置字段都按同一套优先级合并；Claude Code 与 OpenCode 的规则求值仍分别按上表核查。
 
 另一类常见的误解，是把角色或提示词当作边界。OpenCode 文档明确写到，隐藏某个 Agent 只控制可见性，不是安全手段[[62]](#ref-62)；Claude Code 文档则说，在 CLAUDE.md 或 Skill 里写“不要编辑 .env”只是请求而不是保证，必须发生的约束要放进 Hook[[45]](#ref-45)。
 <a id="coding-agent-runtime-startup"></a>
@@ -442,6 +448,20 @@ OpenCode 的输出被长度截断时，源码追加一条合成提示，要求�
 
 启用沙箱也不自动隐藏继承的环境变量或已有凭据。一个允许网络的命令若拿到广权限令牌，仍可能调用远端生产服务；本地只读策略不能撤回这种远端权限。部署时用受限测试身份，核对一个禁止路径、一个未允许域名和一次沙箱启动失败，分别确认拒绝发生在哪里；这些是本书建议的验收动作，不是本章已经执行的实验。
 
+**把产品配置变成部署验收**
+
+以下是本书建议的验收矩阵，复用[17.5.6 的跨层测试](../part3/04-agent-runtime.md#runtime-security-verification)，不表示本章已经运行这些产品实验。使用合成秘密、测试账户和受控接收端，固定产品版本、平台、启动参数及生效配置。
+
+| 验收问题 | Codex CLI 检查位置 | Claude Code 检查位置 | OpenCode 2.x 检查位置 |
+| --- | --- | --- | --- |
+| 项目能否放宽组织禁止项 | requirements 与实际生效约束 | managed 规则及配置合并结果 | Policies 与权限规则组合结果 |
+| 获准执行后能否读取测试秘密 | 实际读限制、环境变量和后端 | Read / Shell 各自权限与沙箱读取范围 | 工具权限与宿主文件/凭证隔离 |
+| 命令是否能绕过网络控制 | 代理、直接连接、当前批准范围 | Shell 代理、排除命令、无沙箱重试 | Shell 宿主网络与 webfetch 独立规则 |
+| Shell 断网后能否经别的工具外发 | MCP / app / 浏览器等实际启用路径 | MCP、文件工具、Hook、WebFetch 等独立路径 | 外部工具、插件与服务端授权路径 |
+| 必需隔离不可用时会发生什么 | 当前平台后端与失败记录 | failIfUnavailable、excludedCommands 与重试设置 | 外层容器/执行服务是否拒绝启动 |
+
+矩阵中的检查位置来自 19.1.7 和本节前表的事实边界，不能跨列套用配置键。每项同时保存一次允许操作和一次禁止操作的实际结果；若前置规则已拦截，另用合法测试夹具独立验证后端，不能据此声称沙箱也已验证。只读工作流也要测试数据读取和外发，审批通过也要核对实际执行范围。
+
 ### 19.5.3 按可逆性和影响范围逐级放权
 
 任务设计保留四项输入：目标、当前上下文、约束、完成条件。Codex 将它们归纳为 Goal、Context、Constraints、Done when；Claude Code 的最佳实践强调给出可执行验证、尽早纠偏和控制上下文。[[19]](#ref-19)[[32]](#ref-32) 这些输入不等于权限：一份清楚的任务描述仍需匹配实际执行边界。
@@ -715,3 +735,5 @@ Do not commit, push, publish, or deploy without separate authorization.
 83. <a id="ref-83"></a> Anthropic，[Claude Code Memory reference](https://code.claude.com/docs/en/memory)，滚动官方文档；启动时与子目录文件上限分别核查；核验于 2026-10-24。
 
 84. <a id="ref-84"></a> Anthropic，[Claude Code Subagents reference](https://code.claude.com/docs/en/sub-agents)，滚动官方文档；depth limit 与 concurrent subagent limit，含版本变化和例外；核验于 2026-10-24。
+
+85. <a id="ref-85"></a> OpenAI，[Codex security cookbook：Start here 与 Where configuration belongs](https://learn.chatgpt.com/docs/enterprise/security-cookbook#start-here)，滚动官方文档；核查 requirements / defaults 的执行强度、策略文件保护与允许/阻断验收；核验于 2026-10-29。

@@ -9,7 +9,7 @@
 
 - 本章 MCP 以 2026-07-28 规范为主线，2025-11-25 及更早版本仅作兼容对照。
 - OAuth 相关内容依据 IETF 标准与安全最佳实践[[1]](#ref-1)。
-- MCP 角色、版本、传输、授权与 Elicitation 及 Skill 命名规则复核于 2026-10-26；其他来源保留各自核验日期，详见参考资料。
+- MCP 角色、版本、传输、授权与 Elicitation 及 Skill 命名规则复核于 2026-10-26；Tools 与 Elicitation 的相关条款于 2026-10-29 补核，其他来源保留各自核验日期，详见参考资料。
 - 流程、JSON、风险配置及企业场景均为教学设计，未连接真实 MCP Server、完成真实账号授权或端到端调用；固定规范不意味着客户端已经支持全部特性。
 
 ---
@@ -50,7 +50,7 @@
 | 概念 | 是什么 | 解决什么 | 由谁执行 | 详见 |
 |:---|:---|:---|:---|:---|
 | Function Calling | 模型 API 的结构化输出能力：返回“调用某函数、参数为某值” | 让模型以机器可解析的形式表达调用意图 | 应用程序 | [LLM API 协议](01-llm-api-protocol.md) |
-| Tool Calling | 围绕调用提案的运行时事务：校验、裁决、执行、记录、回填 | Agent 如何安全地感知和行动 | Tool Runtime | [Tool Runtime](#tool-runtime) |
+| Tool Calling | 模型请求调用工具并消费结果的通用机制，函数类工具常称 Function Calling | 模型怎样表达行动意图、取得外部观察 | 模型产生提案，应用控制实际执行 | [LLM API 工具协议](01-llm-api-protocol.md#model-tool-definitions) |
 | Tool | 一个可被提出的具体动作，如 typed function、API 操作或 MCP 工具 | Agent 能做什么 | Runtime 校验参数、权限和副作用后执行 | [工具契约](#tool-contract) |
 | Skill（能力包） | `SKILL.md` 及配套资源组成的操作手册 | Agent 何时、按什么方法做事 | Runtime 选择并注入上下文，模型据此规划；Skill 不能自行授予权限 | [Skills](#skills) |
 | Workflow | DAG、状态机或代码流程 | 哪些步骤必须确定性推进 | 编排器控制状态和条件 | [Agent Runtime Workflow](04-agent-runtime.md#workflow) |
@@ -85,151 +85,114 @@ Plugin（扩展包）
 <a id="1513-接入方式选择apiclimcp-与-browser-use"></a>
 <a id="1815-工具接入方式选择框架apiclimcp-与-browser-use"></a>
 
-### 16.1.3 接入方式选择：API、CLI、MCP 与 Browser Use
+### 16.1.3 接入方式选择：API、CLI、MCP、Connector 与 Browser Use
 
-Agent 需要连接外部系统时，应当先看任务类型、执行环境和治理要求，再决定是否引入 MCP。从上到下，工具系统可以分为四层：Skill 规定流程、判断标准和验证方式；工具接口（Function Calling、MCP 工具、Shell 工具或内置 Connector）规定 Agent 能提出什么动作；执行通道（API、CLI、浏览器自动化或本地运行时）负责真正执行；最下面是外部系统。API、CLI 和 Browser Use 属于执行通道，MCP 属于工具接口，因此 MCP 与 CLI 并非简单的替代关系。
+选择接入方式，要同时回答“怎样调用外部系统”和“由谁维护集成”。这五项处于不同层级：API 是外部系统提供的程序接口，CLI 是可执行的命令入口，Browser Use 通过页面交互执行；MCP 是客户端与工具服务之间的标准协议，Connector 是针对某个外部系统的集成实现。Connector 可以直接被应用调用，也可以通过 MCP 暴露；MCP Server 内部还可以执行 CLI。因此，它们既可以作为接入方案比较，也可以组合使用。
 
-| 接入方式 | 所在层级 | 适合场景 | 主要优势 | 主要风险与限制 |
+无论采用哪条路径，模型都只提出工具名和参数；Agent Runtime 负责找到处理代码、检查权限并执行，再把结果交回模型。采用 MCP 时，MCP Client 承担协议通信；直接接 Connector 时，由应用的工具处理代码调用集成接口，不要求 Connector 实现 MCP。[[2]](#ref-2)[[3]](#ref-3)
+
+| 接入方式 | 实际调用入口 | 谁提供与维护 | 优势与适合场景 | 主要限制与责任 |
 |:---|:---|:---|:---|:---|
-| API | 系统底层接口 | 自研 Runtime、强控制需求、稳定的业务能力 | 能力完整，错误处理可控 | 需要自行维护集成、认证、分页、错误处理和 SDK |
-| CLI | 本地执行通道 | 个人开发、本地仓库操作、已有成熟命令和登录态 | 简单、成本低，复用成熟工具 | 存在 Shell 注入风险，输出需要解析，依赖本机环境，命令必须受控 |
-| MCP | Agent 工具协议 | 多客户端复用、多用户授权、企业治理 | 标准化发现与统一工具接口，便于审计 | 需要部署和运维 Server，有 Schema 维护成本，以及权限和供应链风险 |
-| Browser Use | 图形界面自动化通道 | 没有 API、CLI 和 MCP 可用时操作页面 | 不依赖目标系统提供接口 | 慢、脆弱、成本高，桌面权限难以隔离 |
+| API 直连 | 工具处理代码通过 HTTP 或 SDK 请求外部 API | 外部系统提供 API；Agent 开发团队维护调用代码 | 可精确选择接口、字段和业务行为，适合自研 Runtime 与定制流程 | 开发团队处理认证、分页、限流、错误转换和版本适配；可用能力仍受 API 与账号权限限制 |
+| CLI | Runtime 启动受控进程，执行命令并读取退出码与输出 | CLI 作者维护命令；使用方安装、登录并管理执行环境 | 复用成熟命令与登录态，适合本地仓库、开发工具和脚本流程 | 依赖可执行文件、版本和运行环境；应优先使用结构化输出与参数数组，避免拼接任意 Shell 命令 |
+| MCP | Host 中的 MCP Client 连接本地或远程 MCP Server | Server 开发者维护工具实现；自部署者运维服务，托管服务由提供方运维 | 标准化发现、参数和结果，适合一套工具供多个兼容客户端复用 | 客户端支持与服务能力可能不同；协议不能替代下游授权、幂等和审计，也不保证工具覆盖全部 API |
+| Connector | Runtime 调用已有集成提供的工具；也可由 MCP Server 调用集成代码 | 集成可由 Agent 产品厂商、外部服务厂商或开发团队提供；例如 OpenAI 提供 Gmail 集成 | 复用账号连接、API 适配和结果转换，适合已有集成足以覆盖的邮件、文档和工单操作 | 能力范围、更新节奏、部署与凭证管理取决于提供方；现成 Connector 的引用未必能直接迁移到其他客户端 |
+| Browser Use | 浏览器自动化工具读取页面并执行点击、输入等动作 | 目标服务维护页面；Agent 开发者或自动化工具提供方维护交互实现 | 适合只能通过网页完成的操作，或必须核对页面状态的任务 | 页面、定位器、登录和交互等待都会影响稳定性；通常步骤更多，需核验最终页面与业务结果[[36]](#ref-36)[[37]](#ref-37) |
 
-以 GitHub 为例，Runtime 可以直接调用 REST 或 GraphQL API，也可以通过 Shell 工具执行 `gh`，或连接 GitHub MCP Server；后两条路径最终仍会调用 GitHub API。
+**以 GitHub 为例，API、CLI 与 MCP 的差异在于谁负责适配。** API 直连由你的工具代码调用 GitHub REST 或 GraphQL；CLI 路径由 Runtime 执行 GitHub 提供的 `gh`，例如 `gh api`；MCP 路径则由 MCP Client 调用 GitHub MCP Server 暴露的工具，再由 Server 访问 GitHub。GitHub 提供远程托管与本地运行的 MCP Server；选择远程服务不意味着要在自己的电脑上启动服务进程。[[39]](#ref-39)[[40]](#ref-40)
 
-选择分两步。先确定方法载体：重复任务的方法、约束与验收可以写成 Skill、项目规则或 Runbook。再选择“工具接口 × 执行通道”：稳定 API 可直连或封装 Connector，多 Host 复用可经 MCP，本机已有成熟 CLI 可通过受控进程调用，只有缺少可靠接口时再考虑浏览器。Skill 与 API/CLI/MCP 不是互斥候选，方法和通道可以组合。
+**以 OpenAI 提供的 Gmail Connector 为例，接入时复用的是已有集成。** 用户安装并启用 Gmail 插件，再完成 Google 账号连接，Codex 才能在相应权限下使用邮件工具；安装插件和账号授权是两个独立动作。邮件操作由 Gmail 集成访问 Google Gmail API 完成。这里说明的是调用职责，不能仅凭“Connector”名称或工具名中的 `mcp`，判定 OpenAI 连接服务内部是否使用标准 MCP，也不能推断本机启动了 Gmail MCP Server。[[41]](#ref-41)
 
-个人开发者常用的最小组合是 **CLI + Skill**：CLI 调用成熟工具，Skill 沉淀项目流程、检查标准和交付规范。企业或平台级 Agent 更常采用 **MCP + Policy + Audit**：MCP 负责标准化地分发能力，Policy 划定权限边界，Audit 保留责任链。
+安装与配置的内容也不同：CLI 通常需要安装命令程序并建立登录态；手动配置 MCP 是登记服务启动命令或远程地址，并按需配置认证与工具范围；现成 Connector 的接入则可能只需启用插件、引用已注册集成并连接账号。自建 Gmail MCP Server 是另一种方案，其开发者或部署者还需处理 Google OAuth、服务运行与工具实现；这些维护成本不能套用到现成 Gmail Connector 上。
+
+选择时可按以下条件判断：
+
+- **已有 Connector 足够用**：优先复用，先确认提供方、账号身份、工具范围，以及结果和副作用能否核验。
+- **需要精确业务行为，且由自己维护 Runtime**：考虑 API 直连，或把公共适配逻辑封装成自己的 Connector。
+- **执行环境已有成熟 CLI**：通过受控进程复用；能取得 JSON 等结构化输出时，避免解析面向人的终端文本。
+- **同一套能力要供多个兼容客户端使用**：考虑用 MCP 暴露自建 Connector，或连接可信提供方的 MCP Server。
+- **现有程序接口无法完成任务，或任务需要页面交互**：考虑 Browser Use，并处理登录、定位、等待和效果核验。
+
+上述条件可以组合。例如 **CLI + Skill** 复用命令与操作方法，**MCP + Connector** 把具体业务集成提供给不同客户端。Skill 规定方法，MCP 统一接入协议，Connector 落实下游集成；权限控制、写入审批与审计需要在每条执行路径中实现，不因选择了 MCP 或现成 Connector 而自动具备。
 
 
 <a id="tool-contract"></a>
 <a id="162-工具契约schema返回结果与能力暴露"></a>
 <a id="152-工具契约schema返回结果与能力暴露"></a>
 
-## 16.2 工具契约：Schema、返回结果与能力暴露
+## 16.2 业务能力设计：操作边界、结果语义与可靠性保证
 
-[![工具注册表与提供方 Schema 分开](../images/review-skills-tools-mcp-connectors-02.svg)](../images/review-skills-tools-mcp-connectors-02.svg)
+[![业务能力契约：操作范围、输入归属、结果语义与可靠性声明](../images/review-skills-tools-mcp-connectors-02.svg)](../images/review-skills-tools-mcp-connectors-02.svg)
 
-*图 16-2：工具注册表与提供方 Schema 分开*
+*图 16-2：业务能力契约：操作范围、输入归属、结果语义与可靠性声明。*
 
+模型怎样接收工具定义、生成参数并关联返回结果，统一见[第 13 章工具调用协议](01-llm-api-protocol.md#model-tool-definitions)。本节站在能力提供方一侧，回答一个业务操作实际承诺什么：操作对象与范围、哪些输入可被提出、结果能证明什么，以及失败或重复调用会产生什么效果。这份契约可以经函数、CLI、MCP 或普通 API 交付，不依赖某一种模型消息格式。
 
-[Tool Calling 决策](#tool-calling)讨论了何时让模型调用工具，本节讨论工具以什么形态交给模型。工具契约由三部分组成：模型据以选择和填参的 Schema，模型与 Runtime 共同消费的返回结构，以及每轮实际暴露的工具集合。
+模型接口的 Schema 是业务契约的结构投影，不能代替业务权限、完整性和副作用保证。工具提供方定义并实现这些保证，Runtime 按任务绑定、当前权限与预算使用，业务系统继续承担最终资源鉴权。
 
 <a id="1621-工具-schema模型与系统之间的契约"></a>
 <a id="1521-工具-schema模型与系统之间的契约"></a>
 <a id="1821-工具-schema-是模型与系统之间的契约"></a>
-
-### 16.2.1 工具 Schema：模型与系统之间的契约
-
-工具 Schema 是模型的操作说明书，直接决定模型能否选对工具、生成正确参数、读懂工具结果。好的工具定义应满足四个目标：
-
-| 目标 | 含义 |
-|:---|:---|
-| 可发现 | 模型能迅速判断工具的适用场景 |
-| 可约束 | 参数空间尽量小 |
-| 可验证 | Runtime 能依据 Schema 做确定性校验 |
-| 可恢复 | 失败时返回可操作的错误 |
-
-不确定的判断留给模型，确定性的约束交给 Runtime。
-
 <a id="1622-反例过度宽泛的工具"></a>
 <a id="1522-反例过度宽泛的工具"></a>
 <a id="1822-反例过度宽泛的工具为什么不可靠"></a>
-
-### 16.2.2 反例：过度宽泛的工具
-
-下面这个工具看起来很灵活，实际上把太多决策丢给了模型：
-
-```json
-{
-  "name": "query",
-  "description": "Query internal systems",
-  "parameters": {
-    "type": "object",
-    "properties": {
-      "system": {"type": "string"},
-      "query": {"type": "string"}
-    },
-    "required": ["system", "query"]
-  }
-}
-```
-
-模型无从知道 `system` 该填 Prometheus、Loki 还是工单系统，`query` 该写 SQL、PromQL 还是自然语言；怎样重试、是否含敏感数据、有无副作用也没有交代。这类工具看似“能力很强”，实则把复杂度转移给模型推理，权限控制和审计也难以落地。
-
 <a id="1623-正例边界清晰的工具"></a>
 <a id="1523-正例边界清晰的工具"></a>
 <a id="1823-正例边界清晰的工具如何设计"></a>
 
-### 16.2.3 正例：边界清晰的工具
+### 16.2.1 操作粒度与业务边界
 
-更好的做法是把意图、输入格式、适用范围和默认策略都写进 Schema：
+一个工具应围绕可独立解释和验证的业务操作，而不是暴露无限制的系统入口。名字、参数和结果都要对应明确对象，使调用者知道何时适用、何时不适用，以及怎样核验执行结果。
 
-```json
-{
-  "type": "function",
-  "name": "prometheus_query_range",
-  "description": "Query Prometheus time series data for production service diagnostics. Use this only for numeric metrics such as latency, error rate, QPS, CPU, and memory. Do not use it for logs, traces, user data, or write operations.",
-  "strict": true,
-  "parameters": {
-    "type": "object",
-    "additionalProperties": false,
-    "properties": {
-      "promql": {
-        "type": "string",
-        "description": "A valid PromQL range query. Do not include destructive or admin operations."
-      },
-      "start_time": {
-        "type": "string",
-        "description": "Start time in RFC3339 format."
-      },
-      "end_time": {
-        "type": "string",
-        "description": "End time in RFC3339 format."
-      },
-      "step_seconds": {
-        "type": "integer",
-        "description": "Query resolution in seconds. Use 60 for incident diagnosis."
-      }
-    },
-    "required": ["promql", "start_time", "end_time", "step_seconds"]
-  }
-}
-```
+| 操作设计 | 问题或保证 | ALR 中的处理 |
+| --- | --- | --- |
+| `query(system, query)` | 混合日志、指标和任意查询语言，难以统一范围、成本和资源校验 | 拆为各数据源的有界操作 |
+| `prometheus_query_range` | 明确数值指标、时间范围、查询分辨率与数据源限制 | 不承担日志读取、建单或生产变更 |
+| `loki_search` | 明确服务、环境、窗口、字段与分页边界 | 返回获准日志页和剩余覆盖缺口 |
+| `create_incident_ticket` | 明确项目、草稿、资源版本、防重与回执语义 | 只执行有效批准绑定的建单动作 |
 
-模型仍需推理，但推理被限定在可控范围内，Runtime 也能据此做校验、风险分级和审计。
+粒度过大使参数变成任意程序或多种隐含操作，粒度过小又把大量业务步骤交给调用者重组。可以将稳定的只读取证流程封装为 `diagnose_latency_incident(alert_id)`，但必须交付内部来源、失败和覆盖证据；不能在“诊断”名称后隐藏建单、发送消息或回滚。组合能力的副作用覆盖内部最高影响，数据敏感度覆盖可触达数据，内部调用仍落实各自的资源约束。
+
+协议中的名称、描述与输入 Schema 怎样表达这些边界，见[13.3.1](01-llm-api-protocol.md#model-tool-definitions)；Skill 怎样描述多步方法见[16.3](#skills)。本节不重复供应商字段和消息包装。
 
 <a id="1624-schema-设计原则名称参数幂等边界与错误"></a>
 <a id="1524-schema-设计原则名称参数幂等边界与错误"></a>
 <a id="1824-schema-设计原则名称参数幂等边界与错误"></a>
+<a id="dynamic-exposure"></a>
+<a id="1626-动态工具暴露按任务阶段权限和环境裁剪"></a>
+<a id="1526-动态工具暴露按任务阶段权限和环境裁剪"></a>
+<a id="1826-动态工具暴露按任务阶段权限和环境裁剪能力"></a>
+<a id="orchestration-exposure"></a>
+<a id="1636-编排模式对工具暴露的影响"></a>
+<a id="1536-编排模式对工具暴露的影响"></a>
+<a id="187-工具编排模式从单次调用到可治理流程"></a>
 
-### 16.2.4 Schema 设计原则：名称、参数、幂等、边界与错误
+### 16.2.2 业务参数与可信调用绑定
 
-**名称使用“动作 + 对象”。** 优先使用 `search_logs`、`get_order_by_id`、`create_incident_ticket`，少用 `handle_request`、`execute`、`process` 这类泛化名称。
+工具契约要区分可由调用者提出的业务条件，以及只能由可信系统绑定的身份、连接和授权信息。参数结构合法，只表示候选值可以被解析，不表示它属于当前主体或能用于当前任务。
 
-**参数尽量结构化。** 有固定取值就用 `enum`；时间有格式要求，就写明是 RFC3339、Unix 时间戳还是相对时间。不要让模型去猜隐式约定。
+| 输入类别 | 可以怎样产生 | 实现必须检查什么 |
+| --- | --- | --- |
+| 服务、告警、环境、查询窗口 | 用户指定或模型在任务范围内提出 | 可信实体映射、归属、时间与查询限额，不因名称合法就放行 |
+| 租户、用户、Connection 与凭证 | 已验证会话、连接服务与可信派发上下文 | 当前所有权、用途、Scope 与撤销状态，不接受参数自报身份 |
+| 草稿内容、目标项目与资源版本 | 模型可以提出候选，可信批准记录绑定实际载荷 | 实际执行内容与批准、对象和版本一致 |
+| Operation、幂等键、截止时间与预算 | Runtime 或受信调用方提供 | 键作用域、载荷一致性与当前执行条件，不能让模型重生成身份 |
 
-**写操作声明防重与核验契约。** 幂等键由可信 Runtime 按 Operation 提供，模型只填业务参数；重新规划可能改变模型生成的字符串，不能靠它建立稳定身份。`dry_run` 只预览变更，不能防重；下游的键范围、窗口、查询和失败语义见[Connector 写入契约](#1666-写操作审批幂等与结果未知)，执行算法见[第17章外部动作幂等](04-agent-runtime.md#failure-side-effects)。
+参数约定还应写明单位、时区、边界和缺省行为。例如金额使用整数分，时间窗标明起止语义与时区，日志工具声明最大窗口和分页规则。自由文本查询语言也须通过受限构造或可靠的范围校验执行，不能只在描述里写“不要查询其他项目”。身份字段不应伪装成模型必须填写的业务参数，实际资源约束必须被实现和下游查询消费。
 
-**描述要写清何时不用。** 例如“不要用于查询用户 PII”“不要用于生产环境写操作”“只有当用户明确要求发送通知时才调用”。
-
-**返回结果面向下一步推理。** 原始日志、完整 SQL 结果、几百 KB 的 JSON 都会污染上下文，结果应包含摘要、关键字段、证据链接和原始数据引用。
-
-**错误是接口的一部分。** 工具统一采用[应用错误分类](#connector-error-codes)：PromQL 语法错误映射为 `INVALID_INPUT`，限流为 `RATE_LIMITED`，越权为 `PERMISSION_DENIED`。原始提供方码放在 `error.provider_code`；可裁剪的大结果用 `truncated` 和 `coverage` 表示，超过硬限制而必须拒绝时用 `INVALID_INPUT` 并给出缩小范围的建议，不能另造一套顶层错误码。
+动态工具集合属于消费侧行为。能力提供方交付来源、版本、适用环境、依赖、风险与可用状态等元数据；Runtime 如何按任务阶段筛选和映射这些能力，统一见[本轮工具暴露](04-agent-runtime.md#runtime-tool-exposure)。工具路由与编排由 Runtime 按任务推进，能力提供方只交付它所消费的契约。
 
 <a id="tool-result-envelope"></a>
 <a id="1625-toolresult-envelope模型上下文与系统元数据分离"></a>
 <a id="1525-toolresult-envelope模型上下文与系统元数据分离"></a>
 <a id="1825-toolresult-envelope把模型上下文和系统元数据分开"></a>
-
-### 16.2.5 ToolResult Envelope：模型上下文与系统元数据分离
-
-建议所有工具返回统一的 Envelope：
-
 <a id="tool-result"></a>
 
-以下 JSON 是本书应用层结果信封示意；MCP 字段在适配层映射，不声称协议原生定义了全部字段。
+### 16.2.3 结果语义、覆盖范围与来源证据
+
+结果至少区分“查询成功且完整”“查询成功但仍有缺口”“没有匹配数据”“查询失败”和“写入效果未知”。成功状态不能替代这些业务含义：空数组可能是没有匹配，也可能是过滤后无可见数据；网络超时更不能被编码成“没有异常”。
+
+以下 JSON 是本书应用层 ToolResult 信封示意，不是任何 LLM API 或 MCP 的原生结果类型。`call_id` 在这里用于应用调用关联；它如何映射供应商的调用标识，由协议适配层处理。
 
 ```json
 {
@@ -258,206 +221,54 @@ Agent 需要连接外部系统时，应当先看任务类型、执行环境和�
 
 写入发出后丢失回执返回 `OUTCOME_UNKNOWN` 和 `effect.disposition=unknown`，不能映射成“确认未生效”。不完整读取也不能当作没有异常。敏感凭据、内部连接句柄与完整私密载荷不进入模型或普通日志。
 
-MCP 2026-07-28 版 Tools 规范对工具结果有两点约定。[[3]](#ref-3) 第一是结构化输出：工具可在定义中声明 `outputSchema`，调用结果在 `structuredContent` 中返回符合该 Schema 的结构化数据，客户端可据此校验；为了兼容，工具同时应在文本内容中给出一份序列化结果。本书 Envelope 使用 `data_ref` 指向受控原始载荷；MCP 的 `structuredContent` 承载允许交付的结构化观察，不自动解引用私密载荷。
+`coverage` 描述本次数据覆盖，`effect` 描述外部动作效果，两者相互独立。日志查询返回 `partial` 仍可提供有用证据，但不能据此确认整个窗口没有错误；建单请求失去回执则提供原操作与资源查询入口，不能用一条失败消息证明工单不存在。`data_ref` 是受控原始载荷引用，不自动授予读取资格；来源还应保留对象、版本与时间，便于回读和核验。
 
-第二是两类错误的区分：
+统一错误分类见[Connector 错误接口](#connector-error-codes)：语法或范围无效用 `INVALID_INPUT`，限流用 `RATE_LIMITED`，越权用 `PERMISSION_DENIED`，原始提供方码保存在安全诊断字段。`retryable` 只提供判断依据，不决定当前任务的重试次数和预算。可裁剪结果保留 `truncated` 与覆盖标记，超过硬限制而必须拒绝时明确要求缩小范围。
 
-- **协议错误**：在 JSON-RPC 层以标准错误返回，例如调用了未知工具、请求结构不符合调用格式、服务端内部错误。模型通常难以自行修正。
-- **工具执行错误**：作为正常结果返回，并将 `isError` 置为 `true`，例如下游 API 失败、参数值不符合要求（日期格式错误、数值越界）、业务规则拒绝。错误内容应反馈给模型，供其调整参数后重试。
-
-工具结果不是越完整越好，而要摘要可读、数据可追溯、错误可恢复、证据可审计。
-
-<a id="dynamic-exposure"></a>
-<a id="1626-动态工具暴露按任务阶段权限和环境裁剪"></a>
-<a id="1526-动态工具暴露按任务阶段权限和环境裁剪"></a>
-<a id="1826-动态工具暴露按任务阶段权限和环境裁剪能力"></a>
-
-### 16.2.6 动态工具暴露：按任务、阶段、权限和环境裁剪
-
-工具定义占用上下文，也会增加误选概率，因此不要一次性交出全部工具，而应按任务、阶段、用户权限和运行环境动态暴露。以诊断 order-service 延迟升高为例（示例）：
-
-| 阶段 | 暴露的工具 |
-|:---|:---|
-| 理解问题 | `get_alert_details`、`search_runbooks`、`list_recent_deployments` |
-| 收集证据 | `prometheus_query_range`、`loki_search`、`kubernetes_get_pods` |
-| 建议行动 | `create_incident_ticket`（仅在审批绑定草稿与资源版本后暴露） |
-
-这样可减少无关能力和误选机会，但改变工具前缀也可能降低缓存命中；缓存与能力最小化要按实际计量取舍，不能保证同时改善。完整注册表由能力系统维护，Runtime 绑定其可信快照，模型只看到本轮允许使用的工具。
-
-Token 成本取决于本轮暴露了多少信息，而不是安装了多少 Server、扩展包或 Skill。能力注册表保存不可变标识、命名空间、来源、版本、Schema 摘要、双轴风险、依赖和可用环境；发现阶段只返回必要摘要，选中后才读取完整契约。别名必须映射到受信注册对象，不能由模型拼出后端地址。Skill 的发现元数据、激活正文和资源取用见[渐进式加载](#progressive-loading)；Runtime 固定本 Run 的能力快照，执行时仍重验当前授权。
-
-<a id="orchestration-exposure"></a>
-<a id="1636-编排模式对工具暴露的影响"></a>
-<a id="1536-编排模式对工具暴露的影响"></a>
-<a id="187-工具编排模式从单次调用到可治理流程"></a>
-
-工具路由（Tool Router）先从已准入的目录选出相关子集，再交给主模型；规则、Embedding 或轻量模型都可以做相关性排序，但路由命中不授予权限。找不到合适能力时应报告缺项，不能退到任意 HTTP 或 Shell。
-
-工作流即工具（Workflow-as-Tool）把已验证的多步流程封装成一个高层契约。例如只读的 `diagnose_latency_incident(alert_id)` 内部收集指标、日志和部署记录，再生成候选报告，减少可见工具数，代价是探索灵活性下降。其副作用按内部最高影响登记，敏感度覆盖所有可触达数据，内部步骤保留授权和审计；若包含审批写入，必须显式声明，不能藏在“诊断”名称后。ReAct、Plan-and-Execute 等执行模式与选择条件见[第17章编排模式](04-agent-runtime.md#pattern-selection)。
-
+相同 ToolResult 可以投影为模型可读内容、结构化程序结果或审计引用。供应商要求的结果包装与调用关联见[第 13 章](01-llm-api-protocol.md#model-tool-results)，MCP 的 `structuredContent`、`isError` 与 JSON-RPC error 编码见[16.4.3](#mcp-server-assembly)，派发后怎样形成 Observation 与更新状态见[第 17 章](04-agent-runtime.md#runtime-dispatch-protocol)。不能把三者写成一种格式。
 
 <a id="tool-risk-levels"></a>
-
 <a id="1627-用副作用与数据敏感度共同描述风险"></a>
 <a id="1527-用副作用与数据敏感度共同描述风险"></a>
 
-### 16.2.7 用副作用与数据敏感度共同描述风险
+### 16.2.4 副作用、敏感度与可靠性声明
 
-副作用与数据敏感度是两个独立的策略输入：只读日志仍可能泄密，“可补偿”也不意味着能撤回已经被人看见的信息。下面是本书注册表采用的完整枚举，不是 MCP 原生等级。
+工具应声明实际行为和数据属性，而不是先写一个“自动允许”标签。下面是本书注册表使用的两条分类轴，值域沿用全书约定，不是 MCP 原生等级：
 
-| 轴 | 取值 | 判定与控制含义 |
+| 轴 | 取值 | 需要说明的业务含义 |
 | --- | --- | --- |
-| `side_effect` | `read_only`（只读） | 不改变业务状态；仍约束查询范围、输出和外传 |
-| `side_effect` | `compensatable_write`（可补偿写入） | 可通过明确的后续动作补偿，但不承诺恢复全部影响；声明补偿前提 |
-| `side_effect` | `external_send`（外发） | 向消息渠道或外部接收方送出数据；限定接收方、内容和送达保证 |
-| `side_effect` | `hard_to_reverse`（难逆或高影响动作） | 无可靠补偿，或补偿不能消除业务损失；专用流程和强审批 |
-| `data_sensitivity` | `public`（公开） | 已获准公开的数据；仍防误操作和资源滥用 |
-| `data_sensitivity` | `internal`（内部） | 限组织或项目使用；校验主体、租户与资源范围 |
-| `data_sensitivity` | `sensitive`（敏感） | 个人信息、客户载荷、受限业务记录；字段最小化、脱敏、限制留存与接收方 |
-| `data_sensitivity` | `secret`（秘密凭据） | 密码、Key、Token、私钥等；只由隔离的凭据设施消费，不进入模型或普通输出 |
+| `side_effect` | `read_only` | 不改变目标业务状态；说明读取对象、范围与返回内容 |
+| `side_effect` | `compensatable_write` | 会改变业务状态；说明可用补偿及不能消除的影响 |
+| `side_effect` | `external_send` | 会把内容交付给接收方；说明发送对象、内容和送达保证 |
+| `side_effect` | `hard_to_reverse` | 无可靠补偿或影响较大；明确效果、恢复限制与责任边界 |
+| `data_sensitivity` | `public` | 数据已获准公开；说明来源和适用范围 |
+| `data_sensitivity` | `internal` | 数据限组织或项目使用；说明归属与预期消费者 |
+| `data_sensitivity` | `sensitive` | 涉及个人信息、客户载荷或受限业务记录；说明字段和派生数据范围 |
+| `data_sensitivity` | `secret` | 密码、Key、Token、私钥等凭证；声明专用凭据消费通道，不作为模型观察返回 |
 
-一个接口包含多类行为时，按最高副作用保守登记，或拆为独立工具；多类数据按最高敏感度登记。未知分类不能按低风险处理，应先拒绝准入并人工核定。`prohibited` 是策略裁决，不是第三条风险轴；凭据代理在执行中注入秘密，也不等于模型可读取 `secret`。
+一个接口混合多种行为时，按最高副作用保守登记，或拆成独立工具；多类数据按最高敏感度登记。未知分类不能填成低风险。`prohibited` 是策略裁决，不是第三条分类轴；执行进程可能由代理注入凭证，也不代表模型可以读取 `secret`。
 
-以下矩阵给出本书的默认控制基线；具体环境和法规可进一步收紧，不能仅凭表格自动授权。
+分类之后，还应交付可验证的可靠性保证：
 
-| 副作用 × 敏感度 | `public` | `internal` | `sensitive` | `secret` |
-| --- | --- | --- | --- | --- |
-| `read_only` | 有界自动读取 | 当前 ACL 与资源过滤 | 目的绑定、字段脱敏、受限产物和审计；必要时审批 | 禁止模型读取，专用凭据通道 |
-| `compensatable_write` | 载荷校验、去重及补偿契约 | 另加对象权限与绑定草稿的批准 | 另加最小载荷、强审批与留存控制 | 禁止通用工具写入，走专用凭据流程 |
-| `external_send` | 接收方白名单与发送授权 | 另加组织外发规则、内容审查 | 默认阻断，例外须审批并落实脱敏/DLP | 禁止外发 |
-| `hard_to_reverse` | 专用流程、强审批与效果核验 | 另加生产范围和责任人确认 | 另加数据合规审查，无法满足即阻断 | 禁止通用 Agent 执行 |
+| 保证项 | 能力提供方应声明并验证什么 | 不能承诺什么 |
+| --- | --- | --- |
+| 防重与幂等 | 下游键的作用域、载荷约束、有效期与重复请求结果 | 仅凭工具名、只读提示或本地缓存保证写入恰好一次 |
+| 效果查询 | 能否按原 Operation 或外部引用查询，何时可以确认未生效 | 超时、取消或连接断开自动等于失败 |
+| 补偿 | 补偿操作、前提、权限和无法撤回的影响 | 所有写入都可通过另一动作恢复原状 |
+| 错误与限额 | 分类错误、限流/分页提示、时间与输出上限 | `retryable=true` 自动授权重试，或 dry-run 提供防重保证 |
+| 数据交付 | 摘要、字段、来源、受控引用及覆盖缺口 | 返回更多原始数据必然带来更完整或更可靠的结论 |
 
-本例 `loki_search` 是“只读 × 敏感”，建单是“可补偿写入 × 内部”；通知由能力集之外的交付系统处理，重启和回滚不提供。MCP annotations 只是提示，不可信的 `readOnlyHint`、`idempotentHint` 不能代替实现核验。[[3]](#ref-3) 策略强制与审批等待见[第17章动作裁决](04-agent-runtime.md#policy-engine)，验收与回归见[第18章治理护栏](06-agent-governance-optimization.md#guardrails-overview)。
+本例 `loki_search` 是“只读 × 敏感”，建单是“可补偿写入 × 内部”；通知由能力集之外的交付系统处理，重启和回滚不提供。MCP annotations 只是对行为的声明，不能代替以上实现核验，协议字段说明见[16.4.2](#mcp-server-definitions)。
 
-<a id="tool-runtime"></a>
-<a id="163-调用适配接口把外围能力接入-runtime"></a>
-<a id="153-调用适配接口把外围能力接入-runtime"></a>
-<a id="183-tool-runtime生产级工具调用的控制平面"></a>
+能力提供方描述性质，Runtime 按当前身份和任务实施控制：分类对应的控制基线与审批见[17.5.3](04-agent-runtime.md#runtime-risk-controls)，持续验收见[第 18 章](06-agent-governance-optimization.md#guardrails-overview)。[Connector 写入契约](#1666-写操作审批幂等与结果未知)落实下游保证，[Runtime 恢复](04-agent-runtime.md#failure-side-effects)处理已经派发的未知效果。
 
-## 16.3 调用适配接口：把外围能力接入 Runtime
-
-[![Attempt 结果映射到 Operation 事实](../images/review-skills-tools-mcp-connectors-03.svg)](../images/review-skills-tools-mcp-connectors-03.svg)
-
-*图 16-3：Attempt 结果映射到 Operation 事实*
-
-
-本章将执行单次受控工具调用的实现称为调用适配层（Tool Runtime），与负责整项任务生命周期的 Agent Runtime 区分。
-
-工具从 5 个增长到 50 个后，难点从“怎么写工具函数”转向“怎么治理工具调用”。只把函数绑定给模型还不够，需要构建受控的调用适配接口：可信注册对象、Schema 校验、凭据解析、Executor/Adapter、Result Normalizer 与审计接口都要齐全。全局任务控制仍归 Runtime，本层接收派发上下文并返回结果。
-
-<a id="1631-组件与调用链路"></a>
-<a id="1531-组件与调用链路"></a>
-<a id="1832-tool-runtime-核心组件registryvalidatorpolicyexecutor-与-trace"></a>
-
-### 16.3.1 组件与调用链路
-
-```mermaid
-flowchart LR
-    P[模型的工具调用提议] --> R[Tool Registry]
-    R --> V[Schema Validator]
-    V --> PE[Policy Engine]
-    PE --> E[Executor]
-    E --> A[Adapter]
-    A --> X[外部系统]
-    X --> N[Result Normalizer]
-    N --> M[Observation Mapper]
-    M --> O[返回模型的 Observation]
-    PE -.-> T[Audit 与 Trace]
-    E -.-> T
-    N -.-> T
-```
-
-
-| 组件 | 职责 | 关键设计点 |
-|:---|:---|:---|
-| Tool Registry | 管理工具元数据、版本、风险等级 | 支持按任务动态暴露工具 |
-| Schema Validator | 校验参数与类型 | 严格模式、默认值、范围约束 |
-| Policy Engine | 裁决是否允许调用 | 输出 `allow / deny / ask / escalate`，见[Agent Runtime Policy Engine](04-agent-runtime.md#policy-engine) |
-| Executor | 执行一次派发 | 消费截止时间、限并发、隔离执行；重试由 Runtime 调度 |
-| Adapter | 对接外部系统 | API、CLI、MCP、数据库、消息队列 |
-| Result Normalizer | 统一返回格式 | 成功与失败 Envelope、错误码 |
-| Observation Mapper | 生成模型上下文 | 摘要、证据、压缩、脱敏 |
-| Audit 与 Trace | 记录调用链路 | 会话、用户、工具、参数、结果 |
-
-MVP 阶段这些组件可以在同一进程内，但职责边界必须清晰，否则系统会退化成“模型返回 JSON，应用随手执行”。
-
-<a id="tool-call-state-machine"></a>
-<a id="1632-单次调用尝试与-operation-的映射"></a>
-<a id="1532-单次调用尝试与-operation-的映射"></a>
-<a id="1833-工具调用状态机从-requested-到-observed"></a>
-
-### 16.3.2 单次调用尝试与 Operation 的映射
-
-调用适配接口接收 Runtime 提供的 run_id、call_id、operation_id（写操作）、稳定幂等键、参数哈希、批准引用、资源版本和截止时间。返回字段必须区分未派发、已确认生效、已确认未生效、部分生效和未知，并提供当前可用的查询入口与外部对象引用。
-
-`effect.disposition` 是适配层交付的效果证据，不是另一套 Operation 状态机；取消本地执行不能证明远端未生效。下游去重与查询保证见[Connector 写入契约](#1666-写操作审批幂等与结果未知)，完整状态机、重试与接管见[第17章 Operation 恢复](04-agent-runtime.md#failure-side-effects)。
-
-
-<a id="1633-失败模式误选工具参数错误重复副作用与注入攻击"></a>
-<a id="1533-失败模式误选工具参数错误重复副作用与注入攻击"></a>
-<a id="1834-失败模式误选工具参数错误重复副作用与注入攻击"></a>
-
-### 16.3.3 失败模式：误选工具、参数错误、重复副作用与注入攻击
-
-| 失败模式 | 根因 | 修复策略 |
-|:---|:---|:---|
-| 误选工具（该查日志却查了指标） | 描述重叠、暴露过多 | 缩小工具集合，写清边界 |
-| 参数错误 | Schema 太宽 | `enum`、`format`、严格 Schema |
-| Shell 注入或误执行 | CLI 参数未结构化 | 参数数组、命令 allowlist、审批 |
-| 重复副作用（重复建单、发消息） | 重试缺少幂等保护 | Runtime 生成幂等键，结果未知先对账 |
-| 返回过大 | 没有摘要和分页 | Observation Mapper 摘要与引用 |
-| 权限漂移 | 凭据与角色权限不一致 | 工具级授权测试 |
-| 错误不可恢复 | 错误码不可操作 | 结构化错误码加 `retryable` |
-| 注入攻击 | 外部数据被当成指令 | 标记不可信来源，与指令隔离 |
-| 成本失控 | 缺少预算与停止条件 | 调用次数、Token 预算、截止时间 |
-
-网页、文档、日志和工单都可能夹带指令，工具输出一律按不可信数据处理。按风险等级的防护要求见 [工具风险分级](#tool-risk-levels)，护栏的总体框架见[Agent 治理与调优 Guardrails 总览](06-agent-governance-optimization.md#guardrails-overview)。
-
-这些失败模式应在设计评审和 Eval 中覆盖。
-
-<a id="1634-重试策略写进工具元数据"></a>
-<a id="1534-重试策略写进工具元数据"></a>
-<a id="1835-重试策略哪些失败可以重试哪些不能"></a>
-
-### 16.3.4 重试准入：工具声明哪些保证
-
-工具元数据声明可供 Runtime 判断的事实，不定义任务的重试次数或退避预算：
-
-```python
-from dataclasses import dataclass
-
-@dataclass
-class RetryContract:
-    idempotent: bool
-    retryable_error_codes: set[str]
-    downstream_contract_ref: str | None
-```
-
-`idempotent` 指已核验的语义，不是从工具名或 MCP hint 推断；条件性去重必须在 `downstream_contract_ref` 声明键范围、载荷约束和窗口。`retryable_error_codes` 只能选自[统一错误码](#connector-error-codes)，即使含 `RATE_LIMITED` 或 `TRANSIENT_FAILURE`，也不保证当前写入可安全重发。是否重试、何时重试、预算与未知结果处理由[第17章重试分类](04-agent-runtime.md#retry-classification)决定。
-
-<a id="1635-工具专属指标"></a>
-<a id="1535-工具专属指标"></a>
-
-### 16.3.5 工具专属指标
-
-通用 Trace、成功率与 SLO 见[Agent 治理与调优 Trace 与可观测性](06-agent-governance-optimization.md#trace-observability)，这里只列工具专属指标：
-
-| 指标 | 含义 | 异常时的排查方向 |
-|:---|:---|:---|
-| 误选率 | 人工标注选错的调用数/有有效选择标签的调用数 | 描述重叠、暴露过多 |
-| 参数校验失败率 | Schema 拒绝数/到达参数校验的提案数 | Schema 太宽或描述不清 |
-| 审批率（`approval_rate`） | 审批请求数/可裁决提案数；批准数/已决审批数，待决另列 | 风险分级或暴露策略 |
-| 结果截断率 | 带 truncated 结果数/有效工具返回数；分页未取尽另列 | 缺少摘要、过滤或聚合 |
-| 上下文预算占用（`observation_token_size`） | 每调用实际进入上下文的 Token 数，按工具/任务切片报告分布；超预算数/有预算记录的调用数 | Observation 压缩不足 |
-| 单工具延迟与成本（`tool_latency_ms`、`tool_cost_estimate`） | 固定窗口内全部已结束 Attempt 延迟分布，超时另列；外部 API 与后续上下文费用/调用数，另计失败及重试 | 下游性能、调用过多 |
-
-某个工具成功率低，可能是实现问题，也可能是 Schema 描述导致模型常生成错误参数，因此统计时应区分协议错误和工具执行错误。
+单次调用的组件链路、Attempt / Operation 映射、重试准入与工具指标统一见[17.4.5 调用适配层](04-agent-runtime.md#tool-runtime)。本章交付工具及其业务契约，由 Agent Runtime 在执行循环中消费。
 
 <a id="skills"></a>
 <a id="164-agent-skills从工具调用到能力复用"></a>
 <a id="154-agent-skills从工具调用到能力复用"></a>
 
-## 16.4 Agent Skills：从工具调用到能力复用
+## 16.3 Agent Skills：从工具调用到能力复用
 
 工具让 Agent 能够行动，Skill 则把完成一类任务的方法组织成可复用的能力包。Anthropic 提出的 Agent Skills 把指令、脚本和资源放进一个目录，并按任务需要加载。[[4]](#ref-4)
 
@@ -466,7 +277,7 @@ class RetryContract:
 <a id="1641-为什么有了-tool-calling-还需要-skill"></a>
 <a id="1541-为什么有了-tool-calling-还需要-skill"></a>
 
-### 16.4.1 为什么有了 Tool Calling 还需要 Skill
+### 16.3.1 为什么有了 Tool Calling 还需要 Skill
 
 查询天气通常只需一次工具调用，而“排查线上延迟升高”需要协调多个动作：确认服务和时间窗口，查询指标与日志，对比部署变更，检索历史案例，最后形成带证据的诊断。能调用这些工具，不等于能把它们组织成可靠的工作方法。
 
@@ -480,13 +291,13 @@ class RetryContract:
 <a id="1542-skill-的组成入口指令与可复用资源"></a>
 <a id="1842-skill-的定义触发条件步骤工具约束与验证"></a>
 
-### 16.4.2 Skill 的组成：入口、指令与可复用资源
+### 16.3.2 Skill 的组成：入口、指令与可复用资源
 
 Agent Skills 格式以 `SKILL.md` 为入口，文件由 YAML 前置元数据（Front Matter）和 Markdown 正文组成；脚本、参考资料和资产都是可选资源。[[5]](#ref-5)
 
 [![Skill 组成：SKILL.md 的元数据用于发现，正文提供执行指令；scripts 提供确定性操作，references 提供按需知识，assets 提供产物材料](../images/agent-skill-anatomy.svg)](../images/agent-skill-anatomy.svg)
 
-*图 16-4：Skill 组成：SKILL.md 的元数据用于发现，正文提供执行指令；scripts 提供确定性操作，references 提供按需知识，assets 提供产物材料*
+*图 16-3：Skill 组成：SKILL.md 的元数据用于发现，正文提供执行指令；scripts 提供确定性操作，references 提供按需知识，assets 提供产物材料*
 
 
 | 组成 | 回答的问题 | 告警诊断示例 |
@@ -510,7 +321,7 @@ Skill 与 Tool、Workflow、Memory、Plugin 的边界见 [概念边界总表](#c
 <a id="1543-可执行的-skillmd-示例"></a>
 <a id="1844-一个高质量-skill-应该长什么样"></a>
 
-### 16.4.3 完整的 `SKILL.md` 示例
+### 16.3.3 完整的 `SKILL.md` 示例
 
 下面是 `incident-diagnosis/SKILL.md` 的完整入口示例，不是独立可运行程序；配套资源和工具必须由能力包提供并通过验收。`name`、`description` 写在前置元数据中，方法、边界和失败出口写在正文中。
 
@@ -552,7 +363,7 @@ description: 分析线上告警、接口延迟升高、错误率异常，输出�
 <a id="1644-从真实案例提炼-skill"></a>
 <a id="1544-从真实案例提炼-skill"></a>
 
-### 16.4.4 从真实案例提炼 Skill
+### 16.3.4 从真实案例提炼 Skill
 
 先收集具体请求，再抽取可复用步骤，比先写一份“大而全”的专家指南更容易划清边界。
 
@@ -571,7 +382,7 @@ description: 分析线上告警、接口延迟升高、错误率异常，输出�
 <a id="1545-skill-注册表版本与运行条件"></a>
 <a id="1846-skill-registry技能也需要版本owner-和风险等级"></a>
 
-### 16.4.5 Skill 注册表：版本与运行条件
+### 16.3.5 Skill 注册表：版本与运行条件
 
 小型本地技能库可以先用目录、Git 和变更记录管理。多人共享、多环境部署时，再引入注册表，记录谁负责、哪一版经过验证、支持哪些运行条件。
 
@@ -609,13 +420,13 @@ changelog: "补充日志查询失败时的降级路径"
 <a id="1546-渐进式加载先发现再展开最后按需取用"></a>
 <a id="1847-skill-selection不是每次全部加载"></a>
 
-### 16.4.6 渐进式加载：先发现，再展开，最后按需取用
+### 16.3.6 渐进式加载：先发现，再展开，最后按需取用
 
 Agent Skills 的格式规范将发现元数据、激活指令和按需资源分开；文档中的 token/行数建议不是所有客户端共同的硬上限。实际装配由宿主实现，不能从目录里存在 SKILL.md 推导正文已经进入模型上下文。[[4]](#ref-4)[[5]](#ref-5)
 
 [![Skill 渐进式加载](../images/agent-skill-progressive-loading.svg)](../images/agent-skill-progressive-loading.svg)
 
-*图 16-5：Skill 渐进式加载*
+*图 16-4：Skill 渐进式加载*
 
 
 | 阶段 | 暴露内容 | 需要验证 |
@@ -633,7 +444,7 @@ Agent Skills 的格式规范将发现元数据、激活指令和按需资源分�
 <a id="1647-自由度门控与-tool-policy"></a>
 <a id="1547-自由度门控与-tool-policy"></a>
 
-### 16.4.7 自由度、门控与 Tool Policy
+### 16.3.7 自由度、门控与 Tool Policy
 
 Skill 的约束强度应与任务的变化空间和出错代价相匹配。文本原则、模板和脚本分别对应不同程度的自由度：
 
@@ -652,13 +463,13 @@ Skill 的约束强度应与任务的变化空间和出错代价相匹配。文�
 <a id="1548-skill-生命周期发布迭代与退役"></a>
 <a id="1849-skill-生命周期createreviewvalidatepublishretire"></a>
 
-### 16.4.8 Skill 生命周期：发布、迭代与退役
+### 16.3.8 Skill 生命周期：发布、迭代与退役
 
 本节为本书的工程治理模型，Agent Skills 格式本身不规定完整发布流程。版本单元覆盖正文、脚本、参考资料和资产，关联不可变摘要、责任人和验证证据；工具契约与模型变化也要重新验证。
 
 [![Skill 版本化生命周期](../images/agent-skill-versioned-lifecycle.svg)](../images/agent-skill-versioned-lifecycle.svg)
 
-*图 16-6：Skill 版本化生命周期*
+*图 16-5：Skill 版本化生命周期*
 
 | 阶段 | 提供方责任 | 进入下一阶段的依据 |
 | --- | --- | --- |
@@ -675,7 +486,7 @@ Skill 的约束强度应与任务的变化空间和出错代价相匹配。文�
 <a id="1549-常见失败模式与回退"></a>
 <a id="skill失败回退需要保留授权与事实"></a>
 
-### 16.4.9 常见失败模式与回退
+### 16.3.9 常见失败模式与回退
 
 | 失败模式 | 表现 | 修复方向 |
 |:---|:---|:---|
@@ -694,7 +505,7 @@ Skill 缺失、资源不可读或工具不可用时，报告缺项，只在既�
 <a id="15410-skill-与-mcp-的关系"></a>
 <a id="18411-skills-与-mcp-的关系"></a>
 
-### 16.4.10 Skill 与 MCP 的关系
+### 16.3.10 Skill 与 MCP 的关系
 
 Skill 可以引导 MCP、CLI 或 API；MCP Prompts 提供由 Host 选择的模板，并不自动成为 Skill。方法包与接入协议可以独立升级，组合时须重新验证工具依赖、加载行为和权限，不能从格式兼容推导运行兼容。职责对照见[概念边界](#capability-concepts)，接入机制见[MCP](#mcp)。
 
@@ -702,15 +513,15 @@ Skill 可以引导 MCP、CLI 或 API；MCP Prompts 提供由 Host 选择的模�
 <a id="mcp"></a>
 <a id="165-mcptool-calling-的标准化接入协议"></a>
 <a id="155-mcp外部能力的标准协议与版本边界"></a>
+<a id="165-mcp外部能力的标准协议与版本边界"></a>
 
-## 16.5 MCP：外部能力的标准协议与版本边界
+## 16.4 MCP：服务端能力封装与交付
 
-MCP 统一外部能力的发现、描述、调用与内容交付，业务实现仍由 Server 与 Connector 完成。Host 负责用户、模型、上下文和调用策略，Client 在 Host 内适配协议，Server 暴露有边界的工具和数据。接入选择见[API、CLI、MCP 与 Browser](#tool-access-selection)。[[11]](#ref-11)
+本节从能力提供方出发：怎样将已经定义的工具契约和 Connector 业务实现，封装成可被不同 Runtime 接入的 MCP Server。交付内容包括能力定义、handler、协议与部署配置、逐请求授权和兼容测试；MCP 不替代 Connector 的下游业务语义，也不替代 Host 的任务控制。[[11]](#ref-11)
 
-多个团队共用 MCP 服务时，协议兼容之外还要回答：谁在调用、可以使用什么工具、这次可以访问哪些资源。本节先说明协议与版本，再给出共享服务的权限隔离设计。**工具可见范围、数据访问范围和部署隔离是三个独立维度**；下面的多租户架构与伪代码是本书的通用工程设计，不是 MCP 原生权限模型。
+阅读顺序是角色边界、能力定义、服务端组装、协议部署、认证授权、测试发布。Client 初始化与目录缓存见[17.3.5](04-agent-runtime.md#runtime-bootstrap-mcp)，模型调用与观察回填见[17.4.5](04-agent-runtime.md#runtime-mcp-dispatch)，交互等待和断流恢复也分别由 Runtime 管理。本节沿用 2026-07-28 协议基线；以下服务内分层、ALR 示例与伪代码属于本书设计，不是 MCP 规定的应用架构。
 
 <a id="mcp-capabilities"></a>
-
 <a id="1651-mcp-的定位解决什么不解决什么"></a>
 <a id="1652-架构角色hostclientserver"></a>
 <a id="1653-能力模型server-侧与-client-侧能力"></a>
@@ -718,111 +529,143 @@ MCP 统一外部能力的发现、描述、调用与内容交付，业务实现�
 <a id="1551-角色能力与实现责任"></a>
 <a id="1852-mcp-解决什么不解决什么"></a>
 <a id="1854-mcp-的架构边界hostclientserver"></a>
+<a id="1651-角色能力与实现责任"></a>
 
-### 16.5.1 角色、能力与实现责任
+### 16.4.1 MCP 的定位与角色边界
 
-| 对象 | 交付物 | 本例中的责任 |
+| 对象 | 负责什么 | 本节对它的处理 |
 | --- | --- | --- |
-| Host | 模型可见工具与当前调用裁决 | 选择日志工具、限制服务和窗口，消费返回观察 |
-| Client | 版本化 JSON-RPC 请求与结果适配 | tools/list 发现、tools/call 调用、错误与内容映射 |
-| Server | 可验证的能力描述与业务 handler | 校验参数、检查当前权限，调用日志/工单 Connector |
-| 下游业务系统 | 对象状态、版本与效果回执 | 确认工单是否存在及属于哪个业务意图 |
+| Host | 用户、模型、上下文、工具选择与动作裁决 | 作为能力消费者，只说明与 Server 的接口边界；运行过程放在第 17 章 |
+| Client | Host 内的 MCP 协议适配与传输 | 按 Server 支持的契约请求能力，不实现下游业务逻辑 |
+| Server | 声明能力、处理请求、校验当前权限并返回结果 | 本节的主要开发与交付对象 |
+| Connector | 认证下游账号，映射字段、分页、错误与副作用 | 被 Server 的 handler 调用，开发细节见 16.5 |
+| 下游业务系统 | 执行业务权限、保存对象状态并提供回执 | 提供日志、指标、知识或工单等权威结果 |
 
-2026-07-28 架构仍规定：Host 为每个 Server 创建一个 Client，每个 Client 与对应 Server 保持 **1:1 的逻辑关联**；移除的是协议层 session 和 `initialize` 握手，不是这层关联。同一远程 Server 可服务多个 Host/Client，1:1 不表示服务端只能有一个调用者。连接是传输通道，关联是 Host 内的职责划分，session 是旧版协议的生命周期状态，三者不能互换。Server 不获得 Host 的全部上下文，跨调用业务状态需显式句柄；访问其他来源或扩大权限需要独立契约。[[11]](#ref-11)[[12]](#ref-12)[[16]](#ref-16)
+Host 对每个 Server 建立一个 Client 的 1:1 逻辑关联，不表示远程 Server 只能服务一个调用者；Client 与连接的具体生命周期由[Runtime 初始化](04-agent-runtime.md#runtime-bootstrap-mcp)管理。Server 不获得 Host 的全部上下文，不能依赖模型历史或其他请求遗留的“当前团队”完成授权。[[11]](#ref-11)[[12]](#ref-12)
 
-Tools 描述可调用动作，Resources 描述由应用选择读取的内容，Prompts 提供任务模板；获取模板不授予写权限，列出资源也不代表正文已进入模型。[[3]](#ref-3)[[13]](#ref-13)[[14]](#ref-14) Agent Skills 是独立的能力包格式，不依赖 MCP；allowed-tools 的执行意义取决于宿主，不能替代授权。[[15]](#ref-15)
+Connector 是业务集成，MCP 是暴露接口：同一 Connector 可以直接交给应用调用，也可以由一个 MCP Server 聚合后供多个 Host 使用。Skill 则描述操作方法，不依赖 MCP 的文件或服务生命周期；Skill 的工具建议不能给 Server 增加权限。[[13]](#ref-13) 接入方式的选择仍见[16.1](#tool-access-selection)。
 
-<a id="mcp-version-boundaries"></a>
+<a id="mcp-server-definitions"></a>
 
-<a id="client-侧能力"></a>
-<a id="1654-能力协商与渐进兼容"></a>
-<a id="协议版本与传输迁移对照表"></a>
-<a id="1552-逐请求版本能力发现与旧版兼容"></a>
-<a id="1856-capability-negotiation能力协商与渐进兼容"></a>
+### 16.4.2 服务端能力定义
 
-### 16.5.2 逐请求版本、能力发现与旧版兼容
+先判断交付的是动作、内容还是模板，再选择 MCP 原语。三者可以引用同一业务来源，但不应为凑齐协议能力重复维护三份内容。
 
-本章固定采用官方 **2026-07-28** 版本化规范，区分该版契约与旧版兼容行为；SDK、Host 的实际支持需另行验收。每个请求在 `params._meta` 中声明协议版本和 Client 能力，Client 信息按规范建议携带；HTTP 还携带相同的 `MCP-Protocol-Version`。Server 必须实现 `server/discover`，Client 可先发现，也可直接请求并处理 `UnsupportedProtocolVersionError`，不再用 `initialize` 建立协议会话。[[12]](#ref-12)[[17]](#ref-17)
+| 原语 | 服务端定义与实现 | ALR 示例 | 契约要点 |
+| --- | --- | --- | --- |
+| Tools | 动作名称、描述、输入/输出 Schema、handler | `loki_search` 查询日志，`create_incident_ticket` 建单 | 参数、结果、副作用、幂等与错误沿用 16.2 的工具契约 |
+| Resources | URI 或 URI 模板、名称、内容类型与读取实现 | 按获准资源标识读取 Runbook 内容 | 列举不等于正文可读，URI 不能绕过对象授权 |
+| Prompts | 模板名称、参数与模板生成实现 | 生成带证据位置和限制说明的诊断报告模板 | 返回模板不执行动作，也不授予建单权限 |
 
-下面是只读日志调用的教学消息；JSON-RPC id 标识本次传输请求，不能当作逻辑 Operation 的幂等键。HTTP 的 Mcp-Method 以及适用的 Mcp-Name 等头按目标方法设置。[[16]](#ref-16)
+对应协议方法分别包括 `tools/list` / `tools/call`、`resources/list` / `resources/read`、`prompts/list` / `prompts/get`；它们的能力与内容结构按规范实现。[[3]](#ref-3)[[14]](#ref-14)[[15]](#ref-15) 本场景不必全部启用：已有工具能够按需交付 Runbook 时，可以先不增加 Resource 暴露面。
+
+下面是日志工具的定义片段，省略了完整输出字段；生产定义应把[ToolResult 契约](#tool-result)中实际交付的字段写进输出 Schema。它展示 MCP 定义与通用工具契约的映射，不是某个 SDK 的注册代码。
 
 ```json
 {
-  "jsonrpc": "2.0",
-  "id": 3,
-  "method": "tools/call",
-  "params": {
-    "_meta": {
-      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-      "io.modelcontextprotocol/clientCapabilities": {},
-      "io.modelcontextprotocol/clientInfo": {"name": "incident-host", "version": "1.0"}
+  "name": "loki_search",
+  "description": "查询当前主体获准服务在指定窗口内的日志；不用于跨项目导出或读取凭证。",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "service": {"type": "string"},
+      "environment": {"type": "string", "enum": ["staging", "prod"]},
+      "window": {"type": "string", "description": "RFC3339 起止时刻，以 / 分隔"}
     },
-    "name": "loki_search",
-    "arguments": {
-      "service": "order-service",
-      "environment": "prod",
-      "window": "2026-04-29T10:35:00+08:00/2026-04-29T10:50:00+08:00"
-    }
-  }
+    "required": ["service", "environment", "window"],
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "status": {"type": "string", "enum": ["success", "error", "partial"]},
+      "summary": {"type": "string"}
+    },
+    "required": ["status", "summary"]
+  },
+  "annotations": {"readOnlyHint": true, "destructiveHint": false}
 }
 ```
 
-| 边界 | 2025-11-25 及更早握手模型 | 2026-07-28 主线 |
-| --- | --- | --- |
-| 启动与版本 | initialize → initialized，按握手版本执行 | 无握手；每请求声明版本/能力，Server 实现 discover |
-| 协议会话 | HTTP 可有 Mcp-Session-Id | 移除协议会话；业务跨调用状态用显式句柄 |
-| 响应类型 | 不要求 resultType | 普通结果 complete，补输入 input_required；旧响应缺失按 complete 兼容 |
-| 长作业 | 核心中的实验 tasks | io.modelcontextprotocol/tasks 扩展，显式核对支持 |
-| 断流 | 可选 SSE 恢复/重投 | 不支持 SSE 续传；新请求 ID 重发，业务身份保持原意图 |
-| 客户端特性 | Roots、Sampling、Logging 旧生命周期 | 标记 Deprecated；不应作为新集成的长期基础 |
+参数只包含业务查询条件。主体、租户、Connection 与凭证来自已验证请求上下文，不能由模型通过参数选择。`inputSchema` 校验结构，handler 仍检查时间窗、查询限制和资源归属；`outputSchema` 描述允许交付的结构，不暴露完整私密载荷。MCP 的工具列表和结构化结果要求见 Tools 规范。[[3]](#ref-3)
 
-变更与兼容依据当前规范及旧传输条款。[[17]](#ref-17)[[18]](#ref-18)[[19]](#ref-19)[[20]](#ref-20) 双时代客户端按官方探测流程选择版本，旧客户端不能凭连接成功使用新版；能力发现失败、版本不相交或工具契约漂移时停止相应调用。兼容层不改变当前授权，也不能把旧的会话缓存当成新请求的身份凭据。
+**Annotations 是提示，不能替代实现验证。** 下列默认值沿用本章协议基线；它们不构成审批、授权或自动重试保证。[[16]](#ref-16)
+
+| 字段 | 默认值 | 服务提供方的责任 |
+| --- | --- | --- |
+| readOnlyHint | false | 只有确认不修改业务状态时才声明只读 |
+| destructiveHint | true | 非只读动作说明可能造成的破坏性影响 |
+| idempotentHint | false | 声明幂等前验证键范围、窗口和载荷语义 |
+| openWorldHint | true | 说明是否会与开放外部实体交互，仍实施出口与资源限制 |
 
 <a id="从编写-server-到模型调用的全链路"></a>
 <a id="1655-协议流initializelistcallread-与-notifications"></a>
 <a id="1553-发现调用补输入与结果映射"></a>
 <a id="1857-mcp-协议流initializelistcallread-与-notifications"></a>
+<a id="1653-发现调用补输入与结果映射"></a>
+<a id="mcp-server-production"></a>
+<a id="1659-mcp-与-api-gateway-的关系"></a>
+<a id="16510-生产级-mcp-server-的结构"></a>
+<a id="mcp-server-assembly"></a>
 
-### 16.5.3 发现、调用、补输入与结果映射
+### 16.4.3 MCP Server 的实现与组装
 
-[![MCP 从能力构建到模型反馈的完整链路](../images/mcp-authoring-discovery-llm-loop.svg)](../images/mcp-authoring-discovery-llm-loop.svg)
+[![MCP Server 内部组装：能力注册、请求校验、授权、handler 与 Connector](../images/mcp-server-assembly.svg)](../images/mcp-server-assembly.svg)
 
-*图 16-7：MCP 从能力构建到模型反馈的完整链路*
+*图 16-6：MCP Server 内部组装：能力注册与请求处理分开，Connector 在授权范围内执行业务访问。*
+
+*本书服务端参考设计。图中不包含模型循环；从能力构建到模型反馈的完整链路已移至[第 17 章](04-agent-runtime.md#runtime-mcp-dispatch)。*
+
+Server 启动先准备可发布的能力和依赖，请求到来后再绑定当前身份。注册过程可以集中在一份能力模块中，也可以拆为多个模块；共享注册表只能保存不可变定义和处理器引用，不能保存请求者的凭据或业务状态。
+
+| 组装阶段 | 实现内容 | 必须拒绝的情况 |
+| --- | --- | --- |
+| 读取发布定义 | 固定实现、协议基线、工具与数据契约 | 制品来源不可信、版本或契约不兼容 |
+| 准备业务依赖 | 装配 Connector、策略/配额、凭证与审计设施 | 必需依赖不可用，或只能使用未收窄的高权限身份 |
+| 注册能力 | 绑定名称、Schema 与 handler，声明实际支持的能力 | 重名冲突、缺失处理器、声明了未实现的方法 |
+| 装配请求入口 | 接入 stdio 或 HTTP，注入认证与请求级上下文 | 不支持的协议、未认证的受保护请求 |
+| 启动服务 | 验证本服务必需依赖，公开就绪与限额 | 初始化失败或无法落实必要限制 |
+
+`tools/list` 读取当前身份可见的定义，`tools/call` 将名称解析到受信 handler；Resources 和 Prompts 使用对应的注册表。业务 handler 接收已经校验的业务参数和可信授权上下文，调用 Connector，再将业务结果映射为 MCP 响应。下面是框架无关的组装伪代码，函数名只表达职责，不是可直接运行的 SDK 示例：
 
 ```text
-开发者注册 handler 和契约
-→ Client 可选 server/discover → tools/list
-→ Host 校验来源、版本与当前可见范围
-→ Context Builder 将本轮工具定义交给模型
-→ 模型提出调用 → Runtime 裁决 → tools/call
-→ Server 校验并调用 Connector
-→ complete 结果 / input_required 补输入 / 协议错误
-→ Host 归一观察 → 更新上下文
+定义阶段：
+  connectors.register("logs", LogsConnector(config.logs, credential_provider))
+  tools.register(log_tool_definition, handler=search_logs_handler)
+  resources.register(runbook_definition, reader=read_runbook)
+  prompts.register(report_template_definition, renderer=render_report_template)
+
+处理 tools/call：
+  principal = authenticate(request)                  # 不从工具参数取身份
+  tool = tools.require(request.name)                # 仅解析已注册能力
+  input = tool.validate(request.arguments)
+  grant = authorize(principal, tool.action, input)   # 当前工具与资源权限
+  result = tool.handler(input, grant, connectors)   # Connector 强制消费 grant
+  observation = filter_and_validate(result, grant)
+  return encode_mcp_result(observation)
 ```
 
-tools/list 等可缓存结果带 ttlMs、cacheScope；TTL 是新鲜度提示，不能取代撤权重验。列表可随本次授权变化，不因连接内的其他调用产生隐式状态。订阅变更通过 subscriptions/listen 的 POST 流，进度等请求内通知走对应请求响应流。[[3]](#ref-3)[[16]](#ref-16)
+这里的 Tool Registry、权限包装与 handler 都属于 Server 内部实现，不能与 Host 侧的目录缓存、任务 Policy 和调度器混为一谈。Server 内授权的完整边界见下文，Connector 如何处理下游 API、分页、账号和错误见[16.5](#connector-development)。
 
-需要用户补充信息时，Server 返回 `resultType=input_required` 和 `inputRequests`，Client 经策略处理后以 `inputResponses` 续交原逻辑请求，必要时携带 `requestState`；这不是 Server 任意反向调用 Client。补输入也不构成对任意写操作的重放授权。[[21]](#ref-21)
+**结果编码也是服务端契约。** Server 将允许交付的结构化结果放入 `structuredContent`，声明 `outputSchema` 时保持一致；文本内容提供可阅读说明，兼容场景下按规范提供结构化内容的序列化表示。协议层错误与工具执行错误分开编码，正常返回的 JSON-RPC result 不自动表示业务成功。[[3]](#ref-3)
 
-| Elicitation 模式 | 允许的交互 | 凭据与授权边界 |
+| handler 的结果 | 服务端交付 | 不得隐去的信息 |
 | --- | --- | --- |
-| `form` | 简单结构化、非敏感输入，如工单分类或项目选择 | Server **不得**索取密码、API Key、访问 Token 等敏感信息；Client 必须告知用户来源 Server 并允许拒绝/取消 |
-| `url` | 用户进入受信的带外页面完成敏感输入或第三方 OAuth；本书生产配置要求 HTTPS | 敏感内容不经过 MCP Client、模型或 `inputResponses`；Client 展示完整 URL 与用途，突出目标域名，打开前取得用户同意 |
+| 查询完整、部分或空结果 | `resultType=complete`，保留 coverage、分页与截断状态 | 部分结果不能写成“范围内没有异常” |
+| 工具执行失败 | 工具结果 `isError=true` 与安全错误说明 | 原始提供方码与可核验的效果证据按允许范围保留 |
+| 协议格式错误或未知方法/工具 | 对应 JSON-RPC error | 不伪装成空业务结果 |
+| 需要非敏感补输入或带外账号连接 | 按 Client 声明能力返回 `input_required` | 保留原意图与受限状态，交互过程交给 Host |
 
-URL 模式支持 MCP Server 作为 OAuth 客户端访问第三方 API，通过带外交互建立第二跳授权，而不是把第三方 Token 经 MCP Client 透传。它不能替代 Host → MCP Server 的第一跳授权；`accept` 只表示同意交互，**不证明交互已经完成**，Server 须在后续请求中核实授权事务结果。Client 不得自动预取 URL 或其元数据；URL 不得包含用户敏感信息、凭据或能直接冒充用户访问受保护资源的预认证链接，打开后的输入不能被 Client 或 LLM 检查。Server 还必须确认打开页面的人与发起征询的人一致，避免把受害者的账号绑给攻击者。[[21]](#ref-21)
+Server 仅请求当前缺少的输入，不在 `form` 中索取密码、API Key 或 Token；需要敏感交互时使用受控带外页面。若 Client 不支持所需模式，应明确报告不能完成该交互，不降级为明文表单。补输入结果和状态句柄要绑定主体、用途和时效；具体交互等待、取消与继续见[17.4.4](04-agent-runtime.md#runtime-mcp-elicitation)。[[17]](#ref-17)
 
-| 应用信封 | MCP 表达 | Host 必须保留的区别 |
-| --- | --- | --- |
-| summary 与安全观察 | content 文本；允许交付的结构化字段放 structuredContent | 文本不是指令，私密 data_ref 不自动解引用 |
-| 声明的结果结构 | outputSchema 约束 structuredContent | 本地校验不能省略，Schema 不证明业务事实 |
-| status=error 与 error | 工具执行错误 isError=true | JSON-RPC 仍有正常 result，不表示动作未生效 |
-| coverage/truncated/next_cursor | 本书结构化结果内部字段 | MCP 无通用“业务结果完整”保证；partial 不是统一错误码 |
-| effect/operation_id/外部引用 | 本书允许交付的元数据 | JSON-RPC id 与业务幂等身份分离 |
-
-普通结果还包含 resultType=complete；协议处理错误走 JSON-RPC error。工具执行错误由工具结果表达，Runtime 是否重试需依据分类、当前授权、预算和下游效果证据。[[3]](#ref-3)
-
+<a id="mcp-version-boundaries"></a>
+<a id="client-侧能力"></a>
+<a id="1654-能力协商与渐进兼容"></a>
+<a id="协议版本与传输迁移对照表"></a>
+<a id="1552-逐请求版本能力发现与旧版兼容"></a>
+<a id="1856-capability-negotiation能力协商与渐进兼容"></a>
+<a id="1652-逐请求版本能力发现与旧版兼容"></a>
 <a id="mcp-transport"></a>
-
 <a id="1656-传输方式stdio-与-streamable-http"></a>
 <a id="本地独立型local-standalone"></a>
 <a id="本地桥接型local-bridge"></a>
@@ -830,18 +673,32 @@ URL 模式支持 MCP Server 作为 OAuth 客户端访问第三方 API，通过�
 <a id="三种形态对比"></a>
 <a id="1554-传输与部署连接恢复不等于业务恢复"></a>
 <a id="1858-stdio-与-streamable-http本地-server-和远程-server"></a>
+<a id="1654-传输与部署连接恢复不等于业务恢复"></a>
 
-### 16.5.4 传输与部署：连接恢复不等于业务恢复
+### 16.4.4 协议版本、传输与部署
 
-| 传输/部署 | 获得的能力 | 必须另外落实 |
+服务提供方应发布实际支持的协议版本、能力和传输，而不是笼统声明“支持 MCP”。本章固定采用 **2026-07-28** 基线：Server 实现 `server/discover`，处理请求携带的协议版本与 Client 能力；HTTP 的版本头与请求元数据按契约一致校验。缺少元数据或版本不支持时返回规定的错误，不能自行猜成旧版。[[12]](#ref-12)[[16]](#ref-16)
+
+| 边界 | 2025-11-25 及更早握手模型 | 2026-07-28 主线 |
 | --- | --- | --- |
-| stdio 本地独立工具 | 子进程、无网络端口暴露 | 启动制品、文件/进程权限、环境最小化；本地不天然隔离 |
-| stdio 本地桥接 | 在本机适配远端 API | 远端凭证和出口控制；本地传输不等于不外发 |
-| Streamable HTTP | 独立部署、多用户授权、响应流 | TLS、Origin、逐请求授权、端点与凭证边界 |
+| 启动与版本 | initialize → initialized，按握手版本执行 | 无握手；逐请求声明版本和能力，Server 实现 discover |
+| 协议会话 | HTTP 可有 Mcp-Session-Id | 无协议会话；业务状态使用显式句柄 |
+| 普通与补输入响应 | 旧实现按相应版本处理 | `complete` 与 `input_required`；旧结果缺失标记按兼容规则处理 |
+| 长作业 | 核心实验 tasks | 独立 `io.modelcontextprotocol/tasks` 扩展，单独声明与验证支持 |
+| 通知与断流 | 可选旧 SSE 入口、事件恢复机制 | 按新版响应流与订阅契约实现，不提供旧 SSE 重投承诺 |
+| Client 特性 | Roots、Sampling、Logging 的旧生命周期 | 部分旧能力已弃用，兼容时明确支持边界 |
 
-2026-07-28 移除 GET 通知入口、Last-Event-ID 和 SSE 事件重投。断流后 Client 用新 JSON-RPC id 发新请求；写请求可能已经生效，必须沿同一业务 Operation 查证或按下游幂等契约重试。HTTP SSE 关闭是请求级取消信号，Server 应尽快停止；取消信号仍不证明此前写入没有生效。传输没有替应用解决未知效果。[[16]](#ref-16)
+旧传输的兼容细节分别参照对应规范，不能把多个版本的会话、通知与恢复字段混在同一条路径。[[18]](#ref-18)[[19]](#ref-19)[[20]](#ref-20) Tasks 扩展的版本独立演进，发布时需固定兼容范围，不把它当作所有 Server 的必需功能。[[21]](#ref-21)
 
-长作业 tasks 现在是扩展，tasks/get 用于轮询，tasks/update 用于补输入；不能把旧 tasks/result 或核心必备能力写进新基线。task 句柄与 Run、Operation 分别保存，完成仍由业务验收决定。[[22]](#ref-22) 取消是停止请求，进度是观察，两者都不能证明远端效果不存在。
+| 传输/部署 | 服务提供方准备什么 | 不能由传输保证什么 |
+| --- | --- | --- |
+| stdio 本地工具 | 可复现的启动制品、工作目录、协议标准输出、诊断标准错误 | 子进程不天然具备文件、网络和凭证隔离 |
+| stdio 本地桥接 | 本地协议适配与远端 API 的 Connector | 本地传输不等于数据不外发 |
+| Streamable HTTP | HTTP 端点、TLS、Origin 检查、逐请求认证、限流与响应流 | 连接存在不授予用户或资源权限 |
+
+stdio 与 HTTP 各自遵循协议与认证边界，不能给 stdio 套用 HTTP OAuth 流程。Server 所需环境与凭证引用应明确交付，Host 的实际注入、子进程启动与隔离见[17.3.5](04-agent-runtime.md#runtime-bootstrap-mcp)。HTTP 响应流与订阅的具体契约见传输规范。[[22]](#ref-22)[[23]](#ref-23) API Gateway 继续承担原有入口的认证、配额与审计，增加 MCP 接口不能绕过业务网关或默认取得数据库超级权限。
+
+发现响应的 `ttlMs` 与 `cacheScope` 表达缓存约定，返回集合仍取决于本次授权；Server 不依赖连接上此前的请求保存隐式身份。[[3]](#ref-3) 部署说明应分别写明服务可用性、工具目录变化与业务效果保证，不能将 HTTP 可连通或请求级取消解释成任务完成、写入撤销或自动重试安全；消费端恢复见[17.6.1](04-agent-runtime.md#runtime-mcp-recovery)。
 
 <a id="16511-mcp-接入的认证授权与输出边界"></a>
 <a id="认证与授权"></a>
@@ -849,45 +706,23 @@ URL 模式支持 MCP Server 作为 OAuth 客户端访问第三方 API，通过�
 <a id="输出防注入"></a>
 <a id="1555-第一跳授权与工具提示的信任边界"></a>
 <a id="18513-工具风险分级认证授权与输出防注入"></a>
+<a id="mcp-tenant-isolation"></a>
+<a id="1655-第一跳授权与工具提示的信任边界"></a>
+<a id="1656-共享-mcp-服务的权限隔离身份工具与资源"></a>
 
-### 16.5.5 第一跳授权与工具提示的信任边界
+### 16.4.5 服务端认证与资源授权
 
 HTTP 第一跳授权按 OAuth 2.1 draft-ietf-oauth-v2-1-13 及规范引用执行：资源元数据使用 RFC 9728，resource/audience 绑定使用 RFC 8707，授权码流程落实 PKCE 与适用的安全条件。Client ID Metadata Documents 是推荐的客户端注册机制，DCR 已弃用，仅作旧授权服务器兼容。Token 通过 Authorization 头传递，不放查询串。[[23]](#ref-23)
 
-多授权服务器场景要防止 issuer 混淆。跳转前，Client 从已验证的授权服务器元数据取得 issuer，与 PKCE verifier、`state`（若使用）绑定到同一事务；兑换授权码前按下表检查授权响应（包括错误响应）。支持位指元数据字段 `authorization_response_iss_parameter_supported`。[[23]](#ref-23)[[36]](#ref-36)
+**授权服务器身份契约。** 多授权服务器部署要固定资源元数据与允许的 issuer、资源受众及 Token 校验方式。授权响应 `iss` 的有条件比较不能被简化为“所有响应缺少 iss 都失败”，也不能对 issuer 做大小写或尾斜杠归一化；Client 的元数据支持位判断与回调检查统一见[17.3.5 的第一跳认证](04-agent-runtime.md#runtime-mcp-client-auth)。Connector 第二跳按同样的 issuer 识别规则处理，具体流程见[Connector 认证](#1664-认证连接外部账号与两跳授权)。[[24]](#ref-24)
 
-| 元数据支持位 | 响应含 `iss` | 响应不含 `iss` |
-| --- | --- | --- |
-| `true` | 解码后与预先绑定的 issuer 做简单字符串比较；不匹配即拒绝 | 拒绝 |
-| `false` 或未提供 | 仍须比较；不匹配即拒绝 | 按其他授权校验继续，不凭空判定 `iss` 失败 |
+受保护 HTTP 资源在缺少有效令牌时通过 401 / `WWW-Authenticate` 说明授权入口；Scope 不足时按规范提供 403 / `insufficient_scope` 挑战。服务端始终检查令牌受众、有效性与本次操作权限，不能把 Client 已连接或已同意扩权当作校验结果。Client 的授权事务与有界继续调用见[第 17 章](04-agent-runtime.md#runtime-mcp-client-auth)。[[23]](#ref-23)
 
-不对 issuer 做大小写、端口或尾斜杠归一化，也不根据回调临时改选 Token 端点；issuer 不匹配时不能继续处理或展示响应中的错误信息。这与 `state`、PKCE 和资源受众检查分别防御不同的问题；缺少 `iss` 时仍须落实 RFC 9700 的防混淆要求。[[1]](#ref-1)[[23]](#ref-23)
-
-上述 MCP HTTP 授权流程不适用于 stdio：stdio 实现不应套用此流程，而应从环境取得凭据。Host 只给获准子进程注入必要环境变量，不能继承整套登录环境，也不能把 Token 放在启动参数、工具参数或模型上下文中；桥接远端 API 时，第二跳认证仍由 Connector 独立落实。[[23]](#ref-23)
-
-无有效令牌时按 401 的 WWW-Authenticate 发现资源元数据；令牌存在但 scope 不足时，403 insufficient_scope 挑战说明本次所需 scope。Client 计算已请求 scope 与挑战 scope 的并集，经授权流程取得新令牌后有界重试，不能通过模型改写参数自动扩权。当前 Token 的 audience、scope 及业务对象权限仍由服务端检查。第二跳访问下游的凭证交换与隔离见[Connector 授权](#connector-development)。[[23]](#ref-23)
-
-annotations 全是提示，以下默认值来自 2026-07-28 ToolAnnotations 定义，不构成可信授权依据。[[3]](#ref-3)[[17]](#ref-17)
-
-| 字段 | 默认值 | 含义 |
-| --- | --- | --- |
-| readOnlyHint | false | 缺省不能推断只读 |
-| destructiveHint | true | 非只读时可能有破坏性更新 |
-| idempotentHint | false | 非只读时不假设重复调用无新增效果 |
-| openWorldHint | true | 可能与开放外部实体交互 |
-
-工具描述、Resource 和 Prompt 的文本保留外部来源身份。Host 的内容过滤、可信目录和执行边界共同约束注入；本地 Server 的启动同样需要制品审查、沙箱、受限凭据与路径约束。[[24]](#ref-24)
-
-<a id="mcp-server-production"></a>
-<a id="1659-mcp-与-api-gateway-的关系"></a>
-<a id="16510-生产级-mcp-server-的结构"></a>
-<a id="mcp-tenant-isolation"></a>
-
-### 16.5.6 共享 MCP 服务的权限隔离：身份、工具与资源
+工具、Resource 和 Prompt 的描述不能作为新的授权依据，服务端返回内容仍须按用途过滤。协议安全指南强调请求验证与凭据边界，提示文本不能替代资源端访问控制。[[25]](#ref-25)
 
 [![共享 MCP 服务的权限隔离架构](../images/mcp-tenant-authorization.svg)](../images/mcp-tenant-authorization.svg)
 
-*图 16-8：共享 MCP 服务的权限隔离架构（本书通用设计）*
+*图 16-7：共享 MCP 服务的权限隔离架构（本书通用设计）*
 
 多个团队可以共用服务部署和工具定义，权限边界由每次请求的可信身份与当前授权建立。图中 `tools/list` 和 `tools/call` 是两类独立请求，每次都先认证；两条路径读取同一策略来源，分别控制工具可见范围和本次资源访问。拒绝发生在业务内容读取或写入之前，Connector 只执行授权范围内的访问。
 
@@ -911,9 +746,9 @@ MCP Server 的生产实现分为协议层、工具层、授权/配额层和 Conn
 
 **两阶段授权：发现时过滤，执行时重验。**
 
-以虚构的团队 A、B 为例：A 的 Agent 可以使用日志工具，但只能读取获授权的服务。`logs:read` 表示工具能力，不能单独证明其有权查询 B 的服务。服务端应同时判断主体、工具动作、目标资源与当前条件；默认拒绝，并在每次请求上验证权限。后两项是 OWASP 的通用授权原则。[[37]](#ref-37)
+以虚构的团队 A、B 为例：A 的 Agent 可以使用日志工具，但只能读取获授权的服务。`logs:read` 表示工具能力，不能单独证明其有权查询 B 的服务。服务端应同时判断主体、工具动作、目标资源与当前条件；默认拒绝，并在每次请求上验证权限。后两项是 OWASP 的通用授权原则。[[26]](#ref-26)
 
-入口验证令牌后构造只读的 `Principal`，包含主体、租户及委托范围。JWT 校验签名、issuer、audience 和有效期；不透明令牌通过受信服务查询状态。团队归属取自已验证声明或服务端映射，不能相信模型参数、普通团队请求头或未经核验的 Workspace ID。代表用户执行时，有效权限还要受用户当前权限与本次委托约束，不能只使用 Agent 服务账号的权限。HTTP 第一跳机制沿用上节授权契约。[[23]](#ref-23)
+入口验证令牌后构造只读的 `Principal`，包含主体、租户及委托范围。JWT 校验签名、issuer、audience 和有效期；不透明令牌通过受信服务查询状态。团队归属取自已验证声明或服务端映射，不能相信模型参数、普通团队请求头或未经核验的 Workspace ID。代表用户执行时，有效权限还要受用户当前权限与本次委托约束，不能只使用 Agent 服务账号的权限。HTTP 第一跳机制沿用本节前述授权契约。[[23]](#ref-23)
 
 **发现时过滤**用于减少无效选择和工具元数据暴露。本书设计的可见集合为：
 
@@ -921,7 +756,7 @@ MCP Server 的生产实现分为协议层、工具层、授权/配额层和 Conn
 可见工具 = 已启用工具 ∩ 服务端当前授权工具 ∩ Workspace/Agent 配置选择
 ```
 
-配置选择只能缩小范围。`tools/list` 返回该集合，Host 再按任务加载其中的工具；没有授权工具时返回空集合或按接入策略拒绝，不能把空列表解释成“全部开放”。2026-07-28 允许工具列表随本次请求的授权变化，不能依赖同一连接上先前请求留下的隐式状态。[[3]](#ref-3)
+配置选择只能缩小范围。`tools/list` 返回该集合，任务期的二次裁剪由 Host 完成；没有授权工具时返回空集合或按接入策略拒绝，不能把空列表解释成“全部开放”。2026-07-28 允许工具列表随本次请求的授权变化，不能依赖同一连接上先前请求留下的隐式状态。[[3]](#ref-3)
 
 **执行时重验**负责这一次具体访问。调用者可能绕过发现直接构造 `tools/call`，工具列表也可能在撤权后仍留在缓存中；所以执行入口必须读取当前策略，再检查工具资格、配置边界与目标资源。下面是应用层伪代码，错误编码需映射到实际 SDK 和传输契约，不是新增 MCP 方法：
 
@@ -956,58 +791,51 @@ handle_tool_call(request):
 
 因此，A 无日志权限时不展示日志工具，直接调用也被拒绝；A 有日志权限时可以看到工具，但查询 B 的未共享服务仍在读取业务内容前被拒绝。发现过滤改善选择，执行授权守住资源边界，两者使用同一策略来源。
 
+**状态、缓存与并发。** 共享 Server 对象不保存“当前团队”、当前 Token 或请求参数。工具列表、结果、分页游标与幂等记录按必要的主体、租户及资源授权范围分区；读取受保护缓存时仍检查当前资格，TTL 不能延长已撤销的权限。业务句柄、`requestState` 与任务扩展句柄也绑定主体、用途和有效期，续交时重验，不能把句柄本身当作认证凭据。[[27]](#ref-27)[[25]](#ref-25)
+
+服务端审计保存主体、租户、工具、资源引用、策略版本、裁决与下游回执，不保存明文令牌；拒绝消息不泄露他人对象是否存在。缓存与查询过滤保护的是服务实际交付的数据，Host 的上下文过滤只能作为另一层控制，不能补救服务端已经越权返回的内容。
+
 <a id="mcp-isolation-acceptance"></a>
-
-### 16.5.7 状态、缓存与渐进落地验收
-
-权限上下文还必须贯穿复用与恢复路径。OWASP 的多租户安全指南将租户上下文、数据访问和缓存隔离列为共同控制面；下面将这些原则落实到 MCP 集成。[[38]](#ref-38)
-
-- **状态与恢复**：2026-07-28 的业务句柄、`requestState` 和异步任务引用应绑定主体、租户与授权用途，续交、轮询和重试时重验。旧版协议会话另行绑定主体与租户；句柄或会话 ID 都不能当作认证凭据。MCP 安全指南明确要求验证入站请求并防止状态句柄被冒用。[[24]](#ref-24)
-- **缓存与并发**：共享 Server 对象不保存“当前团队”或请求凭据。工具列表按授权上下文分区；结果、游标及幂等记录按租户和必要的主体/资源权限分区，避免仅按工具名与参数命中他人数据。读取受保护缓存前仍需授权；策略修订变化触发失效，TTL 不替代撤权检查。
-- **凭据与审计**：Runtime 无法读取其他租户的凭据，凭据不进入模型上下文。记录主体、租户、工具、目标引用、策略版本和裁决，避免记录明文令牌或未经脱敏的业务数据；对外拒绝信息不泄露其他租户对象是否存在。
-
-渐进改造可以保留共享端点与现有工具实现，先打通少量代表性工具的完整授权链，再逐步开放：
-
-| 阶段 | 改造内容 | 边界与代价 |
-| --- | --- | --- |
-| 最小闭环 | 可区分主体的凭据、可信租户映射、统一执行包装、资源规则与受限查询 | 私有受控接入可先用可撤销的独立 API Key 与摘要映射；这属于自定义认证，不能声称已实现 MCP HTTP OAuth 互操作 |
-| 统一身份 | 对接身份服务和短期委托令牌，落实过期、撤销与权限变化传播 | 减少长期凭据；仅缩短有效期不能实现即时撤权，需定义检查与缓存失效机制 |
-| 策略与隔离扩展 | 角色决定基础动作，属性/关系限定资源；按需引入策略引擎、租户配额和独立执行环境 | 复杂规则集中管理，但增加策略服务依赖与运维成本；物理拆分仍需逐请求授权 |
-
-最小闭环的验收应覆盖正常访问与绕过路径，而不只检查 Agent 是否“听话”：
-
-| 验收场景 | 预期证据 |
-| --- | --- |
-| A 访问获授权资源 / B 的未共享资源 | 前者成功；后者不读取业务内容、不产生副作用，并有脱敏拒绝记录 |
-| 伪造团队、Workspace、资源 ID 或删改工具选择列表 | 身份与授权不变，不能扩大服务端许可范围 |
-| 绕过 Host 直接调用未展示工具 | MCP 服务端仍拒绝；通用工具与子调用也不能旁路 |
-| 展示工具后撤权，再调用、重试或恢复任务 | 按当前策略拒绝新访问；旧列表、会话与句柄不保留权限 |
-| A、B 并发复用对象、结果缓存与分页游标 | 无身份串用、跨租户命中或越权续读 |
-| 新工具未声明策略、归属无法确认或策略服务异常 | 默认拒绝，不能退回共享高权限凭据执行 |
-
-这里的撤权阻止后续受保护访问，不能收回已交付数据，也不撤销已生效写入；在途操作按 Runtime 的恢复与效果核验契约处理。权限隔离的验收对象是整条调用链，而不是 Server 对象数量。
-
 <a id="1657-开源-mcp-能力的来源"></a>
 <a id="1658-示例github-与日志平台的-mcp-接入"></a>
 <a id="1556-能力来源发布与迁移验收"></a>
 <a id="18510-github-与-log-mcp-示例apicli-与-mcp-的三条路径"></a>
 <a id="1656-能力来源发布与迁移验收"></a>
+<a id="1657-状态缓存与渐进落地验收"></a>
+<a id="1658-能力来源发布与迁移验收"></a>
 
-### 16.5.8 能力来源、发布与迁移验收
+### 16.4.6 测试、发布与维护
 
-官方 Registry 是查找入口，不是安全认证。接入时记录实现来源、维护状态、固定版本、工具列表与 Schema 哈希。已归档参考包不作为当前启动命令；GitHub 和 Brave 的官方维护实现与旧参考实现应区分。[[25]](#ref-25)[[26]](#ref-26) Linear 等 SaaS 的认证方式以端点文档为准，不能用某个旧 DCR 示例概括所有远端授权。[[27]](#ref-27)
+交付 MCP Server 时应同时提供可追溯制品、能力目录、支持版本与传输、认证要求、依赖说明、测试证据及已知限制。官方 Registry 是查找入口，不是安全认证；固定维护实现与版本，区分已归档参考包和当前维护服务，不把旧启动命令或 DCR 示例推广到所有服务。[[28]](#ref-28)[[29]](#ref-29)[[30]](#ref-30)
 
-发布前至少验证版本不相交、逐请求元数据缺失、Schema 漂移、补输入拒绝、响应流中断和写操作未知结果；授权撤销、分页缓存与跨租户访问按上节矩阵验收。升级 MCP 不自动升级下游保证。
+测试从服务边界直接发起，使用测试身份和合成数据，不能只观察 Agent 是否选择了预期工具。
+
+| 验收类别 | 服务端测试 | 必须看到的证据 |
+| --- | --- | --- |
+| 能力注册 | Tools / Resources / Prompts 列举及对应处理器 | 名称、Schema、内容类型与实际实现一致，没有声明不存在的能力 |
+| 参数与结果 | 非法窗口、缺项、空结果、分页未取尽、工具错误 | 协议错误与工具错误分开，结构和完整性标记准确 |
+| 版本与传输 | 不支持版本、缺少元数据、兼容客户端、HTTP / stdio 通道 | 明确的兼容或拒绝结果，日志不混入协议输出 |
+| 身份与资源 | A 的获准资源、B 的未共享资源、伪造租户 | 前者成功，后者不返回业务数据、不产生副作用 |
+| 绕过发现 | 直接调用未展示工具，读取受限 Resource / Prompt | 服务端独立拒绝，不依赖 Host 隐藏工具 |
+| 撤权与缓存 | 旧目录、旧句柄、跨租户游标与并发复用 | 不延续旧权限，不串用身份或命中他人数据 |
+| 补输入 | 不支持的模式、敏感 form、过期或错主体的续交 | 拒绝不安全交互；带外连接完成后仍核验账号与权限 |
+| 副作用与故障 | 下游写入回执丢失、策略/归属服务异常 | 保留结果未知与查询入口；无法授权时不执行 |
+
+共享端点可以先打通少量工具的完整身份与资源约束，再扩展统一身份、租户配额和专属执行环境。独立 API Key 的私有接入应如实标为自定义认证，不能宣称已经满足 MCP HTTP OAuth 互操作；物理拆分也不能代替逐请求授权。
+
+升级时比较工具名称、输入/输出 Schema、默认行为、权限需求和下游语义，不能只比较 JSON 是否能解析。Schema 不变但查询范围、字段敏感度或写入行为改变，也应重新验收。远程实现无法固定时，记录观察快照、兼容范围与回归结果；禁用或退役时交付受影响工具和未决请求的查询安排，不以服务停止抹去已生效写入。
+
+Server 负责可验证的能力和业务结果，Runtime 负责任务等待、重试、恢复及最终交付。完整调用图见[17.4.5](04-agent-runtime.md#runtime-mcp-dispatch)，在途结果未知时沿[17.6 的恢复协议](04-agent-runtime.md#runtime-mcp-recovery)核验。
 
 <a id="connector-development"></a>
 <a id="166-connector-开发从业务-api-到可治理的-agent-集成"></a>
 <a id="156-connector-开发从业务-api-到可治理的-agent-集成"></a>
 
-## 16.6 Connector 开发：从业务 API 到可治理的 Agent 集成
+## 16.5 Connector 开发：从业务 API 到可治理的 Agent 集成
 
 [![Connector 把业务 API 变为能力](../images/review-skills-tools-mcp-connectors-06.svg)](../images/review-skills-tools-mcp-connectors-06.svg)
 
-*图 16-9：Connector 把业务 API 变为能力*
+*图 16-8：Connector 把业务 API 变为能力*
 
 
 [MCP 接入](#mcp)讲如何向 Host 暴露能力；把业务系统真正接进来，还需要一层集成实现，即 Connector。MCP 是可选的暴露协议，Connector 是集成实现。
@@ -1017,7 +845,7 @@ handle_tool_call(request):
 <a id="1661-connector-与-mcp开发视角的关系"></a>
 <a id="1561-connector-与-mcp开发视角的关系"></a>
 
-### 16.6.1 Connector 与 MCP：开发视角的关系
+### 16.5.1 Connector 与 MCP：开发视角的关系
 
 概念边界见 [概念边界总表](#capability-concepts)。Connector 负责认证适配、请求转换和结果归一化，并配合连接服务管理授权；有些平台称之为 App、Integration 或数据源适配器。工单系统提供几十个 REST 接口，不意味着要向模型暴露几十个函数：开发的第一步是挑出任务需要的业务能力，定义稳定的输入、输出和失败语义，再把下游 API 接到后面。
 
@@ -1028,7 +856,7 @@ Connector 可以不经过 MCP 直接由 Tool Runtime 调用，一个 MCP Server 
 <a id="1662-业务能力与部署边界"></a>
 <a id="1562-业务能力与部署边界"></a>
 
-### 16.6.2 业务能力与部署边界
+### 16.5.2 业务能力与部署边界
 
 企业工单 Connector 的最小版本只做三件事：在获准项目中搜索工单、读取一条可见工单、创建一条经过批准的跟踪单。批量修改、删除、任意查询和任意 HTTP 请求暂不实现，以免一次性暴露底层系统的全部权限。
 
@@ -1045,7 +873,7 @@ Connector 可以不经过 MCP 直接由 Tool Runtime 调用，一个 MCP Server 
 <a id="1663-配置与工具-schema"></a>
 <a id="1563-配置与工具-schema"></a>
 
-### 16.6.3 配置与工具 Schema
+### 16.5.3 配置与工具 Schema
 
 下面是自定义的示例配置，不是 MCP 标准 Manifest。它只声明能力和运行要求，凭据、用户连接记录和业务审批都不放在包里。
 
@@ -1099,13 +927,13 @@ output_policy:
 <a id="1664-认证连接外部账号与两跳授权"></a>
 <a id="1564-认证连接外部账号与两跳授权"></a>
 
-### 16.6.4 认证：连接外部账号与两跳授权
+### 16.5.4 认证：连接外部账号与两跳授权
 
 Connector 可以复用平台的凭据服务，不必自己保存 Token，但仍要明确谁发起授权、谁处理回调、凭据属于谁、哪些动作触发增量授权。下面以委托用户的 OAuth 授权码流程为例；服务账号、API Key 等方式需另行设计隔离、轮换和撤销。
 
 1. 用户在可信界面选择工单组织，连接服务创建一次性授权事务，绑定当前用户、租户、目标组织和回调地址。
 2. OAuth 客户端生成与事务绑定的 PKCE 挑战和防跨站请求伪造的 state，重定向到受信的授权端点。RFC 9700 要求公共客户端使用 PKCE，并建议机密客户端采用，优先使用不暴露 verifier 的 `S256`。[[1]](#ref-1)
-3. 回调处理器验证事务状态、时效和回调目标；提供方支持 RFC 9207 时，按[第一跳同样的 issuer 校验规则](#认证与授权)检查授权响应 `iss`，只使用本事务已绑定的授权服务器和 Token 端点，再携带原 verifier 交换授权码。通过可信的提供方接口核实外部账号、组织和实际授予的 Scope，不能只信用户输入的组织名。[[36]](#ref-36)
+3. 回调处理器验证事务状态、时效和回调目标；提供方支持 RFC 9207 时，按[第一跳同样的 issuer 校验规则](#认证与授权)检查授权响应 `iss`，只使用本事务已绑定的授权服务器和 Token 端点，再携带原 verifier 交换授权码。通过可信的提供方接口核实外部账号、组织和实际授予的 Scope，不能只信用户输入的组织名。[[24]](#ref-24)
 4. 凭据服务加密保存 Token，只返回不能直接用于调用的连接记录引用；模型、会话文本、日志和追踪载荷都接触不到原始凭据。
 5. 调用时按 Connection 解析凭据，由凭据服务协调刷新；新的 Refresh Token 应连同版本号原子更新，避免并发请求用旧值覆盖新值。
 6. 授权失效或 Scope 不足时，返回可识别的等待或拒绝结果；增量授权必须重新经过用户和管理员策略，不能自动申请全部权限。
@@ -1123,9 +951,9 @@ Connector 可以复用平台的凭据服务，不必自己保存 Token，但仍�
 
 - MCP Server 必须校验 Token 的目标受众，不接受并非为自己签发的 Token。
 - 访问下游 API 时使用单独获取的 Token，禁止原样透传入站 Token。[[23]](#ref-23)
-- 以代理身份调用下游时，防范混淆代理（confused deputy）风险。[[24]](#ref-24)
+- 以代理身份调用下游时，防范混淆代理（confused deputy）风险。[[25]](#ref-25)
 
-使用 MCP Elicitation 时，项目、分类等非敏感选择可走 `form`；密码、API Key、Token 不得由 form 索取。Server 作为第三方 OAuth 客户端时按 `url` 模式引导用户进入带外授权页，Connector 在可信回调处理凭据，MCP 只接收同意/拒绝/取消的结果；单凭 URL 被打开或用户选择 `accept` 不能建立有效 Connection。[[21]](#ref-21)
+使用 MCP Elicitation 时，项目、分类等非敏感选择可走 `form`；密码、API Key、Token 不得由 form 索取。Server 作为第三方 OAuth 客户端时按 `url` 模式引导用户进入带外授权页，Connector 在可信回调处理凭据，MCP 只接收同意/拒绝/取消的结果；单凭 URL 被打开或用户选择 `accept` 不能建立有效 Connection。[[17]](#ref-17)
 
 例如，`inputRequests` 内的第二跳授权请求可采用下列形态；URL 是本书教学占位端点，不含 Token、个人信息或预认证凭据，连接页面必须先验证当前用户与征询事务一致：
 
@@ -1145,7 +973,7 @@ Connector 可以复用平台的凭据服务，不必自己保存 Token，但仍�
 <a id="1665-适配器身份传输与业务映射分离"></a>
 <a id="1565-适配器身份传输与业务映射分离"></a>
 
-### 16.6.5 适配器：身份、传输与业务映射分离
+### 16.5.5 适配器：身份、传输与业务映射分离
 
 建议拆成四个模块：连接服务负责身份绑定和凭据，传输客户端负责受控网络请求，业务适配器负责字段映射和错误转换，Tool 或 MCP 层负责能力暴露。这样更换 Host 或传输协议时不必重写工单逻辑。下面的伪代码展示搜索路径的职责和调用顺序。
 
@@ -1207,7 +1035,7 @@ class TicketsConnector:
 <a id="1666-写操作审批幂等与结果未知"></a>
 <a id="1566-写操作审批幂等与结果未知"></a>
 
-### 16.6.6 写操作：审批、幂等与结果未知
+### 16.5.6 写操作：审批、幂等与结果未知
 
 `tickets.create` 核验当前 Connection、业务参数和批准引用，接收 Runtime 提供的 Operation 与稳定幂等键，映射下游请求并返回效果证据。它必须交付以下可核验的下游能力，而非只声明一个 `idempotent=true`：
 
@@ -1225,11 +1053,11 @@ class TicketsConnector:
 <a id="1667-分页限流缓存与增量事件"></a>
 <a id="1567-分页限流缓存与增量事件"></a>
 
-### 16.6.7 分页、限流、缓存与增量事件
+### 16.5.7 分页、限流、缓存与增量事件
 
 **分页。** 游标要绑定连接、调用主体（或等价的授权边界）、资源范围、查询指纹和有效期，不能拿其他租户或旧授权下的游标续读。提供方返回下一页 URL 时，传输层要验证目标、防止凭据跨域泄漏，不能让模型拼接 URL。
 
-**限流信号。** GitHub 的 REST API 最佳实践介绍了按分页信息遍历、处理限流提示和条件请求的做法[[28]](#ref-28)，但这是特定提供方的规则，不是通用默认值。Connector 按实际的应用、账号或组织维度声明配额并透出 `Retry-After` 等提供方提示；SDK 内部重试必须关闭或显式计入同一调用契约，调度与预算由 Runtime 统一控制。
+**限流信号。** GitHub 的 REST API 最佳实践介绍了按分页信息遍历、处理限流提示和条件请求的做法[[31]](#ref-31)，但这是特定提供方的规则，不是通用默认值。Connector 按实际的应用、账号或组织维度声明配额并透出 `Retry-After` 等提供方提示；SDK 内部重试必须关闭或显式计入同一调用契约，调度与预算由 Runtime 统一控制。
 
 **缓存。** 除了 TTL，还要处理授权变化：只按 `query` 做缓存键，可能把甲用户的结果给乙用户。即使共享原始数据缓存，读取时也要重新检查可见性，禁止跨权限复用已裁剪的结果。对象删除、共享范围变化和断开连接都应触发失效。
 
@@ -1242,7 +1070,7 @@ class TicketsConnector:
           → 失效查询缓存，必要时调度一个受约束的新任务
 ```
 
-GitHub Webhook 文档要求用安全保存的 Secret 校验投递，并以投递 ID 识别重复（重投沿用原 ID）。[[29]](#ref-29) 实现时按提供方规范校验原始字节，签名支持时间戳时校验时效；先可靠落库再确认接收，重任务放入队列。
+GitHub Webhook 文档要求用安全保存的 Secret 校验投递，并以投递 ID 识别重复（重投沿用原 ID）。[[32]](#ref-32) 实现时按提供方规范校验原始字节，签名支持时间戳时校验时效；先可靠落库再确认接收，重任务放入队列。
 
 事件不一定完整、有序或可全量重放，同步仍需维护 Checkpoint、定期对账并传播删除；Webhook 内容不能直接变成高权限行动指令。
 
@@ -1250,7 +1078,7 @@ GitHub Webhook 文档要求用安全保存的 Secret 校验投递，并以投递
 <a id="1568-统一错误分类"></a>
 <a id="connector-error-codes"></a>
 
-### 16.6.8 统一错误分类
+### 16.5.8 统一错误分类
 
 Connector 要把提供方错误转换为统一分类。下表统一本书 Connector 应用错误码；协议层原始信号在模型接口章定义，重试与收敛责任在 Runtime 定义，三者通过记录原始提供方码关联。它是应用层分类，不是对 HTTP 状态码的机械映射，真实语义取决于提供方响应和请求阶段。
 
@@ -1270,7 +1098,7 @@ Connector 要把提供方错误转换为统一分类。下表统一本书 Connec
 <a id="1669-契约测试沙箱联调与故障验收"></a>
 <a id="1569-契约测试沙箱联调与故障验收"></a>
 
-### 16.6.9 契约测试、沙箱联调与故障验收
+### 16.5.9 契约测试、沙箱联调与故障验收
 
 验收分三步：验证固定输入输出，用测试组织联调，验证 Runtime 完整调用链。Mock 只能验证自己的假设，无法证明提供方权限、OAuth 回调和写入幂等符合假设。
 
@@ -1291,13 +1119,13 @@ ALR 契约测试固定只读调查、有效批准建单和撤销连接三组输�
 <a id="16610-发布升级撤销与维护"></a>
 <a id="15610-发布升级撤销与维护"></a>
 
-### 16.6.10 发布、升级、撤销与维护
+### 16.5.10 发布、升级、撤销与维护
 
 提供方修改字段、组织权限调整、OAuth 配置变化以及 Host 对 Schema 的限制，都可能影响已有任务。发布前应版本化记录 API 范围、能力 Schema、认证方式、风险动作和输出映射，明确维护责任人。
 
 - **升级**：新增写能力或扩大 Scope 需要单独评估、增量授权并更新工具可见性，Connector 升级不能自动继承用户过去未同意的权限。破坏性变化应发布新版本并给出迁移规则。长任务可以固定能力版本，但每次执行都要重新检查授权。
 - **灰度与回滚**：按租户或测试组织灰度，观察连接成功率、权限拒绝、刷新失败、限流、字段映射失败和写入核对结果。回滚前确认旧 Schema、连接配置和持久状态仍兼容，不能留下无法恢复的 Operation。
-- **断开连接**：先在本地禁止新调用，再按提供方能力撤销 Token，关闭订阅与同步，使缓存和委托失效，并按数据保留策略处理已摄取的材料。RFC 7009 定义了 Token 撤销，但本地停用、远端凭据失效和内容清理需分别追踪。[[30]](#ref-30)
+- **断开连接**：先在本地禁止新调用，再按提供方能力撤销 Token，关闭订阅与同步，使缓存和委托失效，并按数据保留策略处理已摄取的材料。RFC 7009 定义了 Token 撤销，但本地停用、远端凭据失效和内容清理需分别追踪。[[33]](#ref-33)
 
 最终的验收问题是：一个未参与实现的 Runtime，能否只凭契约知道怎样调用、用谁的权限、何时等待、失败后怎样恢复、怎样证明动作已完成？如果仍依赖“让模型自己理解”或“超时再试一次”，Connector 还没有形成可靠的工程边界。
 
@@ -1307,46 +1135,46 @@ ALR 契约测试固定只读调查、有效批准建单和撤销连接三组输�
 <a id="157-授权沙箱与能力交付"></a>
 <a id="186-sandbox-与权限边界"></a>
 
-## 16.7 授权、沙箱与能力交付
+## 16.6 授权、沙箱与能力交付
 
 [![授权与沙箱是独立防线](../images/review-skills-tools-mcp-connectors-07.svg)](../images/review-skills-tools-mcp-connectors-07.svg)
 
-*图 16-10：授权与沙箱是独立防线*
+*图 16-9：授权与沙箱是独立防线*
 
 
-工具契约和 Policy 决定“能不能调用”，但真正产生副作用的是底层进程、浏览器和网络请求。本节说明如何用沙箱（Sandbox）限定它们的接触范围，并讨论沙箱与审批的分工和回归测试。
+工具契约描述能力与风险，Policy 裁决具体调用，但实际读取、写入和外发发生在底层进程、浏览器和网络请求中。本节定义工具侧的隔离实现、网络出口与回归测试；这些控制怎样与任务授权、组织上限和下游鉴权协同，统一见[17.5 安全与授权](04-agent-runtime.md#runtime-security)。
 
 <a id="1671-沙箱的职责限制文件网络进程和凭据"></a>
 <a id="1571-沙箱的职责限制文件网络进程和凭据"></a>
 <a id="1861-sandbox-的职责限制文件网络进程和凭据边界"></a>
 
-### 16.7.1 沙箱的职责：限制文件、网络、进程和凭据
+### 16.6.1 沙箱的职责：限制文件、网络、进程和凭据
 
-只读 API 的安全边界主要来自 API 权限和工具 Schema。一旦 Agent 能运行 Shell、读写文件、启动浏览器或连接 MCP Server，关键就变成“外部进程能接触什么”，沙箱随之成为 Tool Runtime 的基础设施。
+只读 API 的安全边界主要来自服务端身份、对象与字段权限，工具 Schema 只约束参数结构，不能证明调用有权执行。一旦 Agent 能运行 Shell、读写文件、启动浏览器或连接 MCP Server，还需要限制“外部进程能接触什么”，沙箱随之成为 Tool Runtime 的基础设施。
 
-> **沙箱是 Agent 执行副作用动作的环境边界，借助操作系统、容器、网络代理或远程隔离环境，把模型的错误限制在可承受范围内。**
+> **沙箱是 Agent 工具执行的环境边界，借助操作系统、容器、网络代理或远程隔离环境，把模型的错误限制在可承受范围内。**
 
 它不替代权限系统和审批：权限系统判断工具能否被调用，审批判断这次高风险动作是否被用户接受，沙箱限定工具被调用后底层进程最多能碰到哪里。
 
-生产级沙箱通常覆盖四类隔离：
+本书建议按以下四个维度设计执行边界；它们可以由沙箱、凭证服务与网络设施共同实现，并非任一产品默认都覆盖：
 
 | 隔离维度 | 作用 | 典型策略 |
 |:---|:---|:---|
-| 文件系统 | 限制读写范围 | 默认只写工作区，拒读 `~/.ssh`、`.env` 和系统目录 |
+| 文件系统 | 分别限制读取与写入 | 写入限于工作区；单独拒读秘密路径，不把工作区写限制当作秘密读取限制 |
 | 网络 | 防外泄和恶意下载 | 默认禁网，按域名 allowlist 放行，接入代理和审计 |
 | 进程与系统调用 | 限制子进程能力 | macOS Seatbelt、Linux namespace / bubblewrap、Docker、Firecracker、gVisor |
 | 凭据 | 限制 Token 可见性 | 最小权限、短期凭据、按工具注入，密钥不进模型上下文 |
 
-四类隔离缺一不可：只隔离文件系统，恶意命令仍能把可读文件发出去；只隔离网络，Agent 仍可能破坏本机配置或写入后门。
+按任务威胁模型核对四类边界：只隔离文件系统，恶意命令仍可能把可读文件发出去；只隔离网络，Agent 仍可能破坏本机配置。只给 Shell 断网，还不能阻止模型把已读取的数据交给其他联网工具；跨工具路径见[Runtime 数据流控制](04-agent-runtime.md#runtime-security-dataflow)。
 
 本书建议凭据代理按可信认证上下文绑定 `tenant / run / tool / resource / expiry`，只注入当前动作所需的短期最小权限凭据；模型、事件和 Trace 不保存明文秘密。疑似泄露时停用工具、隔离受影响 Run，再吊销或轮换凭据并保存脱敏审计证据；远端撤销尚未确认时持续阻断新调用，不能只删除日志。
 
 <a id="1672-易混淆的概念prompt审批docker-与-api-rbac"></a>
 <a id="1572-易混淆的概念prompt审批docker-与-api-rbac"></a>
 
-### 16.7.2 易混淆的概念：Prompt、审批、Docker 与 API RBAC
+### 16.6.2 易混淆的概念：Prompt、审批、Docker 与 API RBAC
 
-Claude Code 文档把沙箱（运行边界）与权限规则（工具授权）分开说明，适用平台需单独确认。[[31]](#ref-31)[[32]](#ref-32)
+Claude Code 文档把沙箱（运行边界）与权限规则（工具授权）分开说明，适用平台需单独确认。[[34]](#ref-34)[[35]](#ref-35)
 
 沙箱是一组运行时约束，不等于“在 Docker 里跑命令”：
 
@@ -1398,7 +1226,7 @@ sandbox_policy:
 <a id="1673-按工具类型划分沙箱"></a>
 <a id="1573-按工具类型划分沙箱"></a>
 
-### 16.7.3 按工具类型划分沙箱
+### 16.6.3 按工具类型划分沙箱
 
 | 工具类型 | 主要风险 | 推荐沙箱策略 |
 |:---|:---|:---|
@@ -1417,11 +1245,11 @@ sandbox_policy:
 <a id="1574-浏览器自动化的边界"></a>
 <a id="浏览器动作前后验证别把旧定位当授权"></a>
 
-### 16.7.4 浏览器自动化的边界
+### 16.6.4 浏览器自动化的边界
 
 针对跨站泄露、下载文件和访问内部系统等风险，环境层面应使用独立的浏览器 profile、域名 allowlist、隔离的下载目录和 Cookie 分区。
 
-此外还要防止点错对象。Playwright 的 Locator 在动作时重新定位元素，并做可操作性检查（可见、稳定、可交互）[[33]](#ref-33)[[34]](#ref-34)，但这不能证明点中的是正确的业务对象，旧定位更不能当作授权。
+此外还要防止点错对象。Playwright 的 Locator 在动作时重新定位元素，并做可操作性检查（可见、稳定、可交互）[[36]](#ref-36)[[37]](#ref-37)，但这不能证明点中的是正确的业务对象，旧定位更不能当作授权。
 
 以在测试租户创建工单草稿为例：
 
@@ -1437,9 +1265,9 @@ sandbox_policy:
 <a id="1575-网络出口控制"></a>
 <a id="url重定向dns与出口控制矩阵"></a>
 
-### 16.7.5 网络出口控制
+### 16.6.5 网络出口控制
 
-Agent 的网络请求可能被诱导访问内网或云元数据服务，即服务端请求伪造（SSRF）。OWASP 指南建议同时处理输入校验、重定向和网络层限制[[35]](#ref-35)，MCP 安全指南也提醒授权发现和服务端请求存在 SSRF 风险[[24]](#ref-24)。本节讲 SSRF 与出口控制，数据外发治理见[Agent 治理与调优 出站安全](06-agent-governance-optimization.md#outbound-security)。
+Agent 的网络请求可能被诱导访问内网或云元数据服务，即服务端请求伪造（SSRF）。OWASP 指南建议同时处理输入校验、重定向和网络层限制[[38]](#ref-38)，MCP 安全指南也提醒授权发现和服务端请求存在 SSRF 风险[[25]](#ref-25)。本节讲 SSRF 与出口控制，数据外发治理见[Agent 治理与调优 出站安全](06-agent-governance-optimization.md#outbound-security)。
 
 | 阶段 | 控制措施 | 必测的失败场景 |
 | --- | --- | --- |
@@ -1455,7 +1283,7 @@ Agent 的网络请求可能被诱导访问内网或云元数据服务，即服�
 <a id="1576-执行环境的四个层级路径进程容器与远程执行器"></a>
 <a id="1864-执行环境的四种层级pathprocesscontainerremote-runner"></a>
 
-### 16.7.6 执行环境的四个层级：路径、进程、容器与远程执行器
+### 16.6.6 执行环境的四个层级：路径、进程、容器与远程执行器
 
 从轻到重有四种执行环境：
 
@@ -1473,7 +1301,7 @@ Agent 的网络请求可能被诱导访问内网或云元数据服务，即服�
 <a id="1677-沙箱与审批"></a>
 <a id="1577-沙箱与审批"></a>
 
-### 16.7.7 沙箱与审批
+### 16.6.7 沙箱与审批
 
 风险等级以 [风险分级](#tool-risk-levels) 为准，各等级对应的沙箱边界如下：
 
@@ -1492,13 +1320,13 @@ Agent 的网络请求可能被诱导访问内网或云元数据服务，即服�
 <a id="1678-沙箱回归测试文件网络凭据与-mcp-server"></a>
 <a id="1578-沙箱回归测试文件网络凭据与-mcp-server"></a>
 
-### 16.7.8 沙箱回归测试：文件、网络、凭据与 MCP Server
+### 16.6.8 沙箱回归测试：文件、网络、凭据与 MCP Server
 
 生产级 Agent 应验证沙箱到底拦住了什么，至少包含以下回归测试：
 
 ```text
 文件系统测试：
-- 尝试读取 ~/.ssh/id_rsa，必须失败。
+- 在测试夹具中放置模拟私钥，并将其路径设为拒读；尝试读取必须失败。
 - 写入工作区外的目录，必须失败。
 - 读取项目内允许的文件，必须成功。
 
@@ -1517,14 +1345,14 @@ MCP 测试：
 - Server 不能访问未授权的文件路径和网络目标。
 ```
 
-这些测试应进入 Runtime 的 CI，每次调整沙箱、权限规则、MCP 配置、浏览器自动化或远程执行器后都要重跑。
+以上是应显式建立的测试策略，不是 `workspace-write` 等产品模式天然提供的保证。使用合成秘密与受控目标，分别验证每种文件、执行与联网工具，避免读取真实私钥；某一前置规则拦截也不能代替后续隔离层的独立验证。跨工具外发、组织策略放宽与隔离失效的验收见[17.5.6 安全验证](04-agent-runtime.md#runtime-security-verification)。这些测试应进入 Runtime 的 CI，每次调整沙箱、权限规则、MCP 配置、浏览器自动化或远程执行器后都要重跑。
 
 
 <a id="capability-usage-governance"></a>
 <a id="1679-能力组合的交付与兼容"></a>
 <a id="1579-能力组合的交付与兼容"></a>
 
-### 16.7.9 能力组合的交付与兼容
+### 16.6.9 能力组合的交付与兼容
 
 能力提供方交付固定版本的 Skill、Tool 契约、Server 与依赖环境；Runtime 按本轮身份加载和使用。完整发布组合及门禁归[治理发布控制](06-agent-governance-optimization.md#release-control)，本节保留能力侧验收边界。
 
@@ -1545,11 +1373,11 @@ MCP 测试：
 <a id="168-案例告警诊断-agent-的工具架构"></a>
 <a id="158-案例告警诊断-agent-的工具架构"></a>
 
-## 16.8 案例：告警诊断 Agent 的工具架构
+## 16.7 案例：告警诊断 Agent 的工具架构
 
 [![告警案例的能力提供方产物](../images/review-skills-tools-mcp-connectors-08.svg)](../images/review-skills-tools-mcp-connectors-08.svg)
 
-*图 16-11：告警案例的能力提供方产物*
+*图 16-10：告警案例的能力提供方产物*
 
 
 下面将契约、Skill、MCP、Connector 和沙箱组装成同一次 ALR 调查的能力配置，检验交付物能否被 Runtime 消费。
@@ -1557,7 +1385,7 @@ MCP 测试：
 <a id="1681-场景输入与任务目标"></a>
 <a id="1581-场景输入与任务目标"></a>
 
-### 16.8.1 场景输入与任务目标
+### 16.7.1 场景输入与任务目标
 
 用户输入如下：
 
@@ -1572,7 +1400,7 @@ MCP 测试：
 <a id="1682-工具集合设计"></a>
 <a id="1582-工具集合设计"></a>
 
-### 16.8.2 工具集合设计
+### 16.7.2 工具集合设计
 
 下表列出本案例 Skill 需要的工具。动作性质与数据敏感度采用[双轴风险表](#tool-risk-levels)；以下策略是本例配置，不是所有工具的通用风险标签。
 
@@ -1592,7 +1420,7 @@ MCP 测试：
 <a id="1683-对应-skill引用而非另起格式"></a>
 <a id="1583-对应-skill引用而非另起格式"></a>
 
-### 16.8.3 对应 Skill：引用而非另起格式
+### 16.7.3 对应 Skill：引用而非另起格式
 
 工具集合只说明 Agent 能做什么，不能保证它按正确顺序做。本案例对应的 Skill 采用 [示例](#skill-md-example)中的 `incident-diagnosis/SKILL.md`：前置元数据（Front Matter）中的 `description` 负责发现，正文写输入与前置条件、执行步骤、行为边界和完成标准。
 
@@ -1605,7 +1433,7 @@ Skill 只描述方法，不承担授权。工具白名单、禁用工具（如�
 <a id="1684-交付可供-runtime-使用的能力配置"></a>
 <a id="1584-交付可供-runtime-使用的能力配置"></a>
 
-### 16.8.4 交付可供 Runtime 使用的能力配置
+### 16.7.4 交付可供 Runtime 使用的能力配置
 
 以下配置为本书教学设计，不是 MCP 原生顶层字段。它固定能力包与绑定入口，凭据不进入配置正文。
 
@@ -1642,7 +1470,7 @@ capability_profile:
 <a id="1685-一次指标观察与策略证据"></a>
 <a id="1585-一次指标观察与策略证据"></a>
 
-### 16.8.5 一次指标观察与策略证据
+### 16.7.5 一次指标观察与策略证据
 
 ```json
 {
@@ -1669,7 +1497,7 @@ capability_profile:
 <a id="1686-合格报告标准与教学设定中的偏差"></a>
 <a id="1586-合格报告标准与教学设定中的偏差"></a>
 
-### 16.8.6 合格报告标准与教学设定中的偏差
+### 16.7.6 合格报告标准与教学设定中的偏差
 
 合格报告需核对部署记录（本例 02:35Z 完成）、指标（02:37Z 开始异常）和 payment-client 日志，只能将时间接近写成待验证假设；资源指标正常不能直接排除全部数据库问题。每条证据带调用、版本和时间范围，缺证据就披露缺口。
 
@@ -1680,7 +1508,7 @@ capability_profile:
 
 [![外部工具系统的构建验收](../images/review-skills-tools-mcp-connectors-09.svg)](../images/review-skills-tools-mcp-connectors-09.svg)
 
-*图 16-12：外部工具系统的构建验收*
+*图 16-11：外部工具系统的构建验收*
 
 
 | 构建面 | 必须交付的证据 |
@@ -1698,7 +1526,7 @@ capability_profile:
 
 1. <a id="ref-1"></a> T. Lodderstedt、J. Bradley、A. Labunets、D. Fett，[RFC 9700: Best Current Practice for OAuth 2.0 Security](https://www.rfc-editor.org/rfc/rfc9700)，IETF，2025；核验于 2026-10-21。
 2. <a id="ref-2"></a> OpenAI，[Function calling](https://developers.openai.com/api/docs/guides/function-calling)，持续更新；核验于 2026-10-18。
-3. <a id="ref-3"></a> MCP maintainers，[Tools](https://modelcontextprotocol.io/specification/2026-07-28/server/tools)，2026-07-28；核验于 2026-10-26。
+3. <a id="ref-3"></a> MCP maintainers，[Tools](https://modelcontextprotocol.io/specification/2026-07-28/server/tools)，2026-07-28；核验于 2026-10-29。
 4. <a id="ref-4"></a> Anthropic，[Equipping agents for the real world with Agent Skills](https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills)，2025-10-16。 访问日期：2026-10-24。
 5. <a id="ref-5"></a> Agent Skills maintainers，[Specification](https://agentskills.io/specification)，持续更新；核验于 2026-10-26。
 6. <a id="ref-6"></a> OpenAI，[Build skills](https://developers.openai.com/codex/skills/)，持续更新；核验于 2026-10-21。
@@ -1708,29 +1536,32 @@ capability_profile:
 10. <a id="ref-10"></a> Nous Research，Hermes Agent 源码：[对话循环](https://github.com/NousResearch/hermes-agent/blob/ff3835a630deb1f03054806d91ae5712b76f16d1/agent/conversation_loop.py)、[工具结果消息构造](https://github.com/NousResearch/hermes-agent/blob/ff3835a630deb1f03054806d91ae5712b76f16d1/agent/tool_dispatch_helpers.py)，提交 `ff3835a`；核验于 2026-10-21。
 11. <a id="ref-11"></a> MCP maintainers，[Architecture](https://modelcontextprotocol.io/specification/2026-07-28/architecture)，2026-07-28；核验于 2026-10-26。
 12. <a id="ref-12"></a> MCP maintainers，[Versioning and Compatibility](https://modelcontextprotocol.io/specification/2026-07-28/basic/versioning)，2026-07-28；核验于 2026-10-26。
-13. <a id="ref-13"></a> MCP maintainers，[Resources](https://modelcontextprotocol.io/specification/2026-07-28/server/resources)，2026-07-28；核验于 2026-10-24。
-14. <a id="ref-14"></a> MCP maintainers，[Prompts](https://modelcontextprotocol.io/specification/2026-07-28/server/prompts)，2026-07-28；核验于 2026-10-24。
-15. <a id="ref-15"></a> Agent Skills maintainers，[Agent Skills specification](https://agentskills.io/specification) 与 [固定规范快照](https://github.com/agentskills/agentskills/blob/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/specification.mdx)，开放格式规范；核验于 2026-10-26，不据此推断格式首次发布日期。
-16. <a id="ref-16"></a> MCP maintainers，[Streamable HTTP](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http)，2026-07-28；核验于 2026-10-26。
-17. <a id="ref-17"></a> MCP maintainers，[2026-07-28 Key Changes](https://modelcontextprotocol.io/specification/2026-07-28/changelog) 与 [ToolAnnotations 定义](https://modelcontextprotocol.io/specification/2026-07-28/schema#toolannotations)，版本化规范；核验于 2026-10-26。
+13. <a id="ref-13"></a> Agent Skills maintainers，[Agent Skills specification](https://agentskills.io/specification) 与 [固定规范快照](https://github.com/agentskills/agentskills/blob/69ef37e9424c0a7ea9dd2293b559e43ec8176379/docs/specification.mdx)，开放格式规范；核验于 2026-10-26，不据此推断格式首次发布日期。
+14. <a id="ref-14"></a> MCP maintainers，[Resources](https://modelcontextprotocol.io/specification/2026-07-28/server/resources)，2026-07-28；核验于 2026-10-24。
+15. <a id="ref-15"></a> MCP maintainers，[Prompts](https://modelcontextprotocol.io/specification/2026-07-28/server/prompts)，2026-07-28；核验于 2026-10-24。
+16. <a id="ref-16"></a> MCP maintainers，[2026-07-28 Key Changes](https://modelcontextprotocol.io/specification/2026-07-28/changelog) 与 [ToolAnnotations 定义](https://modelcontextprotocol.io/specification/2026-07-28/schema#toolannotations)，版本化规范；核验于 2026-10-26。
+17. <a id="ref-17"></a> MCP maintainers，[Elicitation](https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation)，2026-07-28；核验于 2026-10-29。
 18. <a id="ref-18"></a> MCP maintainers，[Transports](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports)，2025-03-26；核验于 2026-10-24。
 19. <a id="ref-19"></a> MCP maintainers，[Transports](https://modelcontextprotocol.io/specification/2024-11-05/basic/transports)，2024-11-05；核验于 2026-10-24。
 20. <a id="ref-20"></a> MCP maintainers，[Transports](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports)，2025-06-18；核验于 2026-10-24。
-21. <a id="ref-21"></a> MCP maintainers，[Elicitation](https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation)，2026-07-28；核验于 2026-10-26。
-22. <a id="ref-22"></a> MCP maintainers，[Tasks extension](https://modelcontextprotocol.io/extensions/tasks/overview)，io.modelcontextprotocol/tasks，独立于核心协议版本演进；核验于 2026-10-26。
+21. <a id="ref-21"></a> MCP maintainers，[Tasks extension](https://modelcontextprotocol.io/extensions/tasks/overview)，io.modelcontextprotocol/tasks，独立于核心协议版本演进；核验于 2026-10-26。
+22. <a id="ref-22"></a> MCP maintainers，[Streamable HTTP](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http)，2026-07-28；核验于 2026-10-26。
 23. <a id="ref-23"></a> MCP maintainers，[Authorization](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization)，2026-07-28；核验于 2026-10-26。
-24. <a id="ref-24"></a> MCP maintainers，[Security Best Practices](https://modelcontextprotocol.io/specification/2026-07-28/basic/security_best_practices)，MCP 官方工程安全指南；核验于 2026-10-26；该入口含 latest 交叉链接，不作为整份指南已冻结于该协议版本的保证。
-25. <a id="ref-25"></a> MCP maintainers，[Reference servers and archived servers](https://github.com/modelcontextprotocol/servers)，核验于 2026-10-24。
-26. <a id="ref-26"></a> MCP maintainers，[Official MCP Registry](https://registry.modelcontextprotocol.io/)，持续更新；核验于 2026-10-18。
-27. <a id="ref-27"></a> Linear，[MCP server](https://linear.app/docs/mcp)，核验于 2026-10-24。
-28. <a id="ref-28"></a> GitHub，[Best practices for using the REST API](https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api)，GitHub Docs，持续更新；核验于 2026-10-21。
-29. <a id="ref-29"></a> GitHub，[Best practices for using webhooks](https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks)，GitHub Docs，持续更新；核验于 2026-10-21。
-30. <a id="ref-30"></a> T. Lodderstedt、S. Dronia、M. Scurtescu，[RFC 7009: OAuth 2.0 Token Revocation](https://www.rfc-editor.org/rfc/rfc7009.html)，IETF，2013；核验于 2026-10-21。
-31. <a id="ref-31"></a> Anthropic，[Configure the sandboxed Bash tool](https://code.claude.com/docs/en/sandboxing)，持续更新；核验于 2026-10-18。
-32. <a id="ref-32"></a> Anthropic，[Configure permissions](https://code.claude.com/docs/en/permissions)，持续更新；核验于 2026-10-18。
-33. <a id="ref-33"></a> Microsoft Playwright，[Locators](https://playwright.dev/docs/locators)，持续更新；核验于 2026-10-18。
-34. <a id="ref-34"></a> Microsoft Playwright，[Auto-waiting](https://playwright.dev/docs/actionability)，持续更新；核验于 2026-10-18。
-35. <a id="ref-35"></a> OWASP，[Server Side Request Forgery Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html)，持续更新；核验于 2026-10-18。
-36. <a id="ref-36"></a> A. Meyer zu Selhausen、D. Fett，[RFC 9207: OAuth 2.0 Authorization Server Issuer Identification](https://www.rfc-editor.org/rfc/rfc9207.html)，IETF，2022；核验于 2026-10-26，授权响应 `iss` 的比较与元数据支持规则见 §2.4。
-37. <a id="ref-37"></a> OWASP，[Authorization Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html)，持续更新；核验于 2026-10-27；支持默认拒绝、逐请求检查与对象级授权原则。
-38. <a id="ref-38"></a> OWASP，[Multi-Tenant Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Multi_Tenant_Security_Cheat_Sheet.html)，持续更新；核验于 2026-10-27；支持租户上下文、数据访问与缓存隔离原则；具体 MCP 适配方案为本书设计。
+24. <a id="ref-24"></a> A. Meyer zu Selhausen、D. Fett，[RFC 9207: OAuth 2.0 Authorization Server Issuer Identification](https://www.rfc-editor.org/rfc/rfc9207.html)，IETF，2022；核验于 2026-10-26，授权响应 `iss` 的比较与元数据支持规则见 §2.4。
+25. <a id="ref-25"></a> MCP maintainers，[Security Best Practices](https://modelcontextprotocol.io/specification/2026-07-28/basic/security_best_practices)，MCP 官方工程安全指南；核验于 2026-10-26；该入口含 latest 交叉链接，不作为整份指南已冻结于该协议版本的保证。
+26. <a id="ref-26"></a> OWASP，[Authorization Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html)，持续更新；核验于 2026-10-27；支持默认拒绝、逐请求检查与对象级授权原则。
+27. <a id="ref-27"></a> OWASP，[Multi-Tenant Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Multi_Tenant_Security_Cheat_Sheet.html)，持续更新；核验于 2026-10-27；支持租户上下文、数据访问与缓存隔离原则；具体 MCP 适配方案为本书设计。
+28. <a id="ref-28"></a> MCP maintainers，[Reference servers and archived servers](https://github.com/modelcontextprotocol/servers)，核验于 2026-10-24。
+29. <a id="ref-29"></a> MCP maintainers，[Official MCP Registry](https://registry.modelcontextprotocol.io/)，持续更新；核验于 2026-10-18。
+30. <a id="ref-30"></a> Linear，[MCP server](https://linear.app/docs/mcp)，核验于 2026-10-24。
+31. <a id="ref-31"></a> GitHub，[Best practices for using the REST API](https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api)，GitHub Docs，持续更新；核验于 2026-10-21。
+32. <a id="ref-32"></a> GitHub，[Best practices for using webhooks](https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks)，GitHub Docs，持续更新；核验于 2026-10-21。
+33. <a id="ref-33"></a> T. Lodderstedt、S. Dronia、M. Scurtescu，[RFC 7009: OAuth 2.0 Token Revocation](https://www.rfc-editor.org/rfc/rfc7009.html)，IETF，2013；核验于 2026-10-21。
+34. <a id="ref-34"></a> Anthropic，[Configure the sandboxed Bash tool](https://code.claude.com/docs/en/sandboxing)，持续更新；核验于 2026-10-18。
+35. <a id="ref-35"></a> Anthropic，[Configure permissions](https://code.claude.com/docs/en/permissions)，持续更新；核验于 2026-10-18。
+36. <a id="ref-36"></a> Microsoft Playwright，[Locators](https://playwright.dev/docs/locators)，持续更新；核验于 2026-10-18。
+37. <a id="ref-37"></a> Microsoft Playwright，[Auto-waiting](https://playwright.dev/docs/actionability)，持续更新；核验于 2026-10-18。
+38. <a id="ref-38"></a> OWASP，[Server Side Request Forgery Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html)，持续更新；核验于 2026-10-18。
+39. <a id="ref-39"></a> GitHub，[GitHub MCP Server](https://github.com/github/github-mcp-server)，官方项目文档，持续更新；核验于 2026-10-29；支持 GitHub MCP 工具及远程托管、本地运行方式的比较。
+40. <a id="ref-40"></a> GitHub，[gh api](https://cli.github.com/manual/gh_api)，GitHub CLI 官方手册，持续更新；核验于 2026-10-29；支持经 CLI 调用 REST / GraphQL API、分页与结果处理的说明。
+41. <a id="ref-41"></a> OpenAI，[Plugins](https://learn.chatgpt.com/docs/plugins)，ChatGPT Learn，持续更新；核验于 2026-10-29；支持 Codex 安装 Gmail 插件、外部账号连接及插件工具接入的区分，不据此推断 Gmail 集成的内部传输协议。

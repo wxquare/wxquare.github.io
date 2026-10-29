@@ -281,7 +281,7 @@ O-2048 的历史推测为 150 元，当前账务核查为 130 元。结构校验
 这个反例区分了结构保证和业务真实性。若另行设计写操作，授权、执行前重验与幂等须由[第 16 章 外部工具系统](05-skills-tools-mcp-connectors.md#tool-contract)及[第 17 章 Agent Runtime](04-agent-runtime.md#delivery-idempotency)落实，不能从本次只读核查推导出写入许可。知识助手同样核对可见文档和版本。
 
 
-任务契约描述目标、范围、证据和完成条件，工具 Schema 描述一次调用的结构。`side_effect`、`data_sensitivity`、`permission`、`timeout_ms` 等若属于工具注册表元数据，不直接塞进供应商原生函数参数 Schema；提供方请求只发送其支持的字段。工具实现、注册和结果信封参考[第 16 章 外部工具系统](05-skills-tools-mcp-connectors.md#tool-contract)。
+任务契约描述目标、范围、证据和完成条件，工具 Schema 描述一次调用的结构。`side_effect`、`data_sensitivity`、`permission`、`timeout_ms` 等若属于工具注册表元数据，不直接塞进供应商原生函数参数 Schema；提供方请求只发送其支持的字段。模型侧工具定义与参数结构参考[第 13 章工具调用协议](01-llm-api-protocol.md#model-tool-definitions)，业务操作、实现和结果信封参考[第 16 章 外部工具系统](05-skills-tools-mcp-connectors.md#tool-contract)。
 
 <a id="1324-few-shot反例与决策边界"></a>
 

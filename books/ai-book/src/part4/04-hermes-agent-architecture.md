@@ -421,6 +421,8 @@ Hermes 的安全模型官方归纳为八层：用户授权、危险命令审批�
 
 官方给出两种 OS 级隔离姿态：terminal-backend 隔离（仅限 shell/file 工具，不限制 code-execution、MCP 子进程、插件、hook、skill 加载）与 whole-process wrapping（把整个 agent 进程树放进 Docker/Compose 或 NVIDIA OpenShell）[[30]](#ref-30)。默认 local 后端 + 不受控输入面，或指望 terminal-backend 沙箱约束不走 shell 的路径，都属于“支持姿态之外”[[30]](#ref-30)。生产 gateway 部署官方建议用 docker/modal/daytona/vercel_sandbox 后端隔离命令（可免去危险命令审批）[[29]](#ref-29)。
 
+本书建议用[17.5 的跨层模型](../part3/04-agent-runtime.md#runtime-security)解释上述两种部署：terminal-backend 只覆盖其承诺的工具路径；whole-process wrapping 也仍需检查挂载、凭证与网络，远程 MCP 和业务服务继续按身份与资源鉴权。用合成秘密分别触发 terminal、execute_code、MCP 与插件路径，检查返回内容和后续发送，避免把“终端已隔离”误作“所有工具无法读秘密或外发”。
+
 ### 22.5.2 审批、deny 规则与 allowlist
 
 审批模式 `approvals.mode ∈ {smart, manual, off}`，默认 smart；`off` 等价 `--yolo`，关闭全部审批提示，官方标注“仅用于可信环境（CI/CD、容器等）”[[29]](#ref-29)。`--yolo` 关闭所有危险命令检查，唯独 hardline blocklist 除外；hardline 是“`--yolo` 之下的地板”，合法流程需要 hardline 命令时官方建议“在 agent 之外运行”[[29]](#ref-29)。
