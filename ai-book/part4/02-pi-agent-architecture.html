@@ -43,7 +43,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1a3813fe.js";
+            window.path_to_searchindex_js = "../searchindex-cf72c21c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-6e3e5c7c.js"></script>
@@ -479,6 +479,7 @@
 <h3 id="2051-先理解一个前提pi-不替你设边界"><a class="header" href="#2051-先理解一个前提pi-不替你设边界">20.5.1 先理解一个前提：Pi 不替你设边界</a></h3>
 <p>用好 Pi 的第一步是接受它的默认：Pi 不逐次询问，模型提出的 <code>read/bash/edit/write</code>（含 <code>rm</code>、网络访问）在交互、print、json、rpc 四种模式下都直接执行，用 Pi 进程的 OS 权限<a href="#ref-6">[6]</a>。官方安全页的三句话必须放在一起读：“把模型生成的命令与代码当作不可信”“安全来自限制 Pi 能访问和影响的文件、凭据、进程与网络服务”“看对话记录、用项目信任、审阅改动都不构成安全边界”<a href="#ref-6">[6]</a>。所以 Pi 的使用本质是：<strong>在运行环境层面为它造边界</strong>，而不是指望它在运行时问你。</p>
 <p>官方给了三种运行方式的保护范围：直接运行（受限于 OS 用户权限，专用账户可收窄但仍共享 OS 与网络）；把整个 Pi 放进容器/虚拟机/沙箱（官方称“通常最强的实用选项”）；Pi 在外、只把内置工具放进隔离环境（更窄，Pi 本身与其他扩展仍在边界之外）<a href="#ref-6">[6]</a>。无论哪种，官方建议只提供任务所需的文件与服务、凭据尽量放在环境之外或用窄权限短期凭据、命令不需要网络时限制网络<a href="#ref-6">[6]</a>。这是官方建议，也是 20.5.6 里扩展层做“逐次确认”的语境：那个确认发生在工具层，不是系统边界。</p>
+<p>本书建议按<a href="../part3/04-agent-runtime.html#runtime-security">17.5 的跨层模型</a>验收 Pi 宿主：分别覆盖内置工具、扩展和 MCP 的实际执行路径，使用合成秘密验证读取与环境变量范围，再验证直接联网和跨工具发送。只拦截 <code>tool_call</code> 或只隔离 <code>bash</code> 时，不能推断 Pi 进程、第三方扩展与其他工具也受同一限制；身份映射与业务服务鉴权仍需各自落实。</p>
 <h3 id="2052-项目信任先决定再自动"><a class="header" href="#2052-项目信任先决定再自动">20.5.2 项目信任：先决定，再自动</a></h3>
 <p>项目信任是 Pi 里最接近“入口闸门”的机制，但它只控制资源加载，不控制工具权限<a href="#ref-6">[6]</a>。需要信任决定的资源是 <code>.pi/</code> 下的 settings、mcp.json、extensions、skills、prompts、themes、SYSTEM.md、APPEND_SYSTEM.md，以及项目 <code>.agents/skills</code><a href="#ref-35">[35]</a>。决定顺序是命令行 <code>--approve/--no-approve</code> → 用户级扩展的 <code>project_trust</code> 事件 → <code>trust.json</code> 里最近的已保存决定 → 全局 <code>defaultProjectTrust</code>（默认 <code>"ask"</code>）。</p>
 <p>对实践者有三条直接结论（本书建议）。第一，非交互模式（CI、脚本、无人值守）无法弹窗，<code>ask</code>/<code>never</code> 都不会加载受保护资源，必须显式 <code>--approve</code> 或 <code>--no-approve</code>，否则会得到“静默不加载”而不是报错<a href="#ref-6">[6]</a>。第二，拒绝信任只挡住 <code>.pi</code> 资源，AGENTS.md/CLAUDE.md 仍会加载，官方提醒“即使拒绝信任，也要把文件夹里的指令当不可信输入”<a href="#ref-6">[6]</a>。第三，信任会写进 <code>~/.pi/agent/trust.json</code>，审阅项目里的 package 声明之后再授予信任，因为信任后项目扩展和设置可以在 Pi 进程里执行<a href="#ref-21">[21]</a>。</p>

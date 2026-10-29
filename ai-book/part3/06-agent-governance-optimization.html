@@ -43,7 +43,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1a3813fe.js";
+            window.path_to_searchindex_js = "../searchindex-cf72c21c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-6e3e5c7c.js"></script>
@@ -188,7 +188,7 @@
                         <h1 id="第-18-章-agent-治理与调优从质量闭环到分层落地"><a class="header" href="#第-18-章-agent-治理与调优从质量闭环到分层落地">第 18 章 Agent 治理与调优：从质量闭环到分层落地</a></h1>
 <p>一次 ALR 诊断错误怎样变成可定位根因、可验证修复和下一次发布前的门禁？本章连接 Trace、Failure、Eval 和发布决定，明确扩大自动化范围所需的证据与阻断、核验和回退条件。</p>
 <p>版本与范围：既有来源保留原核验日期；统计实现、OTel 固定版本、护栏执行语义与 tau-bench 评分于 2026-10-26 重新核验。文中的用例、阈值与案例均为教学设计；函数回归验证不等于真实 Agent 评测或生产验收。</p>
-<p>本章与相邻章节的分工如下：<a href="../part2/05-production-operations-governance.html">第 12 章 生产运营与治理控制</a>讲 Infra 层的 SLO、错误预算与灾备；<a href="05-skills-tools-mcp-connectors.html">第 16 章 外部工具系统</a>定义能力契约与风险双轴；<a href="04-agent-runtime.html">第 17 章 Agent Runtime</a>定义持久执行、审批、恢复和副作用；<a href="../part2/04-data-eval.html">第 11 章 评估与反馈闭环</a>提供统计方法。本章消费这些契约，将质量、安全与线上证据接到发布决定。</p>
+<p>本章与相邻章节的分工如下：<a href="../part2/05-production-operations-governance.html">第 12 章 生产运营与治理控制</a>讲 Infra 层的 SLO、错误预算与灾备；<a href="05-skills-tools-mcp-connectors.html">第 16 章 外部工具系统</a>定义能力契约与风险双轴；<a href="04-agent-runtime.html">第 17 章 Agent Runtime</a>定义持久执行、审批、恢复和副作用，其中<a href="04-agent-runtime.html#runtime-security">17.5 安全与授权</a>串联跨层执行边界；<a href="../part2/04-data-eval.html">第 11 章 评估与反馈闭环</a>提供统计方法。本章消费这些契约，将质量、安全与线上证据接到发布决定。</p>
 <pre><code class="language-text">Production Run
   │
   ▼
@@ -457,6 +457,7 @@ def evaluate_criteria(required: dict[str, Verdict], config_valid: bool = True) -
 <h2 id="183-guardrails把安全边界放进系统"><a class="header" href="#183-guardrails把安全边界放进系统">18.3 Guardrails：把安全边界放进系统</a></h2>
 <p><a href="../images/review-agent-governance-optimization-03.svg"><img src="../images/review-agent-governance-optimization-03.svg" alt="护栏分别约束输入、行动与数据"></a></p>
 <p><em>图 18-3：护栏分别约束输入、行动与数据</em></p>
+<p>本节关注检查结果怎样进入治理闭环。身份、策略上限、审批、执行隔离与下游鉴权的职责分工由<a href="04-agent-runtime.html#runtime-security">17.5 安全与授权</a>定义；Guardrail 命中、人工审批和沙箱拒绝分别保留事实，不能把某一项检查通过当作全部路径安全。</p>
 <p>Guardrails 是运行时检查。OpenAI Agents SDK 的输入护栏默认 <code>run_in_parallel=True</code>，与 Agent 并行；tripwire 触发前，模型可能已消耗 Token，工具也可能已执行。<code>run_in_parallel=False</code> 才先完成输入检查再启动 Agent；输出护栏在 Agent 完成后检查最终输出，不支持该参数，也不能撤销已有副作用。<a href="#ref-9">[9]</a> 因此高风险路径在启动前阻塞检查，并在每次实际派发前由工具网关复核当前授权、参数和批准；入口护栏不能代替动作控制点，人工批准也不是所有后续动作的通行证。</p>
 <pre><code class="language-text">User Input
   │
@@ -561,10 +562,13 @@ User / Human Reviewer
 <tr><td>T4 写入未知</td><td>原 Operation、幂等键、INC-4821 回执与对账</td><td>回执丢失/取消后晚到成功</td><td>缺事实为 unknown，禁止扩大相关写入</td></tr>
 <tr><td>旧代接管</td><td>新旧 epoch、claim 与资源端拒绝证据</td><td>不同载荷迟到写入、强制接管</td><td>旧结果不覆盖当前状态</td></tr>
 <tr><td>隔离与撤权</td><td>文件/网络/凭据边界、当前 ACL</td><td>恶意 Server、越界目录、撤权回调</td><td>越权或恢复旧权限阻断</td></tr>
+<tr><td>组织策略与失效处理</td><td>强制策略来源、生效配置、隔离后端与失败决定</td><td>项目放宽、插件新增路径、隔离不可用或无沙箱重试</td><td>无法落实必需限制的路径阻断</td></tr>
+<tr><td>跨工具数据外发</td><td>数据分类、来源血缘、目标资源、实际发送裁决</td><td>Shell 断网后改用 MCP / 浏览器 / 消息工具；获准域名上换接收资源</td><td>未授权外发不能由单工具检查通过抵消</td></tr>
 <tr><td>T5 通知重复</td><td>notification_id、Outbox、渠道回执</td><td>已送达但本地丢回执</td><td>业务完成和交付失败分开统计</td></tr>
 </tbody>
 </table>
 </div>
+<p>安全回归按<a href="04-agent-runtime.html#runtime-security-verification">17.5.6 的验证用例</a>建立覆盖关系，分别记录规则命中、OS 拒绝、服务端拒绝和实际副作用。只记录“模型拒答”或“没有发送调用”不能证明执行边界已验证；升级产品、修改组织策略或新增联网工具后重跑受影响路径。</p>
 <p>unknown 未决清单必须有责任人、期限和核验入口，不能通过回滚版本删除。复盘使用统一根因词表，敏感载荷保存受控引用。</p>
 <p><a id="1735-累计风险预算与门禁信号"></a>
 <a id="shared-resource-governance"></a></p>

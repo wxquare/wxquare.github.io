@@ -43,7 +43,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1a3813fe.js";
+            window.path_to_searchindex_js = "../searchindex-cf72c21c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-6e3e5c7c.js"></script>
@@ -498,6 +498,7 @@
 <p>三个默认值要如实说明，因为它们与“更安全”的直觉不完全一致。</p>
 <p>第一，工具策略默认 <code>tools.profile:"full"</code>：full 选择工具，但不授予 Full Access 执行权限；<code>minimal</code> 只有 <code>session_status</code> 和仅 update 的 <code>gateway</code>；<code>coding</code>/<code>messaging</code> 是中间档<a href="#ref-14">[14]</a>。第二，exec 审批默认 <code>security:"full"</code>、<code>ask:"off"</code>——即受信运营者模型下，网关/节点主机的 exec 默认放行、不询问；“高风险动作默认确认”是本书建议，不是产品默认；审批只能收紧不能放松，需要提示但无 UI 或提示超时时按 <code>askFallback</code>（默认 <code>deny</code>）解析<a href="#ref-18">[18]</a>。第三，沙箱默认关闭：<code>agents.defaults.sandbox.mode</code> 默认 <code>off</code>，<code>workspaceAccess</code> 默认 <code>none</code>；启用时 <code>non-main</code> 沙箱化除 main 外的所有会话，backend 默认 Docker，<code>sandbox.docker.network</code> 默认 <code>"none"</code><a href="#ref-24">[24]</a>。</p>
 <p>官方对“高风险动作怎么管”给的是收紧路径，而不是默认：对处理不可信内容的 agent 默认 <code>tools.deny:["gateway","cron","sessions_spawn","sessions_send"]</code>；exec 需要审批时用 <code>ask:"always"</code> 加 <code>security:"deny"</code> 或严格 allowlist；<code>tools.elevated</code> 是显式逃生口，保持 <code>allowFrom</code> 收窄且不给陌生人；强制创建者角色沙箱（<code>sandbox:"required"</code>）在后端不可用时阻断执行，不回退到宿主机<a href="#ref-26">[26]</a>。官方还给了三个 access profile 的例子：个人 agent（全权限无沙箱）、家庭/工作 agent（沙箱 + 只读工具）、公开 agent（沙箱 + 无文件系统/shell 工具）<a href="#ref-26">[26]</a>。</p>
+<p>本书建议把上述机制映射到<a href="../part3/04-agent-runtime.html#runtime-security">17.5 安全与授权</a>：入口配对确认谁能发起任务，工具策略决定暴露能力，exec 审批处理具体命令，沙箱约束实际执行，业务服务继续鉴权。验收时分别测试 main 与 non-main 会话、宿主 exec 和 elevated 路径；即使某会话中的 Shell 断网，消息与浏览器等外发工具仍需单独验证目标和内容，不能用单个容器的网络配置证明所有路径受限。</p>
 <h3 id="2155-不可信输入委托权限与多用户边界"><a class="header" href="#2155-不可信输入委托权限与多用户边界">21.5.5 不可信输入、委托权限与多用户边界</a></h3>
 <p>提示注入的官方立场是：模型选择是“第一道、最便宜的一层”，但仍需硬性执行（工具策略、exec 审批、沙箱）；不可信内容（网页、邮件、附件、粘贴日志）本身是威胁面，不止发送者；对“工具启用/读不可信内容”的 agent 使用最新一代最佳档模型，不要用更弱/更小档；若必须用小模型，则只读工具、强沙箱、最小文件系统访问、严格白名单，并关闭 <code>web_search/web_fetch/browser</code>；更稳的做法是用只读或禁用工具的“读者 agent”先摘要不可信内容再交给主 agent<a href="#ref-30">[30]</a>。</p>
 <p>下述硬化配置是本书依据官方安全材料组合的示例，使用前应按目标版本验证工具可达性：<code>gateway:{mode:"local", bind:"loopback", auth:{mode:"token", …}}</code>、<code>session.dmScope:"per-channel-peer"</code>、<code>tools:{profile:"messaging", deny:["group:automation","group:runtime","group:fs","sessions_spawn","sessions_send"], fs:{workspaceOnly:true}, exec:{security:"deny", ask:"always"}, elevated:{enabled:false}, sessions:{visibility:"agent"}, agentToAgent:{enabled:false}}</code>，加上 WhatsApp 的 <code>dmPolicy:"pairing"</code> 与群 <code>requireMention:true</code>；其中一条内置底线是：聊天驱动的 agent turn 中非 owner 发送者无论配置如何都不能使用 <code>cron</code> 或 <code>gateway</code> 工具<a href="#ref-31">[31]</a>。只读模式的组合是 <code>workspaceAccess:"ro"</code>（或 <code>none</code>）+ 工具 allow/deny 阻断 write/edit/apply_patch/exec/process；<code>tools.exec.applyPatch.workspaceOnly:true</code>（默认）即使沙箱关闭也阻止 apply_patch 写工作区外；官方还提醒“避免把 home 目录这类宽根目录作为 agent/沙箱工作区”<a href="#ref-26">[26]</a>。</p>

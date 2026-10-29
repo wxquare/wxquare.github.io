@@ -43,7 +43,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1a3813fe.js";
+            window.path_to_searchindex_js = "../searchindex-cf72c21c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-6e3e5c7c.js"></script>
@@ -471,6 +471,7 @@
 <h3 id="2251-先理解安全模型"><a class="header" href="#2251-先理解安全模型">22.5.1 先理解安全模型</a></h3>
 <p>Hermes 的安全模型官方归纳为八层：用户授权、危险命令审批、文件写保护、容器隔离、MCP 凭据过滤、context 文件扫描、跨会话隔离、输入净化<a href="#ref-29">[29]</a>。但 SECURITY.md 同时把底线说得很直白：<strong>“唯一的安全边界是操作系统”</strong>——审批门、输出脱敏、模式扫描器、工具 allowlist 都不是 containment；审批门只抓“合作模式”的错误，不抓对抗输出；插件以完整 agent 权限运行，第三方插件的边界是安装前由操作者审阅<a href="#ref-30">[30]</a>。</p>
 <p>官方给出两种 OS 级隔离姿态：terminal-backend 隔离（仅限 shell/file 工具，不限制 code-execution、MCP 子进程、插件、hook、skill 加载）与 whole-process wrapping（把整个 agent 进程树放进 Docker/Compose 或 NVIDIA OpenShell）<a href="#ref-30">[30]</a>。默认 local 后端 + 不受控输入面，或指望 terminal-backend 沙箱约束不走 shell 的路径，都属于“支持姿态之外”<a href="#ref-30">[30]</a>。生产 gateway 部署官方建议用 docker/modal/daytona/vercel_sandbox 后端隔离命令（可免去危险命令审批）<a href="#ref-29">[29]</a>。</p>
+<p>本书建议用<a href="../part3/04-agent-runtime.html#runtime-security">17.5 的跨层模型</a>解释上述两种部署：terminal-backend 只覆盖其承诺的工具路径；whole-process wrapping 也仍需检查挂载、凭证与网络，远程 MCP 和业务服务继续按身份与资源鉴权。用合成秘密分别触发 terminal、execute_code、MCP 与插件路径，检查返回内容和后续发送，避免把“终端已隔离”误作“所有工具无法读秘密或外发”。</p>
 <h3 id="2252-审批deny-规则与-allowlist"><a class="header" href="#2252-审批deny-规则与-allowlist">22.5.2 审批、deny 规则与 allowlist</a></h3>
 <p>审批模式 <code>approvals.mode ∈ {smart, manual, off}</code>，默认 smart；<code>off</code> 等价 <code>--yolo</code>，关闭全部审批提示，官方标注“仅用于可信环境（CI/CD、容器等）”<a href="#ref-29">[29]</a>。<code>--yolo</code> 关闭所有危险命令检查，唯独 hardline blocklist 除外；hardline 是“<code>--yolo</code> 之下的地板”，合法流程需要 hardline 命令时官方建议“在 agent 之外运行”<a href="#ref-29">[29]</a>。</p>
 <p><code>approvals.deny</code> 是用户自定义 fnmatch glob，大小写不敏感，先于 yolo/off 判断，对所有 terminal 后端（含容器）生效，改动即时生效；YAML 里必须加引号（裸 <code>*</code> 开头会被当成 alias）。官方同时提醒：deny 规则不是完整 shell 解释器或 OS 沙箱，要隔离应使用 OS 权限与受限隔离后端<a href="#ref-29">[29]</a>。永久 allowlist 在启动时读取，为安全移除条目后必须重启；用 <code>hermes config edit</code> 审阅，用 <code>hermes approvals suggest</code> 从已批准命令挖掘提案（默认 dry-run，破坏类永不提议）<a href="#ref-29">[29]</a>。</p>
