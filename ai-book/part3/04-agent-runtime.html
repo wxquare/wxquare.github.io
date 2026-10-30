@@ -43,7 +43,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-7cc9ca99.js";
+            window.path_to_searchindex_js = "../searchindex-5f78825f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-6e3e5c7c.js"></script>
@@ -272,7 +272,7 @@
 </tbody>
 </table>
 </div>
-<p>Runtime 可以按逻辑责任分为控制面、执行面、横切能力和外部依赖，再通过共同的对象模型协作。本节采用“版本化状态与事件共同提交”的参考实现：状态库负责当前事实，事件保留变化过程，Worker 提交结果提案，由受控状态接口决定是否接受。图中的方框表示职责归组，不规定代码包、进程或服务边界。</p>
+<p>Runtime 的职责可以分为控制面、执行面与横切能力，并通过适配器使用外部依赖；各部分通过共同的对象模型协作。本节采用“版本化状态与事件共同提交”的参考实现：状态库负责当前事实，事件保留变化过程，Worker 提交结果提案，由受控状态接口决定是否接受。图中的方框表示职责归组，不规定代码包、进程或服务边界。</p>
 <p><a id="control-execution-plane"></a></p>
 <p><a id="runtime-component-planes"></a></p>
 <p><a id="1521-控制面执行面与组件分工"></a></p>
@@ -306,6 +306,60 @@
 </div>
 <p>这里的 Runtime 是上述职责的整体，而不是与 Agent Loop、Execution Engine 并列的另一个执行节点。“控制面 / 执行面”划分的是决策与执行责任，不是按组件名称机械划分进程：例如 Verifier 的规则归控制面管理，检查可以在 Worker 中运行，检查结果由控制面接受；上下文访问规则与实际检索也可以分别部署。底层数据库、消息系统、对象存储与沙箱属于外部依赖，但它们怎样提交、恢复和强制访问边界，决定了 Runtime 能兑现哪些承诺。</p>
 <p>逻辑上的控制面可以直接调用同进程执行器，也可以通过持久调度驱动远程 Worker。网络边界增加了失败窗口，拆分部署后还需要明确请求去重、调用超时与结果未知的处理，不能把进程内函数调用的假设直接搬到 RPC 上。</p>
+<p><strong>控制面有哪些模块</strong></p>
+<p><a href="../images/agent-runtime-control-plane.svg"><img src="../images/agent-runtime-control-plane.png" alt="控制面模块架构：任务、规划、策略、调度和状态管理"></a></p>
+<p><em>控制面模块架构。箭头表示典型协作关系；执行结果由状态管理模块校验并提交。点击图片查看 SVG。</em></p>
+<p>图中的六组职责可以进一步拆成下列模块。模块是理解责任的单位，同一个实现可以合并多个模块；“保存的内容”说明需要管理的信息，不要求每一行都有独立数据表。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>模块</th><th>负责什么</th><th>管理或保存什么</th><th>关键边界</th></tr>
+</thead>
+<tbody>
+<tr><td>入口与会话路由（Intake / Session Router）</td><td>接收用户消息、API 请求、回调或定时事件，找到所属会话与任务</td><td>入口类型、可信主体、会话关联、请求标识和输入引用</td><td>收到请求不等于已经持久受理；渠道身份须经可信映射</td></tr>
+<tr><td>任务与生命周期（Task / Run Manager）</td><td>明确目标和完成条件，创建运行，处理取消、暂停、恢复与交接</td><td>Task 契约及修订、Run 状态、截止时间、等待条件和终态</td><td>用户补充信息、重试和新目标具有不同语义；已发生的动作不会因取消消失</td></tr>
+<tr><td>规划与循环（Planner / Agent Loop）</td><td>基于目标和观察提出步骤、依赖、下一动作或结束建议</td><td>候选计划、已接受的计划版本、步骤关系、观察引用和决策记录</td><td>计划与模型输出是提议；实际动作仍须通过策略与调度</td></tr>
+<tr><td>调度与执行权（Scheduler）</td><td>判断步骤是否就绪，分配 Worker，处理依赖、并发、租约和重试</td><td>就绪项、队列或 Outbox 引用、租约、执行代次、重试与等待信息</td><td>认领 Step 只授予推进资格，不证明外部操作已经生效</td></tr>
+<tr><td>策略与人工控制（Policy / Approval）</td><td>按主体、动作、目标和策略裁决，必要时等待有权主体批准</td><td>策略版本、动作裁决、审批对象、批准范围、有效期和等待状态</td><td>审批绑定具体载荷与资源版本；策略裁决不能替代执行隔离或下游鉴权</td></tr>
+<tr><td>配置与能力注册（Configuration / Registry）</td><td>装配模型、工具、Skill、数据源、连接器和验证器，提供可选能力及其契约</td><td>生效配置、来源和版本、能力标识、Schema、实现绑定及快照引用</td><td>能力已注册不代表本次 Run 已获授权；Skill 提供方法，不直接授予权限</td></tr>
+<tr><td>外部能力管理（Capability Manager）</td><td>管理 Skill、MCP 和 Connector 的定义、目录、连接及任务绑定</td><td>Skill 元数据、Server 配置与目录、Connector 信息、Connection 引用和 Run Binding</td><td>管理接入信息与能力范围；远端 Server 的实现和业务资源由其提供方管理</td></tr>
+<tr><td>状态与恢复（State / Checkpoint Manager）</td><td>校验并提交状态迁移，记录事件和恢复位置</td><td>Task、Run、Step、Attempt、Operation 的状态及版本，Event、Checkpoint 和未决工作引用</td><td>Worker 提交结果提案；状态接口决定接受与否，业务效果仍以资源端证据为准</td></tr>
+<tr><td>上下文与记忆策略（Context / Memory Policy）</td><td>决定可供本轮使用的证据、历史、能力与跨任务记忆，约束读写</td><td>来源与权限规则、上下文包和版本引用、记忆范围与写入记录</td><td>记忆和摘要不是执行账本；材料曾经可见不代表当前仍可访问</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>执行面有哪些模块</strong></p>
+<p><a href="../images/agent-runtime-execution-plane.svg"><img src="../images/agent-runtime-execution-plane.png" alt="执行面模块架构：上下文、模型、工具、验证与交付"></a></p>
+<p><em>执行面模块架构。模型提议返回控制面裁决；工具观察和验证结果经状态接口接受，交付须单独授权。点击图片查看 SVG。</em></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>模块</th><th>负责什么</th><th>管理或保存什么</th><th>关键边界</th></tr>
+</thead>
+<tbody>
+<tr><td>上下文构建器（Context Builder）</td><td>按本轮任务、权限和预算选择材料并构建模型输入</td><td>消息与证据引用、过滤结果、上下文包版本及必要的载荷引用</td><td>模型只看到所装配的内容；外部文本的来源和信任级别需保留</td></tr>
+<tr><td>模型适配器（Model Adapter）</td><td>将统一请求转换为 Provider 协议，接收流式响应与用量</td><td>模型和参数、请求关联、响应及用量；敏感载荷按保留策略受控保存</td><td>模型返回候选回答或工具调用，不直接决定授权与任务终态</td></tr>
+<tr><td>执行引擎与工具运行时（Execution Engine / Tool Runtime）</td><td>启动受控 Attempt，校验参数，调用工具，处理超时、取消与结果归一化</td><td>当前 Attempt、调用句柄、参数摘要、工具观察、错误和回执引用</td><td>局部句柄可随进程消失；超时或取消不证明远端动作未发生</td></tr>
+<tr><td>连接器与执行后端（Connector / Backend）</td><td>适配 MCP、业务 API、Shell 或沙箱等实际调用方式</td><td>能力与连接绑定、资源范围、进程或会话句柄、请求与回执关联</td><td>连接器负责协议适配，资源端负责业务鉴权和真实效果；沙箱由宿主落实</td></tr>
+<tr><td>验证器（Verifier）</td><td>按契约检查格式、证据、产物及外部结果</td><td>规则版本、检查结果、证据引用和未满足条件</td><td>验证结果供控制面接受，不能单凭模型声称成功提交终态</td></tr>
+<tr><td>产物与交付（Artifact / Delivery）</td><td>保存版本化载荷，向用户或渠道提供结果</td><td>报告、文件和原始工具载荷引用，内容哈希、投递记录与渠道回执</td><td>产物保存、任务完成、通知送达分别记录；读取和发送各有授权</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>横切模块与外部支撑</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>模块</th><th>负责什么</th><th>管理或保存什么</th><th>关键边界</th></tr>
+</thead>
+<tbody>
+<tr><td>预算与资源（Budget / Resource）</td><td>在模型、工具、重试和子任务间分配、计量并限制资源</td><td>根预算、分配与消耗、配额、并发、截止时间和取消信号</td><td>重试和委派不能重置总预算；取消信号不撤销已发生的副作用</td></tr>
+<tr><td>身份与凭证（Identity / Credentials）</td><td>绑定租户与主体，按运行范围提供访问凭证</td><td>可信主体映射、连接授权、凭证引用、作用域与有效期</td><td>凭证秘密保存在受控凭证设施中，不进入模型上下文或普通日志；凭证可用不等于动作获准</td></tr>
+<tr><td>观测与治理（Observability / Audit）</td><td>关联过程、裁决、用量与异常，支持诊断、审计和改进</td><td>Trace、Span、审计事件、指标、告警及必要的脱敏索引</td><td>诊断日志可能采样或延迟，不替代任务状态、Operation 账本和资源端回执</td></tr>
+</tbody>
+</table>
+</div>
+<p>模型服务提供推理，工具服务和业务 API 提供具体能力，数据库、消息系统和对象存储提供状态与载荷的基础设施，操作系统、容器或沙箱提供执行环境。Runtime 将这些依赖绑定到任务并解释结果；某项能力最终能否持久化、隔离或防重，还取决于对应后端的实际契约。轻量进程内 Agent 可以只实现其中一部分，并明确声明重启后的恢复范围；本章后续以支持持久受理和恢复的设计为例。</p>
 <p><a id="runtime-module-interfaces"></a></p>
 <p><a id="1522-模块接口与执行契约"></a></p>
 <h3 id="1722-模块接口与执行契约"><a class="header" href="#1722-模块接口与执行契约">17.2.2 模块接口与执行契约</a></h3>
@@ -321,13 +375,18 @@
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>对象</th><th>本次 ALR 中的含义</th><th>稳定边界</th></tr>
+<tr><th>对象</th><th>保存的主要内容</th><th>本次 ALR 中的作用与身份边界</th></tr>
 </thead>
 <tbody>
-<tr><td>Task</td><td>用户要完成的诊断目标与契约</td><td>新目标才产生新 Task</td></tr>
-<tr><td>Run</td><td>run_0429_017 的一次版本化执行</td><td>重连、重启和接管保留该身份</td></tr>
-<tr><td>Step</td><td>取证、形成草稿、建单等逻辑提交节点</td><td>重试不重建逻辑节点</td></tr>
-<tr><td>Operation</td><td>创建 INC-4821 的独立业务意图</td><td>多次尝试/查询使用原身份</td></tr>
+<tr><td>Session</td><td>交互主体、消息历史、渠道与会话关联</td><td>承载用户与系统的连续交互；一次会话可关联多个任务</td></tr>
+<tr><td>Task</td><td>目标、范围、约束、完成条件及接受的修订</td><td>表达诊断 <code>ALR-20260429-017</code> 的任务契约；新目标才产生新 Task</td></tr>
+<tr><td>Run</td><td>Task 的执行身份、契约与配置版本、状态、预算和等待条件</td><td><code>run_0429_017</code> 是一次执行；重连、重启和接管保留该身份</td></tr>
+<tr><td>Step</td><td>逻辑节点、输入与依赖引用、计划版本、状态和结果引用</td><td>表达取证、形成草稿或建单等节点；重试不重建逻辑节点</td></tr>
+<tr><td>Attempt</td><td>一次实际尝试的执行者、时间、结果、错误和用量</td><td>同一 Step 可以有多次尝试；新执行者或重试不改变 Step 身份</td></tr>
+<tr><td>Operation</td><td>外部动作的业务意图、目标、载荷绑定、派发与回执或核验状态</td><td>创建 <code>INC-4821</code> 的动作有独立身份；多次尝试和查询沿用该身份</td></tr>
+<tr><td>Event</td><td>已接受的状态变化、关联对象、序号和发生依据</td><td>记录受理、审批等待或结果提交等变化；不把模型自由文本当作状态迁移</td></tr>
+<tr><td>Checkpoint</td><td>已确认进度、版本与产物引用，以及等待条件和未决动作的恢复索引</td><td>指出从哪里继续；不保存完整进程内存，也不重新授予执行权</td></tr>
+<tr><td>Artifact</td><td>报告、证据、工具载荷等内容或其受控引用、版本与哈希</td><td>保存诊断报告和建单草稿等载荷；读取仍须检查当前权限</td></tr>
 </tbody>
 </table>
 </div>
@@ -350,7 +409,7 @@ erDiagram
 
 <p>图中最需要注意的是 Operation 与 Attempt 的关系：一个业务动作可以被多次尝试推进或查询，但它的身份不随尝试变化。Event 记录 Run 上已经被接受的状态变化，Checkpoint 是从这些事实中整理出的恢复索引，Artifact 则承载不适合放进状态表的大载荷。</p>
 <p>这些身份必须分开的原因在于，它们在不同的时机变化。一个 Run 可以由不同 worker 接续，经历多次重连才完成，所以线程、进程、连接与 Run 不能共用一个身份字段。如果把 Task 和 Run 混为一个 id，系统就无法区分“重试”和“重新运行”，计费会出错，不同版本的执行历史也会互相覆盖。</p>
-<p>本节先使用 Task、Run、Step、Operation 四个稳定对象。Session 记录交互，Attempt 记录一次尝试，Event/Checkpoint/Artifact 分别提供变化记录、恢复索引和版本化载荷；它们在后续执行与恢复中逐步展开。执行权代次和两种幂等键的字段约束在<a href="#failure-ownership">执行权与迟到提交</a>处定义。</p>
+<p>Task、Run、Step 和 Operation 分别稳定地标识目标、一次执行、逻辑节点和业务动作；Session 记录交互，Attempt 记录一次尝试，Event、Checkpoint 和 Artifact 分别提供变化记录、恢复索引和版本化载荷。执行权代次和两种幂等键的字段约束在<a href="#failure-ownership">执行权与迟到提交</a>处定义。</p>
 <p><a id="连接与运行绑定"></a></p>
 <p><strong>连接与运行绑定</strong></p>
 <div class="table-wrapper">
@@ -366,6 +425,27 @@ erDiagram
 </table>
 </div>
 <p>例如，同一个工单 Connector 可服务多个组织；Connection A 属于租户 A，Run R 仅绑定项目 P 的读取与待审批创建权限。后续每次调用都使用这个受限绑定，而不是由模型输入的 URL 或项目名自由选择连接。绑定如何参与派发见 <a href="#execution-run-binding">本次执行的能力绑定</a>。</p>
+<p><a id="runtime-external-capability-management"></a></p>
+<p><strong>外部能力与资源的组成</strong></p>
+<p>图中“配置与能力注册”涵盖外部能力管理，执行面则包含相应的客户端、连接器与适配器。外部能力管理由能力目录、Skill 管理、MCP Client 管理、Connector 管理以及连接与运行绑定等职责组成。这些职责可以合并在同一个宿主中，也可以由不同组件承担。Runtime 保存能力的定义、来源和引用；远程 Server、外部账号和业务资源仍由各自的提供方管理。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>模块或职责</th><th>管理的对象</th><th>保存的信息与责任边界</th></tr>
+</thead>
+<tbody>
+<tr><td>Skill 管理器</td><td>Skill 包、入口文件及配套资源</td><td>保存名称、描述、来源、版本或内容摘要、入口路径、依赖和启用状态；Skill 是方法说明，其指令或脚本不自带工具与资源权限</td></tr>
+<tr><td>MCP Client 管理器</td><td>MCP Server 定义、Client 及传输连接</td><td>保存 Server 身份、来源、端点或启动配置、协议兼容范围和认证引用；连接和本地子进程句柄属于运行时局部状态，远程 Server 的实现由提供方管理</td></tr>
+<tr><td>能力目录（Catalog）</td><td>Tool、MCP Resource、Prompt 和其他能力描述</td><td>保存能力标识、来源、Schema 或元数据、版本及可见范围；MCP Tool 是可调用动作，Resource 是可读取资源，Prompt 是模板，各自具有不同契约</td></tr>
+<tr><td>Connector 管理器</td><td>面向外部系统的集成实现及其定义</td><td>保存适配器版本、服务类型、操作契约、资源映射和配置引用；Connector 可由 Runtime 直接承载，也可由 MCP Server 托管</td></tr>
+<tr><td>连接与凭证管理</td><td>Connection、主体与外部账号的授权关系</td><td>保存租户、账号、授权范围、有效期、撤销状态和凭证引用；密钥或令牌归受控凭证设施，不进入模型上下文或普通日志</td></tr>
+<tr><td>运行绑定（Run Binding）</td><td>一次 Run 选用的能力、Connection 与资源范围</td><td>保存能力版本、主体、租户、目标资源、允许的动作和策略引用；它是本次任务的范围记录，不改变外部资源的归属</td></tr>
+</tbody>
+</table>
+</div>
+<p>能力目录记录“系统认识哪些能力”，Connection 记录“哪个主体与外部账号建立了什么授权关系”，Run Binding 记录“本次执行使用哪些能力及范围”。运行时可以保存外部资源的标识、版本或 ETag、来源和受控内容引用；文档、日志、工单及其他业务对象的权威状态仍归资源端。MCP Server 内部可能包含自己的 Connector 与凭证设施，Host 对这些内部对象的可见性取决于服务提供方公开的契约。</p>
+<p>在 ALR 参考设计中，告警诊断 Skill 对应一条 Skill 目录记录，日志查询能力对应 MCP Server 与工具目录记录，工单服务对应 Connector 定义；某个主体的工单账号由 Connection 表示，本次 <code>run_0429_017</code> 的能力、项目与动作范围由 Run Binding 表示。这些对象分别描述方法、能力入口、账号关系和任务范围，不是同一个“工具配置”。</p>
+<p>Skill、MCP 与 Connector 的启动装配分别见 <a href="#runtime-bootstrap-skills">17.3.4</a>、<a href="#runtime-bootstrap-mcp">17.3.5</a> 和 <a href="#runtime-bootstrap-connectors">17.3.6</a>；运行时如何选择、授权和调用能力见 <a href="#runtime-task-execution">17.4</a>。</p>
 <p><a id="runtime-fact-authority"></a></p>
 <p><a id="1524-状态机与条件提交"></a></p>
 <h3 id="1724-状态机与条件提交"><a class="header" href="#1724-状态机与条件提交">17.2.4 状态机与条件提交</a></h3>
@@ -415,6 +495,27 @@ erDiagram
 <p><a id="1525-存储职责事件与观测"></a></p>
 <h3 id="1725-存储职责事件与观测"><a class="header" href="#1725-存储职责事件与观测">17.2.5 存储职责、事件与观测</a></h3>
 <p>对话历史保存“说过什么”，Memory 保存受治理的跨任务信息，执行事件保存已接受的变化，Operation 账本关联外部动作与核验事实。摘要里的“已创建工单”不能替代对应 Operation 与资源端证据。</p>
+<p>下表给出本章参考设计中各类信息的存放职责。它们可以共用数据库或由不同服务管理；表中区分的是内容、权威性与恢复用途，不要求为每一类信息部署独立存储。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>存储或记录</th><th>主要内容与管理方</th><th>用途与边界</th></tr>
+</thead>
+<tbody>
+<tr><td>会话与消息存储</td><td>会话路由管理 Session、消息、工具调用与结果及来源关联</td><td>支持交互历史与上下文装配；会话历史不等于当前任务执行状态</td></tr>
+<tr><td>任务与运行状态库</td><td>状态管理模块保存 Task / Run / Step / Attempt、状态版本、依赖、执行权、等待条件和预算记录</td><td>查询当前进度并进行条件提交；Worker 内存和消息队列不是权威状态</td></tr>
+<tr><td>事件与 Outbox</td><td>状态管理模块追加已接受的变化；Outbox 保存待发布的调度或交付消息及投递状态</td><td>解释状态变化并恢复待发送工作；本书在同库事务中提交相关状态和记录，消费者仍需处理重复</td></tr>
+<tr><td>Operation 账本</td><td>状态管理模块关联业务意图、稳定操作身份、载荷绑定、派发记录、资源端回执和核验结果</td><td>跟踪外部动作的未知、确认或补偿；本地记录不能自行证明远端效果</td></tr>
+<tr><td>Checkpoint</td><td>状态管理模块保存进度、版本、已提交产物引用和未决等待的恢复索引</td><td>帮助新执行者定位继续位置；旧租约不能作为新的执行权</td></tr>
+<tr><td>Artifact 存储</td><td>产物模块保存报告、文件、上下文包或工具大载荷及其版本、哈希与访问范围</td><td>承载大内容；状态和事件保存受控引用，载荷需完成保存和校验后才能提交引用</td></tr>
+<tr><td>配置、能力与连接记录</td><td>配置及注册模块保存有效配置、模型 / 工具 / Skill 版本、Schema、连接授权及本次 Run 的绑定</td><td>支持装配、审计与恢复时的版本核对；连接授权仍须在调用时复核</td></tr>
+<tr><td>Memory / 知识存储</td><td>记忆或知识组件保存跨任务信息、来源、归属、访问与更新规则</td><td>用于后续检索和上下文构建；不以记忆替代任务事实或业务回执</td></tr>
+<tr><td>凭证设施</td><td>受控凭证服务保存密钥和令牌；Runtime 保存必要的凭证引用、作用域与有效期</td><td>按主体和动作提供受限访问；秘密不写入模型上下文、普通事件或日志</td></tr>
+<tr><td>观测与审计存储</td><td>观测与审计组件保存关联标识、Trace、指标、裁决与审计记录</td><td>用于诊断、计量和追责；按敏感度、保留期及访问范围治理，不替代状态库</td></tr>
+</tbody>
+</table>
+</div>
+<p>以 ALR 为例，入口将用户消息关联到 Session，受理后状态库保存 Task 契约和 <code>run_0429_017</code>；调度器据此推进取证 Step，工具观察及报告内容保存在受控载荷中，状态与事件记录已接受的结果。需要建单时，审批记录绑定草稿和资源版本，Operation 记录创建工单的意图与回执；若回执丢失，恢复后的 Worker 沿原 Operation 核验，不能把模型摘要当作建单证据。报告与通知分别有产物及交付记录，因此报告完成、<code>INC-4821</code> 已创建和通知已送达可以分别查询。</p>
 <p>状态表也不必承载所有内容。任务目标、当前版本、依赖关系、执行权和未决操作需要可查询，因此放在状态表中；长文本、文件、工具原始载荷和报告进入受控的 Artifact 仓库；事件则保留状态变化的因果。读取 Artifact 时要再次检查当前权限，曾经进入过某个 Run 的内容，并不意味着永远可见。内容哈希可以证明载荷是否发生变化，但它不能代替鉴权，也不能证明业务含义正确。</p>
 <p>单次执行的恢复状态与跨任务共享信息应采用不同的存储契约；内存实现可以验证接口，但无法证明进程重启后的耐久性。<a href="#ref-5">[5]</a> 在本章的参考设计中，状态、事件、Artifact 与记忆可以共用底层存储，但各自的提交、删除、权限和保留规则必须分别定义。</p>
 <p>消息存储保留原文与来源血缘，模型只读取<a href="#context-builder">本轮上下文包</a>，不直接消费全部历史；包引用与过滤记录应可审计。</p>

@@ -44,7 +44,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7cc9ca99.js";
+            window.path_to_searchindex_js = "searchindex-5f78825f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6e3e5c7c.js"></script>
@@ -8447,7 +8447,7 @@ MCP 测试：
 </tbody>
 </table>
 </div>
-<p>Runtime 可以按逻辑责任分为控制面、执行面、横切能力和外部依赖，再通过共同的对象模型协作。本节采用“版本化状态与事件共同提交”的参考实现：状态库负责当前事实，事件保留变化过程，Worker 提交结果提案，由受控状态接口决定是否接受。图中的方框表示职责归组，不规定代码包、进程或服务边界。</p>
+<p>Runtime 的职责可以分为控制面、执行面与横切能力，并通过适配器使用外部依赖；各部分通过共同的对象模型协作。本节采用“版本化状态与事件共同提交”的参考实现：状态库负责当前事实，事件保留变化过程，Worker 提交结果提案，由受控状态接口决定是否接受。图中的方框表示职责归组，不规定代码包、进程或服务边界。</p>
 <p><a id="control-execution-plane"></a></p>
 <p><a id="runtime-component-planes"></a></p>
 <p><a id="1521-控制面执行面与组件分工"></a></p>
@@ -8481,6 +8481,60 @@ MCP 测试：
 </div>
 <p>这里的 Runtime 是上述职责的整体，而不是与 Agent Loop、Execution Engine 并列的另一个执行节点。“控制面 / 执行面”划分的是决策与执行责任，不是按组件名称机械划分进程：例如 Verifier 的规则归控制面管理，检查可以在 Worker 中运行，检查结果由控制面接受；上下文访问规则与实际检索也可以分别部署。底层数据库、消息系统、对象存储与沙箱属于外部依赖，但它们怎样提交、恢复和强制访问边界，决定了 Runtime 能兑现哪些承诺。</p>
 <p>逻辑上的控制面可以直接调用同进程执行器，也可以通过持久调度驱动远程 Worker。网络边界增加了失败窗口，拆分部署后还需要明确请求去重、调用超时与结果未知的处理，不能把进程内函数调用的假设直接搬到 RPC 上。</p>
+<p><strong>控制面有哪些模块</strong></p>
+<p><a href="images/agent-runtime-control-plane.svg"><img src="images/agent-runtime-control-plane.png" alt="控制面模块架构：任务、规划、策略、调度和状态管理"></a></p>
+<p><em>控制面模块架构。箭头表示典型协作关系；执行结果由状态管理模块校验并提交。点击图片查看 SVG。</em></p>
+<p>图中的六组职责可以进一步拆成下列模块。模块是理解责任的单位，同一个实现可以合并多个模块；“保存的内容”说明需要管理的信息，不要求每一行都有独立数据表。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>模块</th><th>负责什么</th><th>管理或保存什么</th><th>关键边界</th></tr>
+</thead>
+<tbody>
+<tr><td>入口与会话路由（Intake / Session Router）</td><td>接收用户消息、API 请求、回调或定时事件，找到所属会话与任务</td><td>入口类型、可信主体、会话关联、请求标识和输入引用</td><td>收到请求不等于已经持久受理；渠道身份须经可信映射</td></tr>
+<tr><td>任务与生命周期（Task / Run Manager）</td><td>明确目标和完成条件，创建运行，处理取消、暂停、恢复与交接</td><td>Task 契约及修订、Run 状态、截止时间、等待条件和终态</td><td>用户补充信息、重试和新目标具有不同语义；已发生的动作不会因取消消失</td></tr>
+<tr><td>规划与循环（Planner / Agent Loop）</td><td>基于目标和观察提出步骤、依赖、下一动作或结束建议</td><td>候选计划、已接受的计划版本、步骤关系、观察引用和决策记录</td><td>计划与模型输出是提议；实际动作仍须通过策略与调度</td></tr>
+<tr><td>调度与执行权（Scheduler）</td><td>判断步骤是否就绪，分配 Worker，处理依赖、并发、租约和重试</td><td>就绪项、队列或 Outbox 引用、租约、执行代次、重试与等待信息</td><td>认领 Step 只授予推进资格，不证明外部操作已经生效</td></tr>
+<tr><td>策略与人工控制（Policy / Approval）</td><td>按主体、动作、目标和策略裁决，必要时等待有权主体批准</td><td>策略版本、动作裁决、审批对象、批准范围、有效期和等待状态</td><td>审批绑定具体载荷与资源版本；策略裁决不能替代执行隔离或下游鉴权</td></tr>
+<tr><td>配置与能力注册（Configuration / Registry）</td><td>装配模型、工具、Skill、数据源、连接器和验证器，提供可选能力及其契约</td><td>生效配置、来源和版本、能力标识、Schema、实现绑定及快照引用</td><td>能力已注册不代表本次 Run 已获授权；Skill 提供方法，不直接授予权限</td></tr>
+<tr><td>外部能力管理（Capability Manager）</td><td>管理 Skill、MCP 和 Connector 的定义、目录、连接及任务绑定</td><td>Skill 元数据、Server 配置与目录、Connector 信息、Connection 引用和 Run Binding</td><td>管理接入信息与能力范围；远端 Server 的实现和业务资源由其提供方管理</td></tr>
+<tr><td>状态与恢复（State / Checkpoint Manager）</td><td>校验并提交状态迁移，记录事件和恢复位置</td><td>Task、Run、Step、Attempt、Operation 的状态及版本，Event、Checkpoint 和未决工作引用</td><td>Worker 提交结果提案；状态接口决定接受与否，业务效果仍以资源端证据为准</td></tr>
+<tr><td>上下文与记忆策略（Context / Memory Policy）</td><td>决定可供本轮使用的证据、历史、能力与跨任务记忆，约束读写</td><td>来源与权限规则、上下文包和版本引用、记忆范围与写入记录</td><td>记忆和摘要不是执行账本；材料曾经可见不代表当前仍可访问</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>执行面有哪些模块</strong></p>
+<p><a href="images/agent-runtime-execution-plane.svg"><img src="images/agent-runtime-execution-plane.png" alt="执行面模块架构：上下文、模型、工具、验证与交付"></a></p>
+<p><em>执行面模块架构。模型提议返回控制面裁决；工具观察和验证结果经状态接口接受，交付须单独授权。点击图片查看 SVG。</em></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>模块</th><th>负责什么</th><th>管理或保存什么</th><th>关键边界</th></tr>
+</thead>
+<tbody>
+<tr><td>上下文构建器（Context Builder）</td><td>按本轮任务、权限和预算选择材料并构建模型输入</td><td>消息与证据引用、过滤结果、上下文包版本及必要的载荷引用</td><td>模型只看到所装配的内容；外部文本的来源和信任级别需保留</td></tr>
+<tr><td>模型适配器（Model Adapter）</td><td>将统一请求转换为 Provider 协议，接收流式响应与用量</td><td>模型和参数、请求关联、响应及用量；敏感载荷按保留策略受控保存</td><td>模型返回候选回答或工具调用，不直接决定授权与任务终态</td></tr>
+<tr><td>执行引擎与工具运行时（Execution Engine / Tool Runtime）</td><td>启动受控 Attempt，校验参数，调用工具，处理超时、取消与结果归一化</td><td>当前 Attempt、调用句柄、参数摘要、工具观察、错误和回执引用</td><td>局部句柄可随进程消失；超时或取消不证明远端动作未发生</td></tr>
+<tr><td>连接器与执行后端（Connector / Backend）</td><td>适配 MCP、业务 API、Shell 或沙箱等实际调用方式</td><td>能力与连接绑定、资源范围、进程或会话句柄、请求与回执关联</td><td>连接器负责协议适配，资源端负责业务鉴权和真实效果；沙箱由宿主落实</td></tr>
+<tr><td>验证器（Verifier）</td><td>按契约检查格式、证据、产物及外部结果</td><td>规则版本、检查结果、证据引用和未满足条件</td><td>验证结果供控制面接受，不能单凭模型声称成功提交终态</td></tr>
+<tr><td>产物与交付（Artifact / Delivery）</td><td>保存版本化载荷，向用户或渠道提供结果</td><td>报告、文件和原始工具载荷引用，内容哈希、投递记录与渠道回执</td><td>产物保存、任务完成、通知送达分别记录；读取和发送各有授权</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>横切模块与外部支撑</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>模块</th><th>负责什么</th><th>管理或保存什么</th><th>关键边界</th></tr>
+</thead>
+<tbody>
+<tr><td>预算与资源（Budget / Resource）</td><td>在模型、工具、重试和子任务间分配、计量并限制资源</td><td>根预算、分配与消耗、配额、并发、截止时间和取消信号</td><td>重试和委派不能重置总预算；取消信号不撤销已发生的副作用</td></tr>
+<tr><td>身份与凭证（Identity / Credentials）</td><td>绑定租户与主体，按运行范围提供访问凭证</td><td>可信主体映射、连接授权、凭证引用、作用域与有效期</td><td>凭证秘密保存在受控凭证设施中，不进入模型上下文或普通日志；凭证可用不等于动作获准</td></tr>
+<tr><td>观测与治理（Observability / Audit）</td><td>关联过程、裁决、用量与异常，支持诊断、审计和改进</td><td>Trace、Span、审计事件、指标、告警及必要的脱敏索引</td><td>诊断日志可能采样或延迟，不替代任务状态、Operation 账本和资源端回执</td></tr>
+</tbody>
+</table>
+</div>
+<p>模型服务提供推理，工具服务和业务 API 提供具体能力，数据库、消息系统和对象存储提供状态与载荷的基础设施，操作系统、容器或沙箱提供执行环境。Runtime 将这些依赖绑定到任务并解释结果；某项能力最终能否持久化、隔离或防重，还取决于对应后端的实际契约。轻量进程内 Agent 可以只实现其中一部分，并明确声明重启后的恢复范围；本章后续以支持持久受理和恢复的设计为例。</p>
 <p><a id="runtime-module-interfaces"></a></p>
 <p><a id="1522-模块接口与执行契约"></a></p>
 <h3 id="1722-模块接口与执行契约"><a class="header" href="#1722-模块接口与执行契约">17.2.2 模块接口与执行契约</a></h3>
@@ -8496,13 +8550,18 @@ MCP 测试：
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>对象</th><th>本次 ALR 中的含义</th><th>稳定边界</th></tr>
+<tr><th>对象</th><th>保存的主要内容</th><th>本次 ALR 中的作用与身份边界</th></tr>
 </thead>
 <tbody>
-<tr><td>Task</td><td>用户要完成的诊断目标与契约</td><td>新目标才产生新 Task</td></tr>
-<tr><td>Run</td><td>run_0429_017 的一次版本化执行</td><td>重连、重启和接管保留该身份</td></tr>
-<tr><td>Step</td><td>取证、形成草稿、建单等逻辑提交节点</td><td>重试不重建逻辑节点</td></tr>
-<tr><td>Operation</td><td>创建 INC-4821 的独立业务意图</td><td>多次尝试/查询使用原身份</td></tr>
+<tr><td>Session</td><td>交互主体、消息历史、渠道与会话关联</td><td>承载用户与系统的连续交互；一次会话可关联多个任务</td></tr>
+<tr><td>Task</td><td>目标、范围、约束、完成条件及接受的修订</td><td>表达诊断 <code>ALR-20260429-017</code> 的任务契约；新目标才产生新 Task</td></tr>
+<tr><td>Run</td><td>Task 的执行身份、契约与配置版本、状态、预算和等待条件</td><td><code>run_0429_017</code> 是一次执行；重连、重启和接管保留该身份</td></tr>
+<tr><td>Step</td><td>逻辑节点、输入与依赖引用、计划版本、状态和结果引用</td><td>表达取证、形成草稿或建单等节点；重试不重建逻辑节点</td></tr>
+<tr><td>Attempt</td><td>一次实际尝试的执行者、时间、结果、错误和用量</td><td>同一 Step 可以有多次尝试；新执行者或重试不改变 Step 身份</td></tr>
+<tr><td>Operation</td><td>外部动作的业务意图、目标、载荷绑定、派发与回执或核验状态</td><td>创建 <code>INC-4821</code> 的动作有独立身份；多次尝试和查询沿用该身份</td></tr>
+<tr><td>Event</td><td>已接受的状态变化、关联对象、序号和发生依据</td><td>记录受理、审批等待或结果提交等变化；不把模型自由文本当作状态迁移</td></tr>
+<tr><td>Checkpoint</td><td>已确认进度、版本与产物引用，以及等待条件和未决动作的恢复索引</td><td>指出从哪里继续；不保存完整进程内存，也不重新授予执行权</td></tr>
+<tr><td>Artifact</td><td>报告、证据、工具载荷等内容或其受控引用、版本与哈希</td><td>保存诊断报告和建单草稿等载荷；读取仍须检查当前权限</td></tr>
 </tbody>
 </table>
 </div>
@@ -8525,7 +8584,7 @@ erDiagram
 
 <p>图中最需要注意的是 Operation 与 Attempt 的关系：一个业务动作可以被多次尝试推进或查询，但它的身份不随尝试变化。Event 记录 Run 上已经被接受的状态变化，Checkpoint 是从这些事实中整理出的恢复索引，Artifact 则承载不适合放进状态表的大载荷。</p>
 <p>这些身份必须分开的原因在于，它们在不同的时机变化。一个 Run 可以由不同 worker 接续，经历多次重连才完成，所以线程、进程、连接与 Run 不能共用一个身份字段。如果把 Task 和 Run 混为一个 id，系统就无法区分“重试”和“重新运行”，计费会出错，不同版本的执行历史也会互相覆盖。</p>
-<p>本节先使用 Task、Run、Step、Operation 四个稳定对象。Session 记录交互，Attempt 记录一次尝试，Event/Checkpoint/Artifact 分别提供变化记录、恢复索引和版本化载荷；它们在后续执行与恢复中逐步展开。执行权代次和两种幂等键的字段约束在<a href="#failure-ownership">执行权与迟到提交</a>处定义。</p>
+<p>Task、Run、Step 和 Operation 分别稳定地标识目标、一次执行、逻辑节点和业务动作；Session 记录交互，Attempt 记录一次尝试，Event、Checkpoint 和 Artifact 分别提供变化记录、恢复索引和版本化载荷。执行权代次和两种幂等键的字段约束在<a href="#failure-ownership">执行权与迟到提交</a>处定义。</p>
 <p><a id="连接与运行绑定"></a></p>
 <p><strong>连接与运行绑定</strong></p>
 <div class="table-wrapper">
@@ -8541,6 +8600,27 @@ erDiagram
 </table>
 </div>
 <p>例如，同一个工单 Connector 可服务多个组织；Connection A 属于租户 A，Run R 仅绑定项目 P 的读取与待审批创建权限。后续每次调用都使用这个受限绑定，而不是由模型输入的 URL 或项目名自由选择连接。绑定如何参与派发见 <a href="#execution-run-binding">本次执行的能力绑定</a>。</p>
+<p><a id="runtime-external-capability-management"></a></p>
+<p><strong>外部能力与资源的组成</strong></p>
+<p>图中“配置与能力注册”涵盖外部能力管理，执行面则包含相应的客户端、连接器与适配器。外部能力管理由能力目录、Skill 管理、MCP Client 管理、Connector 管理以及连接与运行绑定等职责组成。这些职责可以合并在同一个宿主中，也可以由不同组件承担。Runtime 保存能力的定义、来源和引用；远程 Server、外部账号和业务资源仍由各自的提供方管理。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>模块或职责</th><th>管理的对象</th><th>保存的信息与责任边界</th></tr>
+</thead>
+<tbody>
+<tr><td>Skill 管理器</td><td>Skill 包、入口文件及配套资源</td><td>保存名称、描述、来源、版本或内容摘要、入口路径、依赖和启用状态；Skill 是方法说明，其指令或脚本不自带工具与资源权限</td></tr>
+<tr><td>MCP Client 管理器</td><td>MCP Server 定义、Client 及传输连接</td><td>保存 Server 身份、来源、端点或启动配置、协议兼容范围和认证引用；连接和本地子进程句柄属于运行时局部状态，远程 Server 的实现由提供方管理</td></tr>
+<tr><td>能力目录（Catalog）</td><td>Tool、MCP Resource、Prompt 和其他能力描述</td><td>保存能力标识、来源、Schema 或元数据、版本及可见范围；MCP Tool 是可调用动作，Resource 是可读取资源，Prompt 是模板，各自具有不同契约</td></tr>
+<tr><td>Connector 管理器</td><td>面向外部系统的集成实现及其定义</td><td>保存适配器版本、服务类型、操作契约、资源映射和配置引用；Connector 可由 Runtime 直接承载，也可由 MCP Server 托管</td></tr>
+<tr><td>连接与凭证管理</td><td>Connection、主体与外部账号的授权关系</td><td>保存租户、账号、授权范围、有效期、撤销状态和凭证引用；密钥或令牌归受控凭证设施，不进入模型上下文或普通日志</td></tr>
+<tr><td>运行绑定（Run Binding）</td><td>一次 Run 选用的能力、Connection 与资源范围</td><td>保存能力版本、主体、租户、目标资源、允许的动作和策略引用；它是本次任务的范围记录，不改变外部资源的归属</td></tr>
+</tbody>
+</table>
+</div>
+<p>能力目录记录“系统认识哪些能力”，Connection 记录“哪个主体与外部账号建立了什么授权关系”，Run Binding 记录“本次执行使用哪些能力及范围”。运行时可以保存外部资源的标识、版本或 ETag、来源和受控内容引用；文档、日志、工单及其他业务对象的权威状态仍归资源端。MCP Server 内部可能包含自己的 Connector 与凭证设施，Host 对这些内部对象的可见性取决于服务提供方公开的契约。</p>
+<p>在 ALR 参考设计中，告警诊断 Skill 对应一条 Skill 目录记录，日志查询能力对应 MCP Server 与工具目录记录，工单服务对应 Connector 定义；某个主体的工单账号由 Connection 表示，本次 <code>run_0429_017</code> 的能力、项目与动作范围由 Run Binding 表示。这些对象分别描述方法、能力入口、账号关系和任务范围，不是同一个“工具配置”。</p>
+<p>Skill、MCP 与 Connector 的启动装配分别见 <a href="#runtime-bootstrap-skills">17.3.4</a>、<a href="#runtime-bootstrap-mcp">17.3.5</a> 和 <a href="#runtime-bootstrap-connectors">17.3.6</a>；运行时如何选择、授权和调用能力见 <a href="#runtime-task-execution">17.4</a>。</p>
 <p><a id="runtime-fact-authority"></a></p>
 <p><a id="1524-状态机与条件提交"></a></p>
 <h3 id="1724-状态机与条件提交"><a class="header" href="#1724-状态机与条件提交">17.2.4 状态机与条件提交</a></h3>
@@ -8590,6 +8670,27 @@ erDiagram
 <p><a id="1525-存储职责事件与观测"></a></p>
 <h3 id="1725-存储职责事件与观测"><a class="header" href="#1725-存储职责事件与观测">17.2.5 存储职责、事件与观测</a></h3>
 <p>对话历史保存“说过什么”，Memory 保存受治理的跨任务信息，执行事件保存已接受的变化，Operation 账本关联外部动作与核验事实。摘要里的“已创建工单”不能替代对应 Operation 与资源端证据。</p>
+<p>下表给出本章参考设计中各类信息的存放职责。它们可以共用数据库或由不同服务管理；表中区分的是内容、权威性与恢复用途，不要求为每一类信息部署独立存储。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>存储或记录</th><th>主要内容与管理方</th><th>用途与边界</th></tr>
+</thead>
+<tbody>
+<tr><td>会话与消息存储</td><td>会话路由管理 Session、消息、工具调用与结果及来源关联</td><td>支持交互历史与上下文装配；会话历史不等于当前任务执行状态</td></tr>
+<tr><td>任务与运行状态库</td><td>状态管理模块保存 Task / Run / Step / Attempt、状态版本、依赖、执行权、等待条件和预算记录</td><td>查询当前进度并进行条件提交；Worker 内存和消息队列不是权威状态</td></tr>
+<tr><td>事件与 Outbox</td><td>状态管理模块追加已接受的变化；Outbox 保存待发布的调度或交付消息及投递状态</td><td>解释状态变化并恢复待发送工作；本书在同库事务中提交相关状态和记录，消费者仍需处理重复</td></tr>
+<tr><td>Operation 账本</td><td>状态管理模块关联业务意图、稳定操作身份、载荷绑定、派发记录、资源端回执和核验结果</td><td>跟踪外部动作的未知、确认或补偿；本地记录不能自行证明远端效果</td></tr>
+<tr><td>Checkpoint</td><td>状态管理模块保存进度、版本、已提交产物引用和未决等待的恢复索引</td><td>帮助新执行者定位继续位置；旧租约不能作为新的执行权</td></tr>
+<tr><td>Artifact 存储</td><td>产物模块保存报告、文件、上下文包或工具大载荷及其版本、哈希与访问范围</td><td>承载大内容；状态和事件保存受控引用，载荷需完成保存和校验后才能提交引用</td></tr>
+<tr><td>配置、能力与连接记录</td><td>配置及注册模块保存有效配置、模型 / 工具 / Skill 版本、Schema、连接授权及本次 Run 的绑定</td><td>支持装配、审计与恢复时的版本核对；连接授权仍须在调用时复核</td></tr>
+<tr><td>Memory / 知识存储</td><td>记忆或知识组件保存跨任务信息、来源、归属、访问与更新规则</td><td>用于后续检索和上下文构建；不以记忆替代任务事实或业务回执</td></tr>
+<tr><td>凭证设施</td><td>受控凭证服务保存密钥和令牌；Runtime 保存必要的凭证引用、作用域与有效期</td><td>按主体和动作提供受限访问；秘密不写入模型上下文、普通事件或日志</td></tr>
+<tr><td>观测与审计存储</td><td>观测与审计组件保存关联标识、Trace、指标、裁决与审计记录</td><td>用于诊断、计量和追责；按敏感度、保留期及访问范围治理，不替代状态库</td></tr>
+</tbody>
+</table>
+</div>
+<p>以 ALR 为例，入口将用户消息关联到 Session，受理后状态库保存 Task 契约和 <code>run_0429_017</code>；调度器据此推进取证 Step，工具观察及报告内容保存在受控载荷中，状态与事件记录已接受的结果。需要建单时，审批记录绑定草稿和资源版本，Operation 记录创建工单的意图与回执；若回执丢失，恢复后的 Worker 沿原 Operation 核验，不能把模型摘要当作建单证据。报告与通知分别有产物及交付记录，因此报告完成、<code>INC-4821</code> 已创建和通知已送达可以分别查询。</p>
 <p>状态表也不必承载所有内容。任务目标、当前版本、依赖关系、执行权和未决操作需要可查询，因此放在状态表中；长文本、文件、工具原始载荷和报告进入受控的 Artifact 仓库；事件则保留状态变化的因果。读取 Artifact 时要再次检查当前权限，曾经进入过某个 Run 的内容，并不意味着永远可见。内容哈希可以证明载荷是否发生变化，但它不能代替鉴权，也不能证明业务含义正确。</p>
 <p>单次执行的恢复状态与跨任务共享信息应采用不同的存储契约；内存实现可以验证接口，但无法证明进程重启后的耐久性。<a href="#ref-5-16">[5]</a> 在本章的参考设计中，状态、事件、Artifact 与记忆可以共用底层存储，但各自的提交、删除、权限和保留规则必须分别定义。</p>
 <p>消息存储保留原文与来源血缘，模型只读取<a href="#context-builder-1">本轮上下文包</a>，不直接消费全部历史；包引用与过滤记录应可审计。</p>
@@ -11176,6 +11277,7 @@ Release Gate
 </blockquote>
 <p><strong>资料核验日期：2026-10-22。</strong> 本章围绕三个产品展开：OpenAI 的 Codex CLI、Anthropic 的 Claude Code，以及开源项目 OpenCode（只讨论 2.x 版本线）。前四部分——组成、启动、执行、异常——讲这类系统怎样实现；后两部分——实践、调优——讲怎样用好它。每个讲实现的部分都以一张三产品对照表开头；实践与调优可以单独阅读，遇到机制名词时回到前文对应小节。</p>
 <p>组织强制策略与默认配置的 Codex 官方说明于 2026-10-29 补核，范围仅限下文标注的新增来源；其他产品事实与固定源码保留各自核验日期。</p>
+<p>组成部分于 2026-10-30 对照<a href="#152-架构与核心对象">第 17 章的架构与核心对象</a>补充调研：重点复核 Codex 的对象与活动状态、OpenCode 的执行声明与恢复，以及 Claude Code 的会话和 Checkpoint 边界。新增的组件分工、通用对象映射与状态迁移表属于系统推导，不宣称三款产品实现了第 17 章的全部可靠性协议；未涉及的产品事实保留原核验日期。</p>
 <p>本章是领域特殊案例：仓库、patch、测试和 verifier 是代码任务独有制品，ALR 的只读告警诊断不能替代真实代码修改。它只用于第 19 章比较 Coding Agent；其中任务输入、代码证据、编辑/命令动作、会话状态和测试验收，分别对照 ALR 的告警输入、指标/日志/Runbook、只读工具与审批后建单、Run 状态和诊断报告验收。两类案例不得复用彼此的标识或授权边界。</p>
 <p>三个产品的公开程度不同，本章的结论因此带有不同的证据等级。</p>
 <div class="table-wrapper">
@@ -11200,7 +11302,7 @@ Release Gate
 <tr><th>维度</th><th>本章应交付的判断</th><th>通用机制主位置</th></tr>
 </thead>
 <tbody>
-<tr><td>组成</td><td>Host、模型适配、工具、状态的职责</td><td><a href="#第-17-章-agent-runtime架构执行编排与可靠性工程">Runtime 架构</a></td></tr>
+<tr><td>组成</td><td>组件怎样协作、核心对象归谁管理、事实存在哪里、哪些事件推进状态</td><td><a href="#152-架构与核心对象">Runtime 架构</a></td></tr>
 <tr><td>启动</td><td>规则、能力、身份怎样进入首轮</td><td><a href="#第-14-章-agent-的上下文工程从任务协议到知识与记忆">上下文工程</a></td></tr>
 <tr><td>执行</td><td>模型提案与确定性执行在哪里分界</td><td><a href="#第-16-章-外部工具系统skillstoolsmcp-与-connectors">工具系统</a></td></tr>
 <tr><td>异常</td><td>取消、恢复与未知外部效果怎样解释</td><td><a href="#failure-side-effects">副作用与核验</a></td></tr>
@@ -11209,7 +11311,8 @@ Release Gate
 </tbody>
 </table>
 </div>
-<h2 id="191-组成三个产品由哪些部分构成"><a class="header" href="#191-组成三个产品由哪些部分构成">19.1 组成：三个产品由哪些部分构成</a></h2>
+<h2 id="191-组成架构组件核心对象存储与状态机"><a class="header" href="#191-组成架构组件核心对象存储与状态机">19.1 组成：架构、组件、核心对象、存储与状态机</a></h2>
+<p>阅读这一节，可以依次回答五个问题：请求进入哪个宿主；哪些组件决定和执行下一步；会话、轮次、工具调用与工作区如何关联；哪些事实能在重启后保留；哪些事件可以改变执行状态。第 17 章提供通用 Runtime 的参考设计，本节解释这些职责在 Coding Agent 中的具体落点及公开证据的边界。</p>
 <h3 id="1911-从代码生成到可审查交付"><a class="header" href="#1911-从代码生成到可审查交付">19.1.1 从代码生成到可审查交付</a></h3>
 <p>普通代码生成器的产物是文本片段。Coding Agent 的产物存在于仓库和执行环境里：它读取文件，向模型发起请求，调用工具修改代码、运行命令，再把结果交给人审查。模型的回答只是交付说明，不能代替真实的文件差异和验证结果。</p>
 <p>三个产品可以抽象成同一条工作路径。这是本书用于分析的共同模型，不是任何产品的源码模块图：</p>
@@ -11275,23 +11378,140 @@ Release Gate
 </table>
 </div>
 <p><a href="images/coding-agent-runtime-comparison.svg"><img src="images/coding-agent-runtime-comparison.png" alt="Codex、Claude Code 与 OpenCode 的运行时组成对照：客户端、运行时职责、模型服务与执行后端"></a></p>
-<p><em>运行时组成对照。虚线框表示逻辑职责分组，不代表三款产品具有相同的进程划分；框内卡片不表示调用顺序。Claude Code 一列采用官方行为文档，不推测私有模块。图中标注的源码与文档依据见附录 B，点击图片查看 SVG。</em></p>
-<h3 id="1914-会话与执行对象sessionturn-与工作区"><a class="header" href="#1914-会话与执行对象sessionturn-与工作区">19.1.4 会话与执行对象：Session、Turn 与工作区</a></h3>
+<p><em>运行时组成对照。虚线框表示逻辑职责分组，不代表三款产品具有相同的进程划分；框内卡片不表示调用顺序。Claude Code 一列采用官方行为文档，不推测私有模块。图中标注的源码与文档依据见本节相邻引用和章末参考资料，点击图片查看 SVG。</em></p>
+<p><a id="coding-agent-components"></a></p>
+<h3 id="1914-参考架构控制面执行面与组件协作"><a class="header" href="#1914-参考架构控制面执行面与组件协作">19.1.4 参考架构：控制面、执行面与组件协作</a></h3>
+<p>前面的组成图可以按<a href="#152-架构与核心对象">第 17 章的组件分工</a>重新阅读：<strong>控制面管理会话、执行资格、等待与终止，执行面组织上下文、调用模型和工具，存储保存继续执行所需的事实；工作区、模型服务和远端资源分别保有自己的权威状态。</strong> 这是职责划分，同一个进程可以同时承担两面；App Server 或共享后台服务也不天然等于完整的持久工作流引擎。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>逻辑组件</th><th>输入与输出</th><th>管理的状态或事实</th><th>协作边界</th></tr>
+</thead>
+<tbody>
+<tr><td>客户端与协议适配</td><td>用户输入、审批答复 → 请求；事件 → 界面</td><td>连接、订阅、输入草稿与展示状态</td><td>展示是宿主状态的视图；连接断开不自行证明执行终止</td></tr>
+<tr><td>会话与执行控制</td><td>开始、追加输入、中断 → 活动执行或等待</td><td>会话身份、活动轮次、待处理输入、取消信号</td><td>决定哪一轮可以推进，关联上下文构造、工具结果和持久记录</td></tr>
+<tr><td>配置与能力装配</td><td>分层配置、指令、能力定义 → 生效配置与可用能力</td><td>模型选择、规则来源、工具 Schema、Skill/MCP 可用性</td><td>配置存在、能力可见、账号已授权和本次动作获准是不同事实</td></tr>
+<tr><td>上下文构造与压缩</td><td>历史、代码读取、工具观察、规则 → 本轮模型输入</td><td>已选材料、摘要及其来源</td><td>从存储和工作区取证；完整会话记录不等于实际发送的上下文</td></tr>
+<tr><td>模型适配器</td><td>上下文与工具定义 → 文本、工具提案、结束原因和用量</td><td>请求与流式响应的临时状态</td><td>连接模型服务；提案还须经过解析、校验和权限裁决</td></tr>
+<tr><td>工具路由与动作裁决</td><td>完整工具提案 → 拒绝、等待审批或执行请求</td><td>调用关联、权限决定、待决审批</td><td>路由选择实现，策略决定能否执行；审批答复要回到原请求</td></tr>
+<tr><td>执行后端与工具适配</td><td>已放行请求 → 文件变化、进程输出或远端回执</td><td>进程、工具作业、退出码与实际观察</td><td>Shell、文件工具和 MCP 的边界不同，不能假定共用同一沙箱</td></tr>
+<tr><td>子 Agent 协调</td><td>有边界的子任务 → 子会话与结果通知</td><td>父子关联、等待、取消及结果接收</td><td>独立上下文不自动隔离文件系统；父任务仍需检查最终差异</td></tr>
+<tr><td>持久化与恢复</td><td>消息、执行变化、快照 → 可查询记录与恢复依据</td><td>历史、未结执行、快照引用等</td><td>具体保存哪些状态须逐产品核验，不能由一个 resume 命令反推</td></tr>
+<tr><td>验证与交付职责</td><td>当前代码、命令结果、验收要求 → 差异与证据说明</td><td>被验证的代码版本、验证结果和未完成事项</td><td>可以由循环、脚本与人工共同承担，公开证据不足以认定三者均有独立 verifier 服务</td></tr>
+</tbody>
+</table>
+</div>
+<p>上述表格是分析模型。Codex 的工具路由、审批、沙箱编排可沿不同源码文件定位；活动 Turn 与工具等待也有具体状态对象。<a href="#ref-20-17">[20]</a><a href="#ref-21-17">[21]</a> Claude Code 官方以 harness 概括工具供应和上下文管理，没有公开这些职责是否分属内部模块。<a href="#ref-31-6">[31]</a> OpenCode 则可沿服务端执行控制、runner、权限及工具实现追踪这些边界。<a href="#ref-71">[71]</a><a href="#ref-72">[72]</a><a href="#ref-75">[75]</a><a href="#ref-76">[76]</a></p>
+<p>一次工具循环跨越三类流。<strong>控制流</strong>是开始轮次、权限裁决、等待答复、取消和完成；<strong>数据流</strong>是代码与历史进入上下文，模型提案进入工具，工具观察回到下一次模型请求；<strong>事实记录</strong>是消息、执行变化、文件差异和验证结果的保存。流式 token 与进度通知用于及时展示，不能代替已经完成的工具观察，更不能证明外部写入已生效。具体派发顺序见 19.3，失败与恢复见 19.4。</p>
+<h3 id="1915-核心对象会话执行调用工作区与产物"><a class="header" href="#1915-核心对象会话执行调用工作区与产物">19.1.5 核心对象：会话、执行、调用、工作区与产物</a></h3>
 <p>三个产品都把会话、本轮执行和工作区看作不同的东西，但对象的名字和边界各不相同。</p>
 <p>Codex 的外部协议用 Thread、Turn、Item 三层：Thread 是会话，包含多个 Turn，Turn 包含消息、命令、文件变化等 Item<a href="#ref-2-18">[2]</a>。核心里的 Session 保有线程、历史、配置和各类服务，长期存在；一个 Session 在任一时刻至多有一个运行中的任务。活动 Turn 的状态（取消令牌、待决审批、待处理输入、工具调用）挂在 Session 的 <code>active_turn</code> 之下，并不是独立于 Session 的对象<a href="#ref-20-17">[20]</a>。所以会话可以继续存在而某个 Turn 已经结束，Turn 也可以被中断或追加输入，而不必重建会话；对持久化、统计、恢复和取消来说，这是两个不同的状态对象。</p>
 <p>Claude Code 把对话、工具调用和结果写进本地明文 JSONL 会话文件。官方说明，resume 以同一会话 ID 重新打开并追加新消息，fork 则把历史复制到新的会话 ID；同一个会话在两个终端同时恢复且不 fork 时，两边的消息会交错写进同一份记录。官方还声明 JSONL 条目格式属于内部实现，随版本变化，不建议直接解析<a href="#ref-31-6">[31]</a><a href="#ref-38-1">[38]</a>。</p>
 <p>OpenCode 的会话归服务端持有。源码里执行过程以 drain 和 step 推进：开始执行时，Started 事件和执行声明在同一个事务里写入，这是它能在进程重启后续跑的基础（见 19.4.4）<a href="#ref-71">[71]</a><a href="#ref-72">[72]</a>。</p>
 <p>会话历史与工作区是第三组区别。官方文档明确写到，切换 Git 分支后 Claude 看到的是新分支的文件，会话历史保持不变<a href="#ref-31-6">[31]</a>。这个例子说明，磁盘上有文件不代表已进入上下文，会话里有描述也不代表工作区仍是那个样子。会话记录是上下文资产，工作区是外部事实，本轮是短时执行状态，三者不能互相替代。</p>
-<h3 id="1915-接入面与进程边界"><a class="header" href="#1915-接入面与进程边界">19.1.5 接入面与进程边界</a></h3>
+<p>为了和<a href="#152-架构与核心对象">第 17 章的对象身份</a>对照，可以按语义建立下面的映射。左列是本书的分析对象，右列只列已有公开证据，<strong>不是统一的产品数据模型，也不是一一对应的类型别名</strong>。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>分析对象</th><th>表达什么、何时变化</th><th>产品落点与不能混同的对象</th></tr>
+</thead>
+<tbody>
+<tr><td>Session / Thread</td><td>持续交互及其历史；新轮次结束后仍可保留</td><td>Codex Thread 对外、Session 对内；Claude Code 和 OpenCode 使用 Session。会话 ID 不等于进程或连接 ID</td></tr>
+<tr><td>Task / Run</td><td>要完成的目标，以及在某组约束下的一次执行</td><td>产品轮次承担其中部分职责，但长期目标可能跨轮；一次用户请求也可能经历多次模型采样，不能直接写成 <code>Turn = Run</code></td></tr>
+<tr><td>Turn / 活动执行</td><td>用户输入触发的一段工作，可被追加输入或中断</td><td>Codex 有明确 Turn；Claude Code 文档描述一轮交互；OpenCode 以执行控制和 drain 推进。轮次结束不自动证明业务目标达成</td></tr>
+<tr><td>Step / 模型步骤</td><td>当前推进位置与依赖；模型步骤产生文本或工具提案</td><td>OpenCode runner 中的 step 是具体实现概念，不能仅凭名字推断它具有通用持久 Step 的依赖与条件提交协议</td></tr>
+<tr><td>Item / Message / Tool Call</td><td>输入输出记录，以及工具请求和观察的关联</td><td>Codex Item 可以是消息、命令或文件变化，不是所有 Item 都是工具调用；另两款通过会话中的消息、工具使用与结果表达历史</td></tr>
+<tr><td>Attempt / 工具作业</td><td>一次实际请求、执行尝试或异步进程的生命期</td><td>一次工具提案可能经历审批、重试和多次轮询；call ID、请求 ID、进程 ID 各有用途，不能互换</td></tr>
+<tr><td>Approval / Wait</td><td>暂停哪个请求、等待谁的什么答复</td><td>Codex TurnState 有待决审批、用户输入等等待者；其他产品公开审批接口或行为。内存等待者不等于重启后仍可恢复的持久等待</td></tr>
+<tr><td>Workspace / Worktree</td><td>代码、未提交差异、分支和运行环境</td><td>工作区独立于会话；多个会话可能改同一目录，fork 历史不自动复制工作区</td></tr>
+<tr><td>Artifact / Verification</td><td>补丁、报告、测试输出及其对应代码版本</td><td>本书用于交付分析的对象；测试进程成功与最终代码被验收是两件事，不能假定产品内置统一产物登记表</td></tr>
+<tr><td>Operation / 外部动作</td><td>一个稳定业务意图及其远端生效事实</td><td>推送、创建 PR、部署、迁移等需要独立核验；工具调用记录不能自行构成第 17 章的 Operation 账本</td></tr>
+</tbody>
+</table>
+</div>
+<p>产品映射的直接依据是 Codex 协议与 Turn 状态、Claude Code 会话说明，以及 OpenCode 的执行和 runner 源码；Task / Run、Artifact / Verification 与 Operation 的统一边界是本书推导。<a href="#ref-2-18">[2]</a><a href="#ref-20-17">[20]</a><a href="#ref-31-6">[31]</a><a href="#ref-38-1">[38]</a><a href="#ref-71">[71]</a><a href="#ref-72">[72]</a></p>
+<p>一个实用的关联链是：会话关联多轮交互，一轮关联多次模型请求和工具调用，工具调用关联执行尝试与观察，文件修改关联工作区版本，验证关联实际执行时的代码。若进入远端写入，再关联稳定业务标识和回执。这里最重要的不是对象名称，而是<strong>重试是否换了尝试身份、继续执行是否仍属于原轮次、验证是否仍适用于当前文件</strong>。</p>
+<p><a id="coding-agent-storage"></a></p>
+<h3 id="1916-核心存储历史执行状态工作区与恢复依据"><a class="header" href="#1916-核心存储历史执行状态工作区与恢复依据">19.1.6 核心存储：历史、执行状态、工作区与恢复依据</a></h3>
+<p><a href="#trace-ledger">第 17 章的存储分工</a>区分消息、运行状态、事件、Operation、Checkpoint、Artifact 和 Memory。用它检查 Coding Agent 时，应先问“丢失这份信息后，还能证明什么”，再问使用 JSONL、数据库还是 Git。下面是存储职责，不要求每一行部署一个独立数据库。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>存储职责</th><th>保存的内容与管理方</th><th>权威用途与恢复限制</th></tr>
+</thead>
+<tbody>
+<tr><td>会话与消息记录</td><td>宿主持久化用户消息、助手输出、工具请求与结果</td><td>支持历史查询和上下文重建；不证明磁盘、进程和远端系统仍处于记录中的状态</td></tr>
+<tr><td>活动执行与等待记录</td><td>会话控制管理当前任务、待处理输入、取消、审批和工具等待</td><td>决定当前能否继续；内存状态、持久意图与完整恢复点需要分开核验</td></tr>
+<tr><td>工作区与版本控制</td><td>文件系统和 Git 保存当前文件、差异、索引及提交</td><td>当前代码的权威事实；只有 commit SHA 不能标识尚未提交的编辑，需同时检查相关文件内容</td></tr>
+<tr><td>文件快照与回退记录</td><td>产品快照设施保存被覆盖范围内的旧文件或恢复引用</td><td>用于指定范围的文件撤销；不等于持久执行 Checkpoint，也不覆盖数据库和部署</td></tr>
+<tr><td>有效配置与能力定义</td><td>配置设施、指令文件、Skill 和 MCP 配置提供执行依据</td><td>恢复前重新解析并核对权限；磁盘上的当前配置不能自动证明历史轮次采用了什么配置</td></tr>
+<tr><td>Memory 与上下文摘要</td><td>记忆设施或会话压缩保存偏好、经验和连续任务信息</td><td>帮助后续检索和推理；摘要有损，不是进度账本、审批记录或验证证据</td></tr>
+<tr><td>产物与验证载荷</td><td>工作区、测试系统或交付流程保存 diff、报告、输出与环境信息</td><td>支撑可审查交付；保存位置与保留规则须显式约定，不能默认所有工具输出永久保留</td></tr>
+<tr><td>凭证与外部连接</td><td>各产品认证设施和外部服务保存凭证、账号授权关系</td><td>工具配置不等于可调用权限；本文不把凭证内容纳入普通会话、摘要或日志</td></tr>
+<tr><td>观测与审计记录</td><td>日志、指标、Trace 或策略事件解释调用和裁决</td><td>用于诊断和追责；普通日志的完整性、顺序与留存不能按任务账本假定</td></tr>
+</tbody>
+</table>
+</div>
+<p>三款产品已经公开的存储与恢复落点如下。此处只到公开机制为止，不补造数据库表名、完整 Schema 或事务保证。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>产品</th><th>已确认的落点</th><th>这些记录能够说明什么</th></tr>
+</thead>
+<tbody>
+<tr><td>Codex</td><td>持久化 rollout 会话记录；核心 Session 与 TurnState 保存活动状态；协议提供历史读取与 resume/fork/revert。<a href="#ref-2-18">[2]</a><a href="#ref-20-17">[20]</a><a href="#ref-27-9">[27]</a></td><td>会话可保留并继续；固定提交的待决审批等包含内存中的 oneshot 等待者，不能据此宣称恢复会重建全部等待或接管原进程</td></tr>
+<tr><td>Claude Code</td><td>本地 JSONL 会话、另行保存的文件 Checkpoint，以及指令和 auto memory。<a href="#ref-31-6">[31]</a><a href="#ref-37-1">[37]</a><a href="#ref-40-1">[40]</a></td><td>对话续接、有限文件回退和跨会话信息各有机制；官方没有公开一套可据此断言的 Task/Run/Operation 状态库</td></tr>
+<tr><td>OpenCode 2.x</td><td>服务端 Session 记录；Started 与持久 claim 同事务；快照使用数据目录中的独立 Git 对象库。<a href="#ref-71">[71]</a><a href="#ref-66">[66]</a></td><td>托管服务可借未释放 claim 识别未结执行并续跑；快照恢复文件，两者都不保证远端副作用只发生一次</td></tr>
+</tbody>
+</table>
+</div>
+<p>尤其要区分三个容易都被叫作“日志”的东西：会话记录保存交互内容，执行变化记录解释生命周期，诊断日志帮助定位故障。OpenCode 的持久 claim 与易失事件流说明它们并非同一个载体；断线期间的事件需要通过重读会话状态和消息弥补，不能把通知流视为完整可重放账本。<a href="#ref-68">[68]</a><a href="#ref-71">[71]</a> 同样，CLI 输入历史也不能替代完整会话。</p>
+<p><strong>恢复的最小问题集</strong>是：对话读回了吗，活动执行还能继续吗，工作区还是原版本吗，未决调用是否已生效，验证是否仍有效？只恢复第一项，适合称为会话续接；若要承诺第 17 章意义上的持久执行，还需逐项证明状态提交、执行权、未决动作核验与版本恢复协议。第 19.4 节按产品列出当前能证明到哪一步。</p>
+<p><a id="coding-agent-state-machines"></a></p>
+<h3 id="1917-核心状态机交互执行工具调用与交付验收"><a class="header" href="#1917-核心状态机交互执行工具调用与交付验收">19.1.7 核心状态机：交互执行、工具调用与交付验收</a></h3>
+<p>以 Codex 的 App Server 接入路径为例，状态机需要分层阅读：<strong>Turn 状态回答这一轮是否结束，轮内工具状态回答某个请求是否获准和完成，补丁验收回答最终代码是否有充分证据交付。</strong> 如果工具触及远端系统，还要独立核验外部效果。这些维度可以同时变化，不能用界面上的“忙碌”或一条 completed 记录包办全部含义。</p>
+<p><a href="images/codex-state-machines.svg"><img src="images/codex-state-machines.png" alt="Codex 状态机：官方 Turn 生命周期、轮内工具调用与本书补丁验收契约"></a></p>
+<p><em>图 19-3：Codex 的三层状态视图。A 层保留官方 Turn 状态名；B 层是根据工具路由、审批、执行和观察回送归纳的轮内语义模型；C 层是本书提出的交付验收契约。B、C 层不是 Codex 新增的 TurnStatus，也不意味着存在独立 verifier 服务。依据为 App Server 官方文档，以及本章固定提交的 Turn、工具与中断源码；核验于 2026-10-30。<a href="#ref-2-18">[2]</a><a href="#ref-20-17">[20]</a><a href="#ref-21-17">[21]</a><a href="#ref-22-17">[22]</a> 点击图片查看 SVG。</em></p>
+<p><strong>A 层：Turn 的官方生命周期。</strong> Thread 是持续会话，Turn 是一次用户请求及后续工作。客户端通过 <code>turn/start</code> 开始新轮次，服务端以 <code>turn/started</code> 报告 <code>inProgress</code>；轮内可能多次采样、调用工具和等待审批，仍属于同一个 Turn。<a href="#ref-2-18">[2]</a></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>当前状态</th><th>触发与条件</th><th>状态变化及对外事件</th></tr>
+</thead>
+<tbody>
+<tr><td>尚未创建本轮</td><td>宿主接受 <code>turn/start</code></td><td>创建新 Turn；<code>turn/started</code> 中状态为 <code>inProgress</code></td></tr>
+<tr><td><code>inProgress</code></td><td><code>turn/steer</code> 的 <code>expectedTurnId</code> 匹配活动轮次</td><td>追加输入，仍为 <code>inProgress</code>；不产生新的 <code>turn/started</code></td></tr>
+<tr><td><code>inProgress</code></td><td>模型循环正常结束</td><td><code>completed</code>；通过 <code>turn/completed</code> 报告</td></tr>
+<tr><td><code>inProgress</code></td><td>遇到使本轮无法继续的错误</td><td><code>failed</code>；错误信息及 <code>turn/completed</code> 说明失败</td></tr>
+<tr><td><code>inProgress</code></td><td>接受 <code>turn/interrupt</code> 并完成中断处理</td><td><code>interrupted</code>；通过 <code>turn/completed</code> 报告</td></tr>
+</tbody>
+</table>
+</div>
+<p>表中只有 <code>inProgress</code>、<code>completed</code>、<code>failed</code>、<code>interrupted</code> 是这里讨论的官方 Turn 状态；“尚未创建”是说明入口，并非枚举值。尤其注意，<strong><code>turn/completed</code> 是结束通知名，不代表其中的 <code>turn.status</code> 一定为 <code>completed</code></strong>，它也会报告中断或失败。<a href="#ref-2-18">[2]</a> 一个工具报错可以作为观察回送后继续本轮，不能据此直接把 Turn 改为 <code>failed</code>。本轮进入终态后，同一 Thread 仍可开始新的 Turn；<code>thread/resume</code> 续接会话，不意味着旧终态转回运行，也不恢复旧文件内容。</p>
+<p><strong>B 层：<code>inProgress</code> 内部的工具调用与等待。</strong> 图中“模型采样 → 参数与权限裁决 → 派发与执行 → 回送观察 → 下一次采样”是单个工具请求的语义路径。<code>allow</code>、<code>ask</code>、<code>deny</code> 是图上的分析标签，用来概括放行、等待审批和拒绝，不是一套统一的 Codex 工具状态枚举。无需工具的模型响应可以直接进入本轮收尾；多个工具调用也不必按图逐个串行。</p>
+<p>审批请求必须关联到原 Turn 和工具 Item。获准后才派发；拒绝则形成对应观察，允许模型在原授权范围内调整方案，而不是换工具绕过拒绝。协议中的命令与文件变更 Item 可以通过 <code>item/started</code>、审批请求及 <code>item/completed</code> 展示过程；命令或文件变更的最终状态包括 <code>completed</code>、<code>failed</code>、<code>declined</code>，它们不能直接当作整个 Turn 的终态。<a href="#ref-2-18">[2]</a> 具体路由与裁决顺序见 19.3.3。</p>
+<p>这些控制确实有状态载体。固定提交里，<code>RunningTask</code> 持有取消令牌和任务句柄；<code>TurnState</code> 保存待决审批、用户输入、动态工具等待、输入队列与邮箱投递相位。待决审批通过关联键找到等待答复的通道；这说明“等待”有具体关联对象，但内存中的通道不能证明重启后仍可重建该等待。<a href="#ref-20-17">[20]</a></p>
+<p>中断可发生在采样、工具执行或审批等待期间。固定源码先传播取消，再处理任务终止、被中断标记、待决等待者和会话记录；因此 <code>turn/interrupt</code> 的请求响应与最后的结束通知应分开理解。<a href="#ref-22-17">[22]</a> 本轮停止推进也不能证明命令未产生文件变化或远端写入已撤销。创建 PR 请求超时而回执丢失时，要核验原动作；第 17 章的 <code>UNKNOWN</code> 是描述这种未确认效果的分析状态，不是此处新增的 Codex Turn 状态。</p>
+<p><strong>C 层：补丁验证与可审查交付。</strong> “候选差异 → 验证中 → 针对该版本的通过 → 可审查交付”是本书的验收契约。它可以跨越多个工具调用，必要时也可跨 Turn；正常结束一轮不保证这条验收链已经走完。测试失败时可以继续编辑和重验，验证后文件或相关环境再次改变，则需重新判断旧结果是否仍然有效。</p>
+<p>例如用户要求修复登录超时，Codex 在同一个 <code>inProgress</code> Turn 内编辑文件、运行测试，测试失败后将错误作为观察交回模型，再修订并运行测试。测试命令完成只结束对应 Item；最终代码和证据核对后才能支持交付声明。若用户在测试时中断，本轮最后为 <code>interrupted</code>，已经写入的补丁仍可能留在磁盘。下一轮应先检查差异和测试进程，再决定继续验证或重新修改，而不是把中断理解为自动回滚。交付至少说明对应代码、测试命令、实际结果与未覆盖条件。</p>
+<p>这个 Codex 例子展示了“同一轮次中的内部循环”与“轮次自身生命周期”的区别。迁移到 OpenCode 时，还要考虑终止原因如何决定 claim 是否保留；迁移到 Claude Code 时，只能根据官方公开的中断和恢复行为建立对应关系，不能直接套用 Codex 的枚举与内部对象。<a href="#ref-71">[71]</a><a href="#ref-31-6">[31]</a><a href="#ref-38-1">[38]</a></p>
+<p>由此得到四条架构检查条件：</p>
+<ul>
+<li><strong>审批与动作绑定</strong>：答复必须回到原请求；参数或权限变化后是否需要重新审批，按该产品契约核查。</li>
+<li><strong>取消与效果分离</strong>：停止模型循环不能证明命令已停、文件未改或远端请求未生效。</li>
+<li><strong>恢复与状态重建对应</strong>：resume、快照回退和进程续跑分别恢复不同对象。</li>
+<li><strong>完成与证据对应</strong>：轮次结束、工具进程退出和代码通过验收分别判断。</li>
+</ul>
+<h3 id="1918-接入面与进程边界"><a class="header" href="#1918-接入面与进程边界">19.1.8 接入面与进程边界</a></h3>
 <p>Codex 的变化最大。固定提交中，TUI 的 <code>Cargo.toml</code> 已经不再依赖 <code>codex-core</code>，TUI 和 <code>codex exec</code> 都通过进程内的 App Server 客户端接入，源码注释写明这样做是为了保留 App Server 的语义，同时避免进程边界<a href="#ref-25-14">[25]</a>。协议 crate 的 README 仍然写着“core 与 TUI 之间的内部类型”，已经落后于代码<a href="#ref-29-7">[29]</a>。更准确的说法是：TUI、exec 和外部客户端共用 App Server 的请求与事件语义，TUI 以进程内方式承载它。App Server 有 stdio（默认）、Unix socket、WebSocket 和关闭四种传输；官方文档称 WebSocket 为 experimental and unsupported，<code>codex app-server</code> 命令主要用于开发与调试，可能不经通知变化<a href="#ref-2-18">[2]</a><a href="#ref-14-18">[14]</a><a href="#ref-25-14">[25]</a>。</p>
 <p>Claude Code 的官方描述是：它是围绕模型的外围层，提供工具并管理模型所见的上下文，也就是所谓 agentic harness；各个界面共用同一个循环<a href="#ref-31-6">[31]</a>。官方没有公开进程和线程的划分。</p>
 <p>OpenCode 2.x 把界面放在服务端之上。CLI 默认发现或启动当前用户的共享后台服务，客户端连上它；<code>--standalone</code> 启动私有服务，<code>--server</code> 连接指定服务，两者不能同时给出<a href="#ref-57">[57]</a><a href="#ref-70">[70]</a>。私有服务由客户端拉起子进程，客户端关闭其标准输入时服务随之退出<a href="#ref-70">[70]</a>。这个细节决定了“关闭界面是否等于结束服务”的答案：共享服务模式下不等于，私有服务模式下等于。</p>
 <p>三者共同的取向，是把“怎样呈现任务”和“怎样执行任务”分开，前端不必复制一套模型循环。这是对公开协议与职责的架构概括（系统推导），不代表所有界面的功能完全相同。</p>
-<h3 id="1916-模型接入与扩展层"><a class="header" href="#1916-模型接入与扩展层">19.1.6 模型接入与扩展层</a></h3>
+<h3 id="1919-模型接入与扩展层"><a class="header" href="#1919-模型接入与扩展层">19.1.9 模型接入与扩展层</a></h3>
 <p>OpenCode 把模型接入做成可替换的部分：Provider 与模型目录来自 models.dev，Provider 通过 <code>package</code> 字段选择运行时包，本地模型（Ollama、LM Studio、vLLM）可自动发现，任意 OpenAI 兼容服务可手动配置<a href="#ref-60">[60]</a>。官方文档同时承认，这个抽象并不抹平差异：选项是 Provider 特定的，别的 Provider 包可能忽略或拒绝；目录之外的自定义模型默认假设 200,000 的上下文和 32,000 的输出上限，文档称这是回退假设，不是检测到的能力<a href="#ref-60">[60]</a>。Codex 的仓库也含适配组件，配置文档列出自定义模型提供商、<code>--oss</code> 本地模式和 Bedrock 提供商<a href="#ref-4-18">[4]</a>。Claude Code 使用 Claude 模型，通过 Anthropic API、云厂商平台或网关访问，缓存和推理都发生在服务端，“本地执行工具”并不意味着在本地运行模型<a href="#ref-46">[46]</a>。</p>
 <p>扩展层方面，三个产品的名字相近，但在循环中的位置不同。Claude Code 官方的划分最清楚：Skill 提供可复用的知识与工作流，MCP 接入外部服务，Hook 在生命周期事件上执行确定性动作，Subagent 把有边界的工作交给独立上下文，Plugin 只是打包与分发形式<a href="#ref-45">[45]</a>。Codex 的 Skill 采用渐进披露：启动时只带每个技能的名称与描述，选用时才读完整的 <code>SKILL.md</code>；描述列表最多占模型上下文窗口的 2%（窗口未知时为 8,000 字符）<a href="#ref-11-18">[11]</a>。OpenCode 的 Commands 里，<code>!</code> 嵌入的 Shell 块在工具权限流程之外运行，文档要求只使用可信来源；2.x 的插件 API 与 1.x 不兼容，1.x 插件不能在 2.x 运行<a href="#ref-65">[65]</a>。这些扩展的内部注册、调度与持久化方式，凡是没有公开源码或官方实现说明的，本章不作断言。</p>
 <p><a id="coding-agent-permissions"></a></p>
-<h3 id="1917-权限沙箱与审批三层各管什么"><a class="header" href="#1917-权限沙箱与审批三层各管什么">19.1.7 权限、沙箱与审批：三层各管什么</a></h3>
+<h3 id="19110-权限沙箱与审批三层各管什么"><a class="header" href="#19110-权限沙箱与审批三层各管什么">19.1.10 权限、沙箱与审批：三层各管什么</a></h3>
 <p>本节以<a href="#runtime-security">17.5 跨层安全控制</a>为参照比较产品。权限相关的机制可以分成三层：决策层决定一个动作是否放行，隔离层限制放行后的进程能碰到什么，管理层决定哪些上限不能由用户或项目放宽；业务资源的最终鉴权仍由对应服务实施。</p>
 <div class="table-wrapper">
 <table>
@@ -11308,8 +11528,20 @@ Release Gate
 <p>审批与隔离是两件事。Codex 官方的表述是：沙箱定义技术边界，审批策略决定在越过边界之前何时停下来询问<a href="#ref-7-18">[7]</a>。同意运行某个命令不会让命令变安全；沙箱放行某个路径，也不意味着命令符合业务意图（系统推导）。代码层面也能看到这种分工：Codex 的路由、审批阶段和沙箱选择与重试编排分处不同文件，沙箱机制本身在独立的 crate 里<a href="#ref-21-17">[21]</a>。</p>
 <p>OpenCode 的默认配置需要特别注意：每个 Agent 的默认策略是 <code>* * allow</code>，只有读取 <code>.env</code> 一类文件会询问，项目目录外的读写默认也不询问<a href="#ref-63">[63]</a>。所以“<code>ask</code> 会暂停动作”在默认配置下只覆盖很少的动作，想让它生效，要自己添加规则。</p>
 <p>组织治理还要区分“配置优先级”和“不可放宽的约束”。Codex 官方要求保护 requirements 文件及其父目录，避免运行 Codex 的用户修改；普通 <code>config.toml</code> 或 managed defaults 仅提供启动值。官方也建议清点 CLI、IDE、桌面、云端及远程主机等执行面，变更后同时测试允许与阻断路径。<a href="#ref-85">[85]</a> 这不能被概括成所有配置字段都按同一套优先级合并；Claude Code 与 OpenCode 的规则求值仍分别按上表核查。</p>
-<p>另一类常见的误解，是把角色或提示词当作边界。OpenCode 文档明确写到，隐藏某个 Agent 只控制可见性，不是安全手段<a href="#ref-62">[62]</a>；Claude Code 文档则说，在 CLAUDE.md 或 Skill 里写“不要编辑 .env”只是请求而不是保证，必须发生的约束要放进 Hook<a href="#ref-45">[45]</a>。
-<a id="coding-agent-runtime-startup"></a></p>
+<p>另一类常见的误解，是把角色或提示词当作边界。OpenCode 文档明确写到，隐藏某个 Agent 只控制可见性，不是安全手段<a href="#ref-62">[62]</a>；Claude Code 文档则说，在 CLAUDE.md 或 Skill 里写“不要编辑 .env”只是请求而不是保证，必须发生的约束要放进 Hook<a href="#ref-45">[45]</a>。</p>
+<h3 id="19111-贯通案例一次修复怎样穿过组件存储与状态"><a class="header" href="#19111-贯通案例一次修复怎样穿过组件存储与状态">19.1.11 贯通案例：一次修复怎样穿过组件、存储与状态</a></h3>
+<p>以“修复登录超时竞态，提交可审查补丁，不推送远端”为假设任务。这里不描述某款产品的实测过程，而是用同一个案例检查上述架构；具体失败分析与调优实验见 19.6.2。</p>
+<ol>
+<li><strong>受理与关联</strong>：客户端发送输入，会话控制关联当前 Session/Thread 并开始执行。目标和禁止推送的边界进入任务上下文；工作区位置、基线及已有差异另行确认，会话记录不能替代这次检查。</li>
+<li><strong>读取与采样</strong>：上下文组件读取项目指令、相关代码和失败证据，构造模型输入。模型返回编辑或命令提案，工具路由检查完整参数，权限组件裁决；需要审批时关联原调用等待，获准后才交给对应后端。</li>
+<li><strong>编辑与观察</strong>：文件后端修改工作区，将路径、结果或错误作为观察回送；若产品支持该范围的快照，则由其快照机制保存恢复依据。模型历史记录“做过编辑”，当前文件内容证明“现在是什么”。</li>
+<li><strong>验证与修订</strong>：命令后端运行竞态测试并记录实际退出码、输出和对应代码。失败时本轮可以继续编辑和重验；这次失败是工具/验证结果，未必立即使整轮进入失败终态。</li>
+<li><strong>中断与续接</strong>：若命令发出后客户端断开，先判断宿主是否仍运行。重新接入时读取会话与实际文件，检查原命令是否仍在运行或已产生结果；文件快照、会话 resume 与 OpenCode 托管服务续跑各按自身契约处理，不凭摘要重复发命令。</li>
+<li><strong>交付与结束</strong>：验收针对最终差异通过后，交付补丁、测试证据、未覆盖条件和剩余事项，再结束本轮。若最终编辑发生在测试之后，先重新验证受影响内容。此时仍未执行远端写入。</li>
+</ol>
+<p>若后来用户明确要求创建 PR，授权范围发生变化，需要新动作裁决。创建请求超时而远端是否成功未知时，先查询对应分支和 PR；无法确定就报告未决事实并停止重复创建。这一分支需要外部动作身份与核验能力，不能由对话回退或文件快照解决。</p>
+<p>这个案例把责任落到了具体位置：宿主决定是否继续，上下文组件决定模型看到什么，工具与后端产生实际变化，存储保存历史和恢复依据，验证证据约束完成声明。产品之间的差异，主要体现在这些职责由谁承载、哪些状态持久化、异常后能恢复到哪里。</p>
+<p><a id="coding-agent-runtime-startup"></a></p>
 <h2 id="192-启动从进程启动到首个模型请求"><a class="header" href="#192-启动从进程启动到首个模型请求">19.2 启动：从进程启动到首个模型请求</a></h2>
 <h3 id="1921-三个时间尺度"><a class="header" href="#1921-三个时间尺度">19.2.1 三个时间尺度</a></h3>
 <p>启动不是一个瞬间。进程启动准备服务与连接，会话初始化选择工作区与配置并建立或恢复历史，轮次启动把新的输入送进模型与工具循环。三者可以连续发生，也可以相隔很久：一个后台服务可以承载多个会话，一个会话可以执行多轮。恢复历史只是读回记录；旧的命令进程是否恢复、文件是否回到历史时刻，因产品而异，见 19.4.4。</p>
@@ -11435,7 +11667,7 @@ Release Gate
 <p>Claude Code 的裁决顺序是：规则先于模式，按 deny、ask、allow 求值，首个匹配生效，具体度不改变顺序；PreToolUse Hook 的决定不能绕过规则，命中 deny 仍然阻断，命中 ask 仍然询问<a href="#ref-35-2">[35]</a>。auto 模式在此之上加入一个分类器模型，在动作执行前审查：分类器看到的是用户消息、非只读的工具调用和 CLAUDE.md，工具结果被剥离，以免文件或网页里的敌对内容直接操纵分类器；读取、搜索和工作目录内的编辑不经过分类器。受保护的路径（<code>.git</code>、<code>.claude</code>、<code>.mcp.json</code> 等）的写入永远不被自动批准，bypass 模式除外<a href="#ref-34-3">[34]</a>。官方还写明，企业与 API 账户上分类器调用计入 token 用量，每次检查要多一次往返，开销主要来自 Shell 命令和网络操作<a href="#ref-34-3">[34]</a>。</p>
 <p>OpenCode 的求值写在 <code>permission.ts</code> 里：先取该 Agent 与会话的规则；只要任一资源命中 deny 就直接 deny，已保存的批准不参与；否则合并已保存的批准，任一资源为 ask 则 ask，否则 allow；最后触发插件的 <code>permission.evaluate</code> 钩子，Policies 就是在这一步生效的<a href="#ref-75">[75]</a>。规则为 ask 时，工具调用以 <code>Deferred</code> 挂起，客户端用 <code>once</code>、<code>always</code> 或 <code>reject</code> 回复，<code>always</code> 会写入项目级的持久 allow 规则，并且不会覆盖已配置的 deny<a href="#ref-63">[63]</a><a href="#ref-75">[75]</a>。</p>
 <p>与图中的 Codex 流程对照，OpenCode 明确使用 <code>Deferred</code> 等待权限回复；Claude Code 的公开资料描述规则、Hook 与分类器的裁决行为，但不足以据此推断其内部等待对象。Hermes 的危险命令审批与无人值守、超时处理另见 <a href="#2252-审批deny-规则与-allowlist">22.5.2</a>，不应套用图中的 Codex 分支。<a href="#ref-35-2">[35]</a><a href="#ref-75">[75]</a></p>
-<p>这三套机制的共同点是：每一次动作都要单独裁决，不是在进入循环之前检查一次。差别在于谁来裁决——用户、规则、分类器，还是插件钩子——以及裁决之后进程还受不受沙箱约束（见 19.1.7）。</p>
+<p>这三套机制的共同点是：每一次动作都要单独裁决，不是在进入循环之前检查一次。差别在于谁来裁决——用户、规则、分类器，还是插件钩子——以及裁决之后进程还受不受沙箱约束（见<a href="#coding-agent-permissions">权限、沙箱与审批</a>）。</p>
 <h3 id="1934-上下文管理加载压缩与按需读取"><a class="header" href="#1934-上下文管理加载压缩与按需读取">19.3.4 上下文管理：加载、压缩与按需读取</a></h3>
 <p>Claude Code 官方给出的上下文内容包括对话、文件与命令结果、项目指令、载入的 Skill 和系统指令。接近上限时，它先清理较旧的工具输出，必要时再摘要对话，官方明说，对话早期的详细指令可能因此丢失<a href="#ref-31-6">[31]</a>。压缩之后哪些内容还在，官方也列了出来：根目录的 CLAUDE.md、无作用域的规则和 auto memory 会从磁盘重新注入；已调用的 Skill 正文重新注入，单个上限 5,000 token、合计上限 25,000 token，旧的先丢；嵌套的 CLAUDE.md 与按路径作用域的规则是读到文件时才载入，载入后进入消息历史，压缩时和其他内容一起被摘要，需要再次读取才会回来<a href="#ref-39-1">[39]</a><a href="#ref-40-1">[40]</a>。触发点未设置时在模型的上下文上限处压缩，可以用 <code>autoCompactWindow</code>、<code>/autocompact</code> 或环境变量调整<a href="#ref-48">[48]</a>；自 v2.1.290 起还有空闲压缩，在提示缓存过期之前趁空闲时压缩<a href="#ref-41-1">[41]</a>。MCP 工具定义默认延迟加载，只有工具名和服务器说明进入上下文，但这只在受支持的模型上成立，Foundry 上的 Azure 托管部署、设置了 <code>CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS</code> 或使用 HIPAA 配置时会关闭<a href="#ref-54">[54]</a>。用户可以用 <code>/compact &lt;指令&gt;</code>、CLAUDE.md 里的 Compact Instructions 段落，以及 <code>/rewind</code> 中的“从此处摘要”来控制保留什么<a href="#ref-31-6">[31]</a><a href="#ref-37-1">[37]</a>。</p>
 <p>Codex 的自动压缩由阈值触发：当前范围内的 token 数达到自动压缩上限（含缓冲），或活动上下文达到模型的完整窗口，就强制压缩。源码里默认的上限是模型配置值与解析后窗口的 90% 之中较小的一个，官方文档只说“未设置时使用模型默认值”<a href="#ref-23-17">[23]</a><a href="#ref-5-18">[5]</a>。压缩分采样前、回合中、回合后三个相位，回合后压缩由 <code>model_post_turn_compact_threshold_percent</code> 控制，省略或设为 0 表示关闭<a href="#ref-23-17">[23]</a><a href="#ref-26-12">[26]</a>。压缩提示词要求产出一份“交接摘要”，包含进度、约束和剩余事项；它并没有声称摘要包含工作区的文件状态；压缩后保留的用户消息最多 20,000 token<a href="#ref-23-17">[23]</a>。</p>
@@ -11504,12 +11736,12 @@ Release Gate
 <tbody>
 <tr><td>回退什么</td><td>文件编辑与对话</td><td>对话历史</td><td>文件与对话</td></tr>
 <tr><td>机制</td><td>每个启动一轮的用户 prompt 创建一个 checkpoint，编辑前快照；<code>/rewind</code> 提供六种动作（恢复代码和对话、仅恢复对话、仅恢复代码、从此处摘要、摘要至此处、取消）<a href="#ref-37-1">[37]</a></td><td><code>thread/revert</code> 删除指定轮次及之后的所有 Turn，只改持久化的对话历史，不改本地文件；<code>thread/rollback</code> 已移除<a href="#ref-27-9">[27]</a><a href="#ref-2-18">[2]</a></td><td>每个模型步骤请求前尝试一次快照，步骤成功或失败时再一次；<code>/undo</code> 暂存回退，<code>/redo</code> 取消，提交新的 prompt 即提交回退<a href="#ref-66">[66]</a><a href="#ref-74">[74]</a></td></tr>
-<tr><td>不覆盖</td><td>Bash 命令造成的改动（<code>rm</code>、<code>mv</code>、<code>cp</code>）；子 Agent 的编辑（通常）；外部与并发会话的改动；数据库、API、部署等远端系统<a href="#ref-37-1">[37]</a><a href="#ref-31-6">[31]</a></td><td>文件系统；本章没有找到现行的文件级撤销机制，源码注释写明快照已不再产生<a href="#ref-21-17">[21]</a></td><td>被忽略的文件、活动目录之外的文件、Git 元数据、进程与数据库等副作用<a href="#ref-66">[66]</a></td></tr>
+<tr><td>不覆盖</td><td>只被 Bash 修改、未被文件编辑工具纳入跟踪的文件；子 Agent 的编辑（通常）；未纳入跟踪的外部与并发会话改动；数据库、API、部署等远端系统<a href="#ref-37-1">[37]</a><a href="#ref-31-6">[31]</a></td><td>文件系统；本章没有找到现行的文件级撤销机制，源码注释写明快照已不再产生<a href="#ref-21-17">[21]</a></td><td>被忽略的文件、活动目录之外的文件、Git 元数据、进程与数据库等副作用<a href="#ref-66">[66]</a></td></tr>
 <tr><td>限制</td><td>只保留最近 100 个 checkpoint 的文件快照，约 30 天后清理，清理后回退可能失败；符号链接与硬链接被跳过并警告；官方明说不能替代版本控制<a href="#ref-37-1">[37]</a><a href="#ref-47">[47]</a></td><td>仅支持持久化的分页线程；官方最佳实践把“在同一批文件上不用 worktree 跑实时任务”列为常见错误<a href="#ref-19-17">[19]</a><a href="#ref-15-18">[15]</a></td><td>尽力而为，捕获失败只记警告；范围是位于 Git worktree 内的活动目录，已跟踪与未被忽略的未跟踪文件，单个文件上限 2 MiB；会话运行中调用回退返回 409；没有 Git 仓库时只能回退对话<a href="#ref-66">[66]</a><a href="#ref-74">[74]</a></td></tr>
 </tbody>
 </table>
 </div>
-<p>三点补充。第一，OpenCode 的快照存放在数据目录下独立的 Git 对象库里，不创建提交、不移动分支，但可能包含完整的文件内容，官方提醒要把数据目录当作敏感数据；提交回退后消息从活动视图中移除，但不会从历史或快照存储中删除，官方明说这不是安全擦除；恢复会覆盖当前内容，包括取消暂存时<a href="#ref-66">[66]</a>。第二，Codex 文档的指标表里仍有 <code>task.undo</code> 一项，但命令文档与源码里没有找到对应的用户入口，所以本章不写“Codex 有文件回滚”<a href="#ref-4-18">[4]</a>。第三，Claude Code 的回退菜单在回退到较早的位置后，如果没有发新 prompt 就退出，被回退的消息可能在下次恢复时回来<a href="#ref-37-1">[37]</a>。</p>
+<p>三点补充。第一，OpenCode 的快照存放在数据目录下独立的 Git 对象库里，不创建提交、不移动分支，但可能包含完整的文件内容，官方提醒要把数据目录当作敏感数据；提交回退后消息从活动视图中移除，但不会从历史或快照存储中删除，官方明说这不是安全擦除；恢复会覆盖当前内容，包括取消暂存时<a href="#ref-66">[66]</a>。第二，Codex 文档的指标表里仍有 <code>task.undo</code> 一项，但命令文档与源码里没有找到对应的用户入口，所以本章不写“Codex 有文件回滚”<a href="#ref-4-18">[4]</a>。第三，Claude Code 的回退菜单在回退到较早的位置后，如果没有发新 prompt 就退出，被回退的消息可能在下次恢复时回来；2026-10-30 补核的文档还明确，文件一旦被文件编辑工具纳入跟踪，后续 Bash 对该文件的改动也可以被回退，因此不能笼统说“Bash 改动都不覆盖”。<a href="#ref-37-1">[37]</a></p>
 <p>这三套机制共同的边界是：回退能力必须和副作用类型对应。文件快照覆盖不了数据库迁移、API 请求、远端仓库操作和部署，这些需要单独的幂等、补偿或审计设计。</p>
 <h3 id="1946-多-agent-的晚到冲突与收敛"><a class="header" href="#1946-多-agent-的晚到冲突与收敛">19.4.6 多 Agent 的晚到、冲突与收敛</a></h3>
 <p>Codex 对子 Agent 消息的归属有明确建模。回答已经展示之后，晚到的子 Agent 邮件保持排队，留给下一轮；如果之后同一任务又有显式的同轮工作（被 steer 的用户提示，或未打标签的前言后的工具调用），才重新打开“当前轮”。子 Agent 的终态结果回送父 Agent 是尽力而为，指标区分“入队成功”和“投递失败”<a href="#ref-20-17">[20]</a><a href="#ref-27-9">[27]</a>。V2 的 <code>interrupt_agent</code> 不允许中断根 Agent 与自己，返回的是中断之前观察到的状态快照；目标未加载或已死亡视为成功中断<a href="#ref-27-9">[27]</a>。在非交互流程里，需要新审批的动作会失败，并把错误回传给父工作流；非活动线程的审批请求，也可能在用户看着主线程时冒出来<a href="#ref-10-18">[10]</a>。</p>
@@ -11601,7 +11833,7 @@ Release Gate
 </tbody>
 </table>
 </div>
-<p>矩阵中的检查位置来自 19.1.7 和本节前表的事实边界，不能跨列套用配置键。每项同时保存一次允许操作和一次禁止操作的实际结果；若前置规则已拦截，另用合法测试夹具独立验证后端，不能据此声称沙箱也已验证。只读工作流也要测试数据读取和外发，审批通过也要核对实际执行范围。</p>
+<p>矩阵中的检查位置来自<a href="#coding-agent-permissions">权限、沙箱与审批</a>和本节前表的事实边界，不能跨列套用配置键。每项同时保存一次允许操作和一次禁止操作的实际结果；若前置规则已拦截，另用合法测试夹具独立验证后端，不能据此声称沙箱也已验证。只读工作流也要测试数据读取和外发，审批通过也要核对实际执行范围。</p>
 <h3 id="1953-按可逆性和影响范围逐级放权"><a class="header" href="#1953-按可逆性和影响范围逐级放权">19.5.3 按可逆性和影响范围逐级放权</a></h3>
 <p>任务设计保留四项输入：目标、当前上下文、约束、完成条件。Codex 将它们归纳为 Goal、Context、Constraints、Done when；Claude Code 的最佳实践强调给出可执行验证、尽早纠偏和控制上下文。<a href="#ref-19-17">[19]</a><a href="#ref-32-6">[32]</a> 这些输入不等于权限：一份清楚的任务描述仍需匹配实际执行边界。</p>
 <div class="table-wrapper">
@@ -11756,6 +11988,7 @@ Do not commit, push, publish, or deploy without separate authorization.
 <h2 id="本章小结-6"><a class="header" href="#本章小结-6">本章小结</a></h2>
 <p>三个产品都把模型放进了一个由上下文、工具、权限和验证组成的闭环，公开程度和实现重点不同：Codex 与 OpenCode 可以沿固定提交的源码追踪运行时，Claude Code 只能依据官方文档分析它的外部行为与配置边界。</p>
 <p>从实现看，有几条判断反复出现。会话、本轮执行和工作区是三种不同的对象，会话历史不能替代工作区的当前状态。界面出现不等于首个模型请求可以发送，服务启动也不等于会话已经建立。审批决定动作是否放行，沙箱限制放行后的进程能碰什么，两者不能互相替代。拒绝、失败和取消是不同的结果，应当分别回送。压缩保存的是任务的连续性，不是工作区的事实，恢复之后先回仓库核对。回退能力必须和副作用类型对应，文件快照覆盖不了数据库、接口和部署。</p>
+<p>组成部分可以沿五条线阅读：控制面与执行面的组件协作，Session/Turn/调用/工作区的对象关联，历史与运行事实的存储分工，交互、工具、外部效果和验收的独立状态，以及贯穿这些边界的修复链路。第 17 章的 Task、Run、Operation 和持久恢复协议是检查框架；某个产品拥有会话、快照或 resume 命令，不代表它已经提供这套框架的全部保证。</p>
 <p>任务、上下文、边界和验证共同决定交付；权限按可逆性与影响范围逐级放开。调优从可复现失败出发，把指令、方法、工具、上下文和模型分开实验，再用最终补丁与独立测试验收。成本包括失败、重试、摘要和验证；配置回退、补丁回退和外部动作补偿分别处理。</p>
 <p>本章基于静态源码与官方文档，未运行产品。源码、文档与安装版本可能不同，升级时按 19.6.4 复核；OpenCode 的实践部分为功能解释与本书建议。</p>
 <h2 id="附录-a阅读一个-coding-agent-仓库的方法"><a class="header" href="#附录-a阅读一个-coding-agent-仓库的方法">附录 A：阅读一个 Coding Agent 仓库的方法</a></h2>
@@ -11785,7 +12018,7 @@ Do not commit, push, publish, or deploy without separate authorization.
 <p><a id="ref-1-18"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/open-source">Open Source</a>，Codex 开源组件清单与非开源组件说明；核验于 2026-10-22。</p>
 </li>
 <li>
-<p><a id="ref-2-18"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/app-server">Codex App Server</a>，连接握手、Thread / Turn / Item、审批、错误与限流事件；持续更新，核验于 2026-10-22。</p>
+<p><a id="ref-2-18"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/app-server">Codex App Server</a>，连接握手、Thread / Turn / Item、审批、错误与限流事件；持续更新，核验于 2026-10-22；对象定义与生命周期于 2026-10-30 补核。</p>
 </li>
 <li>
 <p><a id="ref-3-18"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/config-file/config-basic">Config basics</a>，分层配置、受信项目与特性开关；持续更新，核验于 2026-10-22。</p>
@@ -11872,7 +12105,7 @@ Do not commit, push, publish, or deploy without separate authorization.
 <p><a id="ref-30-7"></a> OpenAI，<a href="https://github.com/openai/codex/blob/86e17e98c7f901277aeeb4649cf1b01462b082f2/codex-rs/ext/guardian-reviewer/src/circuit_breaker.rs">ext/guardian-reviewer/src/circuit_breaker.rs</a>，自动审核的断路器常量；固定提交 <code>86e17e98c7f9</code>，核验于 2026-10-22。</p>
 </li>
 <li>
-<p><a id="ref-31-6"></a> Anthropic，<a href="https://code.claude.com/docs/en/how-claude-code-works">How Claude Code works</a>，Agent Loop、会话、上下文、压缩、Checkpoint；持续更新，核验于 2026-10-22。</p>
+<p><a id="ref-31-6"></a> Anthropic，<a href="https://code.claude.com/docs/en/how-claude-code-works">How Claude Code works</a>，Agent Loop、会话、上下文、压缩、Checkpoint；持续更新，核验于 2026-10-22；harness 职责、JSONL 会话与分支边界于 2026-10-30 补核。</p>
 </li>
 <li>
 <p><a id="ref-32-6"></a> Anthropic，<a href="https://code.claude.com/docs/en/best-practices">Best practices</a>，验证、规划、指令文件、权限、会话管理、并行与失败模式；持续更新，核验于 2026-10-22。</p>
@@ -11890,7 +12123,7 @@ Do not commit, push, publish, or deploy without separate authorization.
 <p><a id="ref-36-2"></a> Anthropic，<a href="https://code.claude.com/docs/en/sandboxing">Sandboxing</a>，沙箱的覆盖范围与限制；持续更新，核验于 2026-10-22。</p>
 </li>
 <li>
-<p><a id="ref-37-1"></a> Anthropic，<a href="https://code.claude.com/docs/en/checkpointing">Checkpointing</a>，Checkpoint 与 rewind 的范围、限制；持续更新，核验于 2026-10-22。</p>
+<p><a id="ref-37-1"></a> Anthropic，<a href="https://code.claude.com/docs/en/checkpointing">Checkpointing</a>，Checkpoint 与 rewind 的范围、限制；持续更新，核验于 2026-10-22；2026-10-30 补核文件跟踪、后续 Bash 改动与回退的边界。</p>
 </li>
 <li>
 <p><a id="ref-38-1"></a> Anthropic，<a href="https://code.claude.com/docs/en/sessions">Manage sessions</a>；<a href="https://code.claude.com/docs/en/agent-view">Agent view</a>，会话存储、恢复与后台会话；持续更新，核验于 2026-10-22。</p>

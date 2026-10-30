@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1110" width="1440" height="1110" role="img" aria-labelledby="title desc">
+<title id="title">Codex：Turn、轮内工具调用与补丁验收的三层状态</title>
+<desc id="desc">上层为官方 Turn 状态 inProgress、completed、failed、interrupted。中层为轮内工具循环的分析模型，审批等待不改变 Turn 为新状态。下层为本书的补丁验收契约，不是 Codex 协议状态。</desc>
+<style>text{font-family:"Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei",sans-serif;fill:#111827}.title{font-size:30px;font-weight:700}.head{font-size:23px;font-weight:600}.label{font-size:21px;font-weight:600}.small{font-size:17px;fill:#6b7280}.edge{font-size:17px;fill:#2563eb}</style>
+<defs><marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#2563eb"/></marker></defs>
+<rect width="1440" height="1110" fill="white"/>
+<text x="40" y="44" class="title" text-anchor="start">Codex：三个状态维度，分别回答三个问题</text>
+<text x="40" y="76" class="small" text-anchor="start">实线箭头为迁移；上层保留官方状态名，中下层是本书分析模型。资料核验：2026-10-30。</text>
+<rect x="32" y="98" width="1376" height="300" rx="16" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="56" y="132" class="head" text-anchor="start">A · Turn 生命周期：这一轮是否结束？</text>
+<text x="56" y="161" class="small" text-anchor="start">同一个 Thread 可包含多个 Turn；每个终态只结束当前 Turn，会话仍可继续。</text>
+<circle cx="90" cy="250" r="9" fill="#111827"/>
+<rect x="340" y="217" width="250" height="66" rx="12" fill="#eff6ff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="465.0" y="246" class="label" text-anchor="middle">inProgress</text>
+<text x="465.0" y="270" class="small" text-anchor="middle">本轮正在执行</text>
+<path d="M99 250 H340" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="93.5" y="221" width="249" height="26" rx="4" fill="white"/>
+<text x="218" y="239" class="edge" text-anchor="middle">turn/start → turn/started</text>
+<path d="M400 217 V184 H530 V217" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="355.5" y="164" width="219" height="26" rx="4" fill="white"/>
+<text x="465" y="182" class="edge" text-anchor="middle">turn/steer：仍是原 Turn</text>
+<rect x="1080" y="173" width="230" height="66" rx="12" fill="#f0fdf4" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="1195.0" y="202" class="label" text-anchor="middle">completed</text>
+<text x="1195.0" y="226" class="small" text-anchor="middle">正常结束本轮</text>
+<rect x="1080" y="250" width="230" height="66" rx="12" fill="#fef2f2" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="1195.0" y="279" class="label" text-anchor="middle">failed</text>
+<text x="1195.0" y="303" class="small" text-anchor="middle">本轮不可继续</text>
+<rect x="1080" y="327" width="230" height="66" rx="12" fill="#fff7ed" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="1195.0" y="356" class="label" text-anchor="middle">interrupted</text>
+<text x="1195.0" y="380" class="small" text-anchor="middle">中断后结束本轮</text>
+<path d="M590 231 H840 V206 H1080" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="887.0" y="177" width="84" height="26" rx="4" fill="white"/>
+<text x="929" y="195" class="edge" text-anchor="middle">循环结束</text>
+<path d="M590 250 H805 V283 H1080" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="875.5" y="255" width="101" height="26" rx="4" fill="white"/>
+<text x="926" y="273" class="edge" text-anchor="middle">终止性错误</text>
+<path d="M590 269 H770 V360 H1080" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="818.5" y="331" width="211" height="26" rx="4" fill="white"/>
+<text x="924" y="349" class="edge" text-anchor="middle">turn/interrupt → 清理</text>
+<text x="350" y="319" class="small" text-anchor="start">三个终态均通过 turn/completed 通知报告；</text>
+<text x="350" y="346" class="small" text-anchor="start">通知名称不等于 status 一定为 completed。</text>
+<rect x="32" y="420" width="1376" height="398" rx="16" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="56" y="454" class="head" text-anchor="start">B · 轮内工具调用：下一步能否执行？</text>
+<text x="56" y="483" class="small" text-anchor="start">以下阶段都发生在 inProgress 内；画的是单个调用的语义路径，不规定工具必须串行。</text>
+<g transform="translate(0 40)">
+<rect x="80" y="530" width="230" height="66" rx="12" fill="#eff6ff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="195.0" y="559" class="label" text-anchor="middle">模型采样</text>
+<text x="195.0" y="583" class="small" text-anchor="middle">完整提案 / 下一步</text>
+<rect x="400" y="530" width="230" height="66" rx="12" fill="#eff6ff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="515.0" y="559" class="label" text-anchor="middle">参数与权限裁决</text>
+<text x="515.0" y="583" class="small" text-anchor="middle">allow / ask / deny</text>
+<rect x="750" y="530" width="230" height="66" rx="12" fill="#eff6ff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="865.0" y="559" class="label" text-anchor="middle">派发与执行</text>
+<text x="865.0" y="583" class="small" text-anchor="middle">文件 / 命令 / MCP</text>
+<rect x="1110" y="530" width="230" height="66" rx="12" fill="#eff6ff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="1225.0" y="559" class="label" text-anchor="middle">回送观察</text>
+<text x="1225.0" y="583" class="small" text-anchor="middle">成功 / 失败 / 拒绝</text>
+<rect x="400" y="675" width="230" height="66" rx="12" fill="#faf5ff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="515.0" y="704" class="label" text-anchor="middle">等待审批</text>
+<text x="515.0" y="728" class="small" text-anchor="middle">关联原请求</text>
+<path d="M310 563 H400" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="313.0" y="532" width="84" height="26" rx="4" fill="white"/>
+<text x="355" y="550" class="edge" text-anchor="middle">工具提案</text>
+<path d="M630 563 H750" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="659.5" y="532" width="61" height="26" rx="4" fill="white"/>
+<text x="690" y="550" class="edge" text-anchor="middle">allow</text>
+<path d="M980 563 H1110" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="1003.0" y="532" width="84" height="26" rx="4" fill="white"/>
+<text x="1045" y="550" class="edge" text-anchor="middle">实际结果</text>
+<path d="M515 596 V675" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="493.5" y="624" width="43" height="26" rx="4" fill="white"/>
+<text x="515" y="642" class="edge" text-anchor="middle">ask</text>
+<path d="M630 708 H865 V596" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="721.0" y="680" width="50" height="26" rx="4" fill="white"/>
+<text x="746" y="698" class="edge" text-anchor="middle">批准</text>
+<path d="M515 741 V760 H1225 V596" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="957.0" y="732" width="136" height="26" rx="4" fill="white"/>
+<text x="1025" y="750" class="edge" text-anchor="middle">拒绝 → 不执行</text>
+<path d="M515 530 V503 H1063 Q1070 491 1077 503 H1225 V530" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="774.0" y="477" width="52" height="26" rx="4" fill="white"/>
+<text x="800" y="495" class="edge" text-anchor="middle">deny</text>
+<path d="M1110 546 H1070 V480 H195 V530" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="710.5" y="452" width="169" height="26" rx="4" fill="white"/>
+<text x="795" y="470" class="edge" text-anchor="middle">观察进入下一次采样</text>
+<text x="82" y="639" class="small" text-anchor="start">中断可发生在采样、审批等待或执行期间；</text>
+<text x="82" y="665" class="small" text-anchor="start">清理结果按 Turn 与工具各自的边界记录。</text>
+</g><g transform="translate(0 40)">
+<rect x="32" y="800" width="1376" height="224" rx="16" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="56" y="834" class="head" text-anchor="start">C · 补丁验收：这份代码能否交付？</text>
+<text x="56" y="863" class="small" text-anchor="start">本书的交付契约，不是 Codex TurnStatus，也不是默认存在的独立 verifier 服务。</text>
+<rect x="80" y="889" width="230" height="66" rx="12" fill="#eff6ff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="195.0" y="918" class="label" text-anchor="middle">候选差异</text>
+<text x="195.0" y="942" class="small" text-anchor="middle">编辑后的当前代码</text>
+<rect x="400" y="889" width="230" height="66" rx="12" fill="#eff6ff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="515.0" y="918" class="label" text-anchor="middle">验证中</text>
+<text x="515.0" y="942" class="small" text-anchor="middle">测试 / 构建 / 检查</text>
+<rect x="750" y="889" width="230" height="66" rx="12" fill="#f0fdf4" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="865.0" y="918" class="label" text-anchor="middle">该版本通过</text>
+<text x="865.0" y="942" class="small" text-anchor="middle">代码与证据对应</text>
+<rect x="1110" y="889" width="230" height="66" rx="12" fill="#f0fdf4" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="1225.0" y="918" class="label" text-anchor="middle">可审查交付</text>
+<text x="1225.0" y="942" class="small" text-anchor="middle">差异 + 证据 + 限制</text>
+<path d="M310 922 H400" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="313.0" y="891" width="84" height="26" rx="4" fill="white"/>
+<text x="355" y="909" class="edge" text-anchor="middle">运行验证</text>
+<path d="M630 922 H750" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="665.0" y="891" width="50" height="26" rx="4" fill="white"/>
+<text x="690" y="909" class="edge" text-anchor="middle">通过</text>
+<path d="M980 922 H1110" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="986.0" y="891" width="118" height="26" rx="4" fill="white"/>
+<text x="1045" y="909" class="edge" text-anchor="middle">核对最终差异</text>
+<path d="M515 955 V994 H195 V955" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="265.0" y="967" width="180" height="26" rx="4" fill="white"/>
+<text x="355" y="985" class="edge" text-anchor="middle">失败 → 修订 / 重验</text>
+<text x="755" y="993" class="small" text-anchor="start">再次编辑或环境变化 → 重新判断验证是否有效。</text>
+<text x="40" y="1050" class="small" text-anchor="start">边界：Turn completed ≠ 测试通过；工具超时 / 中断 ≠ 远端未生效；会话 resume ≠ 工作区回滚。</text>
+</g>
+</svg>
