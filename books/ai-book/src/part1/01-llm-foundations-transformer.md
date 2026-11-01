@@ -576,36 +576,12 @@ flowchart TD
 <a id="19-本章小结"></a>
 ## 本章小结
 
-```mermaid
-flowchart LR
- A["序列目标"] --> B["前向计算"]
- B --> C["注意力交换信息"]
- B --> D["残差归一化与位置"]
- C --> E["结构取舍"]
- D --> E
- E --> F["资源账本"]
- E --> G["能力边界"]
- F --> H["证据驱动验收"]
- G --> H
-```
-
 Transformer 改变了序列的信息交换与并行方式；Q/K 负责匹配，V 负责聚合，输出投影与 FFN 把计算接回残差流。归一化、位置、可见性与头共享共同决定结构如何运行，也各自引入前提。读懂它们的价值，是能从 token、轴、缓存与证据开始定位问题。
 
 预训练形成基础能力，后训练塑造行为，推理期策略组织候选与验证；三者都建立在结构之上，也都受训练分布与输入证据的限制。结构决定一种计算方式，训练决定它学到什么，推理期策略决定本次请求怎样花算力。下一章回到预训练的数据、目标与规模，沿这条因果链继续展开。
 
 <a id="110-参考资料"></a>
 ## 参考资料
-
-```mermaid
-flowchart LR
- A["原始序列建模论文"] --> X["目标与前向路径"]
- B["注意力及归一化论文"] --> Y["运算与稳定性"]
- C["位置机制论文"] --> Y
- D["结构与算子论文"] --> Z["缓存与资源"]
- E["中文教材"] --> X
- F["官方模型配置"] --> Z
- G["后训练与推理研究"] --> W["能力边界"]
-```
 
 1. <a id="ref-1"></a> Bengio et al.，[A Neural Probabilistic Language Model](https://www.jmlr.org/papers/v3/bengio03a.html)，2003 / JMLR 3。核验日期：2026-10-31。
 2. <a id="ref-2"></a> Bahdanau, Cho, Bengio，[Neural Machine Translation by Jointly Learning to Align and Translate](https://arxiv.org/abs/1409.0473v7)，2015 ICLR / arXiv v7。核验日期：2026-10-16。
