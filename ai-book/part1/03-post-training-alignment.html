@@ -43,7 +43,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-6316d782.js";
+            window.path_to_searchindex_js = "../searchindex-fc446cbb.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-6e3e5c7c.js"></script>
@@ -451,7 +451,7 @@ R(x,y)=\mathbf{1}[V(x,y)=1]-\lambda,\text{cost}(y),
 <p>其中 \(V\) 是验证器，cost 可以惩罚过长推理、过多工具调用或过高延迟。模型于是会探索多种推理路径，保留能通过验证的轨迹。它学到的不只是“用某种语气回答”，而是“在推理预算内找到可验收结果”。</p>
 <h3 id="结果奖励过程奖励与验证器"><a class="header" href="#结果奖励过程奖励与验证器">结果奖励、过程奖励与验证器</a></h3>
 <p>只在最终答案上给奖励，信用分配会很困难：一条长推理可能在最后一步出错，模型不知道前面哪些步骤有价值。过程奖励模型尝试对中间步骤逐步评价；Let’s Verify Step by Step 研究过程监督的奖励模型，并用候选筛选评估数学解题效果；不能将它直接当作任意策略在线强化学习收益的证明 <a href="#ref-21">[21]</a>。但过程奖励也可能把某种表面推理风格当作正确，或者让模型过度拆步骤。</p>
-<p>本章关注验证器怎样形成训练信号：验证器可能需要训练、校准和对抗评估，也可能是无需学习的确定性程序。Training Verifiers 的研究展示了训练结果验证器的路线 <a href="#ref-22">[22]</a>。工程上要记录 false positive、false negative、测试覆盖和版本变化，防止策略针对覆盖漏洞优化。训练完成后，如何在一次请求中用冻结版本的验证器筛选候选、引导搜索和决定停止，见<a href="04-reasoning-generation-algorithms.html#verifier">第 4 章 4.6 节</a>。</p>
+<p>本章关注验证器怎样形成训练信号：验证器可能需要训练、校准和对抗评估，也可能是无需学习的确定性程序。Training Verifiers 的研究展示了训练结果验证器的路线 <a href="#ref-22">[22]</a>。工程上要记录 false positive、false negative、测试覆盖和版本变化，防止策略针对覆盖漏洞优化。训练完成后，如何在一次请求中用冻结版本的验证器筛选候选、引导搜索和决定停止，见<a href="04-reasoning-generation-algorithms.html#verifier">第 4 章 4.4 节</a>。</p>
 <h3 id="grpo组内奖励与冷启动"><a class="header" href="#grpo组内奖励与冷启动">GRPO、组内奖励与冷启动</a></h3>
 <p>DeepSeekMath的GRPO为同一问题采样一组回答，用组内奖励构造相对优势，减少独立critic的需求。以结果监督为例，\(\hat A_i=(R_i-\overline R)/(\operatorname{std}(R)+\varepsilon)\)，该回答token沿用相对优势，再结合策略比和正则化目标更新。这里的epsilon是数值稳定约定，具体实现须记录；如果整组全对或全错，中心化后的奖励没有区分信号，不能指望仅靠分母修复探索。<a href="#ref-20">[20]</a></p>
 <p>按 DeepSeekMath 的结果监督写法，先对每条回答取 token 平均，再对组内回答平均，可把更新目标写成下式；这里保持其逐 token 概率比口径，不能与整段概率比静默互换：</p>
@@ -505,7 +505,7 @@ flowchart TD
 <p>LLM judge 可以快速比较开放式回答，MT-Bench 和 Chatbot Arena 研究系统讨论了 judge 与人类偏好的关系以及位置、长度和模型自偏差 <a href="#ref-29">[29]</a>。它适合做大规模筛选和回归趋势，不适合单独作为高风险事实或权限决策。使用 judge 时要固定 prompt、随机化答案顺序、做人工抽样、测试不同语言和长度，并报告与人工标注的相关性。</p>
 <p>能程序化验证的任务应优先程序化：代码执行、JSON schema、SQL 结果、数学答案、工具状态和引用链接。开放式质量再使用 judge 辅助。这样可以减少“模型评价模型”的循环偏差，也让失败样本能够回放。</p>
 <p>每次 SFT、DPO、RLHF 或 RLVR 更新，都应与上一版本比较同一矩阵：能力是否提升，正常请求是否被误拒，危险请求是否被放行，回答长度是否异常，工具调用是否稳定，延迟和 token 成本是否变化。测试结果要按任务类型、语言、难度和风险等级切片；总体平均分上升不能掩盖关键子集下降。</p>
-<p>可以用以下映射做初筛：如果模型不知道任务格式，先做 SFT；如果模型会做任务但多个答案质量差异明显，加入偏好数据；如果只有好坏标签而没有成对回答，考虑 KTO；如果有可靠程序验收，可以用 RLVR 形成训练信号，也可以按<a href="04-reasoning-generation-algorithms.html#verifier">第 4 章 4.6 节</a>在推理时直接筛选候选；如果问题来自动态事实，使用 RAG 或工具；如果问题是权限和副作用，使用运行时控制；如果问题是复杂任务成功率和延迟权衡，测量 test-time scaling。</p>
+<p>可以用以下映射做初筛：如果模型不知道任务格式，先做 SFT；如果模型会做任务但多个答案质量差异明显，加入偏好数据；如果只有好坏标签而没有成对回答，考虑 KTO；如果有可靠程序验收，可以用 RLVR 形成训练信号，也可以按<a href="04-reasoning-generation-algorithms.html#verifier">第 4 章 4.4 节</a>在推理时直接筛选候选；如果问题来自动态事实，使用 RAG 或工具；如果问题是权限和副作用，使用运行时控制；如果问题是复杂任务成功率和延迟权衡，测量 test-time scaling。</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -554,27 +554,10 @@ flowchart TD
 <p>回到告警诊断教学案例，完整验收应串起观察、动作和解释：日志是否来自指定时间范围，查询是否保留用户条件，解释是否引用实际证据，信息不足时是否明确限制，以及环境失败时是否做出与状态一致的下一步。示范提供正确轨迹，偏好对比较同一观察下的解释质量，规则检查可验证参数与引用，人工评估剩余的推理与表达。这几种信号各自负责能够可靠判断的部分，组合后才构成可讨论的后训练方案。模型权重改变了行为倾向，外部结果仍然需要在任务环境中核验。</p>
 <p><a id="39-本章小结"></a></p>
 <h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
-<pre class="mermaid">
-flowchart TD
- A["示范定义模仿目标"] --&gt; B["偏好定义相对次序"]
- B --&gt; C["奖励连接生成与反馈"]
- C --&gt; D["独立回归判断可用性"]
-</pre>
-
 <p>后训练从SFT的示范学习，到偏好优化，再到基于环境与验证的反馈，改变的是生成行为。样本边界决定哪些token被学习，优势和奖励决定哪些动作被鼓励，独立回归决定这些变化能否用于目标任务。Reward不是成功证明，critic不是事实库，reference也不是权限系统。</p>
 <p>第 2 章介绍的交叉熵与 KL 在本章分别进入监督目标和正则化目标，第 1 章说明的模型结构边界仍然约束后训练能学到的行为。第 4 章转向生成、搜索和推理期验证，研究一次请求怎样在明确预算内得到更可靠的候选；第 6 章再讨论如何选择全量微调、参数高效微调及其他模型适配方式。</p>
 <p><a id="310-参考资料"></a></p>
 <h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
-<pre class="mermaid">
-flowchart TD
- A["原始论文"] --&gt; B["机制与公式"]
- C["官方协议文档"] --&gt; D["实现边界"]
- E["中文教材"] --&gt; F["概率与损失基础"]
- B --&gt; G["相邻结论与引用"]
- D --&gt; G
- F --&gt; G
-</pre>
-
 <ol>
 <li><a id="ref-1"></a> Wei, J., et al，<a href="https://arxiv.org/abs/2109.01652v5">Finetuned Language Models Are Zero-Shot Learners</a>，2022。核验日期：2026-10-31。</li>
 <li><a id="ref-2"></a> Ouyang, L., et al，<a href="https://arxiv.org/abs/2203.02155v1">Training Language Models to Follow Instructions with Human Feedback</a>，2022。核验日期：2026-10-31。</li>
