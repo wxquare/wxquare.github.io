@@ -107,13 +107,15 @@ Coding Agent、企业知识助手、真实开源项目分析、训练故障、�
 | 第21章 | [OpenClaw 架构解析：个人 AI 助手的 Gateway、Runtime 与工具生态](part4/03-openclaw-architecture.md) | 讲述个人 AI 助手如何通过 Gateway、Runtime 和工具生态协同工作。 |
 | 第22章 | [Hermes Agent 架构解析：长期运行、自我进化与多入口 Agent Runtime](part4/04-hermes-agent-architecture.md) | 通过记忆、Skill、多入口和版本化源码理解长期运行；教学扩展与已核验能力分别说明。 |
 
+| 第23章 | [DeepSeek Super-agent：面向自主协作的事件驱动架构](part4/05-deepseek-superagent.md) | 分析事件驱动、多任务调度、授权与执行边界。 |
+
 ### 第五部分：前沿研究与工程展望
 
 这一部分讨论工程实践之外仍在快速演化的前沿问题。它不局限于 Research Agent，后续可扩展到多模态、具身智能、长期学习和世界模型等专题。
 
 | 章 | 章节 | 一句话概述 |
 | --- | --- | --- |
-| 第23章 | [AI 智能体研究现状、工程瓶颈与未来理想能力架构报告](part5/01-agent-frontier-research.md) | 从研究和工程两条线梳理智能体的现状、瓶颈与未来方向。 |
+| 第24章 | [AI 智能体研究现状、工程瓶颈与未来理想能力架构报告](part5/01-agent-frontier-research.md) | 从研究和工程两条线梳理智能体的现状、瓶颈与未来方向。 |
 
 ### 附录
 
