@@ -43,10 +43,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-fc446cbb.js";
+            window.path_to_searchindex_js = "../searchindex-211b4832.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-6e3e5c7c.js"></script>
+        <script src="../toc-b2f0ef7f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -258,9 +258,11 @@
 <p>上述约束决定三个设计原则。第一，系统记录的状态必须能解释模型当前依据什么继续；第二，每个动作都在实际派发时核验资格，不能把循环入口的一次检查当作永久许可；第三，失败状态要保留不确定性，超时和取消不能证明外部动作没有发生。</p>
 <p>可靠性也包含活性：系统既要阻止错误动作，也要让正常工作能够完成，让阻塞有责任人和处理期限。对所有失败一律暂停会造成无人处理的积压；对所有失败一律重试则会扩大成本和副作用。后续架构与状态模型要同时表达自动推进、持久等待、人工处理及最终收敛。</p>
 <p><a id="runtime-components"></a></p>
+<p><a id="runtime-architecture"></a></p>
 <p><a id="152-架构与核心对象"></a></p>
-<h2 id="172-架构与核心对象"><a class="header" href="#172-架构与核心对象">17.2 架构与核心对象</a></h2>
-<p>本节用职责图说明 Runtime 怎样协作，再用核心对象说明状态归谁所有。下列区分避免把本书字段误当作产品标准：</p>
+<p><a id="152-架构组成"></a></p>
+<h2 id="172-架构组成"><a class="header" href="#172-架构组成">17.2 架构组成</a></h2>
+<p>本节用职责图说明 Runtime 怎样协作，并通过模块接口明确各部分的责任边界。下列区分避免把本书字段误当作产品标准：</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -366,11 +368,41 @@
 <p>组件传递带身份、版本、约束和输入引用的不可变数据。入口提交受理身份；Context Builder 返回上下文包；模型返回提议；Policy 返回当前裁决；执行器返回观察；状态接口条件提交进度，Verifier 判断验收。<a href="#execution-commit-map">执行骨架与 C1–C7</a>把这些接口连成正常路径。</p>
 <p>每个接收方验证可信身份，不能因为载荷含 tenant_id 或 authorization_ref 就接受。敏感连接、实现地址和凭证引用来自运行绑定，不能由模型拼接。错误通道保留发生层次、可重试提示、可能效果和关联对象；等待返回持久记录与触发条件。</p>
 <p>嵌套工作流约定唯一的总预算、重试与取消责任。局部节点可以修复本层失败，但不能重置根额度、放宽权限或直接完成父任务。业务操作与结果语义由<a href="05-skills-tools-mcp-connectors.html#tool-contract">外部能力设计</a>定义，模型侧工具包装与关联由<a href="01-llm-api-protocol.html#model-tool-definitions">第 13 章</a>定义。</p>
+<p><a id="runtime-event-driven-architecture"></a></p>
+<h3 id="1723-事件入口分流与异步协作"><a class="header" href="#1723-事件入口分流与异步协作">17.2.3 事件入口、分流与异步协作</a></h3>
+<p>Runtime 除了接收用户主动发起的请求，也可以消费告警、工单评论、代码评审、定时器或异步作业结果。这类系统需要先判断事件属于已有工作、等待中的操作，还是一个值得新建的任务。以下是事件驱动 Runtime 的一种组织方式；只处理同步请求的实现不必引入完整的事件来源和订阅机制。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>阶段</th><th>主要职责</th><th>提交或判断边界</th></tr>
+</thead>
+<tbody>
+<tr><td>来源接入</td><td>Source 读取或接收事件，规范化来源、主体、事件 ID、时间、关联对象和载荷引用</td><td>验证来源及监听范围；外部正文与元数据仍是不可信输入</td></tr>
+<tr><td>去重与分流</td><td>持久保存可追踪的受理记录，查找匹配的等待条件、已有工作或订阅关系</td><td>按租户、来源和事件身份去重；关联关系本身不能决定任务归属</td></tr>
+<tr><td>准入与研判</td><td>规则检查来源、主体和范围；需要语义理解时再让模型提出带证据的候选判断</td><td>候选判断由可信组件校验，形成接单、忽略、等待人工处理等明确结果</td></tr>
+<tr><td>调度与执行</td><td>创建或更新任务事实，登记可恢复的调度意图；执行器领取后返回观察</td><td>执行器只获得本次绑定的能力和范围，结果通过状态接口接受</td></tr>
+<tr><td>交付与后续</td><td>结果经受控渠道发出；后续消息、作业回调或定时器作为新的输入进入</td><td>交付状态独立记录；后续输入不能自动扩大原任务授权</td></tr>
+</tbody>
+</table>
+</div>
+<p>已有任务可以订阅一个话题、工单或作业，以便将后续事件投递给正在等待的工作。订阅只定义投递关系，相关话题也可以只作为上下文引用；两者都不自动赋予行动权限。多个任务匹配同一事件时，应由明确的分发和归属规则决定是否扇出、是否还需评估，不能仅凭内容相似度选择任务。遇到重复、过期、来源不明或目标已终止的事件，要留下可查询的处理结果。</p>
+<p>协调入口应快速记录决定并释放执行资源，长时间的模型调用、工具作业和人工等待由可恢复的后台工作推进。协调会话和执行会话可以分离，也可以由同一进程中的不同组件承担；无论怎样部署，长任务不应占住唯一的入口处理能力。异步结果返回时必须重新匹配等待对象、当前状态和授权，不能因为收到回调就继续执行。</p>
+<p><a href="../part4/05-deepseek-superagent.html">DeepSeek Super-agent 的事件驱动原型</a>展示了一种具体实现：来源负责采集，已有工单通过订阅接收后续输入，新的候选再经过规则准入和模型研判。它的主 Session、工单及订阅规则是产品选择，通用 Runtime 应按自身任务契约定义事件归属和恢复条件。</p>
+<p><a id="runtime-extension-and-operations"></a></p>
+<h3 id="1724-扩展边界状态写入与运行视图"><a class="header" href="#1724-扩展边界状态写入与运行视图">17.2.4 扩展边界、状态写入与运行视图</a></h3>
+<p>扩展来源时，可以把可复用的 Source 实现与某个租户或账号下的配置实例分开。来源适配器声明输入格式、身份映射、监听范围、游标和可用的回复能力，核心模块只依赖这些受限接口；具体平台的消息格式和 SDK 留在适配器中。来源实例拥有自己的读取位置，但只有覆盖范围内的事件已经可靠登记，游标才能越过它们。重复读取仍可能发生，因此事件的稳定身份和入口去重不可省略。</p>
+<p>状态更新与外部 I/O 也需要边界。一个实现可以让领域命令在本地事务内提交状态、事件和待执行意图，事务提交后由处理器调用来源、启动执行器或发送消息。若状态、Outbox 和事件不能共享事务，就必须说明替代协议及故障窗口；持久意图使待执行工作可以恢复，远端动作是否重复还取决于幂等键、资源端契约和核验能力，详见<a href="#failure-delivery">持久投递</a>和<a href="#failure-side-effects">外部副作用处理</a>。领域层使用受限接口表达所需能力，装配层负责连接具体存储、来源和执行后端；不要求所有实现都采用同一套类或进程布局。</p>
+<p>运行视图应能回答三个问题：哪些工作需要人处理、哪些组件或来源阻碍推进、某个任务从输入到结果发生了什么。列表和计数应基于同一套可解释的筛选条件；健康项要提供责任组件、原因和可执行的处理入口。管理面板、API 与模型工具可以呈现相同状态，但修改策略、连接或执行环境时仍须分别鉴权，不能因为模型能读取状态就允许它修改配置。</p>
+<p><a id="runtime-domain-model"></a></p>
+<p><a id="153-核心对象与领域模型"></a></p>
+<h2 id="173-核心对象与领域模型"><a class="header" href="#173-核心对象与领域模型">17.3 核心对象与领域模型</a></h2>
+<p>架构中的组件围绕一组有明确身份、作用域、状态与事实权威的对象协作。本节先说明对象如何标识和关联，再定义状态迁移、条件提交与持久化职责。对象名和字段是本书的参考设计，接入具体框架时需要显式映射。</p>
+<p>从数据流看，用户请求或来源事件经过身份检查、去重和必要的评估后，进入已有 Task 或形成新的 Task / Run；Run 按计划推进 Step 和 Attempt，外部动作由 Operation 跟踪，接受的状态变化形成 Event，产物与恢复位置分别由 Artifact 和 Checkpoint 承载。交付及后续输入沿各自的身份和权限继续处理。事件驱动场景还可能需要来源、订阅和评估对象，它们与这些基础对象的关系见<a href="#runtime-event-domain-model">事件与授权模型</a>。</p>
 <p><a id="object-model"></a>
 <a id="runtime-object-identities"></a>
 <a id="durable-state"></a></p>
 <p><a id="1523-对象身份作用域与关联"></a></p>
-<h3 id="1723-对象身份作用域与关联"><a class="header" href="#1723-对象身份作用域与关联">17.2.3 对象身份、作用域与关联</a></h3>
+<h3 id="1731-对象身份作用域与关联"><a class="header" href="#1731-对象身份作用域与关联">17.3.1 对象身份、作用域与关联</a></h3>
 <p>组件名称说明“谁负责”，对象身份说明“负责哪件事”。以下对象构成本章的参考模型，不会因为组件拆分或 Worker 更换而重新定义。</p>
 <div class="table-wrapper">
 <table>
@@ -445,10 +477,10 @@ erDiagram
 </div>
 <p>能力目录记录“系统认识哪些能力”，Connection 记录“哪个主体与外部账号建立了什么授权关系”，Run Binding 记录“本次执行使用哪些能力及范围”。运行时可以保存外部资源的标识、版本或 ETag、来源和受控内容引用；文档、日志、工单及其他业务对象的权威状态仍归资源端。MCP Server 内部可能包含自己的 Connector 与凭证设施，Host 对这些内部对象的可见性取决于服务提供方公开的契约。</p>
 <p>在 ALR 参考设计中，告警诊断 Skill 对应一条 Skill 目录记录，日志查询能力对应 MCP Server 与工具目录记录，工单服务对应 Connector 定义；某个主体的工单账号由 Connection 表示，本次 <code>run_0429_017</code> 的能力、项目与动作范围由 Run Binding 表示。这些对象分别描述方法、能力入口、账号关系和任务范围，不是同一个“工具配置”。</p>
-<p>Skill、MCP 与 Connector 的启动装配分别见 <a href="#runtime-bootstrap-skills">17.3.4</a>、<a href="#runtime-bootstrap-mcp">17.3.5</a> 和 <a href="#runtime-bootstrap-connectors">17.3.6</a>；运行时如何选择、授权和调用能力见 <a href="#runtime-task-execution">17.4</a>。</p>
+<p>Skill、MCP 与 Connector 的启动装配分别见 <a href="#runtime-bootstrap-skills">17.4.4</a>、<a href="#runtime-bootstrap-mcp">17.4.5</a> 和 <a href="#runtime-bootstrap-connectors">17.4.6</a>；运行时如何选择、授权和调用能力见 <a href="#runtime-task-execution">17.5</a>。</p>
 <p><a id="runtime-fact-authority"></a></p>
 <p><a id="1524-状态机与条件提交"></a></p>
-<h3 id="1724-状态机与条件提交"><a class="header" href="#1724-状态机与条件提交">17.2.4 状态机与条件提交</a></h3>
+<h3 id="1732-状态机与条件提交"><a class="header" href="#1732-状态机与条件提交">17.3.2 状态机与条件提交</a></h3>
 <p>状态机定义对象允许处于哪些状态，以及哪些变化具有业务意义。Run 的执行状态、Step 的推进状态、Operation 的外部结果和用户界面的展示状态是不同维度：例如 Run 已取消，仍可能存在需要核验的在途 Operation；界面中的“处理中”也不应成为后端状态的权威来源。下表先说明事实归属，随后定义状态迁移与提交规则。</p>
 <div class="table-wrapper">
 <table>
@@ -493,7 +525,7 @@ erDiagram
 <p>运行终态与业务事实要分开保存。CANCELLED 表示不再继续这次执行，而外部工具晚到的成功仍然是真实发生的事实。系统可以追加核验事件或补偿事件来解释它，但不能为了让界面看起来整齐而删除它。反过来，远端成功也不能让已取消的 Run 自动回到 RUNNING 并继续后续动作。终态保护的是执行承诺，账本保留的是业务世界中已经发生的变化。</p>
 <p><a id="trace-ledger"></a></p>
 <p><a id="1525-存储职责事件与观测"></a></p>
-<h3 id="1725-存储职责事件与观测"><a class="header" href="#1725-存储职责事件与观测">17.2.5 存储职责、事件与观测</a></h3>
+<h3 id="1733-存储职责事件与观测"><a class="header" href="#1733-存储职责事件与观测">17.3.3 存储职责、事件与观测</a></h3>
 <p>对话历史保存“说过什么”，Memory 保存受治理的跨任务信息，执行事件保存已接受的变化，Operation 账本关联外部动作与核验事实。摘要里的“已创建工单”不能替代对应 Operation 与资源端证据。</p>
 <p>下表给出本章参考设计中各类信息的存放职责。它们可以共用数据库或由不同服务管理；表中区分的是内容、权威性与恢复用途，不要求为每一类信息部署独立存储。</p>
 <div class="table-wrapper">
@@ -519,18 +551,64 @@ erDiagram
 <p>状态表也不必承载所有内容。任务目标、当前版本、依赖关系、执行权和未决操作需要可查询，因此放在状态表中；长文本、文件、工具原始载荷和报告进入受控的 Artifact 仓库；事件则保留状态变化的因果。读取 Artifact 时要再次检查当前权限，曾经进入过某个 Run 的内容，并不意味着永远可见。内容哈希可以证明载荷是否发生变化，但它不能代替鉴权，也不能证明业务含义正确。</p>
 <p>单次执行的恢复状态与跨任务共享信息应采用不同的存储契约；内存实现可以验证接口，但无法证明进程重启后的耐久性。<a href="#ref-5">[5]</a> 在本章的参考设计中，状态、事件、Artifact 与记忆可以共用底层存储，但各自的提交、删除、权限和保留规则必须分别定义。</p>
 <p>消息存储保留原文与来源血缘，模型只读取<a href="#context-builder">本轮上下文包</a>，不直接消费全部历史；包引用与过滤记录应可审计。</p>
-<p>ReAct 的结构化候选动作和观察必须由状态机接受；不保存或展示完整思维链，也不把自由文本当作迁移。循环判据见<a href="#execution-loop">派发与提交</a>，模式定义见<a href="#workflow">17.4.2 编排模式、依赖图与汇合</a>。</p>
+<p>ReAct 的结构化候选动作和观察必须由状态机接受；不保存或展示完整思维链，也不把自由文本当作迁移。循环判据见<a href="#execution-loop">派发与提交</a>，模式定义见<a href="#workflow">17.5.2 编排模式、依赖图与汇合</a>。</p>
 <p>Trace 记录组件、耗时与用量，Audit 保存谁触发、批准或执行了什么，两者关联 Task、Run 与 Operation。诊断记录可能采样、截断或延迟，不能代替执行账本；强审计记录先走可确认的持久路径，再异步导出视图。敏感正文进入受控载荷，日志仅留必要索引，日志访问本身也受权限控制。</p>
 <p>运行指标应从这些对象派生：排队时长与执行时长分开，模型、工具、审批等待和交付各有耗时；成功任务成本包含失败尝试与核验；UNKNOWN Operation 的数量和年龄独立于 Run 成功率。否则进程都正常、终态都好看，也可能掩盖长期无人处理的外部事实。</p>
+<p><a id="runtime-event-domain-model"></a></p>
+<h3 id="1734-来源事件评估授权与订阅"><a class="header" href="#1734-来源事件评估授权与订阅">17.3.4 来源事件、评估、授权与订阅</a></h3>
+<p>事件驱动系统需要表达“发生了什么”“为什么处理”和“允许做什么”。下表给出可选的领域概念及其与基础模型的关系；具体实现可以合并记录或使用其他名称，但需要保留这些语义边界。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>概念</th><th>作用与主要信息</th><th>与其他对象的边界</th></tr>
+</thead>
+<tbody>
+<tr><td>Source / 来源实例</td><td>定义输入来自哪里、监听范围、来源身份、游标及适配契约</td><td>一种实现可有多个配置实例；接入事件不代表发送者已获授权</td></tr>
+<tr><td>Source Event / 来源事件</td><td>保存来源内稳定事件 ID、主体、时间、载荷引用、来源对象和接收记录</td><td>表达收到的外部声明；与本章记录已接受状态变化的领域 Event 不同</td></tr>
+<tr><td>Thread / 来源话题</td><td>将来源侧连续发生的事件归入可识别的上下文，例如工单或评审讨论</td><td>一个话题可关联多个 Task，一个 Task 也可关联多个话题；它不等同于 Session 或 Run</td></tr>
+<tr><td>Evaluation 与 Decision / 评估与决定</td><td>记录候选输入、规则及版本、上下文引用、判断结果、理由和证据</td><td>模型可以参与提出候选，可信组件决定是否接受；忽略或无法判断也要保留原因</td></tr>
+<tr><td>授权记录与 Policy</td><td>Policy 定义适用规则；授权记录绑定主体、来源、目标、范围、期限和依据</td><td>授权依据需可追溯；范围变化形成新的授权记录或版本，派发时仍检查当前权限</td></tr>
+<tr><td>Subscription / 订阅</td><td>将话题或事件条件与某个 Task、Run 或等待项关联，声明投递目的与有效期</td><td>订阅负责匹配和投递，不自行创建任务、恢复终态或授予权限</td></tr>
+<tr><td>Input 与 Channel</td><td>Input 记录一次事件或消息向工作的投递及消费情况；Channel 标识可回复的渠道与地址</td><td>接收、投递、实际消费和对外发送是不同事实，渠道地址不等于发送授权</td></tr>
+</tbody>
+</table>
+</div>
+<p>例如，ALR 来源收到同一告警的两次投递时，入口以租户、来源实例和来源事件 ID 识别重复；规则检查可信发送主体和监听范围，再判断它是否匹配已有诊断 Run。若匹配未决等待，系统按订阅契约记录投递；若是新候选，可以结合策略与证据评估是否创建任务。判断结果记录依据，建立 Run 时再绑定适用的主体、能力和资源范围。即使后续收到相关工单评论，也不能仅凭这条评论扩大建单或修改配置的权限。</p>
+<p>不同产品的对象粒度不必一一对应。<a href="../part4/05-deepseek-superagent.html">DeepSeek Super-agent</a>用 Trigger、Eval、Decision、Mandate、Ticket 和 Assignment 表达自己的事件、判断、授权与执行关系；其中 Ticket 是其已授权工作单元，Assignment 绑定执行器实例。它们可以帮助理解本章的 Task / Run、授权记录和执行尝试，但不能直接把 Ticket 等同于 Task、或把 Assignment 等同于 Attempt：具体映射取决于各自的生命周期和恢复契约。</p>
+<p><a id="runtime-domain-invariants"></a></p>
+<h3 id="1735-对象关系状态维度与约束"><a class="header" href="#1735-对象关系状态维度与约束">17.3.5 对象关系、状态维度与约束</a></h3>
+<p>一个任务的运行状态不能代表所有相关对象的状态。来源事件可能已接收但尚未评估；评估可能决定忽略；Run 可能处于等待，而上一次 Attempt 已经结束；Operation 可能在 Run 取消后仍需核验；交付也可能在任务完成后失败。分别保存这些维度，才能回答“工作停在哪里”和“外部发生了什么”。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>状态维度</th><th>需要回答的问题</th><th>可独立发生的情况</th></tr>
+</thead>
+<tbody>
+<tr><td>事件受理与评估</td><td>输入是否已登记、过滤、归属或形成决定</td><td>评估超时不代表来源事件消失；重试应沿原输入记录推进</td></tr>
+<tr><td>Run 与 Step</td><td>本次执行是否排队、运行、等待或终止</td><td>等待审批时可以释放 Worker，恢复仍需匹配原等待和当前版本</td></tr>
+<tr><td>Attempt 与执行权</td><td>谁在什么代次执行了哪次尝试，是否仍有资格提交</td><td>一次尝试失败或执行者更换，不必创建新 Task 或改变已有 Operation 身份</td></tr>
+<tr><td>Operation 与交付</td><td>外部动作是否发生、结果是否核验，结果是否已送达</td><td>Run 终止与外部结果未知可以同时成立；报告完成不代表通知已送达</td></tr>
+</tbody>
+</table>
+</div>
+<p>这些对象之间至少要维持以下约束：</p>
+<ol>
+<li><strong>输入可追溯。</strong> 处理决定关联来源事件、主体、适用规则与理由；来源重放通过稳定身份去重，不能仅靠时间戳或文本相似度合并。</li>
+<li><strong>归属与授权分开。</strong> 关联和订阅决定输入可投递到哪里；接受为任务输入、恢复执行或调用工具，分别满足当前任务契约、主体权限和状态条件。</li>
+<li><strong>身份随业务语义变化。</strong> 重试产生新的 Attempt，接管产生新的执行权代次；同一业务意图继续沿原 Operation 核验。新目标或新的业务意图需要明确的新身份。</li>
+<li><strong>状态迁移有唯一的接受依据。</strong> 命令、模型建议和执行器报告只是输入；状态接口依据版本、执行权和迁移条件接受变化并记录事件。逻辑上的统一提交责任可以由单写者或条件提交实现。</li>
+<li><strong>终态与外部事实分别收敛。</strong> 取消或完成约束后续执行；迟到的回执、未知结果与交付失败仍需记录和处理，不能借恢复输入绕过终态或重新授予权限。</li>
+</ol>
+<p>这些约束是本章参考设计的验收依据。具体产品可以选择不同的订阅、重新受理或恢复规则，但需要说明规则由谁执行，以及冲突、重复和授权撤销时怎样处理。</p>
 <p><a id="runtime-startup"></a></p>
 <p><a id="153-启动与任务受理"></a></p>
-<h2 id="173-启动与任务受理"><a class="header" href="#173-启动与任务受理">17.3 启动与任务受理</a></h2>
+<h2 id="174-启动与任务受理"><a class="header" href="#174-启动与任务受理">17.4 启动与任务受理</a></h2>
 <p>启动建立实例可以提供的能力，受理把这些能力收窄为一次具体任务的承诺。前者处理部署配置、实现版本和依赖，后者处理用户身份、目标、资源和本次预算。两阶段不能混同：实例拥有一个可执行工具，不代表当前用户可以调用它。</p>
 <p><a href="../images/agent-runtime-startup-architecture.svg"><img src="../images/agent-runtime-startup-architecture.svg" alt="Runtime 启动架构：入口、配置校验、能力初始化、就绪与任务绑定"></a></p>
 <p><em>图 17-2：Runtime 启动架构：配置与策略先确定装配范围，再初始化基础设施、Skill、MCP 与 Connector，通过就绪检查后受理任务。</em></p>
 <p><em>图中组件为本书参考设计，可以合并部署；并行装配仍须遵守依赖顺序。Skill 启动时主要建立元数据索引，按用户绑定的连接和延迟初始化能力在任务到来后继续准备。点击图片查看 SVG。</em></p>
 <p><a id="runtime-bootstrap-entry"></a></p>
-<h3 id="1731-启动入口与装配顺序"><a class="header" href="#1731-启动入口与装配顺序">17.3.1 启动入口与装配顺序</a></h3>
+<h3 id="1741-启动入口与装配顺序"><a class="header" href="#1741-启动入口与装配顺序">17.4.1 启动入口与装配顺序</a></h3>
 <p>Runtime 可以由本地 CLI、桌面/IDE 宿主、HTTP 服务或后台 Worker 进程启动。入口不同，启动职责仍可归为同一条装配链：确定实例角色与工作区，解析有效配置，校验能力来源与策略，建立基础设施客户端，装配能力目录，最后决定是否对外就绪。启动不需要先调用模型；模型负责的任务理解与工具选择发生在受理之后。</p>
 <p>本地 CLI 往往在一个进程里同时承担入口、调度和执行；服务端可将 API、调度器和 Worker 分开启动。API 启动时主要证明可以可靠受理与查询任务，Worker 主要证明能认领并执行自己支持版本的任务，不能要求每个 API 副本都启动所有本地 MCP Server。组件归属由部署角色决定，同一份配置先裁剪为本实例需要的依赖图。</p>
 <div class="table-wrapper">
@@ -552,7 +630,7 @@ erDiagram
 <p><a id="1531-读取配置与外围能力快照"></a>
 <a id="1731-读取配置与外围能力快照"></a>
 <a id="runtime-bootstrap-config"></a></p>
-<h3 id="1732-配置文件指令文件与生效配置"><a class="header" href="#1732-配置文件指令文件与生效配置">17.3.2 配置文件、指令文件与生效配置</a></h3>
+<h3 id="1742-配置文件指令文件与生效配置"><a class="header" href="#1742-配置文件指令文件与生效配置">17.4.2 配置文件、指令文件与生效配置</a></h3>
 <p>部署配置回答“启动哪些组件、去哪里找制品、采用什么默认限制”，指令文件回答“模型应怎样完成工作”，两者采用不同的解析路径。Runtime 先确认来源是否可信，再按声明的合并规则生成生效配置；不能扫描到任意项目文件就执行其中的脚本或接入新服务。用户、项目和环境配置可以选择组织允许的值，不能覆盖强制上限。</p>
 <div class="table-wrapper">
 <table>
@@ -599,7 +677,7 @@ connectors:
 </code></pre>
 <p>配置中的 <code>required</code> 与 <code>initialization</code> 是本书部署层约定，不是 MCP 或 Skill 标准字段。manifest 负责引用已经验收的能力组合，配置文件负责实例怎样装配它；生效配置是两者与当前策略的校验结果。原始配置可以包含凭证引用，但快照、模型和日志都不包含实际 Token。摘要只用于追溯内容，不能取代来源鉴别和当前授权。</p>
 <p><a id="runtime-bootstrap-clients"></a></p>
-<h3 id="1733-基础设施模型适配器与执行后端"><a class="header" href="#1733-基础设施模型适配器与执行后端">17.3.3 基础设施、模型适配器与执行后端</a></h3>
+<h3 id="1743-基础设施模型适配器与执行后端"><a class="header" href="#1743-基础设施模型适配器与执行后端">17.4.3 基础设施、模型适配器与执行后端</a></h3>
 <p>配置通过校验后，Runtime 按本实例角色建立状态库、事件、Outbox、Artifact、Memory/检索访问与观测客户端。它检查所需结构版本和访问范围，不让每个进程在启动时竞争执行生产数据库迁移；迁移由发布流程协调。状态库可连通不代表持久受理已可用，还须检查事务、所需表与本角色权限是否满足约定。</p>
 <p>模型适配器先解析提供方、端点、协议、模型引用、超时、重试与额度设置，向凭证服务取得受限调用句柄，并检查所选接口和功能是否兼容。初始化 SDK 或 HTTP 连接池不等于已经发送推理请求，也不证明模型服务一定可用；是否执行最小探测由部署策略决定，不能为了每次健康检查反复发起付费生成。限流、模型不可用与协议错误仍由任务运行时按分类处理。</p>
 <p>执行后端同时确认工作区、临时目录、文件读写范围、网络出口、进程限制与必要的隔离设施。必需沙箱无法落实时不暴露执行能力；启动成功也不能赋予某次 Run 更大的权限。观测客户端此时建立实例启动事件与配置摘要，实际调用再关联 Run、Step、Attempt 和 Operation，不提前生成虚假的任务成功记录。</p>
@@ -608,13 +686,13 @@ connectors:
 <a id="1532-发现可见加载与授权"></a>
 <a id="1732-发现可见加载与授权"></a>
 <a id="runtime-bootstrap-skills"></a></p>
-<h3 id="1734-skill-发现元数据索引与按需加载"><a class="header" href="#1734-skill-发现元数据索引与按需加载">17.3.4 Skill 发现、元数据索引与按需加载</a></h3>
+<h3 id="1744-skill-发现元数据索引与按需加载"><a class="header" href="#1744-skill-发现元数据索引与按需加载">17.4.4 Skill 发现、元数据索引与按需加载</a></h3>
 <p>Skill 装配器按允许的来源扫描目录或读取已发布包的索引，例如 <code>skills/incident-diagnosis/SKILL.md</code>。它先解析名称、描述、入口位置与必要元数据，核对来源、版本、路径和体积限制，检查发布记录中声明的工具/运行环境依赖，再形成可检索目录。重名项按显式的命名空间或覆盖规则解决，不能依赖不稳定的文件遍历顺序。</p>
 <p>启动期的“加载 Skill”通常应拆成三步理解：发现时建立元数据索引；任务选择后读入对应版本正文；执行到某个分支时再取参考资料、模板和脚本。三步的具体实现见<a href="05-skills-tools-mcp-connectors.html#progressive-loading">第 16 章渐进式加载</a>。目录中存在 <code>SKILL.md</code> 不代表正文已经进入模型请求，更不代表包中的脚本已执行。</p>
 <p>指令文件与 Skill 的生命周期也不同。AGENTS.md 等工作区规则按宿主声明的作用域形成指令链；Skill 是按任务选择的能力包。Runtime 为两者分别保存实际使用的来源和版本，限制总上下文预算，不在启动时把全部 Skill、附件、历史记录和工具结果一次性塞给模型。</p>
 <p>发现、可见、加载和授权是四个不同状态。某个 Skill 可能已被索引，却因环境不符、依赖未就绪或当前用户无权使用而不可见；也可能正文已读入，但其中建议的建单动作仍须单独审批。依赖可延迟准备时记录 <code>pending</code> 及激活条件，失败时明确禁用或等待，不能让模型猜工具名来绕过装配。</p>
 <p><a id="runtime-bootstrap-mcp"></a></p>
-<h3 id="1735-mcp-clientserver-与工具目录初始化"><a class="header" href="#1735-mcp-clientserver-与工具目录初始化">17.3.5 MCP Client、Server 与工具目录初始化</a></h3>
+<h3 id="1745-mcp-clientserver-与工具目录初始化"><a class="header" href="#1745-mcp-clientserver-与工具目录初始化">17.4.5 MCP Client、Server 与工具目录初始化</a></h3>
 <p>Host 为每个 Server 维护一个 Client 的 1:1 逻辑关联；同一远程 Server 可以服务多个 Host / Client，独立 Client 并不等于独立租户或单独的服务部署。初始化时分别记录 Server 身份、协议适配、传输句柄与当前授权范围，不能把它们折叠成一个含义不明的“已连接”。<a href="#ref-6">[6]</a></p>
 <p>Runtime 按可信 Server 定义创建 MCP Client 适配器，先核对来源、传输、端点或启动命令、协议兼容范围、超时及网络策略。对于本地 stdio Server，受控执行器在允许的工作目录与最小环境中启动子进程，标准输出交给协议解析，标准错误等诊断输出进入受控日志；不能把普通日志混入协议通道。对于远程 HTTP Server，Client 准备 TLS、代理、连接池与第一跳认证设施，通常不负责启动远端服务。</p>
 <p>这里的“初始化”指宿主装配动作，不等于所有版本都发送 <code>initialize</code>。本书第 16 章采用的 <strong>2026-07-28</strong> MCP 规范不以 <code>initialize</code> 建立协议会话：请求携带版本与 Client 能力，Client 可先调用 <code>server/discover</code> 了解 Server，再请求 <code>tools/list</code> 并处理不兼容版本。旧版 <strong>2025-11-25 及更早</strong>的握手路径才是 <code>initialize → initialized</code>。版本与传输兼容须沿<a href="05-skills-tools-mcp-connectors.html#mcp-version-boundaries">第 16 章协议版本边界</a>实现，不把两套生命周期拼成固定流程。<a href="#ref-7">[7]</a></p>
@@ -640,7 +718,7 @@ connectors:
 <p>不对 issuer 做大小写、端口或尾斜杠归一化，也不根据回调临时改选 Token 端点；issuer 不匹配时不能继续处理或展示响应中的错误信息。这与 <code>state</code>、PKCE 和资源受众检查分别防御不同的问题；缺少 <code>iss</code> 时仍须落实 RFC 9700 的防混淆要求。<a href="#ref-12">[12]</a><a href="#ref-10">[10]</a></p>
 <p>stdio 不套用 HTTP OAuth 流程：Host 为获准子进程提供必要的最小环境，并检查凭证继承与实际隔离；本地桥接访问远端 API 时，Connector 的下游身份仍独立绑定。第一跳 Client 认证成功也不证明第二跳业务账号已经连接，二者分别记录等待、撤销和错误。Server 的凭证校验与资源授权见<a href="05-skills-tools-mcp-connectors.html#认证与授权">16.4.5</a>。<a href="#ref-10">[10]</a></p>
 <p><a id="runtime-bootstrap-connectors"></a></p>
-<h3 id="1736-connector-适配器凭证提供方与业务连接"><a class="header" href="#1736-connector-适配器凭证提供方与业务连接">17.3.6 Connector 适配器、凭证提供方与业务连接</a></h3>
+<h3 id="1746-connector-适配器凭证提供方与业务连接"><a class="header" href="#1746-connector-适配器凭证提供方与业务连接">17.4.6 Connector 适配器、凭证提供方与业务连接</a></h3>
 <p>Connector 把外部业务 API 映射为工具能力，可以直接嵌入 Runtime，也可以运行在远程 MCP Server 后面。前者由本实例初始化适配器、API 客户端和连接服务；后者由服务提供方装配，Host 只校验自己到 MCP Server 的契约与认证，不能假定能读取或管理远端下游凭证。</p>
 <p>启动期通常只准备 Connector 的静态部分：加载适配器版本，校验 API 基址、资源映射、超时、分页、限流和幂等契约，连接凭证提供方，并检查 Connection 存储可访问。无副作用的健康或权限探测要限定范围；不能为了证明“初始化成功”而创建工单、发送消息或导出业务数据。</p>
 <p>用户授权属于动态部分。只有知道当前调用者、租户、组织与操作后，连接服务才解析该主体的 Connection，取得或刷新必要凭证，并核验下游账号、Scope、资源归属及撤销状态。长期服务账号也须限定环境与资源，不能把它放进全局模型上下文或默认分给全部 Run。OAuth 回调与两跳授权的具体实现见<a href="05-skills-tools-mcp-connectors.html#1664-认证连接外部账号与两跳授权">第 16 章 Connector 认证</a>。</p>
@@ -650,7 +728,7 @@ connectors:
 <a id="1733-就绪版本更新与退出"></a>
 <a id="1533-就绪版本更新与退出"></a>
 <a id="1731-实例就绪与能力快照"></a></p>
-<h3 id="1737-能力快照就绪检查与退出"><a class="header" href="#1737-能力快照就绪检查与退出">17.3.7 能力快照、就绪检查与退出</a></h3>
+<h3 id="1747-能力快照就绪检查与退出"><a class="header" href="#1747-能力快照就绪检查与退出">17.4.7 能力快照、就绪检查与退出</a></h3>
 <p>各装配器返回版本、契约、依赖和状态，由启动协调器汇成能力快照，关联生效配置摘要与发布 manifest。快照固定“本实例准备了什么”，用户和任务范围决定“本次可以用什么”；后者仍需在动作派发时复核。远程服务无法固定实现版本时，保存观察到的目录快照并验证行为契约，不宣称仅保存一个 URL 就能重现历史执行。</p>
 <div class="table-wrapper">
 <table>
@@ -665,7 +743,7 @@ connectors:
 </table>
 </div>
 <p>就绪检查区分进程存活、角色可服务和能力可用。必需依赖失败时该角色 NotReady；可选来源失败时记录降级能力与原因，缺失能力的任务应拒绝、等待或路由到兼容实例，不能受理后让模型凭空完成。身份绑定型或 lazy 能力保留准备状态，首次使用的等待与失败进入任务轨迹，不以一个全局绿色状态掩盖。</p>
-<p>允许排队后执行时应公开期限与积压，不能无界接受任务。新 Run 固定被选中的 manifest、配置和能力版本引用，绑定当前主体与预算；所需 Connection 按该主体解析，未授权的连接保持等待，不阻塞与其无关的已获准调查。实例重启不能替旧 Run 静默升级能力。配置热更新先构建并验证候选快照，成功后再供新任务使用；在途 Run 的迁移、兼容与当前撤权统一按<a href="#failure-recovery">17.6.5 版本恢复</a>处理。</p>
+<p>允许排队后执行时应公开期限与积压，不能无界接受任务。新 Run 固定被选中的 manifest、配置和能力版本引用，绑定当前主体与预算；所需 Connection 按该主体解析，未授权的连接保持等待，不阻塞与其无关的已获准调查。实例重启不能替旧 Run 静默升级能力。配置热更新先构建并验证候选快照，成功后再供新任务使用；在途 Run 的迁移、兼容与当前撤权统一按<a href="#failure-recovery">17.7.5 版本恢复</a>处理。</p>
 <p>退出采用 drain：先停止新接入和认领，再提交可恢复边界，登记未决 Operation、等待与交付责任。先停止任务生产者与依赖使用者，在状态与观测依赖仍可用时持久化必要审计和用量，最后按依赖逆序关闭 MCP 子进程、连接池及客户端。排空超时不能把可能已发出的请求记为未执行；退出实例不等于结束 Run。</p>
 <p><a id="execution-intake-contract"></a></p>
 <p><a id="1534-请求信封去重与任务契约"></a>
@@ -674,11 +752,11 @@ connectors:
 <p><a id="runtime-intake-routing"></a>
 <a id="1535-路由会话与受理责任"></a></p>
 <p><a id="1732-受理信封去重与路由"></a></p>
-<h3 id="1738-受理信封去重与路由"><a class="header" href="#1738-受理信封去重与路由">17.3.8 受理：信封、去重与路由</a></h3>
+<h3 id="1748-受理信封去重与路由"><a class="header" href="#1748-受理信封去重与路由">17.4.8 受理：信封、去重与路由</a></h3>
 <p>入口接收用户请求、授权事件或队列消息，先识别它是新目标、当前任务的补充、继续执行，还是查询状态。可信信封绑定租户、主体、会话、环境、请求标识及关联标识；这些字段来自鉴权与路由，不能由模型或正文中的自述覆盖。</p>
 <p>意图归一把“查一下为什么延迟，需要处理时先给我看草稿”变成契约：调查哪个告警、可访问哪些数据、时间范围、是否只读、预期证据与草稿格式，以及哪些信息必须澄清。缺少关键对象时先保存待澄清状态，不凭猜测启动写动作。一次消息不必对应新 Task，关联规则由入口契约明确规定。</p>
 <p>请求去重键在租户与入口约定的作用域内唯一，并绑定规范化请求摘要。同键同内容返回原受理结果，同键异参报告冲突；不能凭自然语言相似度合并独立请求。记录覆盖客户端重试和延迟投递窗口，过期后的行为由入口契约规定。跨入口合并同一事件需要可信业务身份；独立执行另建 Run 并保留关联。</p>
-<p><strong>C1：</strong> 在一个本地事务中建立 Task / Run，绑定契约与配置版本，保存请求去重结果及调度 Outbox，再返回 accepted 和查询身份。accepted 只承诺任务已被可靠受理。事务与投递之间的故障见 <a href="#failure-delivery">17.6.2 持久投递、去重与积压恢复</a>。</p>
+<p><strong>C1：</strong> 在一个本地事务中建立 Task / Run，绑定契约与配置版本，保存请求去重结果及调度 Outbox，再返回 accepted 和查询身份。accepted 只承诺任务已被可靠受理。事务与投递之间的故障见 <a href="#failure-delivery">17.7.2 持久投递、去重与积压恢复</a>。</p>
 <p><a id="请求信封与任务契约示例"></a></p>
 <p><strong>请求信封与任务契约示例</strong></p>
 <p>Web、IM、IDE、告警、Webhook、定时器与委派均可作为入口。路由识别来源与可信身份，Intent Normalizer 明确目标，Planner 决定执行顺序。以下信封身份由入口鉴权绑定，不接受载荷自报角色。</p>
@@ -715,7 +793,7 @@ connectors:
 <p>受理回执至少包含 Task、Run、受理状态和查询方式。同步请求可以在连接内等待，但连接断开不代替任务取消；异步接口返回后，执行责任由持久记录承担。接入层在容量不足时要决定拒绝、持久排队或按优先级降级，并公开队列与截止时间关系，不能接受无限期无法履行的任务。</p>
 <p><a id="runtime-task-execution"></a></p>
 <p><a id="154-执行循环与任务收敛"></a></p>
-<h2 id="174-执行循环与任务收敛"><a class="header" href="#174-执行循环与任务收敛">17.4 执行循环与任务收敛</a></h2>
+<h2 id="175-执行循环与任务收敛"><a class="header" href="#175-执行循环与任务收敛">17.5 执行循环与任务收敛</a></h2>
 <p><a href="../images/agent-runtime-14-4-overview.svg"><img src="../images/agent-runtime-14-4-overview.svg" alt="Runtime 执行概览：装配、模型提议、逐动作裁决、工具观察与验收交付"></a></p>
 <p><em>图 17-3：Runtime 执行概览：装配、模型提议、逐动作裁决、工具观察与验收交付</em></p>
 <p><em>工具动作循环补证；审批进入持久等待，候选答案经过验证后交付。本书参考设计，点击图片查看 SVG。</em></p>
@@ -770,7 +848,7 @@ def advance(tenant_id, run_id, step_id):
 <p><a id="execution-run-binding"></a></p>
 <p><a id="1542-run-装配预算与资源隔离"></a>
 <a id="1742-run-装配预算与资源隔离"></a></p>
-<h3 id="1741-run-装配预算与资源隔离"><a class="header" href="#1741-run-装配预算与资源隔离">17.4.1 Run 装配、预算与资源隔离</a></h3>
+<h3 id="1751-run-装配预算与资源隔离"><a class="header" href="#1751-run-装配预算与资源隔离">17.5.1 Run 装配、预算与资源隔离</a></h3>
 <p>装配读取 C1 绑定的 manifest 与契约，并结合当前身份与资源权限，生成本次 Run 的执行包：模型配置、允许请求的工具与 Skill、数据源范围、工作区、上下文规则、根预算及验收器。实例级目录可以很大，模型只看到本次任务需要且允许请求的子集；可见能力也不等于本次动作已获批准。</p>
 <p>工作区绑定租户、任务、路径和可写范围。只读调查可以共享不可变材料，涉及修改时需要明确排他或隔离策略；Worktree 隔离文件版本，不隔离共享进程、凭证和网络。子任务只获得完成其契约所需的最小范围。</p>
 <p>根预算包含轮数、时间、Token、费用、工具与并发额度，派发前原子预留，实际用量返回后按计量事件幂等结算并释放未用额度，<code>available = limit - settled - reserved</code>。费用未知时保留在途预留，不能把超时当作未计费。重试、重新采样、查询核验、委派和孙任务共用同一根账本；HTTP 客户端、SDK 与工作流不能各自重试而放大调用次数。最接近错误的一层负责退避，根责任层负责总次数、费用与停止。预算耗尽的收尾见<a href="#failure-cancellation">取消与停止</a>。</p>
@@ -779,7 +857,7 @@ def advance(tenant_id, run_id, step_id):
 <p><strong>把模型提议映射回可信能力与连接</strong></p>
 <p>模型返回的工具名必须映射回本 Run 绑定的可信对象，核对 Schema、版本、资源范围和实现；不能把输出中的任意路径、命令入口或端点当作新工具。业务操作边界见<a href="05-skills-tools-mcp-connectors.html#tool-contract">第16章 外部能力设计</a>，本轮选择与定义装配见<a href="#runtime-tool-exposure">工具暴露</a>。</p>
 <p>Connector / Connection / Run Binding 的定义见<a href="#runtime-object-identities">对象身份</a>。派发时从可信上下文取得 <code>tenant_id/user_id/connection_id</code> 与凭证引用，模型参数必须受限于绑定。以项目 P 的读取绑定提出项目 Q 的写入时，不能自动切到另一组织的连接；子 Agent 只取得被收窄的委托绑定。</p>
-<p>连接服务在派发前检查当前所有权与授权，明文凭据仅留在服务端或受控凭证提供方。连接凭据按当前授权解析，授权失效后的收敛见 <a href="#failure-human-control">17.6.6 取消、授权变化与人工接管</a>。</p>
+<p>连接服务在派发前检查当前所有权与授权，明文凭据仅留在服务端或受控凭证提供方。连接凭据按当前授权解析，授权失效后的收敛见 <a href="#failure-human-control">17.7.6 取消、授权变化与人工接管</a>。</p>
 <p>Agent 定义决定程序可提供的能力，Session 组织连续交互，Run 是某个 Task 的实际执行，可以关联 Session，也可以由授权事件独立触发。同一个 Session 默认串行提交共享历史；若多个 Run 并行，应为它们分配状态分支和写入目录，再通过版本检查与明确合并规则提交，防止后完成的结果覆盖较新的历史。</p>
 <div class="table-wrapper">
 <table>
@@ -812,7 +890,7 @@ def advance(tenant_id, run_id, step_id):
 <p><a id="workflow"></a></p>
 <p><a id="1544-编排模式依赖图与汇合"></a>
 <a id="1744-编排模式依赖图与汇合"></a></p>
-<h3 id="1742-编排模式依赖图与汇合"><a class="header" href="#1742-编排模式依赖图与汇合">17.4.2 编排模式、依赖图与汇合</a></h3>
+<h3 id="1752-编排模式依赖图与汇合"><a class="header" href="#1752-编排模式依赖图与汇合">17.5.2 编排模式、依赖图与汇合</a></h3>
 <p><a id="task-planner"></a></p>
 <p>规划器根据契约和证据缺口提出步骤，例如读取工单时间线、检索制度、查询相关日志、解释延迟、生成跟进建议。Runtime 校验步骤是否可执行、依赖是否闭合、预算是否可承受，以及结果怎样验收，再接受计划版本。计划表达未来工作的假设，不表示这些工作已经完成。</p>
 <p>在本书的任务图设计中，节点描述逻辑输入、输出、依赖与验收条件，激活后映射到一个或多个可追踪的 Step；一个包含内部 Loop 的复合节点还需关联其内部 Step。Attempt 是节点实际执行的尝试，不应在每次重试时变成新的逻辑节点。动态扩图保存修订版与新增依赖，后继只能消费当前计划中已接受的结果。</p>
@@ -870,7 +948,7 @@ def advance(tenant_id, run_id, step_id):
 <p><a id="execution-context-package"></a></p>
 <p><a id="1545-上下文记忆与模型请求"></a>
 <a id="1745-上下文记忆与模型请求"></a></p>
-<h3 id="1743-上下文记忆与模型请求"><a class="header" href="#1743-上下文记忆与模型请求">17.4.3 上下文、记忆与模型请求</a></h3>
+<h3 id="1753-上下文记忆与模型请求"><a class="header" href="#1753-上下文记忆与模型请求">17.5.3 上下文、记忆与模型请求</a></h3>
 <p>Runtime 以当前契约、已提交进度和证据缺口请求 Context Builder，消费<a href="02-context-engineering.html#context-assembly">第14章 上下文包</a>。输入涵盖目标、安全约束、状态投影、证据、方法、工具 Schema 与剩余预算；长载荷保存为受控 Artifact，Run 与 Checkpoint 记录包版本、不可变引用、哈希和过滤记录。发送模型请求前检查：</p>
 <div class="table-wrapper">
 <table>
@@ -910,7 +988,7 @@ def advance(tenant_id, run_id, step_id):
 <p><a id="runtime-mcp-context"></a></p>
 <p><strong>将 MCP 能力转成本轮模型工具集</strong></p>
 <p>Host 从已验证的 MCP 目录中，按当前主体、Run 绑定、任务阶段、环境与剩余预算选择工具，将 MCP 的描述与 Schema 转换为目标模型接口支持的定义。模型可见名称同时保留到受信 Server 与原工具名的映射；多个 Server 存在同名工具时显式区分来源，不能在调用时猜测目标。Resources 和 Prompts 的正文只在获准读取或取用后进入上下文，不因出现在目录中而自动预加载。</p>
-<p>模型得到的是候选能力，不是执行凭据。模型提出调用后，Runtime 仍检查当前绑定、真实参数与资源并按 17.4.4 裁决；工具被隐藏也不能代替 Server 的独立鉴权。工具结果回填的完整 MCP 示例见<a href="#runtime-mcp-dispatch">派发与观察</a>。</p>
+<p>模型得到的是候选能力，不是执行凭据。模型提出调用后，Runtime 仍检查当前绑定、真实参数与资源并按 17.5.4 裁决；工具被隐藏也不能代替 Server 的独立鉴权。工具结果回填的完整 MCP 示例见<a href="#runtime-mcp-dispatch">派发与观察</a>。</p>
 <p><a id="输入版本与证据时间"></a></p>
 <p><strong>输入版本与证据时间</strong></p>
 <p>外部状态以观察记录表达，附带查询范围、采集时间和资源更新时间。历史判断使用对应时间的证据，不能用当前配置解释过去。输入引用与版本迁移遵守<a href="#failure-recovery">恢复契约</a>，不以模型摘要替代。</p>
@@ -921,10 +999,10 @@ def advance(tenant_id, run_id, step_id):
 <p><a id="human-control"></a></p>
 <p><a id="1546-动作裁决与审批等待"></a>
 <a id="1746-动作裁决与审批等待"></a></p>
-<h3 id="1744-动作裁决与审批等待"><a class="header" href="#1744-动作裁决与审批等待">17.4.4 动作裁决与审批等待</a></h3>
+<h3 id="1754-动作裁决与审批等待"><a class="header" href="#1754-动作裁决与审批等待">17.5.4 动作裁决与审批等待</a></h3>
 <p>模型输出先解析为候选答案、工具调用或计划修订，再检查 Schema、工具标识、参数、目标对象及与任务的关联。结构有效只证明可以进入裁决，Policy 仍按当前主体、资源、环境、审批和预算决定是否执行。每个动作分别裁决，不能只在 Loop 开始前统一检查一次。</p>
 <p><code>allow</code> 携带沙箱、审计和凭证范围等约束交给执行引擎；<code>ask</code> 则在同一事务中保存审批绑定、<code>WAITING(approval)</code>、通知意图和恢复条件，并释放 Worker 与执行权。批准事件经鉴权、去重并匹配原绑定后，只把步骤变为可认领；即使仍由原 Worker 继续，也必须重新认领并推进 <code>owner_epoch</code>，不能沿用等待前的提交凭据。</p>
-<p>审批只覆盖绑定动作，不能授予整个会话无限权限。超时不视为批准；取消使待审批动作失效。冲突决定进入明确裁定流程，伪造、过期或重复回调不激活新执行。<code>deny</code> 与 <code>escalate</code> 的任务收敛见<a href="#failure-human-control">17.6.6</a>。</p>
+<p>审批只覆盖绑定动作，不能授予整个会话无限权限。超时不视为批准；取消使待审批动作失效。冲突决定进入明确裁定流程，伪造、过期或重复回调不激活新执行。<code>deny</code> 与 <code>escalate</code> 的任务收敛见<a href="#failure-human-control">17.7.6</a>。</p>
 <p><a id="policy-的结构化输入与输出"></a></p>
 <p><strong>Policy 的结构化输入与输出</strong></p>
 <p>Policy 检查的是主体、契约、具体参数、环境与当前状态，而不是一句自然语言请求。以下输入由 Runtime 从可信对象装配；展示字段为教学简化，执行时还须关联草稿内容哈希、资源版本和持久审批记录。</p>
@@ -976,7 +1054,7 @@ def advance(tenant_id, run_id, step_id):
 </thead>
 <tbody>
 <tr><td><code>allow</code></td><td>当前动作允许执行</td><td>带上具体执行限制，不构成未来动作的批准</td></tr>
-<tr><td><code>deny</code></td><td>拒绝动作；<code>scope=goal</code> 时拒绝目标</td><td>按 <a href="#failure-human-control">17.6.6 取消、授权变化与人工接管</a> 收敛，替代路线不得绕过</td></tr>
+<tr><td><code>deny</code></td><td>拒绝动作；<code>scope=goal</code> 时拒绝目标</td><td>按 <a href="#failure-human-control">17.7.6 取消、授权变化与人工接管</a> 收敛，替代路线不得绕过</td></tr>
 <tr><td><code>ask</code></td><td>请当前用户或指定角色批准绑定的动作</td><td>先保存持久等待，批准后重新核对当前事实</td></tr>
 <tr><td><code>escalate</code></td><td>当前主体或自动化路径无权作出判断</td><td>转交有权角色或人工接管，不降格成普通点击确认</td></tr>
 <tr><td><code>sandbox</code></td><td>附加在 allow 上的沙箱或 dry-run 约束</td><td>不构成独立批准，由实际后端落实隔离</td></tr>
@@ -984,7 +1062,7 @@ def advance(tenant_id, run_id, step_id):
 </tbody>
 </table>
 </div>
-<p>风险分类由<a href="05-skills-tools-mcp-connectors.html#tool-contract">第16章 工具契约</a>提供，跨层执行边界见<a href="#runtime-security">17.5 安全与授权</a>，治理检查与门禁见<a href="06-agent-governance-optimization.html#guardrails-overview">第18章 Guardrails</a>。Runtime 消费当前裁决，并在实际派发边界检查，不能把风险标签或旧决定当作永久资格。</p>
+<p>风险分类由<a href="05-skills-tools-mcp-connectors.html#tool-contract">第16章 工具契约</a>提供，跨层执行边界见<a href="#runtime-security">17.6 安全与授权</a>，治理检查与门禁见<a href="06-agent-governance-optimization.html#guardrails-overview">第18章 Guardrails</a>。Runtime 消费当前裁决，并在实际派发边界检查，不能把风险标签或旧决定当作永久资格。</p>
 <p><a id="审批绑定的对象"></a></p>
 <p><strong>审批绑定的对象</strong></p>
 <p>审批请求要向审批人展示目标、参数、影响、证据、风险、有效期以及可修改的选项。批准与拒绝都作为事件写入账本。一条审批记录至少绑定以下内容：</p>
@@ -1017,15 +1095,15 @@ def advance(tenant_id, run_id, step_id):
 <p><a id="runtime-dispatch-protocol"></a></p>
 <p><a id="1547-调度工具调用与结构化观察"></a>
 <a id="1747-调度工具调用与结构化观察"></a></p>
-<h3 id="1745-派发观察与完成提交"><a class="header" href="#1745-派发观察与完成提交">17.4.5 派发、观察与完成提交</a></h3>
+<h3 id="1755-派发观察与完成提交"><a class="header" href="#1755-派发观察与完成提交">17.5.5 派发、观察与完成提交</a></h3>
 <p>调度器从已接受的计划中选择依赖满足、预算及并发额度可用的 Step。通过 Outbox 把工作交给执行者，消费者建立持久接收记录，使执行责任可以在进程退出后被重新发现。</p>
-<p><strong>C2：</strong> Relay 在取得中间件确认后记录投递进度；消费者持久去重并保存可接续处理的责任后，才返回消费确认（ACK）。两者分别确认，ACK 不是业务完成。<strong>C3：</strong> 认领事务检查 Step 可运行性与旧租约，原子保存执行者、租约和新的 <code>owner_epoch</code>，执行者据此开始本次 Attempt。重复投递与旧执行者竞争分别见 <a href="#failure-delivery">17.6.2 持久投递、去重与积压恢复</a>、<a href="#failure-ownership">17.6.3 租约、执行权与迟到提交</a>。</p>
+<p><strong>C2：</strong> Relay 在取得中间件确认后记录投递进度；消费者持久去重并保存可接续处理的责任后，才返回消费确认（ACK）。两者分别确认，ACK 不是业务完成。<strong>C3：</strong> 认领事务检查 Step 可运行性与旧租约，原子保存执行者、租约和新的 <code>owner_epoch</code>，执行者据此开始本次 Attempt。重复投递与旧执行者竞争分别见 <a href="#failure-delivery">17.7.2 持久投递、去重与积压恢复</a>、<a href="#failure-ownership">17.7.3 租约、执行权与迟到提交</a>。</p>
 <p>执行引擎按已裁决的动作调用 Tool Runtime，后者再次校验参数、取得受限凭证并适配到业务 API、远程工具协议、Shell 或沙箱。只读结果形成带来源和调用关联的结构化观察（Observation）；业务写入先进入稳定 Operation，不能直接把模型调用标识当作业务幂等键。</p>
 <p><strong>C4 分两步：</strong> 先持久记录 Operation 的 <code>INTENT_RECORDED</code>、稳定幂等键、规范化参数哈希与审批关联；再由 <code>authorize_dispatch_if_current</code> 在条件事务中核验当前状态、执行权、授权绑定、资源版本和预算，提交派发记录及 <code>SUBMITTED</code>。事务确认持久成功后，执行器才可以发送该动作的任何网络请求字节，SDK 的自动发送与重试也必须服从这一入口。事务失败或提交结果不明时不发送，先重读原记录。</p>
 <p><code>SUBMITTED</code> 表示本地已承诺派发、恢复时必须按“可能已发送”处理，<strong>不是下游收到或受理的证明</strong>。首次从 <code>INTENT_RECORDED</code> 转入 <code>SUBMITTED</code> 的当前调用可以取得发送模式；重入发现已有 <code>SUBMITTED/UNKNOWN</code> 时只取得核验模式，沿原身份查询，不再次取得“首次发送”资格。状态提交与远端发送无法原子化，这是主动保留不确定性而不是消除故障窗口。</p>
 <p>核验后若仍允许重试，走独立的 <code>authorize_retry_dispatch_if_current(claim, operation, evidence_ref)</code>，而不是复用旧派发资格。该接口在条件事务中绑定原 Operation、原键、原载荷及“未生效且不再在途”的核验证据，复查当前执行权、批准、资源前提、截止时间与预算，创建新发送 Attempt 和唯一派发记录，将当前效果状态记为 <code>SUBMITTED</code>；持久提交确认后才返回该 Attempt 的发送凭据。普通重入仍只核验，不能再次领取已经使用或结果不明的凭据；旧 Attempt 的失败及核验证据作为历史保留，不退回 <code>INTENT_RECORDED</code>。下游不允许原键继续尝试时不进入此接口，按<a href="#failure-side-effects">外部效果与修复边界</a>处理。</p>
 <p>本地事务也不能锁住远端资源或召回已经获准的在途包。执行器发送前复查停止信号，实际写入携带资源版本与执行代次，由支持条件写入的资源端原子检查；不支持时必须披露检查与执行之间的竞态，限制自动化并保留核验责任，不能把派发记账解释成跨系统授权原子性。</p>
-<p><strong>C5：</strong> 按原 Operation 保存并核验工单编号、版本与回执证据，才确认外部事实。完整状态机与发送前后崩溃的处理见<a href="#failure-side-effects">17.6.4</a>。</p>
+<p><strong>C5：</strong> 按原 Operation 保存并核验工单编号、版本与回执证据，才确认外部事实。完整状态机与发送前后崩溃的处理见<a href="#failure-side-effects">17.7.4</a>。</p>
 <p>外部异步作业、Webhook 和定时器走持久等待：保存原操作或作业身份、订阅条件、截止时间和预期事件，再释放 Worker。事件到达后先鉴权、去重并匹配当前等待，再安排后续推进；查询状态和重连沿同一 Run 进行，不新建任务。</p>
 <p><a id="工具执行接口"></a></p>
 <p><a id="tool-runtime"></a>
@@ -1034,7 +1112,7 @@ def advance(tenant_id, run_id, step_id):
 <a id="183-tool-runtime生产级工具调用的控制平面"></a></p>
 <p><strong>调用适配层：组件与调用链路</strong></p>
 <p>执行引擎中负责单次受控工具调用的实现称为调用适配层（Tool Runtime）。它属于 Agent Runtime 的执行面，消费本 Run 的能力绑定与派发裁决，不另建任务调度、审批或恢复系统。</p>
-<p>启动阶段已经装配工具目录、MCP Client 与 Connector 适配器，见<a href="#runtime-startup">17.3 启动与任务受理</a>。调用阶段通过本次 Run 的受信绑定解析工具、校验参数、取得受限凭据，再由 Executor / Adapter 适配到 API、CLI、MCP 或沙箱，最后规范化结果并形成观察。下图表示逻辑组件链路；实际发送仍须满足前述 C4 派发提交与当前授权，不把通过一次参数校验当作持续有效的执行资格。</p>
+<p>启动阶段已经装配工具目录、MCP Client 与 Connector 适配器，见<a href="#runtime-startup">17.4 启动与任务受理</a>。调用阶段通过本次 Run 的受信绑定解析工具、校验参数、取得受限凭据，再由 Executor / Adapter 适配到 API、CLI、MCP 或沙箱，最后规范化结果并形成观察。下图表示逻辑组件链路；实际发送仍须满足前述 C4 派发提交与当前授权，不把通过一次参数校验当作持续有效的执行资格。</p>
 <p><a id="1631-组件与调用链路"></a>
 <a id="1531-组件与调用链路"></a>
 <a id="1832-tool-runtime-核心组件registryvalidatorpolicyexecutor-与-trace"></a></p>
@@ -1060,7 +1138,7 @@ flowchart LR
 <tr><th style="text-align: left">组件</th><th style="text-align: left">职责</th><th style="text-align: left">关键设计点</th></tr>
 </thead>
 <tbody>
-<tr><td style="text-align: left">Tool Registry</td><td style="text-align: left">按本 Run 的绑定解析工具来源、版本和处理入口</td><td style="text-align: left">使用已装配且当前可用的目录；本轮工具暴露见<a href="#runtime-tool-exposure">17.4.3</a></td></tr>
+<tr><td style="text-align: left">Tool Registry</td><td style="text-align: left">按本 Run 的绑定解析工具来源、版本和处理入口</td><td style="text-align: left">使用已装配且当前可用的目录；本轮工具暴露见<a href="#runtime-tool-exposure">17.5.3</a></td></tr>
 <tr><td style="text-align: left">Schema Validator</td><td style="text-align: left">校验参数与类型</td><td style="text-align: left">严格模式、默认值、范围约束</td></tr>
 <tr><td style="text-align: left">Policy Engine</td><td style="text-align: left">裁决是否允许调用</td><td style="text-align: left">输出 <code>allow / deny / ask / escalate</code>，见<a href="#policy-engine">Agent Runtime Policy Engine</a></td></tr>
 <tr><td style="text-align: left">Executor</td><td style="text-align: left">执行一次派发</td><td style="text-align: left">消费截止时间、限并发、隔离执行；重试由 Runtime 调度</td></tr>
@@ -1080,7 +1158,7 @@ flowchart LR
 <p><a href="../images/review-skills-tools-mcp-connectors-03.svg"><img src="../images/review-skills-tools-mcp-connectors-03.svg" alt="Attempt 结果映射到 Operation 事实"></a></p>
 <p><em>图 17-4：Attempt 结果映射到 Operation 事实</em></p>
 <p>调用适配接口接收 Runtime 提供的 run_id、call_id、operation_id（写操作）、稳定幂等键、参数哈希、批准引用、资源版本和截止时间。返回字段必须区分未派发、已确认生效、已确认未生效、部分生效和未知，并提供当前可用的查询入口与外部对象引用。</p>
-<p><code>effect.disposition</code> 是适配层交付的效果证据，不是另一套 Operation 状态机；取消本地执行不能证明远端未生效。下游去重与查询保证见<a href="05-skills-tools-mcp-connectors.html#1666-写操作审批幂等与结果未知">Connector 写入契约</a>，完整状态机、重试与接管见<a href="#failure-side-effects">17.6.4 外部副作用与恢复</a>。</p>
+<p><code>effect.disposition</code> 是适配层交付的效果证据，不是另一套 Operation 状态机；取消本地执行不能证明远端未生效。下游去重与查询保证见<a href="05-skills-tools-mcp-connectors.html#1666-写操作审批幂等与结果未知">Connector 写入契约</a>，完整状态机、重试与接管见<a href="#failure-side-effects">17.7.4 外部副作用与恢复</a>。</p>
 <p>Tool Runtime 返回统一 ToolResult，完整信封参考<a href="05-skills-tools-mcp-connectors.html#tool-result">工具系统的结果契约</a>。Runtime 读取调用身份、coverage、effect、error 和分页标记：<code>partial</code> 表示仍有缺口，不能据此确认范围内无异常；<code>effect.disposition=unknown</code> 关联原 Operation 并进入核验等待。相同 <code>success</code> 也需要核对实体、时间、来源版本和覆盖范围，不自动成为权威结论。</p>
 <p>观察进入模型之前先检查结构、来源、当前访问资格与载荷大小。大型原始载荷留在受控存储，模型获得摘要、少量样本与下钻引用；摘要不能丢掉覆盖缺口和错误状态。结果成为事实前仍要通过相应检查，工具文本中的指令不改变系统规则。</p>
 <p><a id="1633-失败模式误选工具参数错误重复副作用与注入攻击"></a>
@@ -1120,7 +1198,7 @@ class RetryContract:
     retryable_error_codes: set[str]
     downstream_contract_ref: str | None
 </code></pre>
-<p><code>idempotent</code> 指已核验的语义，不是从工具名或 MCP hint 推断；条件性去重必须在 <code>downstream_contract_ref</code> 声明键范围、载荷约束和窗口。<code>retryable_error_codes</code> 只能选自<a href="05-skills-tools-mcp-connectors.html#connector-error-codes">统一错误码</a>，即使含 <code>RATE_LIMITED</code> 或 <code>TRANSIENT_FAILURE</code>，也不保证当前写入可安全重发。是否重试、何时重试、预算与未知结果处理由<a href="#retry-classification">17.6.1 重试分类</a>决定。</p>
+<p><code>idempotent</code> 指已核验的语义，不是从工具名或 MCP hint 推断；条件性去重必须在 <code>downstream_contract_ref</code> 声明键范围、载荷约束和窗口。<code>retryable_error_codes</code> 只能选自<a href="05-skills-tools-mcp-connectors.html#connector-error-codes">统一错误码</a>，即使含 <code>RATE_LIMITED</code> 或 <code>TRANSIENT_FAILURE</code>，也不保证当前写入可安全重发。是否重试、何时重试、预算与未知结果处理由<a href="#retry-classification">17.7.1 重试分类</a>决定。</p>
 <p><a id="1635-工具专属指标"></a>
 <a id="1535-工具专属指标"></a></p>
 <p><strong>工具专属指标</strong></p>
@@ -1188,7 +1266,7 @@ class RetryContract:
 <a id="1748-循环推进持久等待与停止"></a></p>
 <p><strong>循环推进、持久等待与停止</strong></p>
 <p>执行结果经过输出 Schema、来源与权限检查后形成结构化观察。Runtime 接受观察和模型决策记录，更新当前事实，再决定下一轮是补证、生成答案还是等待已登记的外部事件。已提交的模型结果与候选动作必须可追踪，不能只存在进程中的消息数组里。</p>
-<p><strong>C6：</strong> 在一个稳定 Step 边界，将验收过的结果引用、状态版本、领域事件及 Checkpoint 一致提交；需要派发后继时，同事务记录其 Outbox。大型载荷先完整写入并校验，再提交引用。中断后怎样识别最后一个有效边界见 <a href="#failure-recovery">17.6.5 Checkpoint、持久执行与版本恢复</a>。</p>
+<p><strong>C6：</strong> 在一个稳定 Step 边界，将验收过的结果引用、状态版本、领域事件及 Checkpoint 一致提交；需要派发后继时，同事务记录其 Outbox。大型载荷先完整写入并校验，再提交引用。中断后怎样识别最后一个有效边界见 <a href="#failure-recovery">17.7.5 Checkpoint、持久执行与版本恢复</a>。</p>
 <p>每轮读取当前执行权、取消状态、预算和截止时间。验收通过才进入完成，合法等待释放执行资源；无进展、超时或预算耗尽见<a href="#failure-cancellation">取消与停止</a>，心跳与进度判据见<a href="#failure-ownership">执行权</a>。</p>
 <p>下面的伪代码表示一个复合决策 Step 的推进：内部提议与操作分别持久记录，实现时也可拆为多个子 Step。示例聚焦正常控制分支，费用结算、异常捕获和后台续租由外围接口承担；状态更新采用当前版本条件，同一节点重试保留逻辑身份。</p>
 <pre><code class="language-python">def advance_step(tenant_id, run_id, step_id):
@@ -1250,11 +1328,11 @@ def execute_or_reconcile_and_commit(dispatch):
     )
 </code></pre>
 <p>最后一个接口在同一事务中复查版本、执行权、取消与验收绑定，并确认必需节点和 Operation 已满足契约、没有必需的 UNKNOWN 或未决工作，再提交 Step 结果、Run 终态、Checkpoint、事件和交付 Outbox。检查期间发生并发变化则提交失败，重新读取；不能只凭一份较早的 <code>pass</code> 强行完成。报告草稿、外部建单和通知是独立事实：当前任务要求建单时，没有可信 <code>INC-4821</code> 回执就不能走此完成路径。</p>
-<p>Verifier 以 <code>pass/needs_repair/reject</code> 表达验收结果：知识问答核对引用与权限，诊断核对时间窗口及原因证据，业务处理核对真实状态与审批，分析任务核对统计口径和可复现查询。<code>needs_repair</code> 只能在剩余总预算内反馈 Loop；无法修复则拒绝或转人工，具体处理见 <a href="#failure-model-tool">17.6.1 失败分类、重试与安全拦截</a>。</p>
+<p>Verifier 以 <code>pass/needs_repair/reject</code> 表达验收结果：知识问答核对引用与权限，诊断核对时间窗口及原因证据，业务处理核对真实状态与审批，分析任务核对统计口径和可复现查询。<code>needs_repair</code> 只能在剩余总预算内反馈 Loop；无法修复则拒绝或转人工，具体处理见 <a href="#failure-model-tool">17.7.1 失败分类、重试与安全拦截</a>。</p>
 <p>运行时 Verifier 验收当前产物；离线评测使用数据集和失败样本比较版本质量，不能代替本次任务的检查。交付界面（Review Surface）展示结论、证据、不确定性、风险动作、产物版本或 diff、验证结果及反馈入口，不要求展示模型完整思维链。Observation 是执行事实的受控视图，界面读取已提交结果后才显示任务完成。</p>
 <p><a id="result-delivery"></a>
 <a id="17410-交付接口事件游标与通知"></a></p>
-<h3 id="1746-交付接口事件游标与通知"><a class="header" href="#1746-交付接口事件游标与通知">17.4.6 交付接口、事件游标与通知</a></h3>
+<h3 id="1756-交付接口事件游标与通知"><a class="header" href="#1756-交付接口事件游标与通知">17.5.6 交付接口、事件游标与通知</a></h3>
 <p><strong>C7：</strong> 交付 Worker 按交付身份读取已提交结果，核验当前接收人、权限与版本资格，发送后保存渠道回执。渠道仅确认受理时记录“已受理”，只有契约能够证明送达时才记录“已送达”。同步查询、通知和服务器发送事件（SSE）均引用同一持久 Run 与产物版本，连接断开不改变结果。</p>
 <p>Runtime 的外部 API 至少分成八类：任务提交、运行查询、事件流、审批、取消、恢复、Artifact 和回放。</p>
 <ul>
@@ -1283,7 +1361,7 @@ def execute_or_reconcile_and_commit(dispatch):
 <p><a id="multi-agent"></a></p>
 <p><a id="15410-多-agent-的委派与父任务收敛"></a>
 <a id="17411-多-agent-的委派与父任务收敛"></a></p>
-<h3 id="1747-多-agent-的委派与父任务收敛"><a class="header" href="#1747-多-agent-的委派与父任务收敛">17.4.7 多 Agent 的委派与父任务收敛</a></h3>
+<h3 id="1757-多-agent-的委派与父任务收敛"><a class="header" href="#1757-多-agent-的委派与父任务收敛">17.5.7 多 Agent 的委派与父任务收敛</a></h3>
 <p>多 Agent 适用于可以独立验收的分工，例如不同证据范围的调查、独立方案审查或大任务分块。普通并行工具调用与模型路由不会自动产生新的责任人，只有确实需要独立上下文、角色能力或权限边界时，才引入子任务与交接。</p>
 <p>协调者提出分工，可信控制层签发委派权限。子任务绑定根任务、父 Run、目标、输入版本、输出 Schema、验收条件、预算、截止时间与是否允许继续委派。有效权限取原用户当前授权、可转授范围、角色需求和工具实时策略的交集；角色名不授予权限，子 Agent 也不能通过父级或同伴绕开拒绝。</p>
 <p>每个子任务拥有私有消息、执行上下文和可写范围。公共目标、硬约束和已确认事实由根责任层维护，角色只获得有权读取的投影；原始日志、凭证和整段历史不默认广播。共享状态不能成为全员可写字典，工作者追加证据候选与产物，协调层通过版本和验收条件把它们接受为公共事实。</p>
@@ -1312,13 +1390,13 @@ def execute_or_reconcile_and_commit(dispatch):
 <p>父任务取消或结束后，协调层保留未决清单及核验责任，不因资源回收而删除。部分分支成功时按契约接受受限结果、等待、替代或人工处理，不宣告缺少必需证据的完整成功。互相委派、嵌套 Loop 和重复审阅需遵守<a href="#execution-run-binding">根预算</a>与<a href="#failure-ownership">进度检查</a>，不能靠增加角色扩大授权。</p>
 <p>队列长度、并发、委派深度、消息大小和截止时间共同限制协作容量；恢复积压按资源配额限速，永久错误进入有责任人的隔离队列。历史产物能被保留，不代表仍有资格展示或参与当前任务汇合。</p>
 <p><a id="runtime-security"></a></p>
-<h2 id="175-安全与授权跨层控制与执行边界"><a class="header" href="#175-安全与授权跨层控制与执行边界">17.5 安全与授权：跨层控制与执行边界</a></h2>
+<h2 id="176-安全与授权跨层控制与执行边界"><a class="header" href="#176-安全与授权跨层控制与执行边界">17.6 安全与授权：跨层控制与执行边界</a></h2>
 <p>安全与授权贯穿整个执行过程。第 16 章定义工具契约、接入鉴权与隔离实现，本节说明 Runtime 怎样把这些能力接入实际派发；第 18 章再将执行证据用于评测、审计和发布门禁。模型可以帮助理解意图、识别可疑内容和提出动作，可信组件仍要决定允许什么、怎样执行以及资源端接受什么。</p>
 <p>本节沿用 ALR 的虚构教学运行，不增加重启、回滚或默认通知能力。下文的边界、记录与验证用例属于本书参考设计，不代表某个 Coding Agent 产品默认具备，也不代表已经完成红队实测。产品默认值、平台覆盖与版本差异见<a href="../part4/01-coding-agent-systems.html#coding-agent-permissions">第 19 章</a>。</p>
 <p><a id="把安全检查落实到执行边界"></a>
 <a id="agent-trust-boundary"></a>
 <a id="1752-信任边界与权限设计"></a></p>
-<h3 id="1751-威胁模型与跨层职责"><a class="header" href="#1751-威胁模型与跨层职责">17.5.1 威胁模型与跨层职责</a></h3>
+<h3 id="1761-威胁模型与跨层职责"><a class="header" href="#1761-威胁模型与跨层职责">17.6.1 威胁模型与跨层职责</a></h3>
 <p>任务执行时，每跨过一个边界，都要回答一个不同的安全问题：入口要确认谁发起任务；Runtime 要判断这次任务允许做什么；执行后端要限制进程可以访问什么；工具服务和下游要判断当前请求能否操作目标资源；交付时还要检查内容能否发送给指定接收人。模型负责理解任务并提出行动，具体权限由可信组件落实。</p>
 <p><a href="../images/agent-runtime-security-sequence.svg"><img src="../images/agent-runtime-security-sequence.svg" alt="任务执行时序：每个环节的安全与授权"></a></p>
 <p><em>图：任务执行过程中的身份、权限、审批、隔离和数据出口检查。点击查看 SVG。</em></p>
@@ -1354,7 +1432,7 @@ def execute_or_reconcile_and_commit(dispatch):
 </code></pre>
 <p>路径 A 需要同时收窄可读数据与网络出口。路径 B 即使 Shell 断网仍可能成立：秘密已经进入上下文，另一个工具可能拥有联网或发送权限。摘要、Memory、检索和子 Agent 转述不能将数据提升为授权；只在某一条 Shell 命令上阻断 <code>curl</code>，也不能证明其他解释器或工具无法外发。后续小节沿时序图展开这些身份、裁决、执行和数据流边界。</p>
 <p><a id="runtime-security-identity"></a></p>
-<h3 id="1752-身份授权来源与策略上限"><a class="header" href="#1752-身份授权来源与策略上限">17.5.2 身份、授权来源与策略上限</a></h3>
+<h3 id="1762-身份授权来源与策略上限"><a class="header" href="#1762-身份授权来源与策略上限">17.6.2 身份、授权来源与策略上限</a></h3>
 <p>一次 Agent 任务通常涉及三种不同身份。登录模型产品的身份用于模型访问、计费或组织归属；本地执行身份是工具进程所用的 OS 用户及被收窄的权限；业务访问身份是 MCP / API 验证的用户、服务账户或云 IAM 主体。产品登录成功不代表拥有业务资源权限，选定一个工作目录也不会自动创建低权限 OS 用户。</p>
 <p>认证与授权回答不同的问题：认证确认请求来自哪个主体，授权决定该主体能否对这次目标资源执行具体动作。Runtime 的服务身份或 MCP Bearer 只能证明请求来自受信服务，不能单独证明本次 Run 有权读取某个团队、租户或环境的数据。模型参数中的 <code>team</code>、<code>workspace_id</code>、<code>session_key</code>、角色声明和用户消息可以表达查询目标或关联线索，却不能自行授予权限。Runtime 应从经验证的任务与调用者上下文构造不可变的请求级授权上下文；团队归属或资源范围缺失、矛盾、无法解析时拒绝访问。并发任务的身份不能放在可变全局变量中共享。</p>
 <p>在图中的任务受理阶段，入口验证发起主体；涉及服务间调用时，还要验证调用服务的工作负载身份。可信身份映射及服务端策略共同装配任务范围，例如主体、租户、Run、允许的环境、资源和动作。跨服务传递时，接收方须能验证上下文的来源、受众和有效期，并防止调用方自行扩大范围。任务需要新的资源时，应按有权主体的授权流程更新范围；派发时仍要复核当前权限及撤权。</p>
@@ -1376,20 +1454,20 @@ def execute_or_reconcile_and_commit(dispatch):
 <p>这四类来源不能只按“后加载者覆盖前加载者”混成一条配置链。组织上限由可信管理组件实施；项目拥有者能编辑的说明文件不能自行解除该上限。安装插件、加载新工具或接受子 Agent 的报告，也不能暗中产生新授权。</p>
 <p>Run 保存受理时的契约、策略和能力版本，供重放与审计解释当时的决定；每次实际派发还要检查当前权限和撤权。固定旧快照不能恢复已撤销的资格，重启或换模型也不能重新获得被禁止的能力。恢复处理见<a href="#failure-human-control">取消、授权变化与人工接管</a>。</p>
 <p><a id="runtime-security-decisions"></a></p>
-<h3 id="1753-调用裁决与审批边界"><a class="header" href="#1753-调用裁决与审批边界">17.5.3 调用裁决与审批边界</a></h3>
+<h3 id="1763-调用裁决与审批边界"><a class="header" href="#1763-调用裁决与审批边界">17.6.3 调用裁决与审批边界</a></h3>
 <p>模型输出的工具名和参数只是提案。Runtime 从可信会话、任务、工具注册表及当前策略装配裁决输入：<code>主体 + 工具来源 + 实际参数 + 目标资源 + 环境 + 当前授权 + 有效批准</code>。Schema 检查负责结构，Policy 检查负责权限，执行后端与资源端继续实施各自的限制。</p>
 <p>本书参考设计在派发前完成以下检查，具体顺序可随后端调整，但任何实际执行的参数都必须处于有效裁决范围：</p>
 <ol>
 <li>解析工具身份与规范化参数，核对资源归属、副作用、数据敏感度及任务范围。</li>
 <li>检查不可放宽的禁止规则和当前授权；命中禁止时保存拒绝，不靠换工具或申请普通确认绕过。</li>
-<li>若策略要求审批，按<a href="#policy-engine">17.4.4 动作裁决与审批等待</a>保存绑定动作的等待记录；有权主体批准后仍需重新核验。</li>
+<li>若策略要求审批，按<a href="#policy-engine">17.5.4 动作裁决与审批等待</a>保存绑定动作的等待记录；有权主体批准后仍需重新核验。</li>
 <li>工具、Hook 或人工改变参数、草稿、目标与资源版本后，对实际载荷重新裁决；旧批准不覆盖新内容。</li>
 <li>按本次允许范围选择执行后端、凭证和出口；要求的隔离无法落实时拒绝执行，而不是静默降级。</li>
 </ol>
 <p>裁决结果必须由执行层落实：<code>allow</code> 附带具体的资源、凭证和隔离约束；<code>ask</code> 进入与动作绑定的审批等待；<code>deny</code> 阻止该动作；<code>escalate</code> 将判断交给有权主体。权限不足或策略明确禁止时，模型不能改用其他工具绕过。授权服务不可用时，系统应停止派发并记录不可用原因，待服务恢复后重新裁决，不能将检查失败当作允许。</p>
 <p>审批决定谁可以接受具体影响，隔离决定执行后进程能触及什么。两者是独立维度：不弹窗可以是既有授权和受限环境下的正常自动化；批准一次命令，也不能证明它在沙箱里运行或内容适合外发。</p>
 <p>自动审查、分类器和注入检测可参与风险判断、减少不必要的交互，但它们也可能误判。本书不以模型判断代替组织禁止规则、隔离和资源端鉴权。命令前缀或字符串规则同样只是有限匹配：解释器、脚本、重定向及嵌套调用都需要纳入验证，不能把“未匹配危险命令”视为安全证明。</p>
-<p>审批应绑定规范化后的实际计划，而不是一个可复用的 <code>approved=true</code> 标记。审批人看到的目标、环境和载荷必须已展开默认值；派发时，执行端重新计算载荷摘要并核对审批主体、有效期及目标资源版本。工具、Hook 或执行器在审批后改变任何影响动作含义的参数，都要重新裁决。即使审批仍有效，目标也可能在等待期间发生变化。资源端支持条件写入时，应在写入时原子比较版本或 ETag；只在发送前读取一次版本无法消除并发变化。无法实施原子条件时，必须保留这一竞态并限制自动执行。审批授权这项具体意图，执行结果和未知状态沿用<a href="#failure-side-effects">17.6.4 外部副作用、未知结果与补偿</a>的操作记录处理。审批绑定的字段与等待状态见<a href="#policy-engine">17.4.4 动作裁决与审批等待</a>。</p>
+<p>审批应绑定规范化后的实际计划，而不是一个可复用的 <code>approved=true</code> 标记。审批人看到的目标、环境和载荷必须已展开默认值；派发时，执行端重新计算载荷摘要并核对审批主体、有效期及目标资源版本。工具、Hook 或执行器在审批后改变任何影响动作含义的参数，都要重新裁决。即使审批仍有效，目标也可能在等待期间发生变化。资源端支持条件写入时，应在写入时原子比较版本或 ETag；只在发送前读取一次版本无法消除并发变化。无法实施原子条件时，必须保留这一竞态并限制自动执行。审批授权这项具体意图，执行结果和未知状态沿用<a href="#failure-side-effects">17.7.4 外部副作用、未知结果与补偿</a>的操作记录处理。审批绑定的字段与等待状态见<a href="#policy-engine">17.5.4 动作裁决与审批等待</a>。</p>
 <p>授权还应区分资源写入和对外发送。例如，诊断任务可以获准读取 live 指标，并在策略允许时回复任务绑定的原线程；这不等于获准修改 live 订单或配置。回复属于独立的 <code>external_send</code> 动作，应单独校验接收人、内容、数据敏感度和批准范围；读取权限不能自动带来发送权限，发送权限也不能扩大可读取的资源范围。</p>
 <p><a id="runtime-risk-controls"></a></p>
 <p><strong>按副作用与数据敏感度实施控制</strong></p>
@@ -1409,7 +1487,7 @@ def execute_or_reconcile_and_commit(dispatch):
 </div>
 <p>沙箱内拒绝与执行故障分别记录。若任务确需新增目录或网络能力，只能经策略允许的授权流程提出具体范围；批准联网不等于批准解除全部隔离。权限拒绝和明确禁止不得自动作为可重试故障，批准后也应保存新的执行范围与裁决。<a href="../part4/01-coding-agent-systems.html#coding-agent-permissions">第 19 章</a>说明产品各自的审批和越界路径。</p>
 <p><a id="runtime-security-isolation"></a></p>
-<h3 id="1754-执行隔离网络与凭证"><a class="header" href="#1754-执行隔离网络与凭证">17.5.4 执行隔离、网络与凭证</a></h3>
+<h3 id="1764-执行隔离网络与凭证"><a class="header" href="#1764-执行隔离网络与凭证">17.6.4 执行隔离、网络与凭证</a></h3>
 <p>时序图中的“仅允许后派发”还要求执行引擎落实裁决附带的限制。引擎必须知道限制作用于哪个进程和工具，不能只保存一个 <code>sandbox=true</code>。派发记录至少要能解释文件读写范围、网络路径、凭证来源与隔离后端；隔离无法建立时，本次动作不应静默降级执行。业务写入还须先完成本章 C4 派发记账，再允许发出请求；这一记录不证明下游已经接收。具体隔离与 SSRF 控制见<a href="05-skills-tools-mcp-connectors.html#sandbox">第 16 章授权、沙箱与能力交付</a>。</p>
 <p>文件读取与写入分开验证。允许写工作区不代表工作区之外的秘密不可读；禁写目录中的文件仍可能被读取。凭证也可能来自继承环境变量、挂载、配置、缓存或既有浏览器会话。优先由独立连接服务或凭证代理持有秘密，仅返回任务需要的结果；必须给执行进程凭证时，按用途和资源收窄，检查子进程继承，避免秘密进入模型与 Trace。</p>
 <p>命令进程即使拿不到 Token，也可能借助凭证代理使用其权限，形成混淆代理（Confused Deputy）。代理不应是接受任意 URL、路径或认证头的通用转发器。默认不向 Shell 暴露代理的 socket、端口或管理接口；确需访问时，只开放固定业务操作，由代理根据可信工作负载身份和当前 Run 逐次校验工具、动作、目标资源与环境，再使用短期、限定范围的凭证。模型或命令自报的 Team、用户和授权范围不能作为依据；代理还应限制请求参数、目标、频率和响应规模并留下脱敏审计，下游继续验证资源权限。</p>
@@ -1431,7 +1509,7 @@ def execute_or_reconcile_and_commit(dispatch):
 <p>表中是验收维度，不是产品统一的覆盖声明。外层容器可以覆盖多个路径，产品内置沙箱也可能只覆盖 Shell；应依据实际进程与数据流确认。只把 Shell 放进容器而让本地 MCP 留在宿主机上，就必须为后者单独建立边界。</p>
 <p>对只读诊断，可以采用只读代码快照、无凭证、断网的临时执行环境。快照需排除秘密文件、本地配置和越界符号链接，限制时间、进程数与输出量，并避免挂载宿主机管理 socket。这是部署方可选的隔离设计，不能用“用了 Docker”代替实际挂载、身份与网络验证。</p>
 <p><a id="runtime-security-dataflow"></a></p>
-<h3 id="1755-跨工具数据流与下游鉴权"><a class="header" href="#1755-跨工具数据流与下游鉴权">17.5.5 跨工具数据流与下游鉴权</a></h3>
+<h3 id="1765-跨工具数据流与下游鉴权"><a class="header" href="#1765-跨工具数据流与下游鉴权">17.6.5 跨工具数据流与下游鉴权</a></h3>
 <p>图中的 MCP 调用跨过两个授权边界：Runtime 对模型提案作出裁决，工具服务收到请求后仍须验证可信调用身份、任务范围、实际操作和目标资源。服务端解析目标环境、租户、服务和对象，检查权限后才构造下游查询。下游服务再独立验证身份、Token 受众与有效期、所需 Scope、对象归属及具体操作权限。MCP 协议、客户端允许调用、工具的 <code>readOnlyHint</code> 或 <code>approved=true</code> 参数都不能代替这些检查。接入与两跳授权的实现见<a href="05-skills-tools-mcp-connectors.html#mcp-two-stage-authorization">第 16 章服务端授权</a>。</p>
 <p>多团队共用 MCP Server 或下游服务凭证时，允许调用日志工具，只说明该能力可见；共享服务令牌说明服务具有下游访问能力。团队 A 能否读取团队 B 的服务，仍由服务端策略按本次任务的可信身份与目标判断。授权过滤必须落在服务端查询或资源访问入口，并覆盖批量目标、分页游标、缓存结果和附件；显式跨团队值班可以通过受限授权开放。模型修改 <code>team</code> 或 <code>session_key</code> 不能扩大范围，目标不明确或授权服务不可用时也不能放行。</p>
 <p>若服务端需要识别客户端已完成的高风险审批，应由可信组件传递可验证的批准记录或凭据，绑定调用者、操作、资源、参数与有效期，并控制重复消费；不能把模型生成的说明当作证明。服务端仍须执行当前业务权限校验。对于审批后建单，授权仅覆盖被批准的草稿与目标，查询同一个 Operation 的结果也不能借机修改内容。</p>
@@ -1439,7 +1517,7 @@ def execute_or_reconcile_and_commit(dispatch):
 <p>路径 B 的关键是秘密跨过了工具返回边界。Runtime 应把“数据能否读取”“能否进入模型”“能否由另一工具发送”分开处理。只读日志工具仍可能返回 Token 或个人信息；授权读取某字段不自动授权把它放入工单、消息或外部网页表单。交付时，发送网关再次检查实际接收人、目标资源、内容、数据敏感度和批准；目标地址不能因为出现在日志、Runbook 或摘要里就变成获准目的地。后置输出过滤不能撤销已经完成的上传，检查必须覆盖每次发送边界。<a href="06-agent-governance-optimization.html#outbound-security">第 18 章数据出口治理</a>说明累计读取与外发评测。</p>
 <p>错误修复、委派、重试和恢复都保持相同原则：换一条技术路径不会扩大授权。若某任务不允许向外发送日志，不能由子 Agent 摘要后再交给消息工具发送；如果撤权，连接缓存和恢复后的待执行动作必须重新检查当前资格。<a href="#failure-human-control">撤权与人工接管协议</a>负责停止和保留未决责任。</p>
 <p><a id="runtime-security-verification"></a></p>
-<h3 id="1756-安全验证与审计证据"><a class="header" href="#1756-安全验证与审计证据">17.5.6 安全验证与审计证据</a></h3>
+<h3 id="1766-安全验证与审计证据"><a class="header" href="#1766-安全验证与审计证据">17.6.6 安全验证与审计证据</a></h3>
 <p>沿时序图验证每个实际执行点：从入口身份、上下文和模型提案，到逐动作裁决、审批、隔离、工具服务、下游和最终交付，都需要正常路径与主动触发限制的路径。“模型没有提出恶意调用”只能说明本次行为，不能证明执行边界有效。以下为本书建议的教学验收用例：在隔离测试环境中使用合成日志、测试凭证和受控接收端，由测试驱动主动请求越界；每项按生效策略记录实际结果，不读取真实秘密或向第三方发送数据。</p>
 <div class="table-wrapper">
 <table>
@@ -1470,7 +1548,7 @@ def execute_or_reconcile_and_commit(dispatch):
 <p><a id="runtime-failures"></a></p>
 <p><a id="155-可靠性安全与恢复"></a></p>
 <p><a id="175-可靠性安全与恢复"></a></p>
-<h2 id="176-可靠性与恢复"><a class="header" href="#176-可靠性与恢复">17.6 可靠性与恢复</a></h2>
+<h2 id="177-可靠性与恢复"><a class="header" href="#177-可靠性与恢复">17.7 可靠性与恢复</a></h2>
 <p><a href="../images/agent-runtime-14-5-overview.svg"><img src="../images/agent-runtime-14-5-overview.svg" alt="Runtime 恢复概览：读取可信事实，分类选择继续、查询核验或人工处理"></a></p>
 <p><em>图 17-6：Runtime 恢复概览：读取可信事实，分类选择继续、查询核验或人工处理</em></p>
 <p><em>先核对状态、执行权与外部动作，再决定允许的恢复路径。本书参考设计，点击图片查看 SVG。</em></p>
@@ -1480,7 +1558,7 @@ def execute_or_reconcile_and_commit(dispatch):
 <p><a id="failure-model-tool"></a></p>
 <p><a id="1551-失败分类重试与安全拦截"></a></p>
 <p><a id="1751-失败分类重试与安全拦截"></a></p>
-<h3 id="1761-失败分类重试与安全拦截"><a class="header" href="#1761-失败分类重试与安全拦截">17.6.1 失败分类、重试与安全拦截</a></h3>
+<h3 id="1771-失败分类重试与安全拦截"><a class="header" href="#1771-失败分类重试与安全拦截">17.7.1 失败分类、重试与安全拦截</a></h3>
 <p>错误不能只按 HTTP 状态码分组。Runtime 至少要知道错误发生在哪个边界、是否可能产生副作用、哪个对象仍有执行权，以及剩余授权与预算是否允许继续。相同的网络超时，发生在只读检索和创建工单之后，会要求不同的处理。</p>
 <p>处理顺序是：<strong>读取权威事实 → 限制继续扩大影响 → 判断是否可安全重复 → 校验当前权限与预算 → 记录下一步及责任</strong>。暂时故障不等于可重试；未知结果不等于失败；补偿也不等于删除历史。无法自动判定时，保存可查询的阻塞状态、原因、责任人和下次处理时间，不能无限循环或静默丢弃。</p>
 <p>是否重试，必须根据错误类型决定。网络超时、限流和暂时不可用通常可以退避后重试；schema 错误、权限拒绝、用户取消、预算超限和确定性的业务错误不应自动重试；模型输出不合格时，可以有限次地重新采样，但每次都要新增 Attempt 并计入成本。AIP-194 默认只自动重试 <code>UNAVAILABLE</code>；本表把部分超时、限流纳入重试是本书在只读或明确幂等契约下的策略，不能仅凭“网络错误”就重试有副作用的请求 <a href="#ref-16">[16]</a>。下表给出 Runtime 面对常见观察时的处理方式。</p>
@@ -1511,7 +1589,7 @@ def execute_or_reconcile_and_commit(dispatch):
 <p><a id="failure-delivery"></a></p>
 <p><a id="1552-持久投递去重与积压恢复"></a></p>
 <p><a id="1753-持久投递去重与积压恢复"></a></p>
-<h3 id="1762-持久投递去重与积压恢复"><a class="header" href="#1762-持久投递去重与积压恢复">17.6.2 持久投递、去重与积压恢复</a></h3>
+<h3 id="1772-持久投递去重与积压恢复"><a class="header" href="#1772-持久投递去重与积压恢复">17.7.2 持久投递、去重与积压恢复</a></h3>
 <p>创建任务时，系统通常要做两件事：在数据库中写入 Task 和 Run，再向消息队列发送一条“任务已创建”的消息，唤醒调度器。如果这两次写入彼此独立、不加协调，就称为<strong>裸双写</strong>。数据库和消息队列不在同一个事务中，无论先写哪一个，都会留下一个故障窗口。</p>
 <pre class="mermaid">
 sequenceDiagram
@@ -1548,7 +1626,7 @@ sequenceDiagram
 <p><a id="failure-ownership"></a></p>
 <p><a id="1553-租约执行权与迟到提交"></a></p>
 <p><a id="1754-租约执行权与迟到提交"></a></p>
-<h3 id="1763-租约执行权与迟到提交"><a class="header" href="#1763-租约执行权与迟到提交">17.6.3 租约、执行权与迟到提交</a></h3>
+<h3 id="1773-租约执行权与迟到提交"><a class="header" href="#1773-租约执行权与迟到提交">17.7.3 租约、执行权与迟到提交</a></h3>
 <p>在 run_0429_017 的 Worker A 崩溃后，Worker B 取得新执行权；此时才需要区分原业务身份与新的尝试身份。</p>
 <p>本章使用以下术语：</p>
 <ul>
@@ -1607,7 +1685,7 @@ sequenceDiagram
 <p><a id="failure-side-effects"></a></p>
 <p><a id="1554-外部副作用未知结果与补偿"></a></p>
 <p><a id="1755-外部副作用未知结果与补偿"></a></p>
-<h3 id="1764-外部副作用未知结果与补偿"><a class="header" href="#1764-外部副作用未知结果与补偿">17.6.4 外部副作用、未知结果与补偿</a></h3>
+<h3 id="1774-外部副作用未知结果与补偿"><a class="header" href="#1774-外部副作用未知结果与补偿">17.7.4 外部副作用、未知结果与补偿</a></h3>
 <p>幂等的责任必须落实到具体边界。Runtime 为每个逻辑业务调用保存 <code>operation_id</code>；消息仍可能重复，所以接收方要以稳定身份幂等接收；工具适配器负责把操作幂等键传给下游；真正拥有业务状态的订单、邮件、文件或支付系统，则必须决定对同一个键的重复提交如何返回同一个事实。如果下游只提供“尽力而为”的 HTTP 接口，Runtime 仅凭本地的去重表无法承诺业务幂等，因为请求提交后网络断开，会留下一个本地无法判定的未知状态。幂等接收者（Idempotent Receiver）模式把去重与消息接收边界绑定在一起 <a href="#ref-26">[26]</a>；在 Agent 系统中，这一边界还要覆盖模型重试、队列的至少一次投递和人工重放。</p>
 <p>幂等 API 的设计经验表明，稳定请求标识表达业务意图，同键异参应报告冲突，去重记录和业务变更由资源端原子处理。<a href="#ref-28">[28]</a> 本章据此把 <code>operation_id</code> 与操作幂等键绑定到原业务动作，在模型重新采样、传输重试和 Worker 接管时保持不变。键可以是不透明标识，也可以关联租户、业务对象、动作与授权版本，但必须区分两次独立意图。</p>
 <p>如果模型每次重试都重新生成操作参数，系统必须先比较规范化载荷：意图相同，就查询或去重；意图不同，就是一个新操作，可能还需要新的审批。规范化载荷的哈希只适合发现“同键异参”，不能单凭参数相同推断用户只想做一次。两次独立授权、参数恰好相同的购买，仍然代表两个业务意图。反过来，把“看起来相似”的自然语言当作幂等键会造成错误合并，为同一操作随机生成 UUID 又会造成重复副作用。</p>
@@ -1688,7 +1766,7 @@ sequenceDiagram
 <p><a id="recovery"></a></p>
 <p><a id="1555-checkpoint持久执行与版本恢复"></a></p>
 <p><a id="1756-checkpoint持久执行与版本恢复"></a></p>
-<h3 id="1765-checkpoint持久执行与版本恢复"><a class="header" href="#1765-checkpoint持久执行与版本恢复">17.6.5 Checkpoint、持久执行与版本恢复</a></h3>
+<h3 id="1775-checkpoint持久执行与版本恢复"><a class="header" href="#1775-checkpoint持久执行与版本恢复">17.7.5 Checkpoint、持久执行与版本恢复</a></h3>
 <p>Temporal 要求 Workflow 按历史确定性重放，非确定的 API、模型与数据库调用放在 Activity；允许重试的 Activity 可能多次执行或部分执行，不能从完成记录推断外部生效一次。<a href="#ref-31">[31]</a><a href="#ref-32">[32]</a> 本书据此复用已提交决策，并用 Operation 与下游契约核验效果，不把应用账本当作框架自动提供的保证。</p>
 <p>节点快照是另一种恢复粒度。LangGraph 的 interrupt 恢复从原节点开头重新执行，显式从旧 Checkpoint replay 也会重执行其后节点，包括模型和 API；不能理解成进程指令指针续跑。其 <code>sync</code> 在下一步前保存，<code>async</code> 边执行下一步边保存、崩溃可能丢最近进度，<code>exit</code> 只在执行退出（包括错误或 interrupt）时保存，无法保证执行中崩溃后的续接。<a href="#ref-33">[33]</a> 因此接入时须声明重入范围；本书同一 Run 已接受的决策不因重入而被重新采样替换，探索其他结果另建显式分支。</p>
 <p>Runtime 在 Step 定义中保存恢复类别，不能把下面不同的业务后果压成一个 retry 按钮：</p>
@@ -1720,13 +1798,13 @@ sequenceDiagram
 <p><a id="failure-cancellation"></a></p>
 <p><a id="1556-取消授权变化与人工接管"></a></p>
 <p><a id="1757-取消授权变化与人工接管"></a></p>
-<h3 id="1766-取消授权变化与人工接管"><a class="header" href="#1766-取消授权变化与人工接管">17.6.6 取消、授权变化与人工接管</a></h3>
+<h3 id="1776-取消授权变化与人工接管"><a class="header" href="#1776-取消授权变化与人工接管">17.7.6 取消、授权变化与人工接管</a></h3>
 <p>取消、截止时间到达或预算耗尽后，先持久记录停止推进的决定，阻止新的认领、模型调用、工具动作与委派，并向可中断的执行后端传播信号。进程收到信号不等于外部请求已撤销；任务终态与业务动作事实分开保存。</p>
 <p>对于已经在途的 Operation，迟到成功仍需写入原账本并核验证据，但不能把已取消 Run 改回运行中。随后按当前权限决定是否补记、补偿或转人工。核验与安全收尾需有单独声明的责任和受控资源额度，不能以“预算已用完”为由丢弃事实，也不能借收尾无限执行新业务。</p>
-<p>超时还要区分单次调用与整个 Run：前者可能只终止一个 Attempt，后者限制任务继续推进，两者都不能证明下游未执行。无进展的识别与迁移判据见<a href="#failure-ownership">17.6.3</a>。</p>
+<p>超时还要区分单次调用与整个 Run：前者可能只终止一个 Attempt，后者限制任务继续推进，两者都不能证明下游未执行。无进展的识别与迁移判据见<a href="#failure-ownership">17.7.3</a>。</p>
 <p>面向用户明确展示“已停止继续执行”及“仍在核验的动作”，不要让一个 cancelled 标签掩盖已发生的副作用。</p>
 <p>Policy 的 <code>deny(action)</code> 禁止当前动作，可以在原目标与权限内有界重规划；<code>deny(goal)</code> 表示目标本身不允许，记录 <code>FAILED</code> 及目标拒绝原因。<code>escalate</code> 转入 <code>WAITING(human_review)</code> 和待认领人工工作项，由指定角色判断或接管，不能被解释为普通的用户确认。</p>
-<p>无人接管、证据不足或无法安全自动处理时，任务保持可查询阻塞并公开责任与下次处理时间。人工可以批准一个有边界的风险选择，但不能把未知外部结果变成凭空确认。审批绑定、失效与重新认领统一见<a href="#human-control">17.4.4 动作裁决与审批等待</a>，拒绝不能通过换工具或子 Agent 绕开。</p>
+<p>无人接管、证据不足或无法安全自动处理时，任务保持可查询阻塞并公开责任与下次处理时间。人工可以批准一个有边界的风险选择，但不能把未知外部结果变成凭空确认。审批绑定、失效与重新认领统一见<a href="#human-control">17.5.4 动作裁决与审批等待</a>，拒绝不能通过换工具或子 Agent 绕开。</p>
 <p>Connection 授权失效时保存授权等待与原绑定，不能自动换成更宽权限连接。重新授权也不能证明先前写请求未发生：写入回执丢失仍沿原 Operation 与业务键查询；撤销连接不等于取消在途写入，无查询或幂等能力时转人工核验。</p>
 <p><a id="接管的责任人"></a></p>
 <p><strong>接管的责任人</strong></p>
