@@ -44,12 +44,13 @@
 - [第 21 章 OpenClaw 系统：个人 AI 助手的 Gateway 实现、使用与调优](part4/03-openclaw-architecture.md)
 - [第 22 章 Hermes Agent 系统：长期运行 Agent Runtime 的实现、使用与调优](part4/04-hermes-agent-architecture.md)
 - [第 23 章 DeepSeek Super-agent：面向自主协作的事件驱动架构](part4/05-deepseek-superagent.md)
+- [第 24 章 DeepSeek Harness：一切皆插件的智能体运行时](part4/06-deepseek-harness.md)
 
 ---
 
 # 第五部分：前沿与研究
 
-- [第24章 AI 智能体研究现状、工程瓶颈与未来理想能力架构报告](part5/01-agent-frontier-research.md)
+- [第25章 AI 智能体研究现状、工程瓶颈与未来理想能力架构报告](part5/01-agent-frontier-research.md)
 
 ---
 
