@@ -44,10 +44,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-211b4832.js";
+            window.path_to_searchindex_js = "searchindex-f1f01360.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-b2f0ef7f.js"></script>
+        <script src="toc-7aa768b4.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -293,7 +293,8 @@ flowchart LR
 </tbody>
 </table>
 </div>
-<p>| 第23章 | <a href="#第-23-章-deepseek-super-agent面向自主协作的事件驱动架构">DeepSeek Super-agent：面向自主协作的事件驱动架构</a> | 分析事件驱动、多任务调度、授权与执行边界。 |</p>
+<p>| 第23章 | <a href="#第-23-章-deepseek-super-agent面向自主协作的事件驱动架构">DeepSeek Super-agent：面向自主协作的事件驱动架构</a> | 分析事件驱动、多任务调度、授权与执行边界。 |
+| 第24章 | <a href="#第-24-章-deepseek-harness一切皆插件的智能体运行时">DeepSeek Harness：一切皆插件的智能体运行时</a> | 分析插件化运行时、会话、工具、安全边界与扩展生态。 |</p>
 <h3 id="第五部分前沿研究与工程展望"><a class="header" href="#第五部分前沿研究与工程展望">第五部分：前沿研究与工程展望</a></h3>
 <p>这一部分讨论工程实践之外仍在快速演化的前沿问题。它不局限于 Research Agent，后续可扩展到多模态、具身智能、长期学习和世界模型等专题。</p>
 <div class="table-wrapper">
@@ -302,7 +303,7 @@ flowchart LR
 <tr><th>章</th><th>章节</th><th>一句话概述</th></tr>
 </thead>
 <tbody>
-<tr><td>第24章</td><td><a href="#第24章-ai-智能体研究现状工程瓶颈与未来理想能力架构报告">AI 智能体研究现状、工程瓶颈与未来理想能力架构报告</a></td><td>从研究和工程两条线梳理智能体的现状、瓶颈与未来方向。</td></tr>
+<tr><td>第25章</td><td><a href="#第25章-ai-智能体研究现状工程瓶颈与未来理想能力架构报告">AI 智能体研究现状、工程瓶颈与未来理想能力架构报告</a></td><td>从研究和工程两条线梳理智能体的现状、瓶颈与未来方向。</td></tr>
 </tbody>
 </table>
 </div>
@@ -15890,7 +15891,888 @@ skills:
 <li><a id="ref-19-21"></a> DeepSeek Harness，<a href="https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc8/src/app/effects.ts">副作用队列源码</a>。</li>
 </ol>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="第24章-ai-智能体研究现状工程瓶颈与未来理想能力架构报告"><a class="header" href="#第24章-ai-智能体研究现状工程瓶颈与未来理想能力架构报告">第24章 AI 智能体研究现状、工程瓶颈与未来理想能力架构报告</a></h1>
+<h1 id="第-24-章-deepseek-harness一切皆插件的智能体运行时"><a class="header" href="#第-24-章-deepseek-harness一切皆插件的智能体运行时">第 24 章 DeepSeek Harness：一切皆插件的智能体运行时</a></h1>
+<p>DeepSeek Harness（简称 DSH，命令名 <code>dsh</code>）是 DeepSeek 于 2026 年 8 月开源的智能体运行时。它不是模型，而是把模型与文件、命令、工具、会话、沙箱连接起来的中介层；其核心主张是“一切皆插件”——模型适配器、工具注册表、会话日志乃至 Agent 循环本身都是可替换的 Cordis 插件。本报告基于固定提交的源码与仓库文档，辅以官方网站、发布说明和第三方评测，分析 DSH 的架构、领域模型、启动与回合时序、安全、可靠性、扩展生态和评测现状，并与 Claude Code、Codex、OpenCode、Pi、Hermes Agent 做同层比较。<a href="#ref-1-23">[1]</a></p>
+<p><strong>资料范围与限制</strong>：源码与文档对应 <code>deepseek-ai/deepseek-harness</code> 主分支提交 <code>ce7073d</code>（2026-10-30，根 <code>package.json</code> 版本 <code>0.2.2-alpha.2</code>），调研日期为 2026-11-03；本报告只做静态阅读，没有构建或运行 DSH。其他产品以 2026-11-03 读取的官方文档为准。文中“推断”表示由多处证据归纳、源码未直接写明的结论。</p>
+<h2 id="1-调研范围与总体结论-1"><a class="header" href="#1-调研范围与总体结论-1">1 调研范围与总体结论</a></h2>
+<h3 id="11-dsh-要解决的问题"><a class="header" href="#11-dsh-要解决的问题">1.1 DSH 要解决的问题</a></h3>
+<h4 id="111-agent--model--harness"><a class="header" href="#111-agent--model--harness">1.1.1 Agent = Model + Harness</a></h4>
+<p>过去两年，编码 Agent 的竞争主要发生在产品层：Claude Code、Codex、Cursor 等把模型、循环、工具、权限和界面打包成一个整体。对使用者而言，这些产品的“运行时”是固定的——可以挂 hooks、加 MCP、写 skills，但循环本身、会话格式、模型适配方式都不能换。第三方评测普遍用一句话概括 DSH 的立场：<strong>Agent = Model + Harness</strong>（这一表述多见于 DataCamp 等第三方文章，官网本身没有使用这一字样）。模型只是 Agent 的一部分，决定 Agent 行为的还有循环怎么组织、工具怎么呈现、上下文怎么压缩、失败怎么恢复、权限怎么控制；如果这些部分都被产品锁死，研究者和开发者就无法在 Harness 层做实验与定制。<a href="#ref-2-23">[2]</a></p>
+<h4 id="112-三个具体痛点"><a class="header" href="#112-三个具体痛点">1.1.2 三个具体痛点</a></h4>
+<p>从仓库文档与设计笔记可以归纳出 DSH 针对的三个痛点。第一是<strong>运行时不可替换</strong>：想换一种循环策略、一种工具呈现方式（例如让模型写代码调用工具）、一种会话存储后端，往往只能 fork 整个产品。第二是“<strong>模型到底看到了什么</strong>”<strong>难以回答</strong>：出错时很难从日志精确重建当时的模型请求，崩溃后的会话也常常处于不一致状态。第三是<strong>模型与产品绑定</strong>：Claude Code 只能用 Claude，Codex 默认用 OpenAI；DeepSeek 作为模型厂商，需要一个能充分发挥自家模型特性（前缀缓存、推理强度、长上下文）、又对其他模型开放的运行时。DSH 对这三点分别给出了答案：Cordis 插件化、“模型可见即已记录”的会话日志、以及严格约定的模型适配层。</p>
+<p><img src="images/dsh/fig-1-1.png" alt="图 1-1"></p>
+<p><em>图 1-1 Harness 在 Agent 中的位置：模型之外的循环、工具、上下文、会话、权限都属于 Harness</em></p>
+<h3 id="12-材料来源与证据分级-1"><a class="header" href="#12-材料来源与证据分级-1">1.2 材料来源与证据分级</a></h3>
+<h4 id="121-一手材料"><a class="header" href="#121-一手材料">1.2.1 一手材料</a></h4>
+<p>本报告的主要证据来自仓库本身：根目录 README、SAFETY 与 BENCHMARK 文档，<code>docs/</code> 下的架构、能力接缝、事件映射、工具流水线、持久化目录、配置目录、术语表、测试与开发指南，<code>docs/subsystems/</code> 下约 70 份子系统文档，<code>docs/cookbook/</code> 下的开发手册，<code>docs/postmortem/</code> 下的四份事故复盘，<code>docs/upgrade-guide/</code> 下的 91 篇升级指南，以及 <code>packages/</code> 中核心包的源码（<code>core/agent</code>、<code>core/agent-loop</code>、<code>core/tools</code>、<code>core/system-prompt</code>、<code>core/session</code>、<code>boot/app-boot</code>、<code>bundle/*</code>、<code>preset/*</code>、<code>sandbox/*</code>、<code>llm/*</code>、<code>subagent/*</code> 等）。凡给出具体默认值或行为的地方，均对应该提交下的源码或文档。仓库同时提供中英双语文档，本报告优先引用中文版本。</p>
+<h4 id="122-二手材料与对比材料"><a class="header" href="#122-二手材料与对比材料">1.2.2 二手材料与对比材料</a></h4>
+<p>二手材料包括 DeepSeek 官网的 Harness 页面、GitHub 发布说明、Cordis 论文（arXiv:2608.25512）的摘要页，以及机器之心、量子位、DataCamp、DeepInfra、ContextOS、Wavect、Atlas Cloud、eesel、redreamality 等媒体与评测。<a href="#ref-3-23">[3]</a>对比对象的描述依据 Anthropic、OpenAI、OpenCode、Pi、Nous Research 的官方文档与仓库 README。发布时间线、GitHub 星数等数据来自第三方统计，各来源之间存在冲突，本报告只引用互相一致的部分。</p>
+<h4 id="123-证据口径"><a class="header" href="#123-证据口径">1.2.3 证据口径</a></h4>
+<p>报告遵循三条规则。其一，关于“DSH 怎么做”的结论只引用源码与仓库文档；文档与源码不一致时以源码为准，并明确指出差异。其二，关于“DSH 的反响与表现”的结论引用第三方材料，并注明来源性质。其三，关于其他 Harness 的比较只比较文档写明的机制，不推测未公开的内部实现。</p>
+<p><img src="images/dsh/fig-1-2.png" alt="图 1-2"></p>
+<p><em>图 1-2 证据来源与使用规则</em></p>
+<h3 id="13-总体结论-1"><a class="header" href="#13-总体结论-1">1.3 总体结论</a></h3>
+<h4 id="131-一句话定位-1"><a class="header" href="#131-一句话定位-1">1.3.1 一句话定位</a></h4>
+<p>DSH 是一个<strong>以 Cordis 为内核、以会话日志为唯一事实来源、以 profile/bundle/preset 为组合方式</strong>的开源智能体运行时；它在 Harness 层与 Claude Code、Codex 同级，但把“可替换性”推到了极致——连 Agent 循环都只是配置树中的一行。它目前处于开发者预览阶段，所有发布均标记为 pre-release。</p>
+<h4 id="132-五个核心结论"><a class="header" href="#132-五个核心结论">1.3.2 五个核心结论</a></h4>
+<p>第一，<strong>“一切皆插件”基本属实，但有清晰的边界</strong>。Agent 循环、模型适配器、工具注册表、会话持久化、沙箱、审批都是可替换的 Cordis 插件，能力图列出 108 个上下文服务；不可替换的是 Cordis 框架本身和 <code>dsh</code> 启动器注入的少量启动事实。这一设计的代价是 372 个包、约 55.6 万行非测试 TypeScript 的体量和较高的学习门槛。</p>
+<p>第二，<strong>会话日志是 DSH 最有价值的设计</strong>。“模型可见即已记录”是一条硬规则：每次模型请求都能从日志精确重建，失败尝试、重试、压缩、审批都有持久证据；崩溃后由读方在写所有权下追加合成收尾事件，为中断的工具调用标注“结果未知、不要盲目重试”；格式版本化，旧代际永不改写。这套机制在同类开源项目中最为严格。</p>
+<p>第三，<strong>工具流水线与 PTC 体现了“策略外置”的工程取向</strong>。所有策略（审批、超时、spill、hooks）都挂在 waterfall 上，pre-execute 不允许改写参数，守卫只能收紧；PTC 让模型写程序调用工具，但每个子调用都重新走完整流水线，不绕过任何策略。</p>
+<p>第四，<strong>安全模型“只管写入”，默认值偏向开发便利</strong>。沙箱跨 Linux、macOS、Windows、SSH 四类后端且失败即拒绝，但不限制读取、网络与进程可见性；凭据明文存放、同 UID 可读；插件、MCP、LSP 以宿主权限运行；会话日志默认随模型请求上传至 DeepSeek。官方 SAFETY 文档明确表示未经安全审计、不宜用于生产。</p>
+<p>第五，<strong>DSH 是“为 DeepSeek 模型优化、对其他模型开放”的运行时</strong>。默认走 DeepSeek 的 Anthropic Messages 兼容协议，系统提示词的段序、<code>in-history</code> 提示词更新、<code>tool-addition</code> 增量工具激活、fork 省略模型参数等设计都服务于前缀缓存；同时经 <code>llm-pi-ai</code> 支持 42 个 provider，并能把 Claude Code、Codex 当作子代理调用。仓库中没有公布任何能力评测分数。</p>
+<h4 id="133-发布与演进时间线"><a class="header" href="#133-发布与演进时间线">1.3.3 发布与演进时间线</a></h4>
+<p>DSH 的演进速度本身就是理解它的重要背景。根据 GitHub 发布说明与媒体报道，关键节点如下：2026-08-13 仓库公开，以 v0.1 开发者预览版发布（同日审计的版本号为 0.1.0-rc.5）；08-19 Claude Code 与 Codex 子代理可作为组合包安装；08-21 修复 bubblewrap 经 <code>/proc/&lt;pid&gt;/root</code> 的沙箱逃逸，图片改走 Files API；08-25 Code Mode 更名为 PTC；08-31 移除可选的 SQLite 持久化后端；09-08 前后会话格式升级到 V3，并调整系统提示词以保住 KV cache；09-10 DeepSeek-V4.1-Flash 成为新会话默认模型；09-22 会话日志升级到 V4，工具输出改按 token 预算截断；09-23 新增 Web 终端、MCP resources、SSH 远程工作区，DeepSeek 适配器改为只走 Messages API；10-03 引入实验性的 Claude Code Mods 兼容层；10-17 插件热重载与自定义插件索引上线；10-28 发布 0.2.2-alpha.2，插件管理器支持第三方包更新与回滚，Node 最低版本提高到 24.9。两个半月里，会话格式升了两个大版本、持久化后端删掉一个、模型协议换了一次，这既说明团队敢于在预览期做破坏性调整，也提醒使用者必须固定版本。</p>
+<p><img src="images/dsh/fig-1-3.png" alt="图 1-3"></p>
+<p><em>图 1-3 DSH 总览：各组成部分及其成熟度（绿色为稳定核心，黄色为可用但有明显限制，红色为实验或缺位）</em></p>
+<h3 id="14-与-deepseek-super-agent-的区别"><a class="header" href="#14-与-deepseek-super-agent-的区别">1.4 与 DeepSeek Super-agent 的区别</a></h3>
+<h4 id="141-不在同一层"><a class="header" href="#141-不在同一层">1.4.1 不在同一层</a></h4>
+<p>DeepSeek Super-agent 与 DSH 经常被混为一谈，原因是 Super-agent 的设计文章由“DeepSeek Harness 官方团队”于 2026-10-31 发表在 DSH 公众号上，媒体常把它报道为“DSH 的新功能”或“DeepSeek 的新 Agent 产品”。实际上两者处于不同层次：<strong>DSH 是运行时底座，回答“一个 Agent 内部如何组合”；Super-agent 是搭在其上的编排架构与研究原型，回答“多个任务如何在尽量少占用人类注意力的前提下并行推进”</strong>。用参考章节的类比，DSH 大致对应 Anthropic Agent SDK 或 Claude Code 运行时这一层，Super-agent bundle 大致对应构建其上的业务编排层。<a href="#ref-4-23">[4]</a><a href="#ref-5-23">[5]</a><a href="#ref-6-23">[6]</a></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>维度</th><th>DeepSeek Harness（DSH）</th><th>DeepSeek Super-agent</th></tr>
+</thead>
+<tbody>
+<tr><td>性质</td><td>开源 Agent 运行时，开发者预览（2026-08-13 起）</td><td>架构设计 + 研究原型，README 声明“not an official DeepSeek product”</td></tr>
+<tr><td>仓库</td><td><code>deepseek-ai/deepseek-harness</code></td><td><code>deepseek-ai/dsh-superagent-prototype</code></td></tr>
+<tr><td>基本单位</td><td>Session → Turn → Step</td><td>Trigger → Thread → Eval → Ticket → Assignment</td></tr>
+<tr><td>触发方式</td><td>人主动发起（Web / CLI / SDK / ACP）</td><td>环境事件驱动（GitHub / 飞书轮询）+ 授权判断</td></tr>
+<tr><td>授权重心</td><td>动作级（沙箱、审批、工具守卫）</td><td>请求级（谁能发起工作、Mandate 能做到哪一步）</td></tr>
+<tr><td>持久化</td><td>版本化 JSONL 会话日志</td><td>自有 SQLite（Effects、Outbox）</td></tr>
+<tr><td>依赖关系</td><td>被依赖方</td><td>以 DSH bundle 形式加载，<code>package.json</code> 声明 <code>dsh.bundle</code>、<code>engines.dsh</code> 与 DSH peerDependencies</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="142-两者的接口"><a class="header" href="#142-两者的接口">1.4.2 两者的接口</a></h4>
+<p>Super-agent 原型用到的 DSH 能力包括 bundle 打包机制、Agent preset（Router 与 Worker 两个预设）、Agent Session 与工具运行、jobs 后台化；而 Source、Trigger、Mandate、Ticket 等核心概念全部由 bundle 自建（详见第 8.5 节）。由此带来一个比较口径上的提醒：参考章节第 8 章拿 Super-agent 与 Codex、Claude Code、Hermes 比较，属于跨层比较；与这些产品同层的是 DSH，本报告第 10 章即在 Harness 层进行比较。</p>
+<p><img src="images/dsh/fig-1-4.png" alt="图 1-4"></p>
+<p><em>图 1-4 DSH 与 Super-agent 的层次关系：Super-agent bundle 运行在 DSH 宿主中</em></p>
+<h3 id="15-术语对照"><a class="header" href="#15-术语对照">1.5 术语对照</a></h3>
+<h4 id="151-cordis-术语与-dsh-术语"><a class="header" href="#151-cordis-术语与-dsh-术语">1.5.1 Cordis 术语与 DSH 术语</a></h4>
+<p>DSH 的文档同时使用 Cordis 框架术语和自己的产品术语，初读容易混淆。下表给出对照。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Cordis 术语</th><th>DSH 用语</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>Context（<code>ctx</code>）</td><td>上下文；<code>agent.ctx</code> 为 Agent 作用域上下文</td><td>Agent 作用域上的注册同时有可见性与生命周期</td></tr>
+<tr><td>Service</td><td>服务；按角色分 core / seam / service / bundle</td><td>能力图共 108 个</td></tr>
+<tr><td>Plugin</td><td>插件；配置项（一行 YAML）</td><td><code>id</code> 是 Loader 的编辑地址</td></tr>
+<tr><td>Fiber</td><td>已加载的插件实例</td><td>状态机 PENDING → LOADING → ACTIVE → UNLOADING → DISPOSED</td></tr>
+<tr><td><code>ctx.effect</code> / disposer</td><td>“注册即副作用”</td><td>卸载时逆序撤销</td></tr>
+<tr><td><code>inject</code></td><td>服务依赖</td><td>依赖未就绪时停在 PENDING</td></tr>
+<tr><td><code>isolate</code> / label</td><td>isolate realm</td><td>preset 的服务必须放在独立 realm</td></tr>
+<tr><td>Loader + <code>cordis.yml</code></td><td>profile 空根 + patch 层</td><td>每次启动重写空根</td></tr>
+<tr><td>Include <code>patches</code></td><td>bundle patch / 用户 patch / <code>--patch</code> overlay</td><td>同一语法</td></tr>
+<tr><td>Group（<code>cordis:group</code>）</td><td>preset 内承载 isolate 的分组</td><td>—</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="152-几个容易误解的词"><a class="header" href="#152-几个容易误解的词">1.5.2 几个容易误解的词</a></h4>
+<p><strong>seam</strong> 指包含定义、提供方、消费方三种角色的完整能力，单一角色不叫 seam。<strong>scope 与 isolate</strong>：前者管注册项对谁可见，后者管服务名背后是哪个实例。<strong>profile、bundle、preset</strong>：profile 是进程级的具名组装，bundle 是可安装的 patch 层，preset 是会话级的子插件列表。<strong>turn、step、round</strong>：步骤是一次模型请求加其工具，轮次包含零或多个步骤，Round 是更外层的策略迭代（如 Goal Round）。<strong><code>cordis</code></strong> 一词有三义：框架本身、Creator 模式的 preset id、运行时检查工具包。<strong>web</strong> 一词也有两义：Web UI，以及 <code>ctx.web</code> 网页搜索与抓取能力。</p>
+<p><img src="images/dsh/fig-1-5.png" alt="图 1-5"></p>
+<p><em>图 1-5 容易混淆的三组概念：profile/bundle/preset、scope/isolate、turn/step/round</em></p>
+<h2 id="2-架构组成-1"><a class="header" href="#2-架构组成-1">2 架构组成</a></h2>
+<h3 id="21-设计目标与约束-1"><a class="header" href="#21-设计目标与约束-1">2.1 设计目标与约束</a></h3>
+<h4 id="211-四条贯穿全仓的原则"><a class="header" href="#211-四条贯穿全仓的原则">2.1.1 四条贯穿全仓的原则</a></h4>
+<p>阅读架构文档、仓库约定和各子系统 README，可以归纳出四条贯穿全仓的设计原则，它们既是目标，也是对后续所有改动的约束。</p>
+<p>第一，<strong>没有特权内核</strong>。“产品的每一部分都是插件，包括模型适配器、工具注册表、会话日志，以及 agent loop 本身，因此每个都可以从配置替换。”Agent 循环在 <code>dsh-base</code> 的配置里只是一行 <code>- id: agent-loop</code>，能力图把 <code>ctx.agentLoop</code> 标为“唯一的具体循环插件”，其他扩展包依赖 <code>dsh-agent</code> 的事件和服务，而不依赖循环本身。仓库规则写明：新行为挂到已有的扩展点上，改动循环必须同步更新架构文档。<a href="#ref-7-23">[7]</a></p>
+<p>第二，<strong>注册即副作用</strong>。所有贡献都经 <code>ctx.effect()</code> 或 <code>ctx.on()</code> 安装，卸载时自动撤销。这让热重载、插件管理和 Agent 级作用域成为免费能力，而不是需要专门处理的特殊路径。</p>
+<p>第三，<strong>模型可见即已记录</strong>（Model-visible ⟺ logged）。任何到达模型请求的内容都必须能从会话日志重建；新增一种模型可见输入，就必须新增一种会话事件。这条规则把可审计性、可回放性和崩溃恢复统一到同一份日志上。</p>
+<p>第四，<strong>显式优于隐式、配置失败要响亮</strong>。包边界上的默认值必须是显式的 <code>resolve(request): Spec</code> 步骤；部署相关的取值必须是可校验的 <code>Config</code> 字段，不能写成插件内的硬编码常量；配置错误要在加载时或最早可判定的时刻失败，绝不静默跳过。</p>
+<h4 id="212-原则带来的工程代价"><a class="header" href="#212-原则带来的工程代价">2.1.2 原则带来的工程代价</a></h4>
+<p>这些原则的代价同样明显。“一切皆插件”带来 372 个包、108 个上下文服务和 163 个可配置包；“模型可见即已记录”要求 62 种会话事件都有类型、有迁移、有兼容性审查；“配置失败要响亮”意味着一个空的用户 patch 文件就会导致启动失败。仓库用极高的工程纪律来对冲这些复杂度：按文件 100% 的覆盖率门禁、录制会话快照回放、PR 级性能预算、生成式文档与漂移检查。对使用者而言，这是一个“可以改任何东西，但需要先读懂很多东西”的系统。</p>
+<p><img src="images/dsh/fig-2-1.png" alt="图 2-1"></p>
+<p><em>图 2-1 DSH 的四条设计原则及其落地机制</em></p>
+<h3 id="22-cordis-内核上下文服务事件与可逆副作用"><a class="header" href="#22-cordis-内核上下文服务事件与可逆副作用">2.2 Cordis 内核：上下文、服务、事件与可逆副作用</a></h3>
+<h4 id="221-cordis-是什么"><a class="header" href="#221-cordis-是什么">2.2.1 Cordis 是什么</a></h4>
+<p>Cordis 是 DSH 之前就存在的开源插件框架（Koishi 生态的底层），DSH 以源码形式把它 vendored 在 <code>vendor/</code> 下，并改名发布到 <code>@deepseek-ai</code> 作用域，包括框架核心 <code>cordis</code>、配置 schema 库 <code>schemastery</code>、配置装载器 <code>plugin-loader</code>、配置包含与 patch 叠加 <code>plugin-include</code>、分组 <code>plugin-group</code>、热重载 <code>plugin-hmr</code> 等。改名的理由是：harness 包把框架声明为 peer dependency，用上游名发布等于占用别人在 registry 上的名字。仓库 README 将设计渊源指向论文 <em>A Programming Paradigm for Spatiotemporal Composability</em>。<a href="#ref-8-23">[8]</a><a href="#ref-9-23">[9]</a></p>
+<h4 id="222-五种事件分发模式"><a class="header" href="#222-五种事件分发模式">2.2.2 五种事件分发模式</a></h4>
+<p>Cordis 的事件是 DSH 最重要的扩展机制。事件名通过 TypeScript 声明合并注册，分发模式有五种：<code>emit</code>（同步广播，不收集返回值）、<code>parallel</code>（并发运行并一同等待）、<code>serial</code>（按序运行，第一个非空返回值胜出）、<code>bail</code>（serial 的同步版本）和 <code>waterfall</code>（环绕式中间件，监听器收到 <code>next</code>，不调用 <code>next()</code> 即短路）。分发模式是公开约定的一部分，每个新事件都要用 <code>@mode</code> JSDoc 标签声明，生成目录会交叉校验。DSH 把事件分成三个域：<strong>会话事件</strong>是追加到日志、经 <code>session/event</code> 广播的持久事实；<strong>Agent 事件</strong>（<code>agent/*</code>）用于观察或拦截进行中的工作；<strong>能力事件</strong>（<code>fs/*</code>、<code>tools/*</code>、<code>telemetry/*</code>）向某个能力附加策略和适配器，而不需要导入循环。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>模式</th><th>是否等待</th><th>语义</th><th>DSH 中的典型事件</th></tr>
+</thead>
+<tbody>
+<tr><td>emit</td><td>否</td><td>广播通知，监听器异常逐个隔离</td><td><code>agent/status</code>、<code>agent/assistant-stream</code></td></tr>
+<tr><td>serial</td><td>是</td><td>按序执行，可失败、可中断后续</td><td><code>agent/created</code>、<code>agent/turn-stopping</code></td></tr>
+<tr><td>waterfall</td><td>是</td><td>环绕中间件，必须调用 <code>next()</code></td><td><code>agent/pre-step</code>、<code>llm/stream</code>、<code>tools/pre-execute</code></td></tr>
+<tr><td>parallel</td><td>是</td><td>并发执行并等待全部</td><td>部分初始化与收尾事件</td></tr>
+<tr><td>bail</td><td>否</td><td>同步版 serial</td><td>少量同步决策点</td></tr>
+</tbody>
+</table>
+</div>
+<p><img src="images/dsh/fig-2-2.png" alt="图 2-2"></p>
+<p><em>图 2-2 Cordis 内核的五个概念及 DSH 的三个事件域</em></p>
+<h3 id="23-分层核心包dsh-base-与前端组合包"><a class="header" href="#23-分层核心包dsh-base-与前端组合包">2.3 分层：核心包、dsh-base 与前端组合包</a></h3>
+<h4 id="231-七个核心包"><a class="header" href="#231-七个核心包">2.3.1 七个核心包</a></h4>
+<p>架构文档列出七个核心包，它们构成 Agent 运行的主干：<code>core/session</code>（仅追加的 SessionEvent 日志与内存存储，<code>ctx.sessions</code>）、<code>core/system-prompt</code>（提示词片段与工具 schema 组装，<code>ctx.systemPrompt</code>）、<code>core/tools</code>（作用域化的工具注册表与带把关的执行流水线，<code>ctx.tools</code>）、<code>core/agent</code>（Agent 接口、活跃 Agent 注册表与 <code>agent/*</code> 事件，<code>ctx.agents</code>）、<code>core/agent-loop</code>（默认驱动器，<code>ctx.agentLoop</code>）、<code>core/scope</code>（按 Agent 划分作用域的注册原语）和 <code>llm/llm</code>（消息与流式词汇表及适配器接缝，<code>ctx.llm</code>）。</p>
+<h4 id="232-三层结构"><a class="header" href="#232-三层结构">2.3.2 三层结构</a></h4>
+<p>在核心包之上，可以把运行中的 DSH 看成三层。最底层是 <strong>vendored Cordis</strong> 与零依赖工具库；中间层是 <strong>dsh-base</strong>，即模型适配器、工具、持久化、沙箱与审批策略、设置、凭据和遥测，被 web、headless、sdk、acp 四个 profile 共享；最上层是<strong>前端组合包</strong>：<code>dsh-web-app</code> 增加浏览器应用，<code>dsh-headless</code> 增加不带服务器的一次性运行器，<code>dsh-sdk-app</code> 增加 SDK JSON-RPC 服务器，<code>dsh-acp-app</code> 增加仅用于自动化的 ACP 服务器。<code>dsh-sdk-minimal</code> 是刻意保留的例外，它拥有完整的显式配置树，不应用 <code>dsh-base</code>。Web 组合包还做了一次“平面切分”：它禁用 base 中每个 Agent 自己的工具行，把 Agent 平面移到 preset 后面，让每个会话挂载自己的 preset，而共享注册表留在宿主平面。</p>
+<p>仓库按功能把 372 个包分为 52 个分组，最大的是 <code>client</code>（69 个）、<code>experimental</code>（65 个）、<code>session</code>（22 个）和 <code>util</code>（21 个）。实验包与非实验包的界线是明确的：非实验包必须有产品用途或显式分类。</p>
+<p><img src="images/dsh/fig-2-3.png" alt="图 2-3"></p>
+<p><em>图 2-3 DSH 的三层结构：vendored Cordis、dsh-base 共享层与前端组合包</em></p>
+<h3 id="24-能力接缝capability-seam"><a class="header" href="#24-能力接缝capability-seam">2.4 能力接缝（Capability Seam）</a></h3>
+<h4 id="241-三角色定义"><a class="header" href="#241-三角色定义">2.4.1 三角色定义</a></h4>
+<p>“seam”是 DSH 文档里出现频率最高的词之一。它的定义是：一项可替换的能力，包含三种角色——声明接口的 <strong>Service Definition</strong>（一个拥有自己 <code>ctx.&lt;key&gt;</code> 的 Cordis Service，而不是 TypeScript interface）、实现它的 <strong>Service Provider</strong>，以及使用它的 <strong>Consumer</strong>（通常是面向模型的工具）。单一角色不构成 seam，添加一项能力意味着三者一并设计。规范范例是 shell：<code>dsh-shell</code> 是定义，<code>dsh-bash-local</code> 和 <code>dsh-bash-sandbox</code> 是提供方，<code>dsh-tool-bash</code> 是消费方。<a href="#ref-10-23">[10]</a></p>
+<h4 id="242-为什么-seam-重要"><a class="header" href="#242-为什么-seam-重要">2.4.2 为什么 seam 重要</a></h4>
+<p>seam 让“替换一个提供方就改变整个产品”成为可能。最典型的例子是执行世界：文件系统与进程提供方共享同一个执行世界，把 <code>ctx.fs</code> 和 <code>ctx.subprocess</code> 指向 SSH 远端，Bash、PTY 终端和 LSP 语言服务器就一并搬了过去，无需任何提供方专用的 fork。同样，<code>ctx.subagents</code> 背后的提供方从“新建一个进程内子 Agent”到“把一个轮次委派给 Codex 或 Claude Code”千差万别，消费方的 <code>subagent</code> 工具却不必知道。能力图共列出 108 个上下文服务，按角色分为 core 60 个、seam 36 个、service 10 个、bundle 1 个（agentLoop）。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>ctx 键</th><th>提供方示例</th><th>消费方示例</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ctx.llm</code></td><td><code>llm-deepseek</code>、<code>llm-pi-ai</code>、<code>llm-replay</code></td><td>agent-loop、compaction</td></tr>
+<tr><td><code>ctx.shell</code></td><td><code>bash-local</code>、<code>bash-sandbox</code>、<code>pwsh-local</code></td><td><code>tool-bash</code>、<code>tool-pwsh</code></td></tr>
+<tr><td><code>ctx.subprocess</code></td><td><code>subprocess-local</code>、<code>subprocess-ssh</code></td><td>bash、terminal、lsp</td></tr>
+<tr><td><code>ctx.sandbox</code></td><td><code>sandbox-local</code>、<code>sandbox-ssh</code></td><td><code>bash-sandbox</code>、<code>terminal-bash</code></td></tr>
+<tr><td><code>ctx.fs</code></td><td><code>fs-local</code>、<code>fs-sandbox</code>、<code>fs-ssh</code></td><td><code>tool-fs</code></td></tr>
+<tr><td><code>ctx.subagents</code></td><td>spawn、fork、acp、codex、claude-code、dsh-sdk</td><td><code>tool-subagent</code>、workflow</td></tr>
+<tr><td><code>ctx.ptcRuntime</code></td><td><code>ptc-runtime-node</code></td><td><code>tool-executor-ptc</code>、<code>workflow-ptc</code></td></tr>
+<tr><td><code>ctx.sessionPersistence</code></td><td><code>session-persistence-jsonl</code></td><td>agent-loop、session-query</td></tr>
+</tbody>
+</table>
+</div>
+<p><img src="images/dsh/fig-2-4.png" alt="图 2-4"></p>
+<p><em>图 2-4 能力接缝：替换 subprocess 与 fs 提供方，Bash、PTY、LSP 随执行世界一起迁移</em></p>
+<h3 id="25-模型适配层"><a class="header" href="#25-模型适配层">2.5 模型适配层</a></h3>
+<h4 id="251-协议默认走-anthropic-messages-兼容接口"><a class="header" href="#251-协议默认走-anthropic-messages-兼容接口">2.5.1 协议：默认走 Anthropic Messages 兼容接口</a></h4>
+<p>一个与多数二手资料不同的事实是：DSH 的 DeepSeek 适配器默认使用 DeepSeek 的 <strong>Messages 协议</strong>（Anthropic 兼容），默认 <code>baseURL</code> 为 <code>https://api.deepseek.com/anthropic</code>，推理强度序列化为 <code>thinking</code> 与 <code>output_config.effort</code>，缓存用量字段映射自 <code>cache_read_input_tokens</code> 与 <code>cache_creation_input_tokens</code>。网上不少文章称它“说 OpenAI 协议”，这只对经 <code>llm-pi-ai</code> 接入的自定义网关成立：该适配器的自定义网关可在 <code>openai-completions</code>、<code>openai-responses</code>、<code>anthropic-messages</code> 三种协议中选择。<a href="#ref-11-23">[11]</a></p>
+<h4 id="252-适配器约定与多提供方"><a class="header" href="#252-适配器约定与多提供方">2.5.2 适配器约定与多提供方</a></h4>
+<p><code>llm</code> 包定义了严格的适配器约定：内容块类型有 text、reasoning、image、file、tool-call、tool-addition、tool-removal；工具参数始终是原始 JSON 字符串；<strong>一次适配器调用等于一次提供方尝试</strong>，库内重试必须关闭，重试统一交给 <code>llm-retry</code>；上下文溢出统一报告为 <code>CONTEXT_WINDOW_EXCEEDED</code>；流空闲超时默认 5 分钟。DeepSeek 路由分为两种：<code>deepseek-official</code>（API key，放在 <code>x-api-key</code> 头）与 <code>deepseek-account</code>（账号 token，负责 401 失效与账号模型门控）。多提供方由 <code>llm-pi-ai</code> 承担，基于开源库 <code>pi-ai</code>，内置 42 个 provider 目录，涵盖 Anthropic、OpenAI、Google、Bedrock、Azure、OpenRouter、Moonshot、智谱、MiniMax、通义、小米等。</p>
+<h4 id="253-为前缀缓存而设计的协议细节"><a class="header" href="#253-为前缀缓存而设计的协议细节">2.5.3 为前缀缓存而设计的协议细节</a></h4>
+<p>模型能力声明中有两个很能体现 DeepSeek 关注点的字段：<code>systemPromptUpdate: 'in-history'</code> 让中途变化的系统提示词以历史中最新的 system 消息出现，而不是改写第 0 条消息；<code>toolUpdate: 'addition-only' | 'in-history'</code> 让新增工具通过后续 developer 消息中的 <code>tool-addition</code> 块激活。两者的目的都是“沿着已缓存的历史前进”，最大化前缀缓存命中率。默认模型 <code>deepseek-flash</code> 同时声明了这两项能力。关于默认模型名，源码中存在两套字符串：base 组合包和内置目录使用 <code>deepseek-flash</code>（显示名 DeepSeek-V4.1-Flash），TypeScript SDK、Python SDK、ACP 组合包和 dsh-sdk 子代理默认使用 <code>deepseek-v4-flash</code>；未列入目录的 id 会原样透传，因此两者可能是新旧别名并存。部分媒体所称的 <code>deepseek-v4-pro-0813</code> 在本次阅读的提交中未出现。</p>
+<p><img src="images/dsh/fig-2-5.png" alt="图 2-5"></p>
+<p><em>图 2-5 模型适配层：路由、适配器约定与重试/压缩的分工</em></p>
+<h3 id="26-工具注册表与执行器"><a class="header" href="#26-工具注册表与执行器">2.6 工具注册表与执行器</a></h3>
+<h4 id="261-作用域化注册"><a class="header" href="#261-作用域化注册">2.6.1 作用域化注册</a></h4>
+<p><code>ctx.tools.register(definition, { when? })</code> 可以在全局或 Agent 作用域注册工具，作用域工具遮蔽同名全局工具，同层重名报错，<code>run_code</code> 这个名字保留给 PTC 传输。每个工具必须声明 <code>output { schema, render }</code>：<code>execute</code> 返回规范 JSON 值，<code>render</code> 再把它转换为模型可见内容，这样同一个结果既能给模型看，也能给 PTC 程序当作结构化值使用。<code>when</code> 条件在每个拟议步骤解析一次，产生该步骤的 <code>ResolvedToolSet</code>，决定工具声明、执行器分区和批次内每次调用的准入。<code>ctx.tools.restrict({ allow, deny })</code> 只能用于作用域上下文，多个限制取交集。</p>
+<h4 id="262-执行器决定呈现方式"><a class="header" href="#262-执行器决定呈现方式">2.6.2 执行器决定呈现方式</a></h4>
+<p>工具如何呈现给模型，由挂载的<strong>执行器</strong>决定，而不是一个配置开关。原生执行器 <code>tool-executor-native</code> 把每个可见工具的 <code>name</code>、<code>description</code>、<code>parameters</code> 投影为 schema；PTC 执行器 <code>tool-executor-ptc</code> 只返回一个 <code>run_code</code> schema，再通过提示词段把其余工具以生成的 TypeScript 或 Python SDK 形式呈现。早期版本的 <code>dsh-tools</code> 有一个 <code>mode: native | ptc</code> 配置，后来被移除并改为“挂载哪个执行器就是哪种模式”，混合呈现也一并删除。这是“插件优先于开关”原则的一个具体例子。</p>
+<p><img src="images/dsh/fig-2-6.png" alt="图 2-6"></p>
+<p><em>图 2-6 工具注册表：作用域遮蔽、每步准入与执行器决定的两种呈现方式</em></p>
+<h3 id="27-会话日志与投影"><a class="header" href="#27-会话日志与投影">2.7 会话日志与投影</a></h3>
+<h4 id="271-日志是唯一事实来源"><a class="header" href="#271-日志是唯一事实来源">2.7.1 日志是唯一事实来源</a></h4>
+<p>会话日志是模型所见上下文的来源，<code>deriveMessages()</code> 从中投影出模型历史。每个 <code>assistant/message</code> 都嵌入产生它的精确紧凑流（带时间戳），失败、重试、取消和流错误的尝试则以 <code>assistant/attempt</code> 保存而不进入模型历史。fork、恢复、transcript、遥测与持久化都从这些持久结算派生；实时 UI 增量来自进程本地的 <code>agent/assistant-stream</code>，如果进程在结算前被硬中断，不会留下持久的尝试流。</p>
+<h4 id="272-投影接缝"><a class="header" href="#272-投影接缝">2.7.2 投影接缝</a></h4>
+<p><code>dsh-session-projection</code> 提供 <code>ctx.sessionProjections</code>：注册表只订阅一次 <code>session/event</code>，把每个已提交事件折叠进每个注册单元，客户端通过 <code>snapshot()</code> 读取选定的视图。文档的表述是：领域不持有任何订阅，客户端也从不折叠领域事件，它们收到的是成品值。投影定义包括 <code>init</code>、纯同步的 <code>apply</code>（与事件无关时须返回同一引用，用 <code>Object.is</code> 判定零下游工作）、可选的 wire 视图和用于缓存失效的 <code>stateVersion</code>。投影缓存插件按 200 个事件或 5 秒写一次检查点，日志始终权威，“崩溃可能使检查点陈旧，但不会使其领先于已提交事件”。</p>
+<h4 id="273-消息投影与-transcript"><a class="header" href="#273-消息投影与-transcript">2.7.3 消息投影与 transcript</a></h4>
+<p>模型所见与人所见是两条不同的投影。插件若需要改变模型看到的消息内容（例如图片省略插件把旧图片替换为占位符），必须用 <code>@messageProjection</code> 标记并通过 <code>ctx.sessions.registerMessageProjection()</code> 注册纯函数处理器；缺少处理器时，包括恢复在内的操作都会被拒绝，以免同一份日志在不同进程中派生出不同的模型历史。面向人类的 transcript 则读取“追加来源”事件，因为 surface 会有意遮蔽被压缩摘要替代的区间——用户在界面上仍能看到被压缩前的完整对话，而模型只看到摘要。会话引用（<code>@[label](dsh-session:…)</code>）把另一个会话的片段作为不可信快照注入，并记录被引用会话的格式版本与截止序号，保证引用同样可复现。</p>
+<p><img src="images/dsh/fig-2-7.png" alt="图 2-7"></p>
+<p><em>图 2-7 会话日志与派生视图：模型历史、UI 投影、transcript、检索与遥测都从同一份日志计算</em></p>
+<h3 id="28-前端形态与集成接口"><a class="header" href="#28-前端形态与集成接口">2.8 前端形态与集成接口</a></h3>
+<h4 id="281-一个启动器多种-profile"><a class="header" href="#281-一个启动器多种-profile">2.8.1 一个启动器，多种 profile</a></h4>
+<p><code>dsh</code> 是唯一受支持的 Node 应用启动器，Web、Headless、SDK、ACP 都只是 profile。仓库用 <code>verify-application-entrypoints</code> 脚本把每个包 bin、可执行源码和根脚本归入显式类别，拒绝任何绕过 <code>dsh</code> 的应用路径。五种入口的差异如下表。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>入口</th><th>传输</th><th>适用场景</th><th>要点</th></tr>
+</thead>
+<tbody>
+<tr><td>Web</td><td>HTTP <code>/api</code> + WebSocket</td><td>人机交互</td><td>默认 <code>127.0.0.1:3080</code>，浏览器端本身也是一个 Cordis 插件应用</td></tr>
+<tr><td>Desktop</td><td>Electron <code>dsh-app://</code> + 转发到本地 Host</td><td>桌面用户</td><td>私有 Desktop Host 运行共享 profile runner，系统分配端口</td></tr>
+<tr><td>Headless</td><td>命令行参数 / <code>--json</code> 行事件</td><td>CI、脚本</td><td>不开端口，一次一个任务，退出码区分结果</td></tr>
+<tr><td>SDK（TS / Python）</td><td>换行分帧 JSON-RPC 2.0 over stdio</td><td>程序集成、评测</td><td>支持反向 <code>approval/request</code>，Python 自带原生运行时</td></tr>
+<tr><td>ACP</td><td>Agent Client Protocol over stdio</td><td>编辑器与自动化客户端</td><td>刻意不提供 DSH 专用呈现数据，客户端视为受信控制器</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="282-web-的前后端分层"><a class="header" href="#282-web-的前后端分层">2.8.2 Web 的前后端分层</a></h4>
+<p>Web 前端采用 “TypeScript 装饰器 → 编译期生成强类型 RPC” 的方案：业务服务用 <code>@Remote</code> 装饰方法，构建期生成器以 Host 聚合为唯一 <code>ts.Program</code> 种子生成类型与客户端存根，运行时以 <code>POST /api/&lt;namespace&gt;/&lt;method&gt;</code> 调用，非 owner 调用者要先经 <code>ctx.remoteAccess.decide()</code>。客户端分为 Host 应用、传输与 API 组装、Client model、UI adapter、Conversation 数据和 Slots/React 渲染六层，依赖方向单向，展示组件绝不接收 Cordis <code>ctx</code>。Host 把启动图写入 <code>window.__DSH_BOOT__</code>，浏览器端用 vendored Cordis Loader 激活客户端插件，因此 <strong>Web UI 本身也是插件化的</strong>。<a href="#ref-12-23">[12]</a></p>
+<p><img src="images/dsh/fig-2-8.png" alt="图 2-8"></p>
+<p><em>图 2-8 一个启动器、五种入口：各前端共享 dsh-base，差异只在顶层组合包与传输</em></p>
+<h2 id="3-核心对象与领域模型-1"><a class="header" href="#3-核心对象与领域模型-1">3 核心对象与领域模型</a></h2>
+<h3 id="31-概念总览与数据流-1"><a class="header" href="#31-概念总览与数据流-1">3.1 概念总览与数据流</a></h3>
+<h4 id="311-从配置行到一次模型请求"><a class="header" href="#311-从配置行到一次模型请求">3.1.1 从配置行到一次模型请求</a></h4>
+<p>DSH 的对象可以按“谁决定谁”串成一条链。启动时，<strong>Profile</strong> 列出若干 <strong>Bundle</strong>，Bundle 携带 <code>cordis.patch.yml</code>，各层 patch 叠加出一棵 Cordis 配置树；树上每一行是一个<strong>插件</strong>，插件向上下文贡献<strong>服务</strong>（<code>ctx.&lt;key&gt;</code>）、<strong>事件监听器</strong>和<strong>注册项</strong>。运行时，<code>ctx.agents</code> 通过 <code>ctx.agentLoop</code> 注册的工厂创建 <strong>Agent</strong>；每个 Agent 与一个 <strong>Session</strong> 一一对应，Agent 的 <code>ctx</code> 是一个按 Agent 划分的作用域（scope），会话级的工具、提示词段和监听器都挂在这里。Agent 收到输入后开启<strong>轮次（Turn）</strong>，轮次由若干<strong>步骤</strong>（Step）组成，每一步是一次模型请求加上它调用的工具；所有事实都以 <strong>SessionEvent</strong> 的形式追加到会话日志，模型请求、UI 视图、遥测、检索都从日志派生。</p>
+<p>这条链有两个刻意的“断点”。其一，配置树和 Agent 之间隔着 <strong>Agent Preset</strong>：同一个进程里的两个会话可以挂载不同的能力集合，preset 中的服务必须放在独立的 <code>isolate</code> realm 内，避免泄漏到宿主平面。其二，日志和模型之间隔着<strong>投影</strong>：模型看到的历史是 <code>deriveMessages()</code> 计算出来的“surface”，而不是日志本身，压缩、图片省略等插件通过注册纯函数式的消息投影来改变模型所见，而不改写已提交事件。</p>
+<h4 id="312-为什么对象这么多"><a class="header" href="#312-为什么对象这么多">3.1.2 为什么对象这么多</a></h4>
+<p>与参考章节里 Super-agent 刻意保持“概念很少”不同，DSH 的概念数量明显更多：仓库生成的能力图列出 108 个 <code>ctx</code> 服务行，配置目录覆盖 163 个包，持久化目录列出 62 种会话事件。这是“一切皆插件”的直接代价——每一个可替换点都需要一个有名字的服务、一个有类型的事件或一个有 schema 的配置项。好在这些概念大多是同一组原语（服务、事件、副作用、作用域）的实例，掌握原语后，读任意一个子系统的成本是线性的。<a href="#ref-1-23">[1]</a><a href="#ref-13-23">[13]</a></p>
+<p><img src="images/dsh/fig-3-1.png" alt="图 3-1"></p>
+<p><em>图 3-1 DSH 核心对象的数据流：从配置行到模型请求，日志是所有派生视图的唯一来源</em></p>
+<h3 id="32-插件服务副作用与作用域"><a class="header" href="#32-插件服务副作用与作用域">3.2 插件、服务、副作用与作用域</a></h3>
+<h4 id="321-四个原语"><a class="header" href="#321-四个原语">3.2.1 四个原语</a></h4>
+<p>Cordis 入门文档把框架压缩为五条：插件是实现服务的对象；上下文是服务的容器；用 <code>inject</code> 声明依赖；用类型化事件通信；注册是可逆的副作用。<a href="#ref-14-23">[14]</a>DSH 在此基础上把“注册即副作用”提升为仓库级规则：任何贡献都必须经由 <code>ctx.effect()</code> 或 <code>ctx.on()</code> 安装，各注册表的 <code>register()</code> 必须返回 disposer。这条规则的意义在于<strong>卸载的完备性</strong>：插件卸载时，它安装的工具、提示词段、监听器、适配器会按相反顺序撤销，HMR 和插件管理器因此可以安全地热插拔，而不用担心残留状态。</p>
+<p><code>inject</code> 决定了加载顺序。插件在依赖的服务全部就绪前停留在 PENDING 状态，配置文件中的行序没有加载语义；服务消失时依赖它的插件被卸载，服务恢复后重新加载。官方教程举的例子是：卸载 <code>dsh-bash-local</code>、挂载另一个 <code>shell</code> 提供方，所有注入 <code>shell</code> 的插件都会自动重启并使用新实现。插件实例在 Cordis 中称为 Fiber，状态机为 PENDING → LOADING → ACTIVE → UNLOADING → DISPOSED，LOADING 可转入 FAILED（apply 抛错或配置校验失败）。</p>
+<h4 id="322-scope-与-isolate-的区别"><a class="header" href="#322-scope-与-isolate-的区别">3.2.2 scope 与 isolate 的区别</a></h4>
+<p>DSH 有两种“隔离”，经常被混用。<strong>scope</strong>（<code>dsh-scope</code>）控制注册项的可见性和生命周期：在 <code>agent.ctx</code> 上注册的工具只对该 Agent 可见，Agent 销毁时随之卸载，作用域工具会遮蔽同名全局工具，且不向子 Agent 继承。<strong>isolate</strong> 控制服务实例属于哪个 realm：同一个服务名在两个 isolate realm 中可以是两份配置不同的实例。Agent Preset 的挂载审计会检查子树是否向根 realm 泄漏服务，发现即抛出 <code>Preset services require isolate realms</code> 错误。一句话概括：scope 管“谁看得见这条注册”，isolate 管“这个名字背后是哪一个实例”。<a href="#ref-15-23">[15]</a></p>
+<h4 id="323-配置-schema-与-volatile-字段"><a class="header" href="#323-配置-schema-与-volatile-字段">3.2.3 配置 schema 与 volatile 字段</a></h4>
+<p>每个插件导出与插件同名的 <code>Config</code>，既是 TypeScript 接口也是运行时 schema（仓库统一使用 Schemastery，Cordis 本身接受任意 Standard Schema），在 <code>apply</code> 之前校验，校验失败使插件进入 FAILED。标记为 <code>.volatile()</code> 的字段变化时<strong>不重挂载</strong>插件，而是通过 <code>.get()</code> 读取新值并收到 <code>loader/volatile-update</code> 事件；Web 设置页正是从当前 profile 条目中投影这些 volatile 字段生成表单，例如每步并行工具调用上限就可以热更新。<code>!!js</code> 表达式只在条目的 <code>config</code> 与 <code>disabled</code> 中有效：<code>config</code> 在声明的注入激活后基于插件上下文插值，<code>disabled</code> 在每次挂载决策时基于 Loader 上下文求值，其余元数据保持字面值，按环境选择插件应使用 overlay。第 7.5 节的事故 0002 正是因为早期 <code>disabled</code> 中的表达式未被插值而导致文件工具被永久禁用，此后 <code>verify-cordis-config</code> 门禁专门检查这类写法。</p>
+<p><img src="images/dsh/fig-3-2.png" alt="图 3-2"></p>
+<p><em>图 3-2 Cordis Fiber 状态机与“注册即副作用”：卸载时副作用按相反顺序撤销</em></p>
+<h3 id="33-profilebundlepatch-与-preset"><a class="header" href="#33-profilebundlepatch-与-preset">3.3 Profile、Bundle、Patch 与 Preset</a></h3>
+<h4 id="331-四层组合"><a class="header" href="#331-四层组合">3.3.1 四层组合</a></h4>
+<p><strong>Profile</strong> 是 Harness home 中的具名组装（<code>$DSH_HOME/profiles/&lt;name&gt;</code>），其 <code>package.json</code> 的 <code>dsh.profile.bundles</code> 列出有序的组合包，目录里还放着该 profile 自己安装的树外插件和用户的 <code>cordis.patch.yml</code>。<strong>Bundle</strong> 是“Cordis 配置项及其挂载代码的分发格式”，在 <code>dsh.bundle.patch</code> 中指向一个或多个 patch 文件。<strong>Patch</strong> 是 YAML 编辑列表：带 <code>id</code> 的条目按 id 定位目标行并<strong>整体替换</strong>其顶层键（不做深度合并），带 <code>insert</code> 的条目追加新行或插入到某个 group 的子列表。<strong>Preset</strong> 是会话级的子插件列表声明，覆盖内置 preset 时同样整体替换其 <code>config.plugins</code>。</p>
+<p>层的应用顺序由 <code>readProfilePatches</code> 实现：空根 <code>[]</code> → 各 bundle 的 patch（按列表顺序）→ profile 的 <code>cordis.patch.yml</code> → home 级 <code>$DSH_HOME/cordis.patch.yml</code> → 命令行 <code>--patch</code> overlay（可重复）→ 若设置了 <code>DSH_TELEMETRY_DISABLED</code> 则追加一条禁用遥测行。后应用的层优先。值得注意的是，架构文档只写到 <code>--patch</code>，源码多了一层遥测开关，这是文档与实现的细微差异。<a href="#ref-16-23">[16]</a></p>
+<h4 id="332-随附的组合"><a class="header" href="#332-随附的组合">3.3.2 随附的组合</a></h4>
+<p>发行版带五个 profile 模板：<code>web</code>（base + web-app）、<code>headless</code>（base + headless）、<code>sdk</code>（base + sdk-app）、<code>acp</code>（base + acp-app）和 <code>sdk-minimal</code>（只有 sdk-minimal，自带完整独立的配置树，不经过 base）。<code>dsh-base</code> 是共享第一层，共 97 行配置，按功能可分为启动管理、模型、会话持久化、凭据、存储、遥测、Agent 主干、执行与沙箱、工具与工具策略、指令与技能、目标与计划、压缩、子代理与工作流、Web 与 MCP 等十余类。此外还有 15 个可选组合包和 3 个按需组合包（Claude Code 子代理、Codex 子代理、Computer Use）。</p>
+<p><img src="images/dsh/fig-3-3.png" alt="图 3-3"></p>
+<p><em>图 3-3 配置层叠：自下而上依次应用，后应用的层覆盖同 id 的行；sdk-minimal 绕过 base</em></p>
+<h3 id="34-agentturnstep-与-inbox"><a class="header" href="#34-agentturnstep-与-inbox">3.4 Agent、Turn、Step 与 Inbox</a></h3>
+<h4 id="341-薄身份--运行时增强"><a class="header" href="#341-薄身份--运行时增强">3.4.1 “薄身份 + 运行时增强”</a></h4>
+<p><code>Agent</code> 的公共接口只有一个字段：<code>id: SessionId</code>，Agent 的身份就是 Session 的身份。运行时通过 TypeScript 声明合并为它补上能力：<code>options</code>（provider、model、推理强度、最大 token）、<code>model</code>（<code>current()</code> 解析下一步的模型选择，<code>select()</code> 追加持久的 <code>model/selection</code> 事件）、<code>inbox</code>、<code>status</code>（idle 或 running）、<code>ctx</code>（Agent 作用域上下文），以及 <code>cancel</code>、<code>whenIdle</code>、<code>runMaintenance</code>、<code>followup</code>、<code>steer</code>、<code>inject</code> 等方法。这种设计让依赖 Agent 的插件只需引用 <code>dsh-agent</code> 包的类型和事件，而不必依赖具体的循环实现。<a href="#ref-17-22">[17]</a></p>
+<h4 id="342-三种输入入口"><a class="header" href="#342-三种输入入口">3.4.2 三种输入入口</a></h4>
+<p>输入统一进入 inbox，inbox 有两条持久列表：<code>nextTurn</code> 与 <code>nextStep</code>。<code>followup</code> 把消息放进 next-turn 并唤醒 Agent，作为一个新轮次的唯一普通消息；<code>steer</code> 放进 next-step 并唤醒，运行中的 Agent 会在最近的步骤边界消费它，空闲的 Agent 则开启新轮；<code>inject</code> 放进 next-step 但<strong>不唤醒</strong>，用于注入模型可见的上下文，等下一次 pre-step 时一并带入。inbox 的每次变更都写成 <code>agent/inbox/spliced</code> 事件，因此即使没有活跃 Agent，也能从日志读出待处理输入。这一设计与 Super-agent 的“订阅直通”有可比之处：后者用 Thread 订阅把后续消息扇出到工单，DSH 则在单会话内用 steer 把后续消息插入到最近的步骤边界。</p>
+<h4 id="343-轮次与步骤的边界"><a class="header" href="#343-轮次与步骤的边界">3.4.3 轮次与步骤的边界</a></h4>
+<p>架构文档对两者的定义很精确：一个<strong>步骤</strong>是一次模型请求加上它调用的工具；一个<strong>轮次</strong>包含零个或多个步骤，在领取首条输入之前打开，在不再欠下任何工作时关闭。轮次结束原因是一个可扩展的联合类型：<code>completed</code>、<code>aborted</code>、<code>blocked</code>、<code>error</code>、<code>max-tokens</code>、<code>interrupted</code>、<code>forked</code>。其中 <code>interrupted</code> 和 <code>forked</code> 从不由循环实时发出，前者由崩溃恢复合成，后者由 fork 种子构造合成。</p>
+<p><img src="images/dsh/fig-3-4.png" alt="图 3-4"></p>
+<p><em>图 3-4 Agent 的结构：身份即 Session，inbox 的两条列表决定输入在轮次还是步骤边界被消费</em></p>
+<h3 id="35-sessionevent-与持久化格式"><a class="header" href="#35-sessionevent-与持久化格式">3.5 SessionEvent 与持久化格式</a></h3>
+<h4 id="351-事件信封与分类"><a class="header" href="#351-事件信封与分类">3.5.1 事件信封与分类</a></h4>
+<p><code>SessionEvent</code> 是以 <code>type</code> 为判别字段的可辨识联合，信封包含 <code>type</code>、<code>seq</code>（单调连续，等于追加前的日志长度）、<code>time</code>、<code>data</code>，以及可选的 <code>ignorable: true</code>。生成的持久化目录列出 62 种事件类型、34 个命名空间组，其中只有 5 种是 <strong>surface 事件</strong>——<code>system/message</code>、<code>developer/message</code>、<code>user/message</code>、<code>assistant/message</code>、<code>tool/result</code>——会进入模型历史，其余 57 种都是仅日志（log-only）事件，例如 <code>turn/*</code>、<code>step/*</code>、<code>request/header</code>、<code>request/context</code>、<code>assistant/attempt</code>、<code>tool/call</code>、<code>compaction/*</code>、<code>llm/retry</code>、<code>approval/*</code>、<code>plan/mode</code>、<code>goal/change</code>、<code>todo/write</code>。<a href="#ref-18-22">[18]</a></p>
+<h4 id="352-未知事件默认必需"><a class="header" href="#352-未知事件默认必需">3.5.2 未知事件默认“必需”</a></h4>
+<p>一个容易被忽视但很关键的规则是：读者遇到不认识且未标 <code>ignorable</code> 的事件类型，必须<strong>拒绝重建</strong>会话，而不是静默丢弃。文档的解释是，忘记标记只会导致过度拒绝，而不会静默恢复一个被掏空的会话。<code>Session.append</code> 还会在追加点做无损 JSON 校验，拒绝 BigInt、函数、<code>undefined</code>、<code>-0</code>、非有限数、循环引用、稀疏数组和 Map/Set/Date，让坏数据在源头失败，而不是在后端 flush 时才暴露。当前写入器格式版本为 <code>SESSION_FORMAT_VERSION = 4</code>，最新已发布格式同为 V4。</p>
+<h4 id="353-header-与日志分离"><a class="header" href="#353-header-与日志分离">3.5.3 Header 与日志分离</a></h4>
+<p>会话的 <code>SessionHeader</code> 与事件日志分开存储，字段包括格式版本、id、创建时间、<code>cwd</code>、父会话、是否为种子会话、来源（是否为子代理）、委派深度和所选 Agent preset。这种分离有两个用意。其一，列表与统计操作只需读取 header，不必加载事件，<code>stat</code> 与 <code>list</code> 会重新扫描每个会话目录、选择数值最高的规范代际，并在不加载事件的情况下转换历史 header。其二，<code>cwd</code> 是会话<strong>不可变的</strong>原始项目标识，沙箱的工作区根取自它；用户在会话中切换工作目录时，追加的是 <code>working-directory/change</code> 事件，header 保持不变，目录上下文以必需的用户上下文到达模型，而不进入系统提示词。这一细节把“项目身份”“沙箱边界”和“当前工作目录”三件事拆开，避免了模型通过切换目录扩大可写范围。</p>
+<p><img src="images/dsh/fig-3-5.png" alt="图 3-5"></p>
+<p><em>图 3-5 SessionEvent 的分类：5 种 surface 事件进入模型历史，57 种仅日志事件服务于恢复、审计与 UI</em></p>
+<h3 id="36-四种-agent-preset"><a class="header" href="#36-四种-agent-preset">3.6 四种 Agent Preset</a></h3>
+<h4 id="361-同一循环四种能力组合"><a class="header" href="#361-同一循环四种能力组合">3.6.1 同一循环，四种能力组合</a></h4>
+<p>Web 应用内置四个 preset，它们共用同一个循环，差别只在挂载的插件。<strong>Standard</strong>（标准模式，默认）挂载完整的编码 Agent 能力：bash、文件读写编辑、glob/grep、后台任务、定时跟进、技能、目标、计划模式、压缩、子代理与 workflow、向用户提问、todo、网页搜索与抓取、交付物呈现。<strong>PTC</strong>（程序化工具调用模式）在 Standard 基础上额外挂载 <code>dsh-tool-executor-ptc</code>，模型只看到一个 <code>run_code</code> 工具，其余能力以生成的 TypeScript SDK 声明出现在系统提示词中。<strong>Minimal</strong>（极简模式）只保留持久化的 PTY bash 和读图能力，系统提示词用 <code>complete: true</code> 固定为一句 “You are a helpful software engineer assistant.”，用于干净的基准测试。<strong>Creator</strong>（创造模式，配置 id 为 <code>cordis</code>）在 Standard 能力之上加入 <code>cordis_inspect_list</code> / <code>cordis_inspect_query</code> 运行时检查工具、Cordis 插件开发与组合编辑技能，以及插件管理和插件市场工具，让 Agent 能检查并重新组合自己的工具集。</p>
+<h4 id="362-两条硬约束"><a class="header" href="#362-两条硬约束">3.6.2 两条硬约束</a></h4>
+<p>preset 有两条硬约束。第一，<strong>会话产生输出后不能切换 preset</strong>：<code>select()</code> 检查轮次边界，已开启过轮次即抛出 <code>agent-preset/locked</code>，以免先前的工具调用落在另一套工具集下无法解释。第二，preset 中的服务提供方及其消费方必须共享同一个 <code>cordis:group</code> 隔离 realm。preset 的 README 同时提醒，“preset 不是安全沙箱：YAML 及插件可以执行 Host 代码”。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Preset</th><th>模型可见工具</th><th>系统提示词</th><th>典型用途</th></tr>
+</thead>
+<tbody>
+<tr><td>Standard</td><td>约 30 个（bash、read/write/edit、glob/grep、subagent、workflow、web 等）</td><td>persona + 工具段 + 运行时上下文</td><td>日常编码</td></tr>
+<tr><td>PTC</td><td>仅 <code>run_code</code>，其余以 SDK 声明呈现</td><td>增加 <code>tools:ptc-only</code> 与 <code>tools:sdk</code> 段</td><td>多步工具编排、降低中间结果回流</td></tr>
+<tr><td>Minimal</td><td>持久 bash（PTY）+ <code>read_image</code></td><td>固定一句话，不含运行时上下文</td><td>基准测试、度量模型本身</td></tr>
+<tr><td>Creator</td><td>Standard + <code>cordis_inspect_*</code> + 插件管理/市场</td><td>增加 Cordis 开发技能目录</td><td>修改 Agent 本身、实验插件组合</td></tr>
+</tbody>
+</table>
+</div>
+<p><img src="images/dsh/fig-3-6.png" alt="图 3-6"></p>
+<p><em>图 3-6 四种 Agent Preset 共用宿主平面的注册表，各自在独立 isolate realm 中挂载能力</em></p>
+<h2 id="4-启动过程-1"><a class="header" href="#4-启动过程-1">4 启动过程</a></h2>
+<h3 id="41-cli-入口与参数解析"><a class="header" href="#41-cli-入口与参数解析">4.1 CLI 入口与参数解析</a></h3>
+<h4 id="411-从-bints-到运行器"><a class="header" href="#411-从-bints-到运行器">4.1.1 从 <code>bin.ts</code> 到运行器</a></h4>
+<p><code>dsh</code> 命令的入口是 <code>apps/cli/src/bin.ts</code>：读取运行时版本，调用 <code>parseDshArgs()</code> 解析参数，再按模式动态导入对应运行器——<code>profile</code>（启动一个 profile）、<code>plugin</code>（插件管理）、<code>dump-config</code>、<code>dump-config-schema</code>。参数解析的规则很克制：启动器自己只认识 <code>--profile</code>、<code>--from-default-profile</code>、<code>--patch</code>（可重复）和三个 dump 开关，<code>dsh &lt;name&gt;</code> 展开为 <code>--profile &lt;name&gt;</code>；从第一个不认识的 token 开始，后面所有参数原样交给应用（例如 Web 的 <code>--port</code>、<code>--no-open</code>，Headless 的 <code>--json</code>、<code>--permission-mode</code>）。<code>plugin</code> 被保留为管理命令，<code>desktop</code> 被保留给 Electron，CLI 会拒绝直接启动它。<a href="#ref-19-22">[19]</a></p>
+<h4 id="412-环境层与代理"><a class="header" href="#412-环境层与代理">4.1.2 环境层与代理</a></h4>
+<p>在组装配置之前，启动器先用 <code>loadLayeredEnv('dsh')</code> 建立环境层：调用目录的 <code>.env</code> 优先于 home 的 <code>.env</code>，两者都低于进程继承的环境；<code>PATH</code>、<code>DSH_*</code>、<code>XDG_*</code> 不允许写在 <code>.env</code> 中，代理变量只认 home 的 <code>.env</code>。随后按启动快照安装出站代理，确保后续插件发起的网络请求经过同一套代理策略。这些细节说明 DSH 把“启动时的环境”当作一份需要冻结的输入，而不是任由插件随时读取的全局状态。</p>
+<p><img src="images/dsh/fig-4-1.png" alt="图 4-1"></p>
+<p><em>图 4-1 CLI 入口：参数解析只消费启动器自己的 flag，其余原样交给 profile 中的应用</em></p>
+<h3 id="42-配置叠加与---dump-config"><a class="header" href="#42-配置叠加与---dump-config">4.2 配置叠加与 <code>--dump-config</code></a></h3>
+<h4 id="421-组装-profile"><a class="header" href="#421-组装-profile">4.2.1 组装 profile</a></h4>
+<p><code>runProfile()</code> 先调用 <code>composeProfile()</code>：<code>prepareProfile()</code> 加载 profile 目录（可选用 <code>--from-default-profile</code> 重建），报告被跳过的 bundle，并<strong>每次启动都重写空根</strong> <code>cordis.yml</code>——注释解释了原因：避免 Loader 回写把组合行“烘焙”进根文件，导致后续 bundle 升级不生效；接着 <code>createRuntimeResolution()</code> 在挂载前计算不可变的运行时模块解析表；最后读取 <code>--patch</code> overlay。然后构造 <code>ProfileContext</code>（名称、目录、patch 路径、安装锚点、已启动的 bundle、cwd、home、overlay 列表、遥测开关），作为纯数据服务提供给插件树。</p>
+<h4 id="422-patch-的唯一实现"><a class="header" href="#422-patch-的唯一实现">4.2.2 patch 的唯一实现</a></h4>
+<p>patch 语义由 vendored include 插件的 <code>applyEntryPatches</code> 唯一实现，<code>--dump-config</code> 共用同一个函数，源码注释说“so a dump can never drift from what boots”。三个 dump 开关的区别是：<code>--dump-default-config</code> 只打印 bundle 层；<code>--dump-config</code> 再叠加 profile patch、home patch 和 <code>--patch</code>；二者都会以注释标出每一行来自哪个文件、被哪个 overlay 修改过，<code>!!js</code> 表达式保持未求值。<code>--dump-config-schema</code> 会导入每个组合模块以读取 schema，只应对受信任的 profile 运行。架构文档的建议是：“它打印出的任何条目，都可以由你自己的 patch 替换。”</p>
+<h4 id="423-一个具体例子"><a class="header" href="#423-一个具体例子">4.2.3 一个具体例子</a></h4>
+<p>下面的 patch 展示了三种常见定制：把沙箱化 bash 执行器的超时从 60 秒延长到 180 秒、接入一个 stdio MCP 服务器、关闭随模型请求上传会话日志。它可以写进 <code>$DSH_HOME/cordis.patch.yml</code> 长期生效，也可以存成文件用 <code>--patch</code> 临时叠加；注意按 id 修改时会<strong>整体替换</strong>该行的 <code>config</code>，因此需要写出全部想保留的字段。</p>
+<pre><code class="language-yaml">- id: bash-sandbox
+  config:
+    timeoutMs: 180000
+- insert:
+    - id: mcp-github
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: github
+        transport: stdio
+        command: npx
+        args: ['-y', '@modelcontextprotocol/server-github']
+        env:
+          GITHUB_TOKEN: !!js process.env.GITHUB_TOKEN
+- id: session-log-deepseek
+  config:
+    enabled: false
+</code></pre>
+<p>应用后用 <code>dsh --profile web --dump-config</code> 检查结果：每一行旁边的注释会标出它来自哪个文件、被哪个 overlay 修改过。若 MCP 服务器的配置写错，插件会停在 FAILED 并在启动日志中报告，但因为它不是必需条目，应用仍会启动。</p>
+<p><img src="images/dsh/fig-4-2.png" alt="图 4-2"></p>
+<p><em>图 4-2 patch 的三种语义：按 id 整体替换、顶层追加、插入到 group 子列表</em></p>
+<h3 id="43-boot-与插件树结算"><a class="header" href="#43-boot-与插件树结算">4.3 <code>boot()</code> 与插件树结算</a></h3>
+<h4 id="431-启动序列"><a class="header" href="#431-启动序列">4.3.1 启动序列</a></h4>
+<p><code>boot()</code> 的步骤可以概括为：新建 Cordis <code>Context</code> → 提供 <code>dshHomePath</code> → 挂载 <code>Loader</code> → 调用启动器的 <code>prepare</code> 回调（提供 <code>profileContext</code>、启动环境、插件包表和命令行服务 <code>cmdlineArgs</code>/<code>appExit</code>/<code>appReady</code>）→ <code>mountRootInclude()</code> 注册 <code>cordis:include</code> 与 <code>cordis:group</code> 两个内建插件、做兼容性预检、挂载根 Include 与各层 patch → <code>loader.await()</code> 等待整棵树结算 → <code>auditStartupEntries()</code> 检查必需条目。插件的实际挂载顺序<strong>不由行序决定</strong>，而由 <code>inject</code> 依赖驱动：例如 Web 组合包里的 <code>web-startup</code> 注入 <code>cmdlineArgs</code>、产出 <code>webStartup</code> 服务，<code>webserver</code> 和 <code>web-runtime</code> 声明 <code>inject: [webStartup]</code>，Loader 才对其 <code>!!js</code> 配置求值。</p>
+<h4 id="432-无特权内核的边界"><a class="header" href="#432-无特权内核的边界">4.3.2 “无特权内核”的边界</a></h4>
+<p>严格地说，DSH 并非完全没有宿主代码。<code>boot()</code> 在挂载配置树之前由宿主直接 <code>provide('dshHomePath')</code>、挂载 Loader，启动器的 <code>prepare</code> 回调再提供 profile 上下文和命令行服务。这些是启动器注入的“事实”，不承载产品能力；产品能力（包括循环本身）仍然全部来自配置树。DataCamp 的评论指出“Cordis 本身不可替换”，这与上述观察一致：可替换的是 Cordis 之上的一切，而不是 Cordis 和启动器本身。<a href="#ref-2-23">[2]</a></p>
+<p><img src="images/dsh/fig-4-3.png" alt="图 4-3"></p>
+<p><em>图 4-3 启动时序：从 <code>bin.ts</code> 到 <code>appReady.commit()</code>，必需条目审计失败则整体退出</em></p>
+<h3 id="44-系统提示词组装"><a class="header" href="#44-系统提示词组装">4.4 系统提示词组装</a></h3>
+<h4 id="441-四类输入"><a class="header" href="#441-四类输入">4.4.1 四类输入</a></h4>
+<p><code>ctx.systemPrompt</code> 为每个拟议步骤收集提示词的各个部分。输入分四类：<strong>段</strong>（PromptSection，含 name、order、文本或函数、是否插值、是否 complete）、<strong>动态上下文</strong>（PromptContext，成为带来源标注的 user 角色快照）、<strong>变量</strong>（<code>{{name}}</code>，循环提供 <code>provider</code> 与 <code>model</code>）和<strong>工具 schema 提供方</strong>。组装流程是：变量按全局到 scope 链合并（近者胜）→ 段与上下文按 scope 遮蔽合并 → 收集各工具提供方 schema → 段按 order 升序排序（同序按名称），超过一个 complete 段即报错 → 运行按 scope 过滤的 <code>system-prompt/assemble</code> waterfall → 若有 complete 段则只保留它。未知变量引用直接抛错。</p>
+<h4 id="442-固定的段序"><a class="header" href="#442-固定的段序">4.4.2 固定的段序</a></h4>
+<p>段的顺序是集中分配的：<code>HARNESS_IDENTITY</code>（-1000，“You are an AI agent powered by DeepSeek Harness.”）→ persona 前缀（0）→ 计划策略（500）→ 团队策略（600）→ PTC 专用说明（800）→ 文件引用（900）→ 各工具段（1000～3000）与 MCP 服务器说明（3100）→ SDK 声明（5000）→ 交付物引用（9000）→ 结构化输出（9900）→ Harness 源码说明（10000）→ Web 界面说明（10100）→ persona 后缀（10200）。工作目录、沙箱策略、审批策略、子代理委派、团队身份等<strong>进程相关的事实不进入系统提示词</strong>，而以动态上下文的形式出现，源码注释写明这是为了让系统提示词保持可缓存。渲染后的提示词作为第 0 号 <code>system/message</code> 节点进入派生历史，工具 schema 则作为独立的 wire 字段发送。</p>
+<h4 id="443-不同入口的-persona"><a class="header" href="#443-不同入口的-persona">4.4.3 不同入口的 persona</a></h4>
+<p>persona 只是 order 为 0 与 10200 的前后缀段，不同入口的取值不同。base 组合包的默认前缀为空字符串；web、headless、sdk、acp 各自 patch 为 “You are a coding agent powered by the {{model}} model.”，其中 <code>{{model}}</code> 由循环在组装时替换为当前模型；Web 下 persona 由 preset 中的 <code>dsh-persona</code> 插件提供；Minimal 模式用 <code>complete: true</code> 把整段系统提示词固定为一句话，并关闭运行时上下文，从而得到一个几乎没有 harness 痕迹的干净基线。由于 persona 和工具段都是可替换的插件行，团队若要统一 Agent 的身份、语气或行为准则，最稳妥的做法是覆盖 persona 行或增加一个新的提示词段插件，而不是修改工具描述。</p>
+<p><img src="images/dsh/fig-4-4.png" alt="图 4-4"></p>
+<p><em>图 4-4 系统提示词的段序数轴：稳定内容靠前以利缓存，进程相关事实移入动态上下文</em></p>
+<h3 id="45-失败策略hmr-与插件管理"><a class="header" href="#45-失败策略hmr-与插件管理">4.5 失败策略、HMR 与插件管理</a></h3>
+<h4 id="451-必需条目与可选条目"><a class="header" href="#451-必需条目与可选条目">4.5.1 必需条目与可选条目</a></h4>
+<p>全局必需条目只有 10 个：<code>agent-loop</code>、<code>tool-executor-native</code>、<code>tool-executor-ptc</code>、<code>webserver</code>、<code>web-runtime</code>、<code>modules</code>、<code>connection</code>、<code>headless-runner</code>、<code>acp</code>、<code>sdk-jsonrpc-server</code>。启用的必需条目失败会拆卸整个应用、抛出 <code>StartupError</code>、以退出码 1 退出，并写入 <code>$DSH_HOME/logs/startup-&lt;时间戳&gt;-&lt;uuid&gt;.log</code>；可选条目失败只告警。错误信息区分“宿主准备失败”与“插件树加载失败”两个阶段。导入插件前，启动器还会按 <code>engines.dsh</code>（或 DSH 相关包的 peer 范围）比对运行时版本，不兼容的行被改写为 <code>disabled: true</code>，不兼容的 bundle 被跳过，用户的版本豁免存放在 profile 的 <code>compatibility.json</code> 中。</p>
+<h4 id="452-hmr-与插件管理器"><a class="header" href="#452-hmr-与插件管理器">4.5.2 HMR 与插件管理器</a></h4>
+<p><code>dsh-base</code> 启用只监听配置的 <code>dsh-hmr</code>，前提是启动器提供了 <code>profileContext</code>；Headless、SDK、ACP 禁用它，<code>sdk-minimal</code> 不包含它。HMR 监听 profile manifest、profile patch 和 home patch，重新读取各 bundle 层并重组，配置变更、Loader 更新与自动重载串行化执行。普通 patch 编辑可以热重载，bundle 成员的增删则需要重启。插件管理器同时服务 CLI（<code>dsh plugin --profile &lt;name&gt; &lt;pnpm 参数&gt;</code>）和 Web 侧边栏，安装后按依赖是否声明 <code>dsh.bundle.patch</code> 重新计算 bundle 列表；面向模型的 <code>plugin_manager</code> 工具在 Standard 和 Creator 预设中启用，每次操作都需要 <code>danger-full-access</code> 或单次审批。</p>
+<p><img src="images/dsh/fig-4-5.png" alt="图 4-5"></p>
+<p><em>图 4-5 启动失败策略与热重载：必需条目失败即退出，HMR 只重组 patch 层</em></p>
+<h3 id="46-desktop-与-sdk-的启动差异"><a class="header" href="#46-desktop-与-sdk-的启动差异">4.6 Desktop 与 SDK 的启动差异</a></h3>
+<h4 id="461-desktop-host"><a class="header" href="#461-desktop-host">4.6.1 Desktop Host</a></h4>
+<p>Electron 桌面应用在签名资源中携带精确匹配的 dsh 生产运行时，并占用保留的 <code>$DSH_HOME/profiles/desktop</code>。Electron 以 Node 模式启动私有的 Desktop Host，Host 调用共享的 profile runner 与完整 Web 应用，参数固定为不打开浏览器、绑定 <code>127.0.0.1</code>、端口由系统分配（避免与 Web 默认的 3080 冲突）；就绪后通过 Node IPC 把 URL 与启动注入发回窗口。窗口立即加载打包的 Web 资源，等待注入后在同一文档中激活客户端插件。base 中部分行按 <code>profileContext.name === 'desktop'</code> 条件启用，例如账号登录的桌面平台标识和产品埋点。</p>
+<h4 id="462-python-sdk"><a class="header" href="#462-python-sdk">4.6.2 Python SDK</a></h4>
+<p>Python SDK 遵循同一应用架构：运行时 wheel 把普通的 <code>dsh</code> CLI 打包为平台相关的二进制，客户端默认以<strong>显式指定的</strong> Harness home 启动 <code>dsh --profile sdk</code>，刻意不发现 <code>~/.dsh</code>；极简示例选择 <code>sdk-minimal</code>。Python 侧只暴露 profile 选择与有序 patch 文件，不暴露完整的 Cordis 树；持久的外部插件通过 <code>dsh plugin</code> 安装。这一设计让 Python 用户获得与 Node 用户完全相同的运行时行为，代价是 SDK 进程里实际运行的是一个完整的 Node 应用。</p>
+<p><img src="images/dsh/fig-4-6.png" alt="图 4-6"></p>
+<p><em>图 4-6 三种宿主的启动路径：CLI、Desktop Host 与 Python SDK 最终都进入同一个 profile runner</em></p>
+<h2 id="5-agent-回合处理时序"><a class="header" href="#5-agent-回合处理时序">5 Agent 回合处理时序</a></h2>
+<h3 id="51-端到端总览-1"><a class="header" href="#51-端到端总览-1">5.1 端到端总览</a></h3>
+<h4 id="511-一次典型请求"><a class="header" href="#511-一次典型请求">5.1.1 一次典型请求</a></h4>
+<p>以 Web 界面中用户输入“修复这个测试”为例。浏览器经 <code>/api</code> 调用会话控制器，Host 侧落到 <code>ctx.agents</code> 上对应 Agent 的 <code>followup()</code>，消息进入 inbox 的 next-turn 列表并发出 <code>agent/inbox/inserted</code>；驱动器从 idle 切换为 running，追加 <code>turn/start</code>，领取输入，快照模型选择，解析本步工具集，组装系统提示词，经 <code>agent/pre-step</code> waterfall 决定接纳；随后追加 <code>step/start</code>，准备调用、写入 <code>system/message</code> 与 <code>user/message</code>、按需写入 <code>request/header</code> 与 <code>request/context</code>，从日志派生并冻结历史，发起流式请求；流式 chunk 以 <code>agent/assistant-stream</code> 实时推给 UI，结算后写入 <code>assistant/message</code>；若模型请求了工具，则逐个写入 <code>tool/call</code>、经工具流水线执行、按模型顺序写入 <code>tool/result</code>；<code>step/end</code> 之后，如果工具结果要求再次请求模型，就进入下一步，否则经 serial 事件 <code>agent/turn-stopping</code> 检查后写入 <code>turn/end</code>，驱动器回到 idle。</p>
+<h4 id="512-循环本体很小"><a class="header" href="#512-循环本体很小">5.1.2 循环本体很小</a></h4>
+<p>整个过程的核心代码集中在 <code>agent-loop/src/agent.ts</code>，约 745 行。重试、压缩、审批、超时、spill、计划模式、目标续跑都不在循环里，而是挂在 <code>agent/*</code> 与 <code>tools/*</code> 的 waterfall 上。扩展实操手册给出一张“功能→机制”映射表，声称 hooks、<code>/goal</code>、<code>/loop</code>、压缩、AGENTS.md、MCP、技能、记忆、定时、子代理、遥测、模型适配器都是扩展点上的监听器，“没有任何一行修改循环本身”。值得注意的是，<strong>循环本身没有最大步数上限</strong>：只有“模型不再请求工具且 next-step 为空”时轮次才结束，失控防护交给 <code>repeat-tool-reminder</code>（重复调用提醒阈值 3/5/8 次）、Goal 驱动的 256 轮上限、成本和用户取消等插件。<a href="#ref-20-21">[20]</a></p>
+<p><img src="images/dsh/fig-5-1.png" alt="图 5-1"></p>
+<p><em>图 5-1 一个轮次的端到端时序：持久事件写入日志，实时帧推送到 UI</em></p>
+<h3 id="52-输入认领与-pre-step"><a class="header" href="#52-输入认领与-pre-step">5.2 输入认领与 pre-step</a></h3>
+<h4 id="521-prestep-的五个动作"><a class="header" href="#521-prestep-的五个动作">5.2.1 <code>preStep()</code> 的五个动作</a></h4>
+<p>每个拟议步骤开始前，循环执行 <code>preStep(target)</code>：<strong>领取输入</strong>（首步从 next-turn 领取一条普通消息，同时领取全部 next-step 消息，逐条发出 <code>agent/inbox/claimed</code>）；<strong>快照模型选择</strong>（<code>model.current()</code>，优先级为已记录的 <code>model/selection</code> &gt; 上次请求 &gt; Agent options，快照在重试中保持不变）；<strong>工具准入</strong>（<code>ctx.tools.resolve()</code>，每步评估一次各注册的 <code>when</code> 条件）；<strong>组装提示词</strong>（<code>systemPrompt.assemble()</code>，携带模型选择与工具集）；最后派发 <strong><code>agent/pre-step</code> waterfall</strong>，最内层默认实现把渲染出的运行时上下文投影为一条 user 消息附加在已领取消息之后。</p>
+<h4 id="522-pre-step-的监听者"><a class="header" href="#522-pre-step-的监听者">5.2.2 pre-step 的监听者</a></h4>
+<p><code>agent/pre-step</code> 是 DSH 最繁忙的扩展点之一。根据事件生产者/消费者映射，监听者包括压缩（步骤压力检查）、计划模式（注入计划策略）、重复工具提醒、会话检查点策略（flush 屏障）、Goal 轮次驱动、AGENTS.md 指令加载、时间上下文、技能目录、Claude Code / Codex hooks 桥、会话引用和操作卡片等。监听器可以接纳、改写或拒绝已领取的消息；首次领取被拒绝或为空时，循环关闭一个不含步骤的持久轮次（结束原因 <code>blocked</code> 或 <code>completed</code>）。enter 决策还可以声明 <code>startsRequestSeries</code>，让循环记录新的 <code>request/header</code>，这是为前缀缓存服务的显式信号。</p>
+<p><img src="images/dsh/fig-5-2.png" alt="图 5-2"></p>
+<p><em>图 5-2 pre-step 流程：领取、快照、准入、组装，再交给 waterfall 决定接纳或拒绝</em></p>
+<h3 id="53-模型请求流式输出与提交"><a class="header" href="#53-模型请求流式输出与提交">5.3 模型请求、流式输出与提交</a></h3>
+<h4 id="531-一次尝试的步骤"><a class="header" href="#531-一次尝试的步骤">5.3.1 一次尝试的步骤</a></h4>
+<p><code>step()</code> 内部是一个尝试（attempt）循环。每次尝试：渲染提示词（只渲染一次，重试复用）→ <code>prepareRequest()</code>（构造种子配置、派发已弃用的 <code>agent/request</code> waterfall、校验 provider/model/推理强度未被改动、<code>llm.prepareCall()</code> 绑定适配器）→ 刷新运行时事实 → 按已准备调用的能力协调 <code>system/message</code> → <strong>仅首次尝试</strong>追加已接纳的 <code>user/message</code> → <code>buildRequest()</code>（按需追加 <code>request/header</code>、工具增删时追加 <code>developer/message</code>、追加 <code>request/context</code>，再从日志派生历史并深冻结）→ 经 <code>llm/stream</code> waterfall 发起流式请求，逐 chunk 发出 <code>agent/assistant-stream</code>。</p>
+<h4 id="532-提交语义"><a class="header" href="#532-提交语义">5.3.2 提交语义</a></h4>
+<p>提交语义区分三种情况。成功时追加 <code>assistant/message</code>，其中嵌入 usage 与紧凑的带时间戳流，空内容和 <code>max-tokens</code> 也会记录；流中途因中止而失败、但已有内容时，追加 <code>interrupted: true</code> 的 <code>assistant/message</code>，保留已交付前缀；其他失败、重试、取消和流错误在没有 surface 消息时落为仅日志的 <code>assistant/attempt</code>，保存证据而不虚构历史。架构文档特别说明：循环发送不可变请求，同时保持取消有效；在任一异步阶段取消，系统提示词与用户消息都不会被提交。这保证了“模型可见即已记录”在失败路径上同样成立。</p>
+<h4 id="533-为前缀缓存而设计的请求序列"><a class="header" href="#533-为前缀缓存而设计的请求序列">5.3.3 为前缀缓存而设计的请求序列</a></h4>
+<p>阅读 <code>step()</code> 的实现可以发现，DSH 在多处为服务端的前缀缓存（KV cache）做了专门设计。<code>request/header</code> 记录完整的请求信封，并带有 <code>initial</code>、<code>resume</code>、<code>change</code>、<code>series</code> 四种原因，<code>startsRequestSeries</code> 显式声明“新的请求序列从这里开始”，让缓存失效点成为可审计的事实；工具集变化时不重写开头的工具声明，而是在后续追加 <code>developer/message</code> 中的 <code>tool-addition</code> / <code>tool-removal</code> 块；系统提示词在具备能力的路由上以“历史中的最新 system 消息”更新，而不改写第 0 条消息；计划模式的 <code>exit_plan_mode</code> 工具 schema 始终在列，只为保持工具目录稳定；fork 子代理省略模型选择参数以复用父会话前缀。这些设计合在一起，使“同一会话内的后续请求尽量共享前缀”成为运行时层面的不变量，而不是依赖提示词作者的小心。对按缓存命中计价的 DeepSeek API 而言，这直接关系到长任务的成本。</p>
+<p><img src="images/dsh/fig-5-3.png" alt="图 5-3"></p>
+<p><em>图 5-3 一次尝试的请求构建与三种提交结果</em></p>
+<h3 id="54-工具执行流水线"><a class="header" href="#54-工具执行流水线">5.4 工具执行流水线</a></h3>
+<h4 id="541-单次调用的七个阶段"><a class="header" href="#541-单次调用的七个阶段">5.4.1 单次调用的七个阶段</a></h4>
+<p>每个工具调用都经过同一条流水线：执行器拒绝（例如 PTC 模式下直接调用非 <code>run_code</code> 工具）先于策略 → <strong><code>tools/pre-execute</code> waterfall</strong>（返回 allow / deny / cancel / ask，不允许改写参数，因为参数已经记录并展示）→ ask 时调用 <code>ctx.approval.request()</code> 发起一次性审批，无审批服务、无 Agent 或不可回答一律拒绝 → <strong>单调守卫</strong> <code>tools.guard()</code>，只能拒绝不能放行，监听器顺序无法把拒绝变回允许 → <strong><code>tools/execute</code> waterfall</strong>，环绕分发实现超时、重试、指标 → 工具正文（文件写入还要经过 <code>fs/write-intent</code> 与 <code>fs/edit-intent</code> 门禁，“先读后写”策略由 <code>fs-observation-policy</code> 提供）→ <code>projectContent</code> 与 <strong><code>tools/post-execute</code> waterfall</strong>（可接受、替换、阻断或附加上下文）→ 同步的 <code>finalizeContent</code> → 冻结的 <code>tools/result</code> 广播 → 会话 <code>tool/result</code>。<a href="#ref-21-21">[21]</a></p>
+<h4 id="542-设计要点"><a class="header" href="#542-设计要点">5.4.2 设计要点</a></h4>
+<p>这条流水线有三个值得借鉴的设计。其一，<strong>参数不可改写</strong>：与 Claude Code 的 <code>PreToolUse</code> 可以返回 <code>updatedInput</code> 不同，DSH 认为参数一旦写入日志并展示给用户就不应再变，策略只能允许、拒绝或询问。其二，<strong>守卫单调</strong>：可扩展的 pre-execute 允许任何插件参与决策，但最终的守卫层只能收紧，避免插件之间的顺序依赖造成放行漏洞。其三，<strong>取消优先</strong>：调用方取消会把成功结果替换为取消结果，而工具自身的错误结果保留。</p>
+<p><img src="images/dsh/fig-5-4.png" alt="图 5-4"></p>
+<p><em>图 5-4 单次工具调用流水线：可扩展的策略层与只能收紧的守卫层</em></p>
+<h3 id="55-批次调度与并发"><a class="header" href="#55-批次调度与并发">5.5 批次调度与并发</a></h3>
+<h4 id="551-屏障与滚动池"><a class="header" href="#551-屏障与滚动池">5.5.1 屏障与滚动池</a></h4>
+<p>一次模型回复可能包含多个工具调用。内置调度器 <code>executeToolBatch()</code> 先由流水线对每个调用分类：只有工具声明 <code>isConcurrencySafe(args) === true</code> 才算 parallel，未声明、抛错或返回非 true 一律是 exclusive（失败即关闭）。exclusive 调用构成屏障单独运行；连续的 parallel 调用进入一个有界滚动池，上限 <code>maxParallelToolCalls</code> 默认 10，可热更新。源码注释概括了约束：“函数体可以重叠，但策略、结果与上下文提交保持模型顺序”。<code>tool/call</code> 在执行前写入，<code>tool/result</code> 按模型顺序写入；批次的附加上下文进入 next-step inbox，因此总在所有工具结果之后才进入下一个请求。</p>
+<h4 id="552-中止时的回放保证"><a class="header" href="#552-中止时的回放保证">5.5.2 中止时的回放保证</a></h4>
+<p>批次被中止时，已开始的调用等待其排空，尚未开始的调用合成 <code>ABORTED_BEFORE_DISPATCH</code> 错误结果。步骤抛错时，循环为所有已写入 <code>tool/call</code> 但没有 <code>tool/result</code> 的调用补写结果。这两条规则确保日志里每个工具调用都有配对的结果，回放和恢复时模型看到的历史始终合法——这是 OpenAI、Anthropic 等提供方对消息格式的硬性要求，也是很多自研 Agent 在中断场景下出错的地方。</p>
+<p><img src="images/dsh/fig-5-5.png" alt="图 5-5"></p>
+<p><em>图 5-5 批次调度示例：parallel 调用在滚动池内重叠执行，exclusive 调用作为屏障，结果按模型顺序提交</em></p>
+<h3 id="56-ptc程序化工具调用"><a class="header" href="#56-ptc程序化工具调用">5.6 PTC：程序化工具调用</a></h3>
+<h4 id="561-机制"><a class="header" href="#561-机制">5.6.1 机制</a></h4>
+<p>PTC（Programmatic Tool Calling）的设计笔记把思想来源归于 Cloudflare 的 “Code Mode”：多步工具操作若逐次调用，每个中间结果都要回到上下文，开销大且串行；让模型针对生成的 TypeScript API 写一段程序，在沙箱中运行，<strong>只有 print 或 return 的内容回到上下文</strong>。挂载 <code>tool-executor-ptc</code> 后，模型只看到 <code>run_code</code> 一个工具，参数为 <code>code</code>（异步函数体）、<code>description</code>，以及可选的 <code>timeoutMs</code> 和越权参数。程序内用 <code>await tools.name(args)</code> 调用工具，独立的只读调用可以 <code>Promise.all</code> 并发。该功能在 2026-08-25 由 “Code Mode” 统一更名为 PTC，未保留兼容别名。<a href="#ref-22-21">[22]</a></p>
+<h4 id="562-子调用不绕过任何策略"><a class="header" href="#562-子调用不绕过任何策略">5.6.2 子调用不绕过任何策略</a></h4>
+<p>PTC 最重要的性质是：程序内的每个工具调用都<strong>完整地重新走一遍工具流水线</strong>——pre-execute、守卫、execute、post-execute、finalize、result，并成对记录仅日志可见的 <code>tool/ptc-dispatch-start</code> / <code>tool/ptc-dispatch</code> 事件，子调用 id 形如 <code>&lt;父调用&gt;:ptc:&lt;n&gt;</code>。拒绝会以程序内的约束性驳回呈现。运行时由 <code>ctx.ptcRuntime</code> 接缝提供，默认实现 <code>ptc-runtime-node</code> 以 per-call 模式为每段程序启动一个全新的受管 Node 子进程，应用会话的文件沙箱策略；默认超时 120 秒（上限 600 秒），老生代堆 512 MiB，输出上限 64 MiB，程序内并行子调用上限 10。README 坦承 PTC“不承诺普遍减少成本”：省掉了中间结果的回流，但增加了 SDK 声明文本。</p>
+<p><img src="images/dsh/fig-5-6.png" alt="图 5-6"></p>
+<p><em>图 5-6 PTC 架构：模型写程序，子调用逐个回到宿主的完整工具流水线，只有程序输出回到上下文</em></p>
+<h3 id="57-重试压缩与取消"><a class="header" href="#57-重试压缩与取消">5.7 重试、压缩与取消</a></h3>
+<h4 id="571-重试只来自一个扩展点"><a class="header" href="#571-重试只来自一个扩展点">5.7.1 重试只来自一个扩展点</a></h4>
+<p>请求失败时，循环追加 <code>assistant/attempt</code> 并派发 <code>agent/request-error</code> waterfall；只有某个监听器返回 <code>{ kind: 'retry' }</code> 才在同一打开步骤内重试，不重复 pre-step 和用户消息。三个监听者分工明确：<code>llm-retry</code> 处理瞬态错误（RATE_LIMIT、SERVER、TIMEOUT、TRANSPORT、EMPTY_RESPONSE），默认最多 5 次，500 毫秒起指数退避至 10 秒，10% 抖动，遵守 <code>Retry-After</code>，每次重试先写入 <code>llm/retry</code> 事件；<code>compaction-basic</code> 处理 <code>CONTEXT_WINDOW_EXCEEDED</code>，压缩成功后重试，每 Agent 默认 1 次；<code>compaction-image-offload</code> 在图片超预算时用占位符替换最旧的图片后重试。</p>
+<h4 id="572-压缩的四个触发点"><a class="header" href="#572-压缩的四个触发点">5.7.2 压缩的四个触发点</a></h4>
+<p>压缩由 <code>ctx.compaction</code> 接缝承担，触发点有四个：pre-step 时的上下文压力、请求失败时的上下文溢出、切换到容量更小的模型时的预压缩，以及用户手动 <code>/compact</code>。阈值公式为 <code>min(上下文窗口 × 0.8, 上下文窗口 − 预留输出 − 65536)</code>，保留尾部比例 0.16。执行顺序是：先运行不调用模型的 tool-result-pruner（把超过 8192 字符的历史工具结果剪为头 4096 加尾 1024），再测量，仍超阈值才选择可安全压缩的区间，额外调用一次模型生成摘要。摘要以带 <code>surfaceOp: replace</code> 的 <code>user/message</code> 遮蔽原区间，前后有 <code>compaction/start</code> 与 <code>compaction/end</code> 加锁，崩溃会留下可检测的遗留锁。取消方面，<code>cancel(cause)</code> 默认清空 inbox 并中止当前活动，原因记录在 <code>turn/end.reason</code>。</p>
+<p><img src="images/dsh/fig-5-7.png" alt="图 5-7"></p>
+<p><em>图 5-7 请求失败与上下文压力的处理：重试与压缩都经由 waterfall 监听器完成</em></p>
+<h3 id="58-子-agentworkflow-与-agent-teams"><a class="header" href="#58-子-agentworkflow-与-agent-teams">5.8 子 Agent、Workflow 与 Agent Teams</a></h3>
+<h4 id="581-统一的子代理接缝"><a class="header" href="#581-统一的子代理接缝">5.8.1 统一的子代理接缝</a></h4>
+<p><code>ctx.subagents</code> 是命名提供方注册表，提供方分两类。<strong>本地可继续</strong>的 <code>spawn</code>（全新子 Agent，可独立选择 preset 与模型）与 <code>fork</code>（以父会话已完成轮次的前缀为种子，为复用 KV cache 省略模型选择参数）运行在进程内，有持久 Session，接受后续消息；<strong>外部一次性</strong>的 <code>codex</code>（经官方 app-server 协议运行真实 Codex）、<code>claude-code</code>（经官方 Agent SDK 运行真实 Claude Code）、<code>acp</code> 与 <code>dsh-sdk</code>（另一个 Harness 实例）运行在进程外，只回报单次结果。默认容量为深度 1、活跃子代理 8 个。面向模型的工具包括 <code>subagent</code>、<code>subagent_fork</code>、<code>list_subagent_models</code>，以及父子双向的 <code>send_message</code>、<code>interrupt_agent</code>、<code>list_agents</code>。</p>
+<h4 id="582-workflow-与-agent-teams"><a class="header" href="#582-workflow-与-agent-teams">5.8.2 Workflow 与 Agent Teams</a></h4>
+<p><code>workflow</code> 工具让模型提交一段纯 JavaScript 编排脚本，钩子有 <code>agent(prompt, opts)</code>、<code>parallel()</code>、<code>pipeline()</code>、<code>phase()</code>、<code>log()</code>，由 <code>workflow-ptc</code> 引擎复用 PTC 的 Node 进程运行时执行，默认最多 1000 个子代理，默认后台运行，仅在用户明确要求编排时使用。实验性的 Agent Teams 在可继续子代理之上提供持久 roster、任务 DAG（带 CAS 版本号、<code>blockedBy</code> 必须无环、<code>writeScopes</code> 只是提示而非锁）与直接 inbox 消息协作，消息一律以 steer 方式投递。与参考章节中 Super-agent 的“主 Session + 执行器 Session”相比，DSH 的子代理是<strong>由模型在会话内发起</strong>的委派，而 Super-agent 的工单是<strong>由宿主 Engine 在授权之后</strong>创建的——这正是两者层次不同的体现。</p>
+<h4 id="583-jobsgoal-与计划模式"><a class="header" href="#583-jobsgoal-与计划模式">5.8.3 Jobs、Goal 与计划模式</a></h4>
+<p>三个常与子代理配合使用的子系统也值得一提。<strong>Jobs</strong> 是通用的后台任务运行时，任务 id 形如 <code>&lt;kind&gt;-&lt;16 位十六进制&gt;</code>，状态为 running、stopping、completed、killed、failed，每个所有者最多 10 个并发任务，输出保留 256 KiB 环形缓冲；任务完成时默认经 <code>agent.inject()</code> 加唤醒把通知送回模型，bash 的 <code>run_in_background</code> 和 workflow 的后台运行都建立在它之上。<strong>Goal</strong> 是事件溯源的同会话目标，以带版本号的 CAS 更新，阶段为 active、paused、blocked、complete，连续 3 轮无进展才可标记 blocked，Goal 驱动最多 256 轮。<strong>计划模式</strong>激活时注入计划策略段，<code>exit_plan_mode</code> 提交计划供审批；文档明确它属于<strong>软性指引</strong>，真正的强制由沙箱与审批负责。</p>
+<p><img src="images/dsh/fig-5-8.png" alt="图 5-8"></p>
+<p><em>图 5-8 子代理拓扑：本地可继续提供方与外部一次性提供方共用一个接缝，Workflow 与 Teams 构建其上</em></p>
+<h2 id="6-安全与权限"><a class="header" href="#6-安全与权限">6 安全与权限</a></h2>
+<h3 id="61-威胁模型-1"><a class="header" href="#61-威胁模型-1">6.1 威胁模型</a></h3>
+<h4 id="611-官方的自我定位"><a class="header" href="#611-官方的自我定位">6.1.1 官方的自我定位</a></h4>
+<p>SAFETY 文档的措辞非常直接：DSH 是“实验性的开发者预览软件”，“尚未接受安全审计，不得视为安全或可用于生产环境”；项目会执行模型生成的代码与命令、加载第三方插件，并访问向其开放的网络、进程、凭据和文件；沙箱、审批提示与权限控制“可以降低风险，但不保证隔离”，即使限制正确执行，也无法保护本项目获准访问的资源；不要把 DSH 当作不可信工作负载唯一的安全控制。建议的做法是最小权限、优先在一次性虚拟机或容器中运行、备份可访问的文件、不暴露敏感凭据。<a href="#ref-23-21">[23]</a></p>
+<h4 id="612-资产不可信输入与攻击者"><a class="header" href="#612-资产不可信输入与攻击者">6.1.2 资产、不可信输入与攻击者</a></h4>
+<p>归纳各子系统文档，需要保护的资产包括：宿主文件系统（工作区内外）、<code>$DSH_HOME/.credentials.yaml</code> 中的模型 API key 与 OAuth grant、启动环境中的其他密钥、包含工具输出与文件内容的会话日志、内网与云元数据服务、已安装的插件与 profile 配置、Web GUI 会话。不可信输入来自七个方向：模型输出（命令、路径、URL、越权理由）、工具输出（命令输出、网页正文、MCP 结果）、工作区内容（项目根到 cwd 链上的 AGENTS.md / CLAUDE.md 会在首次请求时自动注入）、MCP 服务器（工具描述与服务器指令以字面文本进入系统提示词）、插件与插件市场索引、远程访问方（浏览器、API Peer、LiveShare 观看者、Webhook 发送方），以及受限子进程自身（可以在 stderr 伪造 runner 失败签名）。</p>
+<p>据此可以推断出四类攻击者：被间接提示注入劫持的模型（拥有当前沙箱模式下的全部能力）；恶意插件或 MCP 服务器作者（以宿主用户权限运行，不受文件沙箱约束）；网络上针对 Web GUI 与 Webhook 的攻击者；同机的其他本地用户。文档明确把“对抗性宿主进程”和“同 UID 进程读取凭据”排除在保护范围之外。</p>
+<p><img src="images/dsh/fig-6-1.png" alt="图 6-1"></p>
+<p><em>图 6-1 DSH 的信任边界：只有沙箱化子进程的写入受内核约束，插件、MCP 与 LSP 位于沙箱之外</em></p>
+<h3 id="62-沙箱模式审批策略与权限预设"><a class="header" href="#62-沙箱模式审批策略与权限预设">6.2 沙箱模式、审批策略与权限预设</a></h3>
+<h4 id="621-两个正交的旋钮"><a class="header" href="#621-两个正交的旋钮">6.2.1 两个正交的旋钮</a></h4>
+<p>DSH 的权限由两个独立旋钮组成。<strong>沙箱模式</strong>有 <code>read-only</code>、<code>workspace-write</code>、<code>danger-full-access</code> 三档，<strong>只管文件效果</strong>；<strong>审批策略</strong>有 <code>ask</code> 与 <code>never</code> 两档：<code>ask</code> 把请求交给应答者链，没有应答者时落为 <code>unavailable</code>；<code>never</code> 确定性返回拒绝，不询问任何人。权限预设把二者捆绑成具名选项供 UI 单选：<code>read-only</code>（read-only + ask）、<code>workspace-write</code>（新会话默认，workspace-write + ask）、<code>danger-full-access</code>（danger-full-access + never，已无可越之权）；另有实验性 Auto review 插件注册的保留预设 <code>auto</code>（danger-full-access + ask，由模型评审每次调用），以及组合不匹配任何预设时显示的派生值 <code>custom</code>。生效值从会话日志中最后一条 <code>sandbox/mode</code> / <code>approval/policy</code> 事件折叠得出，可回放。</p>
+<h4 id="622-没有规则表而是先沙箱执行被拒再申请越权"><a class="header" href="#622-没有规则表而是先沙箱执行被拒再申请越权">6.2.2 没有规则表，而是“先沙箱执行、被拒再申请越权”</a></h4>
+<p>与 Claude Code 的命令前缀白名单、OpenCode 的 allow/ask/deny 规则不同，DSH 核心中<strong>没有</strong>按命令或路径书写的规则文件。默认行为是：在当前沙箱模式内的任何 bash 命令与文件读写直接执行，不询问；被沙箱拒绝后，模型可以带上 <code>sandbox_permissions</code>（目标模式）和一句非空的 <code>justification</code>，对<strong>完全相同</strong>的命令重试一次，此时才触发审批；越权阶梯为 read-only 可升到 workspace-write 或 danger-full-access，workspace-write 只能升到 danger-full-access；批准只对这一次调用生效，不改变会话模式。用户拒绝后，模型收到“保持拒绝，停止并解释，不要绕过”的指示。真正的规则须以插件形式挂到 <code>tools/pre-execute</code>，现成实现有实验性的 Claude Code hooks 桥（支持 deny/ask，allow 不会预审批）和 Auto review。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>前端</th><th>审批如何呈现</th><th>无人应答时</th></tr>
+</thead>
+<tbody>
+<tr><td>Web GUI</td><td>接管输入框，Enter 批准一次 / Esc 拒绝，“始终允许”需显式按钮</td><td>—</td></tr>
+<tr><td>ACP</td><td><code>session/request_permission</code>，客户端可自动回答</td><td>客户端决定</td></tr>
+<tr><td>SDK</td><td>初始化时声明 <code>approvalRequests: true</code>，服务端发 <code>approval/request</code></td><td>断连时拒绝</td></tr>
+<tr><td>Headless</td><td>没有实时审批通道</td><td><code>unavailable</code> → 拒绝</td></tr>
+<tr><td>sdk-minimal</td><td>不挂载审批服务，固定 <code>danger-full-access</code></td><td>不适用</td></tr>
+</tbody>
+</table>
+</div>
+<p><img src="images/dsh/fig-6-2.png" alt="图 6-2"></p>
+<p><em>图 6-2 审批决策树：审批只在越权时出现，任何异常路径都归结为拒绝</em></p>
+<h3 id="63-沙箱后端与执行世界"><a class="header" href="#63-沙箱后端与执行世界">6.3 沙箱后端与执行世界</a></h3>
+<h4 id="631-四个平台后端"><a class="header" href="#631-四个平台后端">6.3.1 四个平台后端</a></h4>
+<p><code>ctx.sandbox.confine(argv, policy)</code> 返回包装后的 argv、执行强度（full 或 partial）、拒绝方言和 runner 失败规则；没有可用后端时以 <code>SANDBOX_UNAVAILABLE</code> 拒绝，文档写明“静默的无隔离透传永远不合法”。<code>dsh-sandbox-local</code> 的后端选择链按平台固定：Linux 依次尝试 bubblewrap 与 Landlock，macOS 使用 Seatbelt（<code>sandbox-exec</code>），Windows 使用 ACL 受限令牌。策略逐调用解析，工作区根取会话<strong>不可变的</strong> cwd，额外可写根每次调用都检查。旧版 Landlock ABI 与 Windows ACL 报告 <code>partial</code>，要求绝对边界的消费方必须拒绝或上报。0.1.1-rc.1 的发布说明记录过一次修复：bubblewrap 可经 <code>/proc/&lt;pid&gt;/root</code> 逃逸。<a href="#ref-24-20">[24]</a></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>后端</th><th>文件写入</th><th>文件读取</th><th>网络</th><th>进程可见性</th></tr>
+</thead>
+<tbody>
+<tr><td>Linux bubblewrap</td><td>只读挂载根，工作区与额外根可写，私有 <code>/tmp</code></td><td>全盘可读</td><td>不限制（未 unshare-net）</td><td>私有 PID 命名空间</td></tr>
+<tr><td>Linux Landlock</td><td>仅工作区、<code>/tmp</code>、<code>/dev/null</code> 可写</td><td>全盘可读</td><td>不限制</td><td>不隔离</td></tr>
+<tr><td>macOS Seatbelt</td><td>默认允许、拒绝 file-write 后放行白名单</td><td>允许</td><td>不限制</td><td>不隔离</td></tr>
+<tr><td>Windows ACL</td><td>每工作区写 SID，Low 完整性</td><td>不限制</td><td>不限制</td><td>不限制</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="632-文件工具的进程内围栏"><a class="header" href="#632-文件工具的进程内围栏">6.3.2 文件工具的进程内围栏</a></h4>
+<p>bash 走内核沙箱，文件工具则走进程内围栏 <code>dsh-fs-sandbox</code>：workspace-write 下写入前重新规范化目标路径，要求位于可写根之下；该判定函数与 Seatbelt profile 共享，保证文件工具与 bash runner 的边界不漂移。文档坦承它是“策略围栏，而非内核边界”，TOCTOU 窗口被缩小但未消除。base 组合包规定沙箱化 fs 提供方必须是唯一写路径，再挂 <code>fs-local</code> 会加载失败。执行世界可以整体迁移到 SSH 远端：<code>sandbox-ssh</code> 让远端主机选择本地沙箱后端并执行逐调用策略，SSH 连接强制 BatchMode、严格主机密钥、禁用代理转发，远端 helper 以 SHA-256 校验。</p>
+<p><img src="images/dsh/fig-6-3.png" alt="图 6-3"></p>
+<p><em>图 6-3 分层隔离：每一层管什么、不管什么</em></p>
+<h3 id="64-凭据环境清洗与网络"><a class="header" href="#64-凭据环境清洗与网络">6.4 凭据、环境清洗与网络</a></h3>
+<h4 id="641-凭据"><a class="header" href="#641-凭据">6.4.1 凭据</a></h4>
+<p>凭据接缝的设计是：配置只携带引用（环境变量名），值归提供方，消费方每次操作解析一次，因此轮换无需重启；<code>describe()</code> 永不返回值，可以安全跨 Remote 传输。本地提供方 <code>dsh-credentials-local</code> 把 API key 与插件 grant（例如 OAuth access/refresh token，以及 Web cookie 签名密钥）以<strong>明文 YAML</strong> 存放在 <code>$DSH_HOME/.credentials.yaml</code>，以仅属主权限创建，POSIX 上拒绝加载他人可读的文件。OS 钥匙串提供方是延后项。文档的原话是：文件效果沙箱模式不会拒绝读取，同 UID 进程（包括 Agent 的工具进程）可以读该文件，文件权限“是审慎，不是边界”。解析优先级为存储文件 &gt; 启动环境快照 &gt; <code>&lt;cwd&gt;/.env</code> &gt; <code>$DSH_HOME/.env</code>。</p>
+<h4 id="642-环境清洗与网络"><a class="header" href="#642-环境清洗与网络">6.4.2 环境清洗与网络</a></h4>
+<p>子进程环境按名称启发式清洗：匹配 <code>/KEY|PASSWORD|SECRET|TOKEN/i</code> 的变量与全部 <code>DSH_*</code> 被移除，<code>PATH</code>、<code>HOME</code>、locale 与代理变量保留。官方承认 <code>*PASSPHRASE*</code> 一类会漏过；据此推断，<code>DATABASE_URL</code>（内嵌密码）、<code>*_CRED*</code>、<code>*_AUTH</code> 等同样可能漏过。网络方面，三种沙箱后端都不限制出站；<code>web_fetch</code> 只接受 http/https、拒绝 URL 内嵌凭据、只跟随同源重定向（默认至多 5 跳），README 与子系统文档明确说<strong>任何目标地址都被允许</strong>，包括 loopback、内网与云元数据地址，且在所有沙箱与审批模式下都不询问。需要注意的是，base 组合包中的配置注释声称匿名抓取“只接受公网目标并固定连接”，但本次在 <code>web-fetch-http</code> 包内未找到对应实现，以 README 与源码为准应视为<strong>当前没有 SSRF 防护</strong>，这一点需要维护者确认。</p>
+<p><img src="images/dsh/fig-6-4.png" alt="图 6-4"></p>
+<p><em>图 6-4 凭据流向：解析在宿主侧完成，但沙箱内进程仍可直接读取凭据文件</em></p>
+<h3 id="65-插件mcp-与扩展的信任"><a class="header" href="#65-插件mcp-与扩展的信任">6.5 插件、MCP 与扩展的信任</a></h3>
+<h4 id="651-插件即宿主代码"><a class="header" href="#651-插件即宿主代码">6.5.1 插件即宿主代码</a></h4>
+<p>插件是 Cordis 插件，与 harness <strong>同进程</strong>运行。“注册即副作用”是可靠性机制，不是安全边界。插件管理器支持 registry 包、git、tarball 和本地路径，经 <code>pnpm add</code> 安装，默认回退源为 npmmirror；没有签名或完整性校验，只有版本兼容检查。pnpm 拦下的依赖构建脚本需要单独批准，批准后以宿主用户权限执行；文档写明服务“只校验待决定的名字，不核实对话中的批准”。插件市场索引没有签名，索引内容只是索引的声明。Creator 模式下 Agent 可以动态求值 Cordis 包，<code>node:vm</code> 只隔离全局变量，“不是安全边界”。实验性的 Claude Code mods 桥同样不对 mod 施加沙箱。</p>
+<h4 id="652-mcp-与语言服务器"><a class="header" href="#652-mcp-与语言服务器">6.5.2 MCP 与语言服务器</a></h4>
+<p>MCP 服务器需主动配置，每个服务器一个 <code>dsh-mcp-client</code> 条目，工具名由本地服务器名加原始名派生（形如 <code>mcp__&lt;server&gt;__&lt;tool&gt;</code>），不采用远端自报的名字；工具调用同样经过 <code>tools/pre-execute</code>，但核心没有针对 MCP 工具的默认 ask。MCP stdio 服务器由 MCP SDK 自行启动，只共享环境清洗，不经过 <code>ctx.sandbox</code>；LSP 语言服务器经 <code>ctx.subprocess</code> 启动，本次未见沙箱包装。由于语言服务器可能按项目配置执行构建脚本，这相当于以宿主权限运行仓库控制的代码（推断）。</p>
+<p><img src="images/dsh/fig-6-5.png" alt="图 6-5"></p>
+<p><em>图 6-5 扩展的信任级别：同进程插件与未沙箱化子进程拥有宿主用户的全部权限</em></p>
+<h3 id="66-远程访问与-web-认证"><a class="header" href="#66-远程访问与-web-认证">6.6 远程访问与 Web 认证</a></h3>
+<h4 id="661-浏览器认证"><a class="header" href="#661-浏览器认证">6.6.1 浏览器认证</a></h4>
+<p>Web 服务器默认监听 <code>127.0.0.1:3080</code>，配置的 host 必须是具体 IP，<code>0.0.0.0</code>、<code>::</code> 等通配地址在加载时被拒绝；非 loopback 地址默认明文 HTTP，除非配置 TLS。认证采用“一次性启动令牌换签名 cookie”：每个进程生成随机令牌，<code>dsh web</code> 打开带 <code>?token=</code> 的 URL，令牌只在 <code>GET /</code> 上接受，换成绑定 authority 的签名 cookie（HttpOnly、SameSite=Strict、host-only，TLS 下加 Secure，默认 30 天）后重定向去掉令牌。每个 RPC 与 WebSocket 都要求已认证 Peer，不存在按方法区分的 loopback 豁免。认证前的请求信任检查要求 Host 是 loopback、绑定 IP 或受信主机，带 Origin 时必须同源，<code>sec-fetch-site: cross-site</code> 一律拒绝，以防 DNS rebinding 与跨站请求。</p>
+<h4 id="662-非-owner-访问与已知限制"><a class="header" href="#662-非-owner-访问与已知限制">6.6.2 非 owner 访问与已知限制</a></h4>
+<p>API 客户端经 <code>GET /connect?token=…</code> 获取 owner Peer，默认 <code>interactions: none</code>，不能回答审批。网关对非 owner Peer 调用前询问 <code>ctx.remoteAccess.decide()</code>，被拒时不解析查找、不激活 Agent；回答审批等交互仅限 owner。实验性 LiveShare 让外部观看者只能运行受限替代工具（view 档只读、write 档有界编辑）。已知限制包括：明文 HTTP 会暴露 cookie；没有 logout，撤销全部会话需删除凭据记录并重启；非 owner 可得知 owner 的 home 绝对路径。安全笔记还提示一个待确认的风险：LiveShare 的 view 档允许 <code>web_fetch</code>，结合上文的目标地址不受限，观看者可能借 owner 主机访问其内网。</p>
+<p><img src="images/dsh/fig-6-6.png" alt="图 6-6"></p>
+<p><em>图 6-6 Web 请求信任流水线：先做来源校验，再做身份认证，最后做非 owner 授权</em></p>
+<h3 id="67-数据外发与隐私"><a class="header" href="#67-数据外发与隐私">6.7 数据外发与隐私</a></h3>
+<h4 id="671-随模型请求上传会话日志"><a class="header" href="#671-随模型请求上传会话日志">6.7.1 随模型请求上传会话日志</a></h4>
+<p>DSH 对 DeepSeek 官方 Messages 协议做了两项 wire 扩展，文档强调它们“不会增加模型输入 token，也不会改变模型可见前缀”：<code>dsh_plugin_packages</code> 上报当前存活的插件包名与版本；<code>dsh_session_log</code> 把权威会话日志的连续后缀增量上传，按水位推进，每次请求至多 8 MiB，服务端 2xx 后追加 <code>delivery-accepted</code> 事件实现至少一次交付。<strong>两者默认启用</strong>。文档列出的暴露面包括工作目录、系统提示词快照、用户与助手内容、失败输出、工具参数与结果、压缩摘要和反馈，并提醒经 <code>baseURL</code> 选择的网关会收到相同的值。关闭方式是把 <code>session-log-deepseek.enabled</code> 设为 false。<a href="#ref-25-19">[25]</a></p>
+<h4 id="672-其他外发通道"><a class="header" href="#672-其他外发通道">6.7.2 其他外发通道</a></h4>
+<p>第二条通道是 OTel 会话遥测，默认模式 <code>FEEDBACK_ONLY</code>，<strong>只有用户显式给出反馈后</strong>才上传截至该反馈的日志前缀，<code>DSH_TELEMETRY_DISABLED</code> 非空即退出。第三条是产品埋点，仅 Desktop 启用、默认开启，采集设备与用户 id、环境信息和交互事件，不含消息内容，设置项默认 true 但“暂不提供用户操作入口”。第三方评测对“会话日志是否默认上传”说法不一（有的称 feedback-only），原因正是混淆了这两条通道：OTel 遥测是反馈触发的，而 wire 扩展是随每次请求默认上传的。对企业部署而言，这是评估合规时最需要先处理的配置项。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>通道</th><th>默认</th><th>触发</th><th>内容</th><th>关闭方式</th></tr>
+</thead>
+<tbody>
+<tr><td><code>dsh_session_log</code></td><td>开（DeepSeek Messages 路由）</td><td>每次带会话的模型请求</td><td>会话日志增量，≤ 8 MiB/请求</td><td><code>session-log-deepseek.enabled: false</code></td></tr>
+<tr><td><code>dsh_plugin_packages</code></td><td>开</td><td>每次请求</td><td>存活插件包名与版本</td><td>禁用 inventory 插件</td></tr>
+<tr><td>请求头</td><td>开</td><td>每次请求</td><td>匿名 home UUID、会话 id、版本</td><td>—</td></tr>
+<tr><td>OTel 会话遥测</td><td>FEEDBACK_ONLY</td><td>用户显式反馈</td><td>截至反馈的日志前缀</td><td><code>DSH_TELEMETRY_DISABLED</code></td></tr>
+<tr><td>产品埋点</td><td>仅 Desktop，开</td><td>指定交互</td><td>设备、环境、交互事件</td><td>设置项（无 UI 入口）</td></tr>
+</tbody>
+</table>
+</div>
+<p><img src="images/dsh/fig-6-7.png" alt="图 6-7"></p>
+<p><em>图 6-7 本地会话日志的三条外发通道及其默认状态</em></p>
+<h3 id="68-风险清单与加固建议"><a class="header" href="#68-风险清单与加固建议">6.8 风险清单与加固建议</a></h3>
+<h4 id="681-风险清单"><a class="header" href="#681-风险清单">6.8.1 风险清单</a></h4>
+<p>下表把事实依据与推断影响分开列出，便于在落地评估时逐项核对。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>#</th><th>风险</th><th>事实依据</th><th>影响（推断）</th><th>加固建议</th></tr>
+</thead>
+<tbody>
+<tr><td>R1</td><td>读取与联网都不受沙箱限制</td><td>沙箱只管写；三种后端不限网络</td><td>被注入的模型可在默认模式下读取 <code>~/.ssh</code>、凭据文件并外发，全程无审批</td><td>在 VM/容器中运行；出站代理白名单；对 <code>$DSH_HOME</code>、<code>~/.ssh</code> 做读拒绝</td></tr>
+<tr><td>R2</td><td>凭据明文、同 UID 可读</td><td>credentials-local 文档</td><td>与 R1 叠加可直接窃取 API key 与 OAuth token</td><td>实现 OS 钥匙串提供方</td></tr>
+<tr><td>R3</td><td><code>web_fetch</code> 不限目标且免审批</td><td>README 与源码；注释与实现不一致</td><td>可访问云元数据与内网管理面</td><td>默认拒绝私网地址的 pre-execute 策略</td></tr>
+<tr><td>R4</td><td>环境清洗是名称启发式</td><td>subprocess 源码</td><td>部分密钥泄漏给 bash 与 MCP 子进程</td><td>改为白名单继承</td></tr>
+<tr><td>R5</td><td>工作区写入可形成沙箱外持久化</td><td>headless 文档对 <code>.git</code> 的警告</td><td>改写 git hooks、构建脚本后在沙箱外执行</td><td>默认只读 <code>.git/hooks</code>、<code>.git/config</code></td></tr>
+<tr><td>R6</td><td>插件、MCP、LSP 以宿主权限运行，无签名</td><td>插件管理器与市场文档</td><td>供应链投毒即完全控制</td><td>来源证明；MCP 与 LSP 走沙箱</td></tr>
+<tr><td>R7</td><td>审批依赖人对模型理由的判断</td><td>越权理由原文进入提示</td><td>社会工程，一次批准即全盘可写</td><td>展示精确命令与风险分级，细粒度越权</td></tr>
+<tr><td>R8</td><td>仓库指令文件与 MCP 指令进入上下文</td><td>agent-instructions、MCP 文档</td><td>打开不可信仓库即受提示注入</td><td>提供“不加载项目指令”开关</td></tr>
+<tr><td>R9</td><td>会话日志默认随请求上传</td><td>wire 扩展文档</td><td>代码与读到的密钥离开本机</td><td>企业部署默认关闭</td></tr>
+<tr><td>R10</td><td>sdk-minimal 默认全权限且无审批</td><td>sdk-minimal 配置</td><td>集成方未自建隔离即全权限执行</td><td>文档醒目提示或改默认值</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="682-加固路线"><a class="header" href="#682-加固路线">6.8.2 加固路线</a></h4>
+<p>结合 SAFETY 的建议和上表，一条务实的加固路线是：<strong>先补外层隔离</strong>（容器或虚拟机、网络出站白名单、只挂载必要目录），<strong>再收紧默认值</strong>（关闭会话日志上传、在 pre-execute 中加入私网地址拒绝与敏感路径读拒绝、对 MCP 工具默认询问），<strong>最后补审计与度量</strong>（利用会话日志中的 <code>approval/asked</code>、<code>approval/decided</code>、<code>sandbox/mode</code> 事件做越权审计）。这与参考章节对 Super-agent 的结论一致：在没有真正的执行隔离之前，不宜放开授权范围。</p>
+<p><img src="images/dsh/fig-6-8.png" alt="图 6-8"></p>
+<p><em>图 6-8 风险的可能性与影响定性示意（非量化评分）</em></p>
+<h2 id="7-可靠性与恢复-1"><a class="header" href="#7-可靠性与恢复-1">7 可靠性与恢复</a></h2>
+<h3 id="71-写入路径与检查点"><a class="header" href="#71-写入路径与检查点">7.1 写入路径与检查点</a></h3>
+<h4 id="711-从内存追加到落盘"><a class="header" href="#711-从内存追加到落盘">7.1.1 从内存追加到落盘</a></h4>
+<p>会话写入分为三段。第一段，<code>Session.append</code> 同步写入内存日志并发出 <code>session/event</code>，热路径从不阻塞 I/O，观察者失败被隔离、不影响提交。第二段，持久化后端把事件路由进该会话写句柄的 write-behind 窗口：首个待处理事件开启一个固定截止时间（200 毫秒，内部常量），后续事件加入但不重置截止时间，窗口到期时发起一次持久 <code>append</code>。第三段，JSONL 提供方写入编码后的行或帧，<code>fsync</code>，失败时截断回之前的字节长度并再次 <code>fsync</code>，避免重试产生重复 seq。会话采用延迟实体化：<code>create</code> 不写盘，首次 <code>append</code> 才以临时文件、<code>fsync</code>、<code>link()</code> 发布、目录 <code>fsync</code> 的方式原子写入 header 与首批事件；从未写入的会话“等于从未存在”。<a href="#ref-26-18">[26]</a></p>
+<h4 id="712-语义检查点"><a class="header" href="#712-语义检查点">7.1.2 语义检查点</a></h4>
+<p>200 毫秒窗口意味着进程崩溃时可能丢失最近一批事件。为此，<code>dsh-session-checkpoint-policy</code> 在三个语义屏障上强制 flush：模型请求的适配器流构造之前、顶层工具正文运行之前、每个 <code>agent/pre-step</code> 边界。flush 失败即阻止后续动作（fail closed）；工具检查点等待期间若被取消，返回 <code>ABORTED_BEFORE_DISPATCH</code>。文档写明，未加载该策略时，“仍位于批处理窗口内的写入可能丢失”。sdk-minimal 自 0.2.1-rc.2 起也启用了检查点。这一设计与参考章节中 Super-agent 的“先落库、后执行”同出一辙：对外有副作用的动作开始前，先确认证据已经持久化。</p>
+<p><img src="images/dsh/fig-7-1.png" alt="图 7-1"></p>
+<p><em>图 7-1 写入路径：内存追加、200 毫秒批处理窗口与三个强制 flush 的语义检查点</em></p>
+<h3 id="72-崩溃恢复与中断的工具调用"><a class="header" href="#72-崩溃恢复与中断的工具调用">7.2 崩溃恢复与中断的工具调用</a></h3>
+<h4 id="721-读方修复而不是写方截断"><a class="header" href="#721-读方修复而不是写方截断">7.2.1 读方修复，而不是写方截断</a></h4>
+<p>轮次进行中崩溃时，日志以一个开放的 <code>turn/start</code> 结束。持久层<strong>不截断也不修复</strong>已提交事件（长任务的单个轮次可能非常庞大），只丢弃撕裂物理尾部中的不完整碎片：不完整的最终原始行被丢弃；撕裂的最终 zstd 帧只贡献能完整解码的记录，写句柄截掉撕裂字节并在第一次新批次前重写恢复出的记录；完整已提交帧中的校验和、解压或结构错误按损坏拒绝。修复由读方完成：Agent 恢复时先以写模式打开会话取得所有权（排斥并发恢复），读取全部事件，计算 <code>interruptedTurnClosers</code>——缺失的工具错误结果、未闭合的 <code>step/end</code> 和结束原因为 <code>interrupted</code> 的 <code>turn/end</code>——再通过同一句柄追加。只读观察方（如 session-query）只在内存中配平，不回写。</p>
+<h4 id="722-不盲目重试"><a class="header" href="#722-不盲目重试">7.2.2 不盲目重试</a></h4>
+<p>中断的工具调用分两类：日志中已有 <code>tool/call</code> 但没有结果的，记为 <code>TOOL_OUTCOME_UNKNOWN</code>；连启动都没有记录的，记为 <code>TOOL_NOT_STARTED</code>。模型看到的措辞是：“结果未知……仅当操作只读或幂等时重试；若可能有副作用，先验证外部状态或询问用户。不要盲目重试。”合成事件的时间戳复用最后一个真实事件，不虚构未来时间；平衡的日志返回空数组，因此重复恢复不会重复追加。单写者由进程内认领加内核锁（POSIX <code>flock</code>、Windows 命名信号量）保证，崩溃进程持有的锁随进程消亡。</p>
+<h4 id="723-与-super-agent-失败规则的对照"><a class="header" href="#723-与-super-agent-失败规则的对照">7.2.3 与 Super-agent 失败规则的对照</a></h4>
+<p>参考章节总结了 Super-agent 的一条规则：失败之后“不自动输入”，即主机不会在失败后自动向执行器投递新的输入，而是把决定权留给人或主 Session。DSH 在会话层面有一条精神相近的规则：中断的工具调用以“结果未知”恢复，不会自动重试，检查点策略的 README 写明“中断的工具调用会以未知结果恢复，不会自动重试”。两者都承认同一个事实——<strong>有副作用的动作在崩溃后处于不确定状态，任何自动重放都可能造成重复执行</strong>。区别在于层次：Super-agent 在工单层面阻止自动推进，DSH 在单个工具调用层面阻止自动重放，并把判断交给模型（只读或幂等才重试，否则先验证外部状态或询问用户）。两者叠加，正好构成“任务级不自动推进、动作级不自动重放”的双层保护。</p>
+<p><img src="images/dsh/fig-7-2.png" alt="图 7-2"></p>
+<p><em>图 7-2 崩溃恢复：物理层丢弃撕裂尾部，逻辑层由读方在写所有权下追加合成收尾事件</em></p>
+<h3 id="73-格式代际与迁移"><a class="header" href="#73-格式代际与迁移">7.3 格式代际与迁移</a></h3>
+<h4 id="731-永不改写已提交的代际"><a class="header" href="#731-永不改写已提交的代际">7.3.1 永不改写已提交的代际</a></h4>
+<p>会话目录位于 <code>~/.dsh/sessions/--&lt;规范化 cwd&gt;--/&lt;编码后的 id&gt;/</code>，文件名 v0 为 <code>session.jsonl</code>，后续版本为 <code>session.vN.jsonl</code>，默认 zstd 压缩（每个 append 批次一帧，带校验和）。当前写入器版本为 V4，迁移链由四个相邻迁移包组成（v0→v1→v2→v3→v4），每个包只负责一步。仓库规则写明：迁移“可以新增以版本命名的后继，但绝不移动、覆盖或删除已提交 generation；前代不意味着 fallback 或降级支持”。只读打开单遍解码迁移后直接返回内存结果，不发布；写打开则在同目录编码临时文件，在 Worker 线程中校验（进程级最多 2 个校验器），复查源文件版本，再以不覆盖方式发布后继（POSIX <code>link()</code> 加目录 <code>fsync</code>，Windows <code>MoveFileExW</code> 不覆盖直写）。最高代际若为未来版本即拒绝，即使存在可读的旧代际。</p>
+<h4 id="732-流式迁移的由来"><a class="header" href="#732-流式迁移的由来">7.3.2 流式迁移的由来</a></h4>
+<p>迁移 API 采用有状态的流式 Stage 接口（<code>transformEvent</code>、<code>transformRun</code>、<code>finish</code>），起因是一次真实事故：整文件迁移让一份 116 MB 的真实会话耗尽了 16 GB 内存的 Node 进程——它包含 317,540 个 zstd 帧，约 914 万个 v0/v1 逻辑事件折叠为 72,784 个当前格式事件。提升版本号的门槛很高：仅当“现有判别信息无法阻止不安全解释”时才提升，同版本演进则通过持久化类型指纹加确认记录来审查，<code>docs/persistence-changes/</code> 下已有 19 条变更记录。</p>
+<p><img src="images/dsh/fig-7-3.png" alt="图 7-3"></p>
+<p><em>图 7-3 磁盘布局与代际迁移：旧代际不可变，写打开时经校验后以不覆盖方式发布后继</em></p>
+<h3 id="74-fork恢复与兼容性承诺"><a class="header" href="#74-fork恢复与兼容性承诺">7.4 Fork、恢复与兼容性承诺</a></h3>
+<h4 id="741-fork-的种子结构"><a class="header" href="#741-fork-的种子结构">7.4.1 Fork 的种子结构</a></h4>
+<p><code>SessionStore.fork(source, boundary?)</code> 取到边界为止的前缀，先追加 <code>session/end-seed { inherited: true }</code>，再用合成工具结果与 step/turn 收尾事件（原因 <code>forked</code>）闭合开放尾部；<code>inheritedEventCount</code> 只计复制的源事件。它拒绝结束于开放轮次内且未闭合的前缀，而不是静默截断。自 0.2.1-rc.3 起，普通 fork 是独立会话，不再写 <code>parentSession</code>，子代理则保留直接创建者。<code>fork</code> 子代理正是利用这一机制，以父会话已完成轮次为前缀，并省略模型选择参数，以复用服务端的 KV cache。</p>
+<h4 id="742-开发者预览的兼容性"><a class="header" href="#742-开发者预览的兼容性">7.4.2 开发者预览的兼容性</a></h4>
+<p>README 用大写写明“THERE WILL BE COMPATIBILITY-BREAKING CHANGES”，仓库规则要求每个外部可感知的破坏性变更立即写入升级指南。截至本次提交，<code>docs/upgrade-guide/</code> 下有 11 个版本目录、共 91 篇指南，集中在 0.2.1-alpha.1（22 篇）和 0.2.1-rc.2（27 篇）。破坏性变更大致分四类：插件组合与包入口（如 JSONL 持久化改为无默认导出的命名空间插件、Node.js 24 成为必需）、会话生命周期语义（新会话是否复用空会话、Store 写入时机、独立 fork）、持久化与检查点（投影注册改为句柄、审批服务依赖投影注册表），以及配置键、工具与提供方的改名。值得肯定的是，会话格式自 V4 发布后一直保持 V4，用户数据层面相对稳定，频繁变化的是插件 API 与配置。</p>
+<p><img src="images/dsh/fig-7-4.png" alt="图 7-4"></p>
+<p><em>图 7-4 Fork 种子结构与升级指南的版本分布</em></p>
+<h3 id="75-四次事故复盘"><a class="header" href="#75-四次事故复盘">7.5 四次事故复盘</a></h3>
+<h4 id="751-事故概要"><a class="header" href="#751-事故概要">7.5.1 事故概要</a></h4>
+<p>仓库的 <code>docs/postmortem/</code> 公开了四份事故复盘，它们比任何设计文档都更能说明这个系统在哪里容易出错。</p>
+<p><strong>0001 ACP 连接即崩溃</strong>。ACP 服务器在 Zed 第一次 <code>session/new</code> 时报 <code>cannot get property "agents" without inject</code>，尽管有 178 个绿色单测、100% 行覆盖。根因有二：一个命名空间插件多了一行 <code>export default apply</code>，Cordis Loader 优先取 <code>.default</code>，拿到裸函数，<code>inject</code> 声明丢失；<code>AgentLoop.resume</code> 读取了未声明注入的服务，而可追踪 shadow 只向祖先遍历，找不到兄弟分支提供的服务。修复后新增了无密钥的真实 stdio e2e。教训：手工 <code>ctx.plugin(...)</code> 的测试无法验证真实加载路径，覆盖率不等于行为覆盖。</p>
+<p><strong>0002 文件系统工具被永久禁用</strong>。条件启用写成 <code>disabled: !!js ...</code>，但 Loader 当时只对 <code>config</code> 插值，<code>disabled</code> 收到的是一个真值对象；快照刷新又把 <code>UNKNOWN_TOOL</code> 结果当成新的预期输出接受。教训：快照刷新是 fixture 生产，不是正确性审查。</p>
+<p><strong>0003 Web Agent 验收了替代服务器</strong>。Agent 不知道当前会话的 GUI 地址，先以裸 Vite 的 HTTP 200 宣布成功（实际白屏），再在 3334 端口启动一个不受管的 <code>dsh web</code> 并验收它。调查以持久化事件日志为证据。修复是在记录到日志的提示区段中发布规范 URL。教训：传输就绪不等于应用就绪。</p>
+<p><strong>0004 Landlock 部分强制通知导致误归类</strong>。旧 Landlock ABI 下 launcher 打印无害的部分强制提示，harness 以子串加任意非零退出判定 runner 失败，ripgrep 无匹配的退出码 1 被报为 <code>SANDBOX_UNAVAILABLE</code>。修复引入 <code>RunnerFailureRule</code>。教训：共享前缀不是协议，适配器须保留下层的结构化失败。</p>
+<h4 id="752-共同点"><a class="header" href="#752-共同点">7.5.2 共同点</a></h4>
+<p>四次事故有一个共同点：<strong>单元测试全绿，但真实组合路径失败</strong>。这正是“一切皆插件”架构的固有风险——每个插件单独正确，组合在一起却可能因加载顺序、导出形式、配置插值或带内信号而失效。DSH 的应对是增加真实入口的 e2e、录制会话快照和配置校验门禁（例如 <code>verify-cordis-config</code> 拒绝配置元数据中的表达式），而复盘本身也说明会话日志作为调查证据的价值。</p>
+<p><img src="images/dsh/fig-7-5.png" alt="图 7-5"></p>
+<p><em>图 7-5 四次事故的根因与修复：单测全绿而真实组合路径失败</em></p>
+<h2 id="8-扩展生态与二次开发"><a class="header" href="#8-扩展生态与二次开发">8 扩展生态与二次开发</a></h2>
+<h3 id="81-写一个插件"><a class="header" href="#81-写一个插件">8.1 写一个插件</a></h3>
+<h4 id="811-最小插件与工具"><a class="header" href="#811-最小插件与工具">8.1.1 最小插件与工具</a></h4>
+<p>DSH 插件就是一个导出 <code>name</code>、可选 <code>inject</code>、可选 <code>Config</code> 和 <code>apply(ctx, config)</code> 的 ES 模块。下面是开发者文档中添加工具的完整示例，它注入 <code>tools</code> 服务、注册一个 <code>greet</code> 工具：</p>
+<pre><code class="language-ts">import type { Context } from '@deepseek-ai/cordis'
+import { defineTool } from '@deepseek-ai/dsh-tools'
+
+export const name = 'greet-tool'
+export const inject = ['tools']
+
+export function apply(ctx: Context) {
+  ctx.tools.register(defineTool({
+    name: 'greet',
+    description: 'Greet someone by name.',
+    parameters: { name: { type: 'string', required: true } },
+    output: { schema: { type: 'string' }, render: (_a, v) =&gt; [{ type: 'text', text: v }] },
+    async execute(args) { return `Hello, ${args.name}!` },
+  }))
+}
+</code></pre>
+<p>通过一个 patch 文件把它插入配置树即可试用：<code>- insert: [{ id: greet, name: '/abs/path/greet-tool.ts' }]</code>，然后 <code>pnpm dsh web --patch ./scratch/cordis.yml</code>。由于注册是副作用，插件卸载时工具自动移除，HMR 天然可用。<a href="#ref-27-15">[27]</a></p>
+<h4 id="812-编写约定"><a class="header" href="#812-编写约定">8.1.2 编写约定</a></h4>
+<p>工具开发指南有几条值得注意的约定：参数按 schema 预校验，<code>execute</code> 返回规范 JSON 值，<code>output.render</code> 再转换为模型可见内容；必须遵守 <code>exec.signal</code>；长任务用 <code>ctx.jobs.start()</code>；<strong>策略不要写进工具</strong>，而是挂到 <code>tools/pre-execute</code>（允许/拒绝/询问）、<code>ctx.tools.guard()</code>（单调拒绝）、<code>tools/execute</code>（包裹）、<code>tools/post-execute</code> 和 <code>tools/result</code>；PTC 模式下所有工具自动可作为 <code>await tools.&lt;name&gt;(args)</code> 调用；UI 卡片通过纯函数 <code>presentCall</code> / <code>presentResult</code> 声明，回放时同样可用。添加模型适配器的方式类似：继承 <code>LlmAdapter</code> 实现 <code>stream()</code>，在 <code>apply</code> 中 <code>ctx.llm.registerAdapter(['my-provider'], adapter)</code>。</p>
+<p><img src="images/dsh/fig-8-1.png" alt="图 8-1"></p>
+<p><em>图 8-1 插件的生命周期：从 patch 插入、依赖等待到注册与自动撤销</em></p>
+<h3 id="82-定制-profilebundle-与-preset"><a class="header" href="#82-定制-profilebundle-与-preset">8.2 定制 Profile、Bundle 与 Preset</a></h3>
+<h4 id="821-三种粒度的定制"><a class="header" href="#821-三种粒度的定制">8.2.1 三种粒度的定制</a></h4>
+<p>DSH 提供三种粒度的定制。<strong>单次实验</strong>用 <code>--patch</code> overlay，不改动任何持久配置；<strong>机器或 profile 级定制</strong>写进 <code>$DSH_HOME/cordis.patch.yml</code> 或 <code>$DSH_HOME/profiles/&lt;name&gt;/cordis.patch.yml</code>，HMR 会自动重载；<strong>可分发的定制</strong>打包成 bundle：在 <code>package.json</code> 中声明 <code>"dsh": { "bundle": { "patch": "./cordis.patch.yml" } }</code>，可用 <code>engines.dsh</code> 声明兼容版本范围，用 <code>dsh plugin --profile &lt;name&gt; add &lt;包&gt;</code> 安装，安装后自动追加进 profile 的 bundle 列表。社区插件通过 GitHub topic <code>dsh-plugin</code> 发现；插件市场需要用户在“插件 → 实验性插件”中开启自定义索引，DSH 不内置任何索引源。</p>
+<h4 id="822-定制-agent-preset"><a class="header" href="#822-定制-agent-preset">8.2.2 定制 Agent Preset</a></h4>
+<p>覆盖内置 preset 需要按 <code>preset-&lt;id&gt;</code> 行的 id 写 patch，且覆盖会<strong>替换整个子插件列表</strong>，不自动合并内置列表的未来更新，因此需要重述 <code>id</code>、<code>plugins</code> 等全部字段。Creator 模式把这件事交给 Agent 本身：它可以用 <code>cordis_inspect_list</code> / <code>cordis_inspect_query</code> 检查运行时，在内存中试验新的插件组合，借助内置的“编辑 Cordis 组合”技能生成 patch，再经插件管理器持久化。官网把这一能力宣传为“在创造模式中通过对话生成插件”。需要提醒的是，preset 和 patch 本质上都是可执行代码，第三方评测（Wavect、ContextOS）都建议把 Creator 模式限制在隔离的工程环境中。</p>
+<p><img src="images/dsh/fig-8-2.png" alt="图 8-2"></p>
+<p><em>图 8-2 三种定制粒度：一次性 overlay、持久 patch 与可分发的 bundle</em></p>
+<h3 id="83-mcpskills-与兼容层"><a class="header" href="#83-mcpskills-与兼容层">8.3 MCP、Skills 与兼容层</a></h3>
+<h4 id="831-mcp-与-skills"><a class="header" href="#831-mcp-与-skills">8.3.1 MCP 与 Skills</a></h4>
+<p>MCP 客户端插件每个服务器一个条目，支持 stdio 与 streamable-http 两种传输，工具调用默认超时 60 秒，断线自动重连（500 毫秒起、上限 30 秒、至多 10 次）；服务器指令作为字面文本加入系统提示词（上限 32 KiB），资源发现与读取由 <code>dsh-mcp-resources</code> 统一提供；不支持 MCP prompt 模板与 elicitation。Skills 是一个标准的三角色接缝：定义 <code>dsh-skill</code>，提供方 <code>skill-filesystem</code> 与 <code>skill-office</code>，消费方 <code>tool-skill</code>。本地发现按优先级扫描 <code>&lt;项目&gt;/.dsh/skills</code>、<code>&lt;项目&gt;/.agents/skills</code>、自定义目录、<code>&lt;dshHome&gt;/skills</code>、<code>&lt;agentsHome&gt;/skills</code> 和内置目录，会话中以持久的 system-reminder 注入技能名称与描述目录，模型调用 <code>skill({ name })</code> 加载正文——与 Claude Code 的 Agent Skills 渐进披露模式兼容。</p>
+<h4 id="832-对-claude-code-与-codex-的兼容"><a class="header" href="#832-对-claude-code-与-codex-的兼容">8.3.2 对 Claude Code 与 Codex 的兼容</a></h4>
+<p>DSH 对两个主要竞品采取了“兼容并调用”的策略，这在同类产品中很少见。第一层是<strong>把它们当作子代理</strong>：<code>subagent-claude-code</code> 经官方 Agent SDK 运行真实的 Claude Code，<code>subagent-codex</code> 经官方 app-server 协议运行真实的 Codex，二者作为按需组合包安装。第二层是<strong>兼容它们的配置</strong>：<code>hooks-claude-code</code> 与 <code>hooks-codex</code> 把两者的 <code>hooks.json</code> 映射到 DSH 的拦截点；实验性的 <code>claude-code-mods</code> 加载 Claude Code mods 并在 DSH 扩展点上运行，但不施加沙箱，大量事件可注册而永不触发。第三层是<strong>共用目录约定</strong>：<code>.agents/skills</code>、AGENTS.md / CLAUDE.md 指令文件。DeepInfra 的评测据此认为 DSH 适合“希望用一个运行时调用现有 Agent，而把大部分 token 成本交给开源权重模型”的团队。<a href="#ref-28-15">[28]</a></p>
+<h4 id="833-定时webhook-与交付物"><a class="header" href="#833-定时webhook-与交付物">8.3.3 定时、Webhook 与交付物</a></h4>
+<p>除了 MCP 与 Skills，还有三个扩展子系统与“让 Agent 在无人值守时工作”直接相关。<strong>Schedule</strong> 提供宿主级的持久提醒，支持 <code>after</code>、<code>at</code>、<code>every</code>、<code>daily</code>、<code>weekly</code>、<code>cron</code>、<code>rrule</code> 七种时间类型，可以投递到已有会话或新建会话，模型通过 <code>schedule_create</code>、<code>schedule_list</code>、<code>schedule_view</code>、<code>schedule_edit</code> 工具管理。<strong>Webhook</strong> 运行时把经过认证的外部交付转为普通的根会话，仓库附带一个 GitHub 评审 webhook 示例：凭据以引用方式配置，HMAC 在解析 JSON 之前校验，不记录密钥、签名与 payload；Webhook 规则被定义为“受信任的程序化规则”，与宿主同进程运行。<strong>Deliverables</strong> 子系统由 <code>present</code> 工具声明交付文件，并基于 git 工作树快照与文件工具前后捕获计算“本轮改动的文件”。这三者让 DSH 具备了事件触发与结果交付的基本能力，但与 Super-agent 相比，它们缺少“谁有权触发”“触发后能做到哪一步”的授权语义，部署时需要用 Webhook 规则与权限预设自行约束。</p>
+<p><img src="images/dsh/fig-8-3.png" alt="图 8-3"></p>
+<p><em>图 8-3 对外兼容的三个层次：作为子代理调用、兼容配置与共用目录约定</em></p>
+<h3 id="84-可观测性"><a class="header" href="#84-可观测性">8.4 可观测性</a></h3>
+<h4 id="841-会话日志即-trace"><a class="header" href="#841-会话日志即-trace">8.4.1 会话日志即 trace</a></h4>
+<p>DSH 的可观测性建立在会话日志之上，而不是另一套埋点：重试、压缩、审批、模型切换、插件状态都写入持久事件，回放就是用日志作为种子重新创建会话。Web 界面的 <strong>Trajectory 视图</strong>按轮次组织事件记录表与交互式时间概览，分组展示用户、助手、工具、嵌套子工具与压缩记录，检查器显示 token 用量、耗时、输入输出、图片与附件，长历史虚拟化并流式跟随尾部；长会话基准专门测量 Trajectory 的首次打开耗时。<code>ctx.tokenMeter</code> 以最近一次成功调用的 usage 为锚点，对后续 surface 变化做有符号增量估计，供压缩压力判断与 UI 显示。全文检索由 <code>session-query-sqlite</code>（FTS5）提供，但 base 组合包默认关闭（<code>openAt: never</code>）。</p>
+<h4 id="842-otel"><a class="header" href="#842-otel">8.4.2 OTel</a></h4>
+<p><code>dsh-otel</code> 只是一个共享工厂，挂载本身不创建队列、身份或网络连接；会话遥测与产品埋点各自持有独立通道（见 6.7 节）。对企业而言，更实际的做法是在 <code>session/event</code> 上挂一个自有插件，把事件投递到内部日志系统；扩展实操手册的“外部协议驱动”模板展示的正是这种用法。</p>
+<p><img src="images/dsh/fig-8-4.png" alt="图 8-4"></p>
+<p><em>图 8-4 可观测性的数据来源：所有视图都从会话日志派生，自有导出插件可挂在 <code>session/event</code> 上</em></p>
+<h3 id="85-案例super-agent-bundle-如何构建在-dsh-上"><a class="header" href="#85-案例super-agent-bundle-如何构建在-dsh-上">8.5 案例：Super-agent bundle 如何构建在 DSH 上</a></h3>
+<h4 id="851-用到了-dsh-的哪些能力"><a class="header" href="#851-用到了-dsh-的哪些能力">8.5.1 用到了 DSH 的哪些能力</a></h4>
+<p>参考章节详细分析了 <code>dsh-superagent-prototype</code>，这里换一个视角：它用到了 DSH 的哪些扩展机制。第一，<strong>打包形式</strong>：原型在 <code>package.json</code> 中声明 <code>dsh.bundle</code> 与 <code>engines.dsh</code>，把多个 DSH 包列为 peerDependencies，以 <code>cordis.patch.yml</code> 插入自己的插件行，这正是本章 8.2 节的“可分发定制”。第二，<strong>会话级能力切分</strong>：它在 <code>cordis.patch.yml</code> 中声明两个 Agent preset——<code>dsh-superagent-router</code>（主 Session，只有路由与读取类工具）与 <code>dsh-superagent-worker</code>（执行器 Session，拥有完整工作工具但不能向人提问），对应本报告 3.6 节的 preset 机制。第三，<strong>Session 与工具运行</strong>：Worker 在 DSH 提供的环境中使用模型和工具，Router 与 Worker 之间通过类型化工具调用通信。第四，<strong>后台化</strong>：原型用“前台命令 5 秒转后台、回合后后台工作上限 30 分钟”近似异步 ReAct，这依赖 DSH 的 jobs 子系统。Super-agent 文章称其异步任务机制“已经在 DeepSeek Harness 中实现，但尚未默认开启”。<a href="#ref-5-23">[5]</a><a href="#ref-4-23">[4]</a></p>
+<h4 id="852-dsh-没有提供由-bundle-自建的部分"><a class="header" href="#852-dsh-没有提供由-bundle-自建的部分">8.5.2 DSH 没有提供、由 bundle 自建的部分</a></h4>
+<p>另一方面，Super-agent 的核心概念——Source、Trigger、Thread、Eval、Mandate、Ticket、Outbox、Effects——在 DSH 中都没有对应物，全部由 bundle 自建，持久化也用的是自己的 SQLite 而不是 DSH 的会话日志。这说明 DSH 的边界止于“单个 Agent 会话及其子代理”：它提供了运行一个 Agent 所需的一切，但“谁有权发起工作、多个任务如何调度”属于更上层的编排问题。从这个案例可以得出一个对二次开发者有用的判断：<strong>在 DSH 之上构建多任务系统是可行的，但需要自带任务模型与授权模型</strong>；DSH 的 webhook 运行时（<code>ctx.webhookRuntime</code>）和 schedule 子系统可以作为事件入口，但并不提供 Super-agent 那样的授权与工单语义。</p>
+<p><img src="images/dsh/fig-8-5.png" alt="图 8-5"></p>
+<p><em>图 8-5 Super-agent bundle 与 DSH 的分工：DSH 提供会话与工具运行，bundle 自建事件、授权与工单</em></p>
+<h2 id="9-测试评测与工程体系"><a class="header" href="#9-测试评测与工程体系">9 测试、评测与工程体系</a></h2>
+<h3 id="91-测试体系"><a class="header" href="#91-测试体系">9.1 测试体系</a></h3>
+<h4 id="911-分层与门禁"><a class="header" href="#911-分层与门禁">9.1.1 分层与门禁</a></h4>
+<p>DSH 的测试体系在开源 Agent 项目中极为少见地严格。测试文档列出的层次包括：单元测试（每个注册表都有 HMR 安全测试）；<strong>按文件 100% 的覆盖率门禁</strong>（<code>packages/*/*/src</code>，CI 以 <code>test:coverage</code> 而不是 <code>test</code> 作为门禁）；真实 API 的 e2e 测试（无密钥时自动跳过，文档原话是“我们是 DeepSeek，不要吝惜真实 API 测试”）；预期输出测试；性能基准；<strong>录制会话快照</strong>（headless、SDK、ACP、Web 四类场景，回放模型输出，无需密钥）；Web 浏览器快照（Chromium 为主、部分 WebKit，CI 强制回放模式）；Web 性能与压力测试。仓库约定要求每个非平凡的、模型或用户可见的改动都更新一份录制会话快照，Agent 循环、会话生命周期和事件映射的改动必须同步更新 TypeScript 与 Python 两个 SDK 的预期输出。<a href="#ref-29-13">[29]</a></p>
+<h4 id="912-规模"><a class="header" href="#912-规模">9.1.2 规模</a></h4>
+<p>按文件名粗略统计，仓库中有约 2,567 个 spec 测试文件、375 个 e2e 文件（其中 32 个为预期输出测试）、10 个基准文件、6 个性能测试文件；录制快照场景目录 session 166 个、web 71 个、sdk 38 个、acp 9 个；Python SDK 测试 26 个。<code>.ts/.tsx</code> 代码合计约 138 万行，其中测试目录约 82.7 万行、非测试源码约 55.6 万行，测试代码量约为产品代码的 1.5 倍。测试原则同样值得一提：只 mock 昂贵或不确定的边界（LLM、网络、时钟），其余用真实实现；e2e 从外部重新验证结果，而不是检查 Agent 的自述。第 7.5 节的四次事故说明，即使有这样的门禁，组合路径仍是薄弱环节。</p>
+<p><img src="images/dsh/fig-9-1.png" alt="图 9-1"></p>
+<p><em>图 9-1 测试分层与规模（文件数为按文件名的粗略统计）</em></p>
+<h3 id="92-性能门禁"><a class="header" href="#92-性能门禁">9.2 性能门禁</a></h3>
+<h4 id="921-benchmarks-是性能回归门禁"><a class="header" href="#921-benchmarks-是性能回归门禁">9.2.1 <code>benchmarks/</code> 是性能回归门禁</a></h4>
+<p>一个容易被误解的事实是：仓库中的 <code>benchmarks/</code> 目录<strong>不是模型能力评测</strong>，而是 PR 级的性能回归门禁（必需的 Linux PR 检查 <code>node 24 / benchmarks</code>）。被计时代码在纯 Node 下运行，用合成输入执行耗时、堆与缩放预算。用例包括：活动流重连（重连时携带 10 万个 reasoning delta 的未完成前缀，客户端折叠成本上限 125 毫秒）、Agent 续聊（SDK 变体执行 100 轮、800 次真实文件读取）、长会话浏览器（Chromium 打开 240 轮合成会话、加载更早页面、访问 Trajectory、流式期间输入）、会话语料（列出 3,000 个会话、搜索 1,000 个、fork 1,000 个，播种约 1.5 GB zstd 日志）、对话折叠（50 万个流式 delta 压成 1,600 条流记录）以及会话打开、终端 I/O、用户文本凭据检测等。</p>
+<h4 id="922-方法学"><a class="header" href="#922-方法学">9.2.2 方法学</a></h4>
+<p>每个用例取 3～5 个全新进程样本的中位数，报告 CPU 型号、并行度、平台与 Node/V8 版本，并用 PassMark 单线程分把结果缩放到不同机器。配置注释写明，预算“never loosened to accept it”——性能退化必须修复代码，不能放宽预算。这套门禁直接对应用户可感知的场景（长会话、海量会话列表、重连），说明团队把“长时间、大规模使用”视为一等需求。</p>
+<h4 id="923-文档即门禁"><a class="header" href="#923-文档即门禁">9.2.3 文档即门禁</a></h4>
+<p>DSH 的工程体系还有一个不常见的特点：大量文档是<strong>生成的</strong>并受门禁约束。能力接缝全表、配置目录（163 个包条目）、持久化事件目录（62 种事件）、工具目录、模块依赖图都由脚本从源码生成，生成器会交叉核对运行时 schema 与文档声明，<code>doc-sync</code> 门禁拒绝漂移；新增事件必须用 <code>@mode</code> JSDoc 声明分发模式，每个导出必须有说明契约的 JSDoc。文档几乎全部中英双语，并附 <code>.i18n.yaml</code> 翻译元数据，仓库中约有 2,100 份中文文档。仓库还为编码 Agent 准备了专门的入口：根目录的 AGENTS.md（CLAUDE.md 为其符号链接）规定了约定、命令与防御性模式，<code>.agents/skills</code> 下有提交前检查、PR 描述、升级指南、错误处理、文风规范等技能，<code>.agents/notes</code> 记录设计决策的理由。Super-agent 原型的 README 也提到其工程大部分由编码 Agent 在日常工作中完成。可以推断，DSH 本身就是一个<strong>被设计为由 Agent 参与开发</strong>的代码库，严格的生成式文档与门禁既服务人类维护者，也是约束 Agent 改动质量的手段。</p>
+<p><img src="images/dsh/fig-9-2.png" alt="图 9-2"></p>
+<p><em>图 9-2 性能门禁覆盖的用户场景与预算机制</em></p>
+<h3 id="93-能力评测的缺位与第三方数据"><a class="header" href="#93-能力评测的缺位与第三方数据">9.3 能力评测的缺位与第三方数据</a></h3>
+<h4 id="931-仓库中没有能力分数"><a class="header" href="#931-仓库中没有能力分数">9.3.1 仓库中没有能力分数</a></h4>
+<p><code>BENCHMARK.md</code> 全文只有 3 行，指示外部评测者安装 Python SDK、运行 <code>jsonrpc-agent</code> minimal 变体（即今天的 <code>sdk-minimal</code>），并为独立任务使用不同的工作区与会话 id。仓库中<strong>没有公布任何模型能力分数、数据集或方法学</strong>；唯一与编码能力相关的测试是一个带密钥的“SWE-bench 风格”冒烟测试：真实模型只用 bash 工具修复临时目录中一个 <code>add(a, b)</code> 返回 <code>a - b</code> 的玩具 bug，由 Agent 之外重新运行测试脚本验证。可以推断，DeepSeek 对外运行 Agent 评测时采用的就是 sdk-minimal 组合（持久 bash、读图、工作目录，全权限，自动压缩），这与 SWE-bench、Terminal-Bench 等基准常用的“最小工具集” harness 惯例一致，但仓库没有写明具体基准。</p>
+<h4 id="932-第三方观察"><a class="header" href="#932-第三方观察">9.3.2 第三方观察</a></h4>
+<p>第三方数据只能作为参考。一个社区实验项目报告，DeepSeek V4 Pro 对 API 可见的工具目录高度敏感：在其 Project2 评测中，Standard 与 PTC 分别得 91 和 92 分，官方 Minimal 得 99 和 96 分，据此提出“先以 Minimal 的工具 schema 开局、按需再开放 Standard 工具”的 Anchored Standard 方案——这是第三方测试，不是官方基准。Atlas Cloud 的实测显示，同一任务跑 3 次、3 次都自称完成，只有 1 次真正可用，并测得每个新会话约 11k 输入 token 的开销；DeepInfra 实测 V4-Flash 第一轮耗时 6 分 23 秒、约 3 美分。这些观察共同指向一个结论：<strong>评估 DSH 时应以外部验收为准，而不是 Agent 的自述</strong>，Minimal 模式是建立基线的首选。<a href="#ref-30-13">[30]</a><a href="#ref-31-12">[31]</a></p>
+<p><img src="images/dsh/fig-9-3.png" alt="图 9-3"></p>
+<p><em>图 9-3 评测现状：仓库只提供运行入口，能力数据来自第三方，且需外部验收</em></p>
+<h2 id="10-与-claude-codecodexopencodepihermes-agent-的横向比较"><a class="header" href="#10-与-claude-codecodexopencodepihermes-agent-的横向比较">10 与 Claude Code、Codex、OpenCode、Pi、Hermes Agent 的横向比较</a></h2>
+<h3 id="101-比较框架与口径"><a class="header" href="#101-比较框架与口径">10.1 比较框架与口径</a></h3>
+<h4 id="1011-只比较同一层的对象"><a class="header" href="#1011-只比较同一层的对象">10.1.1 只比较同一层的对象</a></h4>
+<p>参考章节在比较 Super-agent 时专门说明了“比较的是什么”。本章同样先确定口径：DSH 是 <strong>Harness 层</strong>的运行时，与它处于同一层的是 Claude Code（及其 Agent SDK）、OpenAI Codex（CLI 与 app-server）、OpenCode、Pi 和 Hermes Agent；Super-agent 属于其上的编排层，不在本章比较之列。对其他产品的描述依据 2026-11-03 读取的官方文档与仓库 README，凡涉及版本相关的细节均以“文档所述”理解；第三方评测只作为旁证。<a href="#ref-32-11">[32]</a><a href="#ref-33-11">[33]</a><a href="#ref-34-8">[34]</a><a href="#ref-35-6">[35]</a><a href="#ref-36-5">[36]</a>比较维度有六个：定位与形态、循环模型与扩展点、会话持久与恢复、权限与沙箱、多 Agent 与集成接口、模型绑定与许可。</p>
+<h4 id="1012-一个粗略的光谱"><a class="header" href="#1012-一个粗略的光谱">10.1.2 一个粗略的光谱</a></h4>
+<p>六个对象可以排在一条“核心可替换性”的光谱上。一端是 <strong>Pi</strong>：核心极小，只有 read、write、edit、bash 四个工具，系统提示加工具定义不到 1,000 token，不做 MCP、不做子代理、不做权限提示，鼓励用户“make it your own”。另一端是 <strong>Claude Code</strong>：循环固定，扩展点丰富（约 30 种 hook 事件、skills、plugins、MCP、子代理），但核心不可替换。<strong>DSH</strong> 在可替换性上走得最远——连循环本身都是插件——但同时又是功能最多的之一，它不是“小”，而是“全部可拆”。Codex、OpenCode、Hermes 则介于其间。</p>
+<p><img src="images/dsh/fig-10-1.png" alt="图 10-1"></p>
+<p><em>图 10-1 六个 Harness 在“核心可替换性”与“开箱功能”两个维度上的定性位置（非量化）</em></p>
+<h3 id="102-定位与形态"><a class="header" href="#102-定位与形态">10.2 定位与形态</a></h3>
+<h4 id="1021-各自的形态"><a class="header" href="#1021-各自的形态">10.2.1 各自的形态</a></h4>
+<p><strong>Claude Code</strong> 有终端、IDE、桌面、Web 与移动端等形态，Agent SDK 被定义为“Claude Code as a library”，运行的就是 Claude Code 二进制；云端会话运行在 Anthropic 管理的隔离 VM 中。<strong>Codex</strong> 的核心是 Rust 编写的 app-server，CLI 的 TUI、VS Code 扩展和桌面应用都是它的客户端，原先的 <code>codex mcp-server</code> 已被移除，官方要求迁移到 app-server。<strong>OpenCode</strong> 采用客户端/服务器架构，运行时同时启动 TUI 与 HTTP 服务器，提供 OpenAPI 3.1 规范与 SSE 事件流。<strong>Pi</strong> 支持交互、Print/JSON、RPC 与 TypeScript SDK 四种运行模式。<strong>Hermes Agent</strong> 定位为“自我改进的 AI Agent”，一个 <code>AIAgent</code> 编排引擎服务 CLI、消息网关（Telegram、Discord、Slack 等 25+ 平台）、ACP、批处理与 API server。</p>
+<h4 id="1022-dsh-的定位"><a class="header" href="#1022-dsh-的定位">10.2.2 DSH 的定位</a></h4>
+<p>DSH 自称 “agent harness”，第三方普遍用“底盘”（chassis）形容它：DeepInfra 的评语是“less a product than a chassis”，DataCamp 建议“当运行时本身就是工作的一部分时”使用它。官网则把它包装为面向文档、表格、报告、编码、研究和后台长任务的通用助手，提供 macOS 与 Windows 桌面版。两种叙事并存，反映出 DSH 既想做开发者的运行时，又想做终端用户的产品。<a href="#ref-37-4">[37]</a></p>
+<h4 id="1023-社区热度与质疑"><a class="header" href="#1023-社区热度与质疑">10.2.3 社区热度与质疑</a></h4>
+<p>DSH 的社区热度在同类项目中罕见。据 Star History 统计，仓库首日新增约 7.5 万星，第 2 天达到 10 万，第 15 天达到 20 万，打破 OpenClaw 用 88 天创下的纪录；本次读取时约 26.98 万星、3.28 万 fork、约 2.49 万次提交。eesel 报道截至 10 月初一周的 npm 下载约 45 万次，Hacker News 发布帖获 747 分。同期参照（9 月初）：OpenClaw 约 38.9 万、Hermes Agent 约 24.0 万、OpenCode 约 20.3 万。质疑同样存在：NerdBite 指出命名空间本身不能证明官方背书，星数可能被刷，建议“作为谈资而非结论”；Wavect 的说法是“星数压缩了发现过程，但不能替代尽职调查”；首日星数在不同来源之间也互相冲突（2.4 万、3 万余、7.5 万）。中文媒体中，机器之心强调连 Agent 循环也是插件、会话日志回答了“出错时模型看到了什么”；量子位称其为“Agent 时代的安卓”；网易则认为说 v0.1 能“替代 Claude Code”为时尚早。</p>
+<p><img src="images/dsh/fig-10-2.png" alt="图 10-2"></p>
+<p><em>图 10-2 六个对象的形态与主要入口</em></p>
+<h3 id="103-循环模型与扩展点"><a class="header" href="#103-循环模型与扩展点">10.3 循环模型与扩展点</a></h3>
+<h4 id="1031-循环大同小异扩展方式不同"><a class="header" href="#1031-循环大同小异扩展方式不同">10.3.1 循环大同小异，扩展方式不同</a></h4>
+<p>六者的循环本质上都是“模型请求 → 工具调用 → 结果回填”的 ReAct 变体，差别在于扩展点放在哪里。Claude Code 的 hooks 是最成熟的外部扩展机制：事件包括 SessionStart、UserPromptSubmit、PreToolUse、PermissionRequest、PostToolUse、Stop、PreCompact 等，处理器有 command、http、mcp_tool、prompt、agent 五种，<code>PreToolUse</code> 可以返回 allow/deny/ask/defer，也可以改写输入。Codex 以 Thread/Turn/Item 三个原语组织协议，turn 可以 start、steer、interrupt。OpenCode 的插件导出返回 hook 对象的异步函数，可以覆盖同名内置工具。Pi 的扩展默认导出一个接收 <code>ExtensionAPI</code> 的函数，可以注册工具、修改系统提示、挂生命周期事件。Hermes 的循环是同步的，工具在导入时自注册，系统提示按 stable → context → volatile 分层以保住缓存。</p>
+<h4 id="1032-dsh-的差异"><a class="header" href="#1032-dsh-的差异">10.3.2 DSH 的差异</a></h4>
+<p>DSH 的差异在于<strong>扩展点就是全部</strong>：循环、模型适配器、工具注册表、会话日志都是 Cordis 插件，通过 <code>agent/*</code>、<code>tools/*</code> 的 waterfall 拦截，通过 profile/bundle/patch 组合。与 Claude Code 的 hooks 相比，DSH 的 pre-execute 不允许改写参数、守卫只能收紧；与 OpenCode 的插件相比，DSH 的插件可以替换服务提供方而不只是挂钩子。代价是学习曲线：要写一个有用的 DSH 插件，需要理解服务、注入、作用域、isolate 和事件模式，而不只是一个 hook 函数签名。值得一提的是，DSH 与 Pi 存在直接的代码依赖：DSH 的多提供方适配器 <code>llm-pi-ai</code> 基于 Pi 的 <code>pi-ai</code> 模型层。</p>
+<p><img src="images/dsh/fig-10-3.png" alt="图 10-3"></p>
+<p><em>图 10-3 扩展点的位置：在固定循环外围挂钩子，还是循环本身也可替换</em></p>
+<h3 id="104-会话持久与恢复"><a class="header" href="#104-会话持久与恢复">10.4 会话持久与恢复</a></h3>
+<h4 id="1041-各自的持久化"><a class="header" href="#1041-各自的持久化">10.4.1 各自的持久化</a></h4>
+<p>Claude Code 以 JSONL 转录存放在 <code>~/.claude/projects/&lt;编码后的 cwd&gt;/</code>，支持 continue、resume、fork，文件回滚依赖 file checkpointing，跨主机恢复可用 SessionStore 适配器。Codex 以 JSONL rollout 日志存储线程，支持 resume、fork（可截断到某个 turn）、read、archive、revert（不回滚文件）与 compaction。OpenCode 把会话存放在数据库中，支持 export/import JSON。Pi 的会话是 JSONL 文件，条目通过 id/parentId 组成树，可以在同一文件内分支。Hermes 使用 SQLite 加 FTS5 全文检索，跨压缩保留父子谱系。</p>
+<h4 id="1042-dsh-的差异"><a class="header" href="#1042-dsh-的差异">10.4.2 DSH 的差异</a></h4>
+<p>DSH 的会话持久化在严格程度上明显领先：<strong>类型化事件 + 版本化格式 + 只增不改的代际迁移 + “模型可见即已记录”的硬规则</strong>。它记录的不只是对话，还包括请求信封（<code>request/header</code>）、路由上下文、失败的尝试、重试与压缩，因此每一次模型请求都可以从日志精确重建；崩溃恢复为中断的工具调用标注“结果未知、不要盲目重试”；fork 的种子结构保证合法的工具调用配对。第三方评测（机器之心、redreamality）都把会话日志列为 DSH 最突出的设计。代价是格式复杂、事件种类多，以及默认把这份日志随请求上传。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>维度</th><th>DSH</th><th>Claude Code</th><th>Codex</th><th>OpenCode</th><th>Pi</th><th>Hermes</th></tr>
+</thead>
+<tbody>
+<tr><td>存储</td><td>版本化 JSONL（zstd），62 种事件</td><td>JSONL 转录</td><td>JSONL rollout</td><td>数据库</td><td>JSONL 树</td><td>SQLite + FTS5</td></tr>
+<tr><td>请求可重建</td><td>是（硬规则）</td><td>部分</td><td>部分</td><td>未说明</td><td>部分</td><td>未说明</td></tr>
+<tr><td>fork / 分支</td><td>轮次边界 fork，合成收尾</td><td>fork</td><td>fork（可截断）</td><td>fork</td><td>同文件树分支</td><td>谱系</td></tr>
+<tr><td>格式迁移</td><td>相邻迁移链，旧代际不可变</td><td>未公开</td><td>未公开</td><td>未公开</td><td>未公开</td><td>未公开</td></tr>
+</tbody>
+</table>
+</div>
+<p><img src="images/dsh/fig-10-4.png" alt="图 10-4"></p>
+<p><em>图 10-4 会话持久化的严格程度对比（定性）</em></p>
+<h3 id="105-权限沙箱与审批"><a class="header" href="#105-权限沙箱与审批">10.5 权限、沙箱与审批</a></h3>
+<h4 id="1051-两个轴"><a class="header" href="#1051-两个轴">10.5.1 两个轴</a></h4>
+<p>参考章节把授权分为“动作级”与“请求级”两个轴，Harness 层产品主要在动作级上竞争。<strong>Codex</strong> 的两层控制最为完整：沙箱模式（read-only、workspace-write 默认、danger-full-access）决定技术上能做什么，审批策略（on-request、never、granular、Auto-review）决定何时询问；macOS 用 Seatbelt，Linux 默认 bwrap 加 seccomp，<strong>网络默认关闭</strong>，可选域名白名单代理；workspace-write 下 <code>.git</code>、<code>.codex</code> 等目录仍只读。<strong>Claude Code</strong> 有六种权限模式（含后台分类器审查的 auto 模式），沙箱默认关闭，开启后不仅限制写入，还让命令经本机代理按 <code>allowedDomains</code> 过滤出站流量。<strong>OpenCode</strong> 提供按工具的 allow/ask/deny 通配规则，文档未提及 OS 级沙箱。<strong>Pi</strong> 不提供审批与沙箱，作者认为其他 Agent 的防护“大多是安全剧场”，建议放进容器。<strong>Hermes</strong> 采用 smart/manual/off 三档命令审批加不可覆盖的硬黑名单，容器后端下把容器本身当作边界，并有 SSRF 防护与上下文文件注入扫描。</p>
+<h4 id="1052-dsh-的位置"><a class="header" href="#1052-dsh-的位置">10.5.2 DSH 的位置</a></h4>
+<p>DSH 的沙箱与审批同样正交，后端覆盖 Linux、macOS、Windows 与 SSH 远端，失败即拒绝；但沙箱<strong>只管写入</strong>，读取、网络与进程可见性都不在承诺范围内，审批只在越权时出现，<code>web_fetch</code> 不限目标也不询问。在动作级隔离的强度上，DSH 介于 Codex（默认断网、敏感目录只读）与 OpenCode（无 OS 沙箱）之间；其“先沙箱执行、被拒再申请越权”的模式与 Codex 的 on-request 思路接近，而缺少网络隔离是它与 Codex、开启沙箱后的 Claude Code 之间最明显的差距。</p>
+<h4 id="1053-请求级授权六者共同的空白"><a class="header" href="#1053-请求级授权六者共同的空白">10.5.3 请求级授权：六者共同的空白</a></h4>
+<p>如果换到参考章节提出的另一个轴——请求级授权，即“谁的消息算数、谁可以发起一次工作、这次工作被授权到哪一步”——六个 Harness 都相当薄弱，这是 Super-agent 选择在 DSH 之上自建 Mandate 与 Ticket 的根本原因。Claude Code 的云端定时任务支持定时、HTTP API（bearer token）与 GitHub 事件三类触发器，授权粒度是“持有令牌即可触发”；Hermes 的消息网关用白名单与 8 位一次性配对码授权用户，是六者中最接近请求级授权的设计；DSH 的 Webhook 运行时把认证后的外部交付转为根会话，规则被定义为“受信任的程序化规则”，Web 与 API 的非 owner 访问则交给 <code>remoteAccess</code> 策略；Codex、OpenCode、Pi 基本假设发起者就是本机用户。换言之，Harness 层回答的是“这个动作能不能做”，而“这件事该不该由这个人发起”仍属于编排层的问题。</p>
+<p><img src="images/dsh/fig-10-5.png" alt="图 10-5"></p>
+<p><em>图 10-5 动作级隔离强度的定性示意（非量化评分）</em></p>
+<h3 id="106-多-agent-与集成接口"><a class="header" href="#106-多-agent-与集成接口">10.6 多 Agent 与集成接口</a></h3>
+<h4 id="1061-委派模型"><a class="header" href="#1061-委派模型">10.6.1 委派模型</a></h4>
+<p>Claude Code 的子代理有独立上下文、系统提示、工具与权限，只回传摘要，默认最多嵌套 3 层、并发 20 个，可以 fork 父对话，另有 Agent teams。Codex 的子代理只在用户明确要求时委派，继承父级的沙箱与审批设置，自定义 agent 不能覆盖这些安全设置。OpenCode 分 Primary 与 Subagent，经 Task 工具调用，可按权限过滤。Pi 核心不提供子代理，作者称其为“黑盒中的黑盒”，替代做法是经 bash 或 tmux 自调用。Hermes 的 <code>delegate_task</code> 默认扁平（深度 1）、并发 10，子代理看不到父级历史。DSH 的子代理深度 1、活跃 8 个，本地 spawn/fork 可续接、父子双向 <code>send_message</code>，并且<strong>可以把 Claude Code 和 Codex 本身当作子代理调用</strong>，这是六者中独有的。</p>
+<h4 id="1062-集成接口"><a class="header" href="#1062-集成接口">10.6.2 集成接口</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>接口</th><th>DSH</th><th>Claude Code</th><th>Codex</th><th>OpenCode</th><th>Pi</th><th>Hermes</th></tr>
+</thead>
+<tbody>
+<tr><td>SDK</td><td>TS / Python（JSON-RPC stdio）</td><td>TS / Python Agent SDK</td><td>TS / Python SDK</td><td>由 OpenAPI 生成</td><td>TS SDK</td><td>Python 库</td></tr>
+<tr><td>服务协议</td><td>Web <code>/api</code> + WS</td><td><code>-p</code> headless</td><td>app-server（JSON-RPC）</td><td>HTTP + SSE</td><td>RPC（JSONL）</td><td>API server</td></tr>
+<tr><td>ACP</td><td>服务端 + 子代理客户端</td><td>未见官方服务端</td><td>未见</td><td><code>opencode acp</code></td><td>未核验</td><td>ACP adapter</td></tr>
+<tr><td>MCP</td><td>客户端</td><td>客户端</td><td>客户端</td><td>客户端</td><td>不支持</td><td>客户端</td></tr>
+<tr><td>模型</td><td>默认 DeepSeek，42 个 provider</td><td>仅 Claude</td><td>默认 OpenAI，可自定义</td><td>75+ provider</td><td>多 provider</td><td>18+ provider</td></tr>
+<tr><td>许可</td><td>MIT</td><td>商业条款</td><td>Apache-2.0</td><td>MIT</td><td>MIT</td><td>MIT</td></tr>
+</tbody>
+</table>
+</div>
+<p><img src="images/dsh/fig-10-6.png" alt="图 10-6"></p>
+<p><em>图 10-6 委派范式对比：谁可以创建子代理、子代理能否续接、能否委派给外部产品</em></p>
+<h3 id="107-综合比较与选型建议"><a class="header" href="#107-综合比较与选型建议">10.7 综合比较与选型建议</a></h3>
+<h4 id="1071-总表"><a class="header" href="#1071-总表">10.7.1 总表</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>维度</th><th>DSH</th><th>Claude Code</th><th>Codex</th><th>OpenCode</th><th>Pi</th><th>Hermes</th></tr>
+</thead>
+<tbody>
+<tr><td>定位</td><td>插件化运行时 / 底盘</td><td>产品级编码 Agent</td><td>编码 Agent + app-server 内核</td><td>开源编码 Agent</td><td>极简 harness</td><td>自我改进的通用 Agent</td></tr>
+<tr><td>核心可替换性</td><td>最高（循环也是插件）</td><td>低（循环固定）</td><td>低</td><td>中（服务端核心固定）</td><td>高（核心极小）</td><td>中</td></tr>
+<tr><td>扩展机制</td><td>Cordis 服务 + waterfall + patch</td><td>hooks / skills / plugins</td><td>hooks / skills / MCP</td><td>JS/TS 插件 hooks</td><td>TS extensions</td><td>工具自注册 / 插件后端</td></tr>
+<tr><td>会话持久</td><td>最严格（版本化事件日志）</td><td>JSONL + checkpoint</td><td>JSONL rollout</td><td>数据库</td><td>JSONL 树</td><td>SQLite + FTS5</td></tr>
+<tr><td>动作级隔离</td><td>写沙箱，无网络隔离</td><td>可选沙箱含网络代理</td><td>默认断网，敏感目录只读</td><td>规则，无 OS 沙箱</td><td>无（容器）</td><td>审批 + 黑名单 / 容器</td></tr>
+<tr><td>多 Agent</td><td>spawn/fork + 委派 Claude Code/Codex</td><td>子代理 + teams</td><td>子代理</td><td>Task 工具</td><td>无</td><td>delegate_task</td></tr>
+<tr><td>成熟度</td><td>开发者预览，全部 pre-release</td><td>生产级</td><td>生产级</td><td>稳定</td><td>稳定</td><td>稳定</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="1072-选型建议"><a class="header" href="#1072-选型建议">10.7.2 选型建议</a></h4>
+<p>基于上述比较，可以给出四条选型建议。其一，<strong>如果运行时本身是你的工作对象</strong>——研究 Agent 行为、定制循环、构建自己的 Agent 产品、需要可审计的完整轨迹——DSH 是目前可替换性最高、会话日志最严格的开源选择。其二，<strong>如果目标是日常编码效率</strong>，Claude Code 与 Codex 更成熟，OpenCode 是更稳定的开源日常工具（DeepInfra 的结论是 opencode “still the better daily driver”）。其三，<strong>如果需要强默认隔离</strong>，Codex 的默认断网与敏感目录只读最省心，DSH 需要外层容器与网络策略补齐。其四，<strong>组合使用</strong>是 DSH 独有的选项：用 DSH 作为外层运行时与审计层，把部分任务委派给 Claude Code 或 Codex 子代理，同时把大部分 token 交给 DeepSeek 等开源权重模型。一个常见误解需要澄清：DSH “支持 40 余家模型提供方”并不意味着所有能力在所有模型上等价，DeepSeek 专有的 wire 扩展与缓存友好的增量更新只在 DeepSeek Messages 路由上实现。</p>
+<p><img src="images/dsh/fig-10-7.png" alt="图 10-7"></p>
+<p><em>图 10-7 选型决策树</em></p>
+<h2 id="11-局限开放问题与落地建议"><a class="header" href="#11-局限开放问题与落地建议">11 局限、开放问题与落地建议</a></h2>
+<h3 id="111-局限"><a class="header" href="#111-局限">11.1 局限</a></h3>
+<h4 id="1111-工程与成熟度"><a class="header" href="#1111-工程与成熟度">11.1.1 工程与成熟度</a></h4>
+<p>DSH 的第一类局限来自成熟度。所有 GitHub 发布均标记为 pre-release，README 明确预告破坏性变更，两个半月内积累了 91 篇升级指南；插件 API、配置键、会话生命周期语义仍在频繁调整。体量本身也是门槛：372 个包、108 个上下文服务、62 种会话事件，要写出正确的插件需要理解 Cordis 的注入、作用域、isolate 与事件模式。第三方实测还提到安装体积较大、每个新会话约 11k 输入 token 的固定开销。文档与源码之间存在少量漂移，例如默认模型名并存 <code>deepseek-flash</code> 与 <code>deepseek-v4-flash</code>、JSONL README 的布局示例仍写着 V3、Web 组合包的注释引用了不存在的文件、<code>web_fetch</code> 的配置注释声称有公网地址校验而实现中未见。</p>
+<h4 id="1112-安全与行为质量"><a class="header" href="#1112-安全与行为质量">11.1.2 安全与行为质量</a></h4>
+<p>第二类局限是安全：沙箱只管写入，读取、网络和进程可见性不受限；凭据明文且同 UID 可读；插件、MCP、LSP 以宿主权限运行，插件与市场索引没有签名；会话日志默认随请求上传。第三类局限是行为质量的验证缺口：循环没有内建的最大步数上限，失控防护依赖插件；仓库没有公布任何能力评测；第三方实测反复观察到“Agent 自称完成而实际不可用”的情况。这些问题并非 DSH 独有，但在“可替换一切”的架构中，默认组合的质量更依赖使用者自己的验收。</p>
+<p><img src="images/dsh/fig-11-1.png" alt="图 11-1"></p>
+<p><em>图 11-1 三类局限：成熟度、安全与行为质量</em></p>
+<h3 id="112-开放问题"><a class="header" href="#112-开放问题">11.2 开放问题</a></h3>
+<h4 id="1121-值得持续跟踪的问题"><a class="header" href="#1121-值得持续跟踪的问题">11.2.1 值得持续跟踪的问题</a></h4>
+<p>结合源码与第三方评论，以下问题值得持续跟踪。第一，<strong>可演化的运行时如何治理自己</strong>：ContextOS 的审计指出，一个连循环都能被 Agent 改写（Creator 模式）的系统，需要一层不可变的治理内核来约束可演化的内层；目前 preset 和插件都能执行宿主代码，这一层尚不存在。<a href="#ref-38-4">[38]</a>第二，<strong>网络隔离何时补齐</strong>：Codex 默认断网、Claude Code 的沙箱带出站代理，DSH 的沙箱模式词汇明确把网络排除在外，是否会引入网络维度是安全成熟度的关键指标。第三，<strong>会话日志上传的默认值</strong>：<code>dsh_session_log</code> 默认启用，对企业用户和隐私敏感场景影响很大，官方是否会改为显式同意值得关注。第四，<strong>异步任务与 Super-agent 的落地</strong>：Super-agent 文章称异步任务机制已在 DSH 中实现但未默认开启，这一能力何时成为默认、是否会把 Super-agent 的部分概念（事件入口、授权）下沉到 DSH，将决定 DSH 的边界是否上移。第五，<strong>能力评测的透明度</strong>：仓库只提供运行入口而无分数，社区实验显示工具目录对模型表现影响显著，官方是否会发布 harness 级的评测方法学有待观察。</p>
+<p><img src="images/dsh/fig-11-2.png" alt="图 11-2"></p>
+<p><em>图 11-2 五个开放问题</em></p>
+<h3 id="113-落地建议"><a class="header" href="#113-落地建议">11.3 落地建议</a></h3>
+<h4 id="1131-从窄处起步"><a class="header" href="#1131-从窄处起步">11.3.1 从窄处起步</a></h4>
+<p>对考虑在团队内引入 DSH 的工程负责人，建议分三个阶段推进。<strong>第一阶段：隔离试点（2～4 周）</strong>。在一次性虚拟机或容器中运行，只挂载试点仓库目录，配置出站代理白名单；关闭 <code>session-log-deepseek</code> 上传（或确认合规后再开启）；以 Minimal 模式和 Python SDK 建立 30～50 个真实任务的基线（Wavect 的建议）<a href="#ref-39-4">[39]</a>，一律用外部测试验收结果，不采信 Agent 自述。<strong>第二阶段：受控扩展（1～2 个月）</strong>。切换到 Standard 模式，在 <code>tools/pre-execute</code> 上挂载团队自有策略插件：拒绝私网地址的 <code>web_fetch</code>、对 <code>$DSH_HOME</code> 与 <code>~/.ssh</code> 的读取拒绝、对 MCP 工具默认询问、对 <code>.git/hooks</code> 等敏感路径的写入拒绝；在 <code>session/event</code> 上挂载导出插件，把会话日志与 <code>approval/*</code>、<code>sandbox/mode</code> 事件送入内部审计系统；固定版本号，按升级指南逐版评估。<strong>第三阶段：定制与组合</strong>。按团队需求编写 bundle（自定义工具、技能、preset），评估 PTC 模式对多步工具任务的收益，必要时把部分任务委派给 Claude Code 或 Codex 子代理；Creator 模式只在隔离的工程环境中使用。</p>
+<h4 id="1132-度量"><a class="header" href="#1132-度量">11.3.2 度量</a></h4>
+<p>落地过程中建议持续度量四类指标：<strong>结果质量</strong>（外部验收通过率，与 Agent 自称完成率的差距）、<strong>成本</strong>（每任务 token 与缓存命中率，DSH 的 usage 字段区分了未命中、缓存读与缓存写）、<strong>安全</strong>（越权申请次数、批准率、被策略插件拦截的调用数）、<strong>稳定性</strong>（崩溃恢复次数、<code>TOOL_OUTCOME_UNKNOWN</code> 出现频率、升级引入的回归数）。这些指标大多可以直接从会话日志计算，这正是 DSH 会话设计带来的便利。</p>
+<h4 id="1133-适合与不适合的场景"><a class="header" href="#1133-适合与不适合的场景">11.3.3 适合与不适合的场景</a></h4>
+<p>综合全文，DSH 适合四类场景：<strong>Agent 研究与评测</strong>（需要精确重建每次模型请求、对比不同循环策略或工具呈现方式，Minimal 与 PTC 模式和会话日志正好提供了实验条件）；<strong>构建自有 Agent 产品</strong>（以 DSH 为运行时，通过 bundle 与 preset 定制能力，复用其 Web、SDK、ACP 前端）；<strong>多模型、多 Agent 组合</strong>（用一个运行时同时调用 DeepSeek、其他 provider 以及 Claude Code、Codex 子代理）；<strong>需要完整审计轨迹的内部工具</strong>（会话日志天然是审计记录）。不适合的场景同样清晰：对稳定 API 有强依赖的长期集成（预览期破坏性变更频繁）；直接处理不可信仓库或不可信网页而又没有外层隔离的环境（沙箱不管读取与网络）；对数据外发零容忍又无力审查默认配置的团队（会话日志默认上传）；以及只想要一个开箱即用的日常编码助手的个人用户——这种情况下，更成熟的产品通常是更省心的选择。</p>
+<p><img src="images/dsh/fig-11-3.png" alt="图 11-3"></p>
+<p><em>图 11-3 三阶段落地路线</em></p>
+<h3 id="114-结论"><a class="header" href="#114-结论">11.4 结论</a></h3>
+<h4 id="1141-三句话总结"><a class="header" href="#1141-三句话总结">11.4.1 三句话总结</a></h4>
+<p>第一，DSH 把 Harness 层从产品中剥离出来，做成了一个“连循环都可替换”的开源运行时，其插件化程度和会话日志的严格程度在同类项目中都属领先。第二，它的安全默认值偏向开发便利——只管写入的沙箱、明文凭据、宿主权限的插件、默认上传的会话日志——在生产环境使用前必须由外层隔离和策略插件补齐。第三，DSH 与 Super-agent 的关系是底座与上层应用：理解 DSH 的边界（单个 Agent 会话及其子代理），才能判断哪些能力需要像 Super-agent 那样在其上自建。</p>
+<p><img src="images/dsh/fig-11-4.png" alt="图 11-4"></p>
+<p><em>图 11-4 结论：优势、风险与边界</em></p>
+<h2 id="补充材料-1"><a class="header" href="#补充材料-1">补充材料</a></h2>
+<h4 id="源码索引-1"><a class="header" href="#源码索引-1">源码索引</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>主题</th><th>位置（相对仓库根目录，提交 ce7073d）</th></tr>
+</thead>
+<tbody>
+<tr><td>架构总览、轮次流程、归属映射</td><td><code>docs/architecture.zh.md</code></td></tr>
+<tr><td>Cordis 入门与 vendored 框架</td><td><code>docs/cordis-primer.zh.md</code>、<code>docs/cordis-tutorial/</code>、<code>vendor/cordis</code></td></tr>
+<tr><td>能力接缝全表（108 个服务）</td><td><code>docs/capability-seams.zh.md</code></td></tr>
+<tr><td>CLI 入口与参数解析</td><td><code>apps/cli/src/bin.ts</code>、<code>apps/cli/src/args.ts</code></td></tr>
+<tr><td>profile 组装与 patch 层</td><td><code>apps/cli/src/profile-boot.ts</code>、<code>packages/boot/app-boot/src/profile-context.ts</code>、<code>vendor/include/src/index.ts</code></td></tr>
+<tr><td>启动序列与必需条目</td><td><code>packages/boot/app-boot/src/index.ts</code></td></tr>
+<tr><td>组合包与 preset</td><td><code>packages/bundle/*/cordis.patch.yml</code>、<code>packages/bundle/web-app/presets/*.patch.yml</code></td></tr>
+<tr><td>preset 注册与锁定</td><td><code>packages/preset/agent-preset-registry/src/index.ts</code>、<code>src/mount.ts</code></td></tr>
+<tr><td>Agent 接口与注册表</td><td><code>packages/core/agent/src/types.ts</code>、<code>runtime-types.ts</code>、<code>index.ts</code></td></tr>
+<tr><td>循环驱动器（turn / step）</td><td><code>packages/core/agent-loop/src/agent.ts</code>、<code>index.ts</code>、<code>inbox.ts</code></td></tr>
+<tr><td>系统提示词组装与段序</td><td><code>packages/core/system-prompt/src/index.ts</code></td></tr>
+<tr><td>工具注册、流水线与批次</td><td><code>packages/core/tools/src/index.ts</code>、<code>pipeline.ts</code>、<code>batch.ts</code>、<code>contracts.ts</code></td></tr>
+<tr><td>PTC 执行器与运行时</td><td><code>packages/core/tool-executor-ptc/</code>、<code>packages/ptc-runtime/ptc-runtime-node/</code></td></tr>
+<tr><td>会话事件与格式版本</td><td><code>packages/core/session/src/types.ts</code>、<code>repair.ts</code>、<code>fork.ts</code></td></tr>
+<tr><td>JSONL 持久化与迁移</td><td><code>packages/session/session-persistence-jsonl/</code>、<code>packages/session/session-format-v*-to-v*</code></td></tr>
+<tr><td>沙箱与越权</td><td><code>packages/sandbox/sandbox-local/src/</code>、<code>packages/sandbox/sandbox/src/escalation.ts</code></td></tr>
+<tr><td>凭据与环境清洗</td><td><code>packages/credentials/credentials-local/</code>、<code>packages/subprocess/subprocess/src/index.ts</code></td></tr>
+<tr><td>DeepSeek 适配器与 wire 扩展</td><td><code>packages/llm/llm-deepseek/src/</code>、<code>docs/deepseek-llm-api-wire-extensions.zh.md</code></td></tr>
+<tr><td>子代理提供方</td><td><code>packages/subagent/*</code></td></tr>
+<tr><td>压缩与 spill</td><td><code>packages/compaction/compaction-basic/</code>、<code>packages/spill/spill-policy/</code></td></tr>
+<tr><td>事故复盘与升级指南</td><td><code>docs/postmortem/</code>、<code>docs/upgrade-guide/</code></td></tr>
+<tr><td>性能门禁</td><td><code>benchmarks/</code>、<code>vitest.bench.config.ts</code></td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="关键默认值-1"><a class="header" href="#关键默认值-1">关键默认值</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>项目</th><th>默认值</th><th>来源</th></tr>
+</thead>
+<tbody>
+<tr><td>默认模型</td><td><code>deepseek-official</code> / <code>deepseek-flash</code>（SDK、ACP 为 <code>deepseek-v4-flash</code>）</td><td><code>packages/bundle/base/cordis.patch.yml</code>、<code>packages/sdk/client/src/api.ts</code></td></tr>
+<tr><td>DeepSeek 协议与地址</td><td>Messages（Anthropic 兼容），<code>https://api.deepseek.com/anthropic</code></td><td><code>packages/llm/llm-deepseek/src/config.ts</code></td></tr>
+<tr><td>推理强度</td><td><code>high</code>（可选 off / low / high / max）</td><td><code>llm-deepseek/src/serialize.ts</code></td></tr>
+<tr><td>Web 监听</td><td><code>127.0.0.1:3080</code>，拒绝通配地址</td><td><code>packages/bundle/web-app/cordis.patch.yml</code></td></tr>
+<tr><td>默认 preset</td><td><code>standard</code></td><td>同上</td></tr>
+<tr><td>新会话权限</td><td><code>workspace-write</code> + <code>ask</code>（<code>DSH_PERMISSION_MODE</code> 可覆盖）</td><td><code>packages/bundle/base/cordis.patch.yml</code></td></tr>
+<tr><td>sdk-minimal 权限</td><td><code>danger-full-access</code>，无审批服务</td><td><code>packages/bundle/sdk-minimal/cordis.patch.yml</code></td></tr>
+<tr><td>bash 超时</td><td>60 秒（Minimal 持久 shell 300 秒）</td><td>base 组合包、<code>presets/minimal.patch.yml</code></td></tr>
+<tr><td>每步并行工具调用</td><td>10，可热更新</td><td><code>packages/core/agent-loop/src/constants.ts</code></td></tr>
+<tr><td>最大步数</td><td>无（由插件约束）</td><td><code>agent-loop/src/agent.ts</code></td></tr>
+<tr><td>LLM 重试</td><td>5 次，500 毫秒起至 10 秒，10% 抖动</td><td><code>packages/llm/llm/src/retry-policy.ts</code></td></tr>
+<tr><td>流空闲超时</td><td>5 分钟</td><td><code>docs/subsystems/llm-streaming.zh.md</code></td></tr>
+<tr><td>PTC 程序</td><td>超时 120 秒（上限 600 秒），堆 512 MiB，输出 64 MiB，子调用并发 10</td><td><code>ptc-runtime-node/src/config.ts</code>、<code>tool-executor-ptc/src/config.ts</code></td></tr>
+<tr><td>压缩</td><td>阈值比 0.8，headroom 65,536 token，保留尾部 0.16，重试 1 次</td><td><code>compaction-basic/src/config.ts</code></td></tr>
+<tr><td>工具结果剪枝</td><td>超过 8,192 字符剪为头 4,096 + 尾 1,024</td><td><code>compaction-tool-result-pruner/src/config.ts</code></td></tr>
+<tr><td>spill 内联上限</td><td>12,500 估算 token（包默认禁用）</td><td>base 组合包 <code>spill-policy</code> 行</td></tr>
+<tr><td>子代理</td><td>深度 1，活跃 8</td><td><code>packages/subagent/subagent/src/index.ts</code></td></tr>
+<tr><td>Workflow</td><td>总子代理 1,000，结果 50,000 字符</td><td><code>workflow-ptc</code>、<code>tool-workflow</code></td></tr>
+<tr><td>重复工具提醒</td><td>3 / 5 / 8 次</td><td>base 组合包 <code>repeat-tool-reminder</code> 行</td></tr>
+<tr><td>会话写批处理窗口</td><td>200 毫秒（内部常量）</td><td><code>session-persistence-jsonl/src/storage.ts</code></td></tr>
+<tr><td>会话格式版本</td><td>V4</td><td><code>packages/core/session/src/types.ts</code></td></tr>
+<tr><td>投影缓存检查点</td><td>每 200 个事件或 5 秒</td><td>base 组合包</td></tr>
+<tr><td>全文检索</td><td>SQLite <code>:memory:</code>，<code>openAt: never</code>（默认关闭）</td><td>base 组合包</td></tr>
+<tr><td>会话日志上传</td><td><code>dsh_session_log</code> 默认开启，≤ 8 MiB / 请求</td><td><code>docs/deepseek-llm-api-wire-extensions.zh.md</code></td></tr>
+<tr><td>OTel 会话遥测</td><td><code>FEEDBACK_ONLY</code></td><td>base 组合包</td></tr>
+<tr><td>MCP 工具调用超时</td><td>60 秒，重连 500 毫秒起至 30 秒，10 次</td><td><code>packages/mcp/mcp-client/README.zh.md</code></td></tr>
+<tr><td>关闭时插件树拆卸</td><td>至多 5 秒，第二次信号强制退出</td><td><code>apps/cli/reference/README.zh.md</code></td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="术语-1"><a class="header" href="#术语-1">术语</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>术语</th><th>含义</th></tr>
+</thead>
+<tbody>
+<tr><td>Harness</td><td>提供模型循环、工具、会话、权限等的智能体运行时，如 DSH、Codex、Claude Code</td></tr>
+<tr><td>DSH</td><td>DeepSeek Harness，本报告的研究对象</td></tr>
+<tr><td>Cordis</td><td>DSH 的插件框架，源于 Koishi 生态，DSH 以 <code>@deepseek-ai/cordis</code> 名义 vendored</td></tr>
+<tr><td>Profile / Bundle / Patch / Preset</td><td>进程级具名组装 / 可安装的配置层 / YAML 编辑列表 / 会话级子插件列表</td></tr>
+<tr><td>Seam（能力接缝）</td><td>定义、提供方、消费方三角色齐备的可替换能力</td></tr>
+<tr><td>Turn / Step</td><td>轮次 / 步骤（一次模型请求加其工具）</td></tr>
+<tr><td>Surface</td><td>进入模型历史的有序消息事件序列</td></tr>
+<tr><td>PTC</td><td>Programmatic Tool Calling，模型写程序调用工具，原名 Code Mode</td></tr>
+<tr><td>ACP</td><td>Agent Client Protocol，编辑器与自动化客户端驱动 Agent 的标准协议</td></tr>
+<tr><td>Super-agent</td><td>DSH 团队提出的多任务编排架构及其研究原型，以 DSH bundle 形式运行</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="本报告的已知局限"><a class="header" href="#本报告的已知局限">本报告的已知局限</a></h3>
+<p>本报告没有构建或运行 DSH，所有关于行为的结论来自源码与文档的静态阅读，未做动态验证；第 6 章中 <code>web_fetch</code> 的 SSRF 判断、MCP 工具默认是否询问、LSP 是否沙箱化等结论只基于本次检索范围，需要维护者确认；代码规模、测试文件数等统计为按文件名与行数的粗略估计；对 Claude Code、Codex、OpenCode、Pi、Hermes Agent 的描述基于 2026-11-03 可读取的官方文档，未审阅其源码；GitHub 星数、发布时间等来自第三方统计，各来源存在冲突；第 6.8、10.1、10.5 节的象限图是定性示意，不是量化评分。</p>
+<h2 id="参考资料-18"><a class="header" href="#参考资料-18">参考资料</a></h2>
+<ol>
+<li><a id="ref-1-23"></a> DeepSeek-AI，<a href="https://github.com/deepseek-ai/deepseek-harness/blob/ce7073d/README.zh.md">deepseek-harness 仓库 README（固定提交 ce7073d）</a>。</li>
+<li><a id="ref-2-23"></a> DataCamp，<a href="https://www.datacamp.com/blog/what-is-deepseek-harness">What Is DeepSeek Harness? The Agent Where Everything Is a Plugin</a>，2026-09-08。</li>
+<li><a id="ref-3-23"></a> 机器之心（新浪转载），<a href="https://finance.sina.com.cn/tech/roll/2026-08-13/doc-inineuqe4558061.shtml">刚刚，DeepSeek Harness 震撼开源：一切皆插件</a>，2026-08-13。</li>
+<li><a id="ref-4-23"></a> 用户提供的参考章节：《第 23 章 DeepSeek Super-agent：面向自主协作的事件驱动架构》（基于原型提交 6337fc8，调研日期 2026-11-02）。</li>
+<li><a id="ref-5-23"></a> DeepSeek Harness，<a href="https://github.com/deepseek-ai/dsh-superagent-prototype">dsh-superagent-prototype README</a>。</li>
+<li><a id="ref-6-23"></a> IT之家，<a href="https://www.ithome.com/1/020/615.htm">DeepSeek 提出 Super-agent 架构设计</a>，2026-10-31。</li>
+<li><a id="ref-7-23"></a> DeepSeek Harness，<a href="https://github.com/deepseek-ai/deepseek-harness/blob/ce7073d/docs/architecture.zh.md">架构文档 docs/architecture.zh.md</a>。</li>
+<li><a id="ref-8-23"></a> DeepSeek Harness，<a href="https://github.com/deepseek-ai/deepseek-harness/blob/ce7073d/docs/rescope.zh.md">vendored 包改名说明 docs/rescope.zh.md</a>。</li>
+<li><a id="ref-9-23"></a> Yifan Shi 等，<a href="https://arxiv.org/abs/2608.25512">A Programming Paradigm for Spatiotemporal Composability</a>，arXiv:2608.25512，2026-08-26。</li>
+<li><a id="ref-10-23"></a> DeepSeek Harness，<a href="https://github.com/deepseek-ai/deepseek-harness/blob/ce7073d/docs/glossary.zh.md">术语表 docs/glossary.zh.md</a>。</li>
+<li><a id="ref-11-23"></a> DeepSeek Harness，<a href="https://github.com/deepseek-ai/deepseek-harness/blob/ce7073d/packages/llm/llm-deepseek/src/config.ts">DeepSeek 适配器配置 llm-deepseek/src/config.ts</a>。</li>
+<li><a id="ref-12-23"></a> DeepSeek Harness，<a href="https://github.com/deepseek-ai/deepseek-harness/blob/ce7073d/docs/api-gateway.zh.md">API 网关文档 docs/api-gateway.zh.md</a>。</li>
+<li><a id="ref-13-23"></a> DeepSeek Harness，<a href="https://github.com/deepseek-ai/deepseek-harness/blob/ce7073d/docs/capability-seams.zh.md">能力接缝全表 docs/capability-seams.zh.md</a>。</li>
+<li><a id="ref-14-23"></a> DeepSeek Harness，<a href="https://github.com/deepseek-ai/deepseek-harness/blob/ce7073d/docs/cordis-primer.zh.md">Cordis 入门 docs/cordis-primer.zh.md</a>。</li>
+<li><a id="ref-15-23"></a> DeepSeek Harness，<a href="https://github.com/deepseek-ai/deepseek-harness/blob/ce7073d/packages/preset/agent-preset-registry/README.zh.md">Agent preset 注册表 README</a>。</li>
+<li><a id="ref-16-23"></a> DeepSeek Harness，<a href="https://github.com/deepseek-ai/deepseek-harness/blob/ce7073d/packages/boot/app-boot/src/profile-context.ts">profile patch 层源码 profile-context.ts</a>。</li>
+<li><a id="ref-17-22"></a> DeepSeek Harness，<a href="https://github.com/deepseek-ai/deepseek-harness/blob/ce7073d/packages/core/agent/src/runtime-types.ts">Agent 运行时类型 runtime-types.ts</a>。</li>
+<li><a id="ref-18-22"></a> DeepSeek Harness，<a href="https://github.com/deepseek-ai/deepseek-harness/blob/ce7073d/docs/persistence-catalog.zh.md">持久化事件目录 docs/persistence-catalog.zh.md</a>。</li>
+<li><a id="ref-19-22"></a> DeepSeek Harness，<a href="https://github.com/deepseek-ai/deepseek-harness/blob/ce7073d/apps/cli/src/args.ts">CLI 参数解析 apps/cli/src/args.ts</a>。</li>
+<li><a id="ref-20-21"></a> DeepSeek Harness，<a href="https://github.com/deepseek-ai/deepseek-harness/blob/ce7073d/docs/agent-lifecycle.zh.md">Agent 生命周期时序 docs/agent-lifecycle.zh.md</a>。</li>
+<li><a id="ref-21-21"></a> DeepSeek Harness，<a href="https://github.com/deepseek-ai/deepseek-harness/blob/ce7073d/docs/tool-execution-pipeline.zh.md">工具执行流水线 docs/tool-execution-pipeline.zh.md</a>。</li>
+<li><a id="ref-22-21"></a> DeepSeek Harness，<a href="https://github.com/deepseek-ai/deepseek-harness/blob/ce7073d/.agents/notes/implemented/feature/2026-06-15-ptc.zh.md">PTC 设计笔记 .agents/notes/implemented/feature/2026-06-15-ptc.zh.md</a>。</li>
+<li><a id="ref-23-21"></a> DeepSeek Harness，<a href="https://github.com/deepseek-ai/deepseek-harness/blob/ce7073d/SAFETY.zh.md">安全说明 SAFETY.zh.md</a>。</li>
+<li><a id="ref-24-20"></a> DeepSeek Harness，<a href="https://github.com/deepseek-ai/deepseek-harness/blob/ce7073d/docs/subsystems/sandbox.zh.md">沙箱子系统 docs/subsystems/sandbox.zh.md</a>。</li>
+<li><a id="ref-25-19"></a> DeepSeek Harness，<a href="https://github.com/deepseek-ai/deepseek-harness/blob/ce7073d/docs/deepseek-llm-api-wire-extensions.zh.md">DeepSeek LLM API wire 扩展 docs/deepseek-llm-api-wire-extensions.zh.md</a>。</li>
+<li><a id="ref-26-18"></a> DeepSeek Harness，<a href="https://github.com/deepseek-ai/deepseek-harness/blob/ce7073d/docs/subsystems/persistence.zh.md">持久化子系统 docs/subsystems/persistence.zh.md</a>。</li>
+<li><a id="ref-27-15"></a> DeepSeek Harness，<a href="https://github.com/deepseek-ai/deepseek-harness/blob/ce7073d/docs/cookbook/extension-cookbook.zh.md">扩展实操手册 docs/cookbook/extension-cookbook.zh.md</a>。</li>
+<li><a id="ref-28-15"></a> DeepInfra，<a href="https://deepinfra.com/blog/deepseek-harness-review">DeepSeek Harness Review: Agent Loop &amp; Plugin Architecture</a>，2026-09-09。</li>
+<li><a id="ref-29-13"></a> DeepSeek Harness，<a href="https://github.com/deepseek-ai/deepseek-harness/blob/ce7073d/docs/testing.zh.md">测试策略 docs/testing.zh.md</a>。</li>
+<li><a id="ref-30-13"></a> xiaobright，<a href="https://github.com/xiaobright/dsh-anchored-standard/wiki">dsh-anchored-standard（第三方实验）</a>。</li>
+<li><a id="ref-31-12"></a> Atlas Cloud，<a href="https://www.atlascloud.ai/blog/tips/deepseek-harness-review">DeepSeek Harness Review</a>，2026-08-18。</li>
+<li><a id="ref-32-11"></a> Anthropic，<a href="https://code.claude.com/docs/en/permission-modes">Claude Code 文档：Permission modes、Sandboxing、Hooks、Subagents、Agent SDK</a>。</li>
+<li><a id="ref-33-11"></a> OpenAI，<a href="https://learn.chatgpt.com/docs/agent-approvals-security">Codex 文档：Agent approvals &amp; security、App Server、Subagents</a>。</li>
+<li><a id="ref-34-8"></a> OpenCode，<a href="https://opencode.ai/docs/">OpenCode 文档：Server、Permissions、Plugins、Agents、ACP</a>。</li>
+<li><a id="ref-35-6"></a> Mario Zechner，<a href="https://mariozechner.at/posts/2025-11-30-pi-coding-agent/">What I learned building an opinionated and minimal coding agent（Pi）</a>，2025-11-30；以及 <a href="https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent">pi-mono coding-agent README</a>。</li>
+<li><a id="ref-36-5"></a> Nous Research，<a href="https://hermes-agent.nousresearch.com/docs/developer-guide/architecture">Hermes Agent 文档：Architecture、Security、Delegation</a>。</li>
+<li><a id="ref-37-4"></a> DeepSeek，<a href="https://www.deepseek.com/harness">DeepSeek Harness 官网页面</a>。</li>
+<li><a id="ref-38-4"></a> ContextOS，<a href="https://contextosai.com/blog/deepseek-harness-architecture-security-review">DeepSeek Harness 架构与安全审查</a>，2026-10-15 更新。</li>
+<li><a id="ref-39-4"></a> Wavect，<a href="https://wavect.io/blog/deepseek-harness-enterprise-review/">DeepSeek Harness Review: Production Readiness</a>，2026-09-02 复核。</li>
+</ol>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="第25章-ai-智能体研究现状工程瓶颈与未来理想能力架构报告"><a class="header" href="#第25章-ai-智能体研究现状工程瓶颈与未来理想能力架构报告">第25章 AI 智能体研究现状、工程瓶颈与未来理想能力架构报告</a></h1>
 <blockquote>
 <p>研究报告既要解释方法与结果，也要说明证据对应哪个任务、哪个版本，以及结论在哪里停止。</p>
 </blockquote>
@@ -15899,11 +16781,11 @@ skills:
 <p>研究报告 Agent 是只读研究专题的特殊案例：它需要论文版本、实验设置和跨来源论点，ALR 的生产告警对象无法完整承载；适用范围仅限本章的研究证据综合。研究问题、论文/文档证据、检索与阅读动作、论点状态和引用验收，分别对照 ALR 的告警输入、指标/日志/Runbook、只读取证、候选/已支持状态和诊断报告验收；本章不创建外部工单，也不形成新的跨章案例标准。</p>
 <p><a href="#knowledge">Agent 的上下文工程</a>负责检索、证据和索引机制；本章负责把取得的证据组织成有边界的研究论点。工程实现与可靠性合同仍由<a href="#第-17-章-agent-runtime架构执行编排与可靠性工程">Agent Runtime</a>、<a href="#第-16-章-外部工具系统skillstoolsmcp-与-connectors">工具系统</a>、<a href="#第-13-章-llm-api-协议模型能力如何被系统消费">模型协议</a>与<a href="#第-18-章-agent-治理与调优从质量闭环到分层落地">治理</a>章节承载，不因本章列出方向就宣称已有平台。</p>
 <h2 id="232-执行摘要"><a class="header" href="#232-执行摘要">23.2 执行摘要</a></h2>
-<p>智能体研究并非始于 LLM。经典教材从感知、行动和性能度量定义理性主体，BDI 与认知架构研究显式状态和决策，强化学习研究如何根据奖励改进策略。<a href="#ref-1-23">[1]</a><a href="#ref-2-23">[2]</a><a href="#ref-3-23">[3]</a><a href="#ref-4-23">[4]</a> LLM 工具代理让语言成为任务与外部动作的接口，但不能因此抹去环境、状态、授权和验证。</p>
-<p>本章的研究判断是：应同时看模型能力、执行系统与评估设置。ReAct 研究推理和行动交替，Reflexion 研究语言反馈与经验缓冲，MemGPT 研究跨记忆层的数据移动；它们提出不同机制，并非任一机制都能单独解决开放世界任务。<a href="#ref-5-23">[5]</a><a href="#ref-6-23">[6]</a><a href="#ref-7-23">[7]</a></p>
-<p>网页、桌面、通用助理与模拟公司环境提供了不同证据。WebArena 论文 v4 报告其最佳 GPT-4 代理 14.41%、人类 78.24%；OSWorld v2 报告最佳模型 12.24%、人类超过 72.36%。这些是对应论文设置的历史结果，不能拿更新版 Verified、不同步数或不同任务集合的成绩直接计算进步幅度。<a href="#ref-8-23">[8]</a><a href="#ref-9-23">[9]</a> 本章保留问题：怎样把多步行动做对、做稳、做得可审计；不通过无依据的厂商排名回答它。</p>
+<p>智能体研究并非始于 LLM。经典教材从感知、行动和性能度量定义理性主体，BDI 与认知架构研究显式状态和决策，强化学习研究如何根据奖励改进策略。<a href="#ref-1-24">[1]</a><a href="#ref-2-24">[2]</a><a href="#ref-3-24">[3]</a><a href="#ref-4-24">[4]</a> LLM 工具代理让语言成为任务与外部动作的接口，但不能因此抹去环境、状态、授权和验证。</p>
+<p>本章的研究判断是：应同时看模型能力、执行系统与评估设置。ReAct 研究推理和行动交替，Reflexion 研究语言反馈与经验缓冲，MemGPT 研究跨记忆层的数据移动；它们提出不同机制，并非任一机制都能单独解决开放世界任务。<a href="#ref-5-24">[5]</a><a href="#ref-6-24">[6]</a><a href="#ref-7-24">[7]</a></p>
+<p>网页、桌面、通用助理与模拟公司环境提供了不同证据。WebArena 论文 v4 报告其最佳 GPT-4 代理 14.41%、人类 78.24%；OSWorld v2 报告最佳模型 12.24%、人类超过 72.36%。这些是对应论文设置的历史结果，不能拿更新版 Verified、不同步数或不同任务集合的成绩直接计算进步幅度。<a href="#ref-8-24">[8]</a><a href="#ref-9-24">[9]</a> 本章保留问题：怎样把多步行动做对、做稳、做得可审计；不通过无依据的厂商排名回答它。</p>
 <h2 id="233-定义与范畴"><a class="header" href="#233-定义与范畴">23.3 定义与范畴</a></h2>
-<p>AIMA 把 agent 置于感知与行动的闭环中，理性判断依赖性能度量、可获得信息和环境，不等于全知或每次都成功。<a href="#ref-1-23">[1]</a> BDI 用信念、愿望和意图组织软件主体，Soar 提供认知架构的研究脉络；这说明计划、状态与记忆长期以来就是 agent 问题。<a href="#ref-2-23">[2]</a><a href="#ref-3-23">[3]</a></p>
+<p>AIMA 把 agent 置于感知与行动的闭环中，理性判断依赖性能度量、可获得信息和环境，不等于全知或每次都成功。<a href="#ref-1-24">[1]</a> BDI 用信念、愿望和意图组织软件主体，Soar 提供认知架构的研究脉络；这说明计划、状态与记忆长期以来就是 agent 问题。<a href="#ref-2-24">[2]</a><a href="#ref-3-24">[3]</a></p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -15918,7 +16800,7 @@ skills:
 </tbody>
 </table>
 </div>
-<p>DQN 展示深度强化学习在其控制任务上的作用；Gato 采用统一策略处理多模态多任务；SayCan 把语言选择与技能可供性结合。三者解决的对象和评价环境不同。<a href="#ref-10-23">[10]</a><a href="#ref-11-23">[11]</a><a href="#ref-12-23">[12]</a> 本书将现代工程 Agent 抽象为模型、工具、状态、工作流、授权与观测的组合；这是工程归纳，不是给所有研究范式强加同一种实现。</p>
+<p>DQN 展示深度强化学习在其控制任务上的作用；Gato 采用统一策略处理多模态多任务；SayCan 把语言选择与技能可供性结合。三者解决的对象和评价环境不同。<a href="#ref-10-24">[10]</a><a href="#ref-11-24">[11]</a><a href="#ref-12-24">[12]</a> 本书将现代工程 Agent 抽象为模型、工具、状态、工作流、授权与观测的组合；这是工程归纳，不是给所有研究范式强加同一种实现。</p>
 <h2 id="234-历史演进"><a class="header" href="#234-历史演进">23.4 历史演进</a></h2>
 <p>以下只保留能解释研究转折的来源锚点；年份代表所列工作，不将某个词或技术的首次出现一概归到某年。</p>
 <div class="table-wrapper">
@@ -15939,7 +16821,7 @@ skills:
 </tbody>
 </table>
 </div>
-<p>上述方法依据相应原文：Transformer 给出注意力模型；WebGPT 要求浏览时收集参考；Generative Agents 在模拟环境中组织观察、反思和规划；Voyager 在 Minecraft 中积累可执行技能。<a href="#ref-13-23">[13]</a><a href="#ref-14-23">[14]</a><a href="#ref-15-23">[15]</a><a href="#ref-16-23">[16]</a> 它们不是同一个排行榜上的竞品，也不能由“长期学习”这个词推导出模型权重持续在线更新。</p>
+<p>上述方法依据相应原文：Transformer 给出注意力模型；WebGPT 要求浏览时收集参考；Generative Agents 在模拟环境中组织观察、反思和规划；Voyager 在 Minecraft 中积累可执行技能。<a href="#ref-13-24">[13]</a><a href="#ref-14-24">[14]</a><a href="#ref-15-24">[15]</a><a href="#ref-16-24">[16]</a> 它们不是同一个排行榜上的竞品，也不能由“长期学习”这个词推导出模型权重持续在线更新。</p>
 <h2 id="235-研究现状从分数回到任务与实验合同"><a class="header" href="#235-研究现状从分数回到任务与实验合同">23.5 研究现状：从分数回到任务与实验合同</a></h2>
 <p>本节采用有版本的原始基准说明评价对象，不维护实时最佳成绩。不同环境、输入模态、工具、任务集、步数、重试预算和裁判脚本都会改变分母与成功定义。</p>
 <div class="table-wrapper">
@@ -15955,7 +16837,7 @@ skills:
 </tbody>
 </table>
 </div>
-<p>GAIA 论文的 92%与 15%是该版本的历史对照；TheAgentCompany 的约 30%也只对应其模拟环境和基线。<a href="#ref-17-22">[17]</a><a href="#ref-18-22">[18]</a> 系统比较至少保存<code>benchmark/dataset_revision/split/model/harness/action_space/step_budget/retry_budget/evaluator/attempts/date</code>。缺少这些字段的“达到某分数”只能作为待核验线索。</p>
+<p>GAIA 论文的 92%与 15%是该版本的历史对照；TheAgentCompany 的约 30%也只对应其模拟环境和基线。<a href="#ref-17-23">[17]</a><a href="#ref-18-23">[18]</a> 系统比较至少保存<code>benchmark/dataset_revision/split/model/harness/action_space/step_budget/retry_budget/evaluator/attempts/date</code>。缺少这些字段的“达到某分数”只能作为待核验线索。</p>
 <p>本书据此建议把质量拆成终态、过程与安全三类断言：是否完成目标、是否遵守执行顺序与状态合同、是否越权。正确终态但过程越权仍是不安全成功。评测设施见<a href="#第11章-评估与反馈闭环">评估与反馈闭环</a>，行为验收见<a href="#第-18-章-agent-治理与调优从质量闭环到分层落地">Agent 治理与调优</a>。</p>
 <h2 id="236-研究方向与报告agent案例"><a class="header" href="#236-研究方向与报告agent案例">23.6 研究方向与报告Agent案例</a></h2>
 <div class="table-wrapper">
@@ -15976,7 +16858,7 @@ skills:
 </tbody>
 </table>
 </div>
-<p>Plan-and-Act 的论文结果绑定其网页设置；Agent Lightning 研究执行训练解耦及信用分配；TinyAgent 研究特定函数调用的小模型部署。<a href="#ref-19-22">[19]</a><a href="#ref-20-21">[20]</a><a href="#ref-21-21">[21]</a> 浏览器注入防御需在明确威胁模型下检验，风险治理需持续识别、测量和管理。<a href="#ref-22-21">[22]</a><a href="#ref-23-21">[23]</a> “多想几步”是否更可靠是可证伪问题，不能假定更长推理必然更好。因果与协作两行是待验证的研究问题，不宣称已有统一解法；多模态证据仍限于原文环境。</p>
+<p>Plan-and-Act 的论文结果绑定其网页设置；Agent Lightning 研究执行训练解耦及信用分配；TinyAgent 研究特定函数调用的小模型部署。<a href="#ref-19-23">[19]</a><a href="#ref-20-22">[20]</a><a href="#ref-21-22">[21]</a> 浏览器注入防御需在明确威胁模型下检验，风险治理需持续识别、测量和管理。<a href="#ref-22-22">[22]</a><a href="#ref-23-22">[23]</a> “多想几步”是否更可靠是可证伪问题，不能假定更长推理必然更好。因果与协作两行是待验证的研究问题，不宣称已有统一解法；多模态证据仍限于原文环境。</p>
 <h3 id="研究报告预算状态与故障闭环"><a class="header" href="#研究报告预算状态与故障闭环">研究报告：预算、状态与故障闭环</a></h3>
 <p>研究 Agent 的任务不是“尽可能多抓网页”，而是在证据与预算边界内形成可审查结论。以下把“最多读取 200 个来源、允许执行 20 分钟”作为教学题设假设，不是通用推荐值。开始时确认问题范围、时间边界、允许来源、隐私与交付格式；将总时限分给检索、阅读、综合与独立核验，并给最后交付保留时间。到达上限也必须返回当前可用报告与缺口。</p>
 <p>正常链路是：任务合同 → 子问题与证据要求 → 有界并行只读检索 → 来源去重与原文读取 → 主张—证据表 → 综合草稿 → 引用与结论核验 → 版本化报告。研究者可以并行收集互不依赖的证据，最终综合者负责消解冲突和检查覆盖；不能把多个摘要简单拼成结论。来源归一化需识别转载与同一资料的多个版本，但保留原始 URL、读取时间、版本、原文位置与访问范围，避免把转载票数当独立支持。</p>
@@ -16012,7 +16894,7 @@ skills:
 </tbody>
 </table>
 </div>
-<p>表内论文数字均来自列明的版本。<a href="#ref-8-23">[8]</a><a href="#ref-19-22">[19]</a><a href="#ref-9-23">[9]</a><a href="#ref-18-22">[18]</a><a href="#ref-6-23">[6]</a> 这类“冲突”首先是时间、设置或定义不一致；不能把它们平均成一个分数，也不能只选更高的一项。如果两个同条件来源仍相互矛盾，应并列保留、记录无法裁决原因，补原始日志/评测脚本或请 owner 核对，报告结论保持未决。</p>
+<p>表内论文数字均来自列明的版本。<a href="#ref-8-24">[8]</a><a href="#ref-19-23">[19]</a><a href="#ref-9-24">[9]</a><a href="#ref-18-23">[18]</a><a href="#ref-6-24">[6]</a> 这类“冲突”首先是时间、设置或定义不一致；不能把它们平均成一个分数，也不能只选更高的一项。如果两个同条件来源仍相互矛盾，应并列保留、记录无法裁决原因，补原始日志/评测脚本或请 owner 核对，报告结论保持未决。</p>
 <p>交付时先写<strong>有证据的结论</strong>：“这些工作展示了交互环境和若干方法，但各自任务与预算不同，尚不能据此确认真实企业全流程可自主交付。”再列缺口：“需要固定任务/版本、业务权限、独立终态检查、失败与接管成本，以及安全过程证据。”来源的新发表日期不自动淘汰旧的有效结论；新版本若修改任务或裁判，必须将旧结论标明适用范围，不能无痕覆盖。</p>
 <h3 id="报告验收与反证处理"><a class="header" href="#报告验收与反证处理">报告验收与反证处理</a></h3>
 <p>Verifier 逐论点检查原文是否直接支持、数值分母/单位/版本是否一致、转载是否被误作独立来源、冲突是否被隐藏、负面结果是否被遗漏。搜索摘要只用于发现原文，不作为最终事实依据。来源失效、权限不足或只能取得摘要时，把允许论点收窄到可见内容；不凭标题推断实验机制。</p>
@@ -16056,33 +16938,33 @@ skills:
 </div>
 <p>可以把这些要求组织为运行时、技能动作、记忆协同与风险治理四层。运行时管理循环与状态，工具层裁决动作，记忆层管理来源/作用域/版本，治理层定义允许范围与验收证据。这里提出的是建设目标，不声称某个产品已完整具备这四层保证。公开轨迹有助于解释执行，但不等于解释模型内部机理。</p>
 <h2 id="239-结论与建议"><a class="header" href="#239-结论与建议">23.9 结论与建议</a></h2>
-<p>本书建议从能独立验收的任务出发，逐步研究更长的执行范围。对研究者，优先固定环境与实验合同，报告失败样本、预算与复现材料；对工程团队，先约束执行和权威状态，再引入记忆、技能与跨入口协作；对治理者，围绕实际动作和受影响资源建立审计与接管边界，而非只按模型名判断风险。NIST 框架提供风险管理背景，具体上线门禁仍需结合业务验证。<a href="#ref-23-21">[23]</a></p>
+<p>本书建议从能独立验收的任务出发，逐步研究更长的执行范围。对研究者，优先固定环境与实验合同，报告失败样本、预算与复现材料；对工程团队，先约束执行和权威状态，再引入记忆、技能与跨入口协作；对治理者，围绕实际动作和受影响资源建立审计与接管边界，而非只按模型名判断风险。NIST 框架提供风险管理背景，具体上线门禁仍需结合业务验证。<a href="#ref-23-22">[23]</a></p>
 <p>一个研究结果值得迁移，需要同时回答：原文究竟证明了什么，实验和真实业务差在哪里，哪些假设尚未验证，失败后谁能接管。Agent 的上下文工程的证据机制、Agent 治理与调优的行为评估和本章的来源冲突表共同约束这条迁移链；研究结论、教学设计、代码实现与实测效果始终分别记录。</p>
-<h2 id="参考资料-18"><a class="header" href="#参考资料-18">参考资料</a></h2>
+<h2 id="参考资料-19"><a class="header" href="#参考资料-19">参考资料</a></h2>
 <ol>
-<li><a id="ref-1-23"></a> Russell and Norvig，<a href="https://aima.cs.berkeley.edu/4th-ed/pdfs/newchap02.pdf">Artificial Intelligence: A Modern Approach, Intelligent Agents</a>，4th edition chapter 2。</li>
-<li><a id="ref-2-23"></a> Rao and Georgeff，<a href="https://cdn.aaai.org/ICMAS/1995/ICMAS95-042.pdf">BDI Agents: From Theory to Practice</a>，ICMAS 1995。</li>
-<li><a id="ref-3-23"></a> Soar project，<a href="https://soar.eecs.umich.edu/">Soar homepage</a>，2026-10-18 访问。</li>
-<li><a id="ref-4-23"></a> Watkins and Dayan，<a href="https://www.gatsby.ucl.ac.uk/~dayan/papers/wd92.html">Q-learning</a>，Machine Learning 1992。</li>
-<li><a id="ref-5-23"></a> Yao et al.，<a href="https://arxiv.org/abs/2210.03629v3">ReAct: Synergizing Reasoning and Acting in Language Models</a>，arXiv:2210.03629v3；ICLR 2023。</li>
-<li><a id="ref-6-23"></a> Shinn et al.，<a href="https://arxiv.org/abs/2303.11366v4">Reflexion: Language Agents with Verbal Reinforcement Learning</a>，arXiv:2303.11366v4；2023。</li>
-<li><a id="ref-7-23"></a> Packer et al.，<a href="https://arxiv.org/abs/2310.08560v2">MemGPT: Towards LLMs as Operating Systems</a>，arXiv:2310.08560v2；2024。</li>
-<li><a id="ref-8-23"></a> Zhou et al.，<a href="https://arxiv.org/abs/2307.13854v4">WebArena</a>，arXiv:2307.13854v4；2024。</li>
-<li><a id="ref-9-23"></a> Xie et al.，<a href="https://arxiv.org/abs/2404.07972v2">OSWorld</a>，arXiv:2404.07972v2；2024。</li>
-<li><a id="ref-10-23"></a> Mnih et al.，<a href="https://www.nature.com/articles/nature14236">Human-level control through deep reinforcement learning</a>，Nature 2015。</li>
-<li><a id="ref-11-23"></a> Reed et al.，<a href="https://arxiv.org/abs/2205.06175v3">A Generalist Agent</a>，arXiv:2205.06175v3；TMLR 2022。</li>
-<li><a id="ref-12-23"></a> Ahn et al.，<a href="https://arxiv.org/abs/2204.01691v2">Do As I Can, Not As I Say</a>，arXiv:2204.01691v2；2022。</li>
-<li><a id="ref-13-23"></a> Vaswani et al.，<a href="https://arxiv.org/abs/1706.03762">Attention Is All You Need</a>，2017；arXiv:1706.03762。</li>
-<li><a id="ref-14-23"></a> Nakano et al.，<a href="https://arxiv.org/abs/2112.09332v3">WebGPT: Browser-assisted question-answering with human feedback</a>，arXiv:2112.09332v3；2022。</li>
-<li><a id="ref-15-23"></a> Park et al.，<a href="https://arxiv.org/abs/2304.03442v2">Generative Agents: Interactive Simulacra of Human Behavior</a>，arXiv:2304.03442v2；2023。</li>
-<li><a id="ref-16-23"></a> Wang et al.，<a href="https://arxiv.org/abs/2305.16291v2">Voyager: An Open-Ended Embodied Agent with Large Language Models</a>，arXiv:2305.16291v2；2023。</li>
-<li><a id="ref-17-22"></a> Mialon et al.，<a href="https://arxiv.org/abs/2311.12983v1">GAIA: a benchmark for General AI Assistants</a>，arXiv:2311.12983v1；2023。</li>
-<li><a id="ref-18-22"></a> Xu et al.，<a href="https://arxiv.org/abs/2412.14161v3">TheAgentCompany</a>，arXiv:2412.14161v3；2025。</li>
-<li><a id="ref-19-22"></a> Erdogan et al.，<a href="https://arxiv.org/abs/2503.09572v3">Plan-and-Act</a>，arXiv:2503.09572v3；2025。</li>
-<li><a id="ref-20-21"></a> Luo et al.，<a href="https://arxiv.org/abs/2508.03680">Agent Lightning: Train ANY AI Agents with Reinforcement Learning</a>，arXiv:2508.03680；2025。</li>
-<li><a id="ref-21-21"></a> Erdogan et al.，<a href="https://arxiv.org/abs/2409.00608v3">TinyAgent: Function Calling at the Edge</a>，arXiv:2409.00608v3；EMNLP 2024 Demo。</li>
-<li><a id="ref-22-21"></a> Anthropic，<a href="https://www.anthropic.com/research/prompt-injection-defenses">Mitigating prompt injections in browser use</a>，2026-10-18 页面快照。</li>
-<li><a id="ref-23-21"></a> NIST，<a href="https://www.nist.gov/itl/ai-risk-management-framework">AI Risk Management Framework</a>，AI RMF 1.0；2023；2026-10-18 访问。</li>
+<li><a id="ref-1-24"></a> Russell and Norvig，<a href="https://aima.cs.berkeley.edu/4th-ed/pdfs/newchap02.pdf">Artificial Intelligence: A Modern Approach, Intelligent Agents</a>，4th edition chapter 2。</li>
+<li><a id="ref-2-24"></a> Rao and Georgeff，<a href="https://cdn.aaai.org/ICMAS/1995/ICMAS95-042.pdf">BDI Agents: From Theory to Practice</a>，ICMAS 1995。</li>
+<li><a id="ref-3-24"></a> Soar project，<a href="https://soar.eecs.umich.edu/">Soar homepage</a>，2026-10-18 访问。</li>
+<li><a id="ref-4-24"></a> Watkins and Dayan，<a href="https://www.gatsby.ucl.ac.uk/~dayan/papers/wd92.html">Q-learning</a>，Machine Learning 1992。</li>
+<li><a id="ref-5-24"></a> Yao et al.，<a href="https://arxiv.org/abs/2210.03629v3">ReAct: Synergizing Reasoning and Acting in Language Models</a>，arXiv:2210.03629v3；ICLR 2023。</li>
+<li><a id="ref-6-24"></a> Shinn et al.，<a href="https://arxiv.org/abs/2303.11366v4">Reflexion: Language Agents with Verbal Reinforcement Learning</a>，arXiv:2303.11366v4；2023。</li>
+<li><a id="ref-7-24"></a> Packer et al.，<a href="https://arxiv.org/abs/2310.08560v2">MemGPT: Towards LLMs as Operating Systems</a>，arXiv:2310.08560v2；2024。</li>
+<li><a id="ref-8-24"></a> Zhou et al.，<a href="https://arxiv.org/abs/2307.13854v4">WebArena</a>，arXiv:2307.13854v4；2024。</li>
+<li><a id="ref-9-24"></a> Xie et al.，<a href="https://arxiv.org/abs/2404.07972v2">OSWorld</a>，arXiv:2404.07972v2；2024。</li>
+<li><a id="ref-10-24"></a> Mnih et al.，<a href="https://www.nature.com/articles/nature14236">Human-level control through deep reinforcement learning</a>，Nature 2015。</li>
+<li><a id="ref-11-24"></a> Reed et al.，<a href="https://arxiv.org/abs/2205.06175v3">A Generalist Agent</a>，arXiv:2205.06175v3；TMLR 2022。</li>
+<li><a id="ref-12-24"></a> Ahn et al.，<a href="https://arxiv.org/abs/2204.01691v2">Do As I Can, Not As I Say</a>，arXiv:2204.01691v2；2022。</li>
+<li><a id="ref-13-24"></a> Vaswani et al.，<a href="https://arxiv.org/abs/1706.03762">Attention Is All You Need</a>，2017；arXiv:1706.03762。</li>
+<li><a id="ref-14-24"></a> Nakano et al.，<a href="https://arxiv.org/abs/2112.09332v3">WebGPT: Browser-assisted question-answering with human feedback</a>，arXiv:2112.09332v3；2022。</li>
+<li><a id="ref-15-24"></a> Park et al.，<a href="https://arxiv.org/abs/2304.03442v2">Generative Agents: Interactive Simulacra of Human Behavior</a>，arXiv:2304.03442v2；2023。</li>
+<li><a id="ref-16-24"></a> Wang et al.，<a href="https://arxiv.org/abs/2305.16291v2">Voyager: An Open-Ended Embodied Agent with Large Language Models</a>，arXiv:2305.16291v2；2023。</li>
+<li><a id="ref-17-23"></a> Mialon et al.，<a href="https://arxiv.org/abs/2311.12983v1">GAIA: a benchmark for General AI Assistants</a>，arXiv:2311.12983v1；2023。</li>
+<li><a id="ref-18-23"></a> Xu et al.，<a href="https://arxiv.org/abs/2412.14161v3">TheAgentCompany</a>，arXiv:2412.14161v3；2025。</li>
+<li><a id="ref-19-23"></a> Erdogan et al.，<a href="https://arxiv.org/abs/2503.09572v3">Plan-and-Act</a>，arXiv:2503.09572v3；2025。</li>
+<li><a id="ref-20-22"></a> Luo et al.，<a href="https://arxiv.org/abs/2508.03680">Agent Lightning: Train ANY AI Agents with Reinforcement Learning</a>，arXiv:2508.03680；2025。</li>
+<li><a id="ref-21-22"></a> Erdogan et al.，<a href="https://arxiv.org/abs/2409.00608v3">TinyAgent: Function Calling at the Edge</a>，arXiv:2409.00608v3；EMNLP 2024 Demo。</li>
+<li><a id="ref-22-22"></a> Anthropic，<a href="https://www.anthropic.com/research/prompt-injection-defenses">Mitigating prompt injections in browser use</a>，2026-10-18 页面快照。</li>
+<li><a id="ref-23-22"></a> NIST，<a href="https://www.nist.gov/itl/ai-risk-management-framework">AI Risk Management Framework</a>，AI RMF 1.0；2023；2026-10-18 访问。</li>
 </ol>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="附录a-术语与符号速查"><a class="header" href="#附录a-术语与符号速查">附录A 术语与符号速查</a></h1>
@@ -16176,7 +17058,7 @@ skills:
 <tr><td>理解 Coding 系统</td><td><a href="#第-19-章-coding-agent-系统">Coding Agent 系统</a></td><td><a href="#第-20-章-pi-agent-系统终端原生-coding-agent-runtime-的实现使用与调优">Pi Agent 系统 Pi</a></td><td>共通执行闭环、产品实现差异、开源范围与独立验证</td></tr>
 <tr><td>观察长期助手</td><td><a href="#第-22-章-hermes-agent-系统长期运行-agent-runtime-的实现使用与调优">Hermes Agent 系统 Hermes</a></td><td><a href="#第-21-章-openclaw-系统个人-ai-助手的-gateway-实现使用与调优">OpenClaw 系统 OpenClaw</a></td><td>身份、会话、记忆、投递与业务副作用分别取证</td></tr>
 <tr><td>形成质量与发布闭环</td><td><a href="#第11章-评估与反馈闭环">评估与反馈闭环</a></td><td><a href="#第12章-生产运营与治理控制">生产运营与治理控制</a>、<a href="#第-18-章-agent-治理与调优从质量闭环到分层落地">Agent 治理与调优</a></td><td>固定评估集、Judge 校准、回归、成本及回滚证据</td></tr>
-<tr><td>阅读研究报告</td><td><a href="#第24章-ai-智能体研究现状工程瓶颈与未来理想能力架构报告">AI 智能体研究现状、工程瓶颈与未来理想能力架构报告</a></td><td>沿其参考资料回到对应论文版本、任务和评测协议</td><td>历史结果、研究提案、公开实现与实测结论的区别</td></tr>
+<tr><td>阅读研究报告</td><td><a href="#第25章-ai-智能体研究现状工程瓶颈与未来理想能力架构报告">AI 智能体研究现状、工程瓶颈与未来理想能力架构报告</a></td><td>沿其参考资料回到对应论文版本、任务和评测协议</td><td>历史结果、研究提案、公开实现与实测结论的区别</td></tr>
 </tbody>
 </table>
 </div>
