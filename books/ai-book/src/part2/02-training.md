@@ -1,21 +1,19 @@
 # 第9章 训练平台与数据管线
 
-本章的训练作业是 Infra 领域特殊案例，因为 GPU 拓扑、数据 shard、checkpoint 和弹性恢复不能由 ALR 的应用 Run 代替；适用范围仅限训练平台机制。job spec、训练数据/制品、调度动作、checkpoint 状态和发布门禁，分别对照 ALR 的任务契约、Evidence、受控动作、Run 状态和验收证据。
+> **版本与证据说明**：本章的平台对象、数据接口、快照发布协议、故障矩阵、成本式与诊断例均为教学设计，未在目标规模集群上实测，引用文献只支持所列机制。涉及 PyTorch 2.9、NCCL 2.32 等具体版本的行为以对应文档为准，升级后需要复核。
 
-大模型 Infra 的全局资源模型已经建立；本章聚焦训练阶段：如何把海量数据稳定地送到 GPU，如何选择数据并行、张量并行、流水线并行和专家并行，如何让通信与计算重叠，以及如何在节点故障、版本变化和硬件变化后恢复到一个可解释的训练状态。对于后端工程师，训练平台可以理解为一个持续运行很久、拥有复杂状态、对吞吐极其敏感的分布式任务系统。
+一个训练作业可能连续运行数周，占用成百上千张 GPU。它要回答的问题与在线服务不同：海量数据如何稳定、可复现地送到 GPU；数据并行、张量并行、流水线并行和专家并行如何组合；通信怎样与计算重叠；节点故障、版本变化和硬件变化之后，怎样恢复到一个可解释的训练状态。第8章已建立大模型 Infra 的全局资源模型（显存、FLOPs、带宽账本与核心指标）；本章只讲训练阶段。对后端工程师而言，训练平台可以理解为一个运行很久、状态复杂、对吞吐极其敏感的分布式任务系统。
 
-训练 Infra 的目标不是让脚本在一台机器上运行，而是让“有效 token 数/时间”可预测、可扩展、可恢复。一个训练 step 的耗时可以拆成数据读取、host 到 device 拷贝、forward、backward、梯度同步、optimizer update和checkpoint；可重叠阶段不能把区间简单相加当wall time。任何阶段成为瓶颈，继续增加 GPU 都只会增加成本。Megatron-LM 的模型并行研究、DeepSpeed 与 ZeRO 的状态分片，以及 PyTorch FSDP 的工程实现，都说明大模型训练本质上是模型状态、通信拓扑和故障恢复共同决定的系统问题 [[1]](#ref-1)[[2]](#ref-2)[[3]](#ref-3)[[4]](#ref-4)。
+训练 Infra 的目标不是让脚本在一台机器上跑通，而是让“有效 token 数/时间”可预测、可扩展、可恢复。一个 step 的耗时可以拆成数据读取、host 到 device 拷贝、forward、backward、梯度同步、optimizer update 和 checkpoint；可重叠阶段不能把区间简单相加当作 wall time。任何阶段成为瓶颈，继续增加 GPU 都只会增加成本。Megatron-LM 的模型并行 [[1]](#ref-1)、ZeRO 的状态分片 [[2]](#ref-2) 和 PyTorch FSDP 的工程实现 [[3]](#ref-3) 都说明，大模型训练是模型状态、通信拓扑和故障恢复共同决定的系统问题。
 
-下文平台对象、数据接口、快照发布和故障矩阵为本书的教学设计；引用支持所列机制，不代表已运行该平台或验证目标规模性能。
-
-本章按训练作业生命周期组织：先定义作业对象和控制面，再让数据以可复现方式进入 GPU，随后选择并行策略和 kernel/通信优化，接着用 checkpoint 与弹性恢复保护长时间运行，最后用调度、成本、观测和发布门禁把训练结果转换成可交付制品。
+本章按训练作业生命周期组织：先定义作业对象和控制面，再让数据以可复现方式进入 GPU，随后选择并行策略、kernel 与通信优化，接着用 checkpoint 与弹性恢复保护长时间运行，最后用调度、观测和发布门禁把训练结果变成可交付制品。
 
 | 生命周期阶段 | 核心对象 | 主要风险 | 交付证据 |
 |:---|:---|:---|:---|
 | 提交 | job spec、experiment、run | 配置可变、身份不清 | spec hash、owner、预算 |
 | 取数 | dataset manifest、token shard | 数据漂移、重复、坏 shard | manifest、统计、样本 hash |
 | 计算 | rank、parallel group、step | 通信瓶颈、NaN、OOM | step trace、loss、资源曲线 |
-| 保存 | checkpoint、optimizer state | 半写入、缺元数据、不可恢复 | COMMITTED 标记、校验和、恢复 probe |
+| 保存 | checkpoint、optimizer state | 半写入、缺元数据、不可恢复 | 提交标记、校验和、恢复 probe |
 | 调度 | allocation、quota、priority | 资源碎片、抢占、成本失控 | 调度事件、配额、成本报告 |
 | 发布 | model artifact、eval report | 训练态和推理态混淆 | 制品 manifest、评估门禁、注册记录 |
 
@@ -23,580 +21,673 @@
 
 ### 从训练脚本到训练作业
 
-训练脚本只描述计算图，而平台还要管理 job、experiment、run、checkpoint、dataset、artifact 和 allocation。experiment 表示一个研究问题，run 是一次具体配置执行，allocation 表示实际申请到的节点与 GPU，checkpoint 是某个逻辑 step 的可恢复状态。若这几个概念都用一个目录名代替，稍后就无法回答“这个模型由哪个数据版本训练、失败重试了几次、最终使用了哪些 GPU”。
+训练脚本只描述计算图，平台还要管理 job、experiment、run、checkpoint、dataset、artifact 和 allocation。experiment 表示一个研究问题，run 是一次具体配置的执行，allocation 是实际申请到的节点与 GPU，checkpoint 是某个逻辑 step 的可恢复状态。若这几个概念都用一个目录名代替，事后就无法回答“这个模型由哪个数据版本训练、失败重试了几次、最终用了哪些 GPU”。
 
-训练控制面应维护一份不可变的 job spec，至少包括模型代码版本、tokenizer、数据 manifest、采样权重、global batch、sequence length、优化器、精度、随机种子、并行度、容器镜像、依赖锁定文件、checkpoint 策略和预算。提交时生成 job_id 与 spec hash；相同 hash 的重试可以复用实验身份，但不应覆盖已有 run。这些配置变更应有新spec与执行记录；平台若允许同一run内阶段变更，也要有显式版本事件，不能静默覆盖。
-
-Ray 把任务执行、资源声明和分布式运行时分开，为控制面设计提供了有用的抽象 [[5]](#ref-5)。Kubernetes 的 GPU device plugin 可作为资源分配基础，但训练平台还要补充 gang scheduling、拓扑亲和性、节点健康和优先级 [[6]](#ref-6)。Borg 的实践说明，配额、优先级、抢占和故障域不应由每个任务自己实现，而应由集群控制面统一管理 [[7]](#ref-7)。
+控制面应维护一份不可变的 job spec，至少包括模型代码版本、tokenizer、数据 manifest、采样权重、global batch、sequence length、优化器、精度、随机种子、并行度、容器镜像、依赖锁定文件、checkpoint 策略和预算。提交时生成 job_id 与 spec hash；相同 hash 的重试可以复用实验身份，但不应覆盖已有 run。spec 中任何字段的变更（例如换数据版本或改并行度）都应生成新的 spec 与执行记录；平台若允许同一 run 内分阶段变更，也要写入显式的版本事件，不能静默覆盖。
 
 ### 控制面与数据面的边界
 
-控制面负责提交、排队、分配、启动、心跳、停止、重试、恢复和归档；数据面负责 batch 生成、forward、backward、通信和状态写入。控制面需要幂等与可审计，数据面需要低延迟与高吞吐。用户重复提交相同 idempotency key 时，控制面应返回已有 job，而不是再次申请一组 GPU；worker失联时lease/heartbeat只能触发调查；资源重授前还需确认旧执行已停止或被fence，不能把租约过期等同设备已释放。
+Ray 把任务执行、资源声明和分布式运行时分开，为控制面设计提供了有用的抽象 [[4]](#ref-4)。Kubernetes 的 GPU device plugin 可以作为资源分配基础，但训练平台还要补充 gang scheduling、拓扑亲和性、节点健康和优先级 [[5]](#ref-5)。Borg 的实践说明，配额、优先级、抢占和故障域应由集群控制面统一管理，而不是由每个任务自己实现 [[6]](#ref-6)。
 
-控制面不能把所有运行时细节写进数据库事务。一个训练 step 可能持续数秒，checkpoint 可能持续数分钟，控制面应通过事件记录阶段和状态，而不是长时间持有锁。推荐的状态包括 CREATED、QUEUED、ALLOCATING、STARTING、RUNNING、CHECKPOINTING、RECOVERING、SUCCEEDED、FAILED、CANCELLED。状态迁移需要校验前置状态，重复的完成事件必须幂等，旧 worker 迟到的心跳不能把已经回收的作业改回 RUNNING。
+控制面负责提交、排队、分配、启动、心跳、停止、重试、恢复和归档，需要幂等与可审计；数据面负责 batch 生成、forward、backward、通信和状态写入，需要低延迟与高吞吐。用户重复提交相同 idempotency key 时，控制面应返回已有 job，而不是再申请一组 GPU。worker 失联时，lease 或 heartbeat 超时只能触发调查；资源重新授予之前，还要确认旧执行已经停止或已被 fence（隔离：通过递增的租约代号让旧执行者的写入被拒绝，或直接终止其进程），不能把租约过期等同于设备已释放。
 
-### 训练运行时的身份与配置
+控制面不能把运行时细节写进长数据库事务。一个 step 可能持续数秒，checkpoint 可能持续数分钟，控制面应通过事件记录阶段和状态，而不是长时间持锁。图 9-1 给出一组推荐状态。每次迁移都要校验前置状态，重复的完成事件必须幂等，旧 worker 迟到的心跳不能把已经回收的作业改回 RUNNING。
 
-每个 rank 都要知道 global rank、local rank、world size、node rank、数据分片范围和通信组。配置不能只依赖环境变量，因为环境变量容易在重试或跨集群迁移中变化。平台应生成一个 rank manifest，记录 rank 到节点、GPU、网卡和并行维度的映射，并将它与 checkpoint 和性能报告关联。
+```mermaid
+stateDiagram-v2
+    [*] --> CREATED
+    CREATED --> QUEUED: 校验 spec 与配额
+    QUEUED --> ALLOCATING: gang 资源可用
+    ALLOCATING --> STARTING: allocation 与 rank manifest 就绪
+    STARTING --> RUNNING: 全部 rank 握手成功
+    RUNNING --> CHECKPOINTING: 到达保存点
+    CHECKPOINTING --> RUNNING: 提交完成或转后台
+    RUNNING --> RECOVERING: 节点丢失或通信超时
+    RECOVERING --> ALLOCATING: 需要替换资源
+    RECOVERING --> RUNNING: 从已提交 checkpoint 恢复
+    RUNNING --> SUCCEEDED: 达到目标 step
+    RECOVERING --> FAILED: 超过重试上限
+    QUEUED --> CANCELLED: 用户取消
+    RUNNING --> CANCELLED: 用户取消
+    SUCCEEDED --> [*]
+    FAILED --> [*]
+    CANCELLED --> [*]
+```
 
-运行时配置要区分用户意图和平台推导值。用户声明 global batch、目标 sequence length 和模型并行上限，平台推导 micro-batch、gradient accumulation、通信组和数据 worker 数。推导过程应可解释：为什么某个 batch 被降低，为什么 tensor parallel 只能取 8，为什么某个节点被排除。否则调度器虽然自动化，却让训练结果变得不可理解。
+*图 9-1 训练作业的控制面状态机*
 
+### 运行时身份与配置
 
-### 训练 Infra 的安全边界
+每个 rank 都要知道 global rank、local rank、world size、node rank、数据分片范围和通信组。配置不能只依赖环境变量，因为环境变量在重试或跨集群迁移中容易变化。平台应生成 rank manifest，记录 rank 到节点、GPU、网卡和并行维度的映射，并把它与 checkpoint 和性能报告关联。
 
-训练集群通常拥有高权限网络、对象存储和 GPU，容器中的任意代码都可能读取不该读取的数据。镜像要签名、依赖要锁定、网络要按任务隔离，worker 使用短期凭证，checkpoint 和日志加密。开发者调试权限与生产训练权限分离，禁止通过挂载宿主机路径绕过数据控制。任何访问数据、下载 checkpoint、修改 job spec 和改变发布状态的动作都要有审计。
+运行时配置要区分用户意图和平台推导值。用户声明 global batch、目标 sequence length 和模型并行上限，平台推导 micro-batch、梯度累积步数、通信组和数据 worker 数。推导过程应可解释：为什么某个 batch 被降低，为什么 tensor parallel 只能取 8，为什么某个节点被排除。否则调度器虽然自动化，训练结果却变得不可理解。
 
-模型和数据的安全还要覆盖供应链。外部模型、tokenizer、预训练数据、量化工具和 kernel 都可能带来恶意代码或不兼容行为。构建阶段扫描依赖、固定来源和生成 SBOM；运行阶段限制网络和文件系统；发布阶段校验 artifact hash。安全检查不能只在平台上线时做一次，因为模型和依赖会持续更新。
+### 安全与供应链边界
 
+训练集群通常拥有高权限网络、对象存储和 GPU，容器中的任意代码都可能读取不该读取的数据。镜像要签名，依赖要锁定，网络按任务隔离，checkpoint 和日志加密；开发者调试权限与生产训练权限分离，禁止通过挂载宿主机路径绕过数据控制。worker 的短期凭证与多租户隔离见 9.6 节。访问数据、下载 checkpoint、修改 job spec 和改变发布状态的动作都要有审计。
+
+外部模型、tokenizer、预训练数据、量化工具和 kernel 都可能带来恶意代码或不兼容行为。构建阶段扫描依赖、固定来源并生成 SBOM（software bill of materials，软件物料清单，列出制品包含的全部组件及版本）；运行阶段限制网络和文件系统；发布阶段校验 artifact hash。模型和依赖持续更新，这些检查也要随每次构建执行，而不是只在平台上线时做一次。
+
+> **与贯穿案例的对应**：ALR（本书 Agent 部分贯穿使用的业务诊断 Agent 案例）<!-- 作者待补：ALR 首次定义所在章节号 -->的应用 Run 不能代替训练作业，因为 GPU 拓扑、数据 shard、checkpoint 和弹性恢复是训练平台特有的机制；这种对照只适用于训练平台机制。若要对照，job spec、训练数据与制品、调度动作、checkpoint 状态和发布门禁，分别对应 ALR 的任务契约、Evidence、受控动作、Run 状态和验收证据。
 
 ## 9.2 数据供给与有效训练信号
 
-### 数据的分层与版本
+### 数据分层、不可变快照与 schema 兼容
 
-数据不应直接从原始文档流入 GPU。常见分层是 raw document、clean document、deduplicated corpus、token shard、packed sample 和 batch。raw 层保留来源与授权信息；clean 层完成编码、语言识别、格式过滤和敏感信息处理；deduplicated 层处理精确与近似重复；token shard 适合高吞吐读取；packed sample 负责把多个短样本拼成固定窗口；batch 则绑定某个 run 的 seed 和采样策略。
+数据不应直接从原始文档流入 GPU。常见分层是 raw document、clean document、deduplicated corpus、token shard、packed sample 和 batch，如图 9-2 所示。raw 层保留来源与授权信息；clean 层完成编码、语言识别、格式过滤和敏感信息处理；deduplicated 层处理精确与近似重复；token shard 适合高吞吐顺序读取；packed sample 把多个短样本拼成固定窗口；batch 绑定某个 run 的 seed 和采样策略。每一层都应有 manifest、schema、统计和 hash，统计至少包含文档数、有效 token、语言比例、长度分布、重复率、过滤率和采样权重。
 
-每一层都应有 manifest、schema、统计和 hash。统计至少包含文档数、有效 token、语言比例、长度分布、重复率、过滤率、错误率和采样权重。数据版本变化不能只改一个路径名，因为路径可能指向可变对象存储。训练 job 保存 manifest hash 后，任何人都能重新定位具体 shard；数据删除或授权撤回时，也能找到受影响的 run。
-
-### 数据清洗与去重的系统代价
-
-清洗规则会影响质量、数据量和训练成本。过强过滤可能丢失少数语言、代码和长文档；过弱过滤会引入乱码、模板重复、广告和隐私。去重也不是只做整文档 hash：同一网页的导航、模板、转录和代码片段可能构成近重复，需要在 token n-gram、文档 embedding 或 MinHash 层面建立策略。不同数据源的去重阈值应记录在 manifest，而不是藏在一次性脚本里。
-
-数据质量检查可以在写入 token shard 前做，也可以在训练时抽样做。前者节省训练资源，后者能发现分片损坏和分布漂移。建议把抽样样本的统计摘要写入训练报告，原始内容只在有权限的调试流程中访问。数据处理应有失败隔离：一个坏 shard 进入 quarantine，不应让整个预处理 DAG 重做。RDD 提出的分区、血缘和容错思想可用于理解这种数据层设计 [[8]](#ref-8)。
-
-### 读取路径与预取
-
-GPU 训练的读取路径通常经过对象存储或分布式文件系统、节点缓存、CPU 内存、Pinned Memory 和 GPU 显存。每一层都要明确缓存大小、并发、超时和失败策略。直接从远端对象存储读取小文件会产生过多请求；把所有 token shard 复制到每台节点又会放大存储成本。更合理的方案是大 shard、顺序读取、节点级缓存和有限的预取队列。
-
-预取深度要由实测决定。队列太浅，网络抖动会直接暴露到 GPU；队列太深，会占用 CPU 内存并把错误延迟到很久以后。数据 worker 应暴露等待时间、读取吞吐、解压时间、队列长度、坏样本数和重试次数。训练 worker 应能区分“没有数据”“数据损坏”“数据服务超时”和“GPU 处理慢”，否则所有问题都会被归类为 GPU 利用率下降。
-
-### Packing、padding 与有效 token
-
-固定 sequence length 便于 kernel 和 batch，但短样本 padding 会浪费计算。packing 可以把多个样本拼进一个窗口，提高有效 token 比例，却要求保存样本边界、attention mask 和 loss mask。若样本跨窗口被截断，还要明确是否允许跨样本上下文。训练报告不应只记录 token 数，应同时记录 padded token、有效 token 和 loss token。
-
-有效 token/s 是训练 Infra 的重要指标：
-
-```text
-effective_tokens_per_second
-  = loss_tokens / wall_clock_seconds
+```mermaid
+flowchart LR
+    A["raw document<br/>来源与授权"] --> B["clean document<br/>编码与过滤"]
+    B --> C["deduplicated corpus<br/>去重与去污染"]
+    C --> D["token shard<br/>固定 tokenizer"]
+    D --> E["manifest 与统计<br/>最后写入"]
+    E --> F["提交标记<br/>快照可见"]
+    F --> G["读取与预取<br/>节点缓存"]
+    G --> H["packing<br/>样本边界与 loss mask"]
+    H --> I["batch<br/>seed 与数据游标"]
+    I --> J["训练 step"]
+    L["血缘记录<br/>输入版本 代码 参数"] -.-> C
+    L -.-> D
+    L -.-> E
 ```
 
-如果一个优化把 padding 降低但引入复杂的数据准备，它可能提高理论有效率却降低真实吞吐。评估时要同时展示 device tokens/s、loss tokens/s、GPU busy 和数据等待占比。PaLM 与 Llama 3 的规模化训练经验说明，数据配方、训练时间和系统吞吐必须共同考虑，不能只看模型参数量 [[9]](#ref-9)[[10]](#ref-10)。
+*图 9-2 从原始文档到训练 step 的数据管线*
 
+数据版本应发布为不可变快照：shard 对象一经写入不再修改，统计与校验完成后最后写入 manifest 和提交标记（commit marker），读取方只解析已提交的 manifest，未提交的残留对象由清理任务回收。“先写数据、后写提交标记”让单个快照在自身目录内原子可见，但快照不会因此获得跨系统 ACID：对象存储、元数据目录和训练作业记录分属不同系统，作业登记了 manifest hash 而快照随后被撤回，或目录更新成功而通知失败，都要靠唯一版本 ID、幂等登记和定期对账收敛。9.5 节的 checkpoint 发布沿用同一思路。
 
-### 训练数据不是普通消息队列
+血缘（lineage）记录每个派生版本的输入版本、变换代码与镜像 hash、参数和输出 manifest。它回答两个方向的问题：某个 run 用了哪些上游来源；某个来源被删除或授权撤回时，哪些 shard、run 和 checkpoint 受影响。schema 演进默认要求向后兼容：只新增带默认值的可选字段，不改变已有字段的类型、单位和语义，读取方声明可接受的 schema 版本范围。删除字段、改变分词语义或 loss mask 规则属于不兼容变更，应发布新的主版本；训练作业遇到范围外的 manifest 时拒绝启动，而不是尽力解析。
 
-把数据管线简单理解为“从存储读取消息”会遗漏训练语义。消息队列通常关心至少一次、至多一次或恰好一次消费；训练还要关心样本顺序、采样权重、样本边界、token 数和 epoch 定义。一个 batch 被消费后，worker 崩溃并重放它，计算结果可能不同，因为 dropout、混合精度和并行归约都可能变化。平台需要先定义业务可接受的语义：预训练可以容忍少量重复，监督微调可能要求样本不重复，对齐数据则可能需要精确记录每次消费。
+### 清洗、去重、污染与评估隔离
 
-数据服务应使用不可变 shard 和可定位游标。游标不应只表示第几个 batch，因为 worker 数、packing 策略和 shard 版本变化会使 batch 编号失去意义。更稳妥的游标包括 manifest hash、shard id、sample offset、token offset、packing 状态和采样器状态。恢复时如果这些字段与当前运行时不兼容，要明确走 reshard、重放或拒绝恢复，而不是静默从最近位置开始。
+清洗规则同时影响质量、数据量和成本。过强过滤可能丢失少数语言、代码和长文档；过弱过滤会引入乱码、模板重复、广告和隐私。去重也不只是整文档 hash：同一网页的导航、模板、转录和代码片段可能构成近重复，需要在 token n-gram、文档 embedding 或 MinHash 层面建立策略。各数据源的去重阈值应记录在 manifest，而不是藏在一次性脚本里。质量检查可以在写入 token shard 前做，也可以在训练时抽样做：前者节省训练资源，后者能发现分片损坏和分布漂移。
 
-### 混合数据配方
+污染（contamination）指评估集内容或其近重复进入训练数据。去重系统若只在训练集内部工作，评估集内容可能留在训练数据中；若把所有数据一起去重，又可能泄露测试集的存在和分布。可行做法是把已登记评估集作为只读参照，按 n-gram 重叠等规则从训练侧移除命中样本，并在 manifest 中记录所用评估集版本、阈值和 split 生成规则。评估服务读取只读版本，训练 worker 不获得写权限。评估侧如何划定 holdout、判定污染对指标的影响，见第11章。
 
-预训练通常混合网页、代码、书籍、论文、对话和多语言数据。混合比例可以按文档数、字节、token 或有效 loss token 定义，四种定义结果不同。平台应把权重归一化过程写进 manifest，并在运行中统计实际消费比例。若代码样本平均更长，按文档数设置 20% 并不等于按 token 得到 20%；若大量样本被过滤或截断，声明配方与真实训练配方可能相差很大。
+### 读取路径、packing 与有效 token
 
-采样器还要处理数据源耗尽、动态增量和阶段切换。一个数据桶耗尽后，是循环采样、重新归一化还是提前结束 epoch，必须有明确策略。数据版本切换时，可以从某个 global step 开始使用新权重，但要把切换事件写入 trace 和 checkpoint。否则训练损失曲线的变化无法解释，出现质量回退时也无法定位是模型代码还是数据配方引起。
+GPU 训练的读取路径通常经过对象存储或分布式文件系统、节点缓存、CPU 内存、pinned memory 和 GPU 显存，每一层都要明确缓存大小、并发、超时和失败策略。直接从远端对象存储读取小文件会产生过多请求，把全部 shard 复制到每台节点又会放大存储成本；更合理的方案是大 shard、顺序读取、节点级缓存和有限深度的预取队列。预取太浅，网络抖动直接暴露给 GPU；太深则占用 CPU 内存，并把错误推迟到很久以后。数据 worker 应暴露等待时间、读取吞吐、解压时间、队列长度、坏样本数和重试次数，让训练侧能区分“没有数据”“数据损坏”“数据服务超时”和“GPU 处理慢”。
 
-### 评估数据隔离
+固定 sequence length 便于 kernel 和 batch，但短样本 padding 会浪费计算。packing 把多个样本拼进一个窗口，代价是必须保存样本边界、attention mask 和 loss mask，并明确是否允许跨样本上下文。本章统一使用三个口径：device token 指送入 GPU 的全部位置（含 padding）；有效 token 指其中的真实样本 token；loss token 指有效 token 中参与损失计算的部分（例如监督微调中不计 prompt 部分）。训练报告应同时记录三者，核心吞吐指标用 loss token 计：
 
-训练、验证和测试数据需要物理或逻辑隔离。去重系统如果只在训练集内部工作，可能把评估集内容保留在训练数据中；如果把所有数据一起去重，又可能泄露测试集的存在和分布。数据 manifest 应记录 split 生成规则、去重边界和时间版本。评估服务读取只读版本，不应让训练 worker 获得写权限。
+\\[
+R_{\text{loss}}=\frac{N_{\text{loss}}}{T_{\text{wall}}}
+\\]
 
-评估结果要绑定 checkpoint、数据版本、采样配置和代码版本。在线 dashboard 中只显示一个“验证集 loss”很容易把不同实验混在一起。对于长周期训练，建议定期保存小型固定 probe 集和较大的正式评估集：probe 用于快速检测 loss、格式和数值异常，正式集用于能力、偏差和安全门禁。两者都不能被训练程序修改。
+一个降低 padding 的优化若引入复杂的数据准备，可能提高有效 token 比例却降低 \\(R_{\text{loss}}\\)。评估时要同时展示 device token/s、loss token/s、GPU busy 和数据等待占比。PaLM 与 Llama 3 的规模化训练经验说明，数据配方、训练时间和系统吞吐必须共同考虑，不能只看参数量 [[7]](#ref-7)[[8]](#ref-8)。
 
+### 数据游标、混合配方与 tokenizer 契约
 
-### 训练数据的访问控制实现
+训练数据不是普通消息队列。消息队列关心至少一次或恰好一次消费，训练还要关心样本顺序、采样权重、样本边界、token 数和 epoch 定义。worker 崩溃后重放一个 batch，结果可能不同，因为 dropout、混合精度和并行归约都可能变化。平台要先定义可接受的语义：预训练可以容忍少量重复，监督微调可能要求不重复，对齐数据可能需要精确记录每次消费。数据游标因此不能只记“第几个 batch”，因为 worker 数、packing 策略和 shard 版本变化会使 batch 编号失去意义；更稳妥的游标包含 manifest hash、shard id、sample offset、token offset、packing 状态和采样器状态。恢复时字段不兼容，要明确走 reshard、重放或拒绝恢复，而不是静默从最近位置开始。
 
-数据访问控制要覆盖控制面和数据面。控制面在创建 job 时校验项目、用途、数据 license、地域和保留期限；数据面在 worker 获取 shard 时发放短期、最小范围的凭证。凭证不应允许列出整个 bucket，也不应允许 worker 将训练数据写回原始路径。对象存储、缓存和本地临时目录的权限要保持一致，任务结束后回收临时凭证并清理不再需要的缓存。
+混合比例可以按文档数、字节、token 或 loss token 定义，四种结果不同。若代码样本平均更长，按文档数设 20% 并不等于按 token 得到 20%；大量样本被过滤或截断时，声明配方与实际配方可能相差很大。平台应把权重归一化过程写进 manifest，运行中统计实际消费比例，并为数据桶耗尽（循环采样、重新归一化或结束 epoch）和配方切换定义策略；切换事件写入 trace 和 checkpoint，否则损失曲线的变化无法归因。
 
-训练日志常常包含样本文本、异常 token 和模型输出，必须按照数据等级处理。默认记录 hash、长度、语言和错误类型；完整文本只在经过授权的诊断任务中短暂保存。将 prompt 或样本直接作为 metric label 更危险，会造成高基数、日志泄露和成本膨胀。观测字段应有允许列表、脱敏器和保留策略，OpenTelemetry 的统一上下文只能解决关联问题，不能替代隐私控制 [[11]](#ref-11)。
+tokenizer 是决定样本长度、词表、特殊 token、padding、截断和模型输入的运行时契约。升级 tokenizer 会改变有效 token 数、packing、embedding shape 和成本，因此 job spec 必须保存 tokenizer 的不可变 artifact hash、normalization 规则、special token、chat template 和最大长度；checkpoint 恢复时 tokenizer 不一致，应拒绝或执行经过验证的迁移。数据质量报告还应包含字符到 token 的膨胀比例，按语言、数据源和长度分桶，以发现未知字符、二进制内容和控制字符造成的 token 爆炸。
 
-### 数据漂移与训练漂移
+### 漂移监测与数据 DAG 的重试边界
 
-数据管线在长周期训练中可能发生漂移：上游抓取站点变化、语言比例变化、过滤规则更新、代码仓库增加或某个数据源失效。平台应按时间窗口统计有效 token、语言、长度、来源、重复率和过滤率，并与 job spec 中的目标配方比较。偏差超过阈值时，可以暂停消费、重新生成 shard 或标记为新阶段，不应让训练静默改变分布。
+长周期训练中，上游站点变化、过滤规则更新或某个数据源失效都会让数据漂移。平台按时间窗口统计有效 token、语言、长度、来源、重复率和过滤率，与 job spec 的目标配方比较，超过阈值时暂停消费、重新生成 shard 或标记新阶段。训练指标同样会漂移：全局 loss 下降不代表每种语言、代码和长文档都改善，按数据桶和长度分层的 loss 可以发现某个源异常或 tokenizer 处理错误。
 
-训练指标也会漂移。全局 loss 下降不代表每种语言、代码、长文档和少数任务都改善。将 loss 按数据桶和长度分层，可以发现某个源异常、padding 变多或 tokenizer 处理错误。固定 probe 集用于检测运行时变化，分层正式评估用于决定是否继续训练；两者都需要与 checkpoint 版本绑定。
-
-### 数据处理 DAG 的重试边界
-
-预处理往往是一个包含下载、解析、过滤、去重、分词、分片和统计的 DAG。每个节点都应有输入版本、输出版本、执行镜像、参数和结果 manifest。失败时只重试失败分区，不重做已经完成且校验通过的分区；上游输出发生变化时，通过血缘关系确定哪些下游需要失效。Spark 的 RDD 和分区容错思想说明，数据处理的可靠性来自可重建的中间结果与明确的血缘，而不是依赖某个常驻进程 [[8]](#ref-8)。
-
-重试要区分确定性错误和瞬时错误。对象存储超时、节点暂时不可用可以退避；解析器遇到未知编码、schema 不匹配或越过内存上限，应隔离样本并记录原因。无限重试会掩盖坏数据并持续消耗配额。每个分区应有最大重试次数、错误样本上限和 quarantine 路径，数据负责人可以在不影响其他分区的情况下修复并重新运行。
-
-### Tokenizer 的版本契约
-
-tokenizer 不是训练前的普通工具，而是决定样本长度、词表、特殊 token、padding、截断和模型输入的运行时契约。升级 tokenizer 会改变有效 token 数、sequence packing、embedding shape 和训练成本。job spec 必须保存 tokenizer 文件或不可变 artifact hash、normalization 规则、special token、chat template 和最大长度。checkpoint 恢复时如果 tokenizer 不一致，应明确拒绝或执行经过验证的迁移。
-
-tokenizer 处理异常字符时要有统计。未知字符、超长 Unicode 序列、二进制内容、空样本和控制字符都可能造成 token 爆炸或 loss 异常。数据质量报告应包含字符到 token 的膨胀比例，并按语言、数据源和长度分桶。对代码、多语言和数学公式，通用过滤器可能误删重要信息，训练 Infra 需要把这些边界交给数据和算法团队共同确认。
-
+预处理通常是一个包含下载、解析、过滤、去重、分词、分片和统计的 DAG。每个节点记录输入版本、输出版本、执行镜像、参数和结果 manifest。失败时只重试失败分区，不重做已完成且校验通过的分区；上游输出变化时，按血缘确定哪些下游失效。RDD 的分区与血缘容错思想说明，数据处理的可靠性来自可重建的中间结果和明确的血缘，而不是某个常驻进程 [[9]](#ref-9)。重试还要区分瞬时错误和确定性错误：对象存储超时、节点暂时不可用可以退避；未知编码、schema 不匹配或超出内存上限则应隔离样本并记录原因。每个分区设最大重试次数、错误样本上限和 quarantine 路径，坏 shard 进入 quarantine 后由数据负责人修复重跑，不影响其他分区，也不会被无限重试掩盖。
 
 ## 9.3 并行策略与资源账本
 
-### 数据并行与梯度同步
+第8章 8.3 节已给出 DP、TP、PP 与 ZeRO/FSDP 的概览和模型状态显存账本，本节不再复述定义，只写训练平台需要的增量：batch 口径、TP 与 PP 的通信与 bubble 结论、ZeRO 的显存与通信账本、3D mesh 与 SP/CP/EP 的切分轴，以及并行配置如何成为恢复契约。
 
-数据并行让每个 rank 持有模型副本，处理不同 micro-batch，然后通过 all-reduce 同步梯度。它实现简单、扩展直接，但完整复制参数、梯度和 optimizer state 的内存成本很高。随着模型变大，单纯增加数据并行 rank 会先遇到单卡显存上限，再遇到梯度同步和小 batch 的效率问题。
+### 数据并行与 batch 口径
 
-在各rank微批大小相同且无不齐尾批时，样本global batch=每rank micro-batch×DP度×梯度累积步数；packing下还需单独统计loss token，不能把样本公式直接当token批量。改变任何一个因素都可能改变优化轨迹。平台必须记录真实的 global batch 和每步有效 token，而不是只记录 dataloader batch size。NCCL 的 all-reduce 适合梯度聚合，但通信是否能与 backward 重叠，取决于 bucket 大小、梯度 ready 顺序和拓扑 [[12]](#ref-12)。
+数据并行（DP）让每个 rank 持有完整副本、处理不同 micro-batch，再用 all-reduce 同步梯度。增加 DP rank 并不改变单卡显存。模型变大时，单卡先放不下完整的参数、梯度和优化器状态；DP 规模变大时，梯度同步在 step 中的占比上升，固定 global batch 下每卡 batch 变小，kernel 效率随之下降。
+
+在各 rank micro-batch 相同且没有不齐尾批时，样本口径的 global batch 为 \\(B=b\times D\times A\\)，其中 \\(b\\) 为每 rank micro-batch，\\(D\\) 为 DP 度，\\(A\\) 为梯度累积步数。packing 下还要单独统计每步 loss token，不能把样本公式直接当成 token 批量。改变任何一个因子都可能改变优化轨迹，平台必须记录真实的 global batch 和每步 loss token，而不是只记录 dataloader 的 batch size。梯度 all-reduce 能否与 backward 重叠，取决于 bucket 大小、梯度 ready 顺序和拓扑 [[10]](#ref-10)。
 
 ### 张量并行与流水线并行
 
-张量并行把单个线性层或 attention 的矩阵切到多个 GPU，单层计算需要 collective 通信。它适合高速互联的同机 GPU，tensor parallel degree 通常受 NVLink、PCIe 和显存约束。Megatron-LM 通过对 Transformer 层做模型并行，使单卡无法容纳的模型能够训练 [[1]](#ref-1)。但 TP 越大，每个 token 的通信次数和同步敏感性也越高。
+Megatron 式张量并行（TP）把 MLP 和 attention 的权重矩阵按列、行切分，每个 Transformer 层前向 2 次、反向 2 次 all-reduce [[1]](#ref-1)。这个次数不随 TP 度 \\(t\\) 变化，变化的是比例：每卡矩阵计算降为约 \\(1/t\\)，而每次 all-reduce 每卡发送的字节量趋近激活大小的 \\(2(t-1)/t\\) 倍，基本不随 \\(t\\) 缩小，因此 \\(t\\) 越大通信占比越高，跨节点时尤为明显。这就是 TP 通常限制在 NVLink 域内的原因。
 
-流水线并行把不同层放到不同 stage，输入 micro-batch 依次通过 stage。它减少单卡参数占用，却产生 pipeline bubble、调度复杂度和 stage 不均衡。非交错1F1B主要改变激活驻留和调度；不能仅凭名称保证比其他同类流水线调度具有更少bubble。最长stage仍可能限制全局吞吐。层划分应考虑参数、激活、通信和 kernel 时间，而不是简单平均层数。若某些层因 MoE 或视觉模块更重，静态平均会造成严重 straggler。
+流水线并行（PP）把层切成 \\(p\\) 个 stage，一个 global batch 拆成 \\(m\\) 个 micro-batch 依次流过。GPipe 式调度先做完全部前向再做反向，bubble（空闲时间）占总时间的比例约为 \\((p-1)/(m+p-1)\\)。1F1B（one-forward-one-backward）调度让每个 stage 在稳态交替执行一个 micro-batch 的前向和一个 micro-batch 的反向。非交错 1F1B 的 bubble 比例与 GPipe 相同，它的作用是把每个 stage 同时驻留的激活从 \\(m\\) 个 micro-batch 降到约 \\(p\\) 个；交错调度让每卡持有 \\(v\\) 个不相邻的虚拟 stage，bubble 约降为原来的 \\(1/v\\)，代价是 stage 间点对点通信增加约 \\(v\\) 倍 [[11]](#ref-11)。图 9-3 以 \\(p=3\\)、\\(m=4\\) 为例画出非交错 1F1B 时序（假设反向耗时为前向的两倍），每个 stage 空闲 6 个时间单位，占总长 18 的 1/3，与公式一致。
 
-### ZeRO 与 FSDP
+```mermaid
+gantt
+    title 非交错 1F1B 时序 p=3 m=4
+    dateFormat X
+    axisFormat %s
+    section Stage1
+    F1 : 0, 1
+    F2 : 1, 2
+    F3 : 2, 3
+    B1 : 7, 9
+    F4 : 9, 10
+    B2 : 10, 12
+    B3 : 13, 15
+    B4 : 16, 18
+    section Stage2
+    F1 : 1, 2
+    F2 : 2, 3
+    B1 : 5, 7
+    F3 : 7, 8
+    B2 : 8, 10
+    F4 : 10, 11
+    B3 : 11, 13
+    B4 : 14, 16
+    section Stage3
+    F1 : 2, 3
+    B1 : 3, 5
+    F2 : 5, 6
+    B2 : 6, 8
+    F3 : 8, 9
+    B3 : 9, 11
+    F4 : 11, 12
+    B4 : 12, 14
+```
 
-ZeRO 逐步分片 optimizer state、gradient 和 parameter，减少每个 rank 的冗余；FSDP 在 PyTorch 中以参数分片、all-gather 和 reduce-scatter 实现类似目标 [[2]](#ref-2)[[4]](#ref-4)。分片让模型能在更少的显存中训练，却把参数获取和释放加入了关键路径。正确选择需要测量通信与计算重叠、参数 prefetch、CPU offload 和 activation checkpoint 的组合。
+*图 9-3 非交错 1F1B 的 micro-batch 时序与 bubble*
 
-ZeRO-Infinity 进一步利用 CPU 和 NVMe 扩展可用内存 [[13]](#ref-13)。卸载能解决容量问题，但 PCIe、NVMe 和网络带宽可能使 step 时间显著增加。平台不能把“能启动”当作成功，而应比较每百万有效 token 的成本、恢复时间和尾部抖动。对低利用率实验，offload 可能比增加 GPU 更经济；对大规模生产训练，它可能成为不可接受的同步瓶颈。
+公式假设各 stage 耗时相同，真实系统由最慢 stage 决定吞吐。Embedding、输出头、MoE 层、视觉模块和权重共享都会改变 stage 的参数与计算，按层数平均切分往往造成 straggler；第一个 stage 驻留的未反向 micro-batch 最多，激活峰值也最高。固定 global batch 时调小 micro-batch 会增加 \\(m\\)、降低 bubble 比例，却同时改变累积次数和 kernel 效率，不能只看 bubble 比例做选择。应先逐 stage 报告前向、反向、等待与显存峰值，再比较切层、虚拟 stage、激活重算和调度方案。
 
-### MoE 与专家并行
+### ZeRO、FSDP 与显存通信账本
 
-MoE 用路由器把 token 分发到少数专家，激活参数少于总参数。GShard 和 Switch Transformer 展示了稀疏专家模型的扩展方式 [[14]](#ref-14)[[15]](#ref-15)。Infra 需要处理 token dispatch、专家容量、all-to-all 通信、负载不均衡和 token drop。专家数增加并不自动提高效率；如果路由把大部分 token 集中到少数专家，热门 expert 成为瓶颈，其他 GPU 却空闲。
+ZeRO 逐级分片优化器状态、梯度和参数 [[2]](#ref-2)，FSDP 在 PyTorch 中以参数分片、all-gather 和 reduce-scatter 实现类似目标 [[3]](#ref-3)。分片让模型能在更少显存中训练，代价是把参数获取和释放放进了关键路径。下表把显存与通信放在同一张账本里。教学假设：共 \\(P\\) 个参数，参数与梯度均为 BF16（各 2 字节），FP32 master weights 与 Adam 两个 moment 共 12 字节；\\(D\\) 为分片所在 DP 组大小；\\(\Psi\\) 为一份完整参数（或梯度）的字节数，通信量按 ring 实现、\\(D\\) 较大时每 rank 发送量计。
 
-专家并行的容量因子决定每个 expert 能接收多少 token。在丢弃溢出token的实现中，容量太小可能丢token，容量太大则浪费显存并增加通信。训练平台要记录每个 expert 的 token 数、溢出率、路由熵、all-to-all 时间和 rank 方差。MoE checkpoint 还要保存专家布局和路由相关配置，不能只保存最终权重，否则恢复时的并行映射可能不一致。
+| 配置 | 每 rank 模型状态（字节） | 每步每 rank 通信量 | FSDP 按行为对应 | 新增关键路径 |
+|:---|:---|:---|:---|:---|
+| 普通 DP | \\(16P\\) | \\(\approx 2\Psi\\)：梯度 all-reduce | `NO_SHARD` | 梯度聚合 |
+| ZeRO-1 | \\(4P+12P/D\\) | \\(\approx 2\Psi\\) | 无直接对应 | 分片更新后参数 all-gather |
+| ZeRO-2 | \\(2P+14P/D\\) | \\(\approx 2\Psi\\)：梯度 reduce-scatter 加参数 all-gather | `SHARD_GRAD_OP` | 梯度归约到分片 |
+| ZeRO-3 | \\(16P/D\\) | \\(\approx 3\Psi\\)：前向、反向各一次参数 all-gather 加梯度 reduce-scatter | `FULL_SHARD` | 计算前获取参数 |
 
-### 并行度搜索
+若梯度以 FP32 累加（梯度累积时常见），普通 DP 约为 \\(18P\\)，其余各行相应增加；不同优化器和实现须重算字节口径。ZeRO 论文给出的结论正是：阶段 1、2 的通信量与普通 DP 相同（约 \\(2\Psi\\)），阶段 3 约为 1.5 倍（约 \\(3\Psi\\)）[[2]](#ref-2)。FSDP 文档说明其设计受 ZeRO-3 启发：`FULL_SHARD` 在前向和反向前后各 all-gather 并重新分片参数；`SHARD_GRAD_OP` 前向后保留完整参数直到反向结束，行为接近 ZeRO-2；`NO_SHARD` 等价于 DDP；`HYBRID_SHARD` 在节点内做 `FULL_SHARD`、节点间复制，把 all-gather 和 reduce-scatter 限制在节点内 [[12]](#ref-12)。表中的 FSDP 对应是按行为归纳，文档本身并未逐一映射。
 
-并行度选择可以视为约束优化。先满足单层参数和激活能放入显存，再在目标拓扑上选择 TP；根据层数和 bubble 选择 PP；剩余 GPU 用 DP 扩展吞吐；MoE 再选择 EP。每个候选组合都需要小规模真实 workload 测试，测量 step time、通信比例、显存峰值和扩展效率。理论 FLOPs 只能给出上界，不能替代实测。
+表中是模型状态的理想载荷，不是 GPU 峰值。前向获取的完整层、预取的下一层、通信 bucket、为重叠保留的梯度、激活、allocator 保留块和 CPU staging（暂存）缓冲可能同时存活，不能把 ZeRO-3 的式子当作显存申请上限。offload 改变状态的位置，激活重算改变激活的保存方式，二者与 ZeRO 阶段是相互独立的开关。一个在显存充裕机器上有效的重叠配置，迁移到更小的 GPU 后可能触发 OOM。ZeRO-Infinity 进一步把状态卸载到 CPU 和 NVMe [[13]](#ref-13)，解决容量问题的同时可能让 PCIe、NVMe 和网络带宽主导 step 时间；它对低利用率实验可能比加卡更经济，对大规模生产训练则可能成为不可接受的同步瓶颈，应按每百万有效 token 成本、恢复时间和尾部抖动比较，而不是以“能启动”为成功。
 
-并行配置一旦写入 checkpoint，就成为恢复契约的一部分。支持 reshard 的平台应保存逻辑参数名、分片范围和布局版本，恢复时由转换器生成新的 shard；不支持 reshard 时，应让调度器保证相同的 world size 和并行度。静默改变并行配置会让 optimizer state 与参数分片错位，是最危险的恢复错误之一。
+### 3D mesh 与 SP、CP、EP 切分轴
 
+本章的 3D 指 DP×TP×PP；在独立 mesh 的布局中，world size 是三者的乘积。逻辑坐标 \\((d,p,t)\\) 先映射到物理 rank：同一 \\(d,p\\) 下沿 \\(t\\) 做 TP 通信，同一 \\(d,t\\) 下沿 \\(p\\) 传递 stage 边界的激活与梯度，同一 \\(p,t\\) 下沿 \\(d\\) 同步梯度。图 9-4 以 DP=2、PP=2、TP=2 共 8 卡为例：通信最密的 TP 组放在同一 NVLink 域，PP 与 DP 跨节点。实际映射顺序由启动器保存，不能从 rank 号推测。DeepSpeed 的 3D 并行说明与 Megatron 的组合研究是这种分工的实例 [[14]](#ref-14)[[11]](#ref-11)，但不能据此推断任一版本的任意组合都可用。
 
-### 显存账本：分片状态与瞬时峰值
+```mermaid
+flowchart TB
+    subgraph R0["DP 副本 d=0"]
+        subgraph N0["节点 0 上的 stage p=0"]
+            G0["GPU0<br/>t=0"] <-->|"TP all-reduce"| G1["GPU1<br/>t=1"]
+        end
+        subgraph N1["节点 1 上的 stage p=1"]
+            G2["GPU2<br/>t=0"] <-->|"TP all-reduce"| G3["GPU3<br/>t=1"]
+        end
+        N0 -->|"PP 激活"| N1
+    end
+    subgraph R1["DP 副本 d=1"]
+        subgraph N2["节点 2 上的 stage p=0"]
+            G4["GPU4<br/>t=0"] <-->|"TP all-reduce"| G5["GPU5<br/>t=1"]
+        end
+        subgraph N3["节点 3 上的 stage p=1"]
+            G6["GPU6<br/>t=0"] <-->|"TP all-reduce"| G7["GPU7<br/>t=1"]
+        end
+        N2 -->|"PP 激活"| N3
+    end
+    G0 -.->|"DP 梯度同步"| G4
+    G3 -.->|"DP 梯度同步"| G7
+```
 
-ZeRO阶段1、2、3分别进一步分片优化器状态、梯度和参数。[[2]](#ref-2) 下表固定教学假设：共有P个参数，参数与梯度各2字节，FP32 master和两个Adam moment共12字节；D为相应DP组大小，不计激活、临时聚合及额外副本。不同优化器和实现的字节口径必须重算。
+*图 9-4 DP=2、PP=2、TP=2 的 3D mesh 映射示例*
 
-| 配置 | 每rank状态载荷 | 增加的关键路径 |
+Megatron 式 sequence parallel（SP）沿序列维拆分 LayerNorm、dropout 等层的激活，配合 TP 组内的 all-gather 与 reduce-scatter 降低激活冗余 [[15]](#ref-15)。context parallel（CP）把注意力的长序列分给多个 rank，仍要交换跨片的 KV 或等价信息；Ring Attention 展示了分块环式交换与计算重叠的路线 [[16]](#ref-16)。两者都不是“各算各的局部 attention 再拼接”，那样会漏掉跨片键值并改变 softmax 分母；位置编码、因果 mask、变长尾片和反向梯度都要与未分片参考结果核对。
+
+MoE 用路由器把 token 分发到少数专家，激活参数少于总参数 [[17]](#ref-17)[[18]](#ref-18)。专家并行（EP）带来 token dispatch、all-to-all 通信、专家容量和负载不均衡问题：路由把大部分 token 集中到少数专家时，热门专家成为瓶颈，其他 GPU 空闲。在丢弃溢出 token 的实现中，容量因子太小会丢 token，太大则浪费显存并增加通信。平台要记录每个专家的 token 数、溢出率、路由熵、all-to-all 时间和 rank 方差。EP 若划分已有的 DP 组，不能再在 world size 中独立乘一次；MoE checkpoint 还要保存专家布局和路由配置，否则恢复时并行映射可能不一致。
+
+### 并行度搜索与恢复契约
+
+并行度选择可以视为约束优化：先保证单层参数和激活放得进显存，再在目标拓扑上选 TP；根据层数和 bubble 选 PP；剩余 GPU 用 DP 扩展吞吐；MoE 再选 EP。每个候选组合都要用小规模真实 workload 测量 step time、通信比例、显存峰值和扩展效率。理论 FLOPs 只给出上界，不能替代实测。
+
+并行配置一旦写入 checkpoint，就成为恢复契约的一部分。支持 reshard 的平台保存逻辑参数名、分片范围和布局版本，恢复时由转换器生成新的 shard；不支持时，调度器必须保证相同的 world size 和并行度。静默改变并行配置会让 optimizer state 与参数分片错位，是最危险的恢复错误之一（见 9.5 节）。
+
+## 9.4 Kernel、数值稳定性与通信拓扑
+
+本节分两部分：前三个小节讲单卡上的 kernel 与数值，后两个小节讲多卡之间的通信与拓扑。
+
+### Kernel 与数值：FlashAttention 与 online softmax
+
+第8章已说明 FlashAttention 用 IO-aware tiling 减少 attention 的 HBM 读写并保持精确计算 [[19]](#ref-19)，这里补上分块计算为何仍然精确。对一个查询行，记第 \\(j\\) 个键的分数为 \\(s_j=q\cdot k_j/\sqrt{d}\\)（已含缩放），输出为 \\(o=\sum_j e^{s_j}v_j\big/\sum_j e^{s_j}\\)。分块计算时，对已处理的键块保存行最大值 \\(m\\)、指数和 \\(l\\) 与未归一化加权值和 \\(u\\)；新块到达时：
+
+\\[
+m'=\max\big(m,\max_j s_j\big),\quad
+l'=e^{m-m'}l+\sum_j e^{s_j-m'},\quad
+u'=e^{m-m'}u+\sum_j e^{s_j-m'}v_j
+\\]
+
+全部块处理完后返回 \\(u/l\\)。最大值变化时，旧的 \\(l\\) 和 \\(u\\) 都要重缩放，不能直接拼接各块已经归一化的概率。训练的反向传播也不保存 \\(N\times N\\) 的概率矩阵：前向只保存输出和每行的 logsumexp \\(L=m+\log l\\)，反向时按块重算分数，并用 \\(p_j=e^{s_j-L}\\) 恢复概率 [[19]](#ref-19)。初始化要用“尚无有效键”的分支处理，避免负无穷减负无穷；全被 mask 的查询行按契约报错或返回约定值，不能产生伪均匀分布。
+
+FlashAttention 减少的是 HBM 中间读写，标准全注意力的计算量仍是序列长度的二次阶；数学目标一致也不表示浮点逐位相同。FlashAttention-2 进一步改进工作划分和并行 [[20]](#ref-20)，收益依形状、硬件与 mask 支持而变。接受新 kernel 前，应对照高精度参考，覆盖极值、短行与长行、尾块和梯度，并验证端到端 step、显存峰值和不同 GPU 架构。
+
+### Kernel 与数值：融合、编译与 Roofline
+
+优化应遵循“基线、假设、变更、测量、回滚”的链路：先用 profiler 找热点，再决定融合、重排、编译或量化。kernel benchmark 提速不代表训练提速，瓶颈可能转移到通信或数据。融合通常减少 launch 和中间 HBM 读写，却可能增加寄存器压力、spill（寄存器溢出：寄存器不够时变量被放到较慢的 local memory）、共享内存占用和同步，降低 occupancy（占用率：每个 SM 上活跃 warp 数与硬件上限之比），甚至破坏成熟库 kernel 的 tile 或 Tensor Core 路径。回退时先固定形状、dtype、预热、计时同步与数据，再比较寄存器、spill、occupancy、访存合并和 kernel 时间；缩小融合范围也应是候选方案。性能结果必须与模型版本、输入 shape、CUDA、driver、编译器和环境变量绑定。
+
+Nsight Compute 的 Roofline 用算术强度 \\(I\\)（FLOPs/字节）解释 kernel 瓶颈 [[21]](#ref-21)，粗略上界为 \\(\text{Perf}\le\min(P_{\text{peak}},\,B\cdot I)\\)，其中 \\(B\\) 为对应访存层的带宽；计数器须对应所用精度、访存层和真实指令。SM 和 DRAM 利用率都低时，原因也可能是 launch、同步、CPU 供给、小 grid 或依赖链，不能简单二分为“计算受限”或“显存受限”。应先看时间线判断是空闲还是核内低效，再改 batch、分块或融合验证假设，并同时报告 kernel 级和端到端收益。
+
+编译工具处在不同抽象层（见下表）[[22]](#ref-22)[[23]](#ref-23)[[24]](#ref-24)[[25]](#ref-25)[[26]](#ref-26)。图级优化做等价变换、常量折叠、死代码消除、布局协调与融合，算子级安排 tiling、循环、线程与存储层级；局部最优布局可能让相邻算子多出转置。动态图可以捕获局部静态 IR 并做 shape 特化，但图断裂、数据依赖分支和新形状会触发回退或重编译，应记录编译时间、缓存命中和长尾形状成本。浮点重排按明确误差验收，一次导出成功不能证明端到端更快。注意此处的 Triton 是编译器项目，与同名推理服务框架无关；TensorRT 面向推理部署，相关内容见第10章。
+
+| 路线 | 主要控制对象 | 需要验证的代价 |
 |:---|:---|:---|
-| 普通DP | \\(16P\\)字节 | 梯度聚合 |
-| ZeRO-1 | \\(4P+12P/D\\) | 分片优化与参数一致性 |
-| ZeRO-2 | \\(2P+14P/D\\) | 梯度归约到分片 |
-| ZeRO-3 | \\(16P/D\\) | 计算前获取所需参数 |
+| CUDA | 显式线程、块、同步与内存访问 | 开发调试、同步正确性、架构适配、实际 occupancy 与访存 |
+| Triton | 分块张量程序，由编译器生成设备代码 | mask、布局、编译特化与调优；简洁不保证快于成熟库 |
+| TVM | 图表示、张量程序变换、目标代码与运行时 | 前端与目标支持、搜索成本、布局转换与外部库边界 |
+| XLA | 张量计算图的编译、优化与代码生成 | 可编译区域、动态控制流与 shape、重编译与首次编译时间 |
+| TensorRT | NVIDIA 推理网络优化与 engine 构建 | 算子与精度支持、动态 shape、插件维护与部署兼容 |
 
-这是模型状态的理想载荷，不是GPU峰值。前向获取完整层、预取下一层、通信bucket、激活重算、allocator保留和CPU staging都可能同时存活，不能把ZeRO-3式子当申请显存的总上限。offload改变状态位置，activation checkpoint改变激活保存，两者与ZeRO阶段是不同开关；FSDP也要按其策略与预取配置解释峰值。[[13]](#ref-13)[[4]](#ref-4)
+### Kernel 与数值：混合精度、激活重算与可复现
 
-### 3D、sequence与context的切分轴
+不同低精度格式需要不同的数值保护。FP16 动态范围窄，小梯度容易下溢，通常需要 loss scaling：先放大 loss 再反向，更新前除回去，遇到溢出就跳过该步并调小缩放因子 [[27]](#ref-27)。BF16 的指数位与 FP32 相同，通常不需要 loss scaling，但尾数更短，累加误差更大。FP8 的范围和精度都更窄，需要为每个张量维护缩放因子（per-tensor scaling），并在 E4M3、E5M2 两种格式之间按用途选择（前者精度较高，后者范围较大，常用于梯度）[[28]](#ref-28)；较新的格式与实现还让一小块元素共享一个缩放因子（block scaling），以容纳张量内部的数值跨度。master weights 与 optimizer moments 通常保持 FP32，这正是 9.3 节显存账本中 12 字节的来源；归一化、softmax 和输出层是否保留高精度要按数值证据决定，不能把 dtype 当作一个全局开关。训练系统需要监控 loss spike、梯度范数、溢出与下溢次数、NaN、Inf 和异常 rank。
 
-本章3D明确指DP×TP×PP，在独立mesh的教学布局中world size为三者乘积。逻辑坐标(d,p,t)先映射到物理rank：同一d/p下沿t通信，同一p/t下沿d同步样本梯度，同一d/t下沿p传阶段边界；实际顺序由启动器保存，不从rank号猜测。EP若划分已有DP组，不能再独立乘一次。DeepSpeed官方3D说明与Megatron组合研究是这种分工的实例 [[3]](#ref-3)[[16]](#ref-16)，不能据此推断任一版本任意组合都可用。
+出现 NaN 或 loss spike 时，自动重试同一个 batch 通常没有意义。平台应保存触发 step 的输入摘要、参数统计、梯度范数、精度配置和 kernel 版本，然后暂停或回滚到最近的健康 checkpoint。PaLM 在训练最大模型时遇到约 20 次 loss spike，做法是从 spike 开始前约 100 步的 checkpoint 重启，并跳过约 200–500 个数据 batch，之后同一位置不再出现 spike；作者的实验表明 spike 来自特定 batch 与特定参数状态的组合，而非单纯的坏数据 [[7]](#ref-7)。排查还要考虑 SDC（silent data corruption，静默数据损坏：硬件算错但不报错），它表现为单个 rank 的梯度范数或 loss 异常，可以通过对比 rank 统计和在其他节点上重放来区分。异常检测要与 checkpoint 保留策略绑定，至少保留最后一个已验证的健康点，避免坏状态覆盖所有可恢复版本。
 
-Megatron式sequence parallel沿序列维拆分部分层归一化/dropout激活，配合TP组内all-gather/reduce-scatter降低激活冗余。[[17]](#ref-17) context parallel则把注意力的长序列分给多rank，仍需交换跨片KV或等价信息；Ring Attention展示分块环式交换与计算重叠的研究路线。[[18]](#ref-18) 两者不是“各算自己的局部attention再拼接”；那会漏掉跨片键值并改变softmax分母。位置、因果mask、变长尾片和反向梯度都需要与未分片参考核对。
+激活重算（activation recomputation，PyTorch 中称 activation checkpointing）在前向中不保存全部中间激活，反向时重新计算，用计算换显存。PyTorch 2.9 文档说明了重算时 RNG 状态的保存方式与设备类型限制 [[29]](#ref-29)；重算时必须恢复相同的随机状态，否则 dropout 会改变梯度，参数已被 FSDP 释放时还要再次 all-gather。平台应记录重算粒度、额外 FLOPs、显存峰值和 step time：粒度过粗峰值仍高，过细则增加 kernel 和调度开销，最佳粒度随 sequence length 变化。恢复与性能报告要保存完整的运行时开关，而不是一个布尔值。
 
-流水线也不能按卡数均分显存。Embedding、输出头、MoE层、视觉模块和权重共享会改变参数与计算；不同stage未反向的micro-batch数决定激活峰值。固定全局batch时，调小micro-batch会改变累积次数和kernel效率；不能只看泡泡比率选择。先逐stage报告前后向、等待与峰值，再比较切层、虚拟stage、重算和调度，避免把最快stage的数据当全局吞吐。
+分布式低精度训练中，硬件、归约顺序、kernel、通信算法和随机数都会影响结果的最后几位。job spec 应明确复现目标：位级复现可能限制并行与性能；统计复现要求 loss 与主要评估指标在容差内；语义复现要求能力和安全指标不发生不可接受的变化。硬件不同时应多次重复实验并报告均值和方差，既不把微小差异当故障，也不用随机性解释明显的 loss 跳变。
 
-### 集合通信的元素语义与字节账本
+### 通信与拓扑：集合原语与字节账本
 
-| 原语 | 输入到输出 | 常见用途与必要条件 |
+| 原语 | 输入到输出 | 训练中的用途与必要条件 |
 |:---|:---|:---|
-| All-Reduce | 对应元素归约，所有rank获同一结果 | DP梯度；元素对应且操作/形状匹配 |
-| All-Gather | 收集各rank分片，按约定拼接 | 参数或激活获取；布局与顺序必须一致 |
-| Reduce-Scatter | 对应元素归约，再按rank留一个结果片 | 分片梯度；不是简单分发原输入 |
-| All-to-All | 每rank把面向不同目标的块分别交换 | 专家dispatch/布局；记录split大小与逆向还原 |
+| All-Reduce | 对应元素归约，所有 rank 得到同一结果 | DP 梯度、TP 层内归约；形状与操作匹配 |
+| All-Gather | 收集各 rank 分片，按 rank 顺序拼接 | FSDP 参数、SP 激活；布局与顺序一致 |
+| Reduce-Scatter | 对应元素归约，每 rank 只留一个结果分片 | 分片梯度；不是简单分发原输入 |
+| All-to-All | 每 rank 把面向不同目标的块分别发出 | MoE dispatch 与布局变换；记录 split 大小以便逆向还原 |
 
-NCCL定义上述基本数据交换；算法并不与某一原语一一固定绑定。[[12]](#ref-12) 本书假设ring all-reduce、D个rank、每rank完整梯度载荷G字节且均匀分块：reduce-scatter和all-gather阶段每rank各发送约 \\((D-1)G/D\\)，总发送约 \\(2(D-1)G/D\\)；接收量另计。两阶段各有D-1轮，粗略时间模型为 \\(2(D-1)\alpha+2(D-1)G/(D\beta)\\)，其中alpha为每轮启动延迟，beta为所用有效链路带宽。D=1时通信为零；这是假设ring账本，不是所有NCCL算法的预测器。
+NCCL 2.32 文档把上述四种都列为原生集合操作（All-to-All 对应 `ncclAlltoAll`），并要求所有 rank 以相同的 count 和 datatype 调用，否则可能挂起、崩溃或损坏数据 [[10]](#ref-10)；All-to-All 也可以在 group 中组合 `ncclSend` 与 `ncclRecv` 实现，变长 split 常用这种写法 [[30]](#ref-30)。算法与原语并不一一绑定，NCCL 会按 NVLink、PCIe、InfiniBand 和网卡拓扑选择路径。
 
-TP/FSDP要数层级collective次数，PP要数边界激活与梯度，EP要按实际token去向计算发送矩阵。重叠可能隐藏通信等待，却不会消除字节和buffer；故障、重试与未均匀消息也会改变总量。把理论账本与profile差值解释清楚，才能区分小消息延迟、带宽饱和、重复collective和rank迟到。
+以 ring all-reduce 为例（图 9-5），设 \\(D\\) 个 rank，每 rank 持有完整张量 \\(G\\) 字节且均匀分块。它由一次 reduce-scatter 和一次 all-gather 组成，单独执行 reduce-scatter 或 all-gather 时每 rank 发送 \\((D-1)G/D\\)（\\(G\\) 为完整张量大小），all-reduce 总计发送 \\(2(D-1)G/D\\)。两阶段各 \\(D-1\\) 轮，粗略时间模型为：
 
+\\[
+T_{\text{AR}}\approx 2(D-1)\,\alpha+\frac{2(D-1)}{D}\cdot\frac{G}{\beta}
+\\]
 
-## 9.4 Kernel、通信与数值稳定性
+其中 \\(\alpha\\) 为每轮启动延迟，\\(\beta\\) 为有效链路带宽；\\(D=1\\) 时通信为零。这是 ring 的教学账本，不是所有 NCCL 算法的预测器。用 nccl-tests 实测时，algbw 定义为数据量除以时间；all-reduce 的 busbw 为 \\(\text{algbw}\times 2(D-1)/D\\)，all-gather 与 reduce-scatter 为 \\(\text{algbw}\times(D-1)/D\\)（数据量取完整张量）；busbw 可以直接与硬件链路带宽 \\(\beta\\) 比较，而不受 rank 数影响 [[31]](#ref-31)。
 
-### 从 FLOPs 到 IO
+```mermaid
+flowchart LR
+    subgraph RS["阶段一 reduce-scatter 共 D-1 轮"]
+        A0["rank0"] -->|"发送 G/D"| A1["rank1"]
+        A1 -->|"发送 G/D"| A2["rank2"]
+        A2 -->|"发送 G/D"| A3["rank3"]
+        A3 -->|"发送 G/D"| A0
+    end
+    RS --> M["每个 rank 持有<br/>一个已归约分片"]
+    M --> AG
+    subgraph AG["阶段二 all-gather 共 D-1 轮"]
+        B0["rank0"] -->|"转发分片"| B1["rank1"]
+        B1 -->|"转发分片"| B2["rank2"]
+        B2 -->|"转发分片"| B3["rank3"]
+        B3 -->|"转发分片"| B0
+    end
+    AG --> R["所有 rank 得到<br/>完整归约结果"]
+```
 
-Transformer 训练不是只受 FLOPs 限制。中间张量写入 HBM、kernel launch、非连续 layout、padding 和同步都可能成为瓶颈。FlashAttention 用 IO-aware tiling 降低 attention 的 HBM 读写，并保持精确计算 [[19]](#ref-19)；FlashAttention-2 进一步改善并行和 work partitioning [[20]](#ref-20)。采用新 kernel 时，要验证端到端 step、显存峰值、不同长度、不同 batch、不同 GPU 架构和数值误差。
+*图 9-5 ring all-reduce：reduce-scatter 加 all-gather（D=4）*
 
-优化应遵循基线—假设—变更—测量—回滚链路。先用 profiler 找到热点，再决定融合、重排、编译、量化或缓存。一个 kernel benchmark 提速，不代表真实训练提速；它可能把瓶颈转移到通信或数据处理。性能结果必须与模型版本、输入 shape、CUDA、driver、编译器和环境变量绑定。
+每种并行策略都可以建立同样的字节账本：DP 数梯度同步，TP 与 FSDP 数每层 collective 次数和大小，PP 数 stage 边界的激活与梯度，EP 按实际 token 去向计算发送矩阵。账本按 sequence length、micro-batch、hidden size、并行度和 dtype 计算，再用实测带宽与延迟估算下界。若一层的计算时间小于一次 collective 的延迟，扩大并行度不会有收益；反之，大矩阵乘法可以把通信隐藏在计算中。重叠能隐藏等待，却不会消除字节和 buffer。理论账本与 profile 不一致时，重点查 padding、bucket、参数预取、梯度累积，以及 collective 是否被意外串行化或重复执行。
 
-### 集合通信与拓扑
+### 通信与拓扑：重叠、亲和与拓扑快照
 
-all-reduce 用于同步梯度，all-gather 用于取得分片参数，reduce-scatter 可把聚合结果直接保留为分片。NCCL 会根据 NVLink、PCIe、InfiniBand 和网卡拓扑选择通信路径 [[12]](#ref-12)。训练平台应保存拓扑快照，集群变更后重新测量集合通信。通信日志至少包括 collective 类型、字节数、耗时、rank 方差、是否重试和是否与计算重叠。
+通信与计算重叠需要独立 stream、合理的梯度 bucket、正确的依赖和足够大的计算块。bucket 太小会产生大量 collective 和 launch，太大则要等很久才开始同步；stream 依赖设置错误时，表面上有两个 stream，实际仍串行。性能报告应分别列出 kernel 时间、可重叠通信、不可重叠通信和同步等待。通信时间上升时，要区分带宽不足、延迟主导、消息过小、最慢 rank、网络拥塞和同步顺序错误；单机 microbenchmark 只说明局部能力，必须用真实 batch 验证它能否解释 step 时间。跨节点 TP 比同机 TP 敏感得多，通信无法隐藏时，减小并行度可能比扩大集群更快。
 
-当通信时间上升时，要区分带宽不足、延迟主导、消息过小、最慢 rank、网络拥塞和同步顺序错误。单机 microbenchmark 只能说明局部能力，必须用真实 batch 验证是否能解释 step 时间。跨节点 TP 往往比同机 TP 更敏感；若通信不能隐藏在计算之后，减少并行度可能比扩大集群更快。
+多 GPU 节点常有多个 CPU socket、PCIe root complex 和网卡。数据 worker、pinned memory、GPU 和网卡绑定不当，会让 host 到 device 拷贝经过远端 NUMA 节点，吞吐下降且抖动增加。启动器应根据拓扑生成 CPU、GPU 和 NIC 亲和性并记录映射，不能依赖容器默认的 CPU 集合。拓扑也是版本化环境的一部分：换一批节点、升级 BIOS、改变网卡固件或调整 MIG（Multi-Instance GPU，把一张 GPU 切成若干硬件隔离的实例）都可能改变通信路径。平台应保存拓扑快照、NCCL 环境变量、通信算法和日志摘要，集群变更后重新测量集合通信 [[10]](#ref-10)；扩展曲线突然下降时，拓扑快照往往比训练代码更能解释原因。
 
-### 混合精度与异常处理
+## 9.5 Checkpoint 与恢复协议
 
-BF16、FP16、FP8 和更低精度可以降低显存、通信和计算成本，但会改变数值误差。训练系统需要监控 loss spike、梯度范数、overflow、underflow、NaN、Inf 和异常 rank。master weights和optimizer moments等是否高精度依实现；归一化和输出层也需按数值证据选择；不能把 dtype 当作一个全局开关。
+### Checkpoint 的完整状态与推理制品
 
-出现 NaN 时，自动重试同一个 batch 通常没有意义。平台应保存触发 step 的输入摘要、参数统计、梯度范数、精度配置和 kernel 版本，然后暂停或回滚到最近健康 checkpoint。若直接继续运行，坏状态可能覆盖所有可恢复版本。异常检测应与 checkpoint 保留策略绑定，至少保留最后一个已验证健康点。
+可继续训练的 checkpoint 通常包含模型参数、master weights、optimizer moments、学习率调度器、gradient scaler、随机数状态、数据游标、训练配置、并行拓扑、tokenizer、数据 manifest、代码版本和评估结果。若在 optimizer step 边界保存且没有未提交的梯度累积，梯度不必持久化；若在累积中途保存，则要包含梯度与累积进度。对分片训练，文件名不是状态语义，必须用 manifest 描述逻辑参数、shard 范围、dtype、shape 和校验和。
 
+只有权重加模型配置的制品可以用于推理，但不能保证继续训练等价。训练 checkpoint 的目标是继续优化，推理制品的目标是快速加载和稳定服务，后者通常只含参数、tokenizer、模板、量化和运行时配置。两者应使用不同的目录、权限和生命周期，通过发布 manifest 关联；直接把训练目录挂给 serving，既暴露不必要的状态，也可能让线上读到未完成的版本。转换与发布门禁见 9.8 节。
 
-### 通信量账本
+### 一致快照与完整性发布协议
 
-每种并行策略都可以建立通信量账本。数据并行主要产生梯度同步；张量并行在层内产生 all-reduce 或 all-gather；流水线并行传输激活和梯度；MoE 产生 token dispatch 的 all-to-all；FSDP 需要在计算前后获取和释放参数。平台应估计每一步的字节数、消息数量和同步次数，再用真实链路带宽与延迟估算下界。
+checkpoint 的发布沿用 9.2 节快照的“先写数据、后写提交标记”。各 rank 先写带 job_id、step 和版本号的临时 shard，计算大小与校验和；协调者确认全部 shard 到齐、元数据完整、抽样读取成功后，才写提交标记。提交标记包含 world size、TP、PP、DP、EP、dtype、模型 schema、数据 manifest hash、tokenizer hash 和 global step。恢复程序只读取已提交版本，中途退出留下的临时目录异步清理，不会被误认为最新状态。
 
-如果一个层的计算时间小于一次 collective 的延迟，就算理论 FLOPs 很低，扩大并行度也不会有收益。相反，大矩阵乘法可以把通信隐藏在计算中。通信量账本应按 sequence length、micro-batch、hidden size、并行度和 dtype 计算，并在 profiler 中验证。出现差异时，重点查 padding、bucket、参数 prefetch、梯度累积和 collective 是否被意外串行化。
+异步 checkpoint 让训练在保存期间继续计算，但必须先得到一致快照：若后台线程读取正在变化的 optimizer state，得到的可能是跨 step 的混合状态。PyTorch DCP（Distributed Checkpoint，分布式 checkpoint 模块）的文档把 staging（暂存：把状态复制到不受后续更新影响的缓冲，默认为 CPU 内存）的目标描述为生成 training-safe 的表示，staging 完成后对模块数据的更新不应反映到被保存的状态中；`AsyncSaveResponse` 分别用 `staging_completion` 与 `upload_completion` 两个 Future 表示本地拷贝完成与保存完成，自定义 stager 若不自动同步，需要由调用者在合适时机同步 [[32]](#ref-32)。因此“设备拷贝完成”不等于“持久化完成”，持有一个 Future 也不等于保存已提交。图 9-6 是本书在此基础上设计的完整发布协议，其中提交标记、发现指针和 CAS（compare-and-swap：仅当指针当前值等于预期旧值时才更新）都不是 DCP 默认保证的行为。
 
-### Overlap 的前提
+```mermaid
+sequenceDiagram
+    participant T as 训练进程
+    participant S as staging 缓冲
+    participant W as 后台写入
+    participant O as 对象存储
+    participant C as 协调者
+    T->>S: t0 在 step k 边界对齐模型 优化器 游标
+    S-->>T: t1 staging 完成 允许继续更新
+    T->>T: t2 训练 step k+1 继续
+    S->>W: 只读冻结快照
+    W->>O: 写入 step k 的各分片
+    W->>C: t3 上报分片清单与校验和
+    C->>O: 校验全部分片与元数据
+    C->>O: t4 写入不可变提交记录
+    C->>C: CAS 更新发现指针
+    Note over T,C: t1 前故障用旧点 t2 至 t3 故障残片不可见
+```
 
-通信与计算重叠需要独立 stream、合理的梯度 bucket、正确的依赖和足够大的计算块。bucket 太小会产生大量 collective 和 launch，太大则要等很久才开始同步；通信 stream 与计算 stream 的依赖设置错误时，表面上有两个 stream，实际仍然串行。平台应在报告中分别列出 kernel 时间、可重叠通信、不可重叠通信和同步等待。
+*图 9-6 异步 checkpoint 的完整性发布时序*
 
-重叠还会影响显存。为了提前 all-gather 参数，系统可能要同时保留更多参数 shard；为了让 backward 与通信并行，梯度 bucket 会延迟释放。显存预算不能只按模型权重计算，而要加入 overlap buffer、activation checkpoint、通信 buffer 和 dataloader staging。一个在显存充裕机器上有效的优化，迁移到更小 GPU 后可能反而触发 OOM。
+各阶段的故障处理不同：t1 之前发生故障，继续使用旧的已提交点；t2、t3 期间宕机，残片不能被“扫描最新目录”的逻辑误选；t4 之后协调者丢失回执，要按 checkpoint id 查询已有提交，而不能另写一个快照覆盖。对象存储里的提交记录、数据库中的指针与各 rank 文件不是天然的一个事务：发布端要定义唯一的 checkpoint id 和条件写入，用 CAS 推进发现指针，读取端再次核验。这个完成标记协议也不是数据库意义上的两阶段提交，不能借用术语承诺跨系统原子性。
 
-### NUMA、PCIe 与设备亲和
+保存参与者因并行方式而异。普通 DDP 的模型权重可以由 rank0 写，但数据进度、RNG 等恢复状态仍要按协议从各 rank 收集；ZeRO 与 FSDP 的分片需要所有持有分片的参与者配合，不能默认 rank0 拥有完整状态。异步缓冲占用 CPU 或 GPU 内存，存储变慢时应限制在途快照数、延后新的保存或回退为同步保存，不能无限堆积。恢复后执行小 batch forward、loss 合理性检查、参数统计和数据可读性检查；校验和只能证明字节完整，恢复演练还要核对 step、参数、optimizer 和游标的语义对应。
 
-多 GPU 节点常常有多个 CPU socket、PCIe root complex 和网卡。数据 worker、Pinned Memory、GPU 和网卡绑定不合理，会让 host 到 device 拷贝经过远端 NUMA，吞吐下降且抖动增加。启动器应根据拓扑生成 CPU affinity、GPU affinity 和 NIC affinity，并在运行时记录映射。不能只依赖容器默认的 CPU 集合，因为调度器可能把进程放在与 GPU 不同的 socket。
+### 保存频率、故障分类与弹性恢复
 
-故障排查时要把拓扑作为版本化环境的一部分。换一批节点、升级 BIOS、改变网卡固件或调整 MIG，都可能改变通信路径。NCCL 提供了拓扑感知能力，但应用还需要保存 NCCL 环境变量、通信算法和日志摘要 [[12]](#ref-12)。当扩展曲线突然下降时，拓扑快照往往比训练代码更能解释原因。
+保存越频繁，故障后丢失的工作越少，但 I/O 和同步开销越高。若故障在两次保存之间均匀发生，平均丢失约半个保存间隔的工作；在故障近似服从泊松过程、保存开销远小于平均故障间隔的条件下，Young 与 Daly 的一阶近似给出最优保存间隔：
 
+\\[
+\tau^{*}\approx\sqrt{2\,\delta\,M}
+\\]
 
-### Activation checkpoint 与内存时间交换
+其中 \\(\delta\\) 是每次保存阻塞训练的时间，\\(M\\) 是整个作业的平均故障间隔 [[33]](#ref-33)[[34]](#ref-34)。集群越大 \\(M\\) 越小，最优间隔随之缩短；异步保存降低的是暴露给训练的 \\(\delta\\)，但也让最后可用快照变旧，应按完整快照时间线计量。还要区分三类 checkpoint：可恢复点追求快速重启，评估点需要质量报告，发布点需要转换、签名和兼容性检查，不能用发布制品替代高频恢复点。
 
-PyTorch 2.9 文档说明 activation 重算的 RNG 保存与设备类型限制 [[21]](#ref-21)；具体训练是否等价还要核对该版本与自定义算子。activation checkpoint 通过不保存全部中间激活、在 backward 时重新计算来降低显存。它把空间成本换成计算成本，适合模型大、激活占比高的训练。平台应记录 checkpoint 粒度、重算 FLOPs、显存峰值、step time 和质量。层间切分过粗会导致峰值仍高，切分过细会增加 kernel 和调度开销；不同 sequence length 下最佳粒度也可能不同。
+常见故障包括 GPU Xid（NVIDIA 驱动在内核日志中记录 GPU 错误时使用的错误编号）、节点重启、网络分区、NCCL hang、对象存储限流、文件系统不可写、容器驱逐、OOM、NaN 和数据 shard 损坏。单卡故障可能需要替换节点并重建 communicator；存储抖动可以退避重试；NaN 应停止并恢复健康点；rank 卡死需要 watchdog 和全局超时。不同故障要有不同的 runbook，不能把“自动重启”当作统一方案。SRE 的错误预算思想可以帮助决定何时继续重试、何时停止作业转人工处理 [[35]](#ref-35)。
 
-activation checkpoint 与流水线并行、FSDP、混合精度和异步通信会互相影响。重新计算时需要相同的随机状态，否则 dropout 或随机算子会改变梯度；参数已经被释放时，需要再次 all-gather。恢复和性能报告必须保存这些运行时开关，不能只保存一个 enable_activation_checkpoint 的布尔值。对于后训练和生成式训练，还要评估重新计算对采样一致性的影响。
+弹性恢复可以等待原节点、替换节点并保持 world size、缩小 world size 继续，或回滚后重新分配。改变 world size 可能改变 global batch、学习率、数据顺序和 optimizer 行为，因此恢复策略要显式化，报告中记录丢失步数、重算 token、恢复耗时和最终质量差异。从 64 卡迁移到 128 卡或更换 GPU 型号时，支持迁移的格式把逻辑参数与物理 shard 分离，由转换器按目标拓扑重新分片，并验证 optimizer state 分片和数据游标仍然一致。不支持任意重分片时，checkpoint 的恢复约束（world size、TP、PP、显存下限、GPU 架构）要传给调度器；找不到兼容资源时宁可保持 pending，也不能分配一个 GPU 数量满足却无法恢复的集群。恢复兼容性是调度约束，而不是作业启动后的异常处理。
 
-### GPU 利用率的正确解释
+### 取消与优雅停止
 
-GPU busy 只是设备上有 kernel 执行，不代表 kernel 高效。大量小 kernel、低 occupancy、访存瓶颈、等待同步和无效 padding 都可能让 busy 较高而有效吞吐较低。相反，某些通信或数据等待期间 GPU 利用率下降，可能是系统正常的阶段性行为。应结合 SM 利用率、显存带宽、Tensor Core 利用率、kernel occupancy、通信和有效 token 分析。
+用户点击停止后，控制面发出取消事件，worker 在安全的 step 边界停止接收新 batch，必要时保存一个可恢复 checkpoint，再关闭数据流和通信组。节点即将被抢占时，平台可以提前发送 preemption notice，让作业尽量完成一次保存。直接 kill 进程虽然快，却可能留下无法判断新旧的状态和大量孤儿资源。
 
-训练 dashboard 需要同时展示全局和局部。全局 step time 便于看趋势，rank 最大耗时便于看 straggler，数据桶 loss 便于看质量，checkpoint 和恢复指标便于看可用性。指标如果没有 run、step、rank、node、model和数据版本这些关联字段，就无法定位；字段过多又会造成监控成本，因而应把run/step等高基数事实放trace/日志，metrics只使用受控聚合维度。
-
-### 可复现不等于位级相同
-
-分布式低精度训练中，硬件、归约顺序、kernel、通信算法和随机数都会影响最后几位。平台需要区分严格位级复现、统计复现和语义复现。严格复现可能限制并行和性能；统计复现关注 loss 与主要评估指标在容差内；语义复现关注模型能力和安全指标不发生不可接受变化。job spec 应明确目标等级，而不是笼统写“可复现”。
-
-复现报告包含相同的代码、数据、tokenizer、seed、并行度、dtype、硬件和运行时。如果硬件不同，应说明差异并进行多次重复实验，报告均值和方差。不要把一次结果的微小差异当作故障，也不要用随机性解释明显的 loss 跳变。数据顺序、checkpoint 恢复和编译缓存都应在排查清单中。
-
-### Online Softmax与IO优化的数学边界
-
-缩放注意力的定义已在前文给出；这里补上分块计算如何保持归一化。对已处理键块保存行最大值m、指数和l、未归一化加权值和u；新块分数\\(s_j\\)与值\\(v_j\\)到达时，设 \\(m'=\max(m,\max_js_j)\\)，再令 \\(l'=e^{m-m'}l+\sum_j e^{s_j-m'}\\)，\\(u'=e^{m-m'}u+\sum_j e^{s_j-m'}v_j\\)。所有块处理完返回u/l。新最大值变化时，旧l和u都要重缩放，不能只拼接各块已经归一化的概率。[[19]](#ref-19)
-
-初始化用“尚无有效键”的分支处理，避免负无穷减负无穷；全mask有效查询行按契约报错或返回约定值，不能产生伪均匀分布。FlashAttention减少HBM中间读写，标准全注意力计算量仍是序列二次阶；数学目标一致不表示浮点逐位相同。FA2进一步改工作划分和并行，收益依形状、硬件与mask支持而变。[[20]](#ref-20) 对照高精度结果、极值、短行/长行、尾块与梯度，才能接受新核。
-
-
-### 融合、编译与瓶颈的受控实验
-
-融合常减少launch和中间HBM读写，却可能增加寄存器、spill、共享内存和同步，破坏独立库核的tile或Tensor Core路径。回退时先固定形状、dtype、预热、计时同步与数据，再比寄存器、local spill、占用、访存合并和kernel时间；缩小融合范围也应作为候选，而非只继续加融合。Triton 语言以 blocked program 描述计算，CUDA 给出较显式的线程与同步控制；此处说的 Triton 是编译器项目，与同名的推理服务框架不是一回事。[[23]](#ref-23)
-
-TVM涉及图与算子程序及运行时，XLA是张量计算编译器，TensorRT面向NVIDIA推理部署，三者不是训练并行框架的同义词。[[24]](#ref-24)[[25]](#ref-25)[[26]](#ref-26) 图级做等价变换、常量折叠、死代码消除、布局协调与融合；算子级安排tiling、循环、线程与存储层级。局部最佳布局可能让相邻算子多出转置，需接受局部牺牲来减少全图搬运。浮点重排按明确误差而非文本相同验收。
-
-动态图可捕获局部静态IR并做符号维或shape特化；图断裂、数据依赖分支和新形状可能回退或重编译。静态IR不等于全部尺寸固定，也不等于CUDA Graph的launch捕获。记录编译、预热、缓存命中和长尾形状成本，限制特化缓存，罕见shape走经过验证的通用路径。一次导出成功不能证明训练或Serving端到端更快。
-
-Nsight的Roofline用算术强度与带宽/计算上限帮助解释核的瓶颈。[[27]](#ref-27) 本书粗略模型为性能不超过min(峰值算力,带宽×FLOPs/字节)，但计数器须对应所用精度、访存层和真实指令。SM低且DRAM低也可能是launch、同步、CPU供给、小grid或依赖链；不能据此二分为“计算”或“显存”。先从时间线看空闲还是核内低效，再改batch、分块或融合检验假设，报告kernel和端到端两个层级。
-
-
-### 编译工具比较：抽象层次与验收对象
-
-下表比较开发者控制的对象，描述依据维护方文档；验收要求为本书推导。[[22]](#ref-22)[[23]](#ref-23)[[24]](#ref-24)[[25]](#ref-25)[[26]](#ref-26)
-
-| 路线 | 主要控制对象与用途 | 比较时需要验证的代价 |
-| --- | --- | --- |
-| CUDA | 显式线程、块、同步与内存访问；适合需要细致控制的设备程序 | 开发调试、边界与同步正确性、架构适配，以及实际占用和访存 |
-| Triton | 用分块张量程序表达自定义计算，由编译器生成设备代码 | mask、布局、编译特化和调优；表达简洁不保证比成熟 CUDA 库更快 |
-| TVM | 连接模型/图表示、张量程序变换、目标代码与运行时，可组合图和算子优化 | 前端与目标支持、优化与搜索成本、布局转换和外部库边界 |
-| XLA | 对张量计算图进行编译、优化与目标代码生成 | 可编译区域、动态控制流/shape、重编译与回退，连同首次编译时间 |
-| TensorRT | 针对 NVIDIA 推理进行网络优化、执行方案选择与 engine 构建 | 算子与精度支持、动态 shape 配置、插件维护、构建时间及部署兼容性 |
-
-以 `matmul → bias → activation` 为教学例，图级先识别数据依赖、消去无效节点，并决定是否融合及如何衔接布局；不能跨越有副作用或不满足语义的边界任意重排。算子级再选择分块、循环顺序、线程绑定和存储位置。TVM 的图与张量程序层、Pass 基础设施支持这种分层变换，具体入口随版本核对。[[24]](#ref-24)这里给出的是优化职责与执行次序，不是一段已经运行的 TVM 程序。
-
-## 9.5 Checkpoint与恢复协议
-
-### Checkpoint 的完整状态
-
-可训练checkpoint通常包含模型参数、必要的master weights、optimizer moments、学习率调度器、gradient scaler、随机数状态、数据游标、训练配置、并行拓扑、tokenizer、数据 manifest、代码版本和评估结果。权重连同所需模型配置/模板可用于推理，却不能保证继续训练等价。若在optimizer step边界保存且无未提交梯度累积，梯度未必需要持久化；若保存中间累积状态则应包含梯度与累积进度。对于分片训练，文件名不是状态语义，必须用 manifest 描述逻辑参数、shard 范围、dtype、shape 和校验和。
-
-### 完整性发布协议
-
-推荐用临时路径加完成记录实现checkpoint完整性发布。各 rank 先写带有 job_id、step 和版本号的临时 shard，计算大小与 checksum；协调者确认全部 shard 到齐、元数据完整、抽样读取成功后，再写 COMMITTED 标记。恢复程序只读取已提交版本。训练进程在写入中途退出时，残留临时目录可以异步清理，不会被误认为最新状态。
-
-完成标记应包含 world size、TP、PP、DP、EP、dtype、模型 schema、数据 manifest hash、tokenizer hash 和 global step。恢复后要执行小 batch forward、loss sanity check、参数统计和数据可读性检查。校验和只能证明字节完整，不能证明参数、优化器和数据游标的语义对应。
-
-### 保存频率与丢失工作量
-
-保存越频繁，故障后丢失的训练工作越少，但 I/O 和同步开销越高。可以根据故障率、恢复时间、checkpoint 成本和 GPU 单价估计总成本。大规模训练还要区分可恢复 checkpoint、评估 checkpoint 和发布 checkpoint：可恢复点追求快速重启，评估点需要质量报告，发布点需要转换、签名和兼容性检查。不要用发布制品替代高频恢复点。
-
-异步 checkpoint 可以让训练继续计算，但需要处理内存快照、写入期间的状态一致性和 GPU/CPU 拷贝。若 checkpoint 线程读取正在变化的 optimizer state，得到的可能是跨 step 混合状态。安全做法是使用冻结的 state snapshot、copy-on-write 或在逻辑 step 边界建立一致快照。异步并不意味着可以取消一致性约束。
-
-### 故障分类与恢复策略
-
-常见故障包括 GPU Xid、节点重启、网络分区、NCCL hang、对象存储限流、文件系统不可写、容器驱逐、OOM、NaN 和数据 shard 损坏。单卡故障可能需要替换节点并重建 communicator；存储抖动可以退避重试；NaN 应停止并恢复健康点；rank 卡死需要 watchdog 和全局超时。不同故障必须有不同的 runbook，不能把“自动重启”当作统一方案。
-
-弹性恢复可以等待原节点、替换节点后保持 world size、缩小 world size 继续，或回滚并重新分配。改变 world size 可能改变 global batch、学习率、数据顺序和 optimizer 行为。平台应让恢复策略显式化，并在报告中记录丢失步数、重算 token、恢复耗时和最终质量差异。SRE 的错误预算思想可用于决定何时继续重试、何时停止作业并人工处理 [[28]](#ref-28)。
-
-
-### 训练状态与推理制品分离
-
-训练 checkpoint 的目标是继续优化，推理制品的目标是快速加载和稳定服务。训练状态包含 optimizer 和分片元数据，推理制品通常只包含参数、tokenizer、模板、量化和运行时配置。两者应使用不同目录、权限和生命周期，但通过一个发布 manifest 关联。直接把训练目录挂载到 serving，容易暴露不必要状态，也容易让线上误读一个未完成版本。
-
-转换器要处理参数命名、分片布局、dtype、权重共享、词表、位置编码和模型 schema。转换后应做参数总量、shape、均值方差、hash 和小 batch 输出对比。对量化模型，还要比较校准集质量、最大误差、生成稳定性和特殊 token。转换脚本要固定版本并产生日志，不能依赖某个开发者机器上的临时命令。
-
-### 发布门禁
-
-发布门禁至少包括：制品完整性、模型加载、tokenizer 与模板兼容、固定 probe 输出、离线质量、显存峰值、冷启动时间和目标硬件性能。一个模型可能 loss 更低，却因为 tokenizer 改变导致线上输入边界不同；量化可能节省显存，却造成结构化输出失败；新的 kernel 可能提高吞吐，却在最大长度下产生 NaN。门禁应同时检查功能、质量、性能和安全。
-
-发布后的 artifact 要签名并登记来源。注册表记录训练 run、数据 manifest、checkpoint、转换器版本、量化配置、engine build、评估结果和审批者。回滚时根据旧 manifest 恢复完整制品，而不是只把 image tag 改回旧值。推理平台的模型仓库与训练平台的 checkpoint 仓库可以有不同接口，但必须共享不可变 hash。
-
-### 迁移训练与分布式重分片
-
-当训练从 64 张卡迁移到 128 张卡，可能需要改变 DP 或 pipeline stage；当 GPU 型号变化，可能需要调整 batch、dtype 或 checkpoint 读取路径。支持迁移的格式应将逻辑参数与物理 shard 分离，转换器根据目标拓扑重新分片。迁移后还要验证 optimizer state 的分片和数据游标是否仍然一致。
-
-若系统不支持任意重分片，应在调度时把 checkpoint 的恢复约束传递给资源调度器，例如 world size、TP、PP、显存下限和 GPU 架构。调度器找不到兼容资源时宁可保持 pending，也不能分配一个表面满足 GPU 数量但无法恢复的集群。恢复兼容性是调度约束，而不是作业启动后的异常处理。
-
-
-### 训练取消与优雅停止
-
-取消长训练需要定义边界。用户点击停止后，控制面发出取消事件，worker 在安全 step 边界停止接收新 batch，必要时保存一个可恢复 checkpoint，再关闭数据流和通信组。若节点即将被抢占，平台可以提前发送 preemption notice，让作业尽量完成一次保存。直接 kill 进程虽然快，却可能留下无法判断的新旧状态和大量孤儿资源。
-
-优雅停止的时间也要有上限。checkpoint 长时间卡住时，平台要选择等待、切换存储路径或保留最近健康点；不能因为保存新点而让整个集群无限占用。最终状态应区分 USER_CANCELLED、PREEMPTED、BUDGET_EXCEEDED、FAILED_RECOVERABLE 和 FAILED_PERMANENT。不同状态决定是否自动重试、是否计入实验失败、是否需要人工审批。
-
-### 异步快照时间线与完整性发布
-
-PyTorch DCP2.9明确把staging目标定义为training-safe表示：staging完成后，后续参数更新不应改动被保存的表示；自定义stager若不自动同步，调用者负责选择正确同步点。[[29]](#ref-29) 这里区分设备拷贝完成与持久化完成，不能把Future存在当保存已提交。以下是本书通用协议设计，不是DDP自动具备的API行为：
-
-| 时刻 | 训练/保存行为 | 可见事实与恢复选择 |
-|:---|:---|:---|
-| t0 | 在step k的确定边界对齐模型/优化器/游标 | 尚无新的持久恢复点 |
-| t1 | 建立独立CPU或其他受保护快照，等待必要拷贝完成 | staging完成才允许覆盖相关训练状态 |
-| t2 | 训练k+1继续，后台写k的分片 | 后台只能读冻结表示，限制在途快照数 |
-| t3 | 全部分片与元数据校验，记录清单/校验和 | 部分上传仍不是完整checkpoint |
-| t4 | 发布不可变完成记录并更新受控发现指针 | 读取端只选完整、兼容的已提交版本 |
-
-故障在t1之前发生，继续使用旧点；t2/t3宕机则残片不能被latest扫描误选；t4后协调者丢失回执，要按checkpoint id查询已有提交，不能覆盖成另一快照。对象存储完成记录、数据库指针与rank文件不是天然一个事务；发布端要定义唯一checkpoint id、写入条件和指针CAS，读取端再次核验。完成标记协议也不是数据库意义的两阶段提交，不能借术语承诺跨系统原子性。
-
-普通DDP某些模型权重可由rank0写，但数据进度/RNG及其他恢复状态仍需按训练协议收集；ZeRO/FSDP分片需要所有必需参与者配合，不能把rank0拥有完整状态作为默认。异步缓冲占用CPU/GPU容量，慢盘时应背压、延后新保存或同步回退，不能无限堆积。恢复演练检查对应step、参数、optimizer和游标，不仅比较文件hash。
-
+优雅停止要有时间上限。checkpoint 长时间卡住时，平台在等待、切换存储路径和保留最近健康点之间选择，不能因为保存新点而无限占用集群。最终状态应区分 USER_CANCELLED、PREEMPTED、BUDGET_EXCEEDED、FAILED_RECOVERABLE 和 FAILED_PERMANENT，它们决定是否自动重试、是否计入实验失败、是否需要人工审批。
 
 ## 9.6 容量、调度与多租户成本
 
-### Gang scheduling 与故障域
+通用的 GPU 资源调度、配额与隔离机制见第8章 8.5 节，本节只讲训练作业特有的约束：gang 与拓扑、恢复兼容性、成本归因，以及后训练的资源配比。
 
-分布式训练需要一组 GPU 同时可用，部分分配往往只能让 job 长期 pending。调度器应识别 gang，并根据节点、GPU、NVLink、网络和本地数据做拓扑感知。大 job 需要反碎片化，小 job 可以填充空洞；训练、推理、评估和开发应有不同资源池与优先级。抢占时要考虑 checkpoint 是否完成，不能在不可恢复的阶段直接杀死作业。
+### Gang scheduling、故障域与调度接口
 
-### 配额、优先级与公平
+分布式训练需要一组 GPU 同时可用，部分分配往往只会让 job 长期 pending。调度器要识别 gang，按节点、GPU、NVLink、网络和本地数据做拓扑感知；大 job 需要反碎片化，小 job 可以填充空洞；训练、推理、评估和开发应有不同资源池与优先级。抢占时要考虑 checkpoint 是否已经提交，不能在不可恢复的阶段直接杀死作业。
 
-配额应同时按 GPU 数、GPU 小时、显存、优先级和项目预算表达。一个团队占用少量高端 GPU 训练很久，可能比另一个团队使用更多低端 GPU 更昂贵。成本系统要记录预约、实际使用、空闲等待、通信等待、恢复重算、评估和 checkpoint。按有效 token 和成功实验归因，才能比较不同团队的真实效率。
+如图 9-7 所示，训练作业向调度器声明的不只是 GPU 数量，还包括 GPU 类型、拓扑与互联、CPU、内存、网络、临时盘、gang 约束、优先级、可抢占性、预计时长和来自 checkpoint 的恢复约束；调度器返回 allocation、rank manifest、租约和故障域。作业启动后若发现拓扑不满足通信要求，应拒绝运行并释放资源，而不是勉强开始。调度器还要给出可解释的 pending 原因：用户看到“排队中”无法决策，看到“等待 16 张同型号 GPU 且需要同一 NVLink 域”才能取舍，平台也能据此发现容量规划问题。
 
-多租户环境应隔离数据凭证、checkpoint 路径、日志、缓存和调试权限。训练 worker 只获得访问具体 manifest 和 shard 的短期凭证，不能拥有整个 bucket 的写权限；checkpoint 目录与原始数据隔离；样本抽样和错误日志默认脱敏。OpenTelemetry 与 Prometheus 可以提供统一的运行指标和追踪基础，但敏感数据是否记录仍需平台策略 [[11]](#ref-11)[[30]](#ref-30)[[31]](#ref-31)。
-
-### 成本预算与容量计划
-
-训练计划应在启动前估算 token、step、GPU 小时、checkpoint 次数、评估次数和重试余量。理想扩展效率公式为：
-
-```text
-E(N) = throughput(N) / (N × throughput(1))
+```mermaid
+flowchart LR
+    J["job spec<br/>资源与拓扑需求"] --> Q["配额与预算检查"]
+    K["checkpoint 恢复约束<br/>world size TP PP 架构"] --> S
+    Q --> S["gang 调度器<br/>拓扑感知"]
+    P["资源池<br/>训练 推理 评估 开发"] --> S
+    S -->|"满足"| A["allocation<br/>rank manifest 租约 故障域"]
+    S -->|"不满足"| R["pending 原因<br/>资源 拓扑 配额 健康"]
+    A --> W["训练 worker"]
+    W --> C["成本事件<br/>有效训练 重算 等待"]
+    C --> Q
 ```
 
-当扩展效率随 GPU 数快速下降时，继续扩大集群可能比优化数据、kernel 或并行策略更贵。平台应把扩展曲线作为门禁，记录有效 token/s、通信比例、数据等待、峰值显存和节点故障恢复。PaLM 和 Megatron-LM 的规模化经验表明，训练规模越大，系统效率和故障管理越是模型质量的一部分 [[1]](#ref-1)[[16]](#ref-16)[[9]](#ref-9)。
+*图 9-7 训练作业、配额、调度器与成本归因的关系*
 
+### 配额、成本与动态预算
 
-### 资源泄漏与作业清理
+配额应同时按 GPU 数、GPU 小时、显存、优先级和项目预算表达；一个团队长时间占用少量高端 GPU，可能比另一个团队使用更多低端 GPU 更昂贵。成本系统要分开记录预约、实际使用、空闲等待、通信等待、恢复重算、评估和 checkpoint，按有效 token 和成功实验归因，才能比较不同团队的真实效率。
 
-训练作业失败后，常见残留包括 Kubernetes Pod、NCCL 进程、共享内存、Pinned Memory、对象存储临时目录、租约、GPU reservation 和告警。控制面应有终止流程：先发送取消事件，等待 worker 上报 checkpoint 或停止原因，再清理通信组、释放分配、关闭数据流、删除临时文件并写最终状态。清理流程需要超时和人工兜底，不能无限等待一个失联 worker。
-
-资源回收要幂等。重复执行清理不会删除其他 job 的路径，不会释放错误的 GPU，也不会覆盖成功的最终状态。临时目录命名必须包含不可猜测的 run_id 和版本；清理器根据 manifest 校验归属，而不是使用宽泛的通配符。Prometheus 可以监测 reservation 与实际 Pod 的差异，及时发现资源泄漏 [[30]](#ref-30)。
-
-### 训练与后训练的资源差异
-
-预训练通常以稳定的大 batch 和长时间运行换取高吞吐；监督微调和偏好优化的 batch 更小、序列长度更不稳定，评估和生成式 verifier 可能成为瓶颈。统一的训练平台可以复用控制面、数据 manifest 和 checkpoint，但应允许 workload profile 声明不同的资源需求。后训练不能直接套用预训练的扩展曲线，因为生成、采样、奖励模型和验证器会改变 GPU 与 CPU 的比例。
-
-例如 RLVR 训练可能需要并行生成多个候选，再执行 verifier；如果只给训练 worker 配 GPU，CPU verifier、队列和网络会成为隐性瓶颈。平台应把辅助模型、评估模型、tokenizer、验证器和数据服务纳入 job graph，统一记录版本与成本。否则看到的“训练吞吐”可能只是主模型 forward 速度，真实的每个有效样本成本却不断上升。
-
-可以把这种差异写成一张配比账本。设每个训练样本需要生成 \\(G\\) 个候选，每个候选平均生成 \\(T_o\\) 个 token，验证一次的平均代价折算为 \\(c_v\\) 个等价 token 的计算量。则每产生一个可用于策略更新的有效样本，需要付出的生成与验证代价约为：
+启动前应估算 token、step、GPU 小时、checkpoint 次数、评估次数和重试余量。扩展效率沿用第8章 8.3 节的定义，以可运行的最小规模 \\(N_0\\) 作基准，因为大模型往往放不下单卡：
 
 \\[
-C_{sample}\\approx G\\times(T_{in}+T_o)\\times c_g + G\\times c_v,
+E(N)=\frac{X(N)/N}{X(N_0)/N_0}
 \\]
 
-其中 \\(T_{in}\\) 是提示长度，\\(c_g\\) 是每 token 生成的相对代价。这个式子的用处不在于精确算出一个数字，而在于暴露两个容易被忽略的比例：**第一，生成代价随候选数 \\(G\\) 线性增长，而策略更新的收益通常低于线性**，所以组大小存在一个收益递减点；**第二，验证代价与生成代价的相对大小决定了该给 CPU 还是 GPU 加资源**。若 \\(c_v\\) 很小（例如只做答案比对），瓶颈仍在生成侧；若验证本身要跑测试、执行代码或调用另一个模型，\\(c_v\\) 可能接近甚至超过 \\(c_g\\)，此时给训练 worker 加卡并不会提高有效样本吞吐。
+其中 \\(X(N)\\) 是 \\(N\\) 张 GPU 上的 loss token/s。\\(E(N)\\) 随规模快速下降时，继续扩大集群往往不如优化数据、kernel 或并行策略划算。平台应把扩展曲线作为门禁，同时记录通信比例、数据等待、峰值显存和节点故障恢复；Megatron-LM 与 PaLM 的经验表明，规模越大，系统效率和故障管理越是模型交付的一部分 [[1]](#ref-1)[[11]](#ref-11)[[7]](#ref-7)。
 
-这也是后训练不能直接套用预训练扩展曲线的原因。预训练里“加卡即加速”的经验来自计算密集、拓扑规整的矩阵运算；后训练的资源曲线取决于候选数、验证方式和数据混合的分布，往往在某个点之后表现为 CPU、队列或外部服务受限。平台应把生成服务、验证服务和数据服务纳入同一个 job graph，分别记录各自的 GPU 时间、CPU 时间、排队时间和失败重试，并按“每个被接受样本的成本”而不是“主模型 forward 吞吐”报告效率。
+预算也不能只在提交时检查。失败重试、恢复重算、评估、checkpoint 和数据重处理都会在运行中增加成本，控制面应实时累计 GPU 小时、有效 token、存储请求、网络流量和失败次数，接近预算时提醒或暂停；用户可选“质量优先”“时间优先”或“成本上限”，平台据此调整评估频率、checkpoint 频率和资源池。只完成计划 token 20% 的实验不能与完整实验直接比较；超预算被强制停止的作业要保存最后健康 checkpoint、最终 loss 和未完成原因。
 
-### 训练预算的动态控制
+### 多租户隔离、数据凭证与资源清理
 
-作业预算不能只在提交时检查。训练过程中失败重试、恢复重算、评估、checkpoint 和数据重处理都会增加成本。控制面应实时累计 GPU 小时、有效 token、对象存储请求、网络流量和失败次数，并在接近预算时提醒或暂停。用户可以选择“质量优先”“时间优先”或“成本上限”策略，平台据此调整评估频率、checkpoint 频率和资源池，而不是无条件继续运行。
+数据访问控制要同时覆盖控制面和数据面。控制面在创建 job 时校验项目、用途、数据 license、地域和保留期限；数据面在 worker 获取 shard 时发放短期、最小范围的凭证，只能访问具体 manifest 列出的 shard，不能列出整个 bucket，也不能写回原始路径。数据处理 worker 的输出写入独立路径，checkpoint 目录与原始数据隔离；对象存储、节点缓存和本地临时目录的权限保持一致，任务结束后回收凭证并清理缓存。调试抽样需要临时授权。
 
-动态预算还需要防止部分成功被误判。一个实验如果只完成了计划 token 的 20%，不能与完整实验直接比较；一个训练 job 超预算后被强制停止，应保存最后健康 checkpoint、最终 loss 和未完成原因。成本报表要把有效训练、恢复重算和无效等待分开，否则优化方向会被错误数据引导。
+训练日志常含样本文本、异常 token 和模型输出，必须按数据等级处理：默认只记录 hash、长度、语言和错误类型，完整文本只在授权的诊断任务中短暂保存。把 prompt 或样本直接作为 metric label 更危险，会造成高基数、泄露和成本膨胀。观测字段应有允许列表、脱敏器和保留策略；OpenTelemetry 与 Prometheus 提供统一的指标和追踪基础，但记录什么仍是平台策略 [[36]](#ref-36)[[37]](#ref-37)。
 
-### 训练平台与调度平台的接口
+作业失败后，常见残留有 Kubernetes Pod、NCCL 进程、共享内存、pinned memory、对象存储临时目录、租约、GPU reservation 和告警。终止流程依次是发送取消事件、等待 worker 上报 checkpoint 或停止原因、清理通信组、释放分配、关闭数据流、删除临时文件、写最终状态，并设超时和人工兜底。回收必须幂等：重复清理不能删除其他 job 的路径、释放错误的 GPU 或覆盖成功的最终状态。临时目录名包含不可猜测的 run_id，清理器按 manifest 校验归属而不是使用宽泛通配符；监测 reservation 与实际 Pod 的差异可以及时发现泄漏 [[37]](#ref-37)。
 
-训练作业向调度器声明 GPU 数量只是最小信息，还应声明 GPU 类型、拓扑、互联、CPU、内存、网络、临时盘、gang 约束、优先级、可抢占性、预计时长和恢复限制。调度器返回 allocation、rank manifest、租约和故障域。作业启动后若发现拓扑不满足通信要求，应拒绝运行并释放资源，而不是勉强开始再产生低吞吐。
+### 后训练与 RLVR 的资源配比
 
-调度器还要向控制面提供可解释事件：pending 的原因是资源不足、拓扑不匹配、配额不足、镜像不可用还是节点不健康。用户看到“排队中”没有帮助，看到“等待 16 张同型号 GPU 且需要同一 NVLink 域”才可以做取舍。透明的 pending reason 能减少人工干预，也能帮助平台发现容量规划和调度策略问题。
+预训练以稳定的大 batch 和长时间运行换取吞吐，其扩展曲线来自计算密集、拓扑规整的矩阵运算，即便如此也受 \\(E(N)\\) 衰减约束。监督微调和偏好优化的 batch 更小、序列长度更不稳定，生成、奖励模型和验证器会改变 GPU 与 CPU 的比例，因此不能套用预训练的扩展曲线。以 RLVR（reinforcement learning with verifiable rewards，可验证奖励强化学习：奖励来自答案比对、单元测试等可程序化验证的结果）为例，每个 prompt 要并行生成多个候选再执行 verifier；若只给训练 worker 配 GPU，CPU verifier、队列和网络会成为隐性瓶颈。
 
+设每个 prompt 生成 \\(G\\) 个候选，提示长 \\(T_{in}\\)，每个候选平均输出 \\(T_o\\) 个 token。一组的成本可以拆成三项：
+
+\\[
+C_{\text{gen}}=c_p T_{in}+G\,c_d T_o,\qquad
+C_{\text{upd}}=G\,(T_{in}+T_o)\,(c_{\pi}+c_{\text{ref}}),\qquad
+C_{\text{ver}}=G\,c_v
+\\]
+
+\\(C_{\text{gen}}\\) 是生成成本：同一 prompt 的 \\(G\\) 个候选通过 prefix cache 共享一次 prefill，所以提示部分只计一次（不共享时为 \\(G\,c_pT_{in}\\)）；prefill 单价 \\(c_p\\) 与 decode 单价 \\(c_d\\) 不同，decode 通常受显存带宽限制，单 token 更贵。\\(C_{\text{upd}}\\) 是策略模型的前向加反向（单价 \\(c_{\pi}\\)）与参考模型前向（\\(c_{\text{ref}}\\)，仅在使用 KL 约束时存在）。\\(C_{\text{ver}}\\) 是验证成本，\\(c_v\\) 为每个候选验证一次的代价。在组内归一化优势的算法中，全对或全错的组优势为零、不产生梯度，通常被过滤；设保留比例为 \\(a\\)，则每个有效样本的成本约为：
+
+\\[
+C_{\text{eff}}=\frac{C_{\text{gen}}+C_{\text{ver}}+a\,C_{\text{upd}}}{a\,G}
+\\]
+
+这个式子的用处在于暴露几个比例。第一，生成成本随 \\(G\\) 线性增长，而策略更新的收益通常低于线性，组大小存在收益递减点；\\(G\\) 太小又会提高全对或全错的概率，降低 \\(a\\)。第二，若不区分 prefill 与 decode、也不共享 prefill，每个候选的生成成本退化为 \\((T_{in}+T_o)\,c_g\\)，与 \\(c_v\\) 比较即可判断瓶颈在哪一侧；比较时两者必须用同一计价单位（例如费用）。若 \\(c_v\\) 很小（只做答案比对），瓶颈在生成侧；若验证要跑测试、执行代码或调用另一个模型，\\(c_v\\) 可能接近甚至超过生成成本，此时给训练 worker 加卡不会提高有效样本吞吐。第三，做容量规划时不要把 CPU 时间折算成等价 token：GPU 生成与训练、CPU 或沙箱验证、外部服务调用分属不同资源池，应分列各自的用量、排队时间和失败重试，分别判断哪个池先饱和。平台应把生成服务、验证服务和数据服务纳入同一个 job graph 统一记录版本，并按“每个被接受样本的成本”而不是“主模型 forward 吞吐”报告效率。
 
 ## 9.7 观测、排障与故障演练
 
-### 指标、日志与追踪
+### 指标、事件与追踪
 
-训练指标包括 loss、学习率、梯度范数、有效 token、device token、GPU 利用率、显存、kernel 时间、通信、数据等待、checkpoint、恢复和节点健康。指标要按 rank、节点、数据桶和并行维度聚合，同时保留最大值和方差，避免平均值掩盖一个慢 rank。日志记录错误上下文，trace 连接控制面、数据服务、worker 和 checkpoint 服务。
+训练指标要按 rank、节点、数据桶和并行维度聚合，同时保留最大值和方差，避免平均值掩盖一个慢 rank。下表列出最小集合，其中 MFU（model FLOPs utilization，实际达到的模型 FLOPs/s 与硬件峰值之比，定义见第8章）用于跨配置比较计算效率。
 
-Dapper 的分布式追踪思想适合把训练控制面和数据面关联起来 [[31]](#ref-31)。训练 trace 不应默认记录完整样本和隐私文本，而应记录 manifest、shard、batch、step、request id、错误类型和 hash。OpenTelemetry 提供跨组件的语义约定，Prometheus 适合时间序列与告警；二者结合后，平台能从“GPU 下降”追到“某类 shard 解压变慢”或“某个 rank 通信抖动”。
+| 类别 | 指标 | 必选 | 主要聚合维度 |
+|:---|:---|:---|:---|
+| 优化 | loss（分数据桶）、学习率、梯度范数、溢出与 NaN 次数 | 必选 | step、数据桶 |
+| 吞吐 | loss token/s、device token/s、step time 分位数、MFU | 必选 | step、rank 最大值 |
+| 设备 | 显存峰值、GPU busy | 必选 | rank、节点 |
+| 设备 | SM 利用率、Tensor Core 利用率、显存带宽、occupancy | 建议 | kernel、rank |
+| 通信 | collective 耗时、rank 间方差、不可重叠占比 | 必选 | 并行组 |
+| 数据 | 数据等待占比、队列长度、坏样本数 | 必选 | rank、数据源 |
+| 可靠性 | checkpoint 耗时与成功率、恢复耗时、节点健康 | 必选 | run、节点 |
 
-### 验收矩阵
+GPU busy 只表示设备上有 kernel 在执行，不代表高效：大量小 kernel、低 occupancy、访存瓶颈、同步等待和无效 padding 都可能让 busy 很高而有效吞吐很低；反之，通信或数据等待期间利用率下降，也可能是正常的阶段性行为。指标若缺少 run、step、rank、node、模型和数据版本等关联字段就无法定位，字段过多又会推高监控成本，因此 run、step 这类高基数事实放在 trace 和日志里，metrics 只使用受控的聚合维度。
 
-训练 Infra 的验收至少包含五类测试：数据正确性、性能扩展、故障恢复、数值稳定和安全治理。数据正确性验证 token 统计、样本边界、loss mask、manifest 和重复率；性能验证单机、单节点、多节点扩展曲线；恢复验证中断、节点替换、checkpoint 损坏和数据不可读；数值验证 loss 连续、梯度无异常和不同精度在容差内；治理验证权限、审计、成本和数据删除。
+Dapper 的分布式追踪思想适合把训练控制面和数据面关联起来 [[38]](#ref-38)。训练 trace 默认不记录完整样本，而记录 manifest、shard、batch、step、request id、错误类型和 hash；配合 OpenTelemetry 的上下文传播和 Prometheus 的时间序列告警 [[36]](#ref-36)[[37]](#ref-37)，平台能从“GPU 利用率下降”追到“某类 shard 解压变慢”或“某个 rank 通信抖动”。除时间序列外还需要结构化事件，例如 JOB_ACCEPTED、ALLOCATION_READY、WORKER_STARTED、CHECKPOINT_COMMITTED、NODE_LOST、RECOVERY_STARTED 和 RUN_FINISHED，每个事件携带 run_id、spec hash、global step、world size 和 checkpoint 版本。事件系统要处理重复、乱序和延迟：网络恢复后到达的旧完成事件，要靠单调 step、版本号和状态机拒绝。dashboard 只是从事件和指标派生的视图，不是事实来源。
 
-每项测试都要固定模型 hash、数据 manifest、容器镜像、硬件、驱动、并行度、global batch 和测试时间。报告不仅写“通过”，还要保存原始指标与失败样本。若性能提高但 loss 曲线异常，不能接受；若恢复成功但重复了大量数据，也不能只算功能通过。训练平台的交付标准是可解释、可重现和可恢复，而不是某一次 demo 的最高吞吐。
+### Step 时间线与尾部
 
+为了让性能分析落地，可以把每个 step 的时间线固定为：数据游标推进、CPU 预取、pinned memory 与 H2D 拷贝、forward、激活保存或重算、backward、梯度 bucket ready、collective、optimizer update、日志和 checkpoint，每个区间按 global step、rank 和 node 关联。吞吐下降时，就能直接回答是数据迟到、kernel 变慢、通信不重叠，还是保存引起暂停。时间线也能区分不同优化的作用：packing 主要影响有效 token 和数据阶段，FlashAttention 影响 attention kernel 与显存，FSDP 影响 all-gather、reduce-scatter 与显存峰值，checkpoint 影响 I/O 与同步。性能报告应给出端到端收益和每个区间的变化。
 
-### 故障注入
+平均 step time 不能代表整个训练。checkpoint、数据刷新、节点抖动、编译或对象存储限流都会产生慢 step，长尾决定 wall-clock 完成时间和 GPU 成本，因此要记录 step 时间的分位数、最大值、慢 step 原因及其是否集中在某些节点、数据桶或并行阶段，只用平均值算 ETA 会让容量计划失真。尾部还来自 straggler rank：坏磁盘、远端 NUMA、GPU 降频或网络重传都会让整个 collective 等待一个 rank。运行时应报告每个 rank 的数据准备、forward、backward、通信和 checkpoint 时间，并对慢 rank 告警；自动摘除慢节点会触发恢复和通信重建，应先比较继续运行与重启的预计成本。
 
-训练平台至少要演练五类注入：杀死一个 rank、关闭一台节点、阻断集合通信、让对象存储返回超时、损坏一个 checkpoint shard。每次注入要记录检测时间、作业状态、用户可见影响、自动恢复、重算 token、恢复后的 loss 和资源释放。若系统只在单进程退出时能恢复，而一个 rank 卡死会让其他进程永久等待，那么它并不具备生产级弹性。
+### NCCL timeout：先找未到达的 rank
 
-故障注入不能只发生在非高峰环境。高峰期的队列、配额和发布动作会改变恢复路径。可以先在隔离资源池做小规模演练，再在生产影子作业验证指标与告警，最后安排可控的真实节点维护。本书结合SRE错误预算的决策方法 [[28]](#ref-28) 设计演练与停止条件，不把该书当特定训练平台已经恢复成功的证据。
+PyTorch 分布式文档提供了通信组与辅助诊断机制，NCCL 也按拓扑、运行时与网络分层提供排障入口 [[39]](#ref-39)[[40]](#ref-40)。诊断从最早的异常开始，而不是只读最后超时的节点：关联所有 rank 的 run、step、collective 序号、通信组、shape、dtype 与进入和退出时间。某个 rank 先发生 OOM、CUDA 错误、进程退出或卡在数据读取时，其他 rank 只是在等它，最后报出的才是 timeout。图 9-8 给出分流路径。
 
-### 数据与模型治理
+```mermaid
+flowchart TB
+    S["NCCL timeout 告警"] --> A["对齐所有 rank 的<br/>collective 序号与进入时间"]
+    A --> B{"是否有 rank<br/>未进入该 collective"}
+    B -->|"是"| C["查该 rank 最早错误<br/>OOM CUDA 错误 退出 数据等待"]
+    C --> C1["数据侧<br/>shard 解压 NUMA CPU"]
+    C --> C2["设备侧<br/>Xid 与 GPU 健康"]
+    B -->|"否"| D{"各 rank 调用参数<br/>是否一致"}
+    D -->|"否"| E["查条件分支 尾批<br/>异常处理 通信组创建"]
+    D -->|"是"| F["查链路<br/>NIC RDMA 拓扑 独立通信复现"]
+    C1 --> G["隔离坏输入或节点<br/>从一致 checkpoint 重启"]
+    C2 --> G
+    E --> G
+    F --> G
+    G --> H["验证游标与 loss token 连续"]
+```
 
-训练数据需要来源、授权、保留期、删除流程和审计。数据处理 worker 获得最小读权限，输出 shard 写入独立路径；日志中的样本文本默认脱敏；调试抽样需要临时授权。模型 checkpoint 可能记忆训练数据或包含内部能力，因此下载、复制、转换和对外发布都应登记。
+*图 9-8 NCCL timeout 的排障分流*
 
-治理信息不应只存在文档中。manifest、job spec、checkpoint manifest 和发布记录都应机器可读，评估系统和权限系统可以据此阻断不合规任务。例如数据 license 不允许某种用途时，控制面在分配 GPU 前拒绝 job；checkpoint 使用了已撤回的数据版本时，注册表阻止发布。治理越晚介入，返工成本越高。
+同一 collective 序号的调用或张量不一致时，检查条件分支、尾批、异常处理和通信组创建；某个 rank 在进入 collective 前长期等待数据时，检查其 shard、解压、NUMA 和 CPU；顺序一致但特定链路反复变慢时，再查 Xid、NIC 与 RDMA、拓扑，并用独立通信测试复现。用于监测的 barrier 也有后端与版本限制，不应插进每个生产 step 制造新的等待。例如 rank3 读到坏 shard 却没有上报异常，其他 rank 都停在梯度同步：正确做法是保留 rank3 的数据等待记录与最早错误，隔离坏输入，从一致的 checkpoint 重启，并确认之后的 loss token 和游标连续。只把 timeout 调大修不好数据源；只有证明合法操作确实需要更长时间时才调整超时，不能用更长的等待掩盖死锁。
 
-### 人工接管边界
+### 故障注入、人工接管与升级基线
 
-自动恢复不是越多越好。短暂的对象存储超时可以自动退避；连续 NCCL hang、NaN、checkpoint 校验失败和数据权限错误应暂停并通知负责人。平台要定义最大重试次数、指数退避、预算上限和升级联系人。重试次数超过阈值后，系统保留现场、停止覆盖健康 checkpoint，并生成包含 job spec、拓扑、最后健康 step 和错误 trace 的诊断包。
+平台至少要演练五类注入：杀死一个 rank、关闭一台节点、阻断集合通信、让对象存储返回超时、损坏一个 checkpoint shard。每次记录检测时间、作业状态、用户可见影响、自动恢复结果、重算 token、恢复后的 loss 和资源释放。若系统只在单进程退出时能恢复，而一个 rank 卡死会让其他进程永久等待，它就不具备生产级弹性。高峰期的队列、配额和发布动作会改变恢复路径，演练可以按隔离资源池小规模演练、生产影子作业验证告警、可控真实节点维护三步推进，并按 SRE 错误预算设定停止条件 [[35]](#ref-35)。
 
-人工接管也要有明确操作。允许负责人选择回滚到某个 checkpoint、跳过坏 shard、改变资源池或终止作业，但每个动作都产生审计事件。不能为了“先跑起来”直接修改共享存储或删除现场。事后复盘应区分代码缺陷、数据缺陷、平台缺陷和容量规划缺陷，并把修复加入下一次验收。
+自动恢复的范围要有边界。短暂的存储超时可以自动退避；连续 NCCL hang、NaN、checkpoint 校验失败和数据权限错误应暂停并通知负责人。超过最大重试次数后，系统保留现场、停止覆盖健康 checkpoint，并生成包含 job spec、拓扑、最后健康 step 和错误 trace 的诊断包。负责人可以选择回滚到某个 checkpoint、跳过坏 shard、更换资源池或终止作业，每个动作都产生审计事件，不能为了“先跑起来”直接修改共享存储或删除现场。复盘时区分代码、数据、平台和容量规划缺陷，把修复加入下一次验收。
 
-
-### 训练作业的可观测事件
-
-除了时间序列指标，还需要结构化事件：JOB_ACCEPTED、ALLOCATION_READY、DATA_STAGE_READY、WORKER_STARTED、STEP_HEALTHY、CHECKPOINT_COMMITTED、NODE_LOST、RECOVERY_STARTED、RECOVERY_SUCCEEDED 和 RUN_FINISHED。每个事件携带 run_id、spec hash、global step、world size、checkpoint version 和时间。这样事故复盘可以重建状态变化，而不是从分散的 stdout 中猜测。
-
-事件系统要处理重复、乱序和延迟。worker 可能在网络恢复后发送旧的 checkpoint 完成事件，控制面必须通过单调 step、版本号和状态机拒绝过期事件。重要事件需要持久化，普通 profiler 数据可以采样。训练控制面不应依赖某个 dashboard 的实时状态作为事实来源，dashboard 只是从事件和指标派生视图。
-
-### 集群升级与基线保护
-
-驱动、CUDA、NCCL、内核、固件和容器基础镜像的升级都可能改变训练结果与性能。升级前应保存固定 workload 的基线，包括吞吐、通信、显存、loss 曲线、异常率和 checkpoint 恢复。升级后用相同 job spec 在同一批或等价节点上运行，并比较允许范围。若只比较速度，不比较 loss 和恢复，可能把数值变化误认为性能提升。
-
-集群升级需要分批和可回退。先用影子作业验证数据和通信，再让低优先级实验迁移，最后处理生产训练。节点标签应标识硬件、driver、NCCL 和固件版本，调度器可以按兼容性选择节点。发生性能回退时，保留旧节点池或旧镜像一段时间，保证正在运行的长任务有安全迁移路径。
-
-### 大规模训练中的尾部任务
-
-平均 step time 不能代表整个训练的体验。某些 step 可能因为 checkpoint、数据刷新、节点抖动、编译或对象存储限流而明显变慢；长尾 step 会决定 wall-clock 完成时间和 GPU 成本。平台应记录 step 的分位数、最大值、慢 step 原因以及慢 step 是否集中在某些节点、数据桶或并行阶段。若只是用平均值计算 ETA，训练可能在最后阶段反复推迟，容量计划也会失真。
-
-尾部还来自 straggler rank。一个 rank 的坏磁盘、远端 NUMA、GPU 降频或网络重传会让整个 collective 等待。训练运行时可以报告每个 rank 的数据准备、forward、backward、通信和 checkpoint 时间，并设置超过阈值的慢 rank 告警。自动摘除慢节点必须谨慎：替换它会触发新的恢复和通信重建，应该比较继续运行与重启的预计成本。
-
-### 一个 step 的完整时间线
-
-为了让性能分析能够落地，可以把每个 step 的时间线固定为：数据游标推进、CPU 预取、Pinned Memory 拷贝、H2D 拷贝、forward、activation 保存或重算、backward、梯度 bucket ready、collective、optimizer update、日志和 checkpoint。每个区间记录开始与结束时间，并以 global step、rank 和 node 关联。这样当吞吐下降时，可以直接回答是数据迟到、GPU kernel 变慢、通信不重叠，还是保存状态引起了暂停。
-
-时间线也能帮助比较不同优化。改变 packing 主要影响有效 token 和数据阶段；改变 FlashAttention 主要影响 attention kernel 与显存；改变 FSDP 主要影响 all-gather、reduce-scatter 和显存峰值；改变 checkpoint 主要影响 I/O 与同步。把所有优化都归结为 GPU utilization，会丢失这些因果关系。性能报告应给出端到端收益以及每个区间的变化，方便后续回归。
-
-### NCCL timeout先找未到达的rank
-
-PyTorch分布式文档给出通信组与辅助诊断机制，NCCL也按拓扑、运行时与网络分层提供排障入口。[[32]](#ref-32)[[33]](#ref-33) 本书诊断流程从最早异常开始：关联所有rank的run/step、collective序号、组、shape、dtype与进入/退出时间，而非只读最后超时的节点。某rank先OOM、CUDA错误、进程退出或卡在数据读取，其他rank可能只是等待它而最后报timeout。
-
-若同一collective序号的调用或张量不一致，检查条件分支、尾批、异常处理和组创建；若某rank在进入collective前长期数据等待，检查其shard、解压、NUMA和CPU；若顺序一致但特定链路反复慢，再查GPU/Xid、NIC/RDMA、拓扑与独立通信复现。监测用barrier也有后端与版本限制，不把它插到所有生产step里制造新等待。
-
-教学故障例：rank3读取坏shard未上报异常，其他rank均停在梯度同步。正确动作是保留rank3的数据等待与最早错误，隔离坏输入，按一致checkpoint重启，并确认后续有效token和游标；只把timeout调大不会修复数据源。若独立通信也复现链路故障，先隔离节点再做长稳/恢复验证。只有证明合法操作确实更长时才调整超时，不能用更长等待掩盖死锁。
-
+驱动、CUDA、NCCL、内核、固件和基础镜像的升级都可能改变性能与数值结果。升级前保存固定 workload 的基线（吞吐、通信、显存、loss 曲线、异常率和恢复），升级后用相同 job spec 在等价节点上比较；只比速度不比 loss 和恢复，可能把数值变化误认为性能提升。升级要分批可回退：先用影子作业验证，再迁移低优先级实验，最后处理生产训练；节点标签标识硬件、driver、NCCL 和固件版本，调度器据此选择兼容节点，并保留旧节点池或旧镜像，给正在运行的长任务留出迁移路径。
 
 ## 9.8 训练平台验收与交付
 
-### 交付前配置
+### 阶梯验证与验收矩阵
 
-交付前应生成一份配置摘要：模型和代码 hash、tokenizer、数据 manifest、数据配方、global batch、sequence length、dtype、并行度、节点类型、网络拓扑、checkpoint 频率、恢复策略、预算和告警阈值。摘要由控制面生成并随 run 保存，避免用户填写一份配置、启动器再隐式覆盖另一份配置。
+交付前由控制面生成配置摘要并随 run 保存，包括模型和代码 hash、tokenizer、数据 manifest、配方、global batch、sequence length、dtype、并行度、节点类型、网络拓扑、checkpoint 频率、恢复策略、预算和告警阈值，避免用户填写一份配置、启动器又隐式覆盖成另一份。验证按阶梯推进：第一阶在单 GPU 上验证数据、loss、checkpoint 和恢复；第二阶在单节点上验证并行组、通信和显存；第三阶在多节点上验证扩展曲线、数据供给、故障替换和 reshard；第四阶才运行目标规模。各阶使用相同的模型和数据语义，只改变资源规模，出问题时才能判断是算法、单机 kernel、跨机网络还是调度器导致。
 
-### 小规模到目标规模的阶梯验证
+验收矩阵包含五类测试：数据正确性（token 统计、样本边界、loss mask、manifest、重复率）、性能扩展（单机、单节点、多节点扩展曲线）、故障恢复（中断、节点替换、checkpoint 损坏、数据不可读）、数值稳定（loss 连续、梯度无异常、不同精度在容差内）和安全治理（权限、审计、成本、数据删除）。每项测试固定模型 hash、数据 manifest、镜像、硬件、驱动、并行度和 global batch，保存原始指标与失败样本，而不只写“通过”：性能提高但 loss 曲线异常不能接受，恢复成功却重复消费了大量数据也不能只算功能通过。上线后，驱动、CUDA、网络、文件系统、数据格式、模型代码或并行配置的每次变化都触发一轮基线对比。
 
-第一阶验证单 GPU 的数据、loss、checkpoint 和恢复；第二阶验证单节点的并行组、通信和显存；第三阶验证多节点的扩展曲线、数据供给、故障替换和 reshard；第四阶才运行目标规模。每一阶都应使用相同的模型和数据语义，区别只在资源规模。这样出现问题时可以判断是算法、单机 kernel、跨机网络还是调度器导致。
+### 性能报告的最小字段
 
-### 交付后的持续检查
+不同团队常用不同口径，导致“吞吐提升”无法复核。下表列出可比较报告的最小字段。报告还必须说明是否包含编译、warmup、验证、checkpoint 和失败重试；原始 trace、汇总 JSON 和可读表格一起保存，报告 hash 写入 run metadata。只有一个数字而没有 workload 与环境的结果，不应作为平台基线。
 
-上线后持续检查有效 token/s、GPU 利用率、通信比例、数据等待、loss、checkpoint 成功率、恢复时间和成本。每次驱动、CUDA、网络、文件系统、数据格式、模型代码或并行配置升级都触发一轮基线对比。若只在初次验收时测量，系统随环境变化退化却不会被发现。
+| 类别 | 字段 | 必选 |
+|:---|:---|:---|
+| 模型与数据 | 参数量、层数、hidden size、sequence length、global batch、micro-batch | 必选 |
+| token 口径 | device token、有效 token、loss token、padding 比例 | 必选 |
+| 资源与并行 | GPU 型号与数量、节点数、TP、PP、DP、EP、dtype | 必选 |
+| 软件环境 | CUDA、driver、NCCL、框架与镜像版本 | 必选 |
+| 时间分解 | step time、forward、backward、通信、数据等待、checkpoint | 必选 |
+| 效率 | MFU 或等价计算效率、显存峰值、扩展效率 \\(E(N)\\) | 必选 |
+| 补充 | kernel 级 profile、rank 方差、慢 step 原因 | 建议 |
 
-训练 Infra 的最终验收不是“脚本跑完”，而是：给定相同的 job spec，平台可以在可接受的时间内分配资源、持续供给数据、达到可解释吞吐，在故障后从一致状态恢复，在发布时生成可验证制品，并且每个资源和质量变化都能追溯到具体版本。这个闭环建立后，后续推理 Infra 才能可靠地消费训练产物。
+### 制品转换与发布门禁
 
-### 训练性能报告的最小字段
+转换器要处理参数命名、分片布局、dtype、权重共享、词表、位置编码和模型 schema，转换后比较参数总量、shape、均值方差、hash 和小 batch 输出；量化模型还要比较校准集质量、最大误差、生成稳定性和特殊 token。转换脚本固定版本并产生日志，不能依赖某台开发机上的临时命令。评估是 checkpoint 生命周期的一部分：训练平台提交 checkpoint hash、模型 schema、tokenizer、数据 manifest 和安全标签，评估平台返回任务 id、指标、样本报告和门禁结论；评估失败、超时或结果不完整时，checkpoint 不能被自动标记为发布候选。改变 tokenizer、模板、数据切分、采样温度或最大输出长度后，指标不能与旧版本直接横向比较。评估证据如何产生见第11章。
 
-一个可比较的性能报告至少包括：模型参数量、层数、hidden size、序列长度、global batch、micro-batch、有效 token、padding token、GPU 型号、GPU 数量、节点数、TP、PP、DP、EP、dtype、CUDA 和 driver 版本。还要包括 step time、forward、backward、通信、数据等待、checkpoint、MFU 或等价计算效率、显存峰值和扩展效率。
+发布门禁的顺序如图 9-9 所示：制品完整性、模型加载、tokenizer 与模板兼容、固定 probe 输出、离线质量、显存峰值、冷启动时间和目标硬件性能，同时检查功能、质量、性能和安全。一个模型可能 loss 更低，却因 tokenizer 变化导致线上输入边界不同；量化可能节省显存，却让结构化输出失败；新 kernel 可能提高吞吐，却在最大长度下产生 NaN。通过门禁的制品要签名并登记来源，注册表记录训练 run、数据 manifest、checkpoint、转换器版本、量化配置、engine build、评估结果和审批者；回滚时按旧 manifest 恢复完整制品，而不是只把 image tag 改回旧值。训练侧 checkpoint 仓库与推理侧模型仓库接口可以不同，但必须共享不可变 hash。之后的灰度与发布流程见第12章。
 
-报告必须说明是否包含编译、warmup、验证、checkpoint 和失败重试。不同团队经常使用不同口径，导致“吞吐提升”无法复核。建议把原始 trace、汇总 JSON 和人类可读表格一起保存，并将报告 hash 写入 run metadata。后续优化如果只保留一个漂亮的数字，而没有 workload 与环境，就不应作为平台基线。
+```mermaid
+flowchart LR
+    A["已提交 checkpoint"] --> B["转换与对比<br/>shape hash 小 batch 输出"]
+    B --> C{"完整性与加载"}
+    C -->|"通过"| D{"tokenizer 与模板兼容"}
+    D -->|"通过"| E{"probe 与离线质量<br/>第11章证据"}
+    E -->|"通过"| F{"显存 冷启动<br/>目标硬件性能"}
+    F -->|"通过"| G["签名并登记<br/>不可变 hash"]
+    G --> H["进入推理注册与灰度<br/>第12章"]
+    C -->|"失败"| X["阻断并保留诊断"]
+    D -->|"失败"| X
+    E -->|"失败或不完整"| X
+    F -->|"失败"| X
+```
 
-### 训练平台与数据平台的接口
+*图 9-9 训练制品的发布门禁*
 
-训练平台向数据平台提出的不是“给我一个路径”，而是一个数据合同：数据版本、schema、授权用途、split、采样权重、tokenizer、分片大小、可用区域、删除策略和质量阈值。数据平台返回 manifest、统计、访问凭证和血缘。合同变更需要版本化，训练平台根据 manifest hash 决定是否允许复用缓存和 checkpoint。
+### 数据合同、可审计性与目标规模检查表
 
-接口还应支持数据不可用和部分可用。一个区域对象存储故障时，训练可以切换到镜像副本，但必须记录数据路径和复制版本；某个 shard 损坏时，可以隔离并跳过，但要报告有效 token 损失。数据平台不应为了满足训练吞吐静默返回旧版本，训练平台也不应为了继续运行绕过授权检查。双方通过显式版本和错误码协作。
+训练平台向数据平台要的不是一个路径，而是一份数据合同：数据版本、schema、授权用途、split、采样权重、tokenizer、分片大小、可用区域、删除策略和质量阈值；数据平台返回 manifest、统计、访问凭证和血缘（机制见 9.2 节）。合同变更要版本化，训练平台按 manifest hash 决定能否复用缓存和 checkpoint。合同也要覆盖部分可用：区域对象存储故障时可以切换到镜像副本，但要记录路径和复制版本；某个 shard 损坏时可以隔离跳过，但要报告有效 token 损失。数据平台不能为了吞吐静默返回旧版本，训练平台也不能为了继续运行绕过授权。治理规则同样应机器可读：数据 license 不允许某种用途时，控制面在分配 GPU 前拒绝 job；checkpoint 使用了已撤回的数据版本时，注册表阻止发布。
 
-### 训练平台与评估平台的接口
+一次训练结果至少要能回答四个问题：用了什么数据（manifest、授权、统计），执行了什么计算（job spec、代码 hash、并行拓扑、镜像），经历了哪些故障（事件、trace、重试与恢复记录），为什么可以发布（评估报告、门禁与审批）。可审计不等于保存全部原始内容：审计记录可以用带权限控制的 hash（敏感的低熵字段不能依赖裸 hash 匿名化）、版本号、长度、来源和时间，敏感文本单独受控；关键事件写入追加式日志，修正通过新事件表达，而不是覆盖旧记录。trace 关联和上下文传播能连接不同服务，数据最小化仍是平台的责任 [[38]](#ref-38)[[36]](#ref-36)。
 
-评估不是训练结束后手动运行一个脚本，而是 checkpoint 生命周期的一部分。训练平台提交 checkpoint hash、模型 schema、tokenizer、数据 manifest 和安全标签；评估平台返回任务 id、指标、样本报告和质量门禁。评估任务失败、超时或结果不完整时，checkpoint 不能被自动标记为发布候选。
+进入目标规模训练前，负责人可以按下表逐项确认。最后一列说明缺失时问题最早在哪里暴露，这也是要把检查前置到小规模验证的原因。
 
-评估结果应区分可比和不可比。改变 tokenizer、模板、数据切分、采样温度或最大输出长度后，指标不应直接与旧版本横向比较。平台保存评估配置和运行时参数，报告中给出质量、延迟、显存和成本的联合视图。只有达到预设门禁且证据完整，模型制品才可以进入推理 Infra 的注册和灰度流程。
-
-### 训练 Infra 的最终检查表
-
-在进入目标规模训练前，负责人可以逐项确认：job spec 是否不可变；数据 manifest 是否可追溯；tokenizer 是否版本化；有效 token 是否能准确统计；读取、解压、packing 和 batch 是否有背压；并行拓扑是否与硬件匹配；通信是否有真实 trace；dtype 和异常是否受监控；checkpoint是否只发布完整快照；恢复是否验证数据游标和 optimizer；失败是否释放资源；成本是否按有效 token 归因；权限和审计是否覆盖 worker；评估和发布是否有门禁。
-
-这些检查不是行政清单，而是系统边界的外化。缺少其中任何一项，都可能把故障推迟到更昂贵的阶段：数据问题会在训练几天后才暴露，checkpoint 问题会在节点故障时暴露，权限问题会在审计时暴露，吞吐问题会在扩大集群后暴露。把它们前置到小规模验证，通常是训练 Infra 最便宜的优化。
-
-### 训练结果的可审计性
-
-一次训练结果至少需要能回答四个问题：使用了什么数据，执行了什么计算，经历了哪些故障，为什么可以发布。数据由 manifest、授权和统计回答；计算由 job spec、代码 hash、并行拓扑和运行时镜像回答；故障由事件、trace、重试和恢复记录回答；发布由评估报告、质量门禁和审批记录回答。把这些信息分散在聊天记录、机器本地日志和手工表格中，短期看似灵活，长期一定无法复盘。
-
-可审计不等于保存所有原始内容。审计记录可以使用带权限控制的hash（敏感低熵字段不能依赖裸hash匿名化）、版本号、长度、来源、权限和时间，敏感文本单独受控。关键事件使用追加式日志，修正通过新事件表达而不是覆盖旧记录。这样既能支持事故调查和合规审查，又不会把训练数据复制到每个监控系统。Dapper 的 trace 关联思想和 OpenTelemetry 的上下文传播可以帮助连接不同服务，但数据最小化仍然是平台责任 [[11]](#ref-11)[[31]](#ref-31)。
-
+| 领域 | 检查项 | 必选 | 缺失时最早暴露的阶段 |
+|:---|:---|:---|:---|
+| 配置 | job spec 不可变，tokenizer 版本化 | 必选 | 结果无法复现时 |
+| 数据 | manifest 可追溯，loss token 统计准确，读取与 packing 有背压 | 必选 | 训练数天后的质量回退 |
+| 并行 | 并行拓扑与硬件匹配，通信有真实 trace | 必选 | 扩大集群之后 |
+| 数值 | dtype 与异常受监控，保留健康点 | 必选 | loss spike 或 NaN 时 |
+| 保存 | 只发布完整快照，恢复验证游标与 optimizer | 必选 | 节点故障时 |
+| 资源 | 失败后资源释放，成本按有效 token 归因 | 必选 | 月度成本核算时 |
+| 治理 | 权限与审计覆盖 worker，评估与发布有门禁 | 必选 | 审计或发布时 |
 
 ## 9.9 本章小结
 
-训练平台以有效监督、并行状态和完整恢复点为核心：数据manifest固定实际消费含义，rank mesh定义副本与分片，通信账本解释字节与等待，数值检查约束kernel优化，checkpoint在安全快照后才发布。性能和恢复必须同时验证，不能通过忽略数据、校验或失败时间制造吞吐提升。
+训练平台把一个长时间运行、状态复杂的分布式任务变成可解释的交付流程，图 9-10 把本章的主要概念串成一条链。数据侧，不可变快照、提交标记、血缘和 schema 兼容规则固定了“训练了什么”；数据游标和 loss token 口径固定了“实际消费了多少”，DAG 只重试失败分区。计算侧，batch 口径、TP 与 PP 的通信和 bubble 结论、ZeRO 与 FSDP 的显存通信账本、3D mesh 与 SP/CP/EP 切分轴，决定了副本与分片的布局；字节账本与 nccl-tests 的 busbw 换算，把通信等待变成可以对账的数字；FlashAttention、混合精度缩放和激活重算的正确性，都要对照高精度参考验收。
 
-训练平台对外交付的是通过转换、兼容和质量检查的 Model Manifest，而不是任意训练目录；与之配套的还有绑定数据与配置的评估记录，以及沿同一资源账本关联的资源、trace 与成本事实。本章新增公式、诊断例与验收设计均为教学设计，未经训练集群或 GPU 实测，不宣称目标规模能力。
+状态侧，checkpoint 只有在一致快照完成、全部分片校验、提交记录写入并通过 CAS 推进发现指针之后才算存在，保存间隔可以用 \\(\sqrt{2\delta M}\\) 估计，恢复兼容性作为调度约束提前传给调度器。运营侧，gang 调度、配额与成本归因、多租户凭证、RLVR 的分资源池配比，以及从最早异常开始的 NCCL 排障，共同保证吞吐与可恢复性同时成立。训练平台对外交付的是通过转换、兼容和质量门禁的模型制品，附带绑定数据与配置的评估记录，以及沿第8章资源账本关联的 trace 与成本事实；推理侧如何消费这些制品见第10章，评估证据见第11章，发布运营见第12章。
+
+```mermaid
+flowchart LR
+    subgraph D["数据"]
+        D1["不可变快照<br/>提交标记 血缘"] --> D2["数据游标<br/>loss token 口径"]
+    end
+    subgraph P["计算"]
+        P1["3D mesh 与<br/>SP CP EP"] --> P2["显存与<br/>通信账本"]
+        P2 --> P3["kernel 与<br/>数值验收"]
+    end
+    subgraph S["状态"]
+        S1["一致快照"] --> S2["提交记录<br/>CAS 指针"]
+    end
+    subgraph O["运营"]
+        O1["gang 调度<br/>恢复约束"] --> O2["观测与排障"]
+        O2 --> O3["发布门禁"]
+    end
+    D2 --> P1
+    P3 --> S1
+    S2 --> O1
+    S2 --> O3
+    O3 --> M["模型制品<br/>与评估记录"]
+```
+
+*图 9-10 本章概念图：从数据快照到可发布制品*
 
 ## 9.10 参考资料
 
-<a id="ref-1"></a>[1] Shoeybi, M., et al. *Megatron-LM: Training Multi-Billion Parameter Language Models Using Model Parallelism*. arXiv, 2019. https://arxiv.org/abs/1909.08053 访问日期：2026-10-17
+1. <a id="ref-1"></a> Shoeybi, M., et al. [Megatron-LM: Training Multi-Billion Parameter Language Models Using Model Parallelism](https://arxiv.org/abs/1909.08053). arXiv, 2019. 核验日期：2026-10-17。
 
-<a id="ref-2"></a>[2] Rajbhandari, S., et al. *ZeRO: Memory Optimizations Toward Training Trillion Parameter Models*. SC, 2020. https://arxiv.org/abs/1910.02054 访问日期：2026-10-17
+2. <a id="ref-2"></a> Rajbhandari, S., et al. [ZeRO: Memory Optimizations Toward Training Trillion Parameter Models](https://arxiv.org/abs/1910.02054). SC, 2020. 核验日期：2026-10-17。
 
-<a id="ref-3"></a>[3] DeepSpeed Team. *Training a Trillion Parameters with Pipeline Parallelism*. 2020. https://www.deepspeed.ai/2020/09/08/pipeline-parallelism.html 核验日期：2026-10-17
+3. <a id="ref-3"></a> Zhao, Y., et al. [PyTorch FSDP: Experiences on Scaling Fully Sharded Data Parallel](https://arxiv.org/abs/2304.11277). arXiv v2, 2023. 核验日期：2026-10-17。
 
-<a id="ref-4"></a>[4] Zhao, Y., et al. *PyTorch FSDP: Experiences on Scaling Fully Sharded Data Parallel*. arXiv v2, 2023. https://arxiv.org/abs/2304.11277 核验日期：2026-10-17
+4. <a id="ref-4"></a> Moritz, P., et al. [Ray: A Distributed Framework for Emerging AI Applications](https://www.usenix.org/conference/osdi18/presentation/moritz). OSDI, 2018. 核验日期：2026-10-17。
 
-<a id="ref-5"></a>[5] Moritz, P., et al. *Ray*. OSDI, 2018. https://www.usenix.org/conference/osdi18/presentation/moritz 访问日期：2026-10-17
+5. <a id="ref-5"></a> Kubernetes Authors. [Schedule GPUs](https://kubernetes.io/docs/tasks/manage-gpus/scheduling-gpus/). Kubernetes 在线文档. 核验日期：2026-10-17。
 
-<a id="ref-6"></a>[6] Kubernetes. *Schedule GPUs*. https://kubernetes.io/docs/tasks/manage-gpus/scheduling-gpus/ 访问日期：2026-10-17
+6. <a id="ref-6"></a> Verma, A., et al. [Large-scale Cluster Management at Google with Borg](https://research.google/pubs/large-scale-cluster-management-at-google-with-borg/). EuroSys, 2015. 核验日期：2026-10-17。
 
-<a id="ref-7"></a>[7] Verma, A., et al. *Large-scale Cluster Management at Google with Borg*. EuroSys, 2015. https://research.google/pubs/large-scale-cluster-management-at-google-with-borg/ 访问日期：2026-10-17
+7. <a id="ref-7"></a> Chowdhery, A., et al. [PaLM: Scaling Language Modeling with Pathways](https://arxiv.org/abs/2204.02311). arXiv, 2022. 核验日期：2026-11-05。
 
-<a id="ref-8"></a>[8] Zaharia, M., et al. *Resilient Distributed Datasets: A Fault-Tolerant Abstraction for In-Memory Cluster Computing*. NSDI, 2012. https://www.usenix.org/conference/nsdi12/technical-sessions/presentation/zaharia 访问日期：2026-10-17
+8. <a id="ref-8"></a> Grattafiori, A., et al. [The Llama 3 Herd of Models](https://arxiv.org/abs/2407.21783). arXiv v3, 2024. 核验日期：2026-10-17。
 
-<a id="ref-9"></a>[9] Chowdhery, A., et al. *PaLM: Scaling Language Modeling with Pathways*. arXiv, 2022. https://arxiv.org/abs/2204.02311 访问日期：2026-10-17
+9. <a id="ref-9"></a> Zaharia, M., et al. [Resilient Distributed Datasets: A Fault-Tolerant Abstraction for In-Memory Cluster Computing](https://www.usenix.org/conference/nsdi12/technical-sessions/presentation/zaharia). NSDI, 2012. 核验日期：2026-10-17。
 
-<a id="ref-10"></a>[10] Grattafiori, A., et al. *The Llama 3 Herd of Models*. arXiv v3, 2024. https://arxiv.org/abs/2407.21783 核验日期：2026-10-17
+10. <a id="ref-10"></a> NVIDIA. [NCCL User Guide: Collective Operations](https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/usage/collectives.html). NCCL 2.32.3 文档. 核验日期：2026-11-05。
 
-<a id="ref-11"></a>[11] OpenTelemetry Authors. *Signals*. 在线文档，核验2026-10-17. https://opentelemetry.io/docs/concepts/signals/
+11. <a id="ref-11"></a> Narayanan, D., et al. [Efficient Large-Scale Language Model Training on GPU Clusters Using Megatron-LM](https://arxiv.org/abs/2104.04473). SC, 2021. 核验日期：2026-10-17。
 
+12. <a id="ref-12"></a> PyTorch Contributors. [FullyShardedDataParallel](https://docs.pytorch.org/docs/2.9/fsdp.html). PyTorch 2.9 文档. 核验日期：2026-11-05。
 
-<a id="ref-12"></a>[12] NVIDIA. *NCCL: Collective Operations*. 2.32.3文档，核验2026-10-17. https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/usage/collectives.html
+13. <a id="ref-13"></a> Rajbhandari, S., et al. [ZeRO-Infinity: Breaking the GPU Memory Wall for Extreme Scale Deep Learning](https://arxiv.org/abs/2104.07857). SC, 2021. 核验日期：2026-10-17。
 
-<a id="ref-13"></a>[13] Rajbhandari, S., et al. *ZeRO-Infinity: Breaking the GPU Memory Wall for Extreme Scale Deep Learning*. SC, 2021. https://arxiv.org/abs/2104.07857 访问日期：2026-10-17
+14. <a id="ref-14"></a> DeepSpeed Team. [Training a Trillion Parameters with Pipeline Parallelism](https://www.deepspeed.ai/2020/09/08/pipeline-parallelism.html). DeepSpeed Blog, 2020. 核验日期：2026-10-17。
 
-<a id="ref-14"></a>[14] Lepikhin, D., et al. *GShard: Scaling Giant Models with Conditional Computation and Automatic Sharding*. 2020. https://arxiv.org/abs/2006.16668 核验日期：2026-10-17
+15. <a id="ref-15"></a> Korthikanti, V., et al. [Reducing Activation Recomputation in Large Transformer Models](https://arxiv.org/abs/2205.05198). arXiv, 2022. 核验日期：2026-10-17。
 
-<a id="ref-15"></a>[15] Fedus, W., et al. *Switch Transformers: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity*. JMLR, 2022. https://arxiv.org/abs/2101.03961 核验日期：2026-10-17
+16. <a id="ref-16"></a> Liu, H., Zaharia, M., Abbeel, P. [Ring Attention with Blockwise Transformers for Near-Infinite Context](https://arxiv.org/abs/2310.01889). arXiv, 2023. 核验日期：2026-10-17。
 
-<a id="ref-16"></a>[16] Narayanan, D., et al. *Efficient Large-Scale Language Model Training on GPU Clusters Using Megatron-LM*. arXiv, 2021. https://arxiv.org/abs/2104.04473 访问日期：2026-10-17
+17. <a id="ref-17"></a> Lepikhin, D., et al. [GShard: Scaling Giant Models with Conditional Computation and Automatic Sharding](https://arxiv.org/abs/2006.16668). arXiv, 2020. 核验日期：2026-10-17。
 
-<a id="ref-17"></a>[17] Korthikanti, V., et al.. *Reducing Activation Recomputation in Large Transformer Models*. 2022. https://arxiv.org/abs/2205.05198 核验日期：2026-10-17
+18. <a id="ref-18"></a> Fedus, W., et al. [Switch Transformers: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity](https://arxiv.org/abs/2101.03961). JMLR, 2022. 核验日期：2026-10-17。
 
-<a id="ref-18"></a>[18] Liu, H., Zaharia, M., Abbeel, P.. *Ring Attention with Blockwise Transformers for Near-Infinite Context*. 2023. https://arxiv.org/abs/2310.01889 核验日期：2026-10-17
+19. <a id="ref-19"></a> Dao, T., et al. [FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness](https://arxiv.org/abs/2205.14135). NeurIPS, 2022. 核验日期：2026-10-17。
 
-<a id="ref-19"></a>[19] Dao, T., et al. *FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness*. NeurIPS, 2022. https://arxiv.org/abs/2205.14135 访问日期：2026-10-17
+20. <a id="ref-20"></a> Dao, T. [FlashAttention-2: Faster Attention with Better Parallelism and Work Partitioning](https://arxiv.org/abs/2307.08691). ICLR, 2024. 核验日期：2026-10-17。
 
-<a id="ref-20"></a>[20] Dao, T. *FlashAttention-2: Faster Attention with Better Parallelism and Work Partitioning*. ICLR, 2024. https://arxiv.org/abs/2307.08691 访问日期：2026-10-17
+21. <a id="ref-21"></a> NVIDIA. [Nsight Compute Profiling Guide](https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html). NVIDIA 在线文档. 核验日期：2026-10-17。
 
-<a id="ref-21"></a>[21] PyTorch. *torch.utils.checkpoint*. 2.9. https://docs.pytorch.org/docs/2.9/checkpoint.html 核验日期：2026-10-17
+22. <a id="ref-22"></a> NVIDIA. [CUDA Programming Guide: Writing SIMT Kernels](https://docs.nvidia.com/cuda/cuda-programming-guide/02-basics/writing-cuda-kernels.html). NVIDIA 在线文档, 2026. 核验日期：2026-10-17。
 
-<a id="ref-22"></a>[22] NVIDIA. *CUDA Programming Guide: Writing SIMT Kernels*. 2026-09-10. https://docs.nvidia.com/cuda/cuda-programming-guide/02-basics/writing-cuda-kernels.html 核验日期：2026-10-17
+23. <a id="ref-23"></a> Triton Contributors. [Triton Language Introduction](https://triton-lang.org/main/programming-guide/chapter-1/introduction.html). Triton 在线文档. 核验日期：2026-10-18。
 
+24. <a id="ref-24"></a> Apache TVM Community. [Design and Architecture](https://tvm.apache.org/docs/arch/index.html). Apache TVM 在线文档. 核验日期：2026-10-18。
 
+25. <a id="ref-25"></a> OpenXLA Authors. [XLA](https://openxla.org/xla). OpenXLA 在线文档. 核验日期：2026-10-18。
 
-<a id="ref-23"></a>[23] Triton Contributors. *Triton Language Introduction*. https://triton-lang.org/main/programming-guide/chapter-1/introduction.html 核验日期：2026-10-18
+26. <a id="ref-26"></a> NVIDIA. [TensorRT Architecture Overview](https://docs.nvidia.com/deeplearning/tensorrt/latest/architecture/architecture-overview.html). NVIDIA 在线文档. 核验日期：2026-10-18。
 
-<a id="ref-24"></a>[24] Apache TVM. *Design and Architecture*. https://tvm.apache.org/docs/arch/index.html 核验日期：2026-10-18
+27. <a id="ref-27"></a> Micikevicius, P., et al. [Mixed Precision Training](https://arxiv.org/abs/1710.03740). ICLR, 2018. 核验日期：2026-11-05。
 
-<a id="ref-25"></a>[25] OpenXLA. *XLA*. https://openxla.org/xla 核验日期：2026-10-18
+28. <a id="ref-28"></a> Micikevicius, P., et al. [FP8 Formats for Deep Learning](https://arxiv.org/abs/2209.05433). arXiv, 2022. 核验日期：2026-11-05。
 
-<a id="ref-26"></a>[26] NVIDIA. *TensorRT Architecture Overview*. https://docs.nvidia.com/deeplearning/tensorrt/latest/architecture/architecture-overview.html 核验日期：2026-10-18
+29. <a id="ref-29"></a> PyTorch Contributors. [torch.utils.checkpoint](https://docs.pytorch.org/docs/2.9/checkpoint.html). PyTorch 2.9 文档. 核验日期：2026-10-17。
 
-<a id="ref-27"></a>[27] NVIDIA. *Nsight Compute Profiling Guide*. online checked 2026-10-17. https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html 核验日期：2026-10-17
+30. <a id="ref-30"></a> NVIDIA. [NCCL User Guide: Point-to-point Communication](https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/usage/p2p.html). NCCL 2.32.3 文档. 核验日期：2026-11-05。
 
-<a id="ref-28"></a>[28] Beyer, B., et al. *The Site Reliability Workbook: Implementing SLOs*. O’Reilly, 2018. https://sre.google/workbook/implementing-slos/ 核验日期：2026-10-17
+31. <a id="ref-31"></a> NVIDIA. [NCCL Tests: Performance Reported by NCCL Tests](https://github.com/NVIDIA/nccl-tests/blob/master/doc/PERFORMANCE.md). GitHub, 2026. 核验日期：2026-11-05。
 
-<a id="ref-29"></a>[29] PyTorch. *Distributed Checkpoint*. 2.9. https://docs.pytorch.org/docs/2.9/distributed.checkpoint.html 核验日期：2026-10-17
+32. <a id="ref-32"></a> PyTorch Contributors. [Distributed Checkpoint - torch.distributed.checkpoint](https://docs.pytorch.org/docs/2.9/distributed.checkpoint.html). PyTorch 2.9 文档. 核验日期：2026-11-05。
 
-<a id="ref-30"></a>[30] Prometheus Authors. *Prometheus Documentation*. https://prometheus.io/docs/introduction/overview/ 访问日期：2026-10-17
+33. <a id="ref-33"></a> Young, J. W. [A First Order Approximation to the Optimum Checkpoint Interval](https://doi.org/10.1145/361147.361115). Communications of the ACM, 17(9), 1974. 核验日期：2026-11-05。
 
-<a id="ref-31"></a>[31] Sigelman, B. H., et al. *Dapper, a Large-Scale Distributed Systems Tracing Infrastructure*. Google Research, 2010. https://research.google/pubs/dapper-a-large-scale-distributed-systems-tracing-infrastructure/ 访问日期：2026-10-17
+34. <a id="ref-34"></a> Daly, J. T. [A Higher Order Estimate of the Optimum Checkpoint Interval for Restart Dumps](https://doi.org/10.1016/j.future.2004.11.016). Future Generation Computer Systems, 22(3), 2006. 核验日期：2026-11-05。
 
-<a id="ref-32"></a>[32] PyTorch. *Distributed communication package*. 2.9文档. https://docs.pytorch.org/docs/2.9/distributed.html 核验日期：2026-10-17
+35. <a id="ref-35"></a> Beyer, B., et al. [The Site Reliability Workbook: Implementing SLOs](https://sre.google/workbook/implementing-slos/). O’Reilly, 2018. 核验日期：2026-10-17。
 
-<a id="ref-33"></a>[33] NVIDIA. *NCCL Troubleshooting*. 2.32.3. https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/troubleshooting.html 核验日期：2026-10-17
+36. <a id="ref-36"></a> OpenTelemetry Authors. [Signals](https://opentelemetry.io/docs/concepts/signals/). OpenTelemetry 在线文档. 核验日期：2026-10-17。
+
+37. <a id="ref-37"></a> Prometheus Authors. [Prometheus Overview](https://prometheus.io/docs/introduction/overview/). Prometheus 在线文档. 核验日期：2026-10-17。
+
+38. <a id="ref-38"></a> Sigelman, B. H., et al. [Dapper, a Large-Scale Distributed Systems Tracing Infrastructure](https://research.google/pubs/dapper-a-large-scale-distributed-systems-tracing-infrastructure/). Google Technical Report, 2010. 核验日期：2026-10-17。
+
+39. <a id="ref-39"></a> PyTorch Contributors. [Distributed Communication Package - torch.distributed](https://docs.pytorch.org/docs/2.9/distributed.html). PyTorch 2.9 文档. 核验日期：2026-10-17。
+
+40. <a id="ref-40"></a> NVIDIA. [NCCL User Guide: Troubleshooting](https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/troubleshooting.html). NCCL 2.32.3 文档. 核验日期：2026-10-17。
